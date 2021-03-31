@@ -1,0 +1,17 @@
+name: UnitTest
+on: [push, pull_request]
+
+jobs:
+  unitests:
+    strategy:
+      matrix:
+        go: [1.15, 1.16]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - run: go mod download
+      - run: go test -race ./...
