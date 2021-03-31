@@ -10,7 +10,7 @@
   </a>
   &nbsp;
   <a aria-label="lint" href="https://github.com/cloudquery/cq-provider-sdk/workflows/unittest/badge.svg">
-      <img alt="" src="https://img.shields.io/github/workflow/status/cloudquery/cq-provider-sdk/unittest?style=for-the-badge">
+      <img alt="" src="https://img.shields.io/github/workflow/status/cloudquery/cq-provider-sdk/UnitTest?style=for-the-badge">
   </a>
 </div>
 
