@@ -128,7 +128,6 @@ func (c Column) ValidateType(v interface{}) error {
 }
 
 func (c Column) checkType(v interface{}) bool {
-
 	if reflect2.IsNil(v) {
 		return true
 	}
@@ -158,11 +157,15 @@ func (c Column) checkType(v interface{}) bool {
 				return true
 			}
 		}
+		if c.Type == TypeJSON {
+			return true
+		}
 		return c.Type == TypeString
 	case *string:
-		{
-			return c.Type == TypeString
+		if c.Type == TypeJSON {
+			return true
 		}
+		return c.Type == TypeString
 	case []string, []*string:
 		return c.Type == TypeStringArray
 	case []int, []*int:
