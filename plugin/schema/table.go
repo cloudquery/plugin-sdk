@@ -16,7 +16,7 @@ type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, 
 // IgnoreErrorFunc checks if returned error from table resolver should be ignored.
 type IgnoreErrorFunc func(err error) bool
 
-type RowResolver func(ctx context.Context, meta ClientMeta, parent *Resource) error
+type RowResolver func(ctx context.Context, meta ClientMeta, resource *Resource) error
 
 type Table struct {
 	// Name of table
