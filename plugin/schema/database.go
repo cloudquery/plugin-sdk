@@ -117,6 +117,8 @@ func GetPgTypeFromType(v ValueType) string {
 		return "text[]"
 	case TypeTimestamp:
 		return "timestamp without time zone"
+	case TypeByteArray:
+		return "bytea"
 	case TypeInvalid:
 		fallthrough
 	default:

@@ -53,6 +53,8 @@ func (v ValueType) String() string {
 		return "TypeStringArray"
 	case TypeTimestamp:
 		return "TypeTimestamp"
+	case TypeByteArray:
+		return "TypeByteArray"
 	case TypeInvalid:
 		fallthrough
 	default:
@@ -82,6 +84,8 @@ func ValueTypeFromString(s string) ValueType {
 		return TypeIntArray
 	case "stringarray", "TypeStringArray":
 		return TypeStringArray
+	case "bytearray":
+		return TypeByteArray
 	case "timestamp", "TypeTimestamp":
 		return TypeTimestamp
 	case "invalid", "TypeInvalid":
