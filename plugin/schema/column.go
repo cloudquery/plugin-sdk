@@ -170,6 +170,8 @@ func (c Column) checkType(v interface{}) bool {
 			return true
 		}
 		return c.Type == TypeString
+	case *float32, float32, *float64, float64:
+		return c.Type == TypeFloat
 	case []string, []*string:
 		return c.Type == TypeStringArray
 	case []int, []*int:
