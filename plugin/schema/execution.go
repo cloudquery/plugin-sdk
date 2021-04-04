@@ -151,7 +151,7 @@ func (e ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, reso
 			continue
 		}
 		// base use case: try to get column with CamelCase name
-		v := funk.Get(resource.Item, strcase.ToCamel(c.Name))
+		v := funk.GetAllowZero(resource.Item, strcase.ToCamel(c.Name))
 		if v == nil {
 			v = c.Default
 		}

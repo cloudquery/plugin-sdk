@@ -116,8 +116,6 @@ type Column struct {
 	Description string
 	// Default value if the resolver/default getting gets a nil value
 	Default interface{}
-	// Elem is if this column is of type Embedded and is embedding multiple columns
-	Elem []Column
 	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
 	Resolver ColumnResolver
 	// Creation options allow to modify how column is defined when table is created

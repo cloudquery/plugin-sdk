@@ -9,7 +9,7 @@ import (
 
 func PathResolver(path string) ColumnResolver {
 	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
-		r.Set(c.Name, funk.Get(r.Item, path))
+		r.Set(c.Name, funk.GetAllowZero(r.Item, path))
 		return nil
 	}
 }
