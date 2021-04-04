@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/thoas/go-funk"
+	"github.com/cloudquery/go-funk"
 )
 
 func PathResolver(path string) ColumnResolver {

@@ -2,10 +2,10 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Masterminds/squirrel v1.5.0 h1:JukIZisrUXadA9pl3rMkjhiamxiB0cXiu+HGp/Y8cY8=
 github.com/Masterminds/squirrel v1.5.0/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
-github.com/cloudquery/go-funk v0.8.1-0.20210404101428-0ba25fc395fb h1:pkFPy35ORAEqk5AfQtjwL8TVITSNXkXvLlAc8m53UWA=
-github.com/cloudquery/go-funk v0.8.1-0.20210404101428-0ba25fc395fb/go.mod h1:+IWnUfUmFO1+WVYQWQtIJHeRRdaIyyYglZN7xzUPe4Q=
-github.com/cloudquery/go-funk v0.8.1-0.20210404121448-4d824a7058bc h1:a5+ZaGBsD60G6GVv/HDQldeilfNk0bB3sUsUHdb+X2c=
-github.com/cloudquery/go-funk v0.8.1-0.20210404121448-4d824a7058bc/go.mod h1:+IWnUfUmFO1+WVYQWQtIJHeRRdaIyyYglZN7xzUPe4Q=
+github.com/cloudquery/go-funk v0.8.1 h1:aPPwgI0HUPU/hoirNrsvzwp6WWfyYQADMt8knjO0yTo=
+github.com/cloudquery/go-funk v0.8.1/go.mod h1:d8TwrmltY3K4mKFbay1pcyqTAz0s6yq+3VWYWg+2f50=
+github.com/cloudquery/go-funk v0.8.2-0.20210404151606-aacdb5e7797f h1:3cGpvb8FXWyW/u33zmilsLAPBcQ/GQNyba/GUjnmThk=
+github.com/cloudquery/go-funk v0.8.2-0.20210404151606-aacdb5e7797f/go.mod h1:d8TwrmltY3K4mKFbay1pcyqTAz0s6yq+3VWYWg+2f50=
 github.com/cockroachdb/apd v1.1.0 h1:3LFP3629v+1aKXU5Q37mxmRxX/pIu1nijXydLShEq5I=
 github.com/cockroachdb/apd v1.1.0/go.mod h1:8Sl8LxpKi29FqWXR16WEFZRNSz3SoPzUzeMeY4+DwBQ=
 github.com/cockroachdb/cockroach-go/v2 v2.0.3 h1:ZA346ACHIZctef6trOTwBAEvPVm1k0uLm/bb2Atc+S8=

@@ -3,9 +3,9 @@ package schema
 import (
 	"context"
 
+	"github.com/cloudquery/go-funk"
 	"github.com/hashicorp/go-hclog"
 	"github.com/iancoleman/strcase"
-	"github.com/thoas/go-funk"
 	"golang.org/x/sync/errgroup"
 )
 

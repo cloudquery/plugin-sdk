@@ -8,7 +8,7 @@ import (
 
 	"github.com/georgysavva/scany/pgxscan"
 
-	"github.com/thoas/go-funk"
+	"github.com/cloudquery/go-funk"
 
 	"github.com/cloudquery/cq-provider-sdk/plugin/schema"
 	"github.com/hashicorp/go-hclog"
