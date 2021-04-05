@@ -183,6 +183,14 @@ func (c Column) checkType(v interface{}) bool {
 		if kindName == reflect.String && c.Type == TypeString {
 			return true
 		}
+		if kindName == reflect.Slice {
+			if c.Type == TypeStringArray && reflect.String == reflect2.TypeOf(v).Type1().Elem().Kind() {
+				return true
+			}
+			if c.Type == TypeIntArray && reflect.Int == reflect2.TypeOf(v).Type1().Elem().Kind() {
+				return true
+			}
+		}
 		if c.Type == TypeSmallInt && (kindName == reflect.Int8 || kindName == reflect.Int16 || kindName == reflect.Uint8) {
 			return true
 		}

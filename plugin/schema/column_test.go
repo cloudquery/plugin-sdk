@@ -56,12 +56,12 @@ var validateFixtures = []validateFixture{
 	},
 	{
 		Column:     Column{Type: TypeIntArray},
-		TestValues: []interface{}{[]int{1, 2, 3}},
+		TestValues: []interface{}{[]int{1, 2, 3}, []SomeInt{SomeInt(3)}},
 		BadValues:  []interface{}{[]interface{}{1, 2, 3}},
 	},
 	{
 		Column:     Column{Type: TypeStringArray},
-		TestValues: []interface{}{[]string{"a", "b", "c"}, []*string{funk.PtrOf("a").(*string)}},
+		TestValues: []interface{}{[]string{"a", "b", "c"}, []*string{funk.PtrOf("a").(*string)}, []SomeString{SomeString("lol")}},
 		BadValues:  []interface{}{[]interface{}{1, 2, 3}},
 	},
 }
