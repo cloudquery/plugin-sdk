@@ -1,4 +1,4 @@
-package plugin
+package provider
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/cq-provider-sdk/logging"
-	"github.com/cloudquery/cq-provider-sdk/plugin/schema"
+	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
@@ -14,7 +14,7 @@ import (
 )
 
 // Every provider implements a resources field we only want to extract that in fetch execution
-type ProviderConfig struct {
+type Config struct {
 	// global timeout in seconds
 	Timeout   int `yaml:"timeout" default:"1200"`
 	Resources []struct {
@@ -23,7 +23,7 @@ type ProviderConfig struct {
 	}
 }
 
-// Provider is the base structure required to pass and serve an sdk plugin.Provider
+// Provider is the base structure required to pass and serve an sdk provider.Provider
 type Provider struct {
 	// Name of plugin i.e aws,gcp, azure etc'
 	Name string
@@ -45,7 +45,7 @@ func (p *Provider) GenConfig() (string, error) {
 	return p.DefaultConfigGenerator()
 }
 
-func (p *Provider) Init(_ string, dsn string, verbose bool) error {
+func (p *Provider) Init(_ string, dsn string, _ bool) error {
 	if p.Logger == nil {
 		p.Logger = logging.New(&hclog.LoggerOptions{
 			Level:      hclog.Trace,
@@ -83,7 +83,7 @@ func (p *Provider) Fetch(data []byte) error {
 		return err
 	}
 
-	var providerCfg ProviderConfig
+	var providerCfg Config
 	if err := defaults.Set(&providerCfg); err != nil {
 		return err
 	}

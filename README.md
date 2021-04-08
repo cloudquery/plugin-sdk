@@ -4,18 +4,8 @@
 </a>
 </p>
 
-<div align="center">
-  <a aria-label="License" href="https://github.com/cloudquery/cloudquery/license.md">
-    <img alt="" src="https://img.shields.io/github/license/cloudquery/cloudquery?style=for-the-badge">
-  </a>
-  &nbsp;
-  <a aria-label="lint" href="https://github.com/cloudquery/cq-provider-sdk/workflows/unittest/badge.svg">
-      <img alt="" src="https://img.shields.io/github/workflow/status/cloudquery/cq-provider-sdk/UnitTest?style=for-the-badge">
-  </a>
-</div>
 
-
-CloudQuery Provider SDK
+CloudQuery Provider SDK ![BuildStatus](https://img.shields.io/github/workflow/status/cloudquery/cq-provider-sdk/UnitTest?style=flat-square) ![License](https://img.shields.io/github/license/cloudquery/cloudquery?style=flat-square)
 =======================
 
 This SDK enables building CloudQuery providers which allows CloudQuery's users to extract/load/transform existing and popular service providers as well as custom in-house solutions into a SQL or Graph Database.

@@ -1,4 +1,4 @@
-package plugin
+package provider
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/cloudquery/go-funk"
 
-	"github.com/cloudquery/cq-provider-sdk/plugin/schema"
+	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/hashicorp/go-hclog"
 	"github.com/huandu/go-sqlbuilder"
 )
