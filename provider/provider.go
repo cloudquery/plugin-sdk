@@ -70,6 +70,18 @@ func (p *Provider) Init(_ string, dsn string, _ bool) error {
 }
 
 func (p *Provider) Fetch(data []byte) error {
+	var providerCfg Config
+	if err := defaults.Set(&providerCfg); err != nil {
+		return err
+	}
+	if err := yaml.Unmarshal(data, &providerCfg); err != nil {
+		return err
+	}
+	if len(providerCfg.Resources) == 0 {
+		p.Logger.Warn("No resource configured to fetch")
+		return nil
+	}
+
 	providerConfig := p.Config()
 	if err := defaults.Set(providerConfig); err != nil {
 		return err
@@ -80,14 +92,6 @@ func (p *Provider) Fetch(data []byte) error {
 
 	providerClient, err := p.Configure(p.Logger, providerConfig)
 	if err != nil {
-		return err
-	}
-
-	var providerCfg Config
-	if err := defaults.Set(&providerCfg); err != nil {
-		return err
-	}
-	if err := yaml.Unmarshal(data, &providerCfg); err != nil {
 		return err
 	}
 
