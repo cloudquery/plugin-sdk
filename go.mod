@@ -7,6 +7,7 @@ require (
 	github.com/cloudquery/go-funk v0.8.2-0.20210404151606-aacdb5e7797f
 	github.com/creasty/defaults v1.5.1
 	github.com/georgysavva/scany v0.2.7
+	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang/protobuf v1.5.0
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/go-hclog v0.15.0

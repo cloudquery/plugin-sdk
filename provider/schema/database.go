@@ -3,6 +3,7 @@ package schema
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/jackc/pgx/v4"
 
@@ -36,14 +37,14 @@ func NewPgDatabase(dsn string) (*PgDatabase, error) {
 // Insert inserts all resources to given table, table and resources are assumed from same table.
 func (p PgDatabase) Insert(ctx context.Context, t *Table, resources []*Resource) error {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	sqlStmt := psql.Insert(t.Name).Columns(t.ColumnNames()...)
+	sqlStmt := psql.Insert(t.Name).Columns(quoteColumns(t.ColumnNames())...)
 	for _, res := range resources {
 		if res.table != t {
 			return fmt.Errorf("resource table expected %s got %s", t.Name, res.table.Name)
 		}
 		values, err := res.Values()
 		if err != nil {
-			return err
+			return fmt.Errorf("table %s insert failed %w", t.Name, err)
 		}
 		sqlStmt = sqlStmt.Values(values...)
 	}
@@ -68,7 +69,7 @@ func (p PgDatabase) Query(ctx context.Context, query string, args ...interface{}
 	return rows, err
 }
 
-// Query  allows execution of postgres queries with given args returning data result
+// QueryOne  allows execution of postgres queries with given args returning data result
 func (p PgDatabase) QueryOne(ctx context.Context, query string, args ...interface{}) pgx.Row {
 	row := p.pool.QueryRow(ctx, query, args...)
 	return row
@@ -124,4 +125,11 @@ func GetPgTypeFromType(v ValueType) string {
 	default:
 		panic("invalid type")
 	}
+}
+
+func quoteColumns(columns []string) []string {
+	for i, v := range columns {
+		columns[i] = strconv.Quote(v)
+	}
+	return columns
 }

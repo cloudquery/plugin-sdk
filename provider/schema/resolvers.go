@@ -24,14 +24,14 @@ func interfaceSlice(slice interface{}) []interface{} {
 	if slice == nil {
 		return nil
 	}
-
 	s := reflect.ValueOf(slice)
+
+	// Keep the distinction between nil and empty slice input
+	if s.Kind() == reflect.Ptr && s.Elem().IsNil() {
+		return nil
+	}
 	if s.Kind() != reflect.Slice {
 		return []interface{}{slice}
-	}
-	// Keep the distinction between nil and empty slice input
-	if s.IsNil() {
-		return nil
 	}
 
 	ret := make([]interface{}, s.Len())

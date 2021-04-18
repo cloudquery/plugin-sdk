@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudquery/go-funk"
+
+	gofrs "github.com/gofrs/uuid"
 	"github.com/google/uuid"
 	"github.com/modern-go/reflect2"
 )
@@ -27,6 +30,7 @@ const (
 	TypeIntArray
 	TypeTimestamp
 	TypeJSON
+	TypeUUIDArray
 )
 
 func (v ValueType) String() string {
@@ -55,6 +59,8 @@ func (v ValueType) String() string {
 		return "TypeTimestamp"
 	case TypeByteArray:
 		return "TypeByteArray"
+	case TypeUUIDArray:
+		return "TypeUUIDArray"
 	case TypeInvalid:
 		fallthrough
 	default:
@@ -70,7 +76,7 @@ func ValueTypeFromString(s string) ValueType {
 		return TypeInt
 	case "bigint", "TypeBigInt":
 		return TypeBigInt
-	case "SmallInt", "TypeSmallInt":
+	case "smallint", "TypeSmallInt":
 		return TypeSmallInt
 	case "float", "TypeFloat":
 		return TypeFloat
@@ -88,6 +94,8 @@ func ValueTypeFromString(s string) ValueType {
 		return TypeByteArray
 	case "timestamp", "TypeTimestamp":
 		return TypeTimestamp
+	case "uuidarray", "TypeUUIDArray":
+		return TypeUUIDArray
 	case "invalid", "TypeInvalid":
 		return TypeInvalid
 	default:
@@ -133,10 +141,16 @@ func (c Column) checkType(v interface{}) bool {
 	if reflect2.IsNil(v) {
 		return true
 	}
+
+	if reflect2.TypeOf(v).Kind() == reflect.Ptr {
+		return c.checkType(funk.GetOrElse(v, nil))
+	}
+
 	// Maps are jsons
 	if reflect2.TypeOf(v).Kind() == reflect.Map {
 		return c.Type == TypeJSON
 	}
+
 	switch val := v.(type) {
 	case int8, *int8, uint8, *uint8, int16, *int16:
 		return c.Type == TypeSmallInt
@@ -170,13 +184,17 @@ func (c Column) checkType(v interface{}) bool {
 		return c.Type == TypeString
 	case *float32, float32, *float64, float64:
 		return c.Type == TypeFloat
-	case []string, []*string:
+	case []string, []*string, *[]string:
 		return c.Type == TypeStringArray
-	case []int, []*int:
+	case []int, []*int, *[]int:
 		return c.Type == TypeIntArray
 	case time.Time, *time.Time:
 		return c.Type == TypeTimestamp
 	case uuid.UUID, *uuid.UUID:
+		return c.Type == TypeUUID
+	case gofrs.UUID, *gofrs.UUID:
+		return c.Type == TypeUUID
+	case [16]byte:
 		return c.Type == TypeUUID
 	case interface{}:
 		kindName := reflect2.TypeOf(v).Kind()
@@ -189,6 +207,9 @@ func (c Column) checkType(v interface{}) bool {
 			}
 			if c.Type == TypeIntArray && reflect.Int == reflect2.TypeOf(v).Type1().Elem().Kind() {
 				return true
+			}
+			if c.Type == TypeUUIDArray && reflect2.TypeOf(v).String() == "uuid.UUID" || reflect2.TypeOf(v).String() == "*uuid.UUID" {
+				return c.Type == TypeUUIDArray
 			}
 		}
 		if c.Type == TypeSmallInt && (kindName == reflect.Int8 || kindName == reflect.Int16 || kindName == reflect.Uint8) {

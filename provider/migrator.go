@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/georgysavva/scany/pgxscan"
@@ -47,7 +48,6 @@ func (m Migrator) upgradeTable(ctx context.Context, t *schema.Table) error {
 	columnsToAdd, _ := funk.DifferenceString(t.ColumnNames(), existingColumns.Columns)
 	for _, d := range columnsToAdd {
 		m.log.Debug("adding column", "column", d)
-
 		col := t.Column(d)
 		sql, _ := sqlbuilder.Buildf(addColumnToTable, sqlbuilder.Raw(t.Name), sqlbuilder.Raw(d), sqlbuilder.Raw(schema.GetPgTypeFromType(col.Type))).BuildWithFlavor(sqlbuilder.PostgreSQL)
 		if err := m.db.Exec(ctx, sql); err != nil {
@@ -96,7 +96,7 @@ func GetFunctionName(i interface{}) string {
 
 func (m Migrator) buildColumns(ctb *sqlbuilder.CreateTableBuilder, cc []schema.Column, parent *schema.Table) {
 	for _, c := range cc {
-		defs := []string{c.Name, schema.GetPgTypeFromType(c.Type)}
+		defs := []string{strconv.Quote(c.Name), schema.GetPgTypeFromType(c.Type)}
 		// TODO: This is a bit ugly. Think of a better way
 		if strings.HasSuffix(GetFunctionName(c.Resolver), "ParentIdResolver") {
 			defs = append(defs, "REFERENCES", parent.Name, "ON DELETE CASCADE")

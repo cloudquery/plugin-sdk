@@ -25,7 +25,7 @@ type ExecutionData struct {
 	Column *Column
 }
 
-// Create a new execution data
+// NewExecutionData Create a new execution data
 func NewExecutionData(db Database, logger hclog.Logger, table *Table) ExecutionData {
 	return ExecutionData{
 		Table:  table,
