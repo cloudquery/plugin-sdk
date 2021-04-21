@@ -39,3 +39,18 @@ func TestPathResolver(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, resource.Get("unexported"))
 }
+
+func TestInterfaceSlice(t *testing.T) {
+	var sType []interface{}
+	var names []string
+	names = append(names, "first", "second")
+	assert.IsTypef(t, sType, interfaceSlice(names), "")
+	assert.IsTypef(t, sType, interfaceSlice(&names), "")
+	assert.IsTypef(t, sType, interfaceSlice(1), "")
+	assert.IsTypef(t, sType, interfaceSlice(innerStruct{"asdsa"}), "")
+	assert.IsTypef(t, sType, interfaceSlice(&innerStruct{"asdsa"}), "")
+	pSlice := []*innerStruct{{"asdsa"}, {"asdsa"}, {"asdsa"}}
+	assert.IsTypef(t, sType, interfaceSlice(pSlice), "")
+	assert.IsTypef(t, sType, interfaceSlice(&pSlice), "")
+
+}
