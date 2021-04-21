@@ -49,6 +49,10 @@ func (m Migrator) upgradeTable(ctx context.Context, t *schema.Table) error {
 	for _, d := range columnsToAdd {
 		m.log.Debug("adding column", "column", d)
 		col := t.Column(d)
+		if col == nil {
+			m.log.Warn("column missing from table, not adding it", "table", t.Name, "column", d)
+			continue
+		}
 		sql, _ := sqlbuilder.Buildf(addColumnToTable, sqlbuilder.Raw(t.Name), sqlbuilder.Raw(d), sqlbuilder.Raw(schema.GetPgTypeFromType(col.Type))).BuildWithFlavor(sqlbuilder.PostgreSQL)
 		if err := m.db.Exec(ctx, sql); err != nil {
 			return err
