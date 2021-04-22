@@ -18,7 +18,7 @@ import (
 
 const queryTableColumns = `SELECT array_agg(column_name::text) as columns FROM information_schema.columns WHERE table_name = $1`
 
-const addColumnToTable = `ALTER TABLE %s ADD COLUMN %v %v;`
+const addColumnToTable = `ALTER TABLE %s ADD COLUMN IF NOT EXISTS %v %v;`
 
 // Migrator handles creation of schema.Table in database if they don't exist
 type Migrator struct {
