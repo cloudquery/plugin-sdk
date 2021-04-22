@@ -10,8 +10,8 @@ require (
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang/protobuf v1.5.0
 	github.com/google/uuid v1.2.0
-	github.com/hashicorp/go-hclog v0.15.0
-	github.com/hashicorp/go-plugin v1.4.0
+	github.com/hashicorp/go-hclog v0.16.0
+	github.com/hashicorp/go-plugin v1.4.1
 	github.com/huandu/go-sqlbuilder v1.12.0
 	github.com/iancoleman/strcase v0.1.2
 	github.com/jackc/pgproto3/v2 v2.0.7 // indirect
