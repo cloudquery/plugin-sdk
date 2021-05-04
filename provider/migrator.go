@@ -27,7 +27,10 @@ type Migrator struct {
 }
 
 func NewMigrator(db schema.Database, log hclog.Logger) Migrator {
-	return Migrator{db, log}
+	return Migrator{
+		db,
+		log,
+	}
 }
 
 func (m Migrator) upgradeTable(ctx context.Context, t *schema.Table) error {

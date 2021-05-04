@@ -9,14 +9,12 @@ import (
 
 func PathResolver(path string) ColumnResolver {
 	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
-		r.Set(c.Name, funk.GetAllowZero(r.Item, path))
-		return nil
+		return r.Set(c.Name, funk.GetAllowZero(r.Item, path))
 	}
 }
 
 func ParentIdResolver(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
-	r.Set(c.Name, r.Parent.Id())
-	return nil
+	return r.Set(c.Name, r.Parent.Id())
 }
 
 func interfaceSlice(slice interface{}) []interface{} {

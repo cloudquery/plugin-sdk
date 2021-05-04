@@ -1,6 +1,9 @@
 package schema
 
 import (
+	"fmt"
+
+	"github.com/cloudquery/go-funk"
 	"github.com/google/uuid"
 )
 
@@ -31,8 +34,13 @@ func (r Resource) Get(key string) interface{} {
 	return r.data[key]
 }
 
-func (r Resource) Set(key string, value interface{}) {
+func (r Resource) Set(key string, value interface{}) error {
+	columnExists := funk.ContainsString(r.table.ColumnNames(), key)
+	if !columnExists {
+		return fmt.Errorf("column %s does not exits", key)
+	}
 	r.data[key] = value
+	return nil
 }
 
 func (r Resource) Id() uuid.UUID {

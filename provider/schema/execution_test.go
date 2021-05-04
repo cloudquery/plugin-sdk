@@ -152,7 +152,8 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		testTable.Resolver = dataReturningSingleResolver
 		var expectedResource *Resource
 		testTable.PostResourceResolver = func(ctx context.Context, meta ClientMeta, parent *Resource) error {
-			parent.Set("name", "other")
+			err := parent.Set("name", "other")
+			assert.Nil(t, err)
 			expectedResource = parent
 			return nil
 		}

@@ -60,6 +60,14 @@ func (p *Provider) Init(_ string, dsn string, _ bool) error {
 	// Create tables
 	m := NewMigrator(p.db, p.Logger)
 	for _, t := range p.ResourceMap {
+
+		// validate table
+		validationErr := schema.ValidateTable(t)
+		if validationErr != nil {
+			p.Logger.Error("table validation failed", "table", t.Name, "error", err)
+			return err
+		}
+
 		err := m.CreateTable(context.Background(), t, nil)
 		if err != nil {
 			p.Logger.Error("failed to create table", "table", t.Name, "error", err)

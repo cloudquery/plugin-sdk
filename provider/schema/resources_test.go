@@ -57,24 +57,33 @@ type zeroValuedStruct struct {
 func TestResourceColumns(t *testing.T) {
 
 	r := NewResourceData(testTable, nil, nil)
-	r.Set("name", "test")
+	errf := r.Set("name", "test")
+	assert.Nil(t, errf)
 	assert.Equal(t, r.Get("name"), "test")
 	v, err := r.Values()
 	assert.Nil(t, err)
 	assert.Equal(t, v, []interface{}{r.id, "test", nil, nil})
 	// Set invalid type to resource
-	r.Set("name", 5)
+	errf = r.Set("name", 5)
+	assert.Nil(t, errf)
 	v, err = r.Values()
 	assert.Error(t, err)
 	assert.Nil(t, v)
 
 	// Set resource fully
-	r.Set("name", "test")
-	r.Set("name_no_prefix", "name_no_prefix")
-	r.Set("prefix_name", "prefix_name")
+	errf = r.Set("name", "test")
+	assert.Nil(t, errf)
+	errf = r.Set("name_no_prefix", "name_no_prefix")
+	assert.Nil(t, errf)
+	errf = r.Set("prefix_name", "prefix_name")
+	assert.Nil(t, errf)
 	v, err = r.Values()
 	assert.Nil(t, err)
 	assert.Equal(t, v, []interface{}{r.id, "test", "name_no_prefix", "prefix_name"})
+
+	// check non existing col
+	err = r.Set("non_exist_col", "test")
+	assert.Error(t, err)
 }
 
 func TestResourceResolveColumns(t *testing.T) {

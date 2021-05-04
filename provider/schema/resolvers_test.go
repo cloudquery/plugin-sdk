@@ -24,6 +24,22 @@ func TestPathResolver(t *testing.T) {
 	resource := &Resource{
 		Item: testStruct{Inner: innerStruct{Value: "bla"}, Value: 5, unexported: false},
 		data: map[string]interface{}{},
+		table: &Table{
+			Columns: []Column{
+				{
+					Name: "test",
+					Type: TypeString,
+				},
+				{
+					Name: "int_value",
+					Type: TypeInt,
+				},
+				{
+					Name: "unexported",
+					Type: TypeBool,
+				},
+			},
+		},
 	}
 	err := r1(context.TODO(), nil, resource, Column{Name: "test"})
 

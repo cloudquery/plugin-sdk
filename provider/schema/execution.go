@@ -155,7 +155,10 @@ func (e ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, reso
 		if v == nil {
 			v = c.Default
 		}
-		resource.Set(c.Name, v)
+		err := resource.Set(c.Name, v)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
