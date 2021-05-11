@@ -82,16 +82,13 @@ func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.Configu
 	// Create tables
 	m := NewMigrator(p.db, p.Logger)
 	for _, t := range p.ResourceMap {
-
 		// validate table
-		validationErr := schema.ValidateTable(t)
-		if validationErr != nil {
+		if err := schema.ValidateTable(t); err != nil {
 			p.Logger.Error("table validation failed", "table", t.Name, "error", err)
 			return &cqproto.ConfigureProviderResponse{}, err
 		}
 
-		err := m.CreateTable(context.Background(), t, nil)
-		if err != nil {
+		if err := m.CreateTable(context.Background(), t, nil); err != nil {
 			p.Logger.Error("failed to create table", "table", t.Name, "error", err)
 			return &cqproto.ConfigureProviderResponse{}, err
 		}
@@ -114,6 +111,11 @@ func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.Configu
 }
 
 func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchResourcesRequest, sender cqproto.FetchResourcesSender) error {
+
+	if p.meta == nil {
+		return fmt.Errorf("provider client is not configured, call ConfigureProvider first")
+	}
+
 	g, gctx := errgroup.WithContext(ctx)
 	finishedResources := make(map[string]bool, len(request.Resources))
 	l := sync.Mutex{}
