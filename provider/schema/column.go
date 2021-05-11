@@ -7,11 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudquery/go-funk"
-
 	gofrs "github.com/gofrs/uuid"
 	"github.com/google/uuid"
 	"github.com/modern-go/reflect2"
+	"github.com/thoas/go-funk"
 )
 
 type ValueType int

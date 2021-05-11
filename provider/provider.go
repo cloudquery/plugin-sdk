@@ -3,58 +3,80 @@ package provider
 import (
 	"context"
 	"fmt"
-	"time"
+	"log"
+	"sync"
+	"sync/atomic"
 
+	"github.com/thoas/go-funk"
+
+	"github.com/cloudquery/cq-provider-sdk/cqproto"
+	"github.com/cloudquery/cq-provider-sdk/helpers"
 	"github.com/cloudquery/cq-provider-sdk/logging"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcl/v2/hclsimple"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"golang.org/x/sync/errgroup"
-	"gopkg.in/yaml.v2"
 )
 
-// Every provider implements a resources field we only want to extract that in fetch execution
-type Config struct {
-	// global timeout in seconds
-	Timeout   int `yaml:"timeout" default:"1200"`
-	Resources []struct {
-		Name  string
-		Other map[string]interface{} `yaml:",inline"`
-	}
+// Config Every provider implements a resources field we only want to extract that in fetch execution
+type Config interface {
+	// Example returns a configuration example (with comments) so user clients can generate an example config
+	Example() string
 }
 
 // Provider is the base structure required to pass and serve an sdk provider.Provider
 type Provider struct {
 	// Name of plugin i.e aws,gcp, azure etc'
 	Name string
+	// Version of the provider
+	Version string
 	// Configure the provider and return context
 	Configure func(hclog.Logger, interface{}) (schema.ClientMeta, error)
 	// ResourceMap is all resources supported by this plugin
 	ResourceMap map[string]*schema.Table
-	// Configuration unmarshalled from Fetch request
-	Config func() interface{}
+	// Configuration decoded from configure request
+	Config func() Config
 	// Logger to call
 	Logger hclog.Logger
-	// DefaultConfigGenerator generates the default configuration for a client to execute this provider
-	DefaultConfigGenerator func() (string, error)
 	// Database connection
 	db schema.Database
+	// meta is the provider's client created when configure is called
+	meta schema.ClientMeta
 }
 
-func (p *Provider) GenConfig() (string, error) {
-	return p.DefaultConfigGenerator()
+func (p *Provider) GetProviderSchema(_ context.Context, _ *cqproto.GetProviderSchemaRequest) (*cqproto.GetProviderSchemaResponse, error) {
+	return &cqproto.GetProviderSchemaResponse{
+		Name:           p.Name,
+		Version:        p.Version,
+		ResourceTables: p.ResourceMap,
+	}, nil
 }
 
-func (p *Provider) Init(_ string, dsn string, _ bool) error {
+func (p *Provider) GetProviderConfig(_ context.Context, _ *cqproto.GetProviderConfigRequest) (*cqproto.GetProviderConfigResponse, error) {
+	providerConfig := p.Config()
+	if err := defaults.Set(providerConfig); err != nil {
+		return &cqproto.GetProviderConfigResponse{}, err
+	}
+	data := fmt.Sprintf(`
+		provider "%s" {
+			%s
+			resources = %s
+		}`, p.Name, p.Config().Example(), helpers.FormatSlice(funk.Keys(p.ResourceMap).([]string)))
+	return &cqproto.GetProviderConfigResponse{Config: hclwrite.Format([]byte(data))}, nil
+}
+
+func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.ConfigureProviderRequest) (*cqproto.ConfigureProviderResponse, error) {
 	if p.Logger == nil {
 		p.Logger = logging.New(&hclog.LoggerOptions{
 			Level:      hclog.Trace,
 			JSONFormat: true,
 		})
 	}
-	conn, err := schema.NewPgDatabase(dsn)
+	conn, err := schema.NewPgDatabase(request.Connection.DSN)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	p.db = conn
 	// Create tables
@@ -65,56 +87,72 @@ func (p *Provider) Init(_ string, dsn string, _ bool) error {
 		validationErr := schema.ValidateTable(t)
 		if validationErr != nil {
 			p.Logger.Error("table validation failed", "table", t.Name, "error", err)
-			return err
+			return &cqproto.ConfigureProviderResponse{}, err
 		}
 
 		err := m.CreateTable(context.Background(), t, nil)
 		if err != nil {
 			p.Logger.Error("failed to create table", "table", t.Name, "error", err)
-			return err
+			return &cqproto.ConfigureProviderResponse{}, err
 		}
-	}
-	return nil
-}
-
-func (p *Provider) Fetch(data []byte) error {
-	var providerCfg Config
-	if err := defaults.Set(&providerCfg); err != nil {
-		return err
-	}
-	if err := yaml.Unmarshal(data, &providerCfg); err != nil {
-		return err
-	}
-	if len(providerCfg.Resources) == 0 {
-		p.Logger.Warn("No resource configured to fetch")
-		return nil
 	}
 
 	providerConfig := p.Config()
 	if err := defaults.Set(providerConfig); err != nil {
-		return err
+		return &cqproto.ConfigureProviderResponse{}, err
 	}
-	if err := yaml.Unmarshal(data, providerConfig); err != nil {
-		return err
+	if err := hclsimple.Decode("config.json", request.Config, nil, providerConfig); err != nil {
+		log.Fatalf("Failed to load configuration: %s", err)
 	}
 
-	providerClient, err := p.Configure(p.Logger, providerConfig)
+	client, err := p.Configure(p.Logger, providerConfig)
 	if err != nil {
-		return err
+		return &cqproto.ConfigureProviderResponse{}, err
 	}
+	p.meta = client
+	return &cqproto.ConfigureProviderResponse{}, nil
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(providerCfg.Timeout)*time.Second)
-	defer cancel()
-
-	g, ctx := errgroup.WithContext(ctx)
-	for _, r := range providerCfg.Resources {
-		table, ok := p.ResourceMap[r.Name]
+func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchResourcesRequest, sender cqproto.FetchResourcesSender) error {
+	g, gctx := errgroup.WithContext(ctx)
+	finishedResources := make(map[string]bool, len(request.Resources))
+	l := sync.Mutex{}
+	var totalResourceCount uint64 = 0
+	for _, resource := range request.Resources {
+		table, ok := p.ResourceMap[resource]
 		if !ok {
-			return fmt.Errorf("plugin %s does not provide resource %s", p.Name, r.Name)
+			return fmt.Errorf("plugin %s does not provide resource %s", p.Name, resource)
 		}
 		execData := schema.NewExecutionData(p.db, p.Logger, table)
+		p.Logger.Debug("fetching table...", "provider", p.Name, "table", table.Name)
+		// Save resource aside
+		r := resource
+		l.Lock()
+		finishedResources[r] = false
+		l.Unlock()
 		g.Go(func() error {
-			return execData.ResolveTable(ctx, providerClient, nil)
+			resourceCount, err := execData.ResolveTable(gctx, p.meta, nil)
+			l.Lock()
+			finishedResources[r] = true
+			atomic.AddUint64(&totalResourceCount, resourceCount)
+			l.Unlock()
+			if err != nil {
+				return sender.Send(&cqproto.FetchResourcesResponse{
+					FinishedResources: finishedResources,
+					ResourceCount:     resourceCount,
+					Error:             err.Error(),
+				})
+			}
+			err = sender.Send(&cqproto.FetchResourcesResponse{
+				FinishedResources: finishedResources,
+				ResourceCount:     resourceCount,
+				Error:             "",
+			})
+			if err != nil {
+				return err
+			}
+			p.Logger.Debug("fetching table...", "provider", p.Name, "table", table.Name)
+			return nil
 		})
 	}
 	return g.Wait()

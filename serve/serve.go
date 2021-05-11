@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/cloudquery/cq-provider-sdk/proto"
+	"github.com/cloudquery/cq-provider-sdk/cqproto"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/go-hclog"
@@ -20,7 +20,7 @@ var Handshake = plugin.HandshakeConfig{
 
 // PluginMap is the map of plugins we can dispense.
 var PluginMap = map[string]plugin.Plugin{
-	"provider": &proto.CQPlugin{},
+	"provider": &cqproto.CQPlugin{},
 }
 
 type Options struct {
@@ -28,7 +28,7 @@ type Options struct {
 	Name string
 
 	// Required: Provider is the actual provider that will be served.
-	Provider proto.CQProvider
+	Provider cqproto.CQProviderServer
 
 	// Optional: Logger is the logger that go-plugin will use.
 	Logger hclog.Logger
@@ -86,8 +86,8 @@ func serve(opts *Options) {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: Handshake,
 		VersionedPlugins: map[int]plugin.PluginSet{
-			1: {
-				"provider": &proto.CQPlugin{Impl: opts.Provider},
+			2: {
+				"provider": &cqproto.CQPlugin{Impl: opts.Provider},
 			}},
 		GRPCServer: func(opts []grpc.ServerOption) *grpc.Server {
 			return grpc.NewServer(opts...)

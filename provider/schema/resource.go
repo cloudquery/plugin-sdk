@@ -3,7 +3,8 @@ package schema
 import (
 	"fmt"
 
-	"github.com/cloudquery/go-funk"
+	"github.com/thoas/go-funk"
+
 	"github.com/google/uuid"
 )
 

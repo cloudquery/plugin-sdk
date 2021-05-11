@@ -116,35 +116,35 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 
 	t.Run("failing table resolver", func(t *testing.T) {
 		testTable.Resolver = failingTableResolver
-		err := exec.ResolveTable(context.Background(), mockedClient, nil)
+		_, err := exec.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Error(t, err)
 		execFailing := NewExecutionData(mockDb, logger, testBadColumnResolverTable)
-		err = execFailing.ResolveTable(context.Background(), mockedClient, nil)
+		_, err = execFailing.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Error(t, err)
 	})
 
 	t.Run("doing nothing resolver", func(t *testing.T) {
 		testTable.Resolver = doNothingResolver
-		err := exec.ResolveTable(context.Background(), mockedClient, nil)
+		_, err := exec.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Nil(t, err)
 	})
 
 	t.Run("simple returning resources insert", func(t *testing.T) {
 		mockDb.On("Insert", mock.Anything, testTable, mock.Anything).Return(nil)
 		testTable.Resolver = dataReturningResolver
-		err := exec.ResolveTable(context.Background(), mockedClient, nil)
+		_, err := exec.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Nil(t, err)
 	})
 	t.Run("simple returning single resources insert", func(t *testing.T) {
 		mockDb.On("Insert", mock.Anything, testTable, mock.Anything).Return(nil)
 		testTable.Resolver = dataReturningSingleResolver
-		err := exec.ResolveTable(context.Background(), mockedClient, nil)
+		_, err := exec.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Nil(t, err)
 	})
 	t.Run("simple returning nil resources insert", func(t *testing.T) {
 		mockDb = new(mockDatabase)
 		testTable.Resolver = passingNilResolver
-		err := exec.ResolveTable(context.Background(), mockedClient, nil)
+		_, err := exec.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Nil(t, err)
 		mockDb.AssertNumberOfCalls(t, "Insert", 0)
 	})
@@ -158,13 +158,13 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 			return nil
 		}
 		mockDb.On("Insert", mock.Anything, testTable, mock.Anything).Return(nil)
-		err := exec.ResolveTable(context.Background(), mockedClient, nil)
+		_, err := exec.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Equal(t, expectedResource.data["name"], "other")
 		assert.Nil(t, err)
 		testTable.PostResourceResolver = func(ctx context.Context, meta ClientMeta, parent *Resource) error {
 			return errors.New("error")
 		}
-		err = exec.ResolveTable(context.Background(), mockedClient, nil)
+		_, err = exec.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Error(t, err)
 	})
 
@@ -180,7 +180,7 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 			expectedResource = parent
 			return nil
 		}
-		err := execDefault.ResolveTable(context.Background(), mockedClient, nil)
+		_, err := execDefault.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedResource.data["name"], "defaultValue")
 	})

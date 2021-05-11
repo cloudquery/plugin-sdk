@@ -4,12 +4,12 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/cloudquery/go-funk"
+	"github.com/thoas/go-funk"
 )
 
 func PathResolver(path string) ColumnResolver {
 	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
-		return r.Set(c.Name, funk.GetAllowZero(r.Item, path))
+		return r.Set(c.Name, funk.Get(r.Item, path, funk.WithAllowZero()))
 	}
 }
 

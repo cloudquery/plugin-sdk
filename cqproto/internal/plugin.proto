@@ -1,0 +1,110 @@
+syntax = "proto3";
+package proto;
+option go_package = "/internal";
+
+
+service Provider {
+  // Information about what a provider supports/expects
+  rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
+  // Gets a provider's configuration example
+  rpc GetProviderConfig(GetProviderConfig.Request) returns (GetProviderConfig.Response);
+
+  // One-time initialization, called before other functions below
+  rpc ConfigureProvider(ConfigureProvider.Request) returns (ConfigureProvider.Response);
+
+  // Fetch Provider Resources
+  rpc FetchResources(FetchResources.Request) returns (stream FetchResources.Response);
+
+}
+
+
+message ConfigureProvider {
+  message Request {
+    // Version of cloudquery executing this plugin
+    string cloudquery_version = 1;
+    // Connection details for connecting to the database
+    ConnectionDetails connection = 2;
+    // Holds information such as credentials, regions, accounts, etc'
+    bytes config = 3;
+  }
+  message Response {
+    string error = 1;
+  }
+}
+
+
+message FetchResources {
+  message Request {
+    // list of resources provider is requested to fetch
+    repeated string resources = 1;
+  }
+  message Response {
+    // map of resources that have finished fetching
+    map<string, bool> finished_resources = 1;
+    // Amount of resources collected so far
+    uint64 resource_count = 2;
+    // Error value if any, if returned the stream will be canceled
+    string error = 3;
+  }
+}
+
+message GetProviderSchema {
+  message Request {}
+  message Response {
+    string name = 1;
+    string version = 2;
+    map<string, Table> resource_tables = 3;
+  }
+}
+
+message GetProviderConfig {
+  message Request {}
+  message Response {
+    string name = 1;
+    string version = 2;
+    bytes config = 3;
+  }
+}
+
+// Table is the definition of how a table is defined in a provider
+message Table {
+  string name = 1;
+  string description = 2;
+  repeated Column columns = 3;
+  repeated Table relations = 4;
+
+}
+
+message Column {
+  string name = 1;
+  string description = 2;
+  ColumnType type = 3;
+  // TODO: add creation options i.e isUnique, isNull etc'
+}
+
+enum ColumnType {
+  INVALID = 0;
+  BOOL = 1;
+  SMALLINT = 2;
+  INT = 3;
+  BIGINT = 4;
+  FLOAT = 5;
+  UUID = 6;
+  STRING = 7;
+  BYTE_ARRAY = 8;
+  STRING_ARRAY = 9;
+  INT_ARRAY = 10;
+  TIMESTAMP = 11;
+  JSON = 12;
+  UUID_ARRAY = 13;
+}
+
+
+enum ConnectionType {
+  POSTGRES = 0;
+}
+
+message ConnectionDetails {
+  ConnectionType type = 1;
+  string dsn = 2;
+}

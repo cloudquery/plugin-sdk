@@ -4,7 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/go-funk"
+	"github.com/thoas/go-funk"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )

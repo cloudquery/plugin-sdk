@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/cloudquery/cq-provider-sdk/logging"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
@@ -87,6 +89,14 @@ func TestResourceColumns(t *testing.T) {
 }
 
 func TestResourceResolveColumns(t *testing.T) {
+	mockedClient := new(mockedClientMeta)
+	logger := logging.New(&hclog.LoggerOptions{
+		Name:   "test_log",
+		Level:  hclog.Error,
+		Output: nil,
+	})
+	mockedClient.On("Logger", mock.Anything).Return(logger)
+
 	t.Run("test resolve column normal", func(t *testing.T) {
 		object := testTableStruct{}
 		_ = defaults.Set(&object)
@@ -99,7 +109,7 @@ func TestResourceResolveColumns(t *testing.T) {
 			Output: nil,
 		})
 		exec := NewExecutionData(nil, logger, testTable)
-		err := exec.resolveColumns(context.TODO(), nil, r, testTable.Columns)
+		err := exec.resolveColumns(context.TODO(), mockedClient, r, testTable.Columns)
 		assert.Nil(t, err)
 		v, err := r.Values()
 		assert.Nil(t, err)
@@ -118,7 +128,7 @@ func TestResourceResolveColumns(t *testing.T) {
 			Output: nil,
 		})
 		exec := NewExecutionData(nil, logger, testZeroTable)
-		err := exec.resolveColumns(context.TODO(), nil, r, testZeroTable.Columns)
+		err := exec.resolveColumns(context.TODO(), mockedClient, r, testZeroTable.Columns)
 		assert.Nil(t, err)
 		v, err := r.Values()
 		assert.Nil(t, err)
@@ -129,7 +139,7 @@ func TestResourceResolveColumns(t *testing.T) {
 
 		object.ZeroIntPtr = nil
 		r = NewResourceData(testZeroTable, nil, object)
-		err = exec.resolveColumns(context.TODO(), nil, r, testZeroTable.Columns)
+		err = exec.resolveColumns(context.TODO(), mockedClient, r, testZeroTable.Columns)
 		assert.Nil(t, err)
 		v, _ = r.Values()
 		assert.Equal(t, nil, v[5])

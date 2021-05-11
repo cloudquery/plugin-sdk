@@ -2,10 +2,11 @@ package schema
 
 import (
 	"context"
+	"sync/atomic"
 
-	"github.com/cloudquery/go-funk"
 	"github.com/hashicorp/go-hclog"
 	"github.com/iancoleman/strcase"
+	"github.com/thoas/go-funk"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -35,24 +36,27 @@ func NewExecutionData(db Database, logger hclog.Logger, table *Table) ExecutionD
 	}
 }
 
-func (e ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, parent *Resource) error {
+func (e ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, parent *Resource) (uint64, error) {
 	var clients []ClientMeta
 	clients = append(clients, meta)
 	if e.Table.Multiplex != nil {
 		clients = e.Table.Multiplex(meta)
+		meta.Logger().Debug("multiplexing client", "count", len(clients))
 	}
 	g, ctx := errgroup.WithContext(ctx)
+	var totalResources uint64
 	for _, client := range clients {
 		client := client
 		g.Go(func() error {
-			err := e.callTableResolve(ctx, client, parent)
+			count, err := e.callTableResolve(ctx, client, parent)
 			if err != nil && !(e.Table.IgnoreError != nil && e.Table.IgnoreError(err)) {
 				return err
 			}
+			atomic.AddUint64(&totalResources, count)
 			return nil
 		})
 	}
-	return g.Wait()
+	return totalResources, g.Wait()
 }
 
 func (e ExecutionData) WithTable(t *Table) ExecutionData {
@@ -63,12 +67,13 @@ func (e ExecutionData) WithTable(t *Table) ExecutionData {
 	}
 }
 
-func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, parent *Resource) error {
+func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, parent *Resource) (uint64, error) {
 
 	if parent == nil && e.Table.DeleteFilter != nil {
 		// Delete previous fetch
 		if err := e.Db.Delete(ctx, e.Table, e.Table.DeleteFilter(client)); err != nil {
-			return err
+			client.Logger().Debug("cleaning table previous fetch", "table", e.Table.Name)
+			return 0, err
 		}
 	}
 
@@ -79,26 +84,27 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 		resolverErr = e.Table.Resolver(ctx, client, parent, res)
 	}()
 
-	nc := 0
+	nc := uint64(0)
 	for elem := range res {
 		objects := interfaceSlice(elem)
 		if len(objects) == 0 {
 			continue
 		}
 		if err := e.resolveResources(ctx, client, parent, objects); err != nil {
-			return err
+			return 0, err
 		}
-		nc += len(objects)
+		nc += uint64(len(objects))
 	}
 	// check if channel iteration stopped because of resolver failure
 	if resolverErr != nil {
-		return resolverErr
+		client.Logger().Error("received resolve resources error", "table", e.Table.Name, "error", resolverErr)
+		return 0, resolverErr
 	}
 	// Print only parent resources
 	if parent == nil {
 		client.Logger().Info("fetched successfully", "table", e.Table.Name, "count", nc)
 	}
-	return nil
+	return nc, nil
 }
 
 func (e ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, parent *Resource, objects []interface{}) error {
@@ -118,8 +124,10 @@ func (e ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, pa
 
 	// Finally resolve relations of each resource
 	for _, rel := range e.Table.Relations {
+		meta.Logger().Debug("resolving table relation", "table", e.Table.Name, "relation", rel.Name)
 		for _, r := range resources {
-			err := e.WithTable(rel).ResolveTable(ctx, meta, r)
+			// ignore relation resource count
+			_, err := e.WithTable(rel).ResolveTable(ctx, meta, r)
 			if err != nil {
 				return err
 			}
@@ -145,18 +153,21 @@ func (e ExecutionData) resolveResourceValues(ctx context.Context, meta ClientMet
 func (e ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource, cols []Column) error {
 	for _, c := range cols {
 		if c.Resolver != nil {
+			meta.Logger().Trace("using custom column resolver", "column", c.Name)
 			if err := c.Resolver(ctx, meta, resource, c); err != nil {
 				return err
 			}
 			continue
 		}
+		meta.Logger().Trace("resolving column value", "column", c.Name)
 		// base use case: try to get column with CamelCase name
-		v := funk.GetAllowZero(resource.Item, strcase.ToCamel(c.Name))
+		v := funk.Get(resource.Item, strcase.ToCamel(c.Name), funk.WithAllowZero())
 		if v == nil {
+			meta.Logger().Trace("using column default value", "column", c.Name, "default", c.Default)
 			v = c.Default
 		}
-		err := resource.Set(c.Name, v)
-		if err != nil {
+		meta.Logger().Trace("setting column value", "column", c.Name, "value", v)
+		if err := resource.Set(c.Name, v); err != nil {
 			return err
 		}
 	}
