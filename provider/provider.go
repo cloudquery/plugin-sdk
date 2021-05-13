@@ -11,7 +11,6 @@ import (
 
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
 	"github.com/cloudquery/cq-provider-sdk/helpers"
-	"github.com/cloudquery/cq-provider-sdk/logging"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
@@ -38,7 +37,7 @@ type Provider struct {
 	ResourceMap map[string]*schema.Table
 	// Configuration decoded from configure request
 	Config func() Config
-	// Logger to call
+	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	Logger hclog.Logger
 	// Database connection
 	db schema.Database
@@ -68,12 +67,6 @@ func (p *Provider) GetProviderConfig(_ context.Context, _ *cqproto.GetProviderCo
 }
 
 func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.ConfigureProviderRequest) (*cqproto.ConfigureProviderResponse, error) {
-	if p.Logger == nil {
-		p.Logger = logging.New(&hclog.LoggerOptions{
-			Level:      hclog.Trace,
-			JSONFormat: true,
-		})
-	}
 	conn, err := schema.NewPgDatabase(request.Connection.DSN)
 	if err != nil {
 		return nil, err

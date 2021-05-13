@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/cloudquery/cq-provider-sdk/provider"
+
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
 	"google.golang.org/grpc"
 
@@ -16,11 +18,6 @@ import (
 var Handshake = plugin.HandshakeConfig{
 	MagicCookieKey:   "CQ_PLUGIN_COOKIE",
 	MagicCookieValue: "6753812e-79c2-4af5-ad01-e6083c374e1f",
-}
-
-// PluginMap is the map of plugins we can dispense.
-var PluginMap = map[string]plugin.Plugin{
-	"provider": &cqproto.CQPlugin{},
 }
 
 type Options struct {
@@ -64,24 +61,32 @@ func Serve(opts *Options) {
 		}
 		return
 	}
+	if p, ok := opts.Provider.(*provider.Provider); ok {
+		// If provider didn't set a logger we will set it
+		if p.Logger == nil {
+			p.Logger = hclog.New(&hclog.LoggerOptions{
+				// We send all output to CloudQuery. Go-plugin will take the output and
+				// pass it through another hclog.Logger on the client side where it can
+				// be filtered.
+				Level:      hclog.Trace,
+				JSONFormat: true,
+				Name:       opts.Name,
+			})
+			if opts.Logger == nil {
+				opts.Logger = p.Logger
+			}
+		}
+	}
 	serve(opts)
 }
 
 func serve(opts *Options) {
-
 	if !opts.NoLogOutputOverride {
 		// In order to allow go-plugin to correctly pass log-levels through to
 		// cloudquery, we need to use an hclog.Logger with JSON output. We can
 		// inject this into the std `log` package here, so existing providers will
 		// make use of it automatically.
-		logger := hclog.New(&hclog.LoggerOptions{
-			// We send all output to CloudQuery. Go-plugin will take the output and
-			// pass it through another hclog.Logger on the client side where it can
-			// be filtered.
-			Level:      hclog.Trace,
-			JSONFormat: true,
-		})
-		log.SetOutput(logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
+		log.SetOutput(opts.Logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
 	}
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: Handshake,
