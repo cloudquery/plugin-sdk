@@ -53,14 +53,6 @@ func Serve(opts *Options) {
 		panic("missing provider instance")
 	}
 
-	// Check of CQ_PROVIDER_DEBUG is turned on. In case it's true the plugin is executed in debug mode, allowing for
-	// the CloudQuery main command to connect to this plugin via the .cq_reattach and the CQ_REATTACH_PROVIDERS env var
-	if os.Getenv("CQ_PROVIDER_DEBUG") == "1" {
-		if err := Debug(context.Background(), opts.Name, opts); err != nil {
-			panic(fmt.Errorf("failed to run debug: %w", err))
-		}
-		return
-	}
 	if p, ok := opts.Provider.(*provider.Provider); ok {
 		// If provider didn't set a logger we will set it
 		if p.Logger == nil {
@@ -72,11 +64,29 @@ func Serve(opts *Options) {
 				JSONFormat: true,
 				Name:       opts.Name,
 			})
-			if opts.Logger == nil {
-				opts.Logger = p.Logger
-			}
+		}
+		// finally set opts logger to the provider's logger
+		if opts.Logger == nil {
+			opts.Logger = p.Logger
 		}
 	}
+
+	// Check of CQ_PROVIDER_DEBUG is turned on. In case it's true the plugin is executed in debug mode, allowing for
+	// the CloudQuery main command to connect to this plugin via the .cq_reattach and the CQ_REATTACH_PROVIDERS env var
+	if os.Getenv("CQ_PROVIDER_DEBUG") == "1" {
+		if err := Debug(context.Background(), opts.Name, opts); err != nil {
+			panic(fmt.Errorf("failed to run debug: %w", err))
+		}
+		return
+	}
+	// If not logger was set by provider create a new logger
+	if opts.Logger == nil {
+		opts.Logger = hclog.New(&hclog.LoggerOptions{
+			Level:      hclog.Trace,
+			JSONFormat: true,
+		})
+	}
+
 	serve(opts)
 }
 

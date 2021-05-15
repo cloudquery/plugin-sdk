@@ -3,6 +3,7 @@ run:
   skip-dirs:
     - bin
     - docs
+  timeout: 3m
 
 linters-settings:
   errcheck:
