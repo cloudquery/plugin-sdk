@@ -130,7 +130,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 			l.Lock()
 			finishedResources[r] = true
 			atomic.AddUint64(&totalResourceCount, resourceCount)
-			l.Unlock()
+			defer l.Unlock()
 			if err != nil {
 				return sender.Send(&cqproto.FetchResourcesResponse{
 					FinishedResources: finishedResources,
