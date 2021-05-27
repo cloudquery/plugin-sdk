@@ -22,12 +22,12 @@ type PgDatabase struct {
 	pool *pgxpool.Pool
 }
 
-func NewPgDatabase(dsn string) (*PgDatabase, error) {
+func NewPgDatabase(ctx context.Context, dsn string) (*PgDatabase, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, err
 	}
-	pool, err := pgxpool.ConnectConfig(context.Background(), cfg)
+	pool, err := pgxpool.ConnectConfig(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}

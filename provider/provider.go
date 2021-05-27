@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"sync/atomic"
 
@@ -66,8 +65,8 @@ func (p *Provider) GetProviderConfig(_ context.Context, _ *cqproto.GetProviderCo
 	return &cqproto.GetProviderConfigResponse{Config: hclwrite.Format([]byte(data))}, nil
 }
 
-func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.ConfigureProviderRequest) (*cqproto.ConfigureProviderResponse, error) {
-	conn, err := schema.NewPgDatabase(request.Connection.DSN)
+func (p *Provider) ConfigureProvider(ctx context.Context, request *cqproto.ConfigureProviderRequest) (*cqproto.ConfigureProviderResponse, error) {
+	conn, err := schema.NewPgDatabase(ctx, request.Connection.DSN)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +80,7 @@ func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.Configu
 			return &cqproto.ConfigureProviderResponse{}, err
 		}
 
-		if err := m.CreateTable(context.Background(), t, nil); err != nil {
+		if err := m.CreateTable(ctx, t, nil); err != nil {
 			p.Logger.Error("failed to create table", "table", t.Name, "error", err)
 			return &cqproto.ConfigureProviderResponse{}, err
 		}
@@ -91,8 +90,12 @@ func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.Configu
 	if err := defaults.Set(providerConfig); err != nil {
 		return &cqproto.ConfigureProviderResponse{}, err
 	}
-	if err := hclsimple.Decode("config.json", request.Config, nil, providerConfig); err != nil {
-		log.Fatalf("Failed to load configuration: %s", err)
+	// if we received an empty config we notify in log and only use defaults.
+	if len(request.Config) == 0 {
+		p.Logger.Info("Received empty configuration, using only defaults")
+	} else if err := hclsimple.Decode("config.json", request.Config, nil, providerConfig); err != nil {
+		p.Logger.Error("Failed to load configuration.", "error", err)
+		return &cqproto.ConfigureProviderResponse{}, err
 	}
 
 	client, err := p.Configure(p.Logger, providerConfig)
