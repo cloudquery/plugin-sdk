@@ -16,6 +16,7 @@ require (
 	github.com/hashicorp/go-hclog v0.16.1
 	github.com/hashicorp/go-plugin v1.4.1
 	github.com/hashicorp/hcl/v2 v2.10.0
+	github.com/hashicorp/terraform-exec v0.13.3
 	github.com/hashicorp/yamux v0.0.0-20210316155119-a95892c5f864 // indirect
 	github.com/huandu/go-sqlbuilder v1.12.1
 	github.com/iancoleman/strcase v0.1.3
