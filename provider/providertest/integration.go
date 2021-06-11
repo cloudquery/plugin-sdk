@@ -29,8 +29,7 @@ import (
 )
 
 const (
-	tfDir    = "./int_test/tf/"
-	tfOrigin = "./testData/"
+	tfDir = "./.test/"
 )
 
 var (
@@ -182,20 +181,20 @@ func deploy(tf *tfexec.Terraform, resource *ResourceIntegrationTestData) (func()
 		for {
 			select {
 			case <-ctx.Done():
-				return
 			case <-applyDone:
 				return
 			case timestamp := <-ticker.C:
-				log.Printf("%s applying for %v", resource.Table.Name, timestamp.Sub(startTime))
+				log.Printf("%s applying for %.2f minutes", resource.Table.Name, timestamp.Sub(startTime).Minutes())
 			}
 		}
 	}()
 
 	log.Printf("%s tf apply -var test_prefix=%s -var test_suffix=%s\n", resource.Table.Name, resource.Prefix, resource.Suffix)
-	if err = tf.Apply(ctx, tfexec.Var(testPrefix), tfexec.Var(testSuffix)); err != nil {
+	err = tf.Apply(ctx, tfexec.Var(testPrefix), tfexec.Var(testSuffix))
+	applyDone <- true
+	if err != nil {
 		return teardown, err
 	}
-	applyDone <- true
 
 	return teardown, nil
 }
@@ -397,10 +396,10 @@ func copyTfFiles(name string) (string, error) {
 	}
 
 	files := make(map[string]string)
-	files[filepath.Join(tfOrigin, name+".tf")] = filepath.Join(workdir, name+".tf")
-	files[filepath.Join(tfOrigin, "variables.tf")] = filepath.Join(workdir, "variables.tf")
-	files[filepath.Join(tfOrigin, "provider.tf")] = filepath.Join(workdir, "provider.tf")
-	files[filepath.Join(tfOrigin, "versions.tf")] = filepath.Join(workdir, "versions.tf")
+	files[filepath.Join(name+".tf")] = filepath.Join(workdir, name+".tf")
+	files[filepath.Join("variables.tf")] = filepath.Join(workdir, "variables.tf")
+	files[filepath.Join("provider.tf")] = filepath.Join(workdir, "provider.tf")
+	files[filepath.Join("versions.tf")] = filepath.Join(workdir, "versions.tf")
 
 	for src, dst := range files {
 		if _, err := os.Stat(src); err != nil {
