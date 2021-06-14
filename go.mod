@@ -4,14 +4,14 @@ go 1.16
 
 require (
 	github.com/Masterminds/squirrel v1.5.0
-	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/cloudquery/faker/v3 v3.7.4
 	github.com/cockroachdb/cockroach-go/v2 v2.1.1 // indirect
 	github.com/creasty/defaults v1.5.1
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/georgysavva/scany v0.2.8
-	github.com/go-test/deep v1.0.7 // indirect
+	github.com/go-test/deep v1.0.7
 	github.com/gofrs/uuid v4.0.0+incompatible
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/go-hclog v0.16.1
 	github.com/hashicorp/go-plugin v1.4.1
@@ -24,14 +24,10 @@ require (
 	github.com/jackc/pgproto3/v2 v2.0.7 // indirect
 	github.com/jackc/pgx/v4 v4.11.0
 	github.com/jhump/protoreflect v1.8.2 // indirect
-	github.com/kr/text v0.2.0 // indirect
-	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lib/pq v1.10.1 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
-	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/modern-go/reflect2 v1.0.1
 	github.com/oklog/run v1.1.0 // indirect
-	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/thoas/go-funk v0.8.1-0.20210502090430-efae847b30ab
@@ -41,9 +37,7 @@ require (
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
-	google.golang.org/genproto v0.0.0-20210510173355-fb37daa5cd7a // indirect
-	google.golang.org/grpc v1.37.0
+	google.golang.org/grpc v1.29.1
 	google.golang.org/protobuf v1.26.0
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
