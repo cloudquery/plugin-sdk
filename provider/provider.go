@@ -62,6 +62,7 @@ func (p *Provider) GetProviderConfig(_ context.Context, _ *cqproto.GetProviderCo
 			%s
 			resources = %s
 		}`, p.Name, p.Config().Example(), helpers.FormatSlice(funk.Keys(p.ResourceMap).([]string)))
+
 	return &cqproto.GetProviderConfigResponse{Config: hclwrite.Format([]byte(data))}, nil
 }
 
