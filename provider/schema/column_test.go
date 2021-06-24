@@ -1,8 +1,13 @@
 package schema
 
 import (
+	"fmt"
+	"math/rand"
+	"net"
 	"testing"
 	"time"
+
+	"github.com/cloudquery/faker/v3"
 
 	"github.com/thoas/go-funk"
 
@@ -21,6 +26,30 @@ type SomeString string
 type SomeInt int
 
 type SomeInt16 int16
+
+func GenerateMac() net.HardwareAddr {
+	mac, _ := net.ParseMAC(faker.MacAddress())
+	return mac
+}
+func GenerateMacPtr() *net.HardwareAddr {
+	mac, _ := net.ParseMAC(faker.MacAddress())
+	return &mac
+}
+
+func GenerateIPv4Ptr() *net.IP {
+	ip := net.ParseIP(faker.IPv4())
+	return &ip
+}
+
+func GenerateIPv6Ptr() *net.IP {
+	ip := net.ParseIP(faker.IPv6())
+	return &ip
+}
+
+func GenerateCIDR() *net.IPNet {
+	_, mask, _ := net.ParseCIDR(fmt.Sprintf("%s/%d", faker.IPv4(), rand.Int31n(16)+16))
+	return mask
+}
 
 var validateFixtures = []validateFixture{
 	{
@@ -64,6 +93,37 @@ var validateFixtures = []validateFixture{
 		Column:     Column{Type: TypeStringArray},
 		TestValues: []interface{}{[]string{"a", "b", "c"}, []*string{funk.PtrOf("a").(*string)}, []SomeString{SomeString("lol")}},
 		BadValues:  []interface{}{[]interface{}{1, 2, 3}},
+	},
+	{
+		Column:     Column{Type: TypeMacAddr},
+		TestValues: []interface{}{GenerateMac(), GenerateMac(), GenerateMacPtr()},
+		BadValues:  []interface{}{"asdasdsadads", -55, 44, "00:33:44:55:77:55"},
+	},
+	{
+		Column:     Column{Type: TypeMacAddrArray},
+		TestValues: []interface{}{[]net.HardwareAddr{GenerateMac(), GenerateMac()}, []*net.HardwareAddr{GenerateMacPtr(), GenerateMacPtr()}},
+		BadValues:  []interface{}{"asdasdsadads", -55, 44, "00:33:44:55:77:55"},
+	},
+	{
+		Column:     Column{Type: TypeInet},
+		TestValues: []interface{}{net.ParseIP("127.0.0.1"), net.ParseIP("2b15:800f:a66b:0:1278:b7ad:6052:f444"), GenerateIPv4Ptr(), GenerateIPv6Ptr()},
+		BadValues:  []interface{}{"asdasdsadads", "127.0.0.1", "333"},
+	},
+
+	{
+		Column:     Column{Type: TypeInetArray},
+		TestValues: []interface{}{[]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("2b15:800f:a66b:0:1278:b7ad:6052:f444")}, []*net.IP{GenerateIPv4Ptr(), GenerateIPv6Ptr()}},
+		BadValues:  []interface{}{"asdasdsadads", "127.0.0.1", net.ParseIP("127.0.0.1"), []*net.HardwareAddr{GenerateMacPtr(), GenerateMacPtr()}},
+	},
+	{
+		Column:     Column{Type: TypeCIDR},
+		TestValues: []interface{}{GenerateCIDR(), GenerateCIDR()},
+		BadValues:  []interface{}{"asdasdsadads", 555, "127.0.0.1/24", net.IP{}},
+	},
+	{
+		Column:     Column{Type: TypeCIDRArray},
+		TestValues: []interface{}{[]*net.IPNet{GenerateCIDR(), GenerateCIDR()}, []*net.IPNet{}, []net.IPNet{}},
+		BadValues:  []interface{}{"asdasdsadads", 555, "127.0.0.1/24", net.IPNet{}, net.IP{}},
 	},
 }
 

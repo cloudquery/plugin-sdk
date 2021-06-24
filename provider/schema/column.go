@@ -3,6 +3,7 @@ package schema
 import (
 	"context"
 	"fmt"
+	"net"
 	"reflect"
 	"strings"
 	"time"
@@ -30,6 +31,12 @@ const (
 	TypeTimestamp
 	TypeJSON
 	TypeUUIDArray
+	TypeInet
+	TypeInetArray
+	TypeCIDR
+	TypeCIDRArray
+	TypeMacAddr
+	TypeMacAddrArray
 )
 
 func (v ValueType) String() string {
@@ -60,6 +67,18 @@ func (v ValueType) String() string {
 		return "TypeByteArray"
 	case TypeUUIDArray:
 		return "TypeUUIDArray"
+	case TypeInetArray:
+		return "TypeInetArray"
+	case TypeInet:
+		return "TypeInet"
+	case TypeMacAddrArray:
+		return "TypeMacAddrArray"
+	case TypeMacAddr:
+		return "TypeMacAddr"
+	case TypeCIDRArray:
+		return "TypeCIDRArray"
+	case TypeCIDR:
+		return "TypeCIDR"
 	case TypeInvalid:
 		fallthrough
 	default:
@@ -95,6 +114,18 @@ func ValueTypeFromString(s string) ValueType {
 		return TypeTimestamp
 	case "uuidarray", "TypeUUIDArray":
 		return TypeUUIDArray
+	case "inet", "TypeInet":
+		return TypeInet
+	case "inetrarray", "TypeInetArray":
+		return TypeInetArray
+	case "macaddr", "TypeMacAddr":
+		return TypeMacAddr
+	case "macaddrarray", "TypeMacAddrArray":
+		return TypeMacAddrArray
+	case "cidr", "TypeCIDR":
+		return TypeCIDR
+	case "cidrarray", "TypeCIDRArray":
+		return TypeCIDRArray
 	case "invalid", "TypeInvalid":
 		return TypeInvalid
 	default:
@@ -195,6 +226,18 @@ func (c Column) checkType(v interface{}) bool {
 		return c.Type == TypeUUID
 	case [16]byte:
 		return c.Type == TypeUUID
+	case net.HardwareAddr, *net.HardwareAddr:
+		return c.Type == TypeMacAddr
+	case []net.HardwareAddr, []*net.HardwareAddr:
+		return c.Type == TypeMacAddrArray
+	case net.IPAddr, *net.IPAddr, *net.IP, net.IP:
+		return c.Type == TypeInet
+	case []net.IPAddr, []*net.IPAddr, []*net.IP, []net.IP:
+		return c.Type == TypeInetArray
+	case net.IPNet, *net.IPNet:
+		return c.Type == TypeCIDR
+	case []net.IPNet, []*net.IPNet:
+		return c.Type == TypeCIDRArray
 	case interface{}:
 		kindName := reflect2.TypeOf(v).Kind()
 		if kindName == reflect.String && c.Type == TypeString {
