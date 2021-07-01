@@ -8,19 +8,18 @@ import (
 	"testing"
 
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
-	"github.com/cloudquery/faker/v3"
-	"github.com/hashicorp/hcl/v2/gohcl"
-	"github.com/hashicorp/hcl/v2/hclwrite"
-	"github.com/tmccombs/hcl2json/convert"
-
-	"github.com/georgysavva/scany/pgxscan"
-
 	"github.com/cloudquery/cq-provider-sdk/logging"
 	"github.com/cloudquery/cq-provider-sdk/provider"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
+	"github.com/cloudquery/faker/v3"
+	"github.com/georgysavva/scany/pgxscan"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/jackc/pgx/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/tmccombs/hcl2json/convert"
 )
 
 type ResourceTestData struct {
@@ -46,10 +45,11 @@ func TestResource(t *testing.T, providerCreator func() *provider.Provider, resou
 	f := hclwrite.NewFile()
 	f.Body().AppendBlock(gohcl.EncodeAsBlock(resource.Config, "configuration"))
 	data, err := convert.Bytes(f.Bytes(), "config.json", convert.Options{})
+	require.Nil(t, err)
 	hack := map[string]interface{}{}
-	_ = json.Unmarshal(data, &hack)
-	data, _ = json.Marshal(hack["configuration"].([]interface{})[0])
-	assert.Nil(t, err)
+	require.Nil(t, json.Unmarshal(data, &hack))
+	data, err = json.Marshal(hack["configuration"].([]interface{})[0])
+	require.Nil(t, err)
 
 	testProvider := providerCreator()
 	testProvider.Logger = logging.New(hclog.DefaultOptions)
