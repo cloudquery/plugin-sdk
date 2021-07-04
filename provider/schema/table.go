@@ -37,6 +37,8 @@ type Table struct {
 	DeleteFilter func(meta ClientMeta) []interface{}
 	// Post resource resolver is called after all columns have been resolved, and before resource is inserted to database.
 	PostResourceResolver RowResolver
+	// Options allow to modify how the table is defined when created
+	Options TableCreationOptions
 }
 
 // ColumnNames returns all collected columns name of table (including all inner embedded columns)
@@ -45,7 +47,10 @@ func (t Table) ColumnNames() []string {
 	for i, c := range t.Columns {
 		cn[i] = c.Name
 	}
-	return append([]string{"id"}, cn...)
+	for _, c := range GetDefaultSDKColumns() {
+		cn = append(cn, c.Name)
+	}
+	return cn
 }
 
 func (t Table) Column(name string) *Column {
@@ -55,4 +60,18 @@ func (t Table) Column(name string) *Column {
 		}
 	}
 	return nil
+}
+
+func (t Table) PrimaryKeys() []string {
+	if len(t.Options.PrimaryKeys) > 0 {
+		return t.Options.PrimaryKeys
+	}
+	return []string{"cq_id"}
+}
+
+// TableCreationOptions allow to modify how table is created such as defining primary keys, indices, foreign keys and contraints.
+type TableCreationOptions struct {
+	// List of columns to set as primary keys, if HashPrimaryKeys is true the column values will be used to generate an Id
+	// and a "id" column will be created for the table. If this nil a random unique Id is generated.
+	PrimaryKeys []string
 }

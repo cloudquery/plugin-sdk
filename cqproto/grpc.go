@@ -2,6 +2,7 @@ package cqproto
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/cloudquery/cq-provider-sdk/cqproto/internal"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
@@ -38,13 +39,19 @@ func (g GRPCClient) GetProviderConfig(ctx context.Context, _ *GetProviderConfigR
 }
 
 func (g GRPCClient) ConfigureProvider(ctx context.Context, request *ConfigureProviderRequest) (*ConfigureProviderResponse, error) {
+	fieldsData, err := json.Marshal(request.ExtraFields)
+	if err != nil {
+		return nil, err
+	}
 	res, err := g.client.ConfigureProvider(ctx, &internal.ConfigureProvider_Request{
 		CloudqueryVersion: request.CloudQueryVersion,
 		Connection: &internal.ConnectionDetails{
 			Type: internal.ConnectionType_POSTGRES,
 			Dsn:  request.Connection.DSN,
 		},
-		Config: request.Config,
+		Config:        request.Config,
+		DisableDelete: request.DisableDelete,
+		ExtraFields:   fieldsData,
 	})
 	if err != nil {
 		return nil, err
@@ -102,13 +109,22 @@ func (g *GRPCServer) GetProviderConfig(ctx context.Context, _ *internal.GetProvi
 }
 
 func (g *GRPCServer) ConfigureProvider(ctx context.Context, request *internal.ConfigureProvider_Request) (*internal.ConfigureProvider_Response, error) {
+
+	var eFields = make(map[string]interface{})
+	if request.GetExtraFields() != nil {
+		if err := json.Unmarshal(request.GetExtraFields(), &eFields); err != nil {
+			return nil, err
+		}
+	}
 	resp, err := g.Impl.ConfigureProvider(ctx, &ConfigureProviderRequest{
 		CloudQueryVersion: request.GetCloudqueryVersion(),
 		Connection: ConnectionDetails{
 			Type: string(request.Connection.GetType()),
 			DSN:  request.Connection.GetDsn(),
 		},
-		Config: request.Config,
+		Config:        request.Config,
+		DisableDelete: request.DisableDelete,
+		ExtraFields:   eFields,
 	})
 	if err != nil {
 		return nil, err
@@ -161,11 +177,18 @@ func tableFromProto(v *internal.Table) *schema.Table {
 	for i, r := range v.GetRelations() {
 		rels[i] = tableFromProto(r)
 	}
+
+	var opts schema.TableCreationOptions
+	if o := v.GetOptions(); o != nil {
+		opts.PrimaryKeys = o.GetPrimaryKeys()
+	}
+
 	return &schema.Table{
 		Name:        v.GetName(),
 		Description: v.GetDescription(),
 		Columns:     cols,
 		Relations:   rels,
+		Options:     opts,
 	}
 }
 
@@ -198,5 +221,8 @@ func tableToProto(in *schema.Table) *internal.Table {
 		Description: in.Description,
 		Columns:     cols,
 		Relations:   rels,
+		Options: &internal.TableCreationOptions{
+			PrimaryKeys: in.Options.PrimaryKeys,
+		},
 	}
 }

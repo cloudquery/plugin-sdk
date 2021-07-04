@@ -92,11 +92,15 @@ func IntegrationTest(t *testing.T, providerCreator func() *provider.Provider, re
 	}
 
 	log.Printf("%s verify fields\n", resource.Table.Name)
-	conn, err := setupDatabase()
+	pool, err := setupDatabase()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close(context.Background())
+	conn, err := pool.Acquire(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Release()
 
 	err = verifyFields(resource, conn)
 	if err != nil {

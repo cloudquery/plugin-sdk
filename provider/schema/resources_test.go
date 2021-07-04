@@ -46,6 +46,17 @@ var testZeroTable = &Table{
 	},
 }
 
+var testPrimaryKeyTable = &Table{
+	Name:    "test_pk_table",
+	Options: TableCreationOptions{PrimaryKeys: []string{"primary_key_str"}},
+	Columns: []Column{
+		{
+			Name: "primary_key_str",
+			Type: TypeString,
+		},
+	},
+}
+
 type zeroValuedStruct struct {
 	ZeroBool      bool   `default:"false"`
 	ZeroInt       int    `default:"0"`
@@ -56,15 +67,38 @@ type zeroValuedStruct struct {
 	ZeroString    string `default:""`
 }
 
+// TestResourcePrimaryKey checks resource id generation when primary key is set on table
+func TestResourcePrimaryKey(t *testing.T) {
+	r := NewResourceData(testPrimaryKeyTable, nil, nil, nil)
+	// save random id
+	randomId := r.cqId
+	assert.Error(t, r.GenerateCQId(), "Error expected, primary key value not set")
+	// Id shouldn't change
+	assert.Equal(t, randomId, r.cqId)
+	err := r.Set("primary_key_str", "test")
+	assert.Nil(t, err)
+	assert.Nil(t, r.GenerateCQId())
+	assert.NotEqual(t, randomId, r.cqId)
+	randomId = r.cqId
+	assert.Nil(t, r.GenerateCQId())
+	assert.Equal(t, randomId, r.cqId)
+}
+
+// TestResourcePrimaryKey checks resource id generation when primary key is set on table
+func TestResourceAddColumns(t *testing.T) {
+	r := NewResourceData(testPrimaryKeyTable, nil, nil, map[string]interface{}{"new_field": 1})
+	assert.Equal(t, []string{"primary_key_str", "cq_id", "meta", "new_field"}, r.columns)
+}
+
 func TestResourceColumns(t *testing.T) {
 
-	r := NewResourceData(testTable, nil, nil)
+	r := NewResourceData(testTable, nil, nil, nil)
 	errf := r.Set("name", "test")
 	assert.Nil(t, errf)
 	assert.Equal(t, r.Get("name"), "test")
 	v, err := r.Values()
 	assert.Nil(t, err)
-	assert.Equal(t, v, []interface{}{r.id, "test", nil, nil})
+	assert.Equal(t, v, []interface{}{"test", nil, nil, nil, nil})
 	// Set invalid type to resource
 	errf = r.Set("name", 5)
 	assert.Nil(t, errf)
@@ -81,7 +115,7 @@ func TestResourceColumns(t *testing.T) {
 	assert.Nil(t, errf)
 	v, err = r.Values()
 	assert.Nil(t, err)
-	assert.Equal(t, v, []interface{}{r.id, "test", "name_no_prefix", "prefix_name"})
+	assert.Equal(t, v, []interface{}{"test", "name_no_prefix", "prefix_name", nil, nil})
 
 	// check non existing col
 	err = r.Set("non_exist_col", "test")
@@ -100,49 +134,50 @@ func TestResourceResolveColumns(t *testing.T) {
 	t.Run("test resolve column normal", func(t *testing.T) {
 		object := testTableStruct{}
 		_ = defaults.Set(&object)
-		r := NewResourceData(testTable, nil, object)
-		assert.Equal(t, r.id, r.Id())
+		r := NewResourceData(testTable, nil, object, nil)
+		assert.Equal(t, r.cqId, r.Id())
 		// columns should be resolved from ColumnResolver functions or default functions
 		logger := logging.New(&hclog.LoggerOptions{
 			Name:   "test_log",
 			Level:  hclog.Error,
 			Output: nil,
 		})
-		exec := NewExecutionData(nil, logger, testTable)
+		exec := NewExecutionData(nil, logger, testTable, false, nil)
 		err := exec.resolveColumns(context.TODO(), mockedClient, r, testTable.Columns)
 		assert.Nil(t, err)
 		v, err := r.Values()
 		assert.Nil(t, err)
-		assert.Equal(t, v, []interface{}{r.id, "test", "name_no_prefix", "prefix_name"})
+		assert.Equal(t, v, []interface{}{"test", "name_no_prefix", "prefix_name", nil, nil})
 	})
 
 	t.Run("test resolve zero columns", func(t *testing.T) {
 		object := zeroValuedStruct{}
 		_ = defaults.Set(&object)
-		r := NewResourceData(testZeroTable, nil, object)
-		assert.Equal(t, r.id, r.Id())
+		r := NewResourceData(testZeroTable, nil, object, nil)
+		assert.Equal(t, r.cqId, r.Id())
 		// columns should be resolved from ColumnResolver functions or default functions
 		logger := logging.New(&hclog.LoggerOptions{
 			Name:   "test_log",
 			Level:  hclog.Error,
 			Output: nil,
 		})
-		exec := NewExecutionData(nil, logger, testZeroTable)
+		exec := NewExecutionData(nil, logger, testZeroTable, false, nil)
 		err := exec.resolveColumns(context.TODO(), mockedClient, r, testZeroTable.Columns)
 		assert.Nil(t, err)
 		v, err := r.Values()
 		assert.Nil(t, err)
-		assert.Equal(t, []interface{}{r.id, false, 0, true}, v[:4])
-		assert.Equal(t, 0, *v[5].(*int))
-		assert.Equal(t, 5, *v[6].(*int))
-		assert.Equal(t, "", v[7].(string))
+		assert.Equal(t, []interface{}{false, 0, true}, v[:3])
+		assert.Equal(t, 0, *v[4].(*int))
+		assert.Equal(t, 5, *v[5].(*int))
+		assert.Equal(t, "", v[6].(string))
+		assert.Equal(t, nil, v[7])
+		assert.Equal(t, nil, v[8])
 
 		object.ZeroIntPtr = nil
-		r = NewResourceData(testZeroTable, nil, object)
+		r = NewResourceData(testZeroTable, nil, object, nil)
 		err = exec.resolveColumns(context.TODO(), mockedClient, r, testZeroTable.Columns)
 		assert.Nil(t, err)
 		v, _ = r.Values()
-		assert.Equal(t, nil, v[5])
+		assert.Equal(t, nil, v[4])
 	})
-
 }

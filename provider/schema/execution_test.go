@@ -112,13 +112,13 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		Output: nil,
 	})
 	mockedClient.On("Logger", mock.Anything).Return(logger)
-	exec := NewExecutionData(mockDb, logger, testTable)
+	exec := NewExecutionData(mockDb, logger, testTable, false, nil)
 
 	t.Run("failing table resolver", func(t *testing.T) {
 		testTable.Resolver = failingTableResolver
 		_, err := exec.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Error(t, err)
-		execFailing := NewExecutionData(mockDb, logger, testBadColumnResolverTable)
+		execFailing := NewExecutionData(mockDb, logger, testBadColumnResolverTable, false, nil)
 		_, err = execFailing.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Error(t, err)
 	})
@@ -169,7 +169,7 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 	})
 
 	t.Run("test resolving with default column values", func(t *testing.T) {
-		execDefault := NewExecutionData(mockDb, logger, testDefaultsTable)
+		execDefault := NewExecutionData(mockDb, logger, testDefaultsTable, false, nil)
 		mockDb.On("Insert", mock.Anything, testDefaultsTable, mock.Anything).Return(nil)
 		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
 			res <- testDefaultsTableData{Name: nil}
@@ -183,6 +183,54 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		_, err := execDefault.ResolveTable(context.Background(), mockedClient, nil)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedResource.data["name"], "defaultValue")
+	})
+
+	t.Run("disable delete", func(t *testing.T) {
+		exec := NewExecutionData(mockDb, logger, testTable, true, nil)
+		testTable.Resolver = dataReturningSingleResolver
+		testTable.DeleteFilter = func(meta ClientMeta) []interface{} {
+			return nil
+		}
+		var expectedResource *Resource
+		testTable.PostResourceResolver = func(ctx context.Context, meta ClientMeta, parent *Resource) error {
+			err := parent.Set("name", "other")
+			assert.Nil(t, err)
+			expectedResource = parent
+			return nil
+		}
+		mockDb.On("Delete", mock.Anything, testTable, mock.Anything).Return(nil)
+		mockDb.On("Insert", mock.Anything, testTable, mock.Anything).Return(nil)
+		mockDb.AssertNumberOfCalls(t, "Delete", 0)
+		_, err := exec.ResolveTable(context.Background(), mockedClient, nil)
+		mockDb.AssertNumberOfCalls(t, "Delete", 0)
+		assert.Equal(t, expectedResource.data["name"], "other")
+		assert.Nil(t, err)
+		exec = NewExecutionData(mockDb, logger, testTable, false, nil)
+		_, err = exec.ResolveTable(context.Background(), mockedClient, nil)
+		mockDb.AssertNumberOfCalls(t, "Delete", 1)
+		assert.Nil(t, err)
+	})
+
+	t.Run("inject fields into execution", func(t *testing.T) {
+		exec := NewExecutionData(mockDb, logger, testTable, false, map[string]interface{}{"injected_field": 1})
+		testTable.Resolver = dataReturningSingleResolver
+		var expectedResource *Resource
+		testTable.PostResourceResolver = func(ctx context.Context, meta ClientMeta, parent *Resource) error {
+			err := parent.Set("name", "other")
+			assert.Nil(t, err)
+			expectedResource = parent
+			return nil
+		}
+		mockDb.On("Insert", mock.Anything, testTable, mock.Anything).Return(nil)
+		count, err := exec.ResolveTable(context.Background(), mockedClient, nil)
+		assert.Equal(t, count, uint64(1))
+		assert.Nil(t, err)
+		assert.Equal(t, expectedResource.data["name"], "other")
+		assert.Equal(t, 1, expectedResource.extraFields["injected_field"])
+		values, err := expectedResource.Values()
+		assert.Nil(t, err)
+		assert.Equal(t, []string{"name", "name_no_prefix", "prefix_name", "cq_id", "meta", "injected_field"}, expectedResource.columns)
+		assert.Equal(t, []interface{}{"other", "name_no_prefix", "prefix_name", expectedResource.cqId, expectedResource.Get("meta"), 1}, values)
 	})
 }
 

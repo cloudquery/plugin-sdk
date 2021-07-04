@@ -42,6 +42,10 @@ type Provider struct {
 	db schema.Database
 	// meta is the provider's client created when configure is called
 	meta schema.ClientMeta
+	// Whether provider should all Delete on every table before fetching
+	disableDelete bool
+	// Add extra fields to all resources, these fields don't show up in documentation and are used for internal CQ testing.
+	extraFields map[string]interface{}
 }
 
 func (p *Provider) GetProviderSchema(_ context.Context, _ *cqproto.GetProviderSchemaRequest) (*cqproto.GetProviderSchemaResponse, error) {
@@ -67,26 +71,17 @@ func (p *Provider) GetProviderConfig(_ context.Context, _ *cqproto.GetProviderCo
 }
 
 func (p *Provider) ConfigureProvider(ctx context.Context, request *cqproto.ConfigureProviderRequest) (*cqproto.ConfigureProviderResponse, error) {
+	if p.meta != nil {
+		return &cqproto.ConfigureProviderResponse{Error: fmt.Sprintf("provider %s was already configured", p.Name)}, nil
+	}
+
 	conn, err := schema.NewPgDatabase(ctx, request.Connection.DSN)
 	if err != nil {
 		return nil, err
 	}
+	p.disableDelete = request.DisableDelete
 	p.db = conn
-	// Create tables
-	m := NewMigrator(p.db, p.Logger)
-	for _, t := range p.ResourceMap {
-		// validate table
-		if err := schema.ValidateTable(t); err != nil {
-			p.Logger.Error("table validation failed", "table", t.Name, "error", err)
-			return &cqproto.ConfigureProviderResponse{}, err
-		}
-
-		if err := m.CreateTable(ctx, t, nil); err != nil {
-			p.Logger.Error("failed to create table", "table", t.Name, "error", err)
-			return &cqproto.ConfigureProviderResponse{}, err
-		}
-	}
-
+	p.extraFields = request.ExtraFields
 	providerConfig := p.Config()
 	if err := defaults.Set(providerConfig); err != nil {
 		return &cqproto.ConfigureProviderResponse{}, err
@@ -122,7 +117,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 		if !ok {
 			return fmt.Errorf("plugin %s does not provide resource %s", p.Name, resource)
 		}
-		execData := schema.NewExecutionData(p.db, p.Logger, table)
+		execData := schema.NewExecutionData(p.db, p.Logger, table, p.disableDelete, p.extraFields)
 		p.Logger.Debug("fetching table...", "provider", p.Name, "table", table.Name)
 		// Save resource aside
 		r := resource

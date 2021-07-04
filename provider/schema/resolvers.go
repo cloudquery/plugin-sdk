@@ -2,40 +2,31 @@ package schema
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/thoas/go-funk"
 )
 
+// PathResolver resolves a field in the Resource.Item
+//
+// Examples:
+// PathResolver("Field")
+// PathResolver("InnerStruct.Field")
+// PathResolver("InnerStruct.InnerInnerStruct.Field")
 func PathResolver(path string) ColumnResolver {
 	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
 		return r.Set(c.Name, funk.Get(r.Item, path, funk.WithAllowZero()))
 	}
 }
 
+// ParentIdResolver resolves the cq_id from the parent
+// if you want to reference the parent's primary keys use ParentFieldResolver as required.
 func ParentIdResolver(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 	return r.Set(c.Name, r.Parent.Id())
 }
 
-func interfaceSlice(slice interface{}) []interface{} {
-	// if value is nil return nil
-	if slice == nil {
-		return nil
+// ParentFieldResolver resolves a field from the parent
+func ParentFieldResolver(name string) ColumnResolver {
+	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
+		return r.Set(c.Name, r.Parent.Get(name))
 	}
-	s := reflect.ValueOf(slice)
-	// Keep the distinction between nil and empty slice input
-	if s.Kind() == reflect.Ptr && s.Elem().Kind() == reflect.Slice && s.Elem().IsNil() {
-		return nil
-	}
-	if s.Kind() != reflect.Slice {
-		return []interface{}{slice}
-	}
-
-	ret := make([]interface{}, s.Len())
-
-	for i := 0; i < s.Len(); i++ {
-		ret[i] = s.Index(i).Interface()
-	}
-
-	return ret
 }

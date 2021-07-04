@@ -26,6 +26,7 @@ require (
 	github.com/jhump/protoreflect v1.8.2 // indirect
 	github.com/lib/pq v1.10.1 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
+	github.com/mitchellh/hashstructure v1.1.0
 	github.com/modern-go/reflect2 v1.0.1
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/stretchr/objx v0.3.0 // indirect

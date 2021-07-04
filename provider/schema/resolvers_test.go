@@ -17,30 +17,28 @@ type testStruct struct {
 	unexported bool
 }
 
+var pathTestTable = &Table{
+	Columns: []Column{
+		{
+			Name: "test",
+			Type: TypeString,
+		},
+		{
+			Name: "int_value",
+			Type: TypeInt,
+		},
+		{
+			Name: "unexported",
+			Type: TypeBool,
+		},
+	},
+}
+
 func TestPathResolver(t *testing.T) {
 	r1 := PathResolver("Inner.Value")
 	r2 := PathResolver("Value")
 	r3 := PathResolver("unexported")
-	resource := &Resource{
-		Item: testStruct{Inner: innerStruct{Value: "bla"}, Value: 5, unexported: false},
-		data: map[string]interface{}{},
-		table: &Table{
-			Columns: []Column{
-				{
-					Name: "test",
-					Type: TypeString,
-				},
-				{
-					Name: "int_value",
-					Type: TypeInt,
-				},
-				{
-					Name: "unexported",
-					Type: TypeBool,
-				},
-			},
-		},
-	}
+	resource := NewResourceData(pathTestTable, nil, testStruct{Inner: innerStruct{Value: "bla"}, Value: 5, unexported: false}, nil)
 	err := r1(context.TODO(), nil, resource, Column{Name: "test"})
 
 	assert.Nil(t, err)

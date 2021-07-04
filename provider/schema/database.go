@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v4"
 
@@ -36,8 +37,13 @@ func NewPgDatabase(ctx context.Context, dsn string) (*PgDatabase, error) {
 
 // Insert inserts all resources to given table, table and resources are assumed from same table.
 func (p PgDatabase) Insert(ctx context.Context, t *Table, resources []*Resource) error {
+	if len(resources) == 0 {
+		return nil
+	}
+	// It is safe to assume that all resources have the same columns
+	cols := quoteColumns(resources[0].columns)
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	sqlStmt := psql.Insert(t.Name).Columns(quoteColumns(t.ColumnNames())...)
+	sqlStmt := psql.Insert(t.Name).Columns(cols...).Suffix(fmt.Sprintf("ON CONFLICT ON CONSTRAINT %s_pk DO UPDATE SET %s", t.Name, buildReplaceColumns(cols)))
 	for _, res := range resources {
 		if res.table != t {
 			return fmt.Errorf("resource table expected %s got %s", t.Name, res.table.Name)
@@ -132,4 +138,12 @@ func quoteColumns(columns []string) []string {
 		columns[i] = strconv.Quote(v)
 	}
 	return columns
+}
+
+func buildReplaceColumns(columns []string) string {
+	replaceColumns := make([]string, len(columns))
+	for i, c := range columns {
+		replaceColumns[i] = fmt.Sprintf("%[1]s = EXCLUDED.%[1]s", c)
+	}
+	return strings.Join(replaceColumns, ",")
 }

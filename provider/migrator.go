@@ -2,40 +2,77 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
 
-	"github.com/thoas/go-funk"
-
-	"github.com/georgysavva/scany/pgxscan"
+	"github.com/huandu/go-sqlbuilder"
 
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
+	"github.com/georgysavva/scany/pgxscan"
 	"github.com/hashicorp/go-hclog"
-	"github.com/huandu/go-sqlbuilder"
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/thoas/go-funk"
 )
 
-const queryTableColumns = `SELECT array_agg(column_name::text) as columns FROM information_schema.columns WHERE table_name = $1`
+const (
+	// MaxTableLength in postgres is 63 when building _fk or _pk we want to truncate the name to 60 chars max
+	maxTableName      = 60
+	queryTableColumns = `SELECT array_agg(column_name::text) as columns FROM information_schema.columns WHERE table_name = $1`
+	addColumnToTable  = `ALTER TABLE %s ADD COLUMN IF NOT EXISTS %v %v;`
+)
 
-const addColumnToTable = `ALTER TABLE %s ADD COLUMN IF NOT EXISTS %v %v;`
-
-// Migrator handles creation of schema.Table in database if they don't exist
+// Migrator handles creation of schema.Table in database if they don't exist, and migration of tables if provider was upgraded.
 type Migrator struct {
-	db  schema.Database
 	log hclog.Logger
 }
 
-func NewMigrator(db schema.Database, log hclog.Logger) Migrator {
-	return Migrator{
-		db,
+func NewMigrator(log hclog.Logger) *Migrator {
+	return &Migrator{
 		log,
 	}
 }
 
-func (m Migrator) upgradeTable(ctx context.Context, t *schema.Table) error {
+func (m Migrator) CreateTable(ctx context.Context, conn *pgxpool.Conn, t *schema.Table, parent *schema.Table) error {
+	// Build a SQL to create a table.
+	ctb := sqlbuilder.CreateTable(t.Name).IfNotExists()
+	for _, c := range schema.GetDefaultSDKColumns() {
+		ctb.Define(c.Name, schema.GetPgTypeFromType(c.Type))
+	}
 
-	rows, err := m.db.Query(ctx, queryTableColumns, t.Name)
+	m.buildColumns(ctb, t.Columns, parent)
+	ctb.Define(fmt.Sprintf("constraint %s_pk primary key(%s)", truncateTableName(t.Name), strings.Join(t.PrimaryKeys(), ",")))
+	sql, _ := ctb.BuildWithFlavor(sqlbuilder.PostgreSQL)
+
+	m.log.Debug("creating table if not exists", "table", t.Name)
+	if _, err := conn.Exec(ctx, sql); err != nil {
+		return err
+	}
+
+	m.log.Debug("migrating table columns if required", "table", t.Name)
+	if err := m.upgradeTable(ctx, conn, t); err != nil {
+		return err
+	}
+
+	if t.Relations == nil {
+		return nil
+	}
+
+	m.log.Debug("creating table relations", "table", t.Name)
+	// Create relation tables
+	for _, r := range t.Relations {
+		m.log.Debug("creating table relation", "table", r.Name)
+		if err := m.CreateTable(ctx, conn, r, t); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m Migrator) upgradeTable(ctx context.Context, conn *pgxpool.Conn, t *schema.Table) error {
+	rows, err := conn.Query(ctx, queryTableColumns, t.Name)
 	if err != nil {
 		return err
 	}
@@ -57,58 +94,33 @@ func (m Migrator) upgradeTable(ctx context.Context, t *schema.Table) error {
 			continue
 		}
 		sql, _ := sqlbuilder.Buildf(addColumnToTable, sqlbuilder.Raw(t.Name), sqlbuilder.Raw(d), sqlbuilder.Raw(schema.GetPgTypeFromType(col.Type))).BuildWithFlavor(sqlbuilder.PostgreSQL)
-		if err := m.db.Exec(ctx, sql); err != nil {
+		if _, err := conn.Exec(ctx, sql); err != nil {
 			return err
 		}
 	}
 	return nil
 
-}
-
-func (m Migrator) CreateTable(ctx context.Context, t *schema.Table, parent *schema.Table) error {
-	// Build a SQL to create a table.
-	ctb := sqlbuilder.CreateTable(t.Name).IfNotExists()
-	ctb.Define("id", "uuid", "NOT NULL", "PRIMARY KEY")
-	m.buildColumns(ctb, t.Columns, parent)
-	sql, _ := ctb.BuildWithFlavor(sqlbuilder.PostgreSQL)
-
-	m.log.Debug("creating table if not exists", "table", t.Name)
-	if err := m.db.Exec(ctx, sql); err != nil {
-		return err
-	}
-
-	m.log.Debug("migrating table columns if required", "table", t.Name)
-	if err := m.upgradeTable(ctx, t); err != nil {
-		return err
-	}
-
-	if t.Relations == nil {
-		return nil
-	}
-
-	m.log.Debug("creating table relations", "table", t.Name)
-	// Create relation tables
-	for _, r := range t.Relations {
-		m.log.Debug("creating table relation", "table", r.Name)
-		if err := m.CreateTable(ctx, r, t); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func GetFunctionName(i interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }
 
 func (m Migrator) buildColumns(ctb *sqlbuilder.CreateTableBuilder, cc []schema.Column, parent *schema.Table) {
 	for _, c := range cc {
 		defs := []string{strconv.Quote(c.Name), schema.GetPgTypeFromType(c.Type)}
 		// TODO: This is a bit ugly. Think of a better way
-		if strings.HasSuffix(GetFunctionName(c.Resolver), "ParentIdResolver") {
+		resolverName := getFunctionName(c.Resolver)
+		if strings.HasSuffix(resolverName, "ParentIdResolver") || strings.HasSuffix(resolverName, "ParentHasFieldResolver") {
 			defs = append(defs, "REFERENCES", parent.Name, "ON DELETE CASCADE")
 		}
-
 		ctb.Define(defs...)
 	}
+}
+
+func getFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+func truncateTableName(name string) string {
+	if len(name) > maxTableName {
+		return name[:maxTableName]
+	}
+	return name
 }
