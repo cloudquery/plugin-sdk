@@ -24,6 +24,9 @@ var (
 			}
 			return resource.Set(c.Name, resource.Id())
 		},
+		CreationOptions: ColumnCreationOptions{
+			Unique: true,
+		},
 	}
 )
 

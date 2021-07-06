@@ -52,7 +52,7 @@ func TestResource(t *testing.T, providerCreator func() *provider.Provider, resou
 	l := logging.New(hclog.DefaultOptions)
 	migrator := provider.NewMigrator(l)
 	if err := migrator.CreateTable(ctx, conn, resource.Table, nil); err != nil {
-		assert.FailNow(t, "failed to create tables %s", err)
+		assert.FailNow(t, fmt.Sprintf("failed to create tables %s", resource.Table.Name), err)
 	}
 	// Write configuration as a block and extract it out passing that specific block data as part of the configure provider
 	f := hclwrite.NewFile()

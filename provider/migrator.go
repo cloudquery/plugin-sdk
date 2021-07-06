@@ -18,8 +18,6 @@ import (
 )
 
 const (
-	// MaxTableLength in postgres is 63 when building _fk or _pk we want to truncate the name to 60 chars max
-	maxTableName      = 60
 	queryTableColumns = `SELECT array_agg(column_name::text) as columns FROM information_schema.columns WHERE table_name = $1`
 	addColumnToTable  = `ALTER TABLE %s ADD COLUMN IF NOT EXISTS %v %v;`
 )
@@ -39,11 +37,16 @@ func (m Migrator) CreateTable(ctx context.Context, conn *pgxpool.Conn, t *schema
 	// Build a SQL to create a table.
 	ctb := sqlbuilder.CreateTable(t.Name).IfNotExists()
 	for _, c := range schema.GetDefaultSDKColumns() {
-		ctb.Define(c.Name, schema.GetPgTypeFromType(c.Type))
+		if c.CreationOptions.Unique {
+			ctb.Define(c.Name, schema.GetPgTypeFromType(c.Type), "unique")
+		} else {
+			ctb.Define(c.Name, schema.GetPgTypeFromType(c.Type))
+		}
+
 	}
 
 	m.buildColumns(ctb, t.Columns, parent)
-	ctb.Define(fmt.Sprintf("constraint %s_pk primary key(%s)", truncateTableName(t.Name), strings.Join(t.PrimaryKeys(), ",")))
+	ctb.Define(fmt.Sprintf("constraint %s_pk primary key(%s)", schema.TruncateTableConstraint(t.Name), strings.Join(t.PrimaryKeys(), ",")))
 	sql, _ := ctb.BuildWithFlavor(sqlbuilder.PostgreSQL)
 
 	m.log.Debug("creating table if not exists", "table", t.Name)
@@ -105,10 +108,13 @@ func (m Migrator) upgradeTable(ctx context.Context, conn *pgxpool.Conn, t *schem
 func (m Migrator) buildColumns(ctb *sqlbuilder.CreateTableBuilder, cc []schema.Column, parent *schema.Table) {
 	for _, c := range cc {
 		defs := []string{strconv.Quote(c.Name), schema.GetPgTypeFromType(c.Type)}
+		if c.CreationOptions.Unique {
+			defs = []string{strconv.Quote(c.Name), schema.GetPgTypeFromType(c.Type), "unique"}
+		}
 		// TODO: This is a bit ugly. Think of a better way
 		resolverName := getFunctionName(c.Resolver)
-		if strings.HasSuffix(resolverName, "ParentIdResolver") || strings.HasSuffix(resolverName, "ParentHasFieldResolver") {
-			defs = append(defs, "REFERENCES", parent.Name, "ON DELETE CASCADE")
+		if strings.HasSuffix(resolverName, "ParentIdResolver") {
+			defs = append(defs, "REFERENCES", fmt.Sprintf("%s(cq_id)", parent.Name), "ON DELETE CASCADE")
 		}
 		ctb.Define(defs...)
 	}
@@ -116,11 +122,4 @@ func (m Migrator) buildColumns(ctb *sqlbuilder.CreateTableBuilder, cc []schema.C
 
 func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
-}
-
-func truncateTableName(name string) string {
-	if len(name) > maxTableName {
-		return name[:maxTableName]
-	}
-	return name
 }

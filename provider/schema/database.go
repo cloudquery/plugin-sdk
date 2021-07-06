@@ -12,6 +12,11 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
+const (
+	// MaxTableLength in postgres is 63 when building _fk or _pk we want to truncate the name to 60 chars max
+	maxTableNamePKConstraint = 60
+)
+
 type Database interface {
 	Insert(ctx context.Context, t *Table, instance []*Resource) error
 	Exec(ctx context.Context, query string, args ...interface{}) error
@@ -43,7 +48,7 @@ func (p PgDatabase) Insert(ctx context.Context, t *Table, resources []*Resource)
 	// It is safe to assume that all resources have the same columns
 	cols := quoteColumns(resources[0].columns)
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	sqlStmt := psql.Insert(t.Name).Columns(cols...).Suffix(fmt.Sprintf("ON CONFLICT ON CONSTRAINT %s_pk DO UPDATE SET %s", t.Name, buildReplaceColumns(cols)))
+	sqlStmt := psql.Insert(t.Name).Columns(cols...).Suffix(fmt.Sprintf("ON CONFLICT ON CONSTRAINT %s_pk DO UPDATE SET %s", TruncateTableConstraint(t.Name), buildReplaceColumns(cols)))
 	for _, res := range resources {
 		if res.table != t {
 			return fmt.Errorf("resource table expected %s got %s", t.Name, res.table.Name)
@@ -146,4 +151,11 @@ func buildReplaceColumns(columns []string) string {
 		replaceColumns[i] = fmt.Sprintf("%[1]s = EXCLUDED.%[1]s", c)
 	}
 	return strings.Join(replaceColumns, ",")
+}
+
+func TruncateTableConstraint(name string) string {
+	if len(name) > maxTableNamePKConstraint {
+		return name[:maxTableName]
+	}
+	return name
 }
