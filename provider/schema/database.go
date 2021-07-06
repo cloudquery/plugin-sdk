@@ -155,7 +155,7 @@ func buildReplaceColumns(columns []string) string {
 
 func TruncateTableConstraint(name string) string {
 	if len(name) > maxTableNamePKConstraint {
-		return name[:maxTableName]
+		return name[:maxTableNamePKConstraint]
 	}
 	return name
 }
