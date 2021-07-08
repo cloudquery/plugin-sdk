@@ -13,6 +13,12 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+var alwaysDeleteTable = &Table{
+	Name:         "always_delete_test_table",
+	AlwaysDelete: true,
+	Columns:      []Column{{Name: "name", Type: TypeString}},
+}
+
 var testTable = &Table{
 	Name: "test_table",
 	Columns: []Column{
@@ -169,6 +175,7 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 	})
 
 	t.Run("test resolving with default column values", func(t *testing.T) {
+		mockDb := new(mockDatabase)
 		execDefault := NewExecutionData(mockDb, logger, testDefaultsTable, false, nil)
 		mockDb.On("Insert", mock.Anything, testDefaultsTable, mock.Anything).Return(nil)
 		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
@@ -186,9 +193,10 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 	})
 
 	t.Run("disable delete", func(t *testing.T) {
+		mockDb := new(mockDatabase)
 		exec := NewExecutionData(mockDb, logger, testTable, true, nil)
 		testTable.Resolver = dataReturningSingleResolver
-		testTable.DeleteFilter = func(meta ClientMeta) []interface{} {
+		testTable.DeleteFilter = func(meta ClientMeta, r *Resource) []interface{} {
 			return nil
 		}
 		var expectedResource *Resource
@@ -211,9 +219,34 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
+	t.Run("always delete with disable delete", func(t *testing.T) {
+		mockDb := new(mockDatabase)
+		exec := NewExecutionData(mockDb, logger, alwaysDeleteTable, true, nil)
+		alwaysDeleteTable.Resolver = dataReturningSingleResolver
+		alwaysDeleteTable.DeleteFilter = func(meta ClientMeta, r *Resource) []interface{} {
+			return nil
+		}
+		var expectedResource *Resource
+		alwaysDeleteTable.PostResourceResolver = func(ctx context.Context, meta ClientMeta, parent *Resource) error {
+			err := parent.Set("name", "other")
+			assert.Nil(t, err)
+			expectedResource = parent
+			return nil
+		}
+		mockDb.On("Delete", mock.Anything, alwaysDeleteTable, mock.Anything).Return(nil)
+		mockDb.On("Insert", mock.Anything, alwaysDeleteTable, mock.Anything).Return(nil)
+		mockDb.AssertNumberOfCalls(t, "Delete", 0)
+		_, err := exec.ResolveTable(context.Background(), mockedClient, nil)
+		mockDb.AssertNumberOfCalls(t, "Delete", 1)
+		assert.Equal(t, expectedResource.data["name"], "other")
+		assert.Nil(t, err)
+	})
+
 	t.Run("inject fields into execution", func(t *testing.T) {
+		mockDb := new(mockDatabase)
 		exec := NewExecutionData(mockDb, logger, testTable, false, map[string]interface{}{"injected_field": 1})
 		testTable.Resolver = dataReturningSingleResolver
+		testTable.DeleteFilter = nil
 		var expectedResource *Resource
 		testTable.PostResourceResolver = func(ctx context.Context, meta ClientMeta, parent *Resource) error {
 			err := parent.Set("name", "other")

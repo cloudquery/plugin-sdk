@@ -76,14 +76,26 @@ func (e ExecutionData) WithTable(t *Table) ExecutionData {
 	}
 }
 
+func (e ExecutionData) truncateTable(ctx context.Context, client ClientMeta, parent *Resource) error {
+	if e.Table.DeleteFilter == nil {
+		return nil
+	}
+	if e.disableDelete && !e.Table.AlwaysDelete {
+		client.Logger().Debug("skipping table truncate", "table", e.Table.Name)
+		return nil
+	}
+	// Delete previous fetch
+	if err := e.Db.Delete(ctx, e.Table, e.Table.DeleteFilter(client, parent)); err != nil {
+		client.Logger().Debug("cleaning table previous fetch", "table", e.Table.Name, "always_delete", e.Table.AlwaysDelete)
+		return err
+	}
+	return nil
+}
+
 func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, parent *Resource) (uint64, error) {
 
-	if !e.disableDelete && parent == nil && e.Table.DeleteFilter != nil {
-		// Delete previous fetch
-		if err := e.Db.Delete(ctx, e.Table, e.Table.DeleteFilter(client)); err != nil {
-			client.Logger().Debug("cleaning table previous fetch", "table", e.Table.Name)
-			return 0, err
-		}
+	if err := e.truncateTable(ctx, client, parent); err != nil {
+		return 0, err
 	}
 
 	res := make(chan interface{})
@@ -92,7 +104,7 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 		defer func() {
 			if r := recover(); r != nil {
 				fmt.Fprintf(os.Stderr, "Fetch task exited with panic:\n%s\n", debug.Stack())
-				e.Logger.Error("Fetch task exited with panic", e.Table.Name, string(debug.Stack()))
+				e.Logger.Error("Fetch task exited with panic", "table", e.Table.Name, "stack", string(debug.Stack()))
 			}
 			close(res)
 		}()

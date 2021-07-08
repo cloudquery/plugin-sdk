@@ -19,14 +19,21 @@ func PathResolver(path string) ColumnResolver {
 }
 
 // ParentIdResolver resolves the cq_id from the parent
-// if you want to reference the parent's primary keys use ParentFieldResolver as required.
+// if you want to reference the parent's primary keys use ParentResourceFieldResolver as required.
 func ParentIdResolver(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 	return r.Set(c.Name, r.Parent.Id())
 }
 
-// ParentFieldResolver resolves a field from the parent
-func ParentFieldResolver(name string) ColumnResolver {
+// ParentResourceFieldResolver resolves a field from the parent
+func ParentResourceFieldResolver(name string) ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		return r.Set(c.Name, r.Parent.Get(name))
+	}
+}
+
+// ParentFieldPathResolver resolves a field from the parent
+func ParentFieldPathResolver(path string) ColumnResolver {
+	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
+		return r.Set(c.Name, funk.Get(r.Parent.Item, path, funk.WithAllowZero()))
 	}
 }

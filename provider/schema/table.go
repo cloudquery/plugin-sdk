@@ -34,11 +34,13 @@ type Table struct {
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
 	Multiplex func(meta ClientMeta) []ClientMeta
 	// DeleteFilter returns a list of key/value pairs to add when truncating this table's data from the database.
-	DeleteFilter func(meta ClientMeta) []interface{}
+	DeleteFilter func(meta ClientMeta, parent *Resource) []interface{}
 	// Post resource resolver is called after all columns have been resolved, and before resource is inserted to database.
 	PostResourceResolver RowResolver
 	// Options allow to modify how the table is defined when created
 	Options TableCreationOptions
+	// AlwaysDelete will always delete table data on fetch regardless if delete is disabled on run, use this only in specific cases, if you are unsure contact the CloudQuery Team.
+	AlwaysDelete bool
 }
 
 // ColumnNames returns all collected columns name of table (including all inner embedded columns)
