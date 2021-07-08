@@ -10,7 +10,7 @@ import (
 )
 
 func TestDeleteParentId(t *testing.T) {
-	f := DeleteParentFieldsFilter("name", "test2")
+	f := DeleteParentIdFilter("name")
 	mockedClient := new(mockedClientMeta)
 	logger := logging.New(&hclog.LoggerOptions{
 		Name:   "test_log",
@@ -22,7 +22,7 @@ func TestDeleteParentId(t *testing.T) {
 	object := testTableStruct{}
 	r := NewResourceData(testTable, nil, object, nil)
 	_ = r.Set("name", "test")
-	assert.Equal(t, []interface{}{"name", "test", "test2", nil}, f(mockedClient, r))
+	assert.Equal(t, []interface{}{"name", r.Id()}, f(mockedClient, r))
 
 	assert.Nil(t, f(mockedClient, nil))
 }

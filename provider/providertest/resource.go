@@ -44,6 +44,7 @@ func TestResource(t *testing.T, providerCreator func() *provider.Provider, resou
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer pool.Close()
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -105,6 +106,8 @@ func setupDatabase() (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("failed to parse config. %w", err)
 	}
 	ctx := context.Background()
+	dbCfg.MaxConns = 1
+	dbCfg.LazyConnect = true
 	pool, err := pgxpool.ConnectConfig(ctx, dbCfg)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to database. %w", err)

@@ -94,6 +94,9 @@ func (e ExecutionData) truncateTable(ctx context.Context, client ClientMeta, par
 
 func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, parent *Resource) (uint64, error) {
 
+	if e.Table.Resolver == nil {
+		return 0, fmt.Errorf("table %s missing resolver, make sure table implements the resolver", e.Table.Name)
+	}
 	if err := e.truncateTable(ctx, client, parent); err != nil {
 		return 0, err
 	}
@@ -108,7 +111,6 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 			}
 			close(res)
 		}()
-
 		resolverErr = e.Table.Resolver(ctx, client, parent, res)
 	}()
 

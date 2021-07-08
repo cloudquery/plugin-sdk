@@ -1,14 +1,12 @@
 package schema
 
-func DeleteParentFieldsFilter(fields ...string) func(meta ClientMeta, parent *Resource) []interface{} {
+// DeleteParentIdFilter is mostly used for table relations to delete table data based on parent's cq_id
+func DeleteParentIdFilter(id string) func(meta ClientMeta, parent *Resource) []interface{} {
 	return func(meta ClientMeta, parent *Resource) []interface{} {
 		if parent == nil {
 			return nil
 		}
-		var filters []interface{}
-		for _, f := range fields {
-			filters = append(filters, f, parent.Get(f))
-		}
-		return filters
+		return []interface{}{id, parent.Id()}
+
 	}
 }
