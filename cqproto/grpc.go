@@ -2,7 +2,8 @@ package cqproto
 
 import (
 	"context"
-	"encoding/json"
+
+	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/cloudquery/cq-provider-sdk/cqproto/internal"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
@@ -39,7 +40,7 @@ func (g GRPCClient) GetProviderConfig(ctx context.Context, _ *GetProviderConfigR
 }
 
 func (g GRPCClient) ConfigureProvider(ctx context.Context, request *ConfigureProviderRequest) (*ConfigureProviderResponse, error) {
-	fieldsData, err := json.Marshal(request.ExtraFields)
+	fieldsData, err := msgpack.Marshal(request.ExtraFields)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +113,7 @@ func (g *GRPCServer) ConfigureProvider(ctx context.Context, request *internal.Co
 
 	var eFields = make(map[string]interface{})
 	if request.GetExtraFields() != nil {
-		if err := json.Unmarshal(request.GetExtraFields(), &eFields); err != nil {
+		if err := msgpack.Unmarshal(request.GetExtraFields(), &eFields); err != nil {
 			return nil, err
 		}
 	}

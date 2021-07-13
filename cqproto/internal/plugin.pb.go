@@ -578,7 +578,7 @@ type ConfigureProvider_Request struct {
 	Config []byte `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
 	// Disables auto delete of table data before fetch of resources
 	DisableDelete bool `protobuf:"varint,4,opt,name=disableDelete,proto3" json:"disableDelete,omitempty"`
-	// Allows to inject & override fields into resource tables, use this carefully to override fields
+	// Msgpack encoded: Allows to inject & override fields into resource tables, use this carefully to override fields
 	ExtraFields []byte `protobuf:"bytes,5,opt,name=extraFields,proto3" json:"extraFields,omitempty"`
 }
 

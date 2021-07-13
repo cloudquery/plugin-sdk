@@ -2,6 +2,7 @@ syntax = "proto3";
 package proto;
 option go_package = "/internal";
 
+
 service Provider {
   // Information about what a provider supports/expects
   rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
@@ -27,7 +28,7 @@ message ConfigureProvider {
     bytes config = 3;
     // Disables auto delete of table data before fetch of resources
     bool disableDelete = 4;
-    // Allows to inject & override fields into resource tables, use this carefully to override fields
+    // Msgpack encoded: Allows to inject & override fields into resource tables, use this carefully to override fields
     bytes extraFields = 5;
   }
   message Response {
@@ -111,7 +112,6 @@ enum ColumnType {
   MAC_ADDR = 18;
   MAC_ADDR_ARRAY = 19;
 }
-
 
 enum ConnectionType {
   POSTGRES = 0;

@@ -10,6 +10,8 @@ import (
 	"github.com/google/uuid"
 )
 
+type Resources []*Resource
+
 // Resource represents a row in it's associated table, it carries a reference to the original item, and automatically
 // generates an Id based on Table's Columns. Resource data can be accessed by the Get and Set methods
 type Resource struct {
@@ -110,4 +112,25 @@ func getResourceColumns(t *Table, fields map[string]interface{}) []string {
 		columns = append(columns, k)
 	}
 	return columns
+}
+
+func (rr Resources) GetIds() []uuid.UUID {
+	rids := make([]uuid.UUID, len(rr))
+	for i, r := range rr {
+		rids[i] = r.Id()
+	}
+	return rids
+}
+func (rr Resources) TableName() string {
+	if len(rr) == 0 {
+		return ""
+	}
+	return rr[0].table.Name
+}
+
+func (rr Resources) ColumnNames() []string {
+	if len(rr) == 0 {
+		return []string{}
+	}
+	return rr[0].columns
 }

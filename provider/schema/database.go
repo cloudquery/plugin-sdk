@@ -2,13 +2,20 @@ package schema
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/modern-go/reflect2"
+
+	"github.com/doug-martin/goqu/v9"
 
 	"github.com/jackc/pgx/v4"
 
 	sq "github.com/Masterminds/squirrel"
+	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -17,11 +24,13 @@ const (
 	maxTableNamePKConstraint = 60
 )
 
+//go:generate mockgen -package=mock -destination=./mocks/mock_database.go . Database
 type Database interface {
 	Insert(ctx context.Context, t *Table, instance []*Resource) error
 	Exec(ctx context.Context, query string, args ...interface{}) error
 	Delete(ctx context.Context, t *Table, args []interface{}) error
 	Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error)
+	CopyFrom(ctx context.Context, resources Resources, shouldCascade bool, CascadeDeleteFilters map[string]interface{}) error
 }
 
 type PgDatabase struct {
@@ -65,6 +74,48 @@ func (p PgDatabase) Insert(ctx context.Context, t *Table, resources []*Resource)
 		return err
 	}
 	_, err = p.pool.Exec(ctx, s, args...)
+	return err
+}
+
+// CopyFrom copies all resources from []*Resource
+func (p PgDatabase) CopyFrom(ctx context.Context, resources Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error {
+	if len(resources) == 0 {
+		return nil
+	}
+	err := p.pool.BeginTxFunc(ctx, pgx.TxOptions{
+		IsoLevel:       pgx.ReadCommitted,
+		AccessMode:     pgx.ReadWrite,
+		DeferrableMode: pgx.Deferrable,
+	}, func(tx pgx.Tx) error {
+		if shouldCascade {
+			q := goqu.Dialect("postgres").Delete(resources.TableName()).Where(goqu.Ex{"cq_id": resources.GetIds()})
+			for k, v := range cascadeDeleteFilters {
+				q = q.Where(goqu.Ex{k: goqu.Op{"eq": v}})
+			}
+			sql, args, err := q.Prepared(true).ToSQL()
+			if err != nil {
+				return err
+			}
+			_, err = tx.Exec(ctx, sql, args...)
+			if err != nil {
+				return err
+			}
+		}
+		copied, err := tx.CopyFrom(
+			ctx, pgx.Identifier{resources.TableName()}, resources.ColumnNames(),
+			pgx.CopyFromSlice(len(resources), func(i int) ([]interface{}, error) {
+				// use getResourceValues instead of Resource.Values since values require some special encoding for CopyFrom
+				return getResourceValues(resources[i])
+			}))
+		if err != nil {
+			return err
+		}
+		if copied != int64(len(resources)) {
+			return fmt.Errorf("not all resources copied %d != %d to %s", copied, len(resources), resources.TableName())
+		}
+
+		return nil
+	})
 	return err
 }
 
@@ -158,4 +209,46 @@ func TruncateTableConstraint(name string) string {
 		return name[:maxTableNamePKConstraint]
 	}
 	return name
+}
+
+func getResourceValues(r *Resource) ([]interface{}, error) {
+	values := make([]interface{}, 0)
+	for _, c := range append(r.table.Columns, GetDefaultSDKColumns()...) {
+		v := r.Get(c.Name)
+		if err := c.ValidateType(v); err != nil {
+			return nil, err
+		}
+		values = append(values, v)
+		if c.Type == TypeJSON {
+			if reflect2.TypeOf(v).Kind() == reflect.Map {
+				values = append(values, v)
+				continue
+			}
+			switch data := v.(type) {
+			case map[string]interface{}:
+				values = append(values, data)
+			case string:
+				newV := make(map[string]interface{})
+				err := json.Unmarshal([]byte(data), &newV)
+				if err != nil {
+					return nil, err
+				}
+				values = append(values, newV)
+			case []byte:
+				newV := make(map[string]interface{})
+				err := json.Unmarshal(data, &newV)
+				if err != nil {
+					return nil, err
+				}
+				values = append(values, newV)
+			}
+		} else {
+			values = append(values, v)
+		}
+	}
+	for _, v := range r.extraFields {
+		values = append(values, v)
+	}
+	return values, nil
+
 }

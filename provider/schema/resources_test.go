@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/stretchr/testify/mock"
 
 	"github.com/cloudquery/cq-provider-sdk/logging"
@@ -91,7 +93,6 @@ func TestResourceAddColumns(t *testing.T) {
 }
 
 func TestResourceColumns(t *testing.T) {
-
 	r := NewResourceData(testTable, nil, nil, nil)
 	errf := r.Set("name", "test")
 	assert.Nil(t, errf)
@@ -180,4 +181,20 @@ func TestResourceResolveColumns(t *testing.T) {
 		v, _ = r.Values()
 		assert.Equal(t, nil, v[4])
 	})
+}
+
+func TestResources(t *testing.T) {
+	r1 := NewResourceData(testPrimaryKeyTable, nil, nil, map[string]interface{}{"new_field": 1})
+	r2 := NewResourceData(testPrimaryKeyTable, nil, nil, map[string]interface{}{"new_field": 1})
+	assert.Equal(t, []string{"primary_key_str", "cq_id", "meta", "new_field"}, r1.columns)
+	assert.Equal(t, []string{"primary_key_str", "cq_id", "meta", "new_field"}, r2.columns)
+
+	rr := Resources{r1, r2}
+	assert.Equal(t, []string{"primary_key_str", "cq_id", "meta", "new_field"}, rr.ColumnNames())
+	assert.Equal(t, testPrimaryKeyTable.Name, rr.TableName())
+	_ = r1.Set("primary_key_str", "test")
+	_ = r2.Set("primary_key_str", "test2")
+	_ = r1.GenerateCQId()
+	_ = r2.GenerateCQId()
+	assert.Equal(t, []uuid.UUID{r1.Id(), r2.Id()}, rr.GetIds())
 }
