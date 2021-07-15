@@ -219,6 +219,10 @@ func getResourceValues(r *Resource) ([]interface{}, error) {
 			return nil, err
 		}
 		if c.Type == TypeJSON {
+			if v == nil {
+				values = append(values, v)
+				continue
+			}
 			if reflect2.TypeOf(v).Kind() == reflect.Map {
 				values = append(values, v)
 				continue
