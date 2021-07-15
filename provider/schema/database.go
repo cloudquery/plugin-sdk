@@ -233,8 +233,15 @@ func getResourceValues(r *Resource) ([]interface{}, error) {
 					return nil, err
 				}
 				values = append(values, newV)
+			case *string:
+				var newV interface{}
+				err := json.Unmarshal([]byte(*data), &newV)
+				if err != nil {
+					return nil, err
+				}
+				values = append(values, newV)
 			case []byte:
-				newV := make(map[string]interface{})
+				var newV interface{}
 				err := json.Unmarshal(data, &newV)
 				if err != nil {
 					return nil, err

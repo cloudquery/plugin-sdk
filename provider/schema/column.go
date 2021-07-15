@@ -176,7 +176,7 @@ func (c Column) checkType(v interface{}) bool {
 		return c.checkType(funk.GetOrElse(v, nil))
 	}
 
-	// Maps are jsons
+	// Maps or slices are jsons
 	if reflect2.TypeOf(v).Kind() == reflect.Map {
 		return c.Type == TypeJSON
 	}
@@ -215,9 +215,11 @@ func (c Column) checkType(v interface{}) bool {
 	case *float32, float32, *float64, float64:
 		return c.Type == TypeFloat
 	case []string, []*string, *[]string:
-		return c.Type == TypeStringArray
+		return c.Type == TypeStringArray || c.Type == TypeJSON
 	case []int, []*int, *[]int:
-		return c.Type == TypeIntArray
+		return c.Type == TypeIntArray || c.Type == TypeJSON
+	case []interface{}:
+		return c.Type == TypeJSON
 	case time.Time, *time.Time:
 		return c.Type == TypeTimestamp
 	case uuid.UUID, *uuid.UUID:
