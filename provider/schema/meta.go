@@ -11,7 +11,7 @@ var (
 		Type:        TypeJSON,
 		Description: "Meta column holds fetch information",
 		Resolver: func(ctx context.Context, meta ClientMeta, resource *Resource, c Column) error {
-			return resource.Set(c.Name, map[string]interface{}{"last_updated": time.Now().UTC()})
+			return resource.Set(c.Name, map[string]interface{}{"last_updated": time.Now().UTC().Format(time.RFC3339)})
 		},
 	}
 	cqIdColumn = Column{
