@@ -3,8 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -111,15 +109,9 @@ func (m Migrator) buildColumns(ctb *sqlbuilder.CreateTableBuilder, cc []schema.C
 		if c.CreationOptions.Unique {
 			defs = []string{strconv.Quote(c.Name), schema.GetPgTypeFromType(c.Type), "unique"}
 		}
-		// TODO: This is a bit ugly. Think of a better way
-		resolverName := getFunctionName(c.Resolver)
-		if strings.HasSuffix(resolverName, "ParentIdResolver") {
+		if strings.HasSuffix(c.Name, "cq_id") && c.Name != "cq_id" {
 			defs = append(defs, "REFERENCES", fmt.Sprintf("%s(cq_id)", parent.Name), "ON DELETE CASCADE")
 		}
 		ctb.Define(defs...)
 	}
-}
-
-func getFunctionName(i interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }
