@@ -184,6 +184,18 @@ func GetPgTypeFromType(v ValueType) string {
 		return "bytea"
 	case TypeInvalid:
 		fallthrough
+	case TypeInet:
+		return "inet"
+	case TypeMacAddr:
+		return "mac"
+	case TypeInetArray:
+		return "inet[]"
+	case TypeMacAddrArray:
+		return "mac[]"
+	case TypeCIDR:
+		return "cidr"
+	case TypeCIDRArray:
+		return "cidr[]"
 	default:
 		panic("invalid type")
 	}
