@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/modern-go/reflect2"
 
@@ -26,7 +25,7 @@ const (
 
 //go:generate mockgen -package=mock -destination=./mocks/mock_database.go . Database
 type Database interface {
-	Insert(ctx context.Context, t *Table, instance []*Resource) error
+	Insert(ctx context.Context, t *Table, instance Resources) error
 	Exec(ctx context.Context, query string, args ...interface{}) error
 	Delete(ctx context.Context, t *Table, args []interface{}) error
 	Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error)
@@ -50,14 +49,14 @@ func NewPgDatabase(ctx context.Context, dsn string) (*PgDatabase, error) {
 }
 
 // Insert inserts all resources to given table, table and resources are assumed from same table.
-func (p PgDatabase) Insert(ctx context.Context, t *Table, resources []*Resource) error {
+func (p PgDatabase) Insert(ctx context.Context, t *Table, resources Resources) error {
 	if len(resources) == 0 {
 		return nil
 	}
 	// It is safe to assume that all resources have the same columns
 	cols := quoteColumns(resources[0].columns)
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	sqlStmt := psql.Insert(t.Name).Columns(cols...).Suffix(fmt.Sprintf("ON CONFLICT ON CONSTRAINT %s_pk DO UPDATE SET %s", TruncateTableConstraint(t.Name), buildReplaceColumns(cols)))
+	sqlStmt := psql.Insert(t.Name).Columns(cols...)
 	for _, res := range resources {
 		if res.table != t {
 			return fmt.Errorf("resource table expected %s got %s", t.Name, res.table.Name)
@@ -206,14 +205,6 @@ func quoteColumns(columns []string) []string {
 		columns[i] = strconv.Quote(v)
 	}
 	return columns
-}
-
-func buildReplaceColumns(columns []string) string {
-	replaceColumns := make([]string, len(columns))
-	for i, c := range columns {
-		replaceColumns[i] = fmt.Sprintf("%[1]s = EXCLUDED.%[1]s", c)
-	}
-	return strings.Join(replaceColumns, ",")
 }
 
 func TruncateTableConstraint(name string) string {

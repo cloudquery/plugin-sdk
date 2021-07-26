@@ -129,11 +129,11 @@ func (_m *databaseMock) Exec(ctx context.Context, query string, args ...interfac
 }
 
 // Insert provides a mock function with given fields: ctx, t, instance
-func (_m *databaseMock) Insert(ctx context.Context, t *Table, instance []*Resource) error {
+func (_m *databaseMock) Insert(ctx context.Context, t *Table, instance Resources) error {
 	ret := _m.Called(ctx, t, instance)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *Table, []*Resource) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *Table, Resources) error); ok {
 		r0 = rf(ctx, t, instance)
 	} else {
 		r0 = ret.Error(0)

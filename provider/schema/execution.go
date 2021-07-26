@@ -143,6 +143,7 @@ func (e ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, pa
 		resources[i] = NewResourceData(e.Table, parent, o, e.extraFields)
 		// Before inserting resolve all table column resolvers
 		if err := e.resolveResourceValues(ctx, meta, resources[i]); err != nil {
+			e.Logger.Error("failed to resolve resource values", "error", err)
 			return err
 		}
 	}
@@ -151,8 +152,12 @@ func (e ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, pa
 	// if we didn't disable delete all data should be wiped before resolve)
 	shouldCascade := parent == nil && e.disableDelete
 	if err := e.Db.CopyFrom(ctx, resources, shouldCascade, e.extraFields); err != nil {
-		e.Logger.Error("failed to insert to db", "error", err)
-		return err
+		e.Logger.Warn("failed copy-from to db", "error", err)
+		// fallback insert, copy from sometimes does problems so we fall back with insert
+		if err := e.Db.Insert(ctx, e.Table, resources); err != nil {
+			e.Logger.Error("failed insert to db", "error", err)
+			return err
+		}
 	}
 
 	// Finally resolve relations of each resource
