@@ -3,7 +3,6 @@ package schema
 import (
 	"context"
 	"fmt"
-	"os"
 	"reflect"
 	"runtime/debug"
 	"sync/atomic"
@@ -48,7 +47,7 @@ func (e ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, parent
 	clients = append(clients, meta)
 	if e.Table.Multiplex != nil {
 		clients = e.Table.Multiplex(meta)
-		meta.Logger().Debug("multiplexing client", "count", len(clients))
+		meta.Logger().Debug("multiplexing client", "count", len(clients), "table", e.Table.Name)
 	}
 	g, ctx := errgroup.WithContext(ctx)
 	var totalResources uint64
@@ -106,8 +105,8 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Fprintf(os.Stderr, "Fetch task exited with panic:\n%s\n", debug.Stack())
-				e.Logger.Error("Fetch task exited with panic", "table", e.Table.Name, "stack", string(debug.Stack()))
+				e.Logger.Error("table resolver recovered from panic", "table", e.Table.Name, "stack", string(debug.Stack()))
+				resolverErr = fmt.Errorf("failed table %s fetch. Error: %s", e.Table.Name, r)
 			}
 			close(res)
 		}()
@@ -174,23 +173,29 @@ func (e ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, pa
 	return nil
 }
 
-func (e ExecutionData) resolveResourceValues(ctx context.Context, meta ClientMeta, resource *Resource) error {
-	if err := e.resolveColumns(ctx, meta, resource, resource.table.Columns); err != nil {
+func (e ExecutionData) resolveResourceValues(ctx context.Context, meta ClientMeta, resource *Resource) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			e.Logger.Error("resolve resource recovered from panic", "table", e.Table.Name, "stack", string(debug.Stack()))
+			err = fmt.Errorf("failed resolve resource. Error: %s", r)
+		}
+	}()
+	if err = e.resolveColumns(ctx, meta, resource, resource.table.Columns); err != nil {
 		return err
 	}
 	// call PostRowResolver if defined after columns have been resolved
 	if resource.table.PostResourceResolver != nil {
-		if err := resource.table.PostResourceResolver(ctx, meta, resource); err != nil {
+		if err = resource.table.PostResourceResolver(ctx, meta, resource); err != nil {
 			return err
 		}
 	}
 	// Finally generate cq_id for resource
 	for _, c := range GetDefaultSDKColumns() {
-		if err := c.Resolver(ctx, meta, resource, c); err != nil {
+		if err = c.Resolver(ctx, meta, resource, c); err != nil {
 			return err
 		}
 	}
-	return nil
+	return err
 }
 
 func (e ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource, cols []Column) error {

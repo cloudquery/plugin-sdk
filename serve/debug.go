@@ -105,8 +105,8 @@ func Debug(ctx context.Context, providerName string, opts *Options) error {
 	fmt.Printf("Provider started, to attach Cloudquery set the CQ_REATTACH_PROVIDERS env var:\n\n")
 	switch runtime.GOOS {
 	case "windows":
-		fmt.Printf("\tCommand Prompt:\tset CQ_REATTACH_PROVIDERS=%s\n", reattachPath)
-		fmt.Printf("\tPowerShell:\t$env:CQ_REATTACH_PROVIDERS=%s\n", reattachPath)
+		fmt.Printf("\tCommand Prompt:\tset CQ_REATTACH_PROVIDERS=\"%s\"\n", reattachPath)
+		fmt.Printf("\tPowerShell:\t$env:CQ_REATTACH_PROVIDERS=\"%s\"\n", reattachPath)
 	case "linux", "darwin":
 		fmt.Printf("\texport CQ_REATTACH_PROVIDERS=%s\n", reattachPath)
 	default:
