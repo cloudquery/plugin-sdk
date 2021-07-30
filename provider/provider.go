@@ -108,6 +108,10 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 		return fmt.Errorf("provider client is not configured, call ConfigureProvider first")
 	}
 
+	if helpers.HasDuplicates(request.Resources) {
+		return fmt.Errorf("provider has duplicate resources requested")
+	}
+
 	g, gctx := errgroup.WithContext(ctx)
 	finishedResources := make(map[string]bool, len(request.Resources))
 	l := sync.Mutex{}
