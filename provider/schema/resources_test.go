@@ -57,6 +57,18 @@ var testPrimaryKeyTable = &Table{
 			Type: TypeString,
 		},
 	},
+	Relations: []*Table{
+		{
+			Name:    "test_pk_rel_table",
+			Options: TableCreationOptions{PrimaryKeys: []string{"primary_rel_key_str"}},
+			Columns: []Column{
+				{
+					Name: "rel_key_str",
+					Type: TypeString,
+				},
+			},
+		},
+	},
 }
 
 type zeroValuedStruct struct {
@@ -74,6 +86,7 @@ func TestResourcePrimaryKey(t *testing.T) {
 	r := NewResourceData(testPrimaryKeyTable, nil, nil, nil)
 	// save random id
 	randomId := r.cqId
+	// test primary table no pk
 	assert.Error(t, r.GenerateCQId(), "Error expected, primary key value not set")
 	// Id shouldn't change
 	assert.Equal(t, randomId, r.cqId)
@@ -82,8 +95,31 @@ func TestResourcePrimaryKey(t *testing.T) {
 	assert.Nil(t, r.GenerateCQId())
 	assert.NotEqual(t, randomId, r.cqId)
 	randomId = r.cqId
+	// validate consistency
 	assert.Nil(t, r.GenerateCQId())
 	assert.Equal(t, randomId, r.cqId)
+}
+
+func TestRelationResourcePrimaryKey(t *testing.T) {
+	r := NewResourceData(testPrimaryKeyTable, nil, nil, nil)
+	r2 := NewResourceData(r.table.Relations[0], r, map[string]interface{}{
+		"rel_key_str": "test",
+	}, nil)
+
+	mockedClient := new(mockedClientMeta)
+	logger := logging.New(&hclog.LoggerOptions{
+		Name:   "test_log",
+		Level:  hclog.Error,
+		Output: nil,
+	})
+	mockedClient.On("Logger", mock.Anything).Return(logger)
+
+	exec := NewExecutionData(nil, logger, r2.table, false, nil)
+	err := exec.resolveResourceValues(context.TODO(), mockedClient, r2)
+	assert.Nil(t, err)
+	v, err := r2.Values()
+	assert.Nil(t, err)
+	assert.Equal(t, v[1], r2.cqId)
 }
 
 // TestResourcePrimaryKey checks resource id generation when primary key is set on table

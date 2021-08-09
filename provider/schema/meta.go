@@ -20,7 +20,11 @@ var (
 		Description: "Unique CloudQuery Id added to every resource",
 		Resolver: func(ctx context.Context, meta ClientMeta, resource *Resource, c Column) error {
 			if err := resource.GenerateCQId(); err != nil {
-				return err
+				if resource.Parent == nil {
+					return err
+				} else {
+					meta.Logger().Debug("one of the table pk is nil", "table", resource.table.Name)
+				}
 			}
 			return resource.Set(c.Name, resource.Id())
 		},
