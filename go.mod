@@ -13,7 +13,7 @@ require (
 	github.com/go-test/deep v1.0.7
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-hclog v0.16.1
 	github.com/hashicorp/go-plugin v1.4.1
 	github.com/hashicorp/hcl/v2 v2.10.0
@@ -30,6 +30,7 @@ require (
 	github.com/mitchellh/hashstructure v1.1.0
 	github.com/modern-go/reflect2 v1.0.1
 	github.com/oklog/run v1.1.0 // indirect
+	github.com/spf13/cast v1.4.0 // indirect
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/thoas/go-funk v0.8.1-0.20210502090430-efae847b30ab
