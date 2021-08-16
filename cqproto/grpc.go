@@ -24,6 +24,7 @@ func (g GRPCClient) GetProviderSchema(ctx context.Context, _ *GetProviderSchemaR
 		Name:           res.GetName(),
 		Version:        res.GetVersion(),
 		ResourceTables: tablesFromProto(res.GetResourceTables()),
+		Migrations:     res.Migrations,
 	}
 
 	return resp, nil
@@ -92,12 +93,17 @@ type GRPCServer struct {
 	internal.UnimplementedProviderServer
 }
 
-func (g *GRPCServer) GetProviderSchema(ctx context.Context, _ *internal.GetProviderSchema_Request) (*internal.GetProviderSchema_Response, error) {
+func (g *GRPCServer) GetProviderSchema(ctx context.Context, request *internal.GetProviderSchema_Request) (*internal.GetProviderSchema_Response, error) {
 	resp, err := g.Impl.GetProviderSchema(ctx, &GetProviderSchemaRequest{})
 	if err != nil {
 		return nil, err
 	}
-	return &internal.GetProviderSchema_Response{Name: resp.Name, Version: resp.Version, ResourceTables: tablesToProto(resp.ResourceTables)}, nil
+	return &internal.GetProviderSchema_Response{
+		Name:           resp.Name,
+		Version:        resp.Version,
+		ResourceTables: tablesToProto(resp.ResourceTables),
+		Migrations:     resp.Migrations,
+	}, nil
 
 }
 

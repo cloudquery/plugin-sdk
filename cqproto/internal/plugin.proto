@@ -58,6 +58,7 @@ message GetProviderSchema {
     string name = 1;
     string version = 2;
     map<string, Table> resource_tables = 3;
+    map<string, bytes> migrations = 4;
   }
 }
 

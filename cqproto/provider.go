@@ -51,6 +51,8 @@ type GetProviderSchemaResponse struct {
 	Version string
 	// ResourceTables is a map of tables this provider creates
 	ResourceTables map[string]*schema.Table
+	// Migrations scripts available for the provider
+	Migrations map[string][]byte
 }
 
 // GetProviderConfigRequest represents a CloudQuery RPC request for provider's config

@@ -1,4 +1,4 @@
-package providertest
+package testing
 
 import (
 	"context"
@@ -51,7 +51,7 @@ func TestResource(t *testing.T, providerCreator func() *provider.Provider, resou
 	}
 	defer conn.Release()
 	l := logging.New(hclog.DefaultOptions)
-	migrator := provider.NewMigrator(l)
+	migrator := provider.NewTableCreator(l)
 	if err := migrator.CreateTable(ctx, conn, resource.Table, nil); err != nil {
 		assert.FailNow(t, fmt.Sprintf("failed to create tables %s", resource.Table.Name), err)
 	}

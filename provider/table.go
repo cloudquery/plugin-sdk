@@ -20,18 +20,18 @@ const (
 	addColumnToTable  = `ALTER TABLE %s ADD COLUMN IF NOT EXISTS %v %v;`
 )
 
-// Migrator handles creation of schema.Table in database if they don't exist, and migration of tables if provider was upgraded.
-type Migrator struct {
+// TableCreator handles creation of schema.Table in database if they don't exist, and migration of tables if provider was upgraded.
+type TableCreator struct {
 	log hclog.Logger
 }
 
-func NewMigrator(log hclog.Logger) *Migrator {
-	return &Migrator{
+func NewTableCreator(log hclog.Logger) *TableCreator {
+	return &TableCreator{
 		log,
 	}
 }
 
-func (m Migrator) CreateTable(ctx context.Context, conn *pgxpool.Conn, t *schema.Table, parent *schema.Table) error {
+func (m TableCreator) CreateTable(ctx context.Context, conn *pgxpool.Conn, t *schema.Table, parent *schema.Table) error {
 	// Build a SQL to create a table.
 	ctb := sqlbuilder.CreateTable(t.Name).IfNotExists()
 	for _, c := range schema.GetDefaultSDKColumns() {
@@ -72,7 +72,7 @@ func (m Migrator) CreateTable(ctx context.Context, conn *pgxpool.Conn, t *schema
 	return nil
 }
 
-func (m Migrator) upgradeTable(ctx context.Context, conn *pgxpool.Conn, t *schema.Table) error {
+func (m TableCreator) upgradeTable(ctx context.Context, conn *pgxpool.Conn, t *schema.Table) error {
 	rows, err := conn.Query(ctx, queryTableColumns, t.Name)
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func (m Migrator) upgradeTable(ctx context.Context, conn *pgxpool.Conn, t *schem
 
 }
 
-func (m Migrator) buildColumns(ctb *sqlbuilder.CreateTableBuilder, cc []schema.Column, parent *schema.Table) {
+func (m TableCreator) buildColumns(ctb *sqlbuilder.CreateTableBuilder, cc []schema.Column, parent *schema.Table) {
 	for _, c := range cc {
 		defs := []string{strconv.Quote(c.Name), schema.GetPgTypeFromType(c.Type)}
 		if c.CreationOptions.Unique {

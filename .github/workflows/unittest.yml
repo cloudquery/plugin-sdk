@@ -1,17 +1,41 @@
 name: UnitTest
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches: [ main ]
 
 jobs:
   unitests:
     strategy:
       matrix:
-        go: [1.16]
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+        dbversion: ['postgres:latest']
+        go: ['1.16']
+        platform: [ ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    services:
+      postgres:
+        image: ${{ matrix.dbversion }}
+        env:
+          POSTGRES_PASSWORD: pass
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-go@v2
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
         with:
-          go-version: ${{ matrix.go }}
+          go-version: ^1.16
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
       - run: go mod download
-      - run: go test -race ./...
+      - name: Test
+        run: go test -v ./...

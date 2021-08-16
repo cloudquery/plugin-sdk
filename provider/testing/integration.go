@@ -1,4 +1,4 @@
-package providertest
+package testing
 
 import (
 	"context"

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -46,13 +47,20 @@ type Provider struct {
 	disableDelete bool
 	// Add extra fields to all resources, these fields don't show up in documentation and are used for internal CQ testing.
 	extraFields map[string]interface{}
+	// Migrations embedded and passed by the provider to upgrade between versions
+	Migrations embed.FS
 }
 
 func (p *Provider) GetProviderSchema(_ context.Context, _ *cqproto.GetProviderSchemaRequest) (*cqproto.GetProviderSchemaResponse, error) {
+	m, err := readProviderMigrationFiles(p.Logger, p.Migrations)
+	if err != nil {
+		return nil, err
+	}
 	return &cqproto.GetProviderSchemaResponse{
 		Name:           p.Name,
 		Version:        p.Version,
 		ResourceTables: p.ResourceMap,
+		Migrations:     m,
 	}, nil
 }
 
