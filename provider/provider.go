@@ -98,6 +98,14 @@ func (p *Provider) ConfigureProvider(ctx context.Context, request *cqproto.Confi
 	if err != nil {
 		return &cqproto.ConfigureProviderResponse{}, err
 	}
+
+	tables := make(map[string]string)
+	for r, t := range p.ResourceMap {
+		if err := getTableDuplicates(r, t, tables); err != nil {
+			return &cqproto.ConfigureProviderResponse{}, err
+		}
+	}
+
 	p.meta = client
 	return &cqproto.ConfigureProviderResponse{}, nil
 }
@@ -154,4 +162,17 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 		})
 	}
 	return g.Wait()
+}
+
+func getTableDuplicates(resource string, table *schema.Table, tableNames map[string]string) error {
+	for _, r := range table.Relations {
+		if err := getTableDuplicates(resource, r, tableNames); err != nil {
+			return err
+		}
+	}
+	if existing, ok := tableNames[table.Name]; ok {
+		return fmt.Errorf("table name %s used more than once, duplicates are in %s and %s", table.Name, existing, resource)
+	}
+	tableNames[table.Name] = resource
+	return nil
 }
