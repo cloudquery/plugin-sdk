@@ -76,30 +76,37 @@ func IntegrationTest(t *testing.T, providerCreator func() *provider.Provider, re
 		t.Fatal(err)
 	}
 
+	// whether want TF to apply and create resources instead of running a fetch on existing resources
+	var tfApplyResources = getEnv("TF_APPLY_RESOURCES", "") == "1"
 	var varPrefix = simplifyString(resource.Table.Name)
 	var varSuffix = simplifyString(hostname)
 
 	prefix := getEnv("TF_VAR_PREFIX", "")
 	if prefix != "" {
 		varPrefix = prefix
+	} else if !tfApplyResources {
+		t.Fatalf("Missing resource TF_VAR_PREFIX either set this environment variable or use TF_APPLY_RESOURCES=1")
 	}
 
 	suffix := getEnv("TF_VAR_SUFFIX", "")
 	if suffix != "" {
 		varSuffix = suffix
+	} else if !tfApplyResources {
+		t.Fatalf("Missing resource TF_VAR_SUFFIX either set this environment or use TF_APPLY_RESOURCES=1")
 	}
 
+	// finally set picked prefix/suffix to resource
 	resource.Prefix = varPrefix
 	resource.Suffix = varSuffix
 
-	if getEnv("TF_APPLY_RESOURCES", "") == "true" {
+	if tfApplyResources {
 		tf, err := setup(&resource)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		teardown, err := deploy(tf, &resource)
-		if teardown != nil && getEnv("TF_NO_DESTROY", "") != "true" {
+		if teardown != nil && getEnv("TF_NO_DESTROY", "") != "1" {
 			defer func() {
 				if err = teardown(); err != nil {
 					t.Fatal(err)
