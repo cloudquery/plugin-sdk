@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cloudquery/cq-provider-sdk/helpers"
+
 	"github.com/hashicorp/go-version"
 
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
@@ -95,7 +97,7 @@ func NewMigrator(log hclog.Logger, migrationFiles map[string][]byte, dsn string,
 	if err != nil {
 		return nil, err
 	}
-	u, err := dburl.Parse(dsn)
+	u, err := helpers.ParseConnectionString(dsn)
 	if err != nil {
 		return nil, err
 	}
