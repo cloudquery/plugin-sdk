@@ -152,7 +152,12 @@ func IntegrationTest(t *testing.T, providerCreator func() *provider.Provider, re
 // setup - puts *.tf files into isolated test dir and creates the instance of terraform
 func setup(resource *ResourceIntegrationTestData) (*tfexec.Terraform, error) {
 	var err error
-	resource.workdir, err = copyTfFiles(resource.Table.Name)
+	if resource.Resources != nil {
+		resource.workdir, err = copyTfFiles(resource.Table.Name, resource.Resources...)
+	} else {
+		resource.workdir, err = copyTfFiles(resource.Table.Name, fmt.Sprintf("%s.tf", resource.Table.Name))
+	}
+
 	if err != nil {
 		// remove workdir
 		if e := os.RemoveAll(resource.workdir); e != nil {
@@ -423,8 +428,8 @@ func simplifyString(in string) string {
 }
 
 // copyTfFiles - copies tf files that are related to current test
-func copyTfFiles(name string) (string, error) {
-	workdir := filepath.Join(tfDir, name)
+func copyTfFiles(testName string, tfTestFiles ...string) (string, error) {
+	workdir := filepath.Join(tfDir, testName)
 	if _, err := os.Stat(workdir); os.IsNotExist(err) {
 		if err := os.MkdirAll(workdir, os.ModePerm); err != nil {
 			return workdir, err
@@ -434,7 +439,9 @@ func copyTfFiles(name string) (string, error) {
 	}
 
 	files := make(map[string]string)
-	files[filepath.Join(infraFilesDir, name+".tf")] = filepath.Join(workdir, name+".tf")
+	for _, tftf := range tfTestFiles {
+		files[filepath.Join(infraFilesDir, tftf)] = filepath.Join(workdir, tftf)
+	}
 	files[filepath.Join(infraFilesDir, "terraform.tf")] = filepath.Join(workdir, "terraform.tf")
 	files[filepath.Join(infraFilesDir, "provider.tf")] = filepath.Join(workdir, "provider.tf")
 	files[filepath.Join(infraFilesDir, "variables.tf")] = filepath.Join(workdir, "variables.tf")
