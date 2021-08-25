@@ -29,20 +29,43 @@ type ExecutionData struct {
 	disableDelete bool
 	// extraFields to be passed to each created resource in the execution
 	extraFields map[string]interface{}
+	// partialFetch if true allows partial fetching of resources
+	partialFetch bool
+	// PartialFetchFailureResult is a map of resources where the fetch process failed
+	PartialFetchFailureResult []PartialFetchFailedResource
+	// partialFetchChan is the channel that is used to send failed resource fetches
+	partialFetchChan chan PartialFetchFailedResource
 }
 
+// PartialFetchFailedResource represents a single partial fetch failed resource
+type PartialFetchFailedResource struct {
+	// table name of the failed resource fetch
+	TableName string
+	// root/parent table name
+	RootTableName string
+	// root/parent primary key values
+	RootPrimaryKeyValues []string
+	// error message for this resource fetch failure
+	Error string
+}
+
+// partialFetchFailureBufferLength defines the buffer length for the partialFetchChan.
+const partialFetchFailureBufferLength = 10
+
 // NewExecutionData Create a new execution data
-func NewExecutionData(db Database, logger hclog.Logger, table *Table, disableDelete bool, extraFields map[string]interface{}) ExecutionData {
+func NewExecutionData(db Database, logger hclog.Logger, table *Table, disableDelete bool, extraFields map[string]interface{}, partialFetch bool) ExecutionData {
 	return ExecutionData{
-		Table:         table,
-		Db:            db,
-		Logger:        logger,
-		disableDelete: disableDelete,
-		extraFields:   extraFields,
+		Table:                     table,
+		Db:                        db,
+		Logger:                    logger,
+		disableDelete:             disableDelete,
+		extraFields:               extraFields,
+		PartialFetchFailureResult: []PartialFetchFailedResource{},
+		partialFetch:              partialFetch,
 	}
 }
 
-func (e ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, parent *Resource) (uint64, error) {
+func (e *ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, parent *Resource) (uint64, error) {
 	var clients []ClientMeta
 	clients = append(clients, meta)
 	if e.Table.Multiplex != nil {
@@ -50,28 +73,45 @@ func (e ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, parent
 		meta.Logger().Debug("multiplexing client", "count", len(clients), "table", e.Table.Name)
 	}
 	g, ctx := errgroup.WithContext(ctx)
+
+	// Start the partial fetch failure result channel routine
+	finishedPartialFetchChan := make(chan bool)
+	if e.partialFetch {
+		e.partialFetchChan = make(chan PartialFetchFailedResource, partialFetchFailureBufferLength)
+		go func() {
+			for fetchResourceFailure := range e.partialFetchChan {
+				meta.Logger().Debug("received failed partial fetch resource", "resource", fetchResourceFailure)
+				e.PartialFetchFailureResult = append(e.PartialFetchFailureResult, fetchResourceFailure)
+			}
+			finishedPartialFetchChan <- true
+		}()
+	}
 	var totalResources uint64
 	for _, client := range clients {
 		client := client
 		g.Go(func() error {
 			count, err := e.callTableResolve(ctx, client, parent)
-			if err != nil && !(e.Table.IgnoreError != nil && e.Table.IgnoreError(err)) {
-				return err
-			}
 			atomic.AddUint64(&totalResources, count)
-			return nil
+			return err
 		})
 	}
-	return totalResources, g.Wait()
+	err := g.Wait()
+	if e.partialFetch {
+		close(e.partialFetchChan)
+		<-finishedPartialFetchChan
+	}
+	return totalResources, err
 }
 
-func (e ExecutionData) WithTable(t *Table) ExecutionData {
-	return ExecutionData{
-		Table:         t,
-		Db:            e.Db,
-		Logger:        e.Logger,
-		disableDelete: e.disableDelete,
-		extraFields:   e.extraFields,
+func (e *ExecutionData) WithTable(t *Table) *ExecutionData {
+	return &ExecutionData{
+		Table:                     t,
+		Db:                        e.Db,
+		Logger:                    e.Logger,
+		disableDelete:             e.disableDelete,
+		extraFields:               e.extraFields,
+		partialFetch:              e.partialFetch,
+		PartialFetchFailureResult: []PartialFetchFailedResource{},
 	}
 }
 
@@ -105,12 +145,17 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				e.Logger.Error("table resolver recovered from panic", "table", e.Table.Name, "stack", string(debug.Stack()))
+				client.Logger().Error("table resolver recovered from panic", "table", e.Table.Name, "stack", string(debug.Stack()))
 				resolverErr = fmt.Errorf("failed table %s fetch. Error: %s", e.Table.Name, r)
 			}
 			close(res)
 		}()
-		resolverErr = e.Table.Resolver(ctx, client, parent, res)
+		err := e.Table.Resolver(ctx, client, parent, res)
+		if err != nil && e.Table.IgnoreError != nil && e.Table.IgnoreError(err) {
+			client.Logger().Warn("ignored an error", "err", err, "table", e.Table.Name)
+			return
+		}
+		resolverErr = err
 	}()
 
 	nc := uint64(0)
@@ -127,7 +172,7 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 	// check if channel iteration stopped because of resolver failure
 	if resolverErr != nil {
 		client.Logger().Error("received resolve resources error", "table", e.Table.Name, "error", resolverErr)
-		return 0, resolverErr
+		return 0, e.checkPartialFetchError(resolverErr, nil, "table resolve error")
 	}
 	// Print only parent resources
 	if parent == nil {
@@ -136,7 +181,7 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 	return nc, nil
 }
 
-func (e ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, parent *Resource, objects []interface{}) error {
+func (e *ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, parent *Resource, objects []interface{}) error {
 	var resources = make(Resources, len(objects))
 	for i, o := range objects {
 		resources[i] = NewResourceData(e.Table, parent, o, e.extraFields)
@@ -150,55 +195,94 @@ func (e ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, pa
 	// only top level tables should cascade, disable delete is turned on.
 	// if we didn't disable delete all data should be wiped before resolve)
 	shouldCascade := parent == nil && e.disableDelete
-	if err := e.Db.CopyFrom(ctx, resources, shouldCascade, e.extraFields); err != nil {
-		e.Logger.Warn("failed copy-from to db", "error", err)
-		// fallback insert, copy from sometimes does problems so we fall back with insert
-		if err := e.Db.Insert(ctx, e.Table, resources); err != nil {
-			e.Logger.Error("failed insert to db", "error", err)
-			return err
-		}
+	var err error
+	resources, err = e.copyDataIntoDB(ctx, resources, shouldCascade)
+	if err != nil {
+		return err
 	}
 
-	// Finally resolve relations of each resource
+	// Finally, resolve relations of each resource
 	for _, rel := range e.Table.Relations {
 		meta.Logger().Debug("resolving table relation", "table", e.Table.Name, "relation", rel.Name)
 		for _, r := range resources {
 			// ignore relation resource count
 			_, err := e.WithTable(rel).ResolveTable(ctx, meta, r)
 			if err != nil {
-				return err
+				if partialFetchErr := e.checkPartialFetchError(err, r, "resolve relation error"); partialFetchErr != nil {
+					return partialFetchErr
+				}
 			}
 		}
 	}
 	return nil
 }
 
-func (e ExecutionData) resolveResourceValues(ctx context.Context, meta ClientMeta, resource *Resource) (err error) {
+func (e *ExecutionData) copyDataIntoDB(ctx context.Context, resources Resources, shouldCascade bool) (Resources, error) {
+	err := e.Db.CopyFrom(ctx, resources, shouldCascade, e.extraFields)
+	if err == nil {
+		return resources, nil
+	}
+	e.Logger.Warn("failed copy-from to db", "error", err)
+
+	// fallback insert, copy from sometimes does problems so we fall back with insert
+	err = e.Db.Insert(ctx, e.Table, resources)
+	if err == nil {
+		return resources, nil
+	}
+	e.Logger.Error("failed insert to db", "error", err)
+
+	// Partial fetch check
+	if partialFetchErr := e.checkPartialFetchError(err, nil, "failed to copy resources into the db"); partialFetchErr != nil {
+		return nil, partialFetchErr
+	}
+
+	// Try to insert resource by resource if partial fetch is enabled and an error occurred
+	partialFetchResources := make(Resources, 0)
+	for id := range resources {
+		if err := e.Db.Insert(ctx, e.Table, Resources{resources[id]}); err != nil {
+			e.Logger.Error("failed to insert resource into db", "error", err, "resource", resources[id])
+		} else {
+			// If there is no error we add the resource to the final result
+			partialFetchResources = append(partialFetchResources, resources[id])
+		}
+	}
+	return partialFetchResources, nil
+}
+
+func (e *ExecutionData) resolveResourceValues(ctx context.Context, meta ClientMeta, resource *Resource) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			e.Logger.Error("resolve resource recovered from panic", "table", e.Table.Name, "stack", string(debug.Stack()))
-			err = fmt.Errorf("failed resolve resource. Error: %s", r)
+			if partialFetchErr := e.checkPartialFetchError(fmt.Errorf("failed resolve resource. Error: %s", r), resource, "resolve resource recovered from panic"); partialFetchErr != nil {
+				err = partialFetchErr
+			}
 		}
 	}()
 	if err = e.resolveColumns(ctx, meta, resource, resource.table.Columns); err != nil {
-		return err
+		if partialFetchErr := e.checkPartialFetchError(err, resource, "resolve column error"); partialFetchErr != nil {
+			return partialFetchErr
+		}
 	}
 	// call PostRowResolver if defined after columns have been resolved
 	if resource.table.PostResourceResolver != nil {
 		if err = resource.table.PostResourceResolver(ctx, meta, resource); err != nil {
-			return err
+			if partialFetchErr := e.checkPartialFetchError(err, resource, "post resource resolver failed"); partialFetchErr != nil {
+				return partialFetchErr
+			}
 		}
 	}
 	// Finally generate cq_id for resource
 	for _, c := range GetDefaultSDKColumns() {
 		if err = c.Resolver(ctx, meta, resource, c); err != nil {
-			return err
+			if partialFetchErr := e.checkPartialFetchError(err, resource, "column resolver execution failed"); partialFetchErr != nil {
+				return partialFetchErr
+			}
 		}
 	}
 	return err
 }
 
-func (e ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource, cols []Column) error {
+func (e *ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource, cols []Column) error {
 	for _, c := range cols {
 		if c.Resolver != nil {
 			meta.Logger().Trace("using custom column resolver", "column", c.Name)
@@ -243,4 +327,57 @@ func interfaceSlice(slice interface{}) []interface{} {
 	}
 
 	return ret
+}
+
+func (e *ExecutionData) checkPartialFetchError(err error, res *Resource, customMsg string) error {
+	// Fast path if partial fetch is disabled
+	if !e.partialFetch {
+		return err
+	}
+
+	partialFetchFailure := PartialFetchFailedResource{
+		Error: fmt.Sprintf("%s: %s", customMsg, err.Error()),
+	}
+	e.Logger.Debug("fetch error occurred and partial fetch is enabled", "msg", partialFetchFailure.Error)
+
+	// If resource is given
+	if res != nil {
+		partialFetchFailure.TableName = res.table.Name
+
+		// Find root/parent resource if one exists
+		var root *Resource
+		currRes := res
+		for root == nil {
+			root = currRes
+			if currRes != nil && currRes.Parent != nil {
+				currRes = res.Parent
+				root = nil
+			}
+		}
+
+		if root != res && root != nil {
+			partialFetchFailure.RootTableName = root.table.Name
+			partialFetchFailure.RootPrimaryKeyValues = getPrimaryKeyValues(root)
+		}
+	}
+
+	// Send information via our channel
+	e.partialFetchChan <- partialFetchFailure
+
+	return nil
+}
+
+func getPrimaryKeyValues(res *Resource) []string {
+	tablePrimKeys := res.table.Options.PrimaryKeys
+	if len(tablePrimKeys) == 0 {
+		return []string{}
+	}
+	results := make([]string, len(tablePrimKeys))
+	for _, primKey := range tablePrimKeys {
+		data := res.Get(primKey)
+		if data != nil {
+			results = append(results, fmt.Sprintf("%v", data))
+		}
+	}
+	return results
 }

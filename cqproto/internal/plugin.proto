@@ -41,6 +41,8 @@ message FetchResources {
   message Request {
     // list of resources provider is requested to fetch
     repeated string resources = 1;
+    // trigger to enable partial fetching
+    bool partial_fetching_enabled = 2;
   }
   message Response {
     // map of resources that have finished fetching
@@ -49,7 +51,20 @@ message FetchResources {
     uint64 resource_count = 2;
     // Error value if any, if returned the stream will be canceled
     string error = 3;
+    // list of resources where the fetching failed
+    repeated PartialFetchFailedResource partial_fetch_failed_resources = 4;
   }
+}
+
+message PartialFetchFailedResource {
+  // table name of the failed resource fetch
+  string table_name = 1;
+  // root/parent table name
+  string root_table_name = 2;
+  // root/parent primary key values
+  repeated string root_primary_key_values = 3;
+  // error message for this resource fetch failure
+  string error = 4;
 }
 
 message GetProviderSchema {

@@ -114,7 +114,7 @@ func TestRelationResourcePrimaryKey(t *testing.T) {
 	})
 	mockedClient.On("Logger", mock.Anything).Return(logger)
 
-	exec := NewExecutionData(nil, logger, r2.table, false, nil)
+	exec := NewExecutionData(nil, logger, r2.table, false, nil, false)
 	err := exec.resolveResourceValues(context.TODO(), mockedClient, r2)
 	assert.Nil(t, err)
 	v, err := r2.Values()
@@ -179,7 +179,7 @@ func TestResourceResolveColumns(t *testing.T) {
 			Level:  hclog.Error,
 			Output: nil,
 		})
-		exec := NewExecutionData(nil, logger, testTable, false, nil)
+		exec := NewExecutionData(nil, logger, testTable, false, nil, false)
 		err := exec.resolveColumns(context.TODO(), mockedClient, r, testTable.Columns)
 		assert.Nil(t, err)
 		v, err := r.Values()
@@ -198,7 +198,7 @@ func TestResourceResolveColumns(t *testing.T) {
 			Level:  hclog.Error,
 			Output: nil,
 		})
-		exec := NewExecutionData(nil, logger, testZeroTable, false, nil)
+		exec := NewExecutionData(nil, logger, testZeroTable, false, nil, false)
 		err := exec.resolveColumns(context.TODO(), mockedClient, r, testZeroTable.Columns)
 		assert.Nil(t, err)
 		v, err := r.Values()

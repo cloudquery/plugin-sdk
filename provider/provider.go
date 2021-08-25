@@ -137,7 +137,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 		if !ok {
 			return fmt.Errorf("plugin %s does not provide resource %s", p.Name, resource)
 		}
-		execData := schema.NewExecutionData(p.db, p.Logger, table, p.disableDelete, p.extraFields)
+		execData := schema.NewExecutionData(p.db, p.Logger, table, p.disableDelete, p.extraFields, request.PartialFetchingEnabled)
 		p.Logger.Debug("fetching table...", "provider", p.Name, "table", table.Name)
 		// Save resource aside
 		r := resource
@@ -152,15 +152,17 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 			defer l.Unlock()
 			if err != nil {
 				return sender.Send(&cqproto.FetchResourcesResponse{
-					FinishedResources: finishedResources,
-					ResourceCount:     resourceCount,
-					Error:             err.Error(),
+					FinishedResources:           finishedResources,
+					ResourceCount:               resourceCount,
+					Error:                       err.Error(),
+					PartialFetchFailedResources: cqproto.PartialFetchToCQProto(execData.PartialFetchFailureResult),
 				})
 			}
 			err = sender.Send(&cqproto.FetchResourcesResponse{
-				FinishedResources: finishedResources,
-				ResourceCount:     resourceCount,
-				Error:             "",
+				FinishedResources:           finishedResources,
+				ResourceCount:               resourceCount,
+				Error:                       "",
+				PartialFetchFailedResources: cqproto.PartialFetchToCQProto(execData.PartialFetchFailureResult),
 			})
 			if err != nil {
 				return err
