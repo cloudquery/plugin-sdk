@@ -127,8 +127,8 @@ func (m *Migrator) UpgradeProvider(version string) error {
 	if version == "latest" {
 		return m.m.Up()
 	}
-	mv, ok := m.versionMapper[version]
-	if !ok {
+	mv, err := m.FindLatestMigration(version)
+	if err != nil {
 		return fmt.Errorf("version %s upgrade doesn't exist", version)
 	}
 	m.log.Debug("upgrading provider version", "version", version, "migrator_version", mv)
@@ -136,9 +136,9 @@ func (m *Migrator) UpgradeProvider(version string) error {
 }
 
 func (m *Migrator) DowngradeProvider(version string) error {
-	mv, ok := m.versionMapper[version]
-	if !ok {
-		return fmt.Errorf("version %s downgrade doesn't exist", version)
+	mv, err := m.FindLatestMigration(version)
+	if err != nil {
+		return fmt.Errorf("version %s upgrade doesn't exist", version)
 	}
 	m.log.Debug("downgrading provider version", "version", version, "migrator_version", mv)
 	return m.m.Migrate(mv)
@@ -212,7 +212,7 @@ func (m *Migrator) FindLatestMigration(requestedVersion string) (uint, error) {
 	}
 	ov, err := version.NewVersion(requestedVersion)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("version %s doesn't exist", requestedVersion)
 	}
 	// find closest migration level
 	for i, v := range m.versions {
