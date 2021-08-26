@@ -69,18 +69,21 @@ func (e *ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, paren
 	var clients []ClientMeta
 	clients = append(clients, meta)
 	if e.Table.Multiplex != nil {
-		clients = e.Table.Multiplex(meta)
-		meta.Logger().Debug("multiplexing client", "count", len(clients), "table", e.Table.Name)
+		if parent != nil {
+			meta.Logger().Warn("relation client multiplexing is not allowed, skipping multiplex", "table", e.Table.Name)
+		} else {
+			clients = e.Table.Multiplex(meta)
+			meta.Logger().Debug("multiplexing client", "count", len(clients), "table", e.Table.Name)
+		}
 	}
 	g, ctx := errgroup.WithContext(ctx)
-
 	// Start the partial fetch failure result channel routine
 	finishedPartialFetchChan := make(chan bool)
 	if e.partialFetch {
 		e.partialFetchChan = make(chan PartialFetchFailedResource, partialFetchFailureBufferLength)
 		go func() {
 			for fetchResourceFailure := range e.partialFetchChan {
-				meta.Logger().Debug("received failed partial fetch resource", "resource", fetchResourceFailure)
+				meta.Logger().Debug("received failed partial fetch resource", "resource", fetchResourceFailure, "table", e.Table.Name)
 				e.PartialFetchFailureResult = append(e.PartialFetchFailureResult, fetchResourceFailure)
 			}
 			finishedPartialFetchChan <- true
@@ -285,20 +288,20 @@ func (e *ExecutionData) resolveResourceValues(ctx context.Context, meta ClientMe
 func (e *ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource, cols []Column) error {
 	for _, c := range cols {
 		if c.Resolver != nil {
-			meta.Logger().Trace("using custom column resolver", "column", c.Name)
+			meta.Logger().Trace("using custom column resolver", "column", c.Name, "table", e.Table.Name)
 			if err := c.Resolver(ctx, meta, resource, c); err != nil {
 				return err
 			}
 			continue
 		}
-		meta.Logger().Trace("resolving column value", "column", c.Name)
+		meta.Logger().Trace("resolving column value", "column", c.Name, "table", e.Table.Name)
 		// base use case: try to get column with CamelCase name
 		v := funk.Get(resource.Item, strcase.ToCamel(c.Name), funk.WithAllowZero())
 		if v == nil {
-			meta.Logger().Trace("using column default value", "column", c.Name, "default", c.Default)
+			meta.Logger().Trace("using column default value", "column", c.Name, "default", c.Default, "table", e.Table.Name)
 			v = c.Default
 		}
-		meta.Logger().Trace("setting column value", "column", c.Name, "value", v)
+		meta.Logger().Trace("setting column value", "column", c.Name, "value", v, "table", e.Table.Name)
 		if err := resource.Set(c.Name, v); err != nil {
 			return err
 		}
@@ -338,7 +341,7 @@ func (e *ExecutionData) checkPartialFetchError(err error, res *Resource, customM
 	partialFetchFailure := PartialFetchFailedResource{
 		Error: fmt.Sprintf("%s: %s", customMsg, err.Error()),
 	}
-	e.Logger.Debug("fetch error occurred and partial fetch is enabled", "msg", partialFetchFailure.Error)
+	e.Logger.Debug("fetch error occurred and partial fetch is enabled", "msg", partialFetchFailure.Error, "table", e.Table.Name)
 
 	// If resource is given
 	if res != nil {
@@ -355,7 +358,7 @@ func (e *ExecutionData) checkPartialFetchError(err error, res *Resource, customM
 			}
 		}
 
-		if root != res && root != nil {
+		if root != res {
 			partialFetchFailure.RootTableName = root.table.Name
 			partialFetchFailure.RootPrimaryKeyValues = getPrimaryKeyValues(root)
 		}

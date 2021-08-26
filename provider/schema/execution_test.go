@@ -19,6 +19,39 @@ var alwaysDeleteTable = &Table{
 	Columns:      []Column{{Name: "name", Type: TypeString}},
 }
 
+var testMultiplexTable = &Table{
+	Name: "test_multiplex_table",
+	Multiplex: func(meta ClientMeta) []ClientMeta {
+		return []ClientMeta{meta}
+	},
+	Resolver: func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+		return nil
+	},
+	Columns: []Column{
+		{
+			Name: "name",
+			Type: TypeString,
+		},
+	},
+	Relations: []*Table{
+		{
+			Name: "test_relation_multiplex_table",
+			Multiplex: func(meta ClientMeta) []ClientMeta {
+				return []ClientMeta{meta}
+			},
+			Resolver: func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+				return nil
+			},
+			Columns: []Column{
+				{
+					Name: "name",
+					Type: TypeString,
+				},
+			},
+		},
+	},
+}
+
 var testTable = &Table{
 	Name: "test_table",
 	Columns: []Column{
@@ -395,6 +428,24 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		assert.Equal(t, expectedResource.data["name"], "defaultValue")
 		assert.Len(t, execDefault.PartialFetchFailureResult, 1)
 		assert.Equal(t, "resolve resource recovered from panic: failed resolve resource. Error: test panic", execDefault.PartialFetchFailureResult[0].Error)
+	})
+
+	t.Run("test table with multiplex", func(t *testing.T) {
+		mockDb := new(databaseMock)
+		execDefault := NewExecutionData(mockDb, logger, testMultiplexTable, false, nil, true)
+		var parentMultiplexCalled, relationMultiplexCalled = false, false
+		testMultiplexTable.Multiplex = func(meta ClientMeta) []ClientMeta {
+			parentMultiplexCalled = true
+			return []ClientMeta{meta}
+		}
+		testMultiplexTable.Relations[0].Multiplex = func(meta ClientMeta) []ClientMeta {
+			relationMultiplexCalled = true
+			return []ClientMeta{meta}
+		}
+		_, err := execDefault.ResolveTable(context.Background(), mockedClient, nil)
+		assert.Nil(t, err)
+		assert.True(t, parentMultiplexCalled)
+		assert.False(t, relationMultiplexCalled)
 	})
 }
 
