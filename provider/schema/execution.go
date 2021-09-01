@@ -225,14 +225,14 @@ func (e *ExecutionData) copyDataIntoDB(ctx context.Context, resources Resources,
 	if err == nil {
 		return resources, nil
 	}
-	e.Logger.Warn("failed copy-from to db", "error", err)
+	e.Logger.Warn("failed copy-from to db", "error", err, "table", e.Table.Name)
 
 	// fallback insert, copy from sometimes does problems so we fall back with insert
 	err = e.Db.Insert(ctx, e.Table, resources)
 	if err == nil {
 		return resources, nil
 	}
-	e.Logger.Error("failed insert to db", "error", err)
+	e.Logger.Error("failed insert to db", "error", err, "table", e.Table.Name)
 
 	// Partial fetch check
 	if partialFetchErr := e.checkPartialFetchError(err, nil, "failed to copy resources into the db"); partialFetchErr != nil {
@@ -243,7 +243,7 @@ func (e *ExecutionData) copyDataIntoDB(ctx context.Context, resources Resources,
 	partialFetchResources := make(Resources, 0)
 	for id := range resources {
 		if err := e.Db.Insert(ctx, e.Table, Resources{resources[id]}); err != nil {
-			e.Logger.Error("failed to insert resource into db", "error", err, "resource", resources[id])
+			e.Logger.Error("failed to insert resource into db", "error", err, "resource", resources[id], "table", e.Table.Name)
 		} else {
 			// If there is no error we add the resource to the final result
 			partialFetchResources = append(partialFetchResources, resources[id])
