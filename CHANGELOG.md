@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.4.0] - 2020-09-02
+
+### :rocket: Added
+* Added support for partial fetching [#60](https://github.com/cloudquery/cq-provider-sdk/pull/76)
+
+
+## [v0.3.4] - 2020-08-25
+
+### :spider: Fixed
+* fix edge case of migration jumps [#78](https://github.com/cloudquery/cq-provider-sdk/issues/78)
+
+
+### :rocket: Added
+* Added support for provider migrations [#71](https://github.com/cloudquery/cq-provider-sdk/issues/71)
+
 ## [v0.3.2] - 2020-08-11
 
 ### :spider: Fixed
