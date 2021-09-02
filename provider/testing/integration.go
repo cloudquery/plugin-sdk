@@ -127,7 +127,8 @@ func IntegrationTest(t *testing.T, providerCreator func() *provider.Provider, re
 	if err != nil {
 		t.Fatal(err)
 	}
-	conn, err := pool.Acquire(context.Background())
+	ctx := context.Background()
+	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,8 +144,11 @@ func IntegrationTest(t *testing.T, providerCreator func() *provider.Provider, re
 		t.Fatal(err)
 	}
 
-	err = verifyFields(resource, conn)
-	if err != nil {
+	if err = verifyFields(resource, conn); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := conn.Conn().Close(ctx); err != nil {
 		t.Fatal(err)
 	}
 }

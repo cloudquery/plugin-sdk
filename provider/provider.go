@@ -39,8 +39,8 @@ type Provider struct {
 	Config func() Config
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	Logger hclog.Logger
-	// Database connection
-	db schema.Database
+	// Database connection string
+	dbURL string
 	// meta is the provider's client created when configure is called
 	meta schema.ClientMeta
 	// Whether provider should all Delete on every table before fetching
@@ -78,17 +78,11 @@ func (p *Provider) GetProviderConfig(_ context.Context, _ *cqproto.GetProviderCo
 	return &cqproto.GetProviderConfigResponse{Config: hclwrite.Format([]byte(data))}, nil
 }
 
-func (p *Provider) ConfigureProvider(ctx context.Context, request *cqproto.ConfigureProviderRequest) (*cqproto.ConfigureProviderResponse, error) {
+func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.ConfigureProviderRequest) (*cqproto.ConfigureProviderResponse, error) {
 	if p.meta != nil {
 		return &cqproto.ConfigureProviderResponse{Error: fmt.Sprintf("provider %s was already configured", p.Name)}, nil
 	}
-
-	conn, err := schema.NewPgDatabase(ctx, request.Connection.DSN)
-	if err != nil {
-		return nil, err
-	}
 	p.disableDelete = request.DisableDelete
-	p.db = conn
 	p.extraFields = request.ExtraFields
 	providerConfig := p.Config()
 	if err := defaults.Set(providerConfig); err != nil {
@@ -128,6 +122,13 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 		return fmt.Errorf("provider has duplicate resources requested")
 	}
 
+	conn, err := schema.NewPgDatabase(ctx, p.dbURL)
+	if err != nil {
+		return fmt.Errorf("failed to connect to database. %w", err)
+	}
+
+	defer conn.Close()
+
 	g, gctx := errgroup.WithContext(ctx)
 	finishedResources := make(map[string]bool, len(request.Resources))
 	l := sync.Mutex{}
@@ -137,7 +138,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 		if !ok {
 			return fmt.Errorf("plugin %s does not provide resource %s", p.Name, resource)
 		}
-		execData := schema.NewExecutionData(p.db, p.Logger, table, p.disableDelete, p.extraFields, request.PartialFetchingEnabled)
+		execData := schema.NewExecutionData(conn, p.Logger, table, p.disableDelete, p.extraFields, request.PartialFetchingEnabled)
 		p.Logger.Debug("fetching table...", "provider", p.Name, "table", table.Name)
 		// Save resource aside
 		r := resource

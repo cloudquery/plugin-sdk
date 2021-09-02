@@ -30,6 +30,7 @@ type Database interface {
 	Delete(ctx context.Context, t *Table, args []interface{}) error
 	Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error)
 	CopyFrom(ctx context.Context, resources Resources, shouldCascade bool, CascadeDeleteFilters map[string]interface{}) error
+	Close()
 }
 
 type PgDatabase struct {
@@ -153,6 +154,10 @@ func (p PgDatabase) Delete(ctx context.Context, t *Table, args []interface{}) er
 
 	_, err = p.pool.Exec(ctx, sql, args...)
 	return err
+}
+
+func (p PgDatabase) Close() {
+	p.pool.Close()
 }
 
 func GetPgTypeFromType(v ValueType) string {
