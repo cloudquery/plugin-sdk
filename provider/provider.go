@@ -84,6 +84,7 @@ func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.Configu
 	}
 	p.disableDelete = request.DisableDelete
 	p.extraFields = request.ExtraFields
+	p.dbURL = request.Connection.DSN
 	providerConfig := p.Config()
 	if err := defaults.Set(providerConfig); err != nil {
 		return &cqproto.ConfigureProviderResponse{}, err
