@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [v0.4.3] - 2020-09-06
+
+### :rocket: Added
+* Added support to fetch all resources with "*" [#87](https://github.com/cloudquery/cq-provider-sdk/pull/87)
+
+### :gear: Changed
+* Partial fetch flag enabled by default on configuration (cq init [provider]) creation for new providers [#87](https://github.com/cloudquery/cq-provider-sdk/pull/87)
+
+
+## [v0.4.2] - 2020-09-04
+
+### :spider: Fixed
+* fix missing table name from partial fetch error [#85](https://github.com/cloudquery/cq-provider-sdk/issues/85)
+
+
+## [v0.4.1] - 2020-09-02 
+
+### :spider: Fixed
+* fix missing database connection url set [#84](https://github.com/cloudquery/cq-provider-sdk/issues/84)
+
+
 ## [v0.4.0] - 2020-09-02
 
 ### :rocket: Added
