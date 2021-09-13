@@ -132,7 +132,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 		return err
 	}
 
-	conn, err := schema.NewPgDatabase(ctx, p.dbURL)
+	conn, err := schema.NewPgDatabase(ctx, p.Logger, p.dbURL)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database. %w", err)
 	}

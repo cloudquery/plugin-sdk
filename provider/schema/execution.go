@@ -243,7 +243,7 @@ func (e *ExecutionData) copyDataIntoDB(ctx context.Context, resources Resources,
 	partialFetchResources := make(Resources, 0)
 	for id := range resources {
 		if err := e.Db.Insert(ctx, e.Table, Resources{resources[id]}); err != nil {
-			e.Logger.Error("failed to insert resource into db", "error", err, "resource", resources[id], "table", e.Table.Name)
+			e.Logger.Error("failed to insert resource into db", "error", err, "resource_keys", resources[id].String(), "table", e.Table.Name)
 		} else {
 			// If there is no error we add the resource to the final result
 			partialFetchResources = append(partialFetchResources, resources[id])

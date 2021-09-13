@@ -38,6 +38,13 @@ func NewResourceData(t *Table, parent *Resource, item interface{}, extraFields m
 		extraFields: extraFields,
 	}
 }
+func (r *Resource) String() string {
+	keys := make([]interface{}, len(r.table.PrimaryKeys()))
+	for _, pk := range r.table.PrimaryKeys() {
+		keys = append(keys, r.Get(pk))
+	}
+	return fmt.Sprintf("%s", keys)
+}
 
 func (r *Resource) Get(key string) interface{} {
 	return r.data[key]

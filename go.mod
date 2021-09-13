@@ -23,6 +23,8 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20210316155119-a95892c5f864 // indirect
 	github.com/huandu/go-sqlbuilder v1.12.1
 	github.com/iancoleman/strcase v0.1.3
+	github.com/jackc/pgconn v1.8.1
+	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jackc/pgmock v0.0.0-20201204152224-4fe30f7445fd // indirect
 	github.com/jackc/pgproto3/v2 v2.0.7 // indirect
 	github.com/jackc/pgx/v4 v4.11.0
