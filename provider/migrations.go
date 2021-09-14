@@ -123,6 +123,11 @@ func NewMigrator(log hclog.Logger, migrationFiles map[string][]byte, dsn string,
 	}, nil
 }
 
+func (m *Migrator) Close() error {
+	_, dbErr := m.m.Close()
+	return dbErr
+}
+
 func (m *Migrator) UpgradeProvider(version string) error {
 	if version == "latest" {
 		return m.m.Up()
