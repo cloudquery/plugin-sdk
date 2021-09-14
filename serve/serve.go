@@ -60,7 +60,7 @@ func Serve(opts *Options) {
 				// We send all output to CloudQuery. Go-plugin will take the output and
 				// pass it through another hclog.Logger on the client side where it can
 				// be filtered.
-				Level:      hclog.Trace,
+				Level:      hclog.Debug,
 				JSONFormat: true,
 				Name:       opts.Name,
 			})
@@ -74,15 +74,21 @@ func Serve(opts *Options) {
 	// Check of CQ_PROVIDER_DEBUG is turned on. In case it's true the plugin is executed in debug mode, allowing for
 	// the CloudQuery main command to connect to this plugin via the .cq_reattach and the CQ_REATTACH_PROVIDERS env var
 	if os.Getenv("CQ_PROVIDER_DEBUG") == "1" {
+		// If this flag is turned on the provider will print trace log, the trace log prints values inserted etc', turn this
+		// flag only if you are debugging locally and need more info on the provider while running it.
+		if os.Getenv("CQ_PROVIDER_DEBUG_TRACE_LOG") == "1" {
+			opts.Logger.SetLevel(hclog.Trace)
+		}
 		if err := Debug(context.Background(), opts.Name, opts); err != nil {
 			panic(fmt.Errorf("failed to run debug: %w", err))
 		}
 		return
 	}
+
 	// If not logger was set by provider create a new logger
 	if opts.Logger == nil {
 		opts.Logger = hclog.New(&hclog.LoggerOptions{
-			Level:      hclog.Trace,
+			Level:      hclog.Debug,
 			JSONFormat: true,
 		})
 	}
