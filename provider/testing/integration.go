@@ -275,14 +275,23 @@ func fetch(providerCreator func() *provider.Provider, resource *ResourceIntegrat
 		return err
 	}
 
+	var resourceSender = &fakeResourceSender{
+		Errors: []string{},
+	}
+
 	if err = testProvider.FetchResources(context.Background(),
 		&cqproto.FetchResourcesRequest{
 			Resources: []string{findResourceFromTableName(resource.Table, testProvider.ResourceMap)},
 		},
-		fakeResourceSender{},
+		resourceSender,
 	); err != nil {
 		return err
 	}
+
+	if len(resourceSender.Errors) > 0 {
+		return fmt.Errorf("error/s occur during test, %s", strings.Join(resourceSender.Errors, ", "))
+	}
+
 	return nil
 }
 

@@ -76,7 +76,7 @@ func TestResource(t *testing.T, providerCreator func() *provider.Provider, resou
 	})
 	assert.Nil(t, err)
 
-	err = testProvider.FetchResources(context.Background(), &cqproto.FetchResourcesRequest{Resources: []string{findResourceFromTableName(resource.Table, testProvider.ResourceMap)}}, fakeResourceSender{})
+	err = testProvider.FetchResources(context.Background(), &cqproto.FetchResourcesRequest{Resources: []string{findResourceFromTableName(resource.Table, testProvider.ResourceMap)}}, &fakeResourceSender{Errors: []string{}})
 	assert.Nil(t, err)
 	verifyNoEmptyColumns(t, resource, conn)
 }
@@ -90,11 +90,14 @@ func findResourceFromTableName(table *schema.Table, tables map[string]*schema.Ta
 	return ""
 }
 
-type fakeResourceSender struct{}
+type fakeResourceSender struct {
+	Errors []string
+}
 
-func (f fakeResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
+func (f *fakeResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
 	if r.Error != "" {
 		fmt.Printf(r.Error)
+		f.Errors = append(f.Errors, r.Error)
 	}
 	return nil
 }
