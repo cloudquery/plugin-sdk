@@ -256,6 +256,9 @@ func (c Column) checkType(v interface{}) bool {
 				return c.Type == TypeUUIDArray
 			}
 		}
+		if kindName == reflect.Struct {
+			return c.Type == TypeJSON
+		}
 		if c.Type == TypeSmallInt && (kindName == reflect.Int8 || kindName == reflect.Int16 || kindName == reflect.Uint8) {
 			return true
 		}

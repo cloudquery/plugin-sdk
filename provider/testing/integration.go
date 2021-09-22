@@ -270,7 +270,8 @@ func fetch(providerCreator func() *provider.Provider, resource *ResourceIntegrat
 		CloudQueryVersion: "",
 		Connection: cqproto.ConnectionDetails{DSN: getEnv("DATABASE_URL",
 			"host=localhost user=postgres password=pass DB.name=postgres port=5432")},
-		Config: data,
+		Config:        data,
+		DisableDelete: true,
 	}); err != nil {
 		return err
 	}
