@@ -6,12 +6,19 @@ import (
 	"reflect"
 	"runtime/debug"
 	"sync/atomic"
+	"time"
+
+	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/iancoleman/strcase"
 	"github.com/thoas/go-funk"
 	"golang.org/x/sync/errgroup"
 )
+
+// executionJitter adds a -1 minute to execution of fetch, so if a user fetches only 1 resources and it finishes
+// faster than the <1s it won't be deleted by remove stale.
+const executionJitter = -1 * time.Minute
 
 type ClientMeta interface {
 	Logger() hclog.Logger
@@ -25,7 +32,7 @@ type ExecutionData struct {
 	Db Database
 	// Logger associated with this execution
 	Logger hclog.Logger
-	// disableDelete allows to disable deletion of table data for this execution
+	// disableDelete allows disabling deletion of table data for this execution
 	disableDelete bool
 	// extraFields to be passed to each created resource in the execution
 	extraFields map[string]interface{}
@@ -35,6 +42,8 @@ type ExecutionData struct {
 	PartialFetchFailureResult []PartialFetchFailedResource
 	// partialFetchChan is the channel that is used to send failed resource fetches
 	partialFetchChan chan PartialFetchFailedResource
+	// When the execution started
+	executionStart time.Time
 }
 
 // PartialFetchFailedResource represents a single partial fetch failed resource
@@ -62,6 +71,7 @@ func NewExecutionData(db Database, logger hclog.Logger, table *Table, disableDel
 		extraFields:               extraFields,
 		PartialFetchFailureResult: []PartialFetchFailedResource{},
 		partialFetch:              partialFetch,
+		executionStart:            time.Now().Add(executionJitter),
 	}
 }
 
@@ -134,6 +144,23 @@ func (e ExecutionData) truncateTable(ctx context.Context, client ClientMeta, par
 	return nil
 }
 
+// cleanupStaleData cleans resources in table that weren't update in the latest table resolve execution
+func (e ExecutionData) cleanupStaleData(ctx context.Context, client ClientMeta, parent *Resource) error {
+	// Only clean top level tables
+	if parent != nil {
+		return nil
+	}
+	if !e.disableDelete {
+		client.Logger().Debug("skipping stale data removal", "table", e.Table.Name)
+		return nil
+	}
+	client.Logger().Debug("cleaning table table stale data", "table", e.Table.Name, "last_update", e.executionStart)
+	if e.Table.DeleteFilter != nil {
+		return e.Db.RemoveStaleData(ctx, e.Table, e.executionStart, e.Table.DeleteFilter(client, parent))
+	}
+	return e.Db.RemoveStaleData(ctx, e.Table, e.executionStart, nil)
+}
+
 func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, parent *Resource) (uint64, error) {
 
 	if e.Table.Resolver == nil {
@@ -181,22 +208,29 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 	if parent == nil {
 		client.Logger().Info("fetched successfully", "table", e.Table.Name, "count", nc)
 	}
+	if err := e.cleanupStaleData(ctx, client, parent); err != nil {
+		return nc, fmt.Errorf("failed to clean stale data: %w", err)
+	}
 	return nc, nil
 }
 
 func (e *ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, parent *Resource, objects []interface{}) error {
-	var resources = make(Resources, len(objects))
-	for i, o := range objects {
-		resources[i] = NewResourceData(e.Table, parent, o, e.extraFields)
+	var resources = make(Resources, 0, len(objects))
+	for _, o := range objects {
+		resource := NewResourceData(e.Table, parent, o, e.extraFields)
 		// Before inserting resolve all table column resolvers
-		if err := e.resolveResourceValues(ctx, meta, resources[i]); err != nil {
-			e.Logger.Error("failed to resolve resource values", "error", err)
-			return err
+		if err := e.resolveResourceValues(ctx, meta, resource); err != nil {
+			if partialFetchErr := e.checkPartialFetchError(err, resource, "failed to resolve resource"); partialFetchErr != nil {
+				return partialFetchErr
+			}
+			e.Logger.Warn("skipping failed resolved resource", "reason", err.Error())
+			continue
 		}
+		resources = append(resources, resource)
 	}
 
 	// only top level tables should cascade, disable delete is turned on.
-	// if we didn't disable delete all data should be wiped before resolve)
+	// if we didn't disable delete all data should be wiped before resolve
 	shouldCascade := parent == nil && e.disableDelete
 	var err error
 	resources, err = e.copyDataIntoDB(ctx, resources, shouldCascade)
@@ -227,7 +261,7 @@ func (e *ExecutionData) copyDataIntoDB(ctx context.Context, resources Resources,
 	}
 	e.Logger.Warn("failed copy-from to db", "error", err, "table", e.Table.Name)
 
-	// fallback insert, copy from sometimes does problems so we fall back with insert
+	// fallback insert, copy from sometimes does problems, so we fall back with bulk insert
 	err = e.Db.Insert(ctx, e.Table, resources)
 	if err == nil {
 		return resources, nil
@@ -243,7 +277,7 @@ func (e *ExecutionData) copyDataIntoDB(ctx context.Context, resources Resources,
 	partialFetchResources := make(Resources, 0)
 	for id := range resources {
 		if err := e.Db.Insert(ctx, e.Table, Resources{resources[id]}); err != nil {
-			e.Logger.Error("failed to insert resource into db", "error", err, "resource_keys", resources[id].String(), "table", e.Table.Name)
+			e.Logger.Error("failed to insert resource into db", "error", err, "resource_keys", resources[id].Keys(), "table", e.Table.Name)
 		} else {
 			// If there is no error we add the resource to the final result
 			partialFetchResources = append(partialFetchResources, resources[id])
@@ -256,30 +290,22 @@ func (e *ExecutionData) resolveResourceValues(ctx context.Context, meta ClientMe
 	defer func() {
 		if r := recover(); r != nil {
 			e.Logger.Error("resolve resource recovered from panic", "table", e.Table.Name, "stack", string(debug.Stack()))
-			if partialFetchErr := e.checkPartialFetchError(fmt.Errorf("failed resolve resource. Error: %s", r), resource, "resolve resource recovered from panic"); partialFetchErr != nil {
-				err = partialFetchErr
-			}
+			err = fmt.Errorf("recovered from panic: %s", r)
 		}
 	}()
 	if err = e.resolveColumns(ctx, meta, resource, resource.table.Columns); err != nil {
-		if partialFetchErr := e.checkPartialFetchError(err, resource, "resolve column error"); partialFetchErr != nil {
-			return partialFetchErr
-		}
+		return fmt.Errorf("resolve columns error: %w", err)
 	}
 	// call PostRowResolver if defined after columns have been resolved
 	if resource.table.PostResourceResolver != nil {
 		if err = resource.table.PostResourceResolver(ctx, meta, resource); err != nil {
-			if partialFetchErr := e.checkPartialFetchError(err, resource, "post resource resolver failed"); partialFetchErr != nil {
-				return partialFetchErr
-			}
+			return fmt.Errorf("post resource resolver failed: %w", err)
 		}
 	}
-	// Finally generate cq_id for resource
+	// Finally, resolve default SDK columns resource
 	for _, c := range GetDefaultSDKColumns() {
 		if err = c.Resolver(ctx, meta, resource, c); err != nil {
-			if partialFetchErr := e.checkPartialFetchError(err, resource, "column resolver execution failed"); partialFetchErr != nil {
-				return partialFetchErr
-			}
+			return fmt.Errorf("default column %s resolver execution failed: %w", c.Name, err)
 		}
 	}
 	return err
@@ -289,12 +315,21 @@ func (e *ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, res
 	for _, c := range cols {
 		if c.Resolver != nil {
 			meta.Logger().Trace("using custom column resolver", "column", c.Name, "table", e.Table.Name)
-			if err := c.Resolver(ctx, meta, resource, c); err != nil {
+			err := c.Resolver(ctx, meta, resource, c)
+			if err == nil {
+				continue
+			}
+			// check if column resolver defined an IgnoreError function, if it does check if ignore should be ignored.
+			if c.IgnoreError == nil || !c.IgnoreError(err) {
+				return err
+			}
+			// Set default value if defined, otherwise it will be nil
+			if err := resource.Set(c.Name, c.Default); err != nil {
 				return err
 			}
 			continue
 		}
-		meta.Logger().Trace("resolving column value", "column", c.Name, "table", e.Table.Name)
+		meta.Logger().Trace("resolving column value with path", "column", c.Name, "table", e.Table.Name)
 		// base use case: try to get column with CamelCase name
 		v := funk.Get(resource.Item, strcase.ToCamel(c.Name), funk.WithAllowZero())
 		if v == nil {
@@ -361,27 +396,10 @@ func (e *ExecutionData) checkPartialFetchError(err error, res *Resource, customM
 
 		if root != res {
 			partialFetchFailure.RootTableName = root.table.Name
-			partialFetchFailure.RootPrimaryKeyValues = getPrimaryKeyValues(root)
+			partialFetchFailure.RootPrimaryKeyValues = root.Keys()
 		}
 	}
-
 	// Send information via our channel
 	e.partialFetchChan <- partialFetchFailure
-
 	return nil
-}
-
-func getPrimaryKeyValues(res *Resource) []string {
-	tablePrimKeys := res.table.Options.PrimaryKeys
-	if len(tablePrimKeys) == 0 {
-		return []string{}
-	}
-	results := make([]string, len(tablePrimKeys))
-	for _, primKey := range tablePrimKeys {
-		data := res.Get(primKey)
-		if data != nil {
-			results = append(results, fmt.Sprintf("%v", data))
-		}
-	}
-	return results
 }

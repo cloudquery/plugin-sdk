@@ -156,7 +156,9 @@ type Column struct {
 	Default interface{}
 	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
 	Resolver ColumnResolver
-	// Creation options allow to modify how column is defined when table is created
+	// Ignore errors checks if returned error from column resolver should be ignored.
+	IgnoreError IgnoreErrorFunc
+	// Creation options allow modifying how column is defined when table is created
 	CreationOptions ColumnCreationOptions
 }
 

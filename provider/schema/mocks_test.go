@@ -2,6 +2,7 @@ package schema
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/stretchr/testify/mock"
@@ -100,4 +101,18 @@ func (_m *DatabaseMock) Query(ctx context.Context, query string, args ...interfa
 	}
 
 	return r0, r1
+}
+
+// RemoveStaleData provides a mock function with given fields: ctx, t, executionStart, kvFilters
+func (_m *DatabaseMock) RemoveStaleData(ctx context.Context, t *Table, executionStart time.Time, kvFilters []interface{}) error {
+	ret := _m.Called(ctx, t, executionStart, kvFilters)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *Table, time.Time, []interface{}) error); ok {
+		r0 = rf(ctx, t, executionStart, kvFilters)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
