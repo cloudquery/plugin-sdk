@@ -418,6 +418,11 @@ func compareDataWithExpected(expected []ExpectedValue, received []map[string]int
 			toCompare[i] = nil // row passed verification - it won't be used
 			found++
 		}
+		// verification.Count == 0 means we expect at least 1 result
+		if verification.Count == 0 && found > 0 {
+			continue
+		}
+
 		if verification.Count != found {
 			return fmt.Errorf("expected to have %d but got %d entries with one of the %v\nerrors: %v", verification.Count, found, verification.Data, errors)
 		}
