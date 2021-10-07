@@ -344,6 +344,38 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		mockDb.AssertNumberOfCalls(t, "CopyFrom", 2)
 		assert.Nil(t, err)
 	})
+	t.Run("disable delete w/deleteFilter", func(t *testing.T) {
+		mockDb := new(DatabaseMock)
+		exec := NewExecutionData(mockDb, logger, testTable, true, map[string]interface{}{"test": 1}, false)
+		//mockDb.On("CopyFrom", mock.Anything, mock.Anything, true, mock.Anything).Return(nil)
+		testTable.Resolver = dataReturningSingleResolver
+		testTable.DeleteFilter = func(meta ClientMeta, r *Resource) []interface{} {
+			return []interface{}{"a", 2}
+		}
+		var expectedResource *Resource
+		testTable.PostResourceResolver = func(ctx context.Context, meta ClientMeta, parent *Resource) error {
+			err := parent.Set("name", "other")
+			assert.Nil(t, err)
+			expectedResource = parent
+			return nil
+		}
+		mockDb.On("CopyFrom", mock.Anything, mock.Anything, true, mock.Anything).Return(nil)
+		mockDb.On("Delete", mock.Anything, testTable, mock.Anything).Return(nil)
+		mockDb.On("RemoveStaleData", mock.Anything, testTable, exec.executionStart, []interface{}{"test", 1, "a", 2}).Return(nil)
+		mockDb.AssertNumberOfCalls(t, "Delete", 0)
+		_, err := exec.ResolveTable(context.Background(), mockedClient, nil)
+		mockDb.AssertNumberOfCalls(t, "Delete", 0)
+		mockDb.AssertNumberOfCalls(t, "CopyFrom", 1)
+		assert.Equal(t, expectedResource.data["name"], "other")
+		assert.Nil(t, err)
+		exec = NewExecutionData(mockDb, logger, testTable, false, nil, false)
+		mockDb.On("CopyFrom", mock.Anything, mock.Anything, false, mock.Anything).Return(nil)
+		_, err = exec.ResolveTable(context.Background(), mockedClient, nil)
+		mockDb.AssertNumberOfCalls(t, "Delete", 1)
+		mockDb.AssertNumberOfCalls(t, "CopyFrom", 2)
+		assert.Nil(t, err)
+	})
+
 	t.Run("disable delete failed copy from", func(t *testing.T) {
 		mockDb := new(DatabaseMock)
 		exec := NewExecutionData(mockDb, logger, testTable, true, nil, false)

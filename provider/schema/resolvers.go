@@ -119,6 +119,9 @@ func IPAddressResolver(path string) ColumnResolver {
 		if ipStr != "" && ip == nil {
 			return fmt.Errorf("failed to parse IP from %s", ipStr)
 		}
+		if ip.To4() != nil {
+			return r.Set(c.Name, ip.To4())
+		}
 		return r.Set(c.Name, ip)
 	}
 }
@@ -170,11 +173,11 @@ func UUIDResolver(path string) ColumnResolver {
 			return err
 		}
 
-		uuid, err := uuid.FromString(uuidString)
+		id, err := uuid.FromString(uuidString)
 		if err != nil {
 			return err
 		}
-		return r.Set(c.Name, uuid)
+		return r.Set(c.Name, id)
 	}
 }
 

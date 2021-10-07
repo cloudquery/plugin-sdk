@@ -155,10 +155,15 @@ func (e ExecutionData) cleanupStaleData(ctx context.Context, client ClientMeta, 
 		return nil
 	}
 	client.Logger().Debug("cleaning table table stale data", "table", e.Table.Name, "last_update", e.executionStart)
-	if e.Table.DeleteFilter != nil {
-		return e.Db.RemoveStaleData(ctx, e.Table, e.executionStart, e.Table.DeleteFilter(client, parent))
+
+	filters := make([]interface{}, 0)
+	for k, v := range e.extraFields {
+		filters = append(filters, k, v)
 	}
-	return e.Db.RemoveStaleData(ctx, e.Table, e.executionStart, nil)
+	if e.Table.DeleteFilter != nil {
+		filters = append(filters, e.Table.DeleteFilter(client, parent)...)
+	}
+	return e.Db.RemoveStaleData(ctx, e.Table, e.executionStart, filters)
 }
 
 func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, parent *Resource) (uint64, error) {
