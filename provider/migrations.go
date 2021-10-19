@@ -152,25 +152,20 @@ func (m *Migrator) DowngradeProvider(version string) error {
 func (m *Migrator) DropProvider(ctx context.Context, schema map[string]*schema.Table) error {
 	// we don't use go-migrate's drop since its too violent and it will remove all tables of other providers,
 	// instead we will only drop the migration table and all schema's tables
+	// we additionally don't use a transaction since this results quite often in out of shared memory errors
 	conn, err := pgx.Connect(ctx, m.dsn)
 	if err != nil {
 		return err
 	}
-	err = conn.BeginFunc(ctx, func(tx pgx.Tx) error {
-		q := fmt.Sprintf(dropTableSQL, strconv.Quote(fmt.Sprintf("%s_schema_migrations", m.provider)))
-		if _, err := tx.Exec(ctx, q); err != nil {
+	q := fmt.Sprintf(dropTableSQL, strconv.Quote(fmt.Sprintf("%s_schema_migrations", m.provider)))
+	if _, err := conn.Exec(ctx, q); err != nil {
+		return err
+	}
+	for name, table := range schema {
+		m.log.Debug("deleting table and all relations", "table", name, "provider", m.provider)
+		if err := dropTables(ctx, conn, table); err != nil {
 			return err
 		}
-		for name, table := range schema {
-			m.log.Debug("deleting table and all relations", "table", name, "provider", m.provider)
-			if err := dropTables(ctx, tx, table); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return err
 	}
 	newM, err := migrate.NewWithSourceInstance(m.provider, m.driver, m.migratorUrl.String())
 	if err != nil {
@@ -234,12 +229,12 @@ func (m *Migrator) FindLatestMigration(requestedVersion string) (uint, error) {
 	return mv, nil
 }
 
-func dropTables(ctx context.Context, tx pgx.Tx, table *schema.Table) error {
-	if _, err := tx.Exec(ctx, fmt.Sprintf(dropTableSQL, strconv.Quote(table.Name))); err != nil {
+func dropTables(ctx context.Context, conn *pgx.Conn, table *schema.Table) error {
+	if _, err := conn.Exec(ctx, fmt.Sprintf(dropTableSQL, strconv.Quote(table.Name))); err != nil {
 		return err
 	}
 	for _, rel := range table.Relations {
-		if err := dropTables(ctx, tx, rel); err != nil {
+		if err := dropTables(ctx, conn, rel); err != nil {
 			return err
 		}
 	}
