@@ -2,19 +2,15 @@ syntax = "proto3";
 package proto;
 option go_package = "/internal";
 
-
 service Provider {
   // Information about what a provider supports/expects
   rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
   // Gets a provider's configuration example
   rpc GetProviderConfig(GetProviderConfig.Request) returns (GetProviderConfig.Response);
-
   // One-time initialization, called before other functions below
   rpc ConfigureProvider(ConfigureProvider.Request) returns (ConfigureProvider.Response);
-
   // Fetch Provider Resources
   rpc FetchResources(FetchResources.Request) returns (stream FetchResources.Response);
-
 }
 
 
@@ -53,7 +49,33 @@ message FetchResources {
     string error = 3;
     // list of resources where the fetching failed
     repeated PartialFetchFailedResource partial_fetch_failed_resources = 4;
+    // fetch summary of resource that finished
+    ResourceFetchSummary summary = 5;
+    // name of resource that finished
+    string resource = 6;
   }
+}
+
+// ResourceFetchSummary includes a summarized report of a fetched resource, such as total amount of resources collected,
+// status of the fetch and any diagnostics found while executing fetch on it.
+message ResourceFetchSummary {
+  // Execution status of the resource fetch execution
+  enum Status {
+    // Execution was completed successfully without any errors/diagnostics
+    COMPLETE = 0;
+    // Execution failed and wasn't able to fetch any resource
+    FAILED = 1;
+    // Execution was partial, one or more resources failed to resolve/fetch
+    PARTIAL = 2;
+    // Execution was canceled preemptively
+    CANCELED = 3;
+  }
+  // Execution status of resource
+  Status status = 1;
+  // Total Amount of resources collected by this resource
+  uint64 resource_count = 2;
+  // list of diagnostic returned from a resource fetch
+  repeated Diagnostic diagnostics = 3;
 }
 
 message PartialFetchFailedResource {
@@ -66,6 +88,28 @@ message PartialFetchFailedResource {
   // error message for this resource fetch failure
   string error = 4;
 }
+
+
+message Diagnostic {
+  enum Type {
+    UNKNOWN = 0;
+    RESOLVING = 1;
+    ACCESS = 2;
+    THROTTLE = 3;
+    DATABASE = 4;
+  }
+  enum Severity {
+    INVALID = 0;
+    ERROR = 1;
+    WARNING = 2;
+  }
+  Type type = 1;
+  Severity severity = 2;
+  string summary = 3;
+  string detail = 4;
+  string resource = 5;
+}
+
 
 message GetProviderSchema {
   message Request {}

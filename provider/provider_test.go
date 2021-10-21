@@ -5,6 +5,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/cloudquery/cq-provider-sdk/provider/schema/mocks"
+	"github.com/golang/mock/gomock"
+
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
 	"github.com/cloudquery/faker/v3"
 	"github.com/hashicorp/go-hclog"
@@ -20,10 +23,16 @@ type (
 		Name string
 	}
 	testConfig struct{}
+
+	testClient struct{}
 )
 
 func (t testConfig) Example() string {
 	return ""
+}
+
+func (t testClient) Logger() hclog.Logger {
+	return hclog.Default()
 }
 
 var (
@@ -89,6 +98,21 @@ var (
 								},
 							},
 						},
+					},
+				},
+				"bad_resource": {
+					Name: "bad_resource",
+					Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan interface{}) error {
+						return errors.New("bad error")
+					},
+				},
+				"bad_resource_ignore_error": {
+					Name: "bad_resource_ignore_error",
+					IgnoreError: func(err error) bool {
+						return true
+					},
+					Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan interface{}) error {
+						return errors.New("bad error")
 					},
 				},
 			},
@@ -173,4 +197,102 @@ func TestProvider_ConfigureProvider(t *testing.T) {
 	})
 	assert.Equal(t, "", resp.Error)
 	assert.Error(t, err)
+}
+
+type FetchResourceTableTest struct {
+	Name                   string
+	ExpectedFetchResponses []*cqproto.FetchResourcesResponse
+	ExpectedError          error
+	MockDBFunc             func(ctrl *gomock.Controller) *mocks.MockDatabase
+	PartialFetch           bool
+	ResourcesToFetch       []string
+}
+
+var fetchCases = []FetchResourceTableTest{
+	{
+		Name: "ignore error resource",
+		ExpectedFetchResponses: []*cqproto.FetchResourcesResponse{
+			{
+				ResourceName: "bad_resource_ignore_error",
+				Error:        "",
+			}},
+		ExpectedError: nil,
+		MockDBFunc: func(ctrl *gomock.Controller) *mocks.MockDatabase {
+			mockDB := mocks.NewMockDatabase(ctrl)
+			//mockDB.EXPECT().Insert(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			mockDB.EXPECT().Close()
+			return mockDB
+		},
+		PartialFetch:     true,
+		ResourcesToFetch: []string{"bad_resource_ignore_error"},
+	},
+	{
+		Name: "returning error resource",
+		ExpectedFetchResponses: []*cqproto.FetchResourcesResponse{
+			{
+				ResourceName: "bad_resource",
+				Error:        "bad error",
+			}},
+		ExpectedError: nil,
+		MockDBFunc: func(ctrl *gomock.Controller) *mocks.MockDatabase {
+			mockDB := mocks.NewMockDatabase(ctrl)
+			//mockDB.EXPECT().Insert(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			mockDB.EXPECT().Close()
+			return mockDB
+		},
+		PartialFetch:     false,
+		ResourcesToFetch: []string{"bad_resource"},
+	},
+}
+
+func TestProvider_FetchResources(t *testing.T) {
+	tp := testProviderCreatorFunc()
+	tp.Logger = hclog.Default()
+	tp.Configure = func(logger hclog.Logger, i interface{}) (schema.ClientMeta, error) {
+		return &testClient{}, nil
+	}
+	_, err := tp.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
+		CloudQueryVersion: "dev",
+		Connection: cqproto.ConnectionDetails{
+			DSN: "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable",
+		},
+		Config:        nil,
+		DisableDelete: false,
+		ExtraFields:   nil,
+	})
+	ctrl := gomock.NewController(t)
+	for _, tt := range fetchCases {
+		t.Run(tt.Name, func(t *testing.T) {
+			tp.databaseCreator = func(ctx context.Context, logger hclog.Logger, dbURL string) (schema.Database, error) {
+				return tt.MockDBFunc(ctrl), nil
+			}
+			err = tp.FetchResources(context.Background(), &cqproto.FetchResourcesRequest{
+				Resources:              tt.ResourcesToFetch,
+				PartialFetchingEnabled: tt.PartialFetch,
+			}, &testResourceSender{
+				t,
+				tt.ExpectedFetchResponses,
+			})
+			if tt.ExpectedError != nil {
+				assert.Equal(t, err, tt.ExpectedError)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
+
+type testResourceSender struct {
+	t                 *testing.T
+	ExpectedResponses []*cqproto.FetchResourcesResponse
+}
+
+func (f *testResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
+	for _, e := range f.ExpectedResponses {
+		if e.ResourceName != r.ResourceName {
+			continue
+		}
+		assert.Equal(f.t, r.Error, e.Error)
+	}
+	return nil
 }

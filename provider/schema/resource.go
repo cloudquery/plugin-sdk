@@ -43,7 +43,7 @@ func (r *Resource) Keys() []string {
 	if len(tablePrimKeys) == 0 {
 		return []string{}
 	}
-	results := make([]string, len(tablePrimKeys))
+	results := make([]string, 0)
 	for _, primKey := range tablePrimKeys {
 		data := r.Get(primKey)
 		if data != nil {

@@ -134,11 +134,11 @@ func ValueTypeFromString(s string) ValueType {
 }
 
 // ColumnResolver is called for each row received in TableResolver's data fetch.
-// execution holds all relevant information regarding execution as well as the Column bieng called.
+// execution holds all relevant information regarding execution as well as the Column called.
 // resource holds the current row we are resolving the column for.
 type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resource, c Column) error
 
-// ColumnCreationOptions allow to modify how column is defined when table is created
+// ColumnCreationOptions allow modification of how column is defined when table is created
 type ColumnCreationOptions struct {
 	Nullable bool
 	Unique   bool

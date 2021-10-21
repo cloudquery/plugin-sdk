@@ -8,7 +8,7 @@ import (
 //
 // Table resolver has 3 main arguments:
 // - meta(ClientMeta): is the client returned by the plugin.Provider Configure call
-// - parent(Resource): resource is the parent resource in case this table is called via parent table (i.e relation)
+// - parent(Resource): resource is the parent resource in case this table is called via parent table (i.e. relation)
 // - res(chan interface{}): is a channel to pass results fetched by the TableResolver
 //
 type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error
@@ -37,9 +37,10 @@ type Table struct {
 	DeleteFilter func(meta ClientMeta, parent *Resource) []interface{}
 	// Post resource resolver is called after all columns have been resolved, and before resource is inserted to database.
 	PostResourceResolver RowResolver
-	// Options allow to modify how the table is defined when created
+	// Options allow modification of how the table is defined when created
 	Options TableCreationOptions
-	// AlwaysDelete will always delete table data on fetch regardless if delete is disabled on run, use this only in specific cases, if you are unsure contact the CloudQuery Team.
+	// AlwaysDelete will always delete table data on fetch regardless if delete is disabled on run,
+	// use this only in specific cases, if you are unsure contact the CloudQuery Team.
 	AlwaysDelete bool
 }
 
@@ -71,9 +72,9 @@ func (t Table) PrimaryKeys() []string {
 	return []string{"cq_id"}
 }
 
-// TableCreationOptions allow to modify how table is created such as defining primary keys, indices, foreign keys and contraints.
+// TableCreationOptions allow modifying how table is created such as defining primary keys, indices, foreign keys and constraints.
 type TableCreationOptions struct {
-	// List of columns to set as primary keys, if HashPrimaryKeys is true the column values will be used to generate an Id
-	// and a "id" column will be created for the table. If this nil a random unique Id is generated.
+	// List of columns to set as primary keys, if HashPrimaryKeys is true the column values will be used to generate an ID
+	// and an "id" column will be created for the table. If this nil a random unique ID is generated.
 	PrimaryKeys []string
 }

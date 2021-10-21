@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/modern-go/reflect2"
+
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 
 	"github.com/hashicorp/go-hclog"
@@ -26,6 +28,8 @@ type ClientMeta interface {
 
 // ExecutionData marks all the related execution info passed to TableResolver and ColumnResolver giving access to the Runner's meta
 type ExecutionData struct {
+	// ResourceName name of top-level resource associated with table
+	ResourceName string
 	// Table this execution is associated with
 	Table *Table
 	// Database connection to insert data into
@@ -39,15 +43,15 @@ type ExecutionData struct {
 	// partialFetch if true allows partial fetching of resources
 	partialFetch bool
 	// PartialFetchFailureResult is a map of resources where the fetch process failed
-	PartialFetchFailureResult []PartialFetchFailedResource
+	PartialFetchFailureResult []ResourceFetchError
 	// partialFetchChan is the channel that is used to send failed resource fetches
-	partialFetchChan chan PartialFetchFailedResource
+	partialFetchChan chan ResourceFetchError
 	// When the execution started
 	executionStart time.Time
 }
 
-// PartialFetchFailedResource represents a single partial fetch failed resource
-type PartialFetchFailedResource struct {
+// ResourceFetchError represents a single partial fetch failed resource
+type ResourceFetchError struct {
 	// table name of the failed resource fetch
 	TableName string
 	// root/parent table name
@@ -55,7 +59,11 @@ type PartialFetchFailedResource struct {
 	// root/parent primary key values
 	RootPrimaryKeyValues []string
 	// error message for this resource fetch failure
-	Error string
+	Err error
+}
+
+func (p ResourceFetchError) Error() string {
+	return p.Err.Error()
 }
 
 // partialFetchFailureBufferLength defines the buffer length for the partialFetchChan.
@@ -69,7 +77,7 @@ func NewExecutionData(db Database, logger hclog.Logger, table *Table, disableDel
 		Logger:                    logger,
 		disableDelete:             disableDelete,
 		extraFields:               extraFields,
-		PartialFetchFailureResult: []PartialFetchFailedResource{},
+		PartialFetchFailureResult: []ResourceFetchError{},
 		partialFetch:              partialFetch,
 		executionStart:            time.Now().Add(executionJitter),
 	}
@@ -90,7 +98,7 @@ func (e *ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, paren
 	// Start the partial fetch failure result channel routine
 	finishedPartialFetchChan := make(chan bool)
 	if e.partialFetch {
-		e.partialFetchChan = make(chan PartialFetchFailedResource, partialFetchFailureBufferLength)
+		e.partialFetchChan = make(chan ResourceFetchError, partialFetchFailureBufferLength)
 		go func() {
 			for fetchResourceFailure := range e.partialFetchChan {
 				meta.Logger().Debug("received failed partial fetch resource", "resource", fetchResourceFailure, "table", e.Table.Name)
@@ -119,12 +127,13 @@ func (e *ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, paren
 func (e *ExecutionData) WithTable(t *Table) *ExecutionData {
 	return &ExecutionData{
 		Table:                     t,
+		ResourceName:              e.ResourceName,
 		Db:                        e.Db,
 		Logger:                    e.Logger,
 		disableDelete:             e.disableDelete,
 		extraFields:               e.extraFields,
 		partialFetch:              e.partialFetch,
-		PartialFetchFailureResult: []PartialFetchFailedResource{},
+		PartialFetchFailureResult: []ResourceFetchError{},
 	}
 }
 
@@ -188,6 +197,8 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 		err := e.Table.Resolver(ctx, client, parent, res)
 		if err != nil && e.Table.IgnoreError != nil && e.Table.IgnoreError(err) {
 			client.Logger().Warn("ignored an error", "err", err, "table", e.Table.Name)
+			// add partial fetch error, this will be passed in diagnostics, although it was ignored
+			_ = e.checkPartialFetchError(err, parent, "table resolver ignored error")
 			return
 		}
 		resolverErr = err
@@ -214,7 +225,7 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 		client.Logger().Info("fetched successfully", "table", e.Table.Name, "count", nc)
 	}
 	if err := e.cleanupStaleData(ctx, client, parent); err != nil {
-		return nc, fmt.Errorf("failed to clean stale data: %w", err)
+		return nc, e.checkPartialFetchError(err, nil, "failed to clean stale data")
 	}
 	return nc, nil
 }
@@ -324,8 +335,16 @@ func (e *ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, res
 			if err == nil {
 				continue
 			}
+			// Not allowed ignoring PK resolver errors
+			if funk.ContainsString(resource.Keys(), c.Name) {
+				return err
+			}
 			// check if column resolver defined an IgnoreError function, if it does check if ignore should be ignored.
 			if c.IgnoreError == nil || !c.IgnoreError(err) {
+				return err
+			}
+
+			if reflect2.IsNil(c.Default) {
 				return err
 			}
 			// Set default value if defined, otherwise it will be nil
@@ -378,9 +397,9 @@ func (e *ExecutionData) checkPartialFetchError(err error, res *Resource, customM
 		return err
 	}
 
-	partialFetchFailure := PartialFetchFailedResource{
+	partialFetchFailure := ResourceFetchError{
 		TableName: e.Table.Name,
-		Error:     fmt.Sprintf("%s: %s", customMsg, err.Error()),
+		Err:       fmt.Errorf("%s: %w", customMsg, err),
 	}
 	e.Logger.Debug("fetch error occurred and partial fetch is enabled", "msg", partialFetchFailure.Error, "table", e.Table.Name)
 
