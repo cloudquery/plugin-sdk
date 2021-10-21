@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.0] - 2021-10-21
+
+### :rocket: Added
+* Support diagnostics from fetch executions, allow providers to define custom diagnostic classifiers for errosr received from the fetch execution [#104](https://github.com/cloudquery/cq-provider-sdk/pull/104)
+* Add more metadata sent on fetched resources completion, status, resource count and diagnostics [#104](https://github.com/cloudquery/cq-provider-sdk/pull/104)
+
+## [v0.4.10] - 2021-10-18
+
+Fix drop provider tables due to out of shared memory, a large number of tables exceeds the transaction memory limit of
+usual database configurations [#105](https://github.com/cloudquery/cq-provider-sdk/pull/105)
+    
+## [v0.4.9] - 2021-10-07
+
+### :spider: Fixed
+* fixed missing stale filter `--disable-delete` in cloudquery [#102](https://github.com/cloudquery/cq-provider-sdk/pull/102)
+
+## [v0.4.8] - 2021-10-05
+
+### :spider: Fixed
+* updated integration test validation, allowing at least 1 results [#101](https://github.com/cloudquery/cq-provider-sdk/pull/101)
+
+
 ## [v0.4.7] - 2021-09-23
 
 ### :rocket: Added
