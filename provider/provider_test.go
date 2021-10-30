@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/cloudquery/cq-provider-sdk/provider/schema/mocks"
 	"github.com/golang/mock/gomock"
@@ -23,7 +24,6 @@ type (
 		Name string
 	}
 	testConfig struct{}
-
 	testClient struct{}
 )
 
@@ -58,6 +58,7 @@ var (
 	testResolverFunc = func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan interface{}) error {
 		for i := 0; i < 10; i++ {
 			t := testStruct{}
+			time.Sleep(50 * time.Millisecond)
 			res <- faker.FakeData(&t)
 		}
 		return nil
@@ -131,6 +132,85 @@ var (
 			},
 			"test1": {
 				Name: "sdk_test1",
+			},
+		},
+	}
+
+	parallelCheckProvider = Provider{
+		Name: "parallel",
+		Config: func() Config {
+			return &testConfig{}
+		},
+		ResourceMap: map[string]*schema.Table{
+			"test": {
+				Name:     "test_resource",
+				Resolver: testResolverFunc,
+				Columns: []schema.Column{
+					{
+						Name: "id",
+						Type: schema.TypeBigInt,
+					},
+					{
+						Name: "name",
+						Type: schema.TypeString,
+					},
+				},
+			},
+			"test1": {
+				Name:     "test1_resource",
+				Resolver: testResolverFunc,
+				Columns: []schema.Column{
+					{
+						Name: "id",
+						Type: schema.TypeBigInt,
+					},
+					{
+						Name: "name",
+						Type: schema.TypeString,
+					},
+				},
+			},
+			"test2": {
+				Name:     "test2_resource",
+				Resolver: testResolverFunc,
+				Columns: []schema.Column{
+					{
+						Name: "id",
+						Type: schema.TypeBigInt,
+					},
+					{
+						Name: "name",
+						Type: schema.TypeString,
+					},
+				},
+			},
+			"test3": {
+				Name:     "test3_resource",
+				Resolver: testResolverFunc,
+				Columns: []schema.Column{
+					{
+						Name: "id",
+						Type: schema.TypeBigInt,
+					},
+					{
+						Name: "name",
+						Type: schema.TypeString,
+					},
+				},
+			},
+			"test4": {
+				Name:     "test4_resource",
+				Resolver: testResolverFunc,
+				Columns: []schema.Column{
+					{
+						Name: "id",
+						Type: schema.TypeBigInt,
+					},
+					{
+						Name: "name",
+						Type: schema.TypeString,
+					},
+				},
 			},
 		},
 	}
@@ -295,4 +375,36 @@ func (f *testResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
 		assert.Equal(f.t, r.Error, e.Error)
 	}
 	return nil
+}
+
+func TestProvider_FetchResourcesParallelLimit(t *testing.T) {
+	parallelCheckProvider.Configure = func(logger hclog.Logger, i interface{}) (schema.ClientMeta, error) {
+		return testClient{}, nil
+	}
+	parallelCheckProvider.Logger = hclog.Default()
+	resp, err := parallelCheckProvider.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
+		CloudQueryVersion: "dev",
+		Connection: cqproto.ConnectionDetails{
+			DSN: "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable",
+		},
+		Config:        nil,
+		DisableDelete: true,
+		ExtraFields:   nil,
+	})
+	assert.Equal(t, "", resp.Error)
+	assert.Nil(t, err)
+
+	// it runs 5 resources at a time. each resource takes ~500ms
+	start := time.Now()
+	err = parallelCheckProvider.FetchResources(context.Background(), &cqproto.FetchResourcesRequest{Resources: []string{"*"}}, &testResourceSender{})
+	assert.Nil(t, err)
+	length := time.Since(start)
+	assert.Less(t, length, 1000*time.Millisecond)
+
+	// it runs 5 resources one by one. each resource takes ~500ms
+	start = time.Now()
+	err = parallelCheckProvider.FetchResources(context.Background(), &cqproto.FetchResourcesRequest{Resources: []string{"*"}, ParallelFetchingLimit: 1}, &testResourceSender{})
+	assert.Nil(t, err)
+	length = time.Since(start)
+	assert.Greater(t, length, 2500*time.Millisecond)
 }

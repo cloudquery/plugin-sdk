@@ -39,6 +39,8 @@ message FetchResources {
     repeated string resources = 1;
     // trigger to enable partial fetching
     bool partial_fetching_enabled = 2;
+    // if value is more than 0 it enables throttling for concurrent fetch
+    uint64 parallel_fetching_limit = 3;
   }
   message Response {
     // map of resources that have finished fetching
