@@ -84,11 +84,10 @@ type ConfigureProviderResponse struct {
 
 // FetchResourcesRequest represents a CloudQuery RPC request of one or more resources
 type FetchResourcesRequest struct {
+	// List of resources to fetch
 	Resources []string
-
 	// PartialFetchingEnabled if true enables partial fetching
 	PartialFetchingEnabled bool
-
 	// ParallelFetchingLimit limits parallel resources fetch at a time is more than 0
 	ParallelFetchingLimit uint64
 }

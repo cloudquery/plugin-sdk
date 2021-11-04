@@ -107,7 +107,7 @@ type GRPCServer struct {
 	internal.UnimplementedProviderServer
 }
 
-func (g *GRPCServer) GetProviderSchema(ctx context.Context, request *internal.GetProviderSchema_Request) (*internal.GetProviderSchema_Response, error) {
+func (g *GRPCServer) GetProviderSchema(ctx context.Context, _ *internal.GetProviderSchema_Request) (*internal.GetProviderSchema_Response, error) {
 	resp, err := g.Impl.GetProviderSchema(ctx, &GetProviderSchemaRequest{})
 	if err != nil {
 		return nil, err
@@ -195,11 +195,11 @@ func tablesFromProto(in map[string]*internal.Table) map[string]*schema.Table {
 func tableFromProto(v *internal.Table) *schema.Table {
 	cols := make([]schema.Column, len(v.GetColumns()))
 	for i, c := range v.GetColumns() {
-		cols[i] = schema.Column{
+		cols[i] = schema.SetColumnMeta(schema.Column{
 			Name:        c.GetName(),
 			Type:        schema.ValueType(c.GetType()),
 			Description: c.GetDescription(),
-		}
+		}, metaFromProto(c.GetMeta()))
 	}
 	rels := make([]*schema.Table, len(v.GetRelations()))
 	for i, r := range v.GetRelations() {
@@ -217,6 +217,23 @@ func tableFromProto(v *internal.Table) *schema.Table {
 		Columns:     cols,
 		Relations:   rels,
 		Options:     opts,
+	}
+}
+
+func metaFromProto(m *internal.ColumnMeta) *schema.ColumnMeta {
+	if m == nil {
+		return nil
+	}
+	var r *schema.ResolverMeta
+	if m.GetResolver() != nil {
+		r = &schema.ResolverMeta{
+			Name:    m.Resolver.Name,
+			Builtin: m.Resolver.Builtin,
+		}
+	}
+	return &schema.ColumnMeta{
+		Resolver:     r,
+		IgnoreExists: m.GetIgnoreExists(),
 	}
 }
 
@@ -238,6 +255,7 @@ func tableToProto(in *schema.Table) *internal.Table {
 			Name:        c.Name,
 			Type:        internal.ColumnType(c.Type),
 			Description: c.Description,
+			Meta:        columnMetaToProto(c.Meta()),
 		}
 	}
 	rels := make([]*internal.Table, len(in.Relations))
@@ -252,6 +270,20 @@ func tableToProto(in *schema.Table) *internal.Table {
 		Options: &internal.TableCreationOptions{
 			PrimaryKeys: in.Options.PrimaryKeys,
 		},
+	}
+}
+
+func columnMetaToProto(m *schema.ColumnMeta) *internal.ColumnMeta {
+	if m == nil {
+		return nil
+	}
+	var r *internal.ResolverMeta
+	if m.Resolver != nil {
+		r = &internal.ResolverMeta{Name: m.Resolver.Name, Builtin: m.Resolver.Builtin}
+	}
+	return &internal.ColumnMeta{
+		Resolver:     r,
+		IgnoreExists: m.IgnoreExists,
 	}
 }
 

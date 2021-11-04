@@ -141,16 +141,27 @@ message Table {
   optional TableCreationOptions options = 5;
 }
 
-message TableCreationOptions {
-  repeated string PrimaryKeys = 1;
-}
-
 message Column {
   string name = 1;
   string description = 2;
   ColumnType type = 3;
-  // TODO: add creation options i.e isUnique, isNull etc'
+  ColumnMeta meta = 4;
 }
+
+message ColumnMeta {
+  ResolverMeta resolver = 1;
+  bool IgnoreExists = 2;
+}
+
+message ResolverMeta {
+  string name = 1;
+  bool builtin = 2;
+}
+
+message TableCreationOptions {
+  repeated string PrimaryKeys = 1;
+}
+
 
 enum ColumnType {
   INVALID = 0;
