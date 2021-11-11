@@ -45,7 +45,9 @@ type Provider struct {
 	Logger hclog.Logger
 	// Migrations embedded and passed by the provider to upgrade between versions
 	Migrations embed.FS
-	// ErrorClassifier allows the provider to classify errors it returns table execution, and return diagnostics to the user
+	// ErrorClassifier allows the provider to classify errors it produces during table execution, and return them as diagnostics to the user.
+	// Classifier function may return empty slice if it cannot meaningfully convert the error into diagnostics. In this case
+	// the error will be converted by the SDK into diagnostic at ERROR level and RESOLVING type.
 	ErrorClassifier func(meta schema.ClientMeta, resource string, err error) []diag.Diagnostic
 	// Database connection string
 	dbURL string
