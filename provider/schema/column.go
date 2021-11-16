@@ -252,10 +252,14 @@ func (c Column) checkType(v interface{}) bool {
 			return true
 		}
 		if kindName == reflect.Slice {
-			if c.Type == TypeStringArray && reflect.String == reflect2.TypeOf(v).Type1().Elem().Kind() {
+			itemKind := reflect2.TypeOf(v).Type1().Elem().Kind()
+			if c.Type == TypeStringArray && reflect.String == itemKind {
 				return true
 			}
-			if c.Type == TypeIntArray && reflect.Int == reflect2.TypeOf(v).Type1().Elem().Kind() {
+			if c.Type == TypeIntArray && reflect.Int == itemKind {
+				return true
+			}
+			if c.Type == TypeJSON && reflect.Struct == itemKind {
 				return true
 			}
 			if c.Type == TypeUUIDArray && reflect2.TypeOf(v).String() == "uuid.UUID" || reflect2.TypeOf(v).String() == "*uuid.UUID" {

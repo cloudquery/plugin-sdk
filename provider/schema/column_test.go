@@ -78,7 +78,7 @@ var validateFixtures = []validateFixture{
 	},
 	{
 		Column:     Column{Type: TypeJSON},
-		TestValues: []interface{}{make(map[string]interface{}), make(map[string]string), []byte{11, 11, 11, 11}},
+		TestValues: []interface{}{make(map[string]interface{}), make(map[string]string), []byte{11, 11, 11, 11}, []interface{}{struct{ Test int }{Test: 1}}, []Column{{Name: "test"}}},
 	},
 	{
 		Column:     Column{Type: TypeBool},
