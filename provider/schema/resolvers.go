@@ -126,6 +126,31 @@ func IPAddressResolver(path string) ColumnResolver {
 	}
 }
 
+// IPAddressesResolver resolves the ip string value and returns net.IP
+//
+// Examples:
+// IPAddressesResolver("IP")
+func IPAddressesResolver(path string) ColumnResolver {
+	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
+		ipStrs, err := cast.ToStringSliceE(funk.Get(r.Item, path, funk.WithAllowZero()))
+		if err != nil {
+			return err
+		}
+		ips := make([]net.IP, len(ipStrs))
+		for i, ipStr := range ipStrs {
+			ip := net.ParseIP(ipStr)
+			if ipStr != "" && ip == nil {
+				return fmt.Errorf("failed to parse IP from %s", ipStr)
+			}
+			if to4 := ip.To4(); to4 != nil {
+				ip = to4
+			}
+			ips[i] = ip
+		}
+		return r.Set(c.Name, ips)
+	}
+}
+
 // MACAddressResolver resolves the mac string value and returns net.HardwareAddr
 //
 // Examples:

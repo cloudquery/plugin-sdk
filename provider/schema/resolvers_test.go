@@ -129,6 +129,10 @@ var networkTestTable = &Table{
 			Name: "net",
 			Type: TypeCIDR,
 		},
+		{
+			Name: "ips",
+			Type: TypeInetArray,
+		},
 	},
 }
 
@@ -136,22 +140,24 @@ type testNetStruct struct {
 	IP  string
 	MAC string
 	Net string
+	IPS []string
 }
 
 var netTests = []testNetStruct{
-	{IP: "192.168.1.12", MAC: "2C:54:91:88:C9:E3", Net: "192.168.0.1/24"},
-	{IP: "2001:0db8:85a3:0000:0000:8a2e:0370:7334", MAC: "2C-54-91-88-C9-E3", Net: "2002::1234:abcd:ffff:c0a8:101/64"},
-	{IP: "::1234:5678", MAC: "2C-54-91-88-C9-E3", Net: "::1234:5678/12"},
+	{IP: "192.168.1.12", MAC: "2C:54:91:88:C9:E3", Net: "192.168.0.1/24", IPS: []string{"192.168.1.12"}},
+	{IP: "2001:0db8:85a3:0000:0000:8a2e:0370:7334", MAC: "2C-54-91-88-C9-E3", Net: "2002::1234:abcd:ffff:c0a8:101/64", IPS: []string{"2001:0db8:85a3:0000:0000:8a2e:0370:7334", "192.168.1.12"}},
+	{IP: "::1234:5678", MAC: "2C-54-91-88-C9-E3", Net: "::1234:5678/12", IPS: []string{"::1234:5678", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "192.168.1.12"}},
 }
 var netTestsFails = []testNetStruct{
-	{IP: "192.168.1/", MAC: "2C:54:91:88:C9", Net: "192.168.0.1-24"},
-	{IP: "::1234:5678:", MAC: "2C:54-91-88-C9-E3", Net: "2002::1234:abcd:ffff:c0a8:101-64"},
+	{IP: "192.168.1/", MAC: "2C:54:91:88:C9", Net: "192.168.0.1-24", IPS: []string{"192.168.1.12", "192.168.1/"}},
+	{IP: "::1234:5678:", MAC: "2C:54-91-88-C9-E3", Net: "2002::1234:abcd:ffff:c0a8:101-64", IPS: []string{"192.168.1.12", "::1234:5678:"}},
 }
 
 func TestNetResolvers(t *testing.T) {
 	r1 := IPAddressResolver("IP")
 	r2 := MACAddressResolver("MAC")
 	r3 := IPNetResolver("Net")
+	r4 := IPAddressesResolver("IPS")
 	for _, r := range netTests {
 		resource := NewResourceData(networkTestTable, nil, r, nil)
 		err := r1(context.TODO(), nil, resource, Column{Name: "ip"})
@@ -159,6 +165,8 @@ func TestNetResolvers(t *testing.T) {
 		err = r2(context.TODO(), nil, resource, Column{Name: "mac"})
 		assert.Nil(t, err)
 		err = r3(context.TODO(), nil, resource, Column{Name: "net"})
+		assert.Nil(t, err)
+		err = r4(context.TODO(), nil, resource, Column{Name: "ips"})
 		assert.Nil(t, err)
 	}
 	for _, r := range netTestsFails {
@@ -168,6 +176,8 @@ func TestNetResolvers(t *testing.T) {
 		err = r2(context.TODO(), nil, resource, Column{Name: "mac"})
 		assert.Error(t, err)
 		err = r3(context.TODO(), nil, resource, Column{Name: "net"})
+		assert.Error(t, err)
+		err = r4(context.TODO(), nil, resource, Column{Name: "ips"})
 		assert.Error(t, err)
 	}
 }
