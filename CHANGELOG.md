@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.2] - 2021-11-23
+
+### :rocket: Added
+* Support IPAddressesResolver for TypeInetArray [#112](https://github.com/cloudquery/cq-provider-sdk/pull/112)
+* []struct now can be parsed automatically to jsons [#109](https://github.com/cloudquery/cq-provider-sdk/issues/109)
+
+
+## [v0.5.1] - 2021-11-01
+
+### :rocket: Added
+ * feat/implementation of parallel clients limit by @fdistorted in [#103](https://github.com/cloudquery/cq-provider-sdk/pull/103)
+ * Support passing table meta information over cqproto [#107](https://github.com/cloudquery/cq-provider-sdk/pull/107)
+
 ## [v0.5.0] - 2021-10-21
 
 ### :rocket: Added
