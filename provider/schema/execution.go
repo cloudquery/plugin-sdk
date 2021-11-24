@@ -341,7 +341,7 @@ func (e *ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, res
 			}
 			// check if column resolver defined an IgnoreError function, if it does check if ignore should be ignored.
 			if c.IgnoreError == nil || !c.IgnoreError(err) {
-				return err
+				return fmt.Errorf("column %s: %w", c.Name, err)
 			}
 
 			if reflect2.IsNil(c.Default) {
