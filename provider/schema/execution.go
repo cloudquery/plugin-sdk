@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"reflect"
 	"runtime/debug"
+	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/cloudquery/cq-provider-sdk/provider/schema/diag"
 	"github.com/modern-go/reflect2"
 
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
@@ -42,7 +44,7 @@ type ExecutionData struct {
 	extraFields map[string]interface{}
 	// partialFetch if true allows partial fetching of resources
 	partialFetch bool
-	// PartialFetchFailureResult is a map of resources where the fetch process failed
+	// PartialFetchFailureResult is a an array of resources where the fetch process failed
 	PartialFetchFailureResult []ResourceFetchError
 	// partialFetchChan is the channel that is used to send failed resource fetches
 	partialFetchChan chan ResourceFetchError
@@ -66,8 +68,13 @@ func (p ResourceFetchError) Error() string {
 	return p.Err.Error()
 }
 
-// partialFetchFailureBufferLength defines the buffer length for the partialFetchChan.
-const partialFetchFailureBufferLength = 10
+const (
+	// partialFetchFailureBufferLength defines the buffer length for the partialFetchChan.
+	partialFetchFailureBufferLength = 10
+
+	// fdLimitMessage defines the message for when a client isn't able to fetch because the open fd limit is hit
+	fdLimitMessage = "try increasing number of available file descriptors via `ulimit -n 10240` or by increasing timeout via provider specific parameters"
+)
 
 // NewExecutionData Create a new execution data
 func NewExecutionData(db Database, logger hclog.Logger, table *Table, disableDelete bool, extraFields map[string]interface{}, partialFetch bool) ExecutionData {
@@ -422,6 +429,10 @@ func (e *ExecutionData) checkPartialFetchError(err error, res *Resource, customM
 			partialFetchFailure.RootTableName = root.table.Name
 			partialFetchFailure.RootPrimaryKeyValues = root.Keys()
 		}
+	}
+	if strings.Contains(err.Error(), ": socket: too many open files") {
+		// Return a Diagnostic error so that it can be properly propegated back to the user via the CLI
+		partialFetchFailure.Err = diag.FromError(err, diag.WARNING, diag.THROTTLE, e.ResourceName, err.Error(), fdLimitMessage)
 	}
 	// Send information via our channel
 	e.partialFetchChan <- partialFetchFailure
