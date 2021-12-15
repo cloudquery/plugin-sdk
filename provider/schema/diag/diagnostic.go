@@ -43,6 +43,7 @@ type Diagnostic interface {
 	Severity() Severity
 	Type() DiagnosticType
 	Description() Description
+	error
 }
 
 type Description struct {
