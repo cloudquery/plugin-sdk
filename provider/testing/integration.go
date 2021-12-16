@@ -309,6 +309,7 @@ func enableTerraformLog(tf *tfexec.Terraform, workdir string) error {
 	if err = tf.SetLogPath(dst); err != nil {
 		return err
 	}
+	tf.SetLogger(log.Default())
 	return nil
 }
 
