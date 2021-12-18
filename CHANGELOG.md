@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### :gear: Changed
+* Fix table and column name limit tests [#134](https://github.com/cloudquery/cq-provider-sdk/pull/134).
 
 ## [v0.5.6] - 2021-12-18
 
