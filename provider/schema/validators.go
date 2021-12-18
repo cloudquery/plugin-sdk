@@ -5,9 +5,10 @@ import (
 	"fmt"
 )
 
-const maxTableName = 63
-
-const maxColumnName = 63
+const (
+	maxTableName  = 63 // maximum allowed identifier length is 63 bytes https://www.postgresql.org/docs/13/limits.html
+	maxColumnName = 63
+)
 
 var defaultValidators = []TableValidator{
 	LengthTableValidator{},

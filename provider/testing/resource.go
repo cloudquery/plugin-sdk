@@ -66,6 +66,10 @@ func TestResource(t *testing.T, providerCreator func() *provider.Provider, resou
 	require.Nil(t, err)
 
 	testProvider := providerCreator()
+
+	// No need for configuration or db connection, get it out of the way first
+	testTableIdentifiersForProvider(t, testProvider)
+
 	testProvider.Logger = l
 	testProvider.Configure = resource.Configure
 	_, err = testProvider.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
@@ -166,4 +170,25 @@ func getTablesFromMainTable(table *schema.Table) []string {
 		res = append(res, getTablesFromMainTable(t)...)
 	}
 	return res
+}
+
+func testTableIdentifiersForProvider(t *testing.T, prov *provider.Provider) {
+	t.Parallel()
+	for _, res := range prov.ResourceMap {
+		res := res
+		t.Run(res.Name, func(t *testing.T) {
+			testTableIdentifiers(t, res)
+		})
+	}
+}
+
+func testTableIdentifiers(t *testing.T, table *schema.Table) {
+	assert.NoError(t, schema.ValidateTable(table))
+
+	for _, res := range table.Relations {
+		res := res
+		t.Run(res.Name, func(t *testing.T) {
+			assert.NoError(t, schema.ValidateTable(res))
+		})
+	}
 }
