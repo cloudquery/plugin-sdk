@@ -63,7 +63,7 @@ type Provider struct {
 }
 
 func (p *Provider) GetProviderSchema(_ context.Context, _ *cqproto.GetProviderSchemaRequest) (*cqproto.GetProviderSchemaResponse, error) {
-	m, err := readProviderMigrationFiles(p.Logger, p.Migrations)
+	m, err := ReadMigrationFiles(p.Logger, p.Migrations)
 	if err != nil {
 		return nil, err
 	}

@@ -30,7 +30,7 @@ const (
 	dropTableSQL                    = "DROP TABLE IF EXISTS %s CASCADE"
 )
 
-func readProviderMigrationFiles(log hclog.Logger, migrationFiles embed.FS) (map[string][]byte, error) {
+func ReadMigrationFiles(log hclog.Logger, migrationFiles embed.FS) (map[string][]byte, error) {
 	var (
 		err        error
 		migrations = make(map[string][]byte)
