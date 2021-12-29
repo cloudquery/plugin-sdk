@@ -3,6 +3,7 @@ package schema
 import (
 	"crypto"
 	"fmt"
+	"strings"
 
 	"github.com/mitchellh/hashstructure"
 	"github.com/thoas/go-funk"
@@ -102,6 +103,15 @@ func (r *Resource) GenerateCQId() error {
 		return err
 	}
 	r.cqId = id
+	return nil
+}
+
+func (r Resource) getColumnByName(column string) *Column {
+	for _, c := range r.table.Columns {
+		if strings.Compare(column, c.Name) == 0 {
+			return &c
+		}
+	}
 	return nil
 }
 

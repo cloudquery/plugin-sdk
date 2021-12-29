@@ -94,10 +94,10 @@ func (p *Provider) GetProviderConfig(_ context.Context, _ *cqproto.GetProviderCo
 
 func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.ConfigureProviderRequest) (*cqproto.ConfigureProviderResponse, error) {
 	if p.meta != nil {
-		return &cqproto.ConfigureProviderResponse{Error: fmt.Sprintf("provider %s was already configured", p.Name)}, nil
+		return &cqproto.ConfigureProviderResponse{Error: fmt.Sprintf("provider %s was already configured", p.Name)}, fmt.Errorf("provider %s was already configured", p.Name)
 	}
 	if p.Logger == nil {
-		return &cqproto.ConfigureProviderResponse{Error: fmt.Sprintf("provider %s logger not defined, make sure to run it with serve", p.Name)}, nil
+		return &cqproto.ConfigureProviderResponse{Error: fmt.Sprintf("provider %s logger not defined, make sure to run it with serve", p.Name)}, fmt.Errorf("provider %s logger not defined, make sure to run it with serve", p.Name)
 	}
 	// set database creator
 	if p.databaseCreator == nil {
@@ -116,7 +116,7 @@ func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.Configu
 	// if we received an empty config we notify in log and only use defaults.
 	if len(request.Config) == 0 {
 		p.Logger.Info("Received empty configuration, using only defaults")
-	} else if err := hclsimple.Decode("config.json", request.Config, nil, providerConfig); err != nil {
+	} else if err := hclsimple.Decode("config.hcl", request.Config, nil, providerConfig); err != nil {
 		p.Logger.Error("Failed to load configuration.", "error", err)
 		return &cqproto.ConfigureProviderResponse{}, err
 	}

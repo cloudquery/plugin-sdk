@@ -263,7 +263,7 @@ func TestProvider_ConfigureProvider(t *testing.T) {
 		ExtraFields:   nil,
 	})
 	assert.Equal(t, "provider unitest logger not defined, make sure to run it with serve", resp.Error)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	// set logger this time
 	tp.Logger = hclog.Default()
 	resp, err = tp.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{

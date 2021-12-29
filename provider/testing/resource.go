@@ -2,135 +2,130 @@ package testing
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 
-	"github.com/jackc/pgx/v4/pgxpool"
-
+	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
-	"github.com/cloudquery/cq-provider-sdk/logging"
 	"github.com/cloudquery/cq-provider-sdk/provider"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
+	"github.com/cloudquery/cq-provider-sdk/testlog"
 	"github.com/cloudquery/faker/v3"
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcl/v2/gohcl"
-	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/tmccombs/hcl2json/convert"
 )
 
-type ResourceTestData struct {
+type ResourceTestCase struct {
+	Provider       *provider.Provider
 	Table          *schema.Table
-	Config         interface{}
-	Resources      []string
-	Configure      func(logger hclog.Logger, data interface{}) (schema.ClientMeta, error)
+	Config         string
+	SnapshotsDir   string
 	SkipEmptyJsonB bool
 }
 
-func TestResource(t *testing.T, providerCreator func() *provider.Provider, resource ResourceTestData) {
+// IntegrationTest - creates resources using terraform, fetches them to db and compares with expected values
+func TestResource(t *testing.T, resource ResourceTestCase) {
+	t.Parallel()
+	t.Helper()
 	if err := faker.SetRandomMapAndSliceMinSize(1); err != nil {
 		t.Fatal(err)
 	}
 	if err := faker.SetRandomMapAndSliceMaxSize(1); err != nil {
 		t.Fatal(err)
 	}
-	ctx := context.Background()
+
+	// No need for configuration or db connection, get it out of the way first
+	// testTableIdentifiersForProvider(t, resource.Provider)
 
 	pool, err := setupDatabase()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pool.Close()
+	ctx := context.Background()
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer conn.Release()
-	l := logging.New(hclog.DefaultOptions)
-	migrator := provider.NewTableCreator(l)
-	if err := migrator.CreateTable(ctx, conn, resource.Table, nil); err != nil {
+
+	l := testlog.New(t)
+	l.SetLevel(hclog.Debug)
+	resource.Provider.Logger = l
+	tableCreator := provider.NewTableCreator(l)
+	if err := tableCreator.CreateTable(context.Background(), conn, resource.Table, nil); err != nil {
 		assert.FailNow(t, fmt.Sprintf("failed to create tables %s", resource.Table.Name), err)
 	}
-	// Write configuration as a block and extract it out passing that specific block data as part of the configure provider
-	f := hclwrite.NewFile()
-	f.Body().AppendBlock(gohcl.EncodeAsBlock(resource.Config, "configuration"))
-	data, err := convert.Bytes(f.Bytes(), "config.json", convert.Options{})
-	require.Nil(t, err)
-	hack := map[string]interface{}{}
-	require.Nil(t, json.Unmarshal(data, &hack))
-	data, err = json.Marshal(hack["configuration"].([]interface{})[0])
-	require.Nil(t, err)
 
-	testProvider := providerCreator()
+	if err := deleteTables(conn, resource.Table); err != nil {
+		t.Fatal(err)
+	}
 
-	// No need for configuration or db connection, get it out of the way first
-	testTableIdentifiersForProvider(t, testProvider)
+	if err = fetch(t, &resource); err != nil {
+		t.Fatal(err)
+	}
 
-	testProvider.Logger = l
-	testProvider.Configure = resource.Configure
-	_, err = testProvider.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
+	verifyNoEmptyColumns(t, resource, conn)
+
+	if err := conn.Conn().Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+}
+
+// fetch - fetches resources from the cloud and puts them into database. database config can be specified via DATABASE_URL env variable
+func fetch(t *testing.T, resource *ResourceTestCase) error {
+	t.Logf("%s fetch resources", resource.Table.Name)
+
+	if _, err := resource.Provider.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
 		CloudQueryVersion: "",
 		Connection: cqproto.ConnectionDetails{DSN: getEnv("DATABASE_URL",
 			"host=localhost user=postgres password=pass DB.name=postgres port=5432")},
-		Config: data,
-	})
-	assert.Nil(t, err)
-
-	err = testProvider.FetchResources(context.Background(), &cqproto.FetchResourcesRequest{Resources: []string{findResourceFromTableName(resource.Table, testProvider.ResourceMap)}}, &fakeResourceSender{Errors: []string{}})
-	assert.Nil(t, err)
-	verifyNoEmptyColumns(t, resource, conn)
-}
-
-func findResourceFromTableName(table *schema.Table, tables map[string]*schema.Table) string {
-	for resource, t := range tables {
-		if table.Name == t.Name {
-			return resource
-		}
+		Config:        []byte(resource.Config),
+		DisableDelete: true,
+	}); err != nil {
+		return err
 	}
-	return ""
+
+	var resourceSender = &fakeResourceSender{
+		Errors: []string{},
+	}
+
+	if err := resource.Provider.FetchResources(context.Background(),
+		&cqproto.FetchResourcesRequest{
+			Resources: []string{findResourceFromTableName(resource.Table, resource.Provider.ResourceMap)},
+		},
+		resourceSender,
+	); err != nil {
+		return err
+	}
+
+	if len(resourceSender.Errors) > 0 {
+		return fmt.Errorf("error/s occur during test, %s", strings.Join(resourceSender.Errors, ", "))
+	}
+
+	return nil
 }
 
-type fakeResourceSender struct {
-	Errors []string
-}
+func deleteTables(conn *pgxpool.Conn, table *schema.Table) error {
+	s := sq.Delete(table.Name)
+	sql, args, err := s.ToSql()
+	if err != nil {
+		return err
+	}
 
-func (f *fakeResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
-	if r.Error != "" {
-		fmt.Printf(r.Error)
-		f.Errors = append(f.Errors, r.Error)
+	_, err = conn.Exec(context.TODO(), sql, args...)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func setupDatabase() (*pgxpool.Pool, error) {
-	dbCfg, err := pgxpool.ParseConfig(getEnv("DATABASE_URL",
-		"host=localhost user=postgres password=pass DB.name=postgres port=5432"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse config. %w", err)
-	}
-	ctx := context.Background()
-	dbCfg.MaxConns = 1
-	dbCfg.LazyConnect = true
-	pool, err := pgxpool.ConnectConfig(ctx, dbCfg)
-	if err != nil {
-		return nil, fmt.Errorf("unable to connect to database. %w", err)
-	}
-	return pool, nil
-
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
-}
-
-func verifyNoEmptyColumns(t *testing.T, tc ResourceTestData, conn pgxscan.Querier) {
+func verifyNoEmptyColumns(t *testing.T, tc ResourceTestCase, conn pgxscan.Querier) {
 	// Test that we don't have missing columns and have exactly one entry for each table
 	for _, table := range getTablesFromMainTable(tc.Table) {
 		query := fmt.Sprintf("select * FROM %s ", table)
@@ -163,6 +158,56 @@ func verifyNoEmptyColumns(t *testing.T, tc ResourceTestData, conn pgxscan.Querie
 	}
 }
 
+func findResourceFromTableName(table *schema.Table, tables map[string]*schema.Table) string {
+	for resource, t := range tables {
+		if table.Name == t.Name {
+			return resource
+		}
+	}
+	return ""
+}
+
+type fakeResourceSender struct {
+	Errors []string
+}
+
+func (f *fakeResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
+	if r.Error != "" {
+		fmt.Printf(r.Error)
+		f.Errors = append(f.Errors, r.Error)
+	}
+	return nil
+}
+
+var (
+	dbConnOnce sync.Once
+	pool       *pgxpool.Pool
+	dbErr      error
+)
+
+func setupDatabase() (*pgxpool.Pool, error) {
+	dbConnOnce.Do(func() {
+		var dbCfg *pgxpool.Config
+		dbCfg, dbErr = pgxpool.ParseConfig(getEnv("DATABASE_URL", "host=localhost user=postgres password=pass DB.name=postgres port=5432"))
+		if dbErr != nil {
+			return
+		}
+		ctx := context.Background()
+		dbCfg.MaxConns = 15
+		dbCfg.LazyConnect = true
+		pool, dbErr = pgxpool.ConnectConfig(ctx, dbCfg)
+	})
+	return pool, dbErr
+
+}
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
 func getTablesFromMainTable(table *schema.Table) []string {
 	var res []string
 	res = append(res, table.Name)
@@ -170,28 +215,4 @@ func getTablesFromMainTable(table *schema.Table) []string {
 		res = append(res, getTablesFromMainTable(t)...)
 	}
 	return res
-}
-
-func testTableIdentifiersForProvider(t *testing.T, prov *provider.Provider) {
-	t.Run("testTableIdentifiersForProvider", func(t *testing.T) {
-		t.Parallel()
-		for _, res := range prov.ResourceMap {
-			res := res
-			t.Run(res.Name, func(t *testing.T) {
-				testTableIdentifiers(t, res)
-			})
-		}
-	})
-}
-
-func testTableIdentifiers(t *testing.T, table *schema.Table) {
-	t.Parallel()
-	assert.NoError(t, schema.ValidateTable(table))
-
-	for _, res := range table.Relations {
-		res := res
-		t.Run(res.Name, func(t *testing.T) {
-			testTableIdentifiers(t, res)
-		})
-	}
 }
