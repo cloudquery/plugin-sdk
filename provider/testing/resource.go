@@ -2,6 +2,7 @@ package testing
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -24,8 +25,11 @@ type ResourceTestCase struct {
 	Provider       *provider.Provider
 	Table          *schema.Table
 	Config         string
-	SnapshotsDir   string
 	SkipEmptyJsonB bool
+	// SkipEmptyColumn will skip checking results for empty columns
+	SkipEmptyColumn bool
+	// SkipEmptyRows will skip checking that results were returned and will just check that fetch worked
+	SkipEmptyRows bool
 }
 
 // IntegrationTest - creates resources using terraform, fetches them to db and compares with expected values
@@ -79,6 +83,7 @@ func TestResource(t *testing.T, resource ResourceTestCase) {
 
 // fetch - fetches resources from the cloud and puts them into database. database config can be specified via DATABASE_URL env variable
 func fetch(t *testing.T, resource *ResourceTestCase) error {
+	t.Helper()
 	t.Logf("%s fetch resources", resource.Table.Name)
 
 	if _, err := resource.Provider.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
@@ -126,35 +131,70 @@ func deleteTables(conn *pgxpool.Conn, table *schema.Table) error {
 }
 
 func verifyNoEmptyColumns(t *testing.T, tc ResourceTestCase, conn pgxscan.Querier) {
+	t.Helper()
+	if tc.SkipEmptyRows {
+		t.Logf("table %s marked with SkipEmptyRows. Skipping...", tc.Table.Name)
+		return
+	}
 	// Test that we don't have missing columns and have exactly one entry for each table
 	for _, table := range getTablesFromMainTable(tc.Table) {
-		query := fmt.Sprintf("select * FROM %s ", table)
-		rows, err := conn.Query(context.Background(), query)
-		if err != nil {
-			t.Fatal(err)
-		}
-		count := 0
-		for rows.Next() {
-			count += 1
-		}
-		if count < 1 {
-			t.Fatalf("expected to have at least 1 entry at table %s got %d", table, count)
-		}
-		if tc.SkipEmptyJsonB {
+		if table.IgnoreInTests {
+			t.Logf("table %s marked as IgnoreInTest. Skipping...", table.Name)
 			continue
 		}
-		query = fmt.Sprintf("select t.* FROM %s as t WHERE to_jsonb(t) = jsonb_strip_nulls(to_jsonb(t))", table)
-		rows, err = conn.Query(context.Background(), query)
+		s := sq.StatementBuilder.
+			PlaceholderFormat(sq.Dollar).
+			Select(fmt.Sprintf("json_agg(%s)", table.Name)).
+			From(table.Name)
+		query, args, err := s.ToSql()
 		if err != nil {
 			t.Fatal(err)
 		}
-		count = 0
-		for rows.Next() {
-			count += 1
+		var data []map[string]interface{}
+		if err := pgxscan.Get(context.Background(), conn, &data, query, args...); err != nil {
+			t.Fatal(err)
 		}
-		if count < 1 {
-			t.Fatalf("row at table %s has an empty column", table)
+
+		if len(data) == 0 {
+			t.Errorf("expected to have at least 1 entry at table %s got zero", table.Name)
+			return
 		}
+
+		nilColumns := map[string]bool{}
+		// mark all columns as nil
+		for _, c := range table.Columns {
+			if !c.IgnoreInTests {
+				nilColumns[c.Name] = true
+			}
+		}
+
+		for _, row := range data {
+			for c, v := range row {
+				if v != nil {
+					// as long as we had one row or result with this column not nil it means the resolver worked
+					nilColumns[c] = false
+				}
+			}
+		}
+
+		var nilColumnsArr []string
+		for c, v := range nilColumns {
+			if v {
+				nilColumnsArr = append(nilColumnsArr, c)
+			}
+		}
+
+		if len(nilColumnsArr) != 0 {
+			b, err := json.MarshalIndent(data, "", "\t")
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Errorf("found nil column in table %s. rows=\n%s\ncolumns=%s\n", table.Name, string(b), strings.Join(nilColumnsArr, ","))
+		}
+		// if tc.SkipEmptyJsonB {
+		// 	continue
+		// }
+
 	}
 }
 
@@ -208,9 +248,9 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func getTablesFromMainTable(table *schema.Table) []string {
-	var res []string
-	res = append(res, table.Name)
+func getTablesFromMainTable(table *schema.Table) []*schema.Table {
+	var res []*schema.Table
+	res = append(res, table)
 	for _, t := range table.Relations {
 		res = append(res, getTablesFromMainTable(t)...)
 	}

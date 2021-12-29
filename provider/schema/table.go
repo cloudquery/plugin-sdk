@@ -42,6 +42,10 @@ type Table struct {
 	// AlwaysDelete will always delete table data on fetch regardless if delete is disabled on run,
 	// use this only in specific cases, if you are unsure contact the CloudQuery Team.
 	AlwaysDelete bool
+	// IgnoreInTests if true this skips this column in tests as sometimes it might be hard
+	// to create a reproducible test environment with this column being non nil. For example various error tables such as
+	// security violations and so.
+	IgnoreInTests bool
 }
 
 // ColumnNames returns all collected columns name of table (including all inner embedded columns)

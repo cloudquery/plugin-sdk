@@ -161,9 +161,9 @@ type Column struct {
 	IgnoreError IgnoreErrorFunc
 	// Creation options allow modifying how column is defined when table is created
 	CreationOptions ColumnCreationOptions
-	// IgnoreInIntTests if true tests integration tests wont compare this column
-	// in snapshot testing. Usually used for columns like:  meta, last_updated
-	IgnoreInIntTests bool
+	// IgnoreInTests if true this skips this column in tests as sometimes it might be hard
+	// to create a reproducible test environment with this column being non nill. For example various error columns and so on
+	IgnoreInTests bool
 
 	// meta holds serializable information about the column's resolvers and functions
 	meta *ColumnMeta
