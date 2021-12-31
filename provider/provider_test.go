@@ -55,7 +55,7 @@ var (
 			},
 		},
 	}
-	testResolverFunc = func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan interface{}) error {
+	testResolverFunc = func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
 		for i := 0; i < 10; i++ {
 			t := testStruct{}
 			time.Sleep(50 * time.Millisecond)
@@ -103,7 +103,7 @@ var (
 				},
 				"bad_resource": {
 					Name: "bad_resource",
-					Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan interface{}) error {
+					Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
 						return errors.New("bad error")
 					},
 				},
@@ -112,7 +112,7 @@ var (
 					IgnoreError: func(err error) bool {
 						return true
 					},
-					Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan interface{}) error {
+					Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
 						return errors.New("bad error")
 					},
 				},

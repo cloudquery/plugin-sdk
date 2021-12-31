@@ -24,7 +24,7 @@ var testMultiplexTable = &Table{
 	Multiplex: func(meta ClientMeta) []ClientMeta {
 		return []ClientMeta{meta}
 	},
-	Resolver: func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+	Resolver: func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 		return nil
 	},
 	Columns: []Column{
@@ -39,7 +39,7 @@ var testMultiplexTable = &Table{
 			Multiplex: func(meta ClientMeta) []ClientMeta {
 				return []ClientMeta{meta}
 			},
-			Resolver: func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+			Resolver: func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 				return nil
 			},
 			Columns: []Column{
@@ -113,7 +113,7 @@ var testBadColumnResolverTable = &Table{
 			},
 		},
 	},
-	Resolver: func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+	Resolver: func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 		res <- testDefaultsTableData{Name: nil}
 		return nil
 	},
@@ -145,35 +145,35 @@ var testIgnoreErrorColumnResolverTable = &Table{
 			},
 		},
 	},
-	Resolver: func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+	Resolver: func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 		res <- testDefaultsTableData{Name: nil}
 		return nil
 	},
 }
 
-func failingTableResolver(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+func failingTableResolver(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 	return fmt.Errorf("table resolve failed")
 }
 
-func doNothingResolver(_ context.Context, _ ClientMeta, _ *Resource, _ chan interface{}) error {
+func doNothingResolver(_ context.Context, _ ClientMeta, _ *Resource, _ chan<- interface{}) error {
 	return nil
 }
 
-func dataReturningResolver(_ context.Context, _ ClientMeta, _ *Resource, res chan interface{}) error {
+func dataReturningResolver(_ context.Context, _ ClientMeta, _ *Resource, res chan<- interface{}) error {
 	object := testTableStruct{}
 	_ = defaults.Set(&object)
 	res <- []testTableStruct{object, object, object}
 	return nil
 }
 
-func dataReturningSingleResolver(_ context.Context, _ ClientMeta, _ *Resource, res chan interface{}) error {
+func dataReturningSingleResolver(_ context.Context, _ ClientMeta, _ *Resource, res chan<- interface{}) error {
 	object := testTableStruct{}
 	_ = defaults.Set(&object)
 	res <- object
 	return nil
 }
 
-func passingNilResolver(_ context.Context, _ ClientMeta, _ *Resource, res chan interface{}) error {
+func passingNilResolver(_ context.Context, _ ClientMeta, _ *Resource, res chan<- interface{}) error {
 	res <- nil
 	return nil
 }
@@ -220,7 +220,7 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 	})
 
 	t.Run("error table column resolver w/partialFetch", func(t *testing.T) {
-		testBadColumnResolverTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+		testBadColumnResolverTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 			someString := "noError"
 			res <- []testDefaultsTableData{{Name: &someString}, {Name: nil}, {Name: &someString}}
 			return nil
@@ -304,7 +304,7 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		mockDb := new(DatabaseMock)
 		execDefault := NewExecutionData(mockDb, logger, testDefaultsTable, false, nil, false)
 		mockDb.On("CopyFrom", mock.Anything, mock.Anything, false, mock.Anything).Return(nil)
-		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 			res <- testDefaultsTableData{Name: nil}
 			return nil
 		}
@@ -460,7 +460,7 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		mockDb := new(DatabaseMock)
 		execDefault := NewExecutionData(mockDb, logger, testDefaultsTable, false, nil, true)
 		mockDb.On("CopyFrom", mock.Anything, mock.Anything, false, mock.Anything).Return(nil)
-		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 			res <- testDefaultsTableData{Name: nil}
 			return nil
 		}
@@ -480,7 +480,7 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		mockDb := new(DatabaseMock)
 		execDefault := NewExecutionData(mockDb, logger, testDefaultsTable, false, nil, true)
 		mockDb.On("CopyFrom", mock.Anything, mock.Anything, false, mock.Anything).Return(nil)
-		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 			res <- testDefaultsTableData{Name: nil}
 			return fmt.Errorf("random failure")
 		}
@@ -500,7 +500,7 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		mockDb := new(DatabaseMock)
 		execDefault := NewExecutionData(mockDb, logger, testDefaultsTable, false, nil, true)
 		mockDb.On("CopyFrom", mock.Anything, mock.Anything, false, mock.Anything).Return(nil)
-		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 			res <- testDefaultsTableData{Name: nil}
 			panic("test panic")
 		}
@@ -520,7 +520,7 @@ func TestExecutionData_ResolveTable(t *testing.T) {
 		mockDb := new(DatabaseMock)
 		execDefault := NewExecutionData(mockDb, logger, testDefaultsTable, false, nil, true)
 		mockDb.On("CopyFrom", mock.Anything, mock.Anything, false, mock.Anything).Return(nil)
-		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan interface{}) error {
+		testDefaultsTable.Resolver = func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error {
 			res <- testDefaultsTableData{Name: nil}
 			return nil
 		}
