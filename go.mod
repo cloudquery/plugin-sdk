@@ -8,17 +8,14 @@ require (
 	github.com/creasty/defaults v1.5.2
 	github.com/doug-martin/goqu/v9 v9.17.0
 	github.com/georgysavva/scany v0.2.9
-	github.com/go-test/deep v1.0.7
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.15.0
 	github.com/golang/mock v1.6.0
-	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-hclog v1.0.0
 	github.com/hashicorp/go-plugin v1.4.3
 	github.com/hashicorp/go-version v1.3.0
 	github.com/hashicorp/hcl/v2 v2.10.1
-	github.com/hashicorp/terraform-exec v0.15.0
 	github.com/huandu/go-sqlbuilder v1.13.0
 	github.com/iancoleman/strcase v0.2.0
 	github.com/jackc/pgconn v1.10.0
@@ -26,12 +23,10 @@ require (
 	github.com/jackc/pgx/v4 v4.13.0
 	github.com/mitchellh/hashstructure v1.1.0
 	github.com/modern-go/reflect2 v1.0.2
-	github.com/sergi/go-diff v1.2.0
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cast v1.4.1
 	github.com/stretchr/testify v1.7.0
 	github.com/thoas/go-funk v0.9.1
-	github.com/tmccombs/hcl2json v0.3.3
 	github.com/vmihailenco/msgpack/v5 v5.3.4
 	github.com/xo/dburl v0.8.4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
@@ -46,11 +41,11 @@ require (
 	github.com/containerd/containerd v1.5.8 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/go-test/deep v1.0.7 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/terraform-json v0.13.0 // indirect
 	github.com/hashicorp/yamux v0.0.0-20210826001029-26ff87cf9493 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -60,7 +55,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.8.1 // indirect
 	github.com/jackc/puddle v1.1.4 // indirect
-	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/kr/pretty v0.2.1 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.10.3 // indirect

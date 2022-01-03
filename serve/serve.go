@@ -117,6 +117,9 @@ func serve(opts *Options) {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: Handshake,
 		VersionedPlugins: map[int]plugin.PluginSet{
+			3: {
+				"provider": &cqproto.CQPlugin{Impl: opts.Provider},
+			},
 			2: {
 				"provider": &cqproto.CQPlugin{Impl: opts.Provider},
 			}},

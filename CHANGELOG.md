@@ -5,10 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### :gear: Changed
+* plugins now support both version `3` and `2`
+
 ## [v0.6.0] - 2021-12-31
 
 ### :gear: Changed
 * **Breaking Change**: changed `TestResource` API [#137](https://github.com/cloudquery/cq-provider-sdk/pull/137)
+* `ConfigureProvider` now supports standard `hcl` byte stream
+* `TableResolver` specify channel direction `type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error`
+
 
 ### :rocket: Added
 * Added `SkipEmptyColumn` and `SkipEmptyRows` to `ResourceTestCase`
