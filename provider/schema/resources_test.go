@@ -3,6 +3,7 @@ package schema
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -83,7 +84,7 @@ type zeroValuedStruct struct {
 
 // TestResourcePrimaryKey checks resource id generation when primary key is set on table
 func TestResourcePrimaryKey(t *testing.T) {
-	r := NewResourceData(testPrimaryKeyTable, nil, nil, nil)
+	r := NewResourceData(PostgresDialect{}, testPrimaryKeyTable, nil, nil, nil, time.Now())
 	// save random id
 	randomId := r.cqId
 	// test primary table no pk
@@ -103,10 +104,10 @@ func TestResourcePrimaryKey(t *testing.T) {
 }
 
 func TestRelationResourcePrimaryKey(t *testing.T) {
-	r := NewResourceData(testPrimaryKeyTable, nil, nil, nil)
-	r2 := NewResourceData(r.table.Relations[0], r, map[string]interface{}{
+	r := NewResourceData(PostgresDialect{}, testPrimaryKeyTable, nil, nil, nil, time.Now())
+	r2 := NewResourceData(PostgresDialect{}, r.table.Relations[0], r, map[string]interface{}{
 		"rel_key_str": "test",
-	}, nil)
+	}, nil, time.Now())
 
 	mockedClient := new(mockedClientMeta)
 	logger := logging.New(&hclog.LoggerOptions{
@@ -116,28 +117,31 @@ func TestRelationResourcePrimaryKey(t *testing.T) {
 	})
 	mockedClient.On("Logger", mock.Anything).Return(logger)
 
-	exec := NewExecutionData(nil, logger, r2.table, false, nil, false)
+	mockDb := new(DatabaseMock)
+	mockDb.On("Dialect").Return(PostgresDialect{})
+
+	exec := NewExecutionData(mockDb, logger, r2.table, false, nil, false)
 	err := exec.resolveResourceValues(context.TODO(), mockedClient, r2)
 	assert.Nil(t, err)
 	v, err := r2.Values()
 	assert.Nil(t, err)
-	assert.Equal(t, v[1], r2.cqId)
+	assert.Equal(t, r2.cqId, v[0])
 }
 
 // TestResourcePrimaryKey checks resource id generation when primary key is set on table
 func TestResourceAddColumns(t *testing.T) {
-	r := NewResourceData(testPrimaryKeyTable, nil, nil, map[string]interface{}{"new_field": 1})
-	assert.Equal(t, []string{"primary_key_str", "cq_id", "meta", "new_field"}, r.columns)
+	r := NewResourceData(PostgresDialect{}, testPrimaryKeyTable, nil, nil, nil, time.Now())
+	assert.Equal(t, []string{"cq_id", "cq_meta", "primary_key_str"}, r.columns)
 }
 
 func TestResourceColumns(t *testing.T) {
-	r := NewResourceData(testTable, nil, nil, nil)
+	r := NewResourceData(PostgresDialect{}, testTable, nil, nil, nil, time.Now())
 	errf := r.Set("name", "test")
 	assert.Nil(t, errf)
 	assert.Equal(t, r.Get("name"), "test")
 	v, err := r.Values()
 	assert.Nil(t, err)
-	assert.Equal(t, v, []interface{}{"test", nil, nil, nil, nil})
+	assert.Equal(t, []interface{}{nil, nil, "test", nil, nil}, v)
 	// Set invalid type to resource
 	errf = r.Set("name", 5)
 	assert.Nil(t, errf)
@@ -154,7 +158,7 @@ func TestResourceColumns(t *testing.T) {
 	assert.Nil(t, errf)
 	v, err = r.Values()
 	assert.Nil(t, err)
-	assert.Equal(t, v, []interface{}{"test", "name_no_prefix", "prefix_name", nil, nil})
+	assert.Equal(t, []interface{}{nil, nil, "test", "name_no_prefix", "prefix_name"}, v)
 
 	// check non existing col
 	err = r.Set("non_exist_col", "test")
@@ -173,62 +177,70 @@ func TestResourceResolveColumns(t *testing.T) {
 	t.Run("test resolve column normal", func(t *testing.T) {
 		object := testTableStruct{}
 		_ = defaults.Set(&object)
-		r := NewResourceData(testTable, nil, object, nil)
-		assert.Equal(t, r.cqId, r.Id())
-		// columns should be resolved from ColumnResolver functions or default functions
 		logger := logging.New(&hclog.LoggerOptions{
 			Name:   "test_log",
 			Level:  hclog.Error,
 			Output: nil,
 		})
-		exec := NewExecutionData(nil, logger, testTable, false, nil, false)
+
+		mockDb := new(DatabaseMock)
+		mockDb.On("Dialect").Return(PostgresDialect{})
+
+		exec := NewExecutionData(mockDb, logger, testTable, false, nil, false)
+		r := NewResourceData(PostgresDialect{}, testTable, nil, object, nil, exec.executionStart)
+		assert.Equal(t, r.cqId, r.Id())
+		// columns should be resolved from ColumnResolver functions or default functions
 		err := exec.resolveColumns(context.TODO(), mockedClient, r, testTable.Columns)
 		assert.Nil(t, err)
 		v, err := r.Values()
 		assert.Nil(t, err)
-		assert.Equal(t, v, []interface{}{"test", "name_no_prefix", "prefix_name", nil, nil})
+		assert.Equal(t, []interface{}{nil, nil, "test", "name_no_prefix", "prefix_name"}, v)
 	})
 
 	t.Run("test resolve zero columns", func(t *testing.T) {
 		object := zeroValuedStruct{}
 		_ = defaults.Set(&object)
-		r := NewResourceData(testZeroTable, nil, object, nil)
-		assert.Equal(t, r.cqId, r.Id())
-		// columns should be resolved from ColumnResolver functions or default functions
 		logger := logging.New(&hclog.LoggerOptions{
 			Name:   "test_log",
 			Level:  hclog.Error,
 			Output: nil,
 		})
-		exec := NewExecutionData(nil, logger, testZeroTable, false, nil, false)
+
+		mockDb := new(DatabaseMock)
+		mockDb.On("Dialect").Return(PostgresDialect{})
+
+		exec := NewExecutionData(mockDb, logger, testZeroTable, false, nil, false)
+
+		r := NewResourceData(PostgresDialect{}, testZeroTable, nil, object, nil, exec.executionStart)
+		assert.Equal(t, r.cqId, r.Id())
+		// columns should be resolved from ColumnResolver functions or default functions
 		err := exec.resolveColumns(context.TODO(), mockedClient, r, testZeroTable.Columns)
 		assert.Nil(t, err)
 		v, err := r.Values()
 		assert.Nil(t, err)
-		assert.Equal(t, []interface{}{false, 0, true}, v[:3])
-		assert.Equal(t, 0, *v[4].(*int))
-		assert.Equal(t, 5, *v[5].(*int))
-		assert.Equal(t, "", v[6].(string))
-		assert.Equal(t, nil, v[7])
-		assert.Equal(t, nil, v[8])
+		assert.Equal(t, nil, v[0])
+		assert.Equal(t, nil, v[1])
+		assert.Equal(t, []interface{}{false, 0, true}, v[2:5])
+		assert.Equal(t, 0, *v[6].(*int))
+		assert.Equal(t, 5, *v[7].(*int))
 
 		object.ZeroIntPtr = nil
-		r = NewResourceData(testZeroTable, nil, object, nil)
+		r = NewResourceData(PostgresDialect{}, testZeroTable, nil, object, nil, time.Now())
 		err = exec.resolveColumns(context.TODO(), mockedClient, r, testZeroTable.Columns)
 		assert.Nil(t, err)
 		v, _ = r.Values()
-		assert.Equal(t, nil, v[4])
+		assert.Equal(t, nil, v[6])
 	})
 }
 
 func TestResources(t *testing.T) {
-	r1 := NewResourceData(testPrimaryKeyTable, nil, nil, map[string]interface{}{"new_field": 1})
-	r2 := NewResourceData(testPrimaryKeyTable, nil, nil, map[string]interface{}{"new_field": 1})
-	assert.Equal(t, []string{"primary_key_str", "cq_id", "meta", "new_field"}, r1.columns)
-	assert.Equal(t, []string{"primary_key_str", "cq_id", "meta", "new_field"}, r2.columns)
+	r1 := NewResourceData(PostgresDialect{}, testPrimaryKeyTable, nil, nil, nil, time.Now())
+	r2 := NewResourceData(PostgresDialect{}, testPrimaryKeyTable, nil, nil, nil, time.Now())
+	assert.Equal(t, []string{"cq_id", "cq_meta", "primary_key_str"}, r1.columns)
+	assert.Equal(t, []string{"cq_id", "cq_meta", "primary_key_str"}, r2.columns)
 
 	rr := Resources{r1, r2}
-	assert.Equal(t, []string{"primary_key_str", "cq_id", "meta", "new_field"}, rr.ColumnNames())
+	assert.Equal(t, []string{"cq_id", "cq_meta", "primary_key_str"}, rr.ColumnNames())
 	assert.Equal(t, testPrimaryKeyTable.Name, rr.TableName())
 	_ = r1.Set("primary_key_str", "test")
 	_ = r2.Set("primary_key_str", "test2")

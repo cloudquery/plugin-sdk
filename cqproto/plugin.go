@@ -8,6 +8,12 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	V4 = 4
+
+	Vunmanaged = -1
+)
+
 // CQPlugin This is the implementation of plugin.GRPCServer so we can serve/consume this.
 type CQPlugin struct {
 	// GRPCPlugin must still implement the Stub interface

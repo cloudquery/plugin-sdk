@@ -6,13 +6,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/cloudquery/cq-provider-sdk/provider"
-
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
-	"google.golang.org/grpc"
+	"github.com/cloudquery/cq-provider-sdk/provider"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
+	"google.golang.org/grpc"
 )
 
 var Handshake = plugin.HandshakeConfig{
@@ -26,7 +25,7 @@ Set CQ_PROVIDER_DEBUG=1 to run plugin in debug mode, for additional info see htt
 `
 
 type Options struct {
-	// Required: Name of provider.
+	// Required: Name of provider
 	Name string
 
 	// Required: Provider is the actual provider that will be served.
@@ -117,10 +116,7 @@ func serve(opts *Options) {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: Handshake,
 		VersionedPlugins: map[int]plugin.PluginSet{
-			3: {
-				"provider": &cqproto.CQPlugin{Impl: opts.Provider},
-			},
-			2: {
+			cqproto.V4: {
 				"provider": &cqproto.CQPlugin{Impl: opts.Provider},
 			}},
 		GRPCServer: func(opts []grpc.ServerOption) *grpc.Server {

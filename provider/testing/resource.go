@@ -11,13 +11,14 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
+	"github.com/cloudquery/cq-provider-sdk/database"
+	"github.com/cloudquery/cq-provider-sdk/migration"
 	"github.com/cloudquery/cq-provider-sdk/provider"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/cloudquery/cq-provider-sdk/testlog"
 	"github.com/cloudquery/faker/v3"
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/hashicorp/go-hclog"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,21 +47,15 @@ func TestResource(t *testing.T, resource ResourceTestCase) {
 	// No need for configuration or db connection, get it out of the way first
 	// testTableIdentifiersForProvider(t, resource.Provider)
 
-	pool, err := setupDatabase()
+	conn, err := setupDatabase()
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := context.Background()
-	conn, err := pool.Acquire(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer conn.Release()
 
 	l := testlog.New(t)
 	l.SetLevel(hclog.Debug)
 	resource.Provider.Logger = l
-	tableCreator := provider.NewTableCreator(l)
+	tableCreator := migration.NewTableCreator(l, schema.PostgresDialect{})
 	if err := tableCreator.CreateTable(context.Background(), conn, resource.Table, nil); err != nil {
 		assert.FailNow(t, fmt.Sprintf("failed to create tables %s", resource.Table.Name), err)
 	}
@@ -74,11 +69,6 @@ func TestResource(t *testing.T, resource ResourceTestCase) {
 	}
 
 	verifyNoEmptyColumns(t, resource, conn)
-
-	if err := conn.Conn().Close(ctx); err != nil {
-		t.Fatal(err)
-	}
-
 }
 
 // fetch - fetches resources from the cloud and puts them into database. database config can be specified via DATABASE_URL env variable
@@ -116,18 +106,14 @@ func fetch(t *testing.T, resource *ResourceTestCase) error {
 	return nil
 }
 
-func deleteTables(conn *pgxpool.Conn, table *schema.Table) error {
+func deleteTables(conn schema.QueryExecer, table *schema.Table) error {
 	s := sq.Delete(table.Name)
 	sql, args, err := s.ToSql()
 	if err != nil {
 		return err
 	}
 
-	_, err = conn.Exec(context.TODO(), sql, args...)
-	if err != nil {
-		return err
-	}
-	return nil
+	return conn.Exec(context.TODO(), sql, args...)
 }
 
 func verifyNoEmptyColumns(t *testing.T, tc ResourceTestCase, conn pgxscan.Querier) {
@@ -221,24 +207,18 @@ func (f *fakeResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
 
 var (
 	dbConnOnce sync.Once
-	pool       *pgxpool.Pool
+	pool       schema.QueryExecer
 	dbErr      error
 )
 
-func setupDatabase() (*pgxpool.Pool, error) {
+func setupDatabase() (schema.QueryExecer, error) {
 	dbConnOnce.Do(func() {
-		var dbCfg *pgxpool.Config
-		dbCfg, dbErr = pgxpool.ParseConfig(getEnv("DATABASE_URL", "host=localhost user=postgres password=pass DB.name=postgres port=5432"))
+		pool, dbErr = database.New(context.Background(), hclog.NewNullLogger(), getEnv("DATABASE_URL", "host=localhost user=postgres password=pass DB.name=postgres port=5432"))
 		if dbErr != nil {
 			return
 		}
-		ctx := context.Background()
-		dbCfg.MaxConns = 15
-		dbCfg.LazyConnect = true
-		pool, dbErr = pgxpool.ConnectConfig(ctx, dbCfg)
 	})
 	return pool, dbErr
-
 }
 
 func getEnv(key, fallback string) string {

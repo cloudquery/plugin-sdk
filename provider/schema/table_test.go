@@ -18,7 +18,7 @@ var tableDefinitionTestCases = []tableTestCase{
 				},
 			},
 		},
-		ExpectedColumnNames: []string{"some_string", "cq_id", "meta"},
+		ExpectedColumnNames: []string{"cq_id", "cq_meta", "some_string"},
 		ExpectedHasId:       false,
 	},
 	{
@@ -36,7 +36,7 @@ var tableDefinitionTestCases = []tableTestCase{
 				},
 			},
 		},
-		ExpectedColumnNames: []string{"some_string", "some_int", "cq_id", "meta"},
+		ExpectedColumnNames: []string{"cq_id", "cq_meta", "some_string", "some_int"},
 		ExpectedHasId:       true,
 	},
 	{
@@ -62,7 +62,7 @@ var tableDefinitionTestCases = []tableTestCase{
 				},
 			},
 		},
-		ExpectedColumnNames: []string{"some_string", "some_int", "embedded_some_string", "embedded_some_int", "cq_id", "meta"},
+		ExpectedColumnNames: []string{"cq_id", "cq_meta", "some_string", "some_int", "embedded_some_string", "embedded_some_int"},
 	},
 
 	{
@@ -84,7 +84,7 @@ var tableDefinitionTestCases = []tableTestCase{
 				},
 			},
 		},
-		ExpectedColumnNames: []string{"some_int", "embedded_some_string", "embedded_inner_some_int", "cq_id", "meta"},
+		ExpectedColumnNames: []string{"cq_id", "cq_meta", "some_int", "embedded_some_string", "embedded_inner_some_int"},
 	},
 	{
 		Name: "simpleTableWithEmbedded",
@@ -109,7 +109,7 @@ var tableDefinitionTestCases = []tableTestCase{
 				},
 			},
 		},
-		ExpectedColumnNames: []string{"some_string", "some_int", "some_string_no_prefix", "some_int_no_prefix", "cq_id", "meta"},
+		ExpectedColumnNames: []string{"cq_id", "cq_meta", "some_string", "some_int", "some_string_no_prefix", "some_int_no_prefix"},
 	},
 }
 
@@ -122,6 +122,6 @@ type tableTestCase struct {
 
 func TestTableDefinitionUseCases(t *testing.T) {
 	for _, c := range tableDefinitionTestCases {
-		assert.Equal(t, c.ExpectedColumnNames, c.Table.ColumnNames(), "failed case %s", c.Name)
+		assert.Equal(t, c.ExpectedColumnNames, PostgresDialect{}.Columns(c.Table).Names(), "failed case %s", c.Name)
 	}
 }

@@ -73,7 +73,7 @@ func renderAllTables(t *schema.Table, outputPath string) error {
 
 func renderTable(table *schema.Table, path string) error {
 	t := template.New("").Funcs(map[string]interface{}{
-		"pgType": schema.GetPgTypeFromType,
+		"pgType": schema.PostgresDialect{}.DBTypeFromType,
 		"removeLineBreaks": func(text string) string {
 			return strings.ReplaceAll(text, "\n", " ")
 		},

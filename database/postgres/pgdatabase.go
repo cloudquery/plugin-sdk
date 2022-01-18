@@ -1,76 +1,56 @@
-package schema
+package postgres
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"reflect"
 	"strconv"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
+	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema/diag"
+	"github.com/doug-martin/goqu/v9"
+	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
+	"github.com/hashicorp/go-hclog"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
-
-	"github.com/spf13/cast"
-
-	"github.com/hashicorp/go-hclog"
-	"github.com/modern-go/reflect2"
-
-	"github.com/doug-martin/goqu/v9"
-
 	"github.com/jackc/pgx/v4"
-
-	sq "github.com/Masterminds/squirrel"
-	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/spf13/cast"
 )
-
-const (
-	// MaxTableLength in postgres is 63 when building _fk or _pk we want to truncate the name to 60 chars max
-	maxTableNamePKConstraint = 60
-)
-
-//go:generate mockgen -package=mock -destination=./mocks/mock_database.go . Database
-type Database interface {
-	Insert(ctx context.Context, t *Table, instance Resources) error
-	Exec(ctx context.Context, query string, args ...interface{}) error
-	Delete(ctx context.Context, t *Table, kvFilters []interface{}) error
-	Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error)
-	RemoveStaleData(ctx context.Context, t *Table, executionStart time.Time, kvFilters []interface{}) error
-	CopyFrom(ctx context.Context, resources Resources, shouldCascade bool, CascadeDeleteFilters map[string]interface{}) error
-	Close()
-}
 
 type PgDatabase struct {
 	pool *pgxpool.Pool
 	log  hclog.Logger
+	sd   schema.Dialect
 }
 
-func NewPgDatabase(ctx context.Context, logger hclog.Logger, dsn string) (*PgDatabase, error) {
-	cfg, err := pgxpool.ParseConfig(dsn)
+func NewPgDatabase(ctx context.Context, logger hclog.Logger, dsn string, sd schema.Dialect) (*PgDatabase, error) {
+	pool, err := Connect(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}
-	pool, err := pgxpool.ConnectConfig(ctx, cfg)
-	if err != nil {
-		return nil, err
-	}
-	return &PgDatabase{pool: pool, log: logger}, nil
+	return &PgDatabase{
+		pool: pool,
+		log:  logger,
+		sd:   sd,
+	}, nil
 }
+
+var _ schema.Storage = (*PgDatabase)(nil)
 
 // Insert inserts all resources to given table, table and resources are assumed from same table.
-func (p PgDatabase) Insert(ctx context.Context, t *Table, resources Resources) error {
+func (p PgDatabase) Insert(ctx context.Context, t *schema.Table, resources schema.Resources) error {
 	if len(resources) == 0 {
 		return nil
 	}
 	// It is safe to assume that all resources have the same columns
-	cols := quoteColumns(resources[0].columns)
+	cols := quoteColumns(resources.ColumnNames())
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	sqlStmt := psql.Insert(t.Name).Columns(cols...)
 	for _, res := range resources {
-		if res.table != t {
-			return fmt.Errorf("resource table expected %s got %s", t.Name, res.table.Name)
+		if res.TableName() != t.Name {
+			return fmt.Errorf("resource table expected %s got %s", t.Name, res.TableName())
 		}
 		values, err := res.Values()
 		if err != nil {
@@ -101,7 +81,7 @@ func (p PgDatabase) Insert(ctx context.Context, t *Table, resources Resources) e
 }
 
 // CopyFrom copies all resources from []*Resource
-func (p PgDatabase) CopyFrom(ctx context.Context, resources Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error {
+func (p PgDatabase) CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error {
 	if len(resources) == 0 {
 		return nil
 	}
@@ -128,7 +108,7 @@ func (p PgDatabase) CopyFrom(ctx context.Context, resources Resources, shouldCas
 			ctx, pgx.Identifier{resources.TableName()}, resources.ColumnNames(),
 			pgx.CopyFromSlice(len(resources), func(i int) ([]interface{}, error) {
 				// use getResourceValues instead of Resource.Values since values require some special encoding for CopyFrom
-				return getResourceValues(resources[i])
+				return p.sd.GetResourceValues(resources[i])
 			}))
 		if err != nil {
 			return err
@@ -159,7 +139,7 @@ func (p PgDatabase) QueryOne(ctx context.Context, query string, args ...interfac
 	return row
 }
 
-func (p PgDatabase) Delete(ctx context.Context, t *Table, kvFilters []interface{}) error {
+func (p PgDatabase) Delete(ctx context.Context, t *schema.Table, kvFilters []interface{}) error {
 	nc := len(kvFilters)
 	if nc%2 != 0 {
 		return fmt.Errorf("number of args to delete should be even. Got %d", nc)
@@ -178,8 +158,8 @@ func (p PgDatabase) Delete(ctx context.Context, t *Table, kvFilters []interface{
 	return err
 }
 
-func (p PgDatabase) RemoveStaleData(ctx context.Context, t *Table, executionStart time.Time, kvFilters []interface{}) error {
-	q := goqu.Delete(t.Name).WithDialect("postgres").Where(goqu.L(`extract(epoch from (meta->>'last_updated')::timestamp)`).Lt(executionStart.Unix()))
+func (p PgDatabase) RemoveStaleData(ctx context.Context, t *schema.Table, executionStart time.Time, kvFilters []interface{}) error {
+	q := goqu.Delete(t.Name).WithDialect("postgres").Where(goqu.L(`extract(epoch from (cq_meta->>'last_updated')::timestamp)`).Lt(executionStart.Unix()))
 	if len(kvFilters)%2 != 0 {
 		return fmt.Errorf("expected even number of k,v delete filters received %s", kvFilters)
 	}
@@ -198,49 +178,8 @@ func (p PgDatabase) Close() {
 	p.pool.Close()
 }
 
-func GetPgTypeFromType(v ValueType) string {
-	switch v {
-	case TypeBool:
-		return "boolean"
-	case TypeInt:
-		return "integer"
-	case TypeBigInt:
-		return "bigint"
-	case TypeSmallInt:
-		return "smallint"
-	case TypeFloat:
-		return "float"
-	case TypeUUID:
-		return "uuid"
-	case TypeString:
-		return "text"
-	case TypeJSON:
-		return "jsonb"
-	case TypeIntArray:
-		return "integer[]"
-	case TypeStringArray:
-		return "text[]"
-	case TypeTimestamp:
-		return "timestamp without time zone"
-	case TypeByteArray:
-		return "bytea"
-	case TypeInvalid:
-		fallthrough
-	case TypeInet:
-		return "inet"
-	case TypeMacAddr:
-		return "mac"
-	case TypeInetArray:
-		return "inet[]"
-	case TypeMacAddrArray:
-		return "mac[]"
-	case TypeCIDR:
-		return "cidr"
-	case TypeCIDRArray:
-		return "cidr[]"
-	default:
-		panic("invalid type")
-	}
+func (p PgDatabase) Dialect() schema.Dialect {
+	return p.sd
 }
 
 func quoteColumns(columns []string) []string {
@@ -248,73 +187,4 @@ func quoteColumns(columns []string) []string {
 		columns[i] = strconv.Quote(v)
 	}
 	return columns
-}
-
-func TruncateTableConstraint(name string) string {
-	if len(name) > maxTableNamePKConstraint {
-		return name[:maxTableNamePKConstraint]
-	}
-	return name
-}
-
-func getResourceValues(r *Resource) ([]interface{}, error) {
-	values := make([]interface{}, 0)
-	for _, c := range append(r.table.Columns, GetDefaultSDKColumns()...) {
-		v := r.Get(c.Name)
-		if err := c.ValidateType(v); err != nil {
-			return nil, err
-		}
-		if c.Type == TypeJSON {
-			if v == nil {
-				values = append(values, v)
-				continue
-			}
-			if reflect2.TypeOf(v).Kind() == reflect.Map {
-				values = append(values, v)
-				continue
-			}
-			switch data := v.(type) {
-			case map[string]interface{}:
-				values = append(values, data)
-			case string:
-				newV := make(map[string]interface{})
-				err := json.Unmarshal([]byte(data), &newV)
-				if err != nil {
-					return nil, err
-				}
-				values = append(values, newV)
-			case *string:
-				var newV interface{}
-				err := json.Unmarshal([]byte(*data), &newV)
-				if err != nil {
-					return nil, err
-				}
-				values = append(values, newV)
-			case []byte:
-				var newV interface{}
-				err := json.Unmarshal(data, &newV)
-				if err != nil {
-					return nil, err
-				}
-				values = append(values, newV)
-			default:
-				d, err := json.Marshal(data)
-				if err != nil {
-					return nil, err
-				}
-				var newV interface{}
-				err = json.Unmarshal(d, &newV)
-				if err != nil {
-					return nil, err
-				}
-				values = append(values, newV)
-			}
-		} else {
-			values = append(values, v)
-		}
-	}
-	for _, v := range r.extraFields {
-		values = append(values, v)
-	}
-	return values, nil
 }

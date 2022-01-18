@@ -4,11 +4,11 @@ import (
 	"crypto"
 	"fmt"
 	"strings"
-
-	"github.com/mitchellh/hashstructure"
-	"github.com/thoas/go-funk"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/mitchellh/hashstructure"
+	"github.com/thoas/go-funk"
 )
 
 type Resources []*Resource
@@ -21,26 +21,30 @@ type Resource struct {
 	// Set if this is an embedded table
 	Parent *Resource
 	// internal fields
-	table       *Table
-	data        map[string]interface{}
-	cqId        uuid.UUID
-	extraFields map[string]interface{}
-	columns     []string
+	table          *Table
+	data           map[string]interface{}
+	cqId           uuid.UUID
+	metadata       map[string]interface{}
+	columns        []string
+	dialect        Dialect
+	executionStart time.Time
 }
 
-func NewResourceData(t *Table, parent *Resource, item interface{}, extraFields map[string]interface{}) *Resource {
+func NewResourceData(dialect Dialect, t *Table, parent *Resource, item interface{}, metadata map[string]interface{}, startTime time.Time) *Resource {
 	return &Resource{
-		Item:        item,
-		Parent:      parent,
-		table:       t,
-		data:        make(map[string]interface{}),
-		cqId:        uuid.New(),
-		columns:     getResourceColumns(t, extraFields),
-		extraFields: extraFields,
+		Item:           item,
+		Parent:         parent,
+		table:          t,
+		data:           make(map[string]interface{}),
+		cqId:           uuid.New(),
+		columns:        dialect.Columns(t).Names(),
+		metadata:       metadata,
+		dialect:        dialect,
+		executionStart: startTime,
 	}
 }
 func (r *Resource) Keys() []string {
-	tablePrimKeys := r.table.PrimaryKeys()
+	tablePrimKeys := r.dialect.PrimaryKeys(r.table)
 	if len(tablePrimKeys) == 0 {
 		return []string{}
 	}
@@ -73,14 +77,11 @@ func (r *Resource) Id() uuid.UUID {
 
 func (r *Resource) Values() ([]interface{}, error) {
 	values := make([]interface{}, 0)
-	for _, c := range append(r.table.Columns, GetDefaultSDKColumns()...) {
+	for _, c := range r.dialect.Columns(r.table) {
 		v := r.Get(c.Name)
 		if err := c.ValidateType(v); err != nil {
 			return nil, err
 		}
-		values = append(values, v)
-	}
-	for _, v := range r.extraFields {
 		values = append(values, v)
 	}
 	return values, nil
@@ -90,13 +91,20 @@ func (r *Resource) GenerateCQId() error {
 	if len(r.table.Options.PrimaryKeys) == 0 {
 		return nil
 	}
-	objs := make([]interface{}, len(r.table.PrimaryKeys()))
-	for i, pk := range r.table.PrimaryKeys() {
+	pks := r.dialect.PrimaryKeys(r.table)
+	objs := make([]interface{}, 0, len(pks))
+	for _, pk := range pks {
+		if col := r.getColumnByName(pk); col == nil {
+			return fmt.Errorf("failed to generate cq_id for %s, pk column missing %s", r.table.Name, pk)
+		} else if col.internal {
+			continue
+		}
+
 		value := r.Get(pk)
 		if value == nil {
 			return fmt.Errorf("failed to generate cq_id for %s, pk field missing %s", r.table.Name, pk)
 		}
-		objs[i] = value
+		objs = append(objs, value)
 	}
 	id, err := hashUUID(objs)
 	if err != nil {
@@ -106,8 +114,15 @@ func (r *Resource) GenerateCQId() error {
 	return nil
 }
 
+func (r *Resource) TableName() string {
+	if r.table == nil {
+		return ""
+	}
+	return r.table.Name
+}
+
 func (r Resource) getColumnByName(column string) *Column {
-	for _, c := range r.table.Columns {
+	for _, c := range r.dialect.Columns(r.table) {
 		if strings.Compare(column, c.Name) == 0 {
 			return &c
 		}
@@ -128,14 +143,6 @@ func hashUUID(objs interface{}) (uuid.UUID, error) {
 	}
 	data := digester.Sum(nil)
 	return uuid.NewSHA1(uuid.Nil, data), nil
-}
-
-func getResourceColumns(t *Table, fields map[string]interface{}) []string {
-	columns := t.ColumnNames()
-	for k := range fields {
-		columns = append(columns, k)
-	}
-	return columns
 }
 
 func (rr Resources) GetIds() []uuid.UUID {

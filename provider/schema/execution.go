@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/cq-provider-sdk/provider/schema/diag"
+	"github.com/georgysavva/scany/pgxscan"
 	"github.com/modern-go/reflect2"
 
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
@@ -24,6 +25,24 @@ import (
 // faster than the <1s it won't be deleted by remove stale.
 const executionJitter = -1 * time.Minute
 
+//go:generate mockgen -package=mock -destination=./mock/mock_storage.go . Storage
+type Storage interface {
+	QueryExecer
+
+	Insert(ctx context.Context, t *Table, instance Resources) error
+	Delete(ctx context.Context, t *Table, kvFilters []interface{}) error
+	RemoveStaleData(ctx context.Context, t *Table, executionStart time.Time, kvFilters []interface{}) error
+	CopyFrom(ctx context.Context, resources Resources, shouldCascade bool, CascadeDeleteFilters map[string]interface{}) error
+	Close()
+	Dialect() Dialect
+}
+
+type QueryExecer interface {
+	pgxscan.Querier
+
+	Exec(ctx context.Context, query string, args ...interface{}) error
+}
+
 type ClientMeta interface {
 	Logger() hclog.Logger
 }
@@ -35,7 +54,7 @@ type ExecutionData struct {
 	// Table this execution is associated with
 	Table *Table
 	// Database connection to insert data into
-	Db Database
+	Db Storage
 	// Logger associated with this execution
 	Logger hclog.Logger
 	// disableDelete allows disabling deletion of table data for this execution
@@ -77,7 +96,7 @@ const (
 )
 
 // NewExecutionData Create a new execution data
-func NewExecutionData(db Database, logger hclog.Logger, table *Table, disableDelete bool, extraFields map[string]interface{}, partialFetch bool) ExecutionData {
+func NewExecutionData(db Storage, logger hclog.Logger, table *Table, disableDelete bool, extraFields map[string]interface{}, partialFetch bool) ExecutionData {
 	return ExecutionData{
 		Table:                     table,
 		Db:                        db,
@@ -240,7 +259,7 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 func (e *ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, parent *Resource, objects []interface{}) error {
 	var resources = make(Resources, 0, len(objects))
 	for _, o := range objects {
-		resource := NewResourceData(e.Table, parent, o, e.extraFields)
+		resource := NewResourceData(e.Db.Dialect(), e.Table, parent, o, e.extraFields, e.executionStart)
 		// Before inserting resolve all table column resolvers
 		if err := e.resolveResourceValues(ctx, meta, resource); err != nil {
 			if partialFetchErr := e.checkPartialFetchError(err, resource, "failed to resolve resource"); partialFetchErr != nil {
@@ -316,7 +335,10 @@ func (e *ExecutionData) resolveResourceValues(ctx context.Context, meta ClientMe
 			err = fmt.Errorf("recovered from panic: %s", r)
 		}
 	}()
-	if err = e.resolveColumns(ctx, meta, resource, resource.table.Columns); err != nil {
+
+	providerCols, internalCols := siftColumns(e.Db.Dialect().Columns(resource.table))
+
+	if err = e.resolveColumns(ctx, meta, resource, providerCols); err != nil {
 		return fmt.Errorf("resolve columns error: %w", err)
 	}
 	// call PostRowResolver if defined after columns have been resolved
@@ -325,8 +347,8 @@ func (e *ExecutionData) resolveResourceValues(ctx context.Context, meta ClientMe
 			return fmt.Errorf("post resource resolver failed: %w", err)
 		}
 	}
-	// Finally, resolve default SDK columns resource
-	for _, c := range GetDefaultSDKColumns() {
+	// Finally, resolve columns internal to the SDK
+	for _, c := range internalCols {
 		if err = c.Resolver(ctx, meta, resource, c); err != nil {
 			return fmt.Errorf("default column %s resolver execution failed: %w", c.Name, err)
 		}
@@ -437,4 +459,29 @@ func (e *ExecutionData) checkPartialFetchError(err error, res *Resource, customM
 	// Send information via our channel
 	e.partialFetchChan <- partialFetchFailure
 	return nil
+}
+
+// siftColumns gets a column list and returns a list of provider columns, and another list of internal columns, cqId column being the very last one
+func siftColumns(cols []Column) ([]Column, []Column) {
+	providerCols, internalCols := make([]Column, 0, len(cols)), make([]Column, 0, len(cols))
+
+	cqIdColIndex := -1
+	for i := range cols {
+		if cols[i].internal {
+			if cols[i].Name == cqIdColumn.Name {
+				cqIdColIndex = len(internalCols)
+			}
+
+			internalCols = append(internalCols, cols[i])
+		} else {
+			providerCols = append(providerCols, cols[i])
+		}
+	}
+
+	// resolve cqId last, as it would need other PKs to be resolved, some might be internal (cq_fetch_date)
+	if lastIndex := len(internalCols) - 1; cqIdColIndex > -1 && cqIdColIndex != lastIndex {
+		internalCols[cqIdColIndex], internalCols[lastIndex] = internalCols[lastIndex], internalCols[cqIdColIndex]
+	}
+
+	return providerCols, internalCols
 }

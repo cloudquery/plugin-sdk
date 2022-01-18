@@ -1,4 +1,4 @@
-package provider
+package migrator
 
 import (
 	"context"
@@ -9,16 +9,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cloudquery/cq-provider-sdk/helpers"
-
-	"github.com/hashicorp/go-version"
-
+	"github.com/cloudquery/cq-provider-sdk/database/dsn"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-version"
 	"github.com/jackc/pgx/v4"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
@@ -26,35 +25,56 @@ import (
 )
 
 const (
+	Latest  = "latest"
+	Initial = "initial"
+	Down    = "down_testing" // used in testing
+
 	migrationsEmbeddedDirectoryPath = "migrations"
 	dropTableSQL                    = "DROP TABLE IF EXISTS %s CASCADE"
 )
 
-func ReadMigrationFiles(log hclog.Logger, migrationFiles embed.FS) (map[string][]byte, error) {
-	var (
-		err        error
-		migrations = make(map[string][]byte)
-	)
-	files, err := migrationFiles.ReadDir(migrationsEmbeddedDirectoryPath)
+// ReadMigrationFiles reads the given embed.FS for the migration files and returns a map of dialect directories vs. filenames vs. data
+func ReadMigrationFiles(log hclog.Logger, migrationFiles embed.FS) (map[string]map[string][]byte, error) {
+	dirs, err := migrationFiles.ReadDir(migrationsEmbeddedDirectoryPath)
 	if err != nil {
 		log.Info("Provider doesn't define any migration files")
-		return migrations, nil
+		return nil, nil
 	}
-	for _, m := range files {
-		f, err := migrationFiles.Open(path.Join(migrationsEmbeddedDirectoryPath, m.Name()))
-		if err != nil {
-			return nil, err
+
+	migrations := make(map[string]map[string][]byte)
+
+	for _, d := range dirs {
+		if !d.IsDir() {
+			return nil, fmt.Errorf("bad migrations structure: missing dialect directories")
 		}
-		info, _ := m.Info()
-		if info.Size() == 0 {
-			migrations[m.Name()] = []byte("")
+
+		dialectMigrations := make(map[string][]byte)
+
+		basePath := path.Join(migrationsEmbeddedDirectoryPath, d.Name())
+		files, err := migrationFiles.ReadDir(basePath)
+		if err != nil {
+			log.Info("Provider doesn't define any migration files for dialect")
 			continue
 		}
-		data := make([]byte, info.Size())
-		if _, err := f.Read(data); err != nil {
-			return nil, err
+		for _, m := range files {
+			f, err := migrationFiles.Open(path.Join(basePath, m.Name()))
+			if err != nil {
+				return nil, err
+			}
+
+			info, _ := m.Info()
+			if info.Size() == 0 {
+				dialectMigrations[m.Name()] = []byte("")
+				continue
+			}
+			data := make([]byte, info.Size())
+			if _, err := f.Read(data); err != nil {
+				return nil, err
+			}
+			dialectMigrations[m.Name()] = data
 		}
-		migrations[m.Name()] = data
+
+		migrations[d.Name()] = dialectMigrations
 	}
 	return migrations, nil
 }
@@ -69,14 +89,17 @@ type Migrator struct {
 	// maps between semantic version to the timestamp it was created at
 	versionMapper map[string]uint
 	versions      version.Collection
+
+	postHook func(context.Context) error
 }
 
-func NewMigrator(log hclog.Logger, migrationFiles map[string][]byte, dsn string, providerName string) (*Migrator, error) {
+func New(log hclog.Logger, dt schema.DialectType, migrationFiles map[string]map[string][]byte, dsnURI, providerName string, postHook func(context.Context) error) (*Migrator, error) {
 	versionMapper := make(map[string]uint)
 	versions := make(version.Collection, 0)
 	mm := afero.NewMemMapFs()
 	_ = mm.Mkdir("migrations", 0755)
-	for k, data := range migrationFiles {
+
+	for k, data := range migrationFiles[dt.MigrationDirectory()] {
 		log.Debug("adding migration file", "file", k)
 		if err := afero.WriteFile(mm, path.Join(migrationsEmbeddedDirectoryPath, k), data, 0644); err != nil {
 			return nil, err
@@ -97,7 +120,7 @@ func NewMigrator(log hclog.Logger, migrationFiles map[string][]byte, dsn string,
 	if err != nil {
 		return nil, err
 	}
-	u, err := helpers.ParseConnectionString(dsn)
+	u, err := dsn.ParseConnectionString(dsnURI)
 	if err != nil {
 		return nil, err
 	}
@@ -114,13 +137,21 @@ func NewMigrator(log hclog.Logger, migrationFiles map[string][]byte, dsn string,
 	return &Migrator{
 		log:           log,
 		provider:      providerName,
-		dsn:           dsn,
+		dsn:           dsnURI,
 		migratorUrl:   u,
 		m:             m,
 		driver:        driver,
 		versionMapper: versionMapper,
 		versions:      versions,
+		postHook:      postHook,
 	}, nil
+}
+
+func (m *Migrator) callPostHook(ctx context.Context) error {
+	if m.postHook == nil {
+		return nil
+	}
+	return m.postHook(ctx)
 }
 
 func (m *Migrator) Close() error {
@@ -128,10 +159,18 @@ func (m *Migrator) Close() error {
 	return dbErr
 }
 
-func (m *Migrator) UpgradeProvider(version string) error {
-	if version == "latest" {
+func (m *Migrator) UpgradeProvider(version string) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			return
+		}
+		retErr = m.callPostHook(context.Background())
+	}()
+
+	if version == Latest {
 		return m.m.Up()
 	}
+
 	mv, err := m.FindLatestMigration(version)
 	if err != nil {
 		return fmt.Errorf("version %s upgrade doesn't exist", version)
@@ -140,16 +179,35 @@ func (m *Migrator) UpgradeProvider(version string) error {
 	return m.m.Migrate(mv)
 }
 
-func (m *Migrator) DowngradeProvider(version string) error {
+func (m *Migrator) DowngradeProvider(version string) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			return
+		}
+		retErr = m.callPostHook(context.Background())
+	}()
+
+	if version == Down { // Used in testing
+		return m.m.Down()
+	}
+
 	mv, err := m.FindLatestMigration(version)
 	if err != nil {
 		return fmt.Errorf("version %s upgrade doesn't exist", version)
 	}
 	m.log.Debug("downgrading provider version", "version", version, "migrator_version", mv)
+
 	return m.m.Migrate(mv)
 }
 
-func (m *Migrator) DropProvider(ctx context.Context, schema map[string]*schema.Table) error {
+func (m *Migrator) DropProvider(ctx context.Context, schema map[string]*schema.Table) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			return
+		}
+		retErr = m.callPostHook(context.Background())
+	}()
+
 	// we don't use go-migrate's drop since its too violent and it will remove all tables of other providers,
 	// instead we will only drop the migration table and all schema's tables
 	// we additionally don't use a transaction since this results quite often in out of shared memory errors
@@ -157,6 +215,8 @@ func (m *Migrator) DropProvider(ctx context.Context, schema map[string]*schema.T
 	if err != nil {
 		return err
 	}
+	defer conn.Close(ctx)
+
 	q := fmt.Sprintf(dropTableSQL, strconv.Quote(fmt.Sprintf("%s_schema_migrations", m.provider)))
 	if _, err := conn.Exec(ctx, q); err != nil {
 		return err
@@ -186,7 +246,14 @@ func (m *Migrator) Version() (string, bool, error) {
 	return "v0.0.0", dirty, err
 }
 
-func (m *Migrator) SetVersion(requestedVersion string) error {
+func (m *Migrator) SetVersion(requestedVersion string) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			return
+		}
+		retErr = m.callPostHook(context.Background())
+	}()
+
 	mv, err := m.FindLatestMigration(requestedVersion)
 	if err != nil {
 		return err
@@ -201,8 +268,11 @@ func (m *Migrator) SetVersion(requestedVersion string) error {
 // if we ask for 004 we get 001
 // if we ask for 005 we get 005
 func (m *Migrator) FindLatestMigration(requestedVersion string) (uint, error) {
-	if requestedVersion == "latest" {
+	if requestedVersion == Latest {
 		mv := m.versionMapper[m.versions[len(m.versions)-1].Original()]
+		return mv, nil
+	} else if requestedVersion == Initial {
+		mv := m.versionMapper[m.versions[0].Original()]
 		return mv, nil
 	}
 	// if we have a migration for specific version return that mv number

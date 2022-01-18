@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/cq-provider-sdk/provider/schema/mocks"
+	"github.com/cloudquery/cq-provider-sdk/provider/schema/mock"
 	"github.com/golang/mock/gomock"
 
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
@@ -283,7 +283,7 @@ type FetchResourceTableTest struct {
 	Name                   string
 	ExpectedFetchResponses []*cqproto.FetchResourcesResponse
 	ExpectedError          error
-	MockDBFunc             func(ctrl *gomock.Controller) *mocks.MockDatabase
+	MockStorageFunc        func(ctrl *gomock.Controller) *mock.MockStorage
 	PartialFetch           bool
 	ResourcesToFetch       []string
 }
@@ -297,8 +297,8 @@ var fetchCases = []FetchResourceTableTest{
 				Error:        "",
 			}},
 		ExpectedError: nil,
-		MockDBFunc: func(ctrl *gomock.Controller) *mocks.MockDatabase {
-			mockDB := mocks.NewMockDatabase(ctrl)
+		MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
+			mockDB := mock.NewMockStorage(ctrl)
 			//mockDB.EXPECT().Insert(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockDB.EXPECT().Close()
 			return mockDB
@@ -314,8 +314,8 @@ var fetchCases = []FetchResourceTableTest{
 				Error:        "bad error",
 			}},
 		ExpectedError: nil,
-		MockDBFunc: func(ctrl *gomock.Controller) *mocks.MockDatabase {
-			mockDB := mocks.NewMockDatabase(ctrl)
+		MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
+			mockDB := mock.NewMockStorage(ctrl)
 			//mockDB.EXPECT().Insert(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockDB.EXPECT().Close()
 			return mockDB
@@ -343,8 +343,8 @@ func TestProvider_FetchResources(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	for _, tt := range fetchCases {
 		t.Run(tt.Name, func(t *testing.T) {
-			tp.databaseCreator = func(ctx context.Context, logger hclog.Logger, dbURL string) (schema.Database, error) {
-				return tt.MockDBFunc(ctrl), nil
+			tp.storageCreator = func(ctx context.Context, logger hclog.Logger, dbURL string) (schema.Storage, error) {
+				return tt.MockStorageFunc(ctrl), nil
 			}
 			err = tp.FetchResources(context.Background(), &cqproto.FetchResourcesRequest{
 				Resources:              tt.ResourcesToFetch,

@@ -112,6 +112,9 @@ message Diagnostic {
   string resource = 5;
 }
 
+message DialectMigration {
+  map<string, bytes> migrations = 1;
+}
 
 message GetProviderSchema {
   message Request {}
@@ -119,7 +122,7 @@ message GetProviderSchema {
     string name = 1;
     string version = 2;
     map<string, Table> resource_tables = 3;
-    map<string, bytes> migrations = 4;
+    map<string, DialectMigration> migrations = 5;
   }
 }
 

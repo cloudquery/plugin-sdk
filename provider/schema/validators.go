@@ -34,7 +34,7 @@ func validateTableAttributesNameLength(t *Table) error {
 	}
 
 	// validate table columns
-	for _, col := range t.ColumnNames() {
+	for _, col := range t.Columns.Names() {
 		if len(col) > maxColumnName {
 			return fmt.Errorf("column name %s has exceeded max length", col)
 		}

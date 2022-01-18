@@ -1,4 +1,4 @@
-package helpers
+package dsn
 
 import (
 	"errors"
@@ -8,16 +8,45 @@ import (
 	"github.com/xo/dburl"
 )
 
+func init() {
+	dburl.Register(dburl.Scheme{
+		Driver:    "timescale",
+		Generator: dburl.GenPostgres,
+		Transport: dburl.TransportTCP | dburl.TransportUnix,
+		Opaque:    false,
+		Aliases:   []string{"timescaledb", "tsdb", "ts"},
+		Override:  "",
+	})
+}
+
+// ParseConnectionString will try and parse any type of connection string and return a dburl
 func ParseConnectionString(connString string) (*dburl.URL, error) {
-	var err error
-	// connString may be a database URL or a DSN
-	if !(strings.HasPrefix(connString, "postgres://") || strings.HasPrefix(connString, "postgresql://")) {
+	u, err := dburl.Parse(connString)
+	if err == dburl.ErrInvalidDatabaseScheme {
+		// connString may be a database URL or a DSN
 		connString, err = convertDSNToURL(connString)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse dsn string, %w", err)
+			return nil, fmt.Errorf("failed to parse dsn string: %w", err)
 		}
+		u, err = dburl.Parse(connString)
 	}
-	return dburl.Parse(connString)
+
+	return u, err
+}
+
+// SetDSNElement parses the given DSN and sets/adds the given map values as query parameters, returning a URI DSN
+func SetDSNElement(dsn string, elems map[string]string) (string, error) {
+	u, err := ParseConnectionString(dsn)
+	if err != nil {
+		return "", err
+	}
+
+	vals := u.Query()
+	for k, v := range elems {
+		vals.Set(k, v)
+	}
+	u.RawQuery = vals.Encode()
+	return u.String(), nil
 }
 
 var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
