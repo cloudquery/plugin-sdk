@@ -258,9 +258,8 @@ func TestProvider_ConfigureProvider(t *testing.T) {
 		Connection: cqproto.ConnectionDetails{
 			DSN: "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable",
 		},
-		Config:        nil,
-		DisableDelete: true,
-		ExtraFields:   nil,
+		Config:      nil,
+		ExtraFields: nil,
 	})
 	assert.Equal(t, "provider unitest logger not defined, make sure to run it with serve", resp.Error)
 	assert.NotNil(t, err)
@@ -271,9 +270,8 @@ func TestProvider_ConfigureProvider(t *testing.T) {
 		Connection: cqproto.ConnectionDetails{
 			DSN: "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable",
 		},
-		Config:        nil,
-		DisableDelete: true,
-		ExtraFields:   nil,
+		Config:      nil,
+		ExtraFields: nil,
 	})
 	assert.Equal(t, "", resp.Error)
 	assert.Error(t, err)
@@ -299,6 +297,7 @@ var fetchCases = []FetchResourceTableTest{
 		ExpectedError: nil,
 		MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
 			mockDB := mock.NewMockStorage(ctrl)
+			mockDB.EXPECT().RemoveStaleData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			//mockDB.EXPECT().Insert(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockDB.EXPECT().Close()
 			return mockDB
@@ -336,9 +335,8 @@ func TestProvider_FetchResources(t *testing.T) {
 		Connection: cqproto.ConnectionDetails{
 			DSN: "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable",
 		},
-		Config:        nil,
-		DisableDelete: false,
-		ExtraFields:   nil,
+		Config:      nil,
+		ExtraFields: nil,
 	})
 	ctrl := gomock.NewController(t)
 	for _, tt := range fetchCases {
@@ -387,9 +385,8 @@ func TestProvider_FetchResourcesParallelLimit(t *testing.T) {
 		Connection: cqproto.ConnectionDetails{
 			DSN: "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable",
 		},
-		Config:        nil,
-		DisableDelete: true,
-		ExtraFields:   nil,
+		Config:      nil,
+		ExtraFields: nil,
 	})
 	assert.Equal(t, "", resp.Error)
 	assert.Nil(t, err)

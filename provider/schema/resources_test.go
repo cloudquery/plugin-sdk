@@ -120,7 +120,7 @@ func TestRelationResourcePrimaryKey(t *testing.T) {
 	mockDb := new(DatabaseMock)
 	mockDb.On("Dialect").Return(PostgresDialect{})
 
-	exec := NewExecutionData(mockDb, logger, r2.table, false, nil, false)
+	exec := NewExecutionData(mockDb, logger, r2.table, nil, false)
 	err := exec.resolveResourceValues(context.TODO(), mockedClient, r2)
 	assert.Nil(t, err)
 	v, err := r2.Values()
@@ -186,7 +186,7 @@ func TestResourceResolveColumns(t *testing.T) {
 		mockDb := new(DatabaseMock)
 		mockDb.On("Dialect").Return(PostgresDialect{})
 
-		exec := NewExecutionData(mockDb, logger, testTable, false, nil, false)
+		exec := NewExecutionData(mockDb, logger, testTable, nil, false)
 		r := NewResourceData(PostgresDialect{}, testTable, nil, object, nil, exec.executionStart)
 		assert.Equal(t, r.cqId, r.Id())
 		// columns should be resolved from ColumnResolver functions or default functions
@@ -209,7 +209,7 @@ func TestResourceResolveColumns(t *testing.T) {
 		mockDb := new(DatabaseMock)
 		mockDb.On("Dialect").Return(PostgresDialect{})
 
-		exec := NewExecutionData(mockDb, logger, testZeroTable, false, nil, false)
+		exec := NewExecutionData(mockDb, logger, testZeroTable, nil, false)
 
 		r := NewResourceData(PostgresDialect{}, testZeroTable, nil, object, nil, exec.executionStart)
 		assert.Equal(t, r.cqId, r.Id())

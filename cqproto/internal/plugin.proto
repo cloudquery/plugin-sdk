@@ -22,8 +22,6 @@ message ConfigureProvider {
     ConnectionDetails connection = 2;
     // Holds information such as credentials, regions, accounts, etc'
     bytes config = 3;
-    // Disables auto delete of table data before fetch of resources
-    bool disableDelete = 4;
     // Msgpack encoded: Allows to inject & override fields into resource tables, use this carefully to override fields
     bytes extraFields = 5;
   }

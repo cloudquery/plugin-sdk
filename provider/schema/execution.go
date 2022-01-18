@@ -57,8 +57,6 @@ type ExecutionData struct {
 	Db Storage
 	// Logger associated with this execution
 	Logger hclog.Logger
-	// disableDelete allows disabling deletion of table data for this execution
-	disableDelete bool
 	// extraFields to be passed to each created resource in the execution
 	extraFields map[string]interface{}
 	// partialFetch if true allows partial fetching of resources
@@ -96,12 +94,11 @@ const (
 )
 
 // NewExecutionData Create a new execution data
-func NewExecutionData(db Storage, logger hclog.Logger, table *Table, disableDelete bool, extraFields map[string]interface{}, partialFetch bool) ExecutionData {
+func NewExecutionData(db Storage, logger hclog.Logger, table *Table, extraFields map[string]interface{}, partialFetch bool) ExecutionData {
 	return ExecutionData{
 		Table:                     table,
 		Db:                        db,
 		Logger:                    logger,
-		disableDelete:             disableDelete,
 		extraFields:               extraFields,
 		PartialFetchFailureResult: []ResourceFetchError{},
 		partialFetch:              partialFetch,
@@ -156,7 +153,6 @@ func (e *ExecutionData) WithTable(t *Table) *ExecutionData {
 		ResourceName:              e.ResourceName,
 		Db:                        e.Db,
 		Logger:                    e.Logger,
-		disableDelete:             e.disableDelete,
 		extraFields:               e.extraFields,
 		partialFetch:              e.partialFetch,
 		PartialFetchFailureResult: []ResourceFetchError{},
@@ -167,7 +163,7 @@ func (e ExecutionData) truncateTable(ctx context.Context, client ClientMeta, par
 	if e.Table.DeleteFilter == nil {
 		return nil
 	}
-	if e.disableDelete && !e.Table.AlwaysDelete {
+	if !e.Table.AlwaysDelete {
 		client.Logger().Debug("skipping table truncate", "table", e.Table.Name)
 		return nil
 	}
@@ -183,10 +179,6 @@ func (e ExecutionData) truncateTable(ctx context.Context, client ClientMeta, par
 func (e ExecutionData) cleanupStaleData(ctx context.Context, client ClientMeta, parent *Resource) error {
 	// Only clean top level tables
 	if parent != nil {
-		return nil
-	}
-	if !e.disableDelete {
-		client.Logger().Debug("skipping stale data removal", "table", e.Table.Name)
 		return nil
 	}
 	client.Logger().Debug("cleaning table table stale data", "table", e.Table.Name, "last_update", e.executionStart)
@@ -271,9 +263,8 @@ func (e *ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, p
 		resources = append(resources, resource)
 	}
 
-	// only top level tables should cascade, disable delete is turned on.
-	// if we didn't disable delete all data should be wiped before resolve
-	shouldCascade := parent == nil && e.disableDelete
+	// only top level tables should cascade
+	shouldCascade := parent == nil
 	var err error
 	resources, err = e.copyDataIntoDB(ctx, resources, shouldCascade)
 	if err != nil {

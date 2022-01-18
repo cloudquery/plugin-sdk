@@ -53,9 +53,8 @@ func (g GRPCClient) ConfigureProvider(ctx context.Context, request *ConfigurePro
 			Type: internal.ConnectionType_POSTGRES,
 			Dsn:  request.Connection.DSN,
 		},
-		Config:        request.Config,
-		DisableDelete: request.DisableDelete,
-		ExtraFields:   fieldsData,
+		Config:      request.Config,
+		ExtraFields: fieldsData,
 	})
 	if err != nil {
 		return nil, err
@@ -143,9 +142,8 @@ func (g *GRPCServer) ConfigureProvider(ctx context.Context, request *internal.Co
 			Type: string(request.Connection.GetType()),
 			DSN:  request.Connection.GetDsn(),
 		},
-		Config:        request.Config,
-		DisableDelete: request.DisableDelete,
-		ExtraFields:   eFields,
+		Config:      request.Config,
+		ExtraFields: eFields,
 	})
 	if err != nil {
 		return nil, err

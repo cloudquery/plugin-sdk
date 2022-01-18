@@ -80,8 +80,7 @@ func fetch(t *testing.T, resource *ResourceTestCase) error {
 		CloudQueryVersion: "",
 		Connection: cqproto.ConnectionDetails{DSN: getEnv("DATABASE_URL",
 			"host=localhost user=postgres password=pass DB.name=postgres port=5432")},
-		Config:        []byte(resource.Config),
-		DisableDelete: true,
+		Config: []byte(resource.Config),
 	}); err != nil {
 		return err
 	}

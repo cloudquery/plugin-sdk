@@ -71,8 +71,6 @@ type ConfigureProviderRequest struct {
 	Connection ConnectionDetails
 	// Config is the configuration the user supplied for the provider
 	Config []byte
-	// DisableDelete configures providers to skip deletion of data before resource fetch
-	DisableDelete bool
 	// Fields to inject to every resource on insert
 	ExtraFields map[string]interface{}
 }
