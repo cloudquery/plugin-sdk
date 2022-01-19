@@ -287,9 +287,9 @@ func (m *Migrator) FindLatestMigration(requestedVersion string) (uint, error) {
 	// find closest migration level
 	for i, v := range m.versions {
 		if v.GreaterThan(ov) {
-			// edge case that requested version is smaller than ll migrations
+			// edge case that requested version is smaller than all migrations
 			if i == 0 {
-				return 0, nil
+				return m.versionMapper[m.versions[0].Original()], nil
 			}
 			mv = m.versionMapper[m.versions[i-1].Original()]
 			return mv, nil
