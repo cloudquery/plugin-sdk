@@ -3,6 +3,7 @@ package dsn
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/xo/dburl"
@@ -26,12 +27,12 @@ func ParseConnectionString(connString string) (*dburl.URL, error) {
 		// connString may be a database URL or a DSN
 		connString, err = convertDSNToURL(connString)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse dsn string: %w", err)
+			return nil, fmt.Errorf("failed to parse dsn string: %w", RedactParseError(err))
 		}
 		u, err = dburl.Parse(connString)
 	}
 
-	return u, err
+	return u, RedactParseError(err)
 }
 
 // SetDSNElement parses the given DSN and sets/adds the given map values as query parameters, returning a URI DSN
@@ -47,6 +48,25 @@ func SetDSNElement(dsn string, elems map[string]string) (string, error) {
 	}
 	u.RawQuery = vals.Encode()
 	return u.String(), nil
+}
+
+// RedactParseError looks for url.Error and redacts the URL (DSN)
+// The original message wrapping the url.Error is lost.
+func RedactParseError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// pgconn does a good job of redacting the password, but it wraps the net/url's parse error, which includes the original URI
+	// dburl returns url.Parse errors as-is
+
+	var e *url.Error
+	if errors.As(err, &e) {
+		e.URL = "DSN redacted"
+		return e
+	}
+
+	return err
 }
 
 var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
