@@ -46,6 +46,9 @@ type Table struct {
 	// to create a reproducible test environment with this column being non nil. For example various error tables such as
 	// security violations and so.
 	IgnoreInTests bool
+	// Global tables are usually the same regardless of the provider fetch configuration. Global table data gets fetched
+	// and doesn't produce PK conflict errors instead data is replaced
+	Global bool
 }
 
 func (t Table) Column(name string) *Column {

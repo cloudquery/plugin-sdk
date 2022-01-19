@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -57,6 +58,14 @@ func (p PgDatabase) Insert(ctx context.Context, t *schema.Table, resources schem
 			return fmt.Errorf("table %s insert failed %w", t.Name, err)
 		}
 		sqlStmt = sqlStmt.Values(values...)
+	}
+	if t.Global {
+		updateColumns := make([]string, len(cols))
+		for i, c := range cols {
+			updateColumns[i] = fmt.Sprintf("%[1]s = excluded.%[1]s", c)
+		}
+		sqlStmt = sqlStmt.Suffix(fmt.Sprintf("ON CONFLICT (%s) DO UPDATE SET %s",
+			strings.Join(p.sd.PrimaryKeys(t), ","), strings.Join(updateColumns, ",")))
 	}
 
 	s, args, err := sqlStmt.ToSql()
