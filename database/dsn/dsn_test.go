@@ -2,8 +2,10 @@ package dsn
 
 import (
 	"net/url"
+	"strings"
 	"testing"
 
+	"github.com/jackc/pgconn"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -80,5 +82,27 @@ func TestDSNElement(t *testing.T) {
 		assert.EqualValues(t, u1.Host, u2.Host)
 		assert.EqualValues(t, u1.Path, u2.Path)
 		assert.EqualValues(t, u1.Query(), u2.Query())
+	}
+}
+
+func TestRedactDSNErrors(t *testing.T) {
+	for _, brokenDSN := range []string{
+		"postgres://postgres:pass%@localhost:5432/postgres?sslmode=disable",
+		"postgres://postgres:pass@localhost:A/postgres?sslmode=disable",
+	} {
+		{
+			result, err := ParseConnectionString(brokenDSN)
+			assert.Nil(t, result)
+			assert.Error(t, err)
+			assert.True(t, strings.Contains(err.Error(), "DSN redacted"))
+		}
+
+		{
+			result, err := pgconn.ParseConfig(brokenDSN)
+			assert.Nil(t, result)
+			assert.Error(t, err)
+			err = RedactParseError(err)
+			assert.True(t, strings.Contains(err.Error(), "DSN redacted"))
+		}
 	}
 }
