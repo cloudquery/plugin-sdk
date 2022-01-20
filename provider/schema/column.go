@@ -171,6 +171,10 @@ type Column struct {
 	meta *ColumnMeta
 }
 
+func (c Column) Internal() bool {
+	return c.internal
+}
+
 func (c Column) ValidateType(v interface{}) error {
 	if !c.checkType(v) {
 		return fmt.Errorf("column %s expected %s got %T", c.Name, c.Type.String(), v)
@@ -332,4 +336,13 @@ func (c ColumnList) Names() []string {
 		ret[i] = c[i].Name
 	}
 	return ret
+}
+
+func (c ColumnList) Get(name string) *Column {
+	for i := range c {
+		if c[i].Name == name {
+			return &c[i]
+		}
+	}
+	return nil
 }
