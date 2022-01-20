@@ -77,7 +77,7 @@ func Serve(opts *Options) {
 
 	// Check of CQ_PROVIDER_DEBUG is turned on. In case it's true the plugin is executed in debug mode, allowing for
 	// the CloudQuery main command to connect to this plugin via the .cq_reattach and the CQ_REATTACH_PROVIDERS env var
-	if os.Getenv("CQ_PROVIDER_DEBUG") == "1" {
+	if provider.IsDebug() {
 		// If this flag is turned on the provider will print trace log, the trace log prints values inserted etc', turn this
 		// flag only if you are debugging locally and need more info on the provider while running it.
 		if os.Getenv("CQ_PROVIDER_DEBUG_TRACE_LOG") == "1" {

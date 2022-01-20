@@ -5,6 +5,8 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -93,12 +95,19 @@ func (p *Provider) GetProviderConfig(_ context.Context, _ *cqproto.GetProviderCo
 }
 
 func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.ConfigureProviderRequest) (*cqproto.ConfigureProviderResponse, error) {
-	if p.meta != nil {
-		return &cqproto.ConfigureProviderResponse{Error: fmt.Sprintf("provider %s was already configured", p.Name)}, fmt.Errorf("provider %s was already configured", p.Name)
-	}
 	if p.Logger == nil {
 		return &cqproto.ConfigureProviderResponse{Error: fmt.Sprintf("provider %s logger not defined, make sure to run it with serve", p.Name)}, fmt.Errorf("provider %s logger not defined, make sure to run it with serve", p.Name)
 	}
+
+	if p.meta != nil {
+		if !IsDebug() {
+			return &cqproto.ConfigureProviderResponse{Error: fmt.Sprintf("provider %s was already configured", p.Name)}, fmt.Errorf("provider %s was already configured", p.Name)
+		}
+
+		p.Logger.Info("Reconfiguring provider: Previous configuration has been reset.")
+		p.storageCreator = nil
+	}
+
 	// set database creator
 	if p.storageCreator == nil {
 		p.storageCreator = func(ctx context.Context, logger hclog.Logger, dbURL string) (schema.Storage, error) {
@@ -283,6 +292,12 @@ func (p *Provider) interpolateAllResources(requestedResources []string) ([]strin
 		allResources = append(allResources, k)
 	}
 	return allResources, nil
+}
+
+// IsDebug checks if CQ_PROVIDER_DEBUG is turned on. In case it's true the plugin is executed in debug mode.
+func IsDebug() bool {
+	b, _ := strconv.ParseBool(os.Getenv("CQ_PROVIDER_DEBUG"))
+	return b
 }
 
 func getTableDuplicates(resource string, table *schema.Table, tableNames map[string]string) error {
