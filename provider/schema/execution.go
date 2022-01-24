@@ -228,10 +228,11 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 		if len(objects) == 0 {
 			continue
 		}
-		if err := e.resolveResources(ctx, client, parent, objects); err != nil {
+		resolvedCount, err := e.resolveResources(ctx, client, parent, objects)
+		if err != nil {
 			return 0, err
 		}
-		nc += uint64(len(objects))
+		nc += resolvedCount
 	}
 	// check if channel iteration stopped because of resolver failure
 	if resolverErr != nil {
@@ -248,14 +249,14 @@ func (e ExecutionData) callTableResolve(ctx context.Context, client ClientMeta, 
 	return nc, nil
 }
 
-func (e *ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, parent *Resource, objects []interface{}) error {
+func (e *ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, parent *Resource, objects []interface{}) (uint64, error) {
 	var resources = make(Resources, 0, len(objects))
 	for _, o := range objects {
 		resource := NewResourceData(e.Db.Dialect(), e.Table, parent, o, e.extraFields, e.executionStart)
 		// Before inserting resolve all table column resolvers
 		if err := e.resolveResourceValues(ctx, meta, resource); err != nil {
 			if partialFetchErr := e.checkPartialFetchError(err, resource, "failed to resolve resource"); partialFetchErr != nil {
-				return partialFetchErr
+				return 0, err
 			}
 			e.Logger.Warn("skipping failed resolved resource", "reason", err.Error())
 			continue
@@ -268,8 +269,9 @@ func (e *ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, p
 	var err error
 	resources, err = e.copyDataIntoDB(ctx, resources, shouldCascade)
 	if err != nil {
-		return err
+		return 0, err
 	}
+	totalCount := uint64(len(resources))
 
 	// Finally, resolve relations of each resource
 	for _, rel := range e.Table.Relations {
@@ -279,12 +281,12 @@ func (e *ExecutionData) resolveResources(ctx context.Context, meta ClientMeta, p
 			_, err := e.WithTable(rel).ResolveTable(ctx, meta, r)
 			if err != nil {
 				if partialFetchErr := e.checkPartialFetchError(err, r, "resolve relation error"); partialFetchErr != nil {
-					return partialFetchErr
+					return totalCount, partialFetchErr
 				}
 			}
 		}
 	}
-	return nil
+	return totalCount, nil
 }
 
 func (e *ExecutionData) copyDataIntoDB(ctx context.Context, resources Resources, shouldCascade bool) (Resources, error) {
@@ -302,7 +304,7 @@ func (e *ExecutionData) copyDataIntoDB(ctx context.Context, resources Resources,
 	e.Logger.Error("failed insert to db", "error", err, "table", e.Table.Name)
 
 	// Partial fetch check
-	if partialFetchErr := e.checkPartialFetchError(err, nil, "failed to copy resources into the db"); partialFetchErr != nil {
+	if partialFetchErr := e.checkPartialFetchError(err, nil, "failed to insert resources into the db"); partialFetchErr != nil {
 		return nil, partialFetchErr
 	}
 
