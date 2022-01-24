@@ -67,6 +67,8 @@ type ExecutionData struct {
 	partialFetchChan chan ResourceFetchError
 	// When the execution started
 	executionStart time.Time
+	// parent is the parent ExecutionData
+	parent *ExecutionData
 }
 
 // ResourceFetchError represents a single partial fetch failed resource
@@ -119,15 +121,16 @@ func (e *ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, paren
 	}
 	g, ctx := errgroup.WithContext(ctx)
 	// Start the partial fetch failure result channel routine
-	finishedPartialFetchChan := make(chan bool)
-	if e.partialFetch {
+	var finishedPartialFetchChan chan bool
+	if e.partialFetch && e.parent == nil {
+		finishedPartialFetchChan = make(chan bool)
 		e.partialFetchChan = make(chan ResourceFetchError, partialFetchFailureBufferLength)
 		go func() {
 			for fetchResourceFailure := range e.partialFetchChan {
 				meta.Logger().Debug("received failed partial fetch resource", "resource", fetchResourceFailure, "table", e.Table.Name)
 				e.PartialFetchFailureResult = append(e.PartialFetchFailureResult, fetchResourceFailure)
 			}
-			finishedPartialFetchChan <- true
+			close(finishedPartialFetchChan)
 		}()
 	}
 	var totalResources uint64
@@ -140,7 +143,7 @@ func (e *ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, paren
 		})
 	}
 	err := g.Wait()
-	if e.partialFetch {
+	if e.partialFetch && e.parent == nil {
 		close(e.partialFetchChan)
 		<-finishedPartialFetchChan
 	}
@@ -149,13 +152,14 @@ func (e *ExecutionData) ResolveTable(ctx context.Context, meta ClientMeta, paren
 
 func (e *ExecutionData) WithTable(t *Table) *ExecutionData {
 	return &ExecutionData{
-		Table:                     t,
-		ResourceName:              e.ResourceName,
-		Db:                        e.Db,
-		Logger:                    e.Logger,
-		extraFields:               e.extraFields,
-		partialFetch:              e.partialFetch,
-		PartialFetchFailureResult: []ResourceFetchError{},
+		Table:            t,
+		ResourceName:     e.ResourceName,
+		Db:               e.Db,
+		Logger:           e.Logger,
+		extraFields:      e.extraFields,
+		partialFetch:     e.partialFetch,
+		partialFetchChan: e.partialFetchChan,
+		parent:           e,
 	}
 }
 

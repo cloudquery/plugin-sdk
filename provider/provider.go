@@ -179,7 +179,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 
 	g, gctx := errgroup.WithContext(ctx)
 	finishedResources := make(map[string]bool, len(resources))
-	l := sync.Mutex{}
+	l := &sync.Mutex{}
 	var totalResourceCount uint64 = 0
 	for _, resource := range resources {
 		table, ok := p.ResourceMap[resource]
@@ -202,9 +202,9 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 			}
 			resourceCount, err := execData.ResolveTable(gctx, p.meta, nil)
 			l.Lock()
+			defer l.Unlock()
 			finishedResources[r] = true
 			atomic.AddUint64(&totalResourceCount, resourceCount)
-			defer l.Unlock()
 			if err != nil {
 				status := cqproto.ResourceFetchFailed
 				if err == context.Canceled {
