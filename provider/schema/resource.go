@@ -43,7 +43,7 @@ func NewResourceData(dialect Dialect, t *Table, parent *Resource, item interface
 		executionStart: startTime,
 	}
 }
-func (r *Resource) Keys() []string {
+func (r *Resource) PrimaryKeyValues() []string {
 	tablePrimKeys := r.dialect.PrimaryKeys(r.table)
 	if len(tablePrimKeys) == 0 {
 		return []string{}
@@ -51,8 +51,20 @@ func (r *Resource) Keys() []string {
 	results := make([]string, 0)
 	for _, primKey := range tablePrimKeys {
 		data := r.Get(primKey)
-		if data != nil {
-			results = append(results, fmt.Sprintf("%v", data))
+		if data == nil {
+			continue
+		}
+		// we can have more types, but PKs are usually either ints, strings or a structure
+		// hopefully supporting Stringer interface, otherwise we fallback
+		switch v := data.(type) {
+		case fmt.Stringer:
+			results = append(results, v.String())
+		case *string:
+			results = append(results, *v)
+		case *int:
+			results = append(results, fmt.Sprintf("%d", *v))
+		default:
+			results = append(results, fmt.Sprintf("%v", v))
 		}
 	}
 	return results
@@ -130,21 +142,6 @@ func (r Resource) getColumnByName(column string) *Column {
 	return nil
 }
 
-func hashUUID(objs interface{}) (uuid.UUID, error) {
-	// Use SHA1 because it's fast and is reasonably enough protected against accidental collisions.
-	// There is no scenario here where intentional created collisions could do harm.
-	digester := crypto.SHA1.New()
-	hash, err := hashstructure.Hash(objs, nil)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	if _, err := fmt.Fprint(digester, hash); err != nil {
-		return uuid.Nil, err
-	}
-	data := digester.Sum(nil)
-	return uuid.NewSHA1(uuid.Nil, data), nil
-}
-
 func (rr Resources) GetIds() []uuid.UUID {
 	rids := make([]uuid.UUID, len(rr))
 	for i, r := range rr {
@@ -164,4 +161,19 @@ func (rr Resources) ColumnNames() []string {
 		return []string{}
 	}
 	return rr[0].columns
+}
+
+func hashUUID(objs interface{}) (uuid.UUID, error) {
+	// Use SHA1 because it's fast and is reasonably enough protected against accidental collisions.
+	// There is no scenario here where intentional created collisions could do harm.
+	digester := crypto.SHA1.New()
+	hash, err := hashstructure.Hash(objs, nil)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if _, err := fmt.Fprint(digester, hash); err != nil {
+		return uuid.Nil, err
+	}
+	data := digester.Sum(nil)
+	return uuid.NewSHA1(uuid.Nil, data), nil
 }

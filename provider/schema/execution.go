@@ -316,7 +316,7 @@ func (e *ExecutionData) copyDataIntoDB(ctx context.Context, resources Resources,
 	partialFetchResources := make(Resources, 0)
 	for id := range resources {
 		if err := e.Db.Insert(ctx, e.Table, Resources{resources[id]}); err != nil {
-			e.Logger.Error("failed to insert resource into db", "error", err, "resource_keys", resources[id].Keys(), "table", e.Table.Name)
+			e.Logger.Error("failed to insert resource into db", "error", err, "resource_keys", resources[id].PrimaryKeyValues(), "table", e.Table.Name)
 		} else {
 			// If there is no error we add the resource to the final result
 			partialFetchResources = append(partialFetchResources, resources[id])
@@ -362,7 +362,7 @@ func (e *ExecutionData) resolveColumns(ctx context.Context, meta ClientMeta, res
 				continue
 			}
 			// Not allowed ignoring PK resolver errors
-			if funk.ContainsString(resource.Keys(), c.Name) {
+			if funk.ContainsString(e.Db.Dialect().PrimaryKeys(e.Table), c.Name) {
 				return err
 			}
 			// check if column resolver defined an IgnoreError function, if it does check if ignore should be ignored.
@@ -446,11 +446,11 @@ func (e *ExecutionData) checkPartialFetchError(err error, res *Resource, customM
 
 		if root != res {
 			partialFetchFailure.RootTableName = root.table.Name
-			partialFetchFailure.RootPrimaryKeyValues = root.Keys()
+			partialFetchFailure.RootPrimaryKeyValues = root.PrimaryKeyValues()
 		}
 	}
 	if strings.Contains(err.Error(), ": socket: too many open files") {
-		// Return a Diagnostic error so that it can be properly propegated back to the user via the CLI
+		// Return a Diagnostic error so that it can be properly propagated back to the user via the CLI
 		partialFetchFailure.Err = diag.FromError(err, diag.WARNING, diag.THROTTLE, e.ResourceName, err.Error(), fdLimitMessage)
 	}
 	// Send information via our channel

@@ -100,7 +100,14 @@ func TestResourcePrimaryKey(t *testing.T) {
 	assert.Nil(t, r.GenerateCQId())
 	assert.Equal(t, randomId, r.cqId)
 	// check key length of array is as expected
-	assert.Len(t, r.Keys(), 1)
+	assert.Len(t, r.PrimaryKeyValues(), 1)
+	var strPtr = "primary_key_str"
+	assert.Nil(t, r.Set("primary_key_str", &strPtr))
+	assert.Equal(t, r.PrimaryKeyValues(), []string{"primary_key_str"})
+	// check stringer interface
+	uuidPK := uuid.New()
+	assert.Nil(t, r.Set("primary_key_str", uuidPK))
+	assert.Equal(t, r.PrimaryKeyValues(), []string{uuidPK.String()})
 }
 
 func TestRelationResourcePrimaryKey(t *testing.T) {
