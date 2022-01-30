@@ -2,7 +2,6 @@ package testing
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -23,19 +22,19 @@ import (
 )
 
 type ResourceTestCase struct {
-	Provider       *provider.Provider
-	Table          *schema.Table
-	Config         string
-	SkipEmptyJsonB bool
-	// SkipEmptyColumn will skip checking results for empty columns
-	SkipEmptyColumn bool
-	// SkipEmptyRows will skip checking that results were returned and will just check that fetch worked
-	SkipEmptyRows bool
+	Provider *provider.Provider
+	Config   string
+	// we want it to be parallel by default
+	NotParallel bool
+	// ParallelFetchingLimit limits parallel resources fetch at a time
+	ParallelFetchingLimit uint64
 }
 
 // IntegrationTest - creates resources using terraform, fetches them to db and compares with expected values
 func TestResource(t *testing.T, resource ResourceTestCase) {
-	t.Parallel()
+	if !resource.NotParallel {
+		t.Parallel()
+	}
 	t.Helper()
 	if err := faker.SetRandomMapAndSliceMinSize(1); err != nil {
 		t.Fatal(err)
@@ -53,28 +52,37 @@ func TestResource(t *testing.T, resource ResourceTestCase) {
 	}
 
 	l := testlog.New(t)
-	l.SetLevel(hclog.Debug)
+	l.SetLevel(hclog.Info)
 	resource.Provider.Logger = l
 	tableCreator := migration.NewTableCreator(l, schema.PostgresDialect{})
-	if err := tableCreator.CreateTable(context.Background(), conn, resource.Table, nil); err != nil {
-		assert.FailNow(t, fmt.Sprintf("failed to create tables %s", resource.Table.Name), err)
-	}
 
-	if err := deleteTables(conn, resource.Table); err != nil {
-		t.Fatal(err)
+	for _, table := range resource.Provider.ResourceMap {
+		if err := tableCreator.CreateTable(context.Background(), conn, table, nil); err != nil {
+			assert.FailNow(t, fmt.Sprintf("failed to create tables %s", table.Name), err)
+		}
+		if err := truncateTables(conn, table); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	if err = fetch(t, &resource); err != nil {
 		t.Fatal(err)
 	}
+	for _, table := range resource.Provider.ResourceMap {
+		verifyNoEmptyColumns(t, table, conn)
+	}
 
-	verifyNoEmptyColumns(t, resource, conn)
 }
 
 // fetch - fetches resources from the cloud and puts them into database. database config can be specified via DATABASE_URL env variable
 func fetch(t *testing.T, resource *ResourceTestCase) error {
 	t.Helper()
-	t.Logf("%s fetch resources", resource.Table.Name)
+	resourceNames := make([]string, 0, len(resource.Provider.ResourceMap))
+	for name := range resource.Provider.ResourceMap {
+		resourceNames = append(resourceNames, name)
+	}
+
+	t.Logf("fetch resources %v", resourceNames)
 
 	if _, err := resource.Provider.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
 		CloudQueryVersion: "",
@@ -85,13 +93,14 @@ func fetch(t *testing.T, resource *ResourceTestCase) error {
 		return err
 	}
 
-	var resourceSender = &fakeResourceSender{
+	var resourceSender = &testResourceSender{
 		Errors: []string{},
 	}
 
 	if err := resource.Provider.FetchResources(context.Background(),
 		&cqproto.FetchResourcesRequest{
-			Resources: []string{findResourceFromTableName(resource.Table, resource.Provider.ResourceMap)},
+			Resources:             resourceNames,
+			ParallelFetchingLimit: resource.ParallelFetchingLimit,
 		},
 		resourceSender,
 	); err != nil {
@@ -105,27 +114,30 @@ func fetch(t *testing.T, resource *ResourceTestCase) error {
 	return nil
 }
 
-func deleteTables(conn schema.QueryExecer, table *schema.Table) error {
+func truncateTables(conn schema.QueryExecer, table *schema.Table) error {
 	s := sq.Delete(table.Name)
 	sql, args, err := s.ToSql()
 	if err != nil {
 		return err
 	}
 
-	return conn.Exec(context.TODO(), sql, args...)
+	if err := conn.Exec(context.TODO(), sql, args...); err != nil {
+		return err
+	}
+	for _, childTable := range table.Relations {
+		if err := truncateTables(conn, childTable); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func verifyNoEmptyColumns(t *testing.T, tc ResourceTestCase, conn pgxscan.Querier) {
+func verifyNoEmptyColumns(t *testing.T, table *schema.Table, conn pgxscan.Querier) {
 	t.Helper()
-	if tc.SkipEmptyRows {
-		t.Logf("table %s marked with SkipEmptyRows. Skipping...", tc.Table.Name)
-		return
-	}
-	// Test that we don't have missing columns and have exactly one entry for each table
-	for _, table := range getTablesFromMainTable(tc.Table) {
+	t.Run(table.Name, func(t *testing.T) {
+		t.Helper()
 		if table.IgnoreInTests {
-			t.Logf("table %s marked as IgnoreInTest. Skipping...", table.Name)
-			continue
+			t.Skipf("table %s marked as IgnoreInTest. Skipping...", table.Name)
 		}
 		s := sq.StatementBuilder.
 			PlaceholderFormat(sq.Dollar).
@@ -170,36 +182,25 @@ func verifyNoEmptyColumns(t *testing.T, tc ResourceTestCase, conn pgxscan.Querie
 		}
 
 		if len(nilColumnsArr) != 0 {
-			b, err := json.MarshalIndent(data, "", "\t")
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Errorf("found nil column in table %s. rows=\n%s\ncolumns=%s\n", table.Name, string(b), strings.Join(nilColumnsArr, ","))
+			t.Errorf("found nil column in table %s. columns=%s", table.Name, strings.Join(nilColumnsArr, ","))
 		}
-		// if tc.SkipEmptyJsonB {
-		// 	continue
-		// }
-
-	}
+		for _, childTable := range table.Relations {
+			verifyNoEmptyColumns(t, childTable, conn)
+		}
+	})
 }
 
-func findResourceFromTableName(table *schema.Table, tables map[string]*schema.Table) string {
-	for resource, t := range tables {
-		if table.Name == t.Name {
-			return resource
-		}
-	}
-	return ""
-}
-
-type fakeResourceSender struct {
+type testResourceSender struct {
 	Errors []string
 }
 
-func (f *fakeResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
+func (f *testResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
 	if r.Error != "" {
 		fmt.Printf(r.Error)
 		f.Errors = append(f.Errors, r.Error)
+	}
+	for _, partialFetchError := range r.PartialFetchFailedResources {
+		f.Errors = append(f.Errors, fmt.Sprintf("table: %s. partial fetch error: %s", partialFetchError.TableName, partialFetchError.Error))
 	}
 	return nil
 }
@@ -225,13 +226,4 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
-}
-
-func getTablesFromMainTable(table *schema.Table) []*schema.Table {
-	var res []*schema.Table
-	res = append(res, table)
-	for _, t := range table.Relations {
-		res = append(res, getTablesFromMainTable(t)...)
-	}
-	return res
 }
