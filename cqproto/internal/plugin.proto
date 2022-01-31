@@ -61,14 +61,16 @@ message FetchResources {
 message ResourceFetchSummary {
   // Execution status of the resource fetch execution
   enum Status {
+    // Execution status wasn't set
+    UNKNOWN = 0;
     // Execution was completed successfully without any errors/diagnostics
-    COMPLETE = 0;
+    COMPLETE = 1;
     // Execution failed and wasn't able to fetch any resource
-    FAILED = 1;
+    FAILED = 2;
     // Execution was partial, one or more resources failed to resolve/fetch
-    PARTIAL = 2;
+    PARTIAL = 3;
     // Execution was canceled preemptively
-    CANCELED = 3;
+    CANCELED = 4;
   }
   // Execution status of resource
   Status status = 1;
