@@ -3,7 +3,7 @@ package cqproto
 import (
 	"context"
 
-	"github.com/cloudquery/cq-provider-sdk/provider/schema/diag"
+	"github.com/cloudquery/cq-provider-sdk/provider/diag"
 
 	"github.com/vmihailenco/msgpack/v5"
 
@@ -349,23 +349,6 @@ func diagnosticsFromProto(resourceName string, in []*internal.Diagnostic) diag.D
 		}
 	}
 	return diagnostics
-}
-
-// PartialFetchToCQProto converts schema partial fetch failed resources to cq-proto partial fetch resources
-func PartialFetchToCQProto(in []schema.ResourceFetchError) []*FailedResourceFetch {
-	if len(in) == 0 {
-		return nil
-	}
-	failedResources := make([]*FailedResourceFetch, len(in))
-	for i, p := range in {
-		failedResources[i] = &FailedResourceFetch{
-			TableName:            p.TableName,
-			RootTableName:        p.RootTableName,
-			RootPrimaryKeyValues: p.RootPrimaryKeyValues,
-			Error:                p.Err.Error(),
-		}
-	}
-	return failedResources
 }
 
 func migrationsFromProto(in map[string]*internal.DialectMigration) map[string]map[string][]byte {

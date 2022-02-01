@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/cloudquery/cq-provider-sdk/migration/longestcommon"
+	"github.com/cloudquery/cq-provider-sdk/provider/execution"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
+
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -37,7 +39,7 @@ func NewTableCreator(log hclog.Logger, dialect schema.Dialect) *TableCreator {
 }
 
 // CreateTable generates CREATE TABLE definitions for the given table and runs them on the given conn
-func (m TableCreator) CreateTable(ctx context.Context, conn schema.QueryExecer, t, p *schema.Table) error {
+func (m TableCreator) CreateTable(ctx context.Context, conn execution.QueryExecer, t, p *schema.Table) error {
 	ups, _, err := m.CreateTableDefinitions(ctx, t, p)
 	if err != nil {
 		return err

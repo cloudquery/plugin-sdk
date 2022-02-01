@@ -97,11 +97,14 @@ message Diagnostic {
     ACCESS = 2;
     THROTTLE = 3;
     DATABASE = 4;
+    SCHEMA = 5;
+    INTERNAL = 6;
   }
   enum Severity {
     INVALID = 0;
     ERROR = 1;
     WARNING = 2;
+    PANIC = 3;
   }
   Type type = 1;
   Severity severity = 2;

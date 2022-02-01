@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudquery/cq-provider-sdk/helpers"
+
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -60,14 +62,14 @@ func TestInterfaceSlice(t *testing.T) {
 	var sType []interface{}
 	var names []string
 	names = append(names, "first", "second")
-	assert.IsTypef(t, sType, interfaceSlice(names), "")
-	assert.IsTypef(t, sType, interfaceSlice(&names), "")
-	assert.IsTypef(t, sType, interfaceSlice(1), "")
-	assert.IsTypef(t, sType, interfaceSlice(innerStruct{"asdsa"}), "")
-	assert.IsTypef(t, sType, interfaceSlice(&innerStruct{"asdsa"}), "")
+	assert.IsTypef(t, sType, helpers.InterfaceSlice(names), "")
+	assert.IsTypef(t, sType, helpers.InterfaceSlice(&names), "")
+	assert.IsTypef(t, sType, helpers.InterfaceSlice(1), "")
+	assert.IsTypef(t, sType, helpers.InterfaceSlice(innerStruct{"asdsa"}), "")
+	assert.IsTypef(t, sType, helpers.InterfaceSlice(&innerStruct{"asdsa"}), "")
 	pSlice := []*innerStruct{{"asdsa"}, {"asdsa"}, {"asdsa"}}
-	assert.IsTypef(t, sType, interfaceSlice(pSlice), "")
-	assert.IsTypef(t, sType, interfaceSlice(&pSlice), "")
+	assert.IsTypef(t, sType, helpers.InterfaceSlice(pSlice), "")
+	assert.IsTypef(t, sType, helpers.InterfaceSlice(&pSlice), "")
 
 }
 

@@ -5,7 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 )
+
+type ClientMeta interface {
+	Logger() hclog.Logger
+}
 
 type Meta struct {
 	LastUpdate time.Time `json:"last_updated"`

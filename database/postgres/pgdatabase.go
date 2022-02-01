@@ -7,9 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudquery/cq-provider-sdk/provider/diag"
+
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cloudquery/cq-provider-sdk/provider/execution"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
-	"github.com/cloudquery/cq-provider-sdk/provider/schema/diag"
+
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/hashicorp/go-hclog"
@@ -38,7 +41,7 @@ func NewPgDatabase(ctx context.Context, logger hclog.Logger, dsn string, sd sche
 	}, nil
 }
 
-var _ schema.Storage = (*PgDatabase)(nil)
+var _ execution.Storage = (*PgDatabase)(nil)
 
 // Insert inserts all resources to given table, table and resources are assumed from same table.
 func (p PgDatabase) Insert(ctx context.Context, t *schema.Table, resources schema.Resources) error {
@@ -70,7 +73,7 @@ func (p PgDatabase) Insert(ctx context.Context, t *schema.Table, resources schem
 
 	s, args, err := sqlStmt.ToSql()
 	if err != nil {
-		return diag.FromError(err, diag.ERROR, diag.DATABASE, t.Name, "bad insert SQL statement created", "")
+		return diag.NewBaseError(err, diag.ERROR, diag.DATABASE, t.Name, "bad insert SQL statement created", fmt.Sprintf("SQL statement %s is invalid", s))
 	}
 	_, err = p.pool.Exec(ctx, s, args...)
 	if err == nil {
@@ -84,9 +87,9 @@ func (p PgDatabase) Insert(ctx context.Context, t *schema.Table, resources schem
 		if pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
 			p.log.Debug("insert integrity violation error", "constraint", pgErr.ConstraintName, "errMsg", pgErr.Message)
 		}
-		return diag.FromError(err, diag.ERROR, diag.DATABASE, t.Name, fmt.Sprintf("insert failed for table %s", t.Name), pgErr.Message)
+		return diag.NewBaseError(err, diag.ERROR, diag.DATABASE, t.Name, fmt.Sprintf("failed to insert to table %s", t.Name), pgErr.Message)
 	}
-	return diag.FromError(err, diag.ERROR, diag.DATABASE, t.Name, err.Error(), "")
+	return diag.NewBaseError(err, diag.ERROR, diag.DATABASE, t.Name, err.Error(), "")
 }
 
 // CopyFrom copies all resources from []*Resource

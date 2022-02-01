@@ -6,6 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudquery/cq-provider-sdk/provider/execution"
+
+	"github.com/cloudquery/cq-provider-sdk/provider/diag"
+
 	"github.com/cloudquery/cq-provider-sdk/provider/schema/mock"
 	"github.com/golang/mock/gomock"
 
@@ -114,6 +118,17 @@ var (
 					},
 					Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
 						return errors.New("bad error")
+					},
+				},
+				"very_slow_resource": {
+					Name: "very_slow_resource",
+					Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
+						select {
+						case <-time.After(10 * time.Second):
+							return nil
+						case <-ctx.Done():
+							return errors.New("context canceled")
+						}
 					},
 				},
 			},
@@ -284,44 +299,7 @@ type FetchResourceTableTest struct {
 	MockStorageFunc        func(ctrl *gomock.Controller) *mock.MockStorage
 	PartialFetch           bool
 	ResourcesToFetch       []string
-}
-
-var fetchCases = []FetchResourceTableTest{
-	{
-		Name: "ignore error resource",
-		ExpectedFetchResponses: []*cqproto.FetchResourcesResponse{
-			{
-				ResourceName: "bad_resource_ignore_error",
-				Error:        "",
-			}},
-		ExpectedError: nil,
-		MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
-			mockDB := mock.NewMockStorage(ctrl)
-			mockDB.EXPECT().RemoveStaleData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			//mockDB.EXPECT().Insert(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			mockDB.EXPECT().Close()
-			return mockDB
-		},
-		PartialFetch:     true,
-		ResourcesToFetch: []string{"bad_resource_ignore_error"},
-	},
-	{
-		Name: "returning error resource",
-		ExpectedFetchResponses: []*cqproto.FetchResourcesResponse{
-			{
-				ResourceName: "bad_resource",
-				Error:        "bad error",
-			}},
-		ExpectedError: nil,
-		MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
-			mockDB := mock.NewMockStorage(ctrl)
-			//mockDB.EXPECT().Insert(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			mockDB.EXPECT().Close()
-			return mockDB
-		},
-		PartialFetch:     false,
-		ResourcesToFetch: []string{"bad_resource"},
-	},
+	Context                func() context.Context
 }
 
 func TestProvider_FetchResources(t *testing.T) {
@@ -339,14 +317,88 @@ func TestProvider_FetchResources(t *testing.T) {
 		ExtraFields: nil,
 	})
 	ctrl := gomock.NewController(t)
+	var fetchCases = []FetchResourceTableTest{
+		{
+			Name: "ignore error resource",
+			ExpectedFetchResponses: []*cqproto.FetchResourcesResponse{
+				{
+					ResourceName: "bad_resource_ignore_error",
+					Summary: cqproto.ResourceFetchSummary{
+						Status:        cqproto.ResourceFetchComplete,
+						ResourceCount: 0,
+						Diagnostics: diag.Diagnostics{diag.NewBaseError(errors.New("table[bad_resource_ignore_error] resolver ignored error. Error: bad error"),
+							diag.IGNORE, diag.RESOLVING, "bad_resource_ignore_error", "table[bad_resource_ignore_error] resolver ignored error. Error: bad error", "")},
+					},
+				}},
+			ExpectedError: nil,
+			MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
+				mockDB := mock.NewMockStorage(ctrl)
+				mockDB.EXPECT().Close()
+				return mockDB
+			},
+			PartialFetch:     true,
+			ResourcesToFetch: []string{"bad_resource_ignore_error"},
+		},
+		{
+			Name: "returning error resource",
+			ExpectedFetchResponses: []*cqproto.FetchResourcesResponse{
+				{
+					ResourceName: "bad_resource",
+					Summary: cqproto.ResourceFetchSummary{
+						Status:        cqproto.ResourceFetchPartial,
+						ResourceCount: 0,
+						Diagnostics:   diag.Diagnostics{diag.NewBaseError(errors.New("bad error"), diag.ERROR, diag.RESOLVING, "bad_resource", "failed to resolve resource bad_resource", "")},
+					},
+				},
+			},
+			MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
+				mockDB := mock.NewMockStorage(ctrl)
+				mockDB.EXPECT().Close()
+				return mockDB
+			},
+			PartialFetch:     false,
+			ResourcesToFetch: []string{"bad_resource"},
+		},
+		{
+			Name: "context canceled execution",
+			ExpectedFetchResponses: []*cqproto.FetchResourcesResponse{
+				{
+					ResourceName: "very_slow_resource",
+					Summary: cqproto.ResourceFetchSummary{
+						Status:        cqproto.ResourceFetchCanceled,
+						ResourceCount: 0,
+						Diagnostics: diag.Diagnostics{diag.NewBaseError(errors.New("context canceled"),
+							diag.ERROR, diag.RESOLVING, "very_slow_resource", "failed to resolve resource very_slow_resource", "")},
+					},
+				}},
+			ExpectedError: nil,
+			MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
+				mockDB := mock.NewMockStorage(ctrl)
+				mockDB.EXPECT().Close()
+				return mockDB
+			},
+			Context: func() context.Context {
+				//nolint:govet
+				ctx, _ := context.WithTimeout(context.Background(), time.Second*2)
+				return ctx
+			},
+
+			ResourcesToFetch: []string{"very_slow_resource"},
+		},
+	}
+
 	for _, tt := range fetchCases {
 		t.Run(tt.Name, func(t *testing.T) {
-			tp.storageCreator = func(ctx context.Context, logger hclog.Logger, dbURL string) (schema.Storage, error) {
+			tp.storageCreator = func(ctx context.Context, logger hclog.Logger, dbURL string) (execution.Storage, error) {
 				return tt.MockStorageFunc(ctrl), nil
 			}
-			err = tp.FetchResources(context.Background(), &cqproto.FetchResourcesRequest{
-				Resources:              tt.ResourcesToFetch,
-				PartialFetchingEnabled: tt.PartialFetch,
+			ctx := context.Background()
+			if tt.Context != nil {
+				ctx = tt.Context()
+			}
+
+			err = tp.FetchResources(ctx, &cqproto.FetchResourcesRequest{
+				Resources: tt.ResourcesToFetch,
 			}, &testResourceSender{
 				t,
 				tt.ExpectedFetchResponses,
@@ -371,6 +423,8 @@ func (f *testResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
 			continue
 		}
 		assert.Equal(f.t, r.Error, e.Error)
+		assert.Equal(f.t, e.Summary.Status, r.Summary.Status)
+		assert.Equal(f.t, diag.FlattenDiags(e.Summary.Diagnostics, true), diag.FlattenDiags(r.Summary.Diagnostics, true))
 	}
 	return nil
 }

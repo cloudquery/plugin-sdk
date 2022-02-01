@@ -10,9 +10,39 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+type testTableStruct struct {
+	Name  string `default:"test"`
+	Inner struct {
+		NameNoPrefix string `default:"name_no_prefix"`
+	}
+	Prefix struct {
+		Name string `default:"prefix_name"`
+	}
+}
+
+var testTable = &Table{
+	Name: "test_table",
+	Columns: []Column{
+		{
+			Name: "name",
+			Type: TypeString,
+		},
+		{
+			Name:     "name_no_prefix",
+			Type:     TypeString,
+			Resolver: PathResolver("Inner.NameNoPrefix"),
+		},
+		{
+			Name:     "prefix_name",
+			Type:     TypeString,
+			Resolver: PathResolver("Prefix.Name"),
+		},
+	},
+}
+
 func TestDeleteParentId(t *testing.T) {
 	f := DeleteParentIdFilter("name")
-	mockedClient := new(mockedClientMeta)
+	mockedClient := new(MockedClientMeta)
 	logger := logging.New(&hclog.LoggerOptions{
 		Name:   "test_log",
 		Level:  hclog.Error,
