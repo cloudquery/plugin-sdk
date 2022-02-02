@@ -207,7 +207,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 					Err:      "some error",
 					Resource: "error_returning",
 					Severity: diag.ERROR,
-					Summary:  "failed to resolve resource error_returning",
+					Summary:  "failed to resolve table \"simple\"",
 					Type:     diag.RESOLVING,
 				},
 			},
@@ -228,7 +228,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 					Err:      "some error",
 					Resource: "error_returning_ignore_fail",
 					Severity: diag.ERROR,
-					Summary:  "failed to resolve resource error_returning_ignore_fail",
+					Summary:  "failed to resolve table \"simple\"",
 					Type:     diag.RESOLVING,
 				},
 			},
@@ -260,6 +260,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				db := new(DatabaseMock)
 				db.On("Delete", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				db.On("RemoveStaleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				db.On("Dialect").Return(noopDialect{})
 				return db
 			},
 			Table: &schema.Table{
@@ -278,6 +279,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				db := new(DatabaseMock)
 				db.On("Delete", mock.Anything, mock.Anything, mock.Anything).
 					Return(FromError(errors.New("failed delete"), WithResource("always_delete_fail"), WithType(diag.DATABASE)))
+				db.On("Dialect").Return(noopDialect{})
 				return db
 			},
 			Table: &schema.Table{
@@ -305,6 +307,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				db := new(DatabaseMock)
 				db.On("RemoveStaleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 					Return(FromError(errors.New("failed delete"), WithResource("cleanup_stale_data_fail"), WithType(diag.DATABASE)))
+				db.On("Dialect").Return(noopDialect{})
 				return db
 			},
 			Table: &schema.Table{
@@ -403,7 +406,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 					Resource: "failing_column",
 					Severity: diag.ERROR,
 					Type:     diag.RESOLVING,
-					Summary:  "failed to resolve resource failing_column",
+					Summary:  "column resolver \"name\" failed for table \"column\"",
 				},
 			},
 		},

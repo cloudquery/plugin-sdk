@@ -37,6 +37,8 @@ type TableExecutor struct {
 	extraFields map[string]interface{}
 	// When the execution started
 	executionStart time.Time
+	// columns of table, this is to reduce calls to sift each time
+	columns [2]schema.ColumnList
 }
 
 // NewTableExecutor creates a new TableExecutor for given schema.Table
@@ -46,6 +48,9 @@ func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, tabl
 	if classifier != nil {
 		classifiers = append([]ErrorClassifier{classifier}, classifiers...)
 	}
+	var c [2]schema.ColumnList
+	c[0], c[1] = db.Dialect().Columns(table).Sift()
+
 	return TableExecutor{
 		ResourceName:   resourceName,
 		Table:          table,
@@ -54,6 +59,7 @@ func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, tabl
 		extraFields:    extraFields,
 		classifiers:    classifiers,
 		executionStart: time.Now().Add(executionJitter),
+		columns:        c,
 	}
 }
 
@@ -67,12 +73,17 @@ func (e TableExecutor) Resolve(ctx context.Context, meta schema.ClientMeta) (uin
 
 // withTable allows to create a new TableExecutor for received *schema.Table
 func (e TableExecutor) withTable(t *schema.Table) *TableExecutor {
+	var c [2]schema.ColumnList
+	c[0], c[1] = e.Db.Dialect().Columns(t).Sift()
 	return &TableExecutor{
-		Table:        t,
-		ResourceName: e.ResourceName,
-		Db:           e.Db,
-		Logger:       e.Logger,
-		extraFields:  e.extraFields,
+		ResourceName:   e.ResourceName,
+		Table:          t,
+		Db:             e.Db,
+		Logger:         e.Logger,
+		classifiers:    e.classifiers,
+		extraFields:    e.extraFields,
+		executionStart: e.executionStart,
+		columns:        c,
 	}
 }
 
@@ -275,25 +286,22 @@ func (e TableExecutor) resolveResourceValues(ctx context.Context, meta schema.Cl
 	defer func() {
 		if r := recover(); r != nil {
 			stack := string(debug.Stack())
-			e.Logger.Error("resolve resource recovered from panic", "table", e.Table.Name, "stack", stack)
+			e.Logger.Error("resolve table recovered from panic", "table", e.Table.Name, "stack", stack)
 			diags = FromError(fmt.Errorf("column resolve panic: %s", r), WithResource(e.ResourceName), WithSeverity(diag.PANIC),
-				WithType(diag.RESOLVING), WithSummary("resolve resource %s recovered from panic.", e.Table.Name), WithDetails(stack))
+				WithType(diag.RESOLVING), WithSummary("resolve table %s recovered from panic.", e.Table.Name), WithDetails(stack))
 		}
 	}()
-	// TODO: do this once per table
-	providerCols, internalCols := e.Db.Dialect().Columns(e.Table).Sift()
-
-	if err := e.resolveColumns(ctx, meta, resource, providerCols); err != nil {
+	if err := e.resolveColumns(ctx, meta, resource, e.columns[0]); err != nil {
 		return err
 	}
 	// call PostRowResolver if defined after columns have been resolved
 	if e.Table.PostResourceResolver != nil {
 		if err := e.Table.PostResourceResolver(ctx, meta, resource); err != nil {
-			return e.handleResolveError(meta, err)
+			return e.handleResolveError(meta, err, WithSummary("post resource resolver failed for \"%s\"", e.Table.Name))
 		}
 	}
 	// Finally, resolve columns internal to the SDK
-	for _, c := range internalCols {
+	for _, c := range e.columns[1] {
 		if err := c.Resolver(ctx, meta, resource, c); err != nil {
 			return FromError(err, WithResource(e.ResourceName), WithType(diag.INTERNAL), WithSummary("default column %s resolver execution", c.Name))
 		}
@@ -316,7 +324,7 @@ func (e TableExecutor) resolveColumns(ctx context.Context, meta schema.ClientMet
 			}
 			// check if column resolver defined an IgnoreError function, if it does check if ignore should be ignored.
 			if c.IgnoreError == nil || !c.IgnoreError(err) {
-				return e.handleResolveError(meta, err)
+				return e.handleResolveError(meta, err, WithSummary("column resolver \"%s\" failed for table \"%s\"", c.Name, e.Table.Name))
 			}
 			// TODO: double check logic here
 			if reflect2.IsNil(c.Default) {
@@ -346,12 +354,13 @@ func (e TableExecutor) resolveColumns(ctx context.Context, meta schema.ClientMet
 }
 
 // handleResolveError handles errors returned by user defined functions, using the ErrorClassifiers if defined.
-func (e TableExecutor) handleResolveError(meta schema.ClientMeta, err error) diag.Diagnostics {
+func (e TableExecutor) handleResolveError(meta schema.ClientMeta, err error, opts ...Option) diag.Diagnostics {
 	for _, c := range e.classifiers {
 		if diags := c(meta, e.ResourceName, err); diags != nil {
 			return diags
 		}
 	}
-	return FromError(err, WithResource(e.ResourceName), WithSeverity(diag.ERROR), WithType(diag.RESOLVING),
-		WithSummary("failed to resolve resource %s", e.ResourceName))
+	opts = append([]Option{WithResource(e.ResourceName), WithSeverity(diag.ERROR), WithType(diag.RESOLVING),
+		WithSummary("failed to resolve table \"%s\"", e.Table.Name)}, opts...)
+	return FromError(err, opts...)
 }

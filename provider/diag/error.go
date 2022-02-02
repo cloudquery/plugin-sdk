@@ -39,9 +39,13 @@ func (e BaseError) Severity() Severity {
 }
 
 func (e BaseError) Description() Description {
+	summary := e.summary
+	if e.summary == "" {
+		summary = e.Error()
+	}
 	return Description{
 		e.resource,
-		e.summary,
+		summary,
 		e.detail,
 	}
 }

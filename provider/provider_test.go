@@ -333,6 +333,7 @@ func TestProvider_FetchResources(t *testing.T) {
 			ExpectedError: nil,
 			MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
 				mockDB := mock.NewMockStorage(ctrl)
+				mockDB.EXPECT().Dialect().Return(schema.PostgresDialect{})
 				mockDB.EXPECT().Close()
 				return mockDB
 			},
@@ -347,12 +348,13 @@ func TestProvider_FetchResources(t *testing.T) {
 					Summary: cqproto.ResourceFetchSummary{
 						Status:        cqproto.ResourceFetchPartial,
 						ResourceCount: 0,
-						Diagnostics:   diag.Diagnostics{diag.NewBaseError(errors.New("bad error"), diag.ERROR, diag.RESOLVING, "bad_resource", "failed to resolve resource bad_resource", "")},
+						Diagnostics:   diag.Diagnostics{diag.NewBaseError(errors.New("bad error"), diag.ERROR, diag.RESOLVING, "bad_resource", "failed to resolve table \"bad_resource\"", "")},
 					},
 				},
 			},
 			MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
 				mockDB := mock.NewMockStorage(ctrl)
+				mockDB.EXPECT().Dialect().Return(schema.PostgresDialect{})
 				mockDB.EXPECT().Close()
 				return mockDB
 			},
@@ -368,12 +370,13 @@ func TestProvider_FetchResources(t *testing.T) {
 						Status:        cqproto.ResourceFetchCanceled,
 						ResourceCount: 0,
 						Diagnostics: diag.Diagnostics{diag.NewBaseError(errors.New("context canceled"),
-							diag.ERROR, diag.RESOLVING, "very_slow_resource", "failed to resolve resource very_slow_resource", "")},
+							diag.ERROR, diag.RESOLVING, "very_slow_resource", "failed to resolve table \"very_slow_resource\"", "")},
 					},
 				}},
 			ExpectedError: nil,
 			MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
 				mockDB := mock.NewMockStorage(ctrl)
+				mockDB.EXPECT().Dialect().Return(schema.PostgresDialect{})
 				mockDB.EXPECT().Close()
 				return mockDB
 			},
