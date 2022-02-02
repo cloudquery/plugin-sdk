@@ -2,6 +2,7 @@ package execution
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
@@ -33,6 +34,14 @@ func (f noopStorage) RemoveStaleData(ctx context.Context, t *schema.Table, execu
 }
 
 func (f noopStorage) CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool, CascadeDeleteFilters map[string]interface{}) error {
+	return nil
+}
+
+func (f noopStorage) RawCopyFrom(ctx context.Context, r io.Reader, sql string) error {
+	return nil
+}
+
+func (f noopStorage) RawCopyTo(ctx context.Context, w io.Writer, sql string) error {
 	return nil
 }
 

@@ -2,6 +2,7 @@ package execution
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
@@ -132,5 +133,29 @@ func (_m *DatabaseMock) Dialect() schema.Dialect {
 		}
 	}
 
+	return r0
+}
+
+// RawCopyTo provides a mock function with given fields: ctx, w, sql
+func (_m *DatabaseMock) RawCopyTo(ctx context.Context, w io.Writer, sql string) error {
+	ret := _m.Called(ctx, w, sql)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, io.Writer, string) error); ok {
+		r0 = rf(ctx, w, sql)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// RawCopyFrom provides a mock function with given fields: ctx, r, sql
+func (_m *DatabaseMock) RawCopyFrom(ctx context.Context, r io.Reader, sql string) error {
+	ret := _m.Called(ctx, r, sql)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, io.Reader, string) error); ok {
+		r0 = rf(ctx, r, sql)
+	} else {
+		r0 = ret.Error(0)
+	}
 	return r0
 }

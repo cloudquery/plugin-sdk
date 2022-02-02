@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -188,6 +189,25 @@ func (p PgDatabase) RemoveStaleData(ctx context.Context, t *schema.Table, execut
 
 func (p PgDatabase) Close() {
 	p.pool.Close()
+}
+
+func (p PgDatabase) RawCopyTo(ctx context.Context, w io.Writer, sql string) error {
+	c, err := p.pool.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer c.Release()
+	_, err = c.Conn().PgConn().CopyTo(ctx, w, sql)
+	return err
+}
+func (p PgDatabase) RawCopyFrom(ctx context.Context, r io.Reader, sql string) error {
+	c, err := p.pool.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer c.Release()
+	_, err = c.Conn().PgConn().CopyFrom(ctx, r, sql)
+	return err
 }
 
 func (p PgDatabase) Dialect() schema.Dialect {
