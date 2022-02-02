@@ -180,10 +180,9 @@ func (e TableExecutor) callTableResolve(ctx context.Context, client schema.Clien
 		if err := e.Table.Resolver(ctx, client, parent, res); err != nil {
 			if e.Table.IgnoreError != nil && e.Table.IgnoreError(err) {
 				client.Logger().Warn("ignored an error", "err", err, "table", e.Table.Name)
-				resolverErr = NewError(diag.IGNORE, diag.RESOLVING, e.ResourceName, "table[%s] resolver ignored error. Error: %s", e.Table.Name, err)
-			} else {
-				resolverErr = e.handleResolveError(client, err)
+				err = NewError(diag.IGNORE, diag.RESOLVING, e.ResourceName, "table[%s] resolver ignored error. Error: %s", e.Table.Name, err)
 			}
+			resolverErr = e.handleResolveError(client, err)
 		}
 	}()
 
