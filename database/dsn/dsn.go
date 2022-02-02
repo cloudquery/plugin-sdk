@@ -3,6 +3,7 @@ package dsn
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
@@ -64,6 +65,12 @@ func RedactParseError(err error) error {
 	if errors.As(err, &e) {
 		e.URL = "DSN redacted"
 		return e
+	}
+
+	var ne *net.AddrError
+	if errors.As(err, &ne) {
+		ne.Addr = "DSN redacted"
+		return fmt.Errorf("parse: %w", ne)
 	}
 
 	return err

@@ -89,20 +89,26 @@ func TestRedactDSNErrors(t *testing.T) {
 	for _, brokenDSN := range []string{
 		"postgres://postgres:pass%@localhost:5432/postgres?sslmode=disable",
 		"postgres://postgres:pass@localhost:A/postgres?sslmode=disable",
+		`postgres://user:pass://user:pass/postgres?sslmode=disable`,
 	} {
 		{
 			result, err := ParseConnectionString(brokenDSN)
-			assert.Nil(t, result)
-			assert.Error(t, err)
-			assert.True(t, strings.Contains(err.Error(), "DSN redacted"))
+			if err != nil {
+				assert.Nil(t, result)
+				assert.Error(t, err)
+				assert.True(t, strings.Contains(err.Error(), "DSN redacted"))
+			}
 		}
 
 		{
 			result, err := pgconn.ParseConfig(brokenDSN)
 			assert.Nil(t, result)
 			assert.Error(t, err)
-			err = RedactParseError(err)
-			assert.True(t, strings.Contains(err.Error(), "DSN redacted"))
+			if err != nil {
+				err = RedactParseError(err)
+				assert.Error(t, err)
+				assert.True(t, strings.Contains(err.Error(), "DSN redacted"))
+			}
 		}
 	}
 }
