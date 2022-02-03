@@ -12,6 +12,7 @@ import (
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/spf13/afero"
 )
 
 // GenerateFull creates initial table migrations for the provider based on it's ResourceMap
@@ -21,7 +22,7 @@ func GenerateFull(ctx context.Context, logger hclog.Logger, p *provider.Provider
 		if err != nil {
 			return err
 		}
-		if err := generateFullForDialect(ctx, logger, p, dialect, filepath.Join(outputPath, string(d)), prefix); err != nil {
+		if err := generateFullForDialect(ctx, logger, dialect, p, filepath.Join(outputPath, string(d)), prefix); err != nil {
 			return fmt.Errorf("failed for %v: %w", d, err)
 		}
 	}
@@ -34,10 +35,15 @@ func GenerateDiff(ctx context.Context, logger hclog.Logger, conn *pgxpool.Conn, 
 	if err != nil {
 		return err
 	}
-	return generateDiffForDialect(ctx, logger, conn, schemaName, p, dialect, filepath.Join(outputPath, dialectType.MigrationDirectory()), prefix)
+
+	err = generateDiffForDialect(ctx, logger, afero.Afero{Fs: afero.OsFs{}}, conn, schemaName, dialect, p, filepath.Join(outputPath, dialectType.MigrationDirectory()), prefix)
+	if err == errNoChange {
+		return nil
+	}
+	return err
 }
 
-func generateFullForDialect(ctx context.Context, logger hclog.Logger, p *provider.Provider, dialect schema.Dialect, outputPath, prefix string) (retErr error) {
+func generateFullForDialect(ctx context.Context, logger hclog.Logger, dialect schema.Dialect, p *provider.Provider, outputPath, prefix string) (retErr error) {
 	if err := os.MkdirAll(outputPath, 0755); err != nil {
 		return err
 	}
@@ -110,10 +116,10 @@ func generateFullForDialect(ctx context.Context, logger hclog.Logger, p *provide
 	return nil
 }
 
-func generateDiffForDialect(ctx context.Context, logger hclog.Logger, conn *pgxpool.Conn, schemaName string, p *provider.Provider, dialect schema.Dialect, outputPath, prefix string) (retErr error) {
-	cName, dName := filepath.Join(outputPath, prefix+"up.sql"), filepath.Join(outputPath, prefix+"down.sql")
+var errNoChange = fmt.Errorf("no change")
 
-	var errNoChange = fmt.Errorf("no change")
+func generateDiffForDialect(ctx context.Context, logger hclog.Logger, fs afero.Afero, conn *pgxpool.Conn, schemaName string, dialect schema.Dialect, p *provider.Provider, outputPath, prefix string) (retErr error) {
+	cName, dName := filepath.Join(outputPath, prefix+"up.sql"), filepath.Join(outputPath, prefix+"down.sql")
 
 	defer func() {
 		if retErr == nil {
@@ -122,11 +128,10 @@ func generateDiffForDialect(ctx context.Context, logger hclog.Logger, conn *pgxp
 			return
 		}
 
-		_ = os.Remove(cName)
-		_ = os.Remove(dName)
+		_ = fs.Remove(cName)
+		_ = fs.Remove(dName)
 
 		if retErr == errNoChange {
-			retErr = nil
 			logger.Info("Did not generate up migration (no change)")
 			logger.Info("Did not generate down migration (no change)")
 		}
@@ -134,20 +139,20 @@ func generateDiffForDialect(ctx context.Context, logger hclog.Logger, conn *pgxp
 
 	tc := NewTableCreator(logger, dialect)
 
-	safeClose := func(f *os.File) {
+	safeClose := func(f afero.File) {
 		err := f.Close()
 		if retErr == nil {
 			retErr = err
 		}
 	}
 
-	cf, err := os.Create(cName)
+	cf, err := fs.Create(cName)
 	if err != nil {
 		return err
 	}
 	defer safeClose(cf)
 
-	df, err := os.Create(dName)
+	df, err := fs.Create(dName)
 	if err != nil {
 		return err
 	}

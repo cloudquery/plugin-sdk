@@ -11,6 +11,7 @@ import (
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/hashicorp/go-hclog"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,6 +96,25 @@ func doMigrationsTest(t *testing.T, ctx context.Context, dsn string, prov *provi
 	// Run user supplied versions
 	for _, v := range additionalVersionsToTest {
 		assert.NoError(t, mig.UpgradeProvider(v))
+	}
+
+	// Go to latest again and check if we have missing migrations
+	{
+		if err := mig.UpgradeProvider(migrator.Latest); err != migrate.ErrNoChange {
+			assert.NoError(t, err)
+		}
+
+		fs := afero.Afero{Fs: afero.NewMemMapFs()}
+		dialectType, err := schema.GetDialect(dialect)
+		assert.NoError(t, err)
+
+		if err := generateDiffForDialect(ctx, hclog.NewNullLogger(), fs, conn, "public", dialectType, prov, "/", ""); err != errNoChange {
+			assert.NoError(t, err)
+
+			mig, err := fs.ReadFile("/up.sql")
+			assert.NoError(t, err)
+			assert.Empty(t, string(mig), "Found missing migrations")
+		}
 	}
 
 	assert.NoError(t, mig.DropProvider(ctx, prov.ResourceMap))
