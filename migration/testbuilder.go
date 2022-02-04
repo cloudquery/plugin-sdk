@@ -108,6 +108,10 @@ func doMigrationsTest(t *testing.T, ctx context.Context, dsn string, prov *provi
 
 	mig, err := migrator.New(hclog.L(), dialect, migFiles, dsn, prov.Name, nil)
 	assert.NoError(t, err)
+	if t.Failed() {
+		t.FailNow()
+	}
+
 	defer mig.Close()
 
 	// clean up first... just as a precaution
