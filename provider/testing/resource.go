@@ -32,18 +32,17 @@ type ResourceTestCase struct {
 	ParallelFetchingLimit uint64
 }
 
+func init() {
+	_ = faker.SetRandomMapAndSliceMinSize(1)
+	_ = faker.SetRandomMapAndSliceMaxSize(1)
+}
+
 // IntegrationTest - creates resources using terraform, fetches them to db and compares with expected values
 func TestResource(t *testing.T, resource ResourceTestCase) {
 	if !resource.NotParallel {
 		t.Parallel()
 	}
 	t.Helper()
-	if err := faker.SetRandomMapAndSliceMinSize(1); err != nil {
-		t.Fatal(err)
-	}
-	if err := faker.SetRandomMapAndSliceMaxSize(1); err != nil {
-		t.Fatal(err)
-	}
 
 	// No need for configuration or db connection, get it out of the way first
 	// testTableIdentifiersForProvider(t, resource.Provider)

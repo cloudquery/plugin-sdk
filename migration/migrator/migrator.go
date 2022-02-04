@@ -227,6 +227,11 @@ func (m *Migrator) DropProvider(ctx context.Context, schema map[string]*schema.T
 			return err
 		}
 	}
+
+	if _, dbErr := m.m.Close(); dbErr != nil {
+		m.log.Warn("error closing migrator", "error", dbErr)
+	}
+
 	newM, err := migrate.NewWithSourceInstance(m.provider, m.driver, m.migratorUrl.String())
 	if err != nil {
 		return err
