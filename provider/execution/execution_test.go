@@ -59,6 +59,10 @@ var (
 		return []schema.ClientMeta{meta, meta}
 	}
 
+	emptyMultiplexer = func(meta schema.ClientMeta) []schema.ClientMeta {
+		return nil
+	}
+
 	postResourceResolver = func(ctx context.Context, meta schema.ClientMeta, resource *schema.Resource) error {
 		return resource.Set("name", "data")
 	}
@@ -105,6 +109,16 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				},
 			},
 			ExpectedResourceCount: 2,
+		},
+		{
+			Name: "multiplex_empty",
+			Table: &schema.Table{
+				Name:      "multiplex_empty",
+				Multiplex: emptyMultiplexer,
+				Resolver:  returnValueResolver,
+				Columns:   commonColumns,
+			},
+			ExpectedResourceCount: 1,
 		},
 		{
 			// if tables don't define a resolver, an execution error by execution

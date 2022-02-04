@@ -66,7 +66,9 @@ func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, tabl
 // Resolve is the root function of table executor which starts an execution of a Table resolving it, and it's relations.
 func (e TableExecutor) Resolve(ctx context.Context, meta schema.ClientMeta) (uint64, diag.Diagnostics) {
 	if e.Table.Multiplex != nil {
-		return e.doMultiplexResolve(ctx, meta, nil)
+		if clients := e.Table.Multiplex(meta); len(clients) > 0 {
+			return e.doMultiplexResolve(ctx, clients, nil)
+		}
 	}
 	return e.callTableResolve(ctx, meta, nil)
 }
@@ -88,14 +90,13 @@ func (e TableExecutor) withTable(t *schema.Table) *TableExecutor {
 }
 
 // doMultiplexResolve resolves table with multiplexed clients appending all diagnostics returned from each multiplex.
-func (e TableExecutor) doMultiplexResolve(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource) (uint64, diag.Diagnostics) {
+func (e TableExecutor) doMultiplexResolve(ctx context.Context, clients []schema.ClientMeta, parent *schema.Resource) (uint64, diag.Diagnostics) {
 	var (
-		clients        []schema.ClientMeta
 		diagsChan      = make(chan diag.Diagnostics)
 		totalResources uint64
 	)
-	clients = e.Table.Multiplex(meta)
-	meta.Logger().Debug("multiplexing client", "count", len(clients), "table", e.Table.Name)
+	logger := clients[0].Logger()
+	logger.Debug("multiplexing client", "count", len(clients), "table", e.Table.Name)
 	defer close(diagsChan)
 	for _, client := range clients {
 		go func(c schema.ClientMeta, diags chan<- diag.Diagnostics) {
@@ -111,12 +112,12 @@ func (e TableExecutor) doMultiplexResolve(ctx context.Context, meta schema.Clien
 	for dd := range diagsChan {
 		allDiags = allDiags.Add(dd)
 		doneClients++
-		meta.Logger().Debug("multiplexed client finished", "done", doneClients, "total", len(clients), "table", e.Table.Name)
+		logger.Debug("multiplexed client finished", "done", doneClients, "total", len(clients), "table", e.Table.Name)
 		if doneClients >= len(clients) {
 			break
 		}
 	}
-	meta.Logger().Debug("table multiplex resolve completed", "table", e.Table.Name)
+	logger.Debug("table multiplex resolve completed", "table", e.Table.Name)
 	return totalResources, allDiags
 }
 
