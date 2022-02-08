@@ -170,9 +170,18 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 	defer conn.Close()
 
 	// limiter used to limit the amount of resources fetched concurrently
-	var limiter *semaphore.Weighted
-	if request.ParallelFetchingLimit > 0 {
-		limiter = semaphore.NewWeighted(int64(request.ParallelFetchingLimit))
+	var goroutinesSem *semaphore.Weighted
+	maxGoroutines := request.MaxGoroutines
+	if maxGoroutines == 0 {
+		maxGoroutines = helpers.GetMaxGoRoutines()
+	}
+	goroutinesSem = semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
+
+	// limiter used to limit the amount of resources fetched concurrently
+	var parallelResourceSem *semaphore.Weighted
+	maxParallelFetchingLimit := request.ParallelFetchingLimit
+	if maxParallelFetchingLimit > 0 {
+		parallelResourceSem = semaphore.NewWeighted(helpers.Uint64ToInt64(maxParallelFetchingLimit))
 	}
 
 	g, gctx := errgroup.WithContext(ctx)
@@ -184,19 +193,21 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 		if !ok {
 			return fmt.Errorf("plugin %s does not provide resource %s", p.Name, resource)
 		}
-		tableExec := execution.NewTableExecutor(resource, conn, p.Logger, table, p.extraFields, p.ErrorClassifier)
+		tableExec := execution.NewTableExecutor(resource, conn, p.Logger, table, p.extraFields, p.ErrorClassifier, goroutinesSem)
 		p.Logger.Debug("fetching table...", "provider", p.Name, "table", table.Name)
 		// Save resource aside
 		r := resource
 		l.Lock()
 		finishedResources[r] = false
 		l.Unlock()
+		if parallelResourceSem != nil {
+			if err := parallelResourceSem.Acquire(ctx, 1); err != nil {
+				return err
+			}
+		}
 		g.Go(func() error {
-			if limiter != nil {
-				if err := limiter.Acquire(gctx, 1); err != nil {
-					return err
-				}
-				defer limiter.Release(1)
+			if parallelResourceSem != nil {
+				defer parallelResourceSem.Release(1)
 			}
 			resourceCount, diags := tableExec.Resolve(gctx, p.meta)
 			l.Lock()

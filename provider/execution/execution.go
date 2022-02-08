@@ -10,6 +10,7 @@ import (
 	"github.com/cloudquery/cq-provider-sdk/helpers"
 	"github.com/cloudquery/cq-provider-sdk/provider/diag"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/iancoleman/strcase"
@@ -39,10 +40,12 @@ type TableExecutor struct {
 	executionStart time.Time
 	// columns of table, this is to reduce calls to sift each time
 	columns [2]schema.ColumnList
+	// goroutinesSem to limit number of goroutines (clients fetched) concurrently
+	goroutinesSem *semaphore.Weighted
 }
 
 // NewTableExecutor creates a new TableExecutor for given schema.Table
-func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, table *schema.Table, extraFields map[string]interface{}, classifier ErrorClassifier) TableExecutor {
+func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, table *schema.Table, extraFields map[string]interface{}, classifier ErrorClassifier, goroutinesSem *semaphore.Weighted) TableExecutor {
 
 	var classifiers = []ErrorClassifier{defaultErrorClassifier}
 	if classifier != nil {
@@ -60,6 +63,7 @@ func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, tabl
 		classifiers:    classifiers,
 		executionStart: time.Now().Add(executionJitter),
 		columns:        c,
+		goroutinesSem:  goroutinesSem,
 	}
 }
 
@@ -67,7 +71,7 @@ func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, tabl
 func (e TableExecutor) Resolve(ctx context.Context, meta schema.ClientMeta) (uint64, diag.Diagnostics) {
 	if e.Table.Multiplex != nil {
 		if clients := e.Table.Multiplex(meta); len(clients) > 0 {
-			return e.doMultiplexResolve(ctx, clients, nil)
+			return e.doMultiplexResolve(ctx, clients)
 		}
 	}
 	return e.callTableResolve(ctx, meta, nil)
@@ -86,29 +90,36 @@ func (e TableExecutor) withTable(t *schema.Table) *TableExecutor {
 		extraFields:    e.extraFields,
 		executionStart: e.executionStart,
 		columns:        c,
+		goroutinesSem:  e.goroutinesSem,
 	}
 }
 
 // doMultiplexResolve resolves table with multiplexed clients appending all diagnostics returned from each multiplex.
-func (e TableExecutor) doMultiplexResolve(ctx context.Context, clients []schema.ClientMeta, parent *schema.Resource) (uint64, diag.Diagnostics) {
+func (e TableExecutor) doMultiplexResolve(ctx context.Context, clients []schema.ClientMeta) (uint64, diag.Diagnostics) {
 	var (
 		diagsChan      = make(chan diag.Diagnostics)
 		totalResources uint64
+	)
+	var (
+		allDiags    diag.Diagnostics
+		doneClients = 0
 	)
 	logger := clients[0].Logger()
 	logger.Debug("multiplexing client", "count", len(clients), "table", e.Table.Name)
 	defer close(diagsChan)
 	for _, client := range clients {
+		// we can only limit on a granularity of a top table otherwise we can get deadlock
+		if err := e.goroutinesSem.Acquire(ctx, 1); err != nil {
+			return totalResources, allDiags.Add(FromError(err, WithResource(e.ResourceName), WithErrorClassifier))
+		}
 		go func(c schema.ClientMeta, diags chan<- diag.Diagnostics) {
-			count, resolveDiags := e.callTableResolve(ctx, c, parent)
+			defer e.goroutinesSem.Release(1)
+			count, resolveDiags := e.callTableResolve(ctx, c, nil)
 			atomic.AddUint64(&totalResources, count)
 			diagsChan <- resolveDiags
 		}(client, diagsChan)
 	}
-	var (
-		allDiags    diag.Diagnostics
-		doneClients = 0
-	)
+
 	for dd := range diagsChan {
 		allDiags = allDiags.Add(dd)
 		doneClients++
@@ -168,6 +179,8 @@ func (e TableExecutor) callTableResolve(ctx context.Context, client schema.Clien
 
 	res := make(chan interface{})
 	var resolverErr error
+
+	// we are not using goroutinesSem semaphore here as it's just a +1 goroutine and it might get us deadlocked
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {

@@ -64,9 +64,9 @@ func (g GRPCClient) ConfigureProvider(ctx context.Context, request *ConfigurePro
 
 func (g GRPCClient) FetchResources(ctx context.Context, request *FetchResourcesRequest) (FetchResourcesStream, error) {
 	res, err := g.client.FetchResources(ctx, &internal.FetchResources_Request{
-		Resources:              request.Resources,
-		PartialFetchingEnabled: request.PartialFetchingEnabled,
-		ParallelFetchingLimit:  request.ParallelFetchingLimit,
+		Resources:             request.Resources,
+		ParallelFetchingLimit: request.ParallelFetchingLimit,
+		MaxGoroutines:         request.MaxGoroutines,
 	})
 	if err != nil {
 		return nil, err
@@ -155,7 +155,11 @@ func (g *GRPCServer) ConfigureProvider(ctx context.Context, request *internal.Co
 func (g *GRPCServer) FetchResources(request *internal.FetchResources_Request, server internal.Provider_FetchResourcesServer) error {
 	return g.Impl.FetchResources(
 		server.Context(),
-		&FetchResourcesRequest{Resources: request.GetResources(), PartialFetchingEnabled: request.PartialFetchingEnabled, ParallelFetchingLimit: request.ParallelFetchingLimit},
+		&FetchResourcesRequest{
+			Resources:             request.GetResources(),
+			ParallelFetchingLimit: request.ParallelFetchingLimit,
+			MaxGoroutines:         request.MaxGoroutines,
+		},
 		&GRPCFetchResourcesServer{server: server},
 	)
 }

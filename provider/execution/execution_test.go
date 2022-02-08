@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/cloudquery/cq-provider-sdk/helpers"
 	"github.com/cloudquery/cq-provider-sdk/provider/diag"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/cloudquery/cq-provider-sdk/testlog"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/aws/smithy-go/ptr"
 	"github.com/creasty/defaults"
@@ -442,7 +444,8 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			if tc.SetupStorage != nil {
 				storage = tc.SetupStorage(t)
 			}
-			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, tc.ExtraFields, nil)
+			limiter := semaphore.NewWeighted(int64(helpers.GetMaxGoRoutines()))
+			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, tc.ExtraFields, nil, limiter)
 			count, diags := exec.Resolve(context.Background(), executionClient)
 			assert.Equal(t, tc.ExpectedResourceCount, count)
 			if tc.ErrorExpected {
@@ -560,7 +563,8 @@ func TestTableExecutor_resolveResourceValues(t *testing.T) {
 			if tc.SetupStorage != nil {
 				storage = tc.SetupStorage(t)
 			}
-			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, nil, nil)
+			limiter := semaphore.NewWeighted(int64(helpers.GetMaxGoRoutines()))
+			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, nil, nil, limiter)
 
 			r := schema.NewResourceData(storage.Dialect(), tc.Table, nil, tc.ResourceData, tc.MetaData, exec.executionStart)
 			// columns should be resolved from ColumnResolver functions or default functions
