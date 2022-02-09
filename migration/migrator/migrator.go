@@ -13,7 +13,7 @@ import (
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	mpg "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/hashicorp/go-hclog"
@@ -134,9 +134,8 @@ func New(log hclog.Logger, dt schema.DialectType, migrationFiles map[string]map[
 		u.RawQuery += fmt.Sprintf("x-migrations-table=%s_schema_migrations", providerName)
 	}
 	m, err := migrate.NewWithSourceInstance(providerName, driver, u.String())
-
 	if err != nil {
-		return nil, err
+		return nil, convertMigrateError(u.String(), err)
 	}
 	return &Migrator{
 		log:           log,
@@ -242,7 +241,7 @@ func (m *Migrator) DropProvider(ctx context.Context, schema map[string]*schema.T
 
 	newM, err := migrate.NewWithSourceInstance(m.provider, m.driver, m.migratorUrl.String())
 	if err != nil {
-		return err
+		return convertMigrateError(m.migratorUrl.String(), err)
 	}
 	// reset migrator
 	m.m = newM
@@ -322,4 +321,28 @@ func dropTables(ctx context.Context, conn *pgx.Conn, table *schema.Table) error 
 		}
 	}
 	return nil
+}
+
+func convertMigrateError(dsnURI string, err error) error {
+	if err == nil {
+		return err
+	}
+
+	// https://github.com/golang-migrate/migrate/issues/696
+	if err != mpg.ErrNoSchema && !strings.Contains(err.Error(), `"current_schema": converting NULL to string`) {
+		return err
+	}
+
+	const errFmt = "CURRENT_SCHEMA seems empty, possibly due to empty search_path. Try `GRANT ALL PRIVILEGES ON %s TO <user>`"
+
+	u, err2 := dsn.ParseConnectionString(dsnURI)
+	if err2 != nil {
+		return fmt.Errorf(errFmt, `<schema>`)
+	}
+	p := u.Query().Get("search_path")
+	if p == "" {
+		p = "public"
+	}
+
+	return fmt.Errorf(errFmt, p)
 }

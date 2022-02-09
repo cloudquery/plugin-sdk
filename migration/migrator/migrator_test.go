@@ -2,12 +2,17 @@ package migrator
 
 import (
 	"context"
+	"net/url"
+	"os"
 	"testing"
 
+	"github.com/cloudquery/cq-provider-sdk/database/dsn"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 
+	"github.com/georgysavva/scany/pgxscan"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/hashicorp/go-hclog"
+	"github.com/jackc/pgx/v4"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,8 +53,15 @@ var (
 	}
 )
 
+func getDBUrl() string {
+	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
+		return dsn
+	}
+	return "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable"
+}
+
 func TestMigrations(t *testing.T) {
-	m, err := New(hclog.Default(), schema.Postgres, simpleMigrations, "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable", "test", nil)
+	m, err := New(hclog.Default(), schema.Postgres, simpleMigrations, getDBUrl(), "test", nil)
 	assert.Nil(t, err)
 
 	err = m.DropProvider(context.Background(), nil)
@@ -85,7 +97,7 @@ func TestMigrations(t *testing.T) {
 
 // TestMigrationJumps tests an edge case we request a higher version but latest migration is a previous version
 func TestMigrationJumps(t *testing.T) {
-	m, err := New(hclog.Default(), schema.Postgres, complexMigrations, "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable", "test", nil)
+	m, err := New(hclog.Default(), schema.Postgres, complexMigrations, getDBUrl(), "test", nil)
 	assert.Nil(t, err)
 
 	err = m.DropProvider(context.Background(), nil)
@@ -99,10 +111,10 @@ func TestMigrationJumps(t *testing.T) {
 }
 
 func TestMultiProviderMigrations(t *testing.T) {
-	mtest, err := New(hclog.Default(), schema.Postgres, simpleMigrations, "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable", "test", nil)
+	mtest, err := New(hclog.Default(), schema.Postgres, simpleMigrations, getDBUrl(), "test", nil)
 	assert.Nil(t, err)
 
-	mtest2, err := New(hclog.Default(), schema.Postgres, simpleMigrations, "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable", "test2", nil)
+	mtest2, err := New(hclog.Default(), schema.Postgres, simpleMigrations, getDBUrl(), "test2", nil)
 	assert.Nil(t, err)
 
 	err = mtest.DropProvider(context.Background(), nil)
@@ -134,7 +146,7 @@ func TestMultiProviderMigrations(t *testing.T) {
 }
 
 func TestFindLatestMigration(t *testing.T) {
-	mtest, err := New(hclog.Default(), schema.Postgres, complexMigrations, "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable", "test", nil)
+	mtest, err := New(hclog.Default(), schema.Postgres, complexMigrations, getDBUrl(), "test", nil)
 	assert.Nil(t, err)
 	mv, err := mtest.FindLatestMigration("v0.0.3")
 	assert.Nil(t, err)
@@ -159,4 +171,95 @@ func TestFindLatestMigration(t *testing.T) {
 	mv, err = mtest.FindLatestMigration(Latest)
 	assert.Nil(t, err)
 	assert.Equal(t, uint(5), mv)
+}
+
+func TestNoSchemaError(t *testing.T) {
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, getDBUrl())
+	assert.NoError(t, err)
+	defer conn.Close(ctx)
+
+	const newDBName = "testschemadb"
+
+	if _, err := conn.Exec(ctx, "DROP DATABASE IF EXISTS "+newDBName); err != nil {
+		t.Logf("DROP DATABASE failed: %v", err)
+	}
+
+	_, err = conn.Exec(ctx, "CREATE DATABASE "+newDBName)
+	assert.NoError(t, err)
+	if t.Failed() {
+		t.FailNow()
+	}
+
+	defer func() {
+		if _, err := conn.Exec(ctx, "DROP DATABASE "+newDBName+" WITH(FORCE)"); err != nil {
+			t.Logf("DROP DATABASE failed: %v", err)
+		}
+	}()
+
+	u, err := dsn.ParseConnectionString(getDBUrl())
+	assert.NoError(t, err)
+	u.Path = "/" + newDBName
+	newDSN := u.String()
+
+	newConn, err := pgx.Connect(ctx, newDSN)
+	assert.NoError(t, err)
+	defer newConn.Close(ctx)
+
+	for _, q := range []string{
+		"CREATE USER weakuser WITH PASSWORD 'weak'",
+		"REVOKE ALL ON SCHEMA public FROM PUBLIC",
+	} {
+		_, err = newConn.Exec(ctx, q)
+		assert.NoError(t, err)
+		if t.Failed() {
+			t.FailNow()
+		}
+	}
+	defer func() {
+		if _, err := newConn.Exec(ctx, "DROP USER weakuser"); err != nil {
+			t.Logf("DROP USER failed: %v", err)
+		}
+	}()
+
+	u.User = url.UserPassword("weakuser", "weak")
+	weakDSN := u.String()
+	weakConn, err := pgx.Connect(ctx, weakDSN)
+	assert.NoError(t, err)
+	defer weakConn.Close(ctx)
+
+	var results []struct {
+		Name    string `db:"name"`
+		Create  bool   `db:"create"`
+		Usage   bool   `db:"usage"`
+		Current *bool  `db:"current"`
+	}
+	err = pgxscan.Select(ctx, weakConn, &results, `WITH "names"("name") AS (
+  SELECT n.nspname AS "name"
+    FROM pg_catalog.pg_namespace n
+      WHERE n.nspname !~ '^pg_'
+        AND n.nspname <> 'information_schema'
+) SELECT "name",
+  pg_catalog.has_schema_privilege(current_user, "name", 'CREATE') AS "create",
+  pg_catalog.has_schema_privilege(current_user, "name", 'USAGE')  AS "usage",
+  "name" = pg_catalog.current_schema() AS "current"
+    FROM "names"`)
+	assert.NoError(t, err)
+	for _, row := range results {
+		//t.Logf("%s\t%v\t%v\t%v\n", row.Name, row.Create, row.Usage, row.Current)
+		if row.Name == "public" {
+			assert.Nil(t, row.Current)
+			if t.Failed() {
+				t.FailNow()
+			}
+		}
+	}
+
+	m, err := New(hclog.Default(), schema.Postgres, simpleMigrations, weakDSN, "test", nil)
+	assert.Nil(t, m)
+	if t.Failed() {
+		m.Close()
+	}
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), `CURRENT_SCHEMA seems empty, possibly due to empty search_path`)
 }
