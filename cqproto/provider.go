@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cloudquery/cq-provider-sdk/cqproto/internal"
 	"github.com/cloudquery/cq-provider-sdk/provider/diag"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 )
@@ -131,6 +132,14 @@ const (
 	// ResourceFetchCanceled execution was canceled preemptively
 	ResourceFetchCanceled
 )
+
+func (s ResourceFetchStatus) String() string {
+	name, ok := internal.ResourceFetchSummary_Status_name[int32(s)]
+	if !ok {
+		return "UNKNOWN"
+	}
+	return name
+}
 
 // ResourceFetchSummary includes a summarized report of a fetched resource, such as total amount of resources collected,
 // status of the fetch and any diagnostics found while executing fetch on it.
