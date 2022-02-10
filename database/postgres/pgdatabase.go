@@ -74,7 +74,7 @@ func (p PgDatabase) Insert(ctx context.Context, t *schema.Table, resources schem
 
 	s, args, err := sqlStmt.ToSql()
 	if err != nil {
-		return diag.NewBaseError(err, diag.ERROR, diag.DATABASE, t.Name, "bad insert SQL statement created", fmt.Sprintf("SQL statement %s is invalid", s))
+		return diag.NewBaseError(err, diag.DATABASE, diag.WithResourceName(t.Name), diag.WithSummary("bad insert SQL statement created"), diag.WithDetails("SQL statement %q is invalid", s))
 	}
 	_, err = p.pool.Exec(ctx, s, args...)
 	if err == nil {
@@ -88,9 +88,9 @@ func (p PgDatabase) Insert(ctx context.Context, t *schema.Table, resources schem
 		if pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
 			p.log.Debug("insert integrity violation error", "constraint", pgErr.ConstraintName, "errMsg", pgErr.Message)
 		}
-		return diag.NewBaseError(err, diag.ERROR, diag.DATABASE, t.Name, fmt.Sprintf("failed to insert to table %s", t.Name), pgErr.Message)
+		return diag.NewBaseError(err, diag.DATABASE, diag.WithResourceName(t.Name), diag.WithSummary("failed to insert to table %q", t.Name), diag.WithDetails("%s", pgErr.Message))
 	}
-	return diag.NewBaseError(err, diag.ERROR, diag.DATABASE, t.Name, err.Error(), "")
+	return diag.NewBaseError(err, diag.DATABASE, diag.WithResourceName(t.Name))
 }
 
 // CopyFrom copies all resources from []*Resource

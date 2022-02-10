@@ -50,7 +50,9 @@ type Diagnostic interface {
 }
 
 type Description struct {
-	Resource string
-	Summary  string
-	Detail   string
+	Resource   string
+	ResourceID []string
+
+	Summary string
+	Detail  string
 }

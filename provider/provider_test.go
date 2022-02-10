@@ -326,8 +326,7 @@ func TestProvider_FetchResources(t *testing.T) {
 					Summary: cqproto.ResourceFetchSummary{
 						Status:        cqproto.ResourceFetchComplete,
 						ResourceCount: 0,
-						Diagnostics: diag.Diagnostics{diag.NewBaseError(errors.New("table[bad_resource_ignore_error] resolver ignored error. Error: bad error"),
-							diag.IGNORE, diag.RESOLVING, "bad_resource_ignore_error", "table[bad_resource_ignore_error] resolver ignored error. Error: bad error", "")},
+						Diagnostics:   diag.Diagnostics{diag.NewBaseError(errors.New("bad error"), diag.RESOLVING, diag.WithResourceName("bad_resource_ignore_error"), diag.WithSeverity(diag.IGNORE), diag.WithSummary("table[bad_resource_ignore_error] resolver ignored error. Error: bad error"))},
 					},
 				}},
 			ExpectedError: nil,
@@ -348,7 +347,7 @@ func TestProvider_FetchResources(t *testing.T) {
 					Summary: cqproto.ResourceFetchSummary{
 						Status:        cqproto.ResourceFetchPartial,
 						ResourceCount: 0,
-						Diagnostics:   diag.Diagnostics{diag.NewBaseError(errors.New("bad error"), diag.ERROR, diag.RESOLVING, "bad_resource", "failed to resolve table \"bad_resource\"", "")},
+						Diagnostics:   diag.Diagnostics{diag.NewBaseError(errors.New("bad error"), diag.RESOLVING, diag.WithResourceName("bad_resource"), diag.WithSummary(`failed to resolve table "bad_resource"`))},
 					},
 				},
 			},
@@ -369,8 +368,8 @@ func TestProvider_FetchResources(t *testing.T) {
 					Summary: cqproto.ResourceFetchSummary{
 						Status:        cqproto.ResourceFetchCanceled,
 						ResourceCount: 0,
-						Diagnostics: diag.Diagnostics{diag.NewBaseError(errors.New("context canceled"),
-							diag.ERROR, diag.RESOLVING, "very_slow_resource", "failed to resolve table \"very_slow_resource\"", "")},
+						Diagnostics: diag.Diagnostics{diag.NewBaseError(context.Canceled,
+							diag.RESOLVING, diag.WithResourceName("very_slow_resource"), diag.WithSummary(`failed to resolve table "very_slow_resource"`))},
 					},
 				}},
 			ExpectedError: nil,

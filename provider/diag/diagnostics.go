@@ -3,6 +3,7 @@ package diag
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/hcl/v2"
@@ -18,19 +19,29 @@ func (diags Diagnostics) Error() string {
 		return "no errors"
 	case len(diags) == 1:
 		desc := diags[0].Description()
-		if desc.Detail == "" {
-			return desc.Summary
+		var ret bytes.Buffer
+		if len(desc.ResourceID) > 0 {
+			fmt.Fprintf(&ret, "[%s] ", strings.Join(desc.ResourceID, ","))
 		}
-		return fmt.Sprintf("%s: %s", desc.Summary, desc.Detail)
+		if desc.Detail == "" {
+			fmt.Fprintf(&ret, "%s", desc.Summary)
+		} else {
+			fmt.Fprintf(&ret, "%s: %s", desc.Summary, desc.Detail)
+		}
+		return ret.String()
 	default:
 		var ret bytes.Buffer
 		fmt.Fprintf(&ret, "%d problems:\n", len(diags))
 		for _, diag := range diags {
 			desc := diag.Description()
+			fmt.Fprintf(&ret, "\n- ")
+			if len(desc.ResourceID) > 0 {
+				fmt.Fprintf(&ret, "[%s] ", strings.Join(desc.ResourceID, ","))
+			}
 			if desc.Detail == "" {
-				fmt.Fprintf(&ret, "\n- %s", desc.Summary)
+				fmt.Fprintf(&ret, "%s", desc.Summary)
 			} else {
-				fmt.Fprintf(&ret, "\n- %s: %s", desc.Summary, desc.Detail)
+				fmt.Fprintf(&ret, "%s: %s", desc.Summary, desc.Detail)
 			}
 		}
 		return ret.String()

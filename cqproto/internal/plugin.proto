@@ -114,6 +114,7 @@ message Diagnostic {
   string detail = 4;
   string resource = 5;
   Diagnostic redacted = 6;
+  repeated string resourceId = 7;
 }
 
 message DialectMigration {

@@ -4,6 +4,7 @@ package diag
 type FlatDiag struct {
 	Err         string
 	Resource    string
+	ResourceID  []string
 	Type        DiagnosticType
 	Severity    Severity
 	Summary     string
@@ -21,6 +22,9 @@ func FlattenDiags(dd Diagnostics, skipDescription bool) []FlatDiag {
 			Type:     d.Type(),
 			Severity: d.Severity(),
 			Summary:  description.Summary,
+		}
+		if len(description.ResourceID) > 0 {
+			df[i].ResourceID = description.ResourceID
 		}
 		if !skipDescription {
 			df[i].Description = description

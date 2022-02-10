@@ -70,8 +70,9 @@ var (
 	}
 	postResourceResolverError = func(ctx context.Context, meta schema.ClientMeta, resource *schema.Resource) error {
 		return diag.Diagnostics{
-			NewError(diag.ERROR, diag.RESOLVING, resource.TableName(), "some error"),
-			NewError(diag.ERROR, diag.RESOLVING, resource.TableName(), "some error 2")}
+			diag.NewBaseError(nil, diag.RESOLVING, diag.WithResourceName(resource.TableName()), diag.WithSummary("some error")),
+			diag.NewBaseError(nil, diag.RESOLVING, diag.WithResourceName(resource.TableName()), diag.WithSummary("some error 2")),
+		}
 	}
 )
 
@@ -132,10 +133,10 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			ErrorExpected: true,
 			ExpectedDiags: []diag.FlatDiag{
 				{
-					Err:      "table no-resolver missing resolver, make sure table implements the resolver",
+					Err:      `table "no-resolver" missing resolver, make sure table implements the resolver`,
 					Resource: "missing_table_resolver",
 					Severity: diag.ERROR,
-					Summary:  "table no-resolver missing resolver, make sure table implements the resolver",
+					Summary:  `table "no-resolver" missing resolver, make sure table implements the resolver`,
 					Type:     diag.SCHEMA,
 				},
 			},
@@ -158,10 +159,10 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			ErrorExpected:         true,
 			ExpectedDiags: []diag.FlatDiag{
 				{
-					Err:      "table relation-no-resolver missing resolver, make sure table implements the resolver",
+					Err:      `table "relation-no-resolver" missing resolver, make sure table implements the resolver`,
 					Resource: "missing_table_relation_resolver",
 					Severity: diag.ERROR,
-					Summary:  "table relation-no-resolver missing resolver, make sure table implements the resolver",
+					Summary:  `table "relation-no-resolver" missing resolver, make sure table implements the resolver`,
 					Type:     diag.SCHEMA,
 				},
 			},
@@ -179,7 +180,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 					Err:      "table resolver panic: resolver panic",
 					Resource: "panic_resolver",
 					Severity: diag.PANIC,
-					Summary:  "panic on resource table panic_resolver fetch",
+					Summary:  `panic on resource table "panic_resolver" fetch`,
 					Type:     diag.RESOLVING,
 				},
 			},
@@ -205,7 +206,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 					Err:      "table resolver panic: resolver panic",
 					Resource: "panic_relation_resolver",
 					Severity: diag.PANIC,
-					Summary:  "panic on resource table relation_panic_resolver fetch",
+					Summary:  `panic on resource table "relation_panic_resolver" fetch`,
 					Type:     diag.RESOLVING,
 				},
 			},
@@ -223,7 +224,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 					Err:      "some error",
 					Resource: "error_returning",
 					Severity: diag.ERROR,
-					Summary:  "failed to resolve table \"simple\"",
+					Summary:  `failed to resolve table "simple"`,
 					Type:     diag.RESOLVING,
 				},
 			},
@@ -244,7 +245,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 					Err:      "some error",
 					Resource: "error_returning_ignore_fail",
 					Severity: diag.ERROR,
-					Summary:  "failed to resolve table \"simple\"",
+					Summary:  `failed to resolve table "simple"`,
 					Type:     diag.RESOLVING,
 				},
 			},
@@ -262,7 +263,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			ErrorExpected: true,
 			ExpectedDiags: []diag.FlatDiag{
 				{
-					Err:      "table[simple] resolver ignored error. Error: some error",
+					Err:      "some error",
 					Resource: "error_returning_ignore",
 					Severity: diag.IGNORE,
 					Summary:  "table[simple] resolver ignored error. Error: some error",
@@ -294,7 +295,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			SetupStorage: func(t *testing.T) Storage {
 				db := new(DatabaseMock)
 				db.On("Delete", mock.Anything, mock.Anything, mock.Anything).
-					Return(FromError(errors.New("failed delete"), WithResource("always_delete_fail"), WithType(diag.DATABASE)))
+					Return(FromError(errors.New("failed delete"), diag.WithResourceName("always_delete_fail"), diag.WithType(diag.DATABASE)))
 				db.On("Dialect").Return(noopDialect{})
 				return db
 			},
@@ -314,6 +315,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 					Resource: "always_delete_fail",
 					Severity: diag.ERROR,
 					Type:     diag.DATABASE,
+					Summary:  "failed delete",
 				},
 			},
 		},
@@ -322,7 +324,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			SetupStorage: func(t *testing.T) Storage {
 				db := new(DatabaseMock)
 				db.On("RemoveStaleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-					Return(FromError(errors.New("failed delete"), WithResource("cleanup_stale_data_fail"), WithType(diag.DATABASE)))
+					Return(FromError(errors.New("failed delete"), diag.WithResourceName("cleanup_stale_data_fail"), diag.WithType(diag.DATABASE)))
 				db.On("Dialect").Return(noopDialect{})
 				return db
 			},
@@ -341,6 +343,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 					Resource: "cleanup_stale_data_fail",
 					Severity: diag.ERROR,
 					Type:     diag.DATABASE,
+					Summary:  `failed to cleanup stale data on table "cleanup_delete"`,
 				},
 			},
 		},
@@ -451,10 +454,10 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			if tc.ErrorExpected {
 				require.True(t, diags.HasDiags())
 				if tc.ExpectedDiags != nil {
-					assert.Equal(t, tc.ExpectedDiags, diag.FlattenDiags(diags, true))
+					assert.EqualValues(t, tc.ExpectedDiags, diag.FlattenDiags(diags, true))
 				}
 			} else {
-				require.Nil(t, diags)
+				require.Empty(t, diags)
 			}
 		})
 	}
