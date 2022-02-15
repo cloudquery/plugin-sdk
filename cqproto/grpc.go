@@ -204,6 +204,10 @@ func (g *GRPCServer) GetModuleInfo(ctx context.Context, request *internal.GetMod
 	if err != nil {
 		return nil, err
 	}
+	if resp == nil {
+		return &internal.GetModuleInfo_Response{}, nil
+	}
+
 	return &internal.GetModuleInfo_Response{
 		Data:              moduleInfoToProto(resp.Data),
 		AvailableVersions: resp.AvailableVersions,

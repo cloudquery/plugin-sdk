@@ -43,6 +43,7 @@ require (
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/containerd/containerd v1.5.9 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/docker/distribution v2.8.0+incompatible // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/go-test/deep v1.0.7 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
