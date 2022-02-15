@@ -11,6 +11,8 @@ service Provider {
   rpc ConfigureProvider(ConfigureProvider.Request) returns (ConfigureProvider.Response);
   // Fetch Provider Resources
   rpc FetchResources(FetchResources.Request) returns (stream FetchResources.Response);
+  // Gets info about specific module config embedded inside provider
+  rpc GetModuleInfo(GetModuleInfo.Request) returns (GetModuleInfo.Response);
 }
 
 
@@ -137,6 +139,28 @@ message GetProviderConfig {
     string name = 1;
     string version = 2;
     bytes config = 3;
+  }
+}
+
+message GetModuleInfo {
+  message Request {
+    string module = 1;
+    repeated uint32 preferred_versions = 2;
+  }
+  message Response {
+    map<uint32, ModuleInfo> data = 1;
+    repeated uint32 available_versions = 2;
+    repeated Diagnostic diagnostics = 3;
+
+    message ModuleInfo {
+      repeated ModuleFile files = 1;
+      map<string, string> extras = 2;
+
+      message ModuleFile {
+        string name = 1;
+        bytes contents = 2;
+      }
+    }
   }
 }
 

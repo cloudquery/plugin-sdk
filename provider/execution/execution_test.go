@@ -295,7 +295,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			SetupStorage: func(t *testing.T) Storage {
 				db := new(DatabaseMock)
 				db.On("Delete", mock.Anything, mock.Anything, mock.Anything).
-					Return(FromError(errors.New("failed delete"), diag.WithResourceName("always_delete_fail"), diag.WithType(diag.DATABASE)))
+					Return(fromError(errors.New("failed delete"), diag.WithResourceName("always_delete_fail"), diag.WithType(diag.DATABASE)))
 				db.On("Dialect").Return(noopDialect{})
 				return db
 			},
@@ -324,7 +324,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			SetupStorage: func(t *testing.T) Storage {
 				db := new(DatabaseMock)
 				db.On("RemoveStaleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-					Return(FromError(errors.New("failed delete"), diag.WithResourceName("cleanup_stale_data_fail"), diag.WithType(diag.DATABASE)))
+					Return(fromError(errors.New("failed delete"), diag.WithResourceName("cleanup_stale_data_fail"), diag.WithType(diag.DATABASE)))
 				db.On("Dialect").Return(noopDialect{})
 				return db
 			},

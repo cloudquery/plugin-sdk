@@ -221,7 +221,7 @@ func (e TableExecutor) callTableResolve(ctx context.Context, client schema.Clien
 		client.Logger().Info("fetched successfully", "table", e.Table.Name, "count", nc)
 	}
 	if err := e.cleanupStaleData(ctx, client, parent); err != nil {
-		return nc, diags.Add(FromError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed to cleanup stale data on table %q", e.Table.Name)))
+		return nc, diags.Add(fromError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed to cleanup stale data on table %q", e.Table.Name)))
 	}
 	return nc, diags
 }
@@ -279,7 +279,7 @@ func (e TableExecutor) saveToStorage(ctx context.Context, resources schema.Resou
 	}
 	e.Logger.Error("failed insert to db", "error", err, "table", e.Table.Name)
 	// Setup diags, adding first diagnostic that bulk insert failed
-	diags := diag.Diagnostics{}.Add(FromError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed bulk insert on table %q", e.Table.Name)))
+	diags := diag.Diagnostics{}.Add(fromError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed bulk insert on table %q", e.Table.Name)))
 	// Try to insert resource by resource if partial fetch is enabled and an error occurred
 	partialFetchResources := make(schema.Resources, 0)
 	for id := range resources {
@@ -300,7 +300,7 @@ func (e TableExecutor) resolveResourceValues(ctx context.Context, meta schema.Cl
 		if r := recover(); r != nil {
 			stack := string(debug.Stack())
 			e.Logger.Error("resolve table recovered from panic", "table", e.Table.Name, "stack", stack)
-			diags = FromError(fmt.Errorf("column resolve panic: %s", r), diag.WithResourceName(e.ResourceName), diag.WithSeverity(diag.PANIC),
+			diags = fromError(fmt.Errorf("column resolve panic: %s", r), diag.WithResourceName(e.ResourceName), diag.WithSeverity(diag.PANIC),
 				diag.WithSummary("resolve table %q recovered from panic.", e.Table.Name), diag.WithDetails("%s", stack))
 		}
 	}()
@@ -316,7 +316,7 @@ func (e TableExecutor) resolveResourceValues(ctx context.Context, meta schema.Cl
 	// Finally, resolve columns internal to the SDK
 	for _, c := range e.columns[1] {
 		if err := c.Resolver(ctx, meta, resource, c); err != nil {
-			return FromError(err, diag.WithResourceName(e.ResourceName), WithResource(resource), diag.WithType(diag.INTERNAL), diag.WithSummary("default column %q resolver execution", c.Name))
+			return fromError(err, diag.WithResourceName(e.ResourceName), WithResource(resource), diag.WithType(diag.INTERNAL), diag.WithSummary("default column %q resolver execution", c.Name))
 		}
 	}
 	return diags
@@ -345,7 +345,7 @@ func (e TableExecutor) resolveColumns(ctx context.Context, meta schema.ClientMet
 			}
 			// Set default value if defined, otherwise it will be nil
 			if err := resource.Set(c.Name, c.Default); err != nil {
-				return FromError(err, diag.WithResourceName(e.ResourceName), diag.WithType(diag.INTERNAL),
+				return fromError(err, diag.WithResourceName(e.ResourceName), diag.WithType(diag.INTERNAL),
 					diag.WithSummary("failed to set resource default value for %s@%s", e.Table.Name, c.Name))
 			}
 			continue
@@ -359,7 +359,7 @@ func (e TableExecutor) resolveColumns(ctx context.Context, meta schema.ClientMet
 		}
 		meta.Logger().Trace("setting column value", "column", c.Name, "value", v, "table", e.Table.Name)
 		if err := resource.Set(c.Name, v); err != nil {
-			return FromError(err, diag.WithResourceName(e.ResourceName), diag.WithType(diag.INTERNAL),
+			return fromError(err, diag.WithResourceName(e.ResourceName), diag.WithType(diag.INTERNAL),
 				diag.WithSummary("failed to set resource value for column %s@%s", e.Table.Name, c.Name))
 		}
 	}
@@ -368,7 +368,7 @@ func (e TableExecutor) resolveColumns(ctx context.Context, meta schema.ClientMet
 
 // handleResolveError handles errors returned by user defined functions, using the ErrorClassifiers if defined.
 func (e TableExecutor) handleResolveError(meta schema.ClientMeta, r *schema.Resource, err error, opts ...diag.BaseErrorOption) diag.Diagnostics {
-	errAsDiags := FromError(err, append(opts,
+	errAsDiags := fromError(err, append(opts,
 		diag.WithResourceName(e.ResourceName),
 		WithResource(r),
 		diag.WithSeverity(diag.ERROR),
@@ -378,7 +378,7 @@ func (e TableExecutor) handleResolveError(meta schema.ClientMeta, r *schema.Reso
 
 	classifiedDiags := make(diag.Diagnostics, 0, len(errAsDiags))
 	for _, c := range e.classifiers {
-		// FromError gives us diag.Diagnostics, but we need to make sure to pass one diag at a time to the classifiers and collect results,
+		// fromError gives us diag.Diagnostics, but we need to make sure to pass one diag at a time to the classifiers and collect results,
 		// mostly because Unwrap()/errors.As() can't work on multiple diags
 		for _, d := range errAsDiags {
 			if diags := c(meta, e.ResourceName, d); diags != nil {

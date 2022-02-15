@@ -25,6 +25,9 @@ type CQProvider interface {
 	// FetchResources is called when CloudQuery requests to fetch one or more resources from the provider.
 	// The provider reports back status updates on the resources fetching progress.
 	FetchResources(context.Context, *FetchResourcesRequest) (FetchResourcesStream, error)
+
+	// Gets info about specific module config embedded inside provider
+	GetModuleInfo(context.Context, *GetModuleRequest) (*GetModuleResponse, error)
 }
 
 type CQProviderServer interface {
@@ -42,6 +45,9 @@ type CQProviderServer interface {
 	// FetchResources is called when CloudQuery requests to fetch one or more resources from the provider.
 	// The provider reports back status updates on the resources fetching progress.
 	FetchResources(context.Context, *FetchResourcesRequest, FetchResourcesSender) error
+
+	// Gets info about specific module config embedded inside provider
+	GetModuleInfo(context.Context, *GetModuleRequest) (*GetModuleResponse, error)
 }
 
 // GetProviderSchemaRequest represents a CloudQuery RPC request for provider's schemas
@@ -117,6 +123,31 @@ type FetchResourcesResponse struct {
 	PartialFetchFailedResources []*FailedResourceFetch
 	// fetch summary of resource that finished execution
 	Summary ResourceFetchSummary
+}
+
+// GetModuleRequest represents a CloudQuery RPC request of provider's module info for specific provider
+type GetModuleRequest struct {
+	Module            string
+	PreferredVersions []uint32
+}
+
+// GetModuleResponse represents a CloudQuery RPC response of provider's module info for specific provider
+type GetModuleResponse struct {
+	Data              map[uint32]ModuleInfo // version vs Info
+	AvailableVersions []uint32              // all available versions, regardless of being requested in PreferredVersions or not
+	Diagnostics       diag.Diagnostics
+}
+
+// ModuleInfo is info about a module
+type ModuleInfo struct {
+	Files  []*ModuleFile
+	Extras map[string]string
+}
+
+// ModuleFile is a file definition inside ModuleInfo
+type ModuleFile struct {
+	Name     string
+	Contents []byte
 }
 
 // ResourceFetchStatus defines execution status of the resource fetch execution

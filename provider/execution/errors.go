@@ -23,7 +23,7 @@ func defaultErrorClassifier(_ schema.ClientMeta, resourceName string, err error)
 	}
 	if strings.Contains(err.Error(), ": socket: too many open files") {
 		// Return a Diagnostic error so that it can be properly propagated back to the user via the CLI
-		return FromError(err, diag.WithResourceName(resourceName), diag.WithSummary(fdLimitMessage), diag.WithType(diag.THROTTLE), diag.WithSeverity(diag.WARNING))
+		return fromError(err, diag.WithResourceName(resourceName), diag.WithSummary(fdLimitMessage), diag.WithType(diag.THROTTLE), diag.WithSeverity(diag.WARNING))
 	}
 	return nil
 }
@@ -33,10 +33,17 @@ func ClassifyError(err error, opts ...diag.BaseErrorOption) diag.Diagnostics {
 		// Return a Diagnostic error so that it can be properly propagated back to the user via the CLI
 		opts = append(opts, diag.WithSeverity(diag.WARNING), diag.WithType(diag.THROTTLE), diag.WithSummary("%s", fdLimitMessage))
 	}
-	return FromError(err, opts...)
+	return fromError(err, opts...)
 }
 
-func FromError(err error, opts ...diag.BaseErrorOption) diag.Diagnostics {
+func WithResource(resource *schema.Resource) diag.BaseErrorOption {
+	if resource == nil {
+		return diag.WithResourceId(nil)
+	}
+	return diag.WithResourceId(resource.PrimaryKeyValues())
+}
+
+func fromError(err error, opts ...diag.BaseErrorOption) diag.Diagnostics {
 	switch ti := err.(type) {
 	case diag.Diagnostics:
 		ret := make(diag.Diagnostics, len(ti))
@@ -48,11 +55,4 @@ func FromError(err error, opts ...diag.BaseErrorOption) diag.Diagnostics {
 		e := diag.NewBaseError(err, diag.RESOLVING, append([]diag.BaseErrorOption{diag.WithNoOverwrite()}, opts...)...)
 		return diag.Diagnostics{e}
 	}
-}
-
-func WithResource(resource *schema.Resource) diag.BaseErrorOption {
-	if resource == nil {
-		return diag.WithResourceId(nil)
-	}
-	return diag.WithResourceId(resource.PrimaryKeyValues())
 }
