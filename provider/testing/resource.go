@@ -58,11 +58,8 @@ func TestResource(t *testing.T, resource ResourceTestCase) {
 	tableCreator := migration.NewTableCreator(l, schema.PostgresDialect{})
 
 	for _, table := range resource.Provider.ResourceMap {
-		if err := tableCreator.CreateTable(context.Background(), conn, table, nil); err != nil {
+		if err := dropAndCreateTable(context.Background(), tableCreator, conn, table, nil); err != nil {
 			assert.FailNow(t, fmt.Sprintf("failed to create tables %s", table.Name), err)
-		}
-		if err := truncateTables(conn, table); err != nil {
-			t.Fatal(err)
 		}
 	}
 
@@ -112,24 +109,6 @@ func fetch(t *testing.T, resource *ResourceTestCase) error {
 		return fmt.Errorf("error/s occur during test, %s", strings.Join(resourceSender.Errors, ", "))
 	}
 
-	return nil
-}
-
-func truncateTables(conn execution.QueryExecer, table *schema.Table) error {
-	s := sq.Delete(table.Name)
-	sql, args, err := s.ToSql()
-	if err != nil {
-		return err
-	}
-
-	if err := conn.Exec(context.TODO(), sql, args...); err != nil {
-		return err
-	}
-	for _, childTable := range table.Relations {
-		if err := truncateTables(conn, childTable); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -189,6 +168,34 @@ func verifyNoEmptyColumns(t *testing.T, table *schema.Table, conn pgxscan.Querie
 			verifyNoEmptyColumns(t, childTable, conn)
 		}
 	})
+}
+
+func dropAndCreateTable(
+	ctx context.Context,
+	tableCreator *migration.TableCreator,
+	conn execution.QueryExecer,
+	table *schema.Table,
+	parent *schema.Table) error {
+
+	ups, downs, err := tableCreator.CreateTableDefinitions(ctx, table, parent)
+
+	if err != nil {
+		return err
+	}
+
+	for _, sql := range downs {
+		if err := conn.Exec(ctx, sql); err != nil {
+			return err
+		}
+	}
+
+	for _, sql := range ups {
+		if err := conn.Exec(ctx, sql); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type testResourceSender struct {
