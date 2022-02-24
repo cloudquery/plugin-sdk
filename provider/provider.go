@@ -89,8 +89,6 @@ func (p *Provider) GetProviderConfig(_ context.Context, _ *cqproto.GetProviderCo
 			%s
 			// list of resources to fetch
 			resources = %s
-			// enables partial fetching, allowing for any failures to not stop full resource pull
-			enable_partial_fetch = true
 		}`, p.Name, p.Config().Example(), helpers.FormatSlice(funk.Keys(p.ResourceMap).([]string)))
 
 	return &cqproto.GetProviderConfigResponse{Config: hclwrite.Format([]byte(data))}, nil

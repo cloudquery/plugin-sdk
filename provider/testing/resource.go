@@ -37,7 +37,6 @@ func init() {
 	_ = faker.SetRandomMapAndSliceMaxSize(1)
 }
 
-// IntegrationTest - creates resources using terraform, fetches them to db and compares with expected values
 func TestResource(t *testing.T, resource ResourceTestCase) {
 	if !resource.NotParallel {
 		t.Parallel()

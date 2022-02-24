@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/cloudquery/cq-provider-sdk/migration/longestcommon"
-	"github.com/cloudquery/cq-provider-sdk/provider/execution"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 
 	"github.com/georgysavva/scany/pgxscan"
@@ -36,20 +35,6 @@ func NewTableCreator(log hclog.Logger, dialect schema.Dialect) *TableCreator {
 		log:     log,
 		dialect: dialect,
 	}
-}
-
-// CreateTable generates CREATE TABLE definitions for the given table and runs them on the given conn
-func (m TableCreator) CreateTable(ctx context.Context, conn execution.QueryExecer, t, p *schema.Table) error {
-	ups, _, err := m.CreateTableDefinitions(ctx, t, p)
-	if err != nil {
-		return err
-	}
-	for _, sql := range ups {
-		if err := conn.Exec(ctx, sql); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // CreateTableDefinitions reads schema.Table and builds the CREATE TABLE and DROP TABLE statements for it, also processing and returning subrelation tables
