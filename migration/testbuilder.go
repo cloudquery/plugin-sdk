@@ -10,11 +10,22 @@ import (
 	"github.com/cloudquery/cq-provider-sdk/migration/migrator"
 	"github.com/cloudquery/cq-provider-sdk/provider"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
+	"github.com/georgysavva/scany/pgxscan"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/hashicorp/go-hclog"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
+
+// queryPrimaryKeys lists all tables in the schema $1 which don't have the column $2 in their primary keys. Ignores *_schema_migrations tables.
+const queryPrimaryKeys = `SELECT kcu.table_name, c.constraint_name, ARRAY_AGG(kcu.column_name::text ORDER BY kcu.ordinal_position) AS pk_cols
+FROM information_schema.table_constraints c
+JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = c.constraint_name AND kcu.constraint_schema = c.constraint_schema AND kcu.constraint_name = c.constraint_name
+WHERE kcu.table_schema=$1 AND c.constraint_type = 'PRIMARY KEY' AND kcu.table_name NOT LIKE '%_schema_migrations'
+GROUP BY 1,2
+HAVING NOT ($2 = ANY(ARRAY_AGG(kcu.column_name::text)))
+ORDER BY 1,2;`
 
 // RunMigrationsTest helper tests the migration files of the provider using the database (and dialect) specified in CQ_MIGRATION_TEST_DSN
 func RunMigrationsTest(t *testing.T, prov *provider.Provider, additionalVersionsToTest []string) {
@@ -118,6 +129,14 @@ func doMigrationsTest(t *testing.T, ctx context.Context, dsn string, prov *provi
 	assert.NoError(t, mig.DropProvider(ctx, prov.ResourceMap))
 
 	assert.NoError(t, mig.UpgradeProvider(migrator.Latest))
+
+	if dialect == schema.TSDB {
+		// while we're at latest, check PK validity: all PKs should contain cq_fetch_date
+		t.Run("RequireCQFetchDate", func(t *testing.T) {
+			requireAllPKsToHaveColumn(t, ctx, conn, "public", "cq_fetch_date")
+		})
+	}
+
 	err = mig.DowngradeProvider(migrator.Initial)
 	if err == migrate.ErrNoChange {
 		err = nil
@@ -150,4 +169,15 @@ func doMigrationsTest(t *testing.T, ctx context.Context, dsn string, prov *provi
 	}
 
 	assert.NoError(t, mig.DropProvider(ctx, prov.ResourceMap))
+}
+
+func requireAllPKsToHaveColumn(t *testing.T, ctx context.Context, conn *pgxpool.Conn, schema, column string) {
+	var res []struct {
+		TableName string   `db:"table_name"`
+		ConstName string   `db:"constraint_name"`
+		PKCols    []string `db:"pk_cols"`
+	}
+	err := pgxscan.Select(ctx, conn, &res, queryPrimaryKeys, schema, column)
+	assert.NoError(t, err)
+	assert.Empty(t, res)
 }
