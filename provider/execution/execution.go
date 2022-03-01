@@ -152,7 +152,7 @@ func (e TableExecutor) cleanupStaleData(ctx context.Context, client schema.Clien
 	if parent != nil {
 		return nil
 	}
-	client.Logger().Debug("cleaning table table stale data", "table", e.Table.Name, "last_update", e.executionStart)
+	client.Logger().Debug("cleaning table stale data", "table", e.Table.Name, "last_update", e.executionStart)
 
 	filters := make([]interface{}, 0)
 	for k, v := range e.extraFields {

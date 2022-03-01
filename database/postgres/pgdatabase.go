@@ -215,8 +215,9 @@ func (p PgDatabase) Dialect() schema.Dialect {
 }
 
 func quoteColumns(columns []string) []string {
+	ret := make([]string, len(columns))
 	for i, v := range columns {
-		columns[i] = strconv.Quote(v)
+		ret[i] = strconv.Quote(v)
 	}
-	return columns
+	return ret
 }
