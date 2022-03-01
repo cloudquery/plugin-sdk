@@ -117,7 +117,7 @@ func doMigrationsTest(t *testing.T, ctx context.Context, dsn string, prov *provi
 	migFiles, err := migrator.ReadMigrationFiles(hclog.L(), prov.Migrations)
 	assert.NoError(t, err)
 
-	mig, err := migrator.New(hclog.L(), dialect, migFiles, dsn, prov.Name, nil)
+	mig, err := migrator.New(hclog.L(), dialect, migFiles, dsn, prov.Name)
 	assert.NoError(t, err)
 	if t.Failed() {
 		t.FailNow()

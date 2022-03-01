@@ -61,7 +61,7 @@ func getDBUrl() string {
 }
 
 func TestMigrations(t *testing.T) {
-	m, err := New(hclog.Default(), schema.Postgres, simpleMigrations, getDBUrl(), "test", nil)
+	m, err := New(hclog.Default(), schema.Postgres, simpleMigrations, getDBUrl(), "test")
 	assert.Nil(t, err)
 
 	err = m.DropProvider(context.Background(), nil)
@@ -97,7 +97,7 @@ func TestMigrations(t *testing.T) {
 
 // TestMigrationJumps tests an edge case we request a higher version but latest migration is a previous version
 func TestMigrationJumps(t *testing.T) {
-	m, err := New(hclog.Default(), schema.Postgres, complexMigrations, getDBUrl(), "test", nil)
+	m, err := New(hclog.Default(), schema.Postgres, complexMigrations, getDBUrl(), "test")
 	assert.Nil(t, err)
 
 	err = m.DropProvider(context.Background(), nil)
@@ -111,10 +111,10 @@ func TestMigrationJumps(t *testing.T) {
 }
 
 func TestMultiProviderMigrations(t *testing.T) {
-	mtest, err := New(hclog.Default(), schema.Postgres, simpleMigrations, getDBUrl(), "test", nil)
+	mtest, err := New(hclog.Default(), schema.Postgres, simpleMigrations, getDBUrl(), "test")
 	assert.Nil(t, err)
 
-	mtest2, err := New(hclog.Default(), schema.Postgres, simpleMigrations, getDBUrl(), "test2", nil)
+	mtest2, err := New(hclog.Default(), schema.Postgres, simpleMigrations, getDBUrl(), "test2")
 	assert.Nil(t, err)
 
 	err = mtest.DropProvider(context.Background(), nil)
@@ -146,7 +146,7 @@ func TestMultiProviderMigrations(t *testing.T) {
 }
 
 func TestFindLatestMigration(t *testing.T) {
-	mtest, err := New(hclog.Default(), schema.Postgres, complexMigrations, getDBUrl(), "test", nil)
+	mtest, err := New(hclog.Default(), schema.Postgres, complexMigrations, getDBUrl(), "test")
 	assert.Nil(t, err)
 	mv, err := mtest.FindLatestMigration("v0.0.3")
 	assert.Nil(t, err)
@@ -255,7 +255,7 @@ func TestNoSchemaError(t *testing.T) {
 		}
 	}
 
-	m, err := New(hclog.Default(), schema.Postgres, simpleMigrations, weakDSN, "test", nil)
+	m, err := New(hclog.Default(), schema.Postgres, simpleMigrations, weakDSN, "test")
 	assert.Nil(t, m)
 	if t.Failed() {
 		m.Close()
