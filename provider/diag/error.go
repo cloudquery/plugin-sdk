@@ -60,7 +60,12 @@ func (e BaseError) Description() Description {
 	summary := e.summary
 	if e.summary == "" {
 		summary = e.Error()
+	} else if e.err != nil {
+		if es := e.err.Error(); es != summary {
+			summary += ": " + es
+		}
 	}
+
 	return Description{
 		e.resource,
 		e.resourceId,
@@ -142,6 +147,14 @@ func WithDetails(detail string, args ...interface{}) BaseErrorOption {
 	return func(e *BaseError) {
 		if !e.noOverwrite || e.detail != "" {
 			e.detail = fmt.Sprintf(detail, args...)
+		}
+	}
+}
+
+func WithError(err error) BaseErrorOption {
+	return func(e *BaseError) {
+		if !e.noOverwrite || e.err == nil {
+			e.err = err
 		}
 	}
 }

@@ -194,7 +194,7 @@ func (e TableExecutor) callTableResolve(ctx context.Context, client schema.Clien
 		if err := e.Table.Resolver(ctx, client, parent, res); err != nil {
 			if e.Table.IgnoreError != nil && e.Table.IgnoreError(err) {
 				client.Logger().Warn("ignored an error", "err", err, "table", e.Table.Name)
-				err = diag.NewBaseError(err, diag.RESOLVING, diag.WithSeverity(diag.IGNORE), diag.WithSummary("table[%s] resolver ignored error. Error: %s", e.Table.Name, err))
+				err = diag.NewBaseError(err, diag.RESOLVING, diag.WithSeverity(diag.IGNORE), diag.WithSummary("table %q resolver ignored error", e.Table.Name))
 			}
 			resolverErr = e.handleResolveError(client, parent, err)
 		}
@@ -299,7 +299,7 @@ func (e TableExecutor) resolveResourceValues(ctx context.Context, meta schema.Cl
 	defer func() {
 		if r := recover(); r != nil {
 			stack := string(debug.Stack())
-			e.Logger.Error("resolve table recovered from panic", "table", e.Table.Name, "stack", stack)
+			e.Logger.Error("resolve table recovered from panic", "table", e.Table.Name, "panic_msg", r, "stack", stack)
 			diags = fromError(fmt.Errorf("column resolve panic: %s", r), diag.WithResourceName(e.ResourceName), diag.WithSeverity(diag.PANIC),
 				diag.WithSummary("resolve table %q recovered from panic.", e.Table.Name), diag.WithDetails("%s", stack))
 		}
