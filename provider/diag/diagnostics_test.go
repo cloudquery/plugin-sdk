@@ -2,6 +2,7 @@ package diag
 
 import (
 	"errors"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -201,4 +202,39 @@ func TestDiagnostics_SquashRedactable(t *testing.T) {
 		},
 	}, FlattenDiags(Diagnostics{r}, false))
 
+}
+
+func TestDiagnostics_Sort(t *testing.T) {
+	resErrA := NewBaseError(errors.New("error test"), RESOLVING, WithResourceName("a"), WithSummary("some summary"))
+	resErrB := NewBaseError(errors.New("error test"), RESOLVING, WithResourceName("b"), WithSummary("some summary"))
+
+	thrErrA := NewBaseError(errors.New("error test"), THROTTLE, WithResourceName("a"), WithSummary("some summary"))
+	accErrA := NewBaseError(errors.New("error test"), ACCESS, WithResourceName("a"), WithSummary("some summary"))
+
+	cases := []struct {
+		diagsInWrongOrder Diagnostics
+		expectedOrder     []int
+	}{
+		{
+			Diagnostics{resErrB, resErrA},
+			[]int{1, 0},
+		},
+		{
+			Diagnostics{accErrA, resErrB, thrErrA, resErrA},
+			[]int{2, 0, 3, 1},
+		},
+	}
+	for caseNo, tc := range cases {
+		assert.Equal(t, len(tc.diagsInWrongOrder), len(tc.expectedOrder), "bad test")
+		if t.Failed() {
+			t.FailNow()
+		}
+
+		sorted := make(Diagnostics, len(tc.diagsInWrongOrder))
+		copy(sorted, tc.diagsInWrongOrder)
+		sort.Sort(sorted)
+		for i := range sorted {
+			assert.Equalf(t, sorted[i], tc.diagsInWrongOrder[tc.expectedOrder[i]], "Case #%d item %d", caseNo+1, i)
+		}
+	}
 }

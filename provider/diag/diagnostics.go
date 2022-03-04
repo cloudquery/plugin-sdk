@@ -144,8 +144,34 @@ func (diags Diagnostics) CountBySeverity(sev Severity) uint64 {
 	return count
 }
 
+func (diags Diagnostics) Redacted() Diagnostics {
+	res := make(Diagnostics, len(diags))
+	for i := range diags {
+		if rd, ok := diags[i].(Redactable); ok {
+			if r := rd.Redacted(); r != nil {
+				res[i] = r
+				continue
+			}
+		}
+
+		res[i] = diags[i]
+	}
+	return res
+}
+
 func (diags Diagnostics) Len() int      { return len(diags) }
 func (diags Diagnostics) Swap(i, j int) { diags[i], diags[j] = diags[j], diags[i] }
 func (diags Diagnostics) Less(i, j int) bool {
-	return diags[i].Severity() > diags[j].Severity() && diags[i].Type() > diags[j].Type()
+	if diags[i].Severity() > diags[j].Severity() {
+		return true
+	} else if diags[i].Severity() < diags[j].Severity() {
+		return false
+	}
+
+	if diags[i].Type() > diags[j].Type() {
+		return true
+	} else if diags[i].Type() < diags[j].Type() {
+		return false
+	}
+	return diags[i].Description().Resource < diags[j].Description().Resource
 }
