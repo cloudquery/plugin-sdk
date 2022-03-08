@@ -448,7 +448,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				storage = tc.SetupStorage(t)
 			}
 			limiter := semaphore.NewWeighted(int64(helpers.GetMaxGoRoutines()))
-			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, tc.ExtraFields, nil, limiter)
+			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, tc.ExtraFields, nil, nil, limiter)
 			count, diags := exec.Resolve(context.Background(), executionClient)
 			assert.Equal(t, tc.ExpectedResourceCount, count)
 			if tc.ErrorExpected {
@@ -567,7 +567,7 @@ func TestTableExecutor_resolveResourceValues(t *testing.T) {
 				storage = tc.SetupStorage(t)
 			}
 			limiter := semaphore.NewWeighted(int64(helpers.GetMaxGoRoutines()))
-			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, nil, nil, limiter)
+			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, nil, nil, nil, limiter)
 
 			r := schema.NewResourceData(storage.Dialect(), tc.Table, nil, tc.ResourceData, tc.MetaData, exec.executionStart)
 			// columns should be resolved from ColumnResolver functions or default functions

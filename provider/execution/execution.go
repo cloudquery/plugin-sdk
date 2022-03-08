@@ -34,8 +34,10 @@ type TableExecutor struct {
 	Logger hclog.Logger
 	// classifiers
 	classifiers []ErrorClassifier
-	// extraFields to be passed to each created resource in the execution
+	// extraFields to be passed to each created resource in the execution, used in tests.
 	extraFields map[string]interface{}
+	// metadata to be passed to each created resource in the execution, used by cq* resolvers.
+	metadata map[string]interface{}
 	// When the execution started
 	executionStart time.Time
 	// columns of table, this is to reduce calls to sift each time
@@ -45,7 +47,7 @@ type TableExecutor struct {
 }
 
 // NewTableExecutor creates a new TableExecutor for given schema.Table
-func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, table *schema.Table, extraFields map[string]interface{}, classifier ErrorClassifier, goroutinesSem *semaphore.Weighted) TableExecutor {
+func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, table *schema.Table, extraFields, metadata map[string]interface{}, classifier ErrorClassifier, goroutinesSem *semaphore.Weighted) TableExecutor {
 
 	var classifiers = []ErrorClassifier{defaultErrorClassifier}
 	if classifier != nil {
@@ -60,6 +62,7 @@ func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, tabl
 		Db:             db,
 		Logger:         logger,
 		extraFields:    extraFields,
+		metadata:       metadata,
 		classifiers:    classifiers,
 		executionStart: time.Now().Add(executionJitter),
 		columns:        c,
@@ -234,7 +237,7 @@ func (e TableExecutor) resolveResources(ctx context.Context, meta schema.ClientM
 	)
 
 	for _, o := range objects {
-		resource := schema.NewResourceData(e.Db.Dialect(), e.Table, parent, o, e.extraFields, e.executionStart)
+		resource := schema.NewResourceData(e.Db.Dialect(), e.Table, parent, o, e.metadata, e.executionStart)
 		// Before inserting resolve all table column resolvers
 		if err := e.resolveResourceValues(ctx, meta, resource); err != nil {
 			e.Logger.Warn("skipping failed resolved resource", "reason", err.Error())

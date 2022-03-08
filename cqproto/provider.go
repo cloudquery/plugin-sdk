@@ -96,8 +96,10 @@ type FetchResourcesRequest struct {
 	PartialFetchingEnabled bool
 	// ParallelFetchingLimit limits parallel resources fetch at a time is more than 0
 	ParallelFetchingLimit uint64
-	// MaxGoroutines specified an approximage maximum number of goroutines that will be spanwd during fetch
+	// MaxGoroutines specified an approximate maximum number of goroutines that will be spanwd during fetch
 	MaxGoroutines uint64
+	// Metadata for the fetch
+	Metadata map[string]interface{}
 }
 
 // FetchResourcesStream represents a CloudQuery RPC stream of fetch updates from the provider

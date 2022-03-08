@@ -133,6 +133,14 @@ func (r *Resource) TableName() string {
 	return r.table.Name
 }
 
+func (r Resource) GetMeta(key string) (interface{}, bool) {
+	if r.metadata == nil {
+		return nil, false
+	}
+	v, ok := r.metadata[key]
+	return v, ok
+}
+
 func (r Resource) getColumnByName(column string) *Column {
 	for _, c := range r.dialect.Columns(r.table) {
 		if strings.Compare(column, c.Name) == 0 {

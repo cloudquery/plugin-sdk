@@ -27,8 +27,10 @@ var (
 			mi := Meta{
 				LastUpdate: time.Now().UTC(),
 			}
-			if s, ok := resource.metadata["cq_fetch_id"].(string); ok { // will it work?
-				mi.FetchId = s
+			if val, ok := resource.GetMeta("cq_fetch_id"); ok {
+				if s, ok := val.(string); ok {
+					mi.FetchId = s
+				}
 			}
 			b, _ := json.Marshal(mi)
 			return resource.Set(c.Name, b)
@@ -60,7 +62,7 @@ var (
 		Type:        TypeTimestamp,
 		Description: "Time of fetch for this resource",
 		Resolver: func(ctx context.Context, meta ClientMeta, resource *Resource, c Column) error {
-			val, ok := resource.metadata["cq_fetch_date"]
+			val, ok := resource.GetMeta("cq_fetch_date")
 			if !ok && !resource.executionStart.IsZero() {
 				val = resource.executionStart
 			}
