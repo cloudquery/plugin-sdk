@@ -18,8 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// queryPrimaryKeys lists all tables in the schema $1 which don't have the column $2 in their primary keys. Ignores *_schema_migrations tables.
-const queryPrimaryKeys = `SELECT kcu.table_name, c.constraint_name, ARRAY_AGG(kcu.column_name::text ORDER BY kcu.ordinal_position) AS pk_cols
+// queryPrimaryKeysTest lists all tables in the schema $1 which don't have the column $2 in their primary keys. Ignores *_schema_migrations tables.
+const queryPrimaryKeysTest = `SELECT kcu.table_name, c.constraint_name, ARRAY_AGG(kcu.column_name::text ORDER BY kcu.ordinal_position) AS pk_cols
 FROM information_schema.table_constraints c
 JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = c.constraint_name AND kcu.constraint_schema = c.constraint_schema AND kcu.constraint_name = c.constraint_name
 WHERE kcu.table_schema=$1 AND c.constraint_type = 'PRIMARY KEY' AND kcu.table_name NOT LIKE '%_schema_migrations'
@@ -177,7 +177,7 @@ func requireAllPKsToHaveColumn(t *testing.T, ctx context.Context, conn *pgxpool.
 		ConstName string   `db:"constraint_name"`
 		PKCols    []string `db:"pk_cols"`
 	}
-	err := pgxscan.Select(ctx, conn, &res, queryPrimaryKeys, schema, column)
+	err := pgxscan.Select(ctx, conn, &res, queryPrimaryKeysTest, schema, column)
 	assert.NoError(t, err)
 	assert.Empty(t, res)
 }

@@ -70,6 +70,10 @@ func Run(ctx context.Context, p *provider.Provider, outputPath string) error {
 	}
 	defer conn.Release()
 
+	if *dialectType == schema.TSDB && *schemaName == "public" {
+		*schemaName = "history"
+	}
+
 	if err := GenerateDiff(ctx, hclog.L(), conn, *schemaName, *dialectType, p, *outputPathParam, *prefixParam); err != nil {
 		return fmt.Errorf("failed to generate migrations: %w", err)
 	}
