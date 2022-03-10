@@ -206,8 +206,8 @@ func (f *testResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
 		fmt.Printf(r.Error)
 		f.Errors = append(f.Errors, r.Error)
 	}
-	for _, partialFetchError := range r.PartialFetchFailedResources {
-		f.Errors = append(f.Errors, fmt.Sprintf("table: %s. partial fetch error: %s", partialFetchError.TableName, partialFetchError.Error))
+	for _, diag := range r.Summary.Diagnostics {
+		f.Errors = append(f.Errors, fmt.Sprintf("resource: %s. summary: %s, details %s", diag.Description().Resource, diag.Description().Summary, diag.Description().Detail))
 	}
 	return nil
 }
