@@ -159,7 +159,7 @@ func doMigrationsTest(t *testing.T, ctx context.Context, dsn string, prov *provi
 		dialectType, err := schema.GetDialect(dialect)
 		assert.NoError(t, err)
 
-		if err := generateDiffForDialect(ctx, hclog.NewNullLogger(), fs, conn, "public", dialectType, prov, "/", ""); err != errNoChange {
+		if err := generateDiffForDialect(ctx, hclog.NewNullLogger(), fs, conn, "public", dialectType, prov, "/", "", false); err != errNoChange {
 			assert.NoError(t, err)
 
 			mig, err := fs.ReadFile("/up.sql")

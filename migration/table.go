@@ -27,6 +27,8 @@ const (
 	dropConstraintFromTable = `ALTER TABLE IF EXISTS %s DROP CONSTRAINT %s;`
 
 	dropTable = `DROP TABLE IF EXISTS %s;`
+
+	fakeTSDBAssumeColumn = `cq_fetch_date`
 )
 
 // TableCreator handles creation of schema.Table in database as SQL strings
@@ -97,7 +99,8 @@ func (m TableCreator) CreateTableDefinitions(ctx context.Context, t *schema.Tabl
 // Column renames are detected (best effort) and ALTER TABLE RENAME COLUMN statements are generated as comments.
 // Table renames or removals are not detected.
 // FK changes are not detected.
-func (m TableCreator) DiffTable(ctx context.Context, conn *pgxpool.Conn, schemaName string, t, parent *schema.Table) (up, down []string, err error) {
+// if fakeTSDB is set, PKs for existing resources are assumed to have fakeTSDBAssumeColumn (`cq_fetch_date`) as the first part of composite PK.
+func (m TableCreator) DiffTable(ctx context.Context, conn *pgxpool.Conn, schemaName string, t, parent *schema.Table, fakeTSDB bool) (up, down []string, err error) {
 	rows, err := conn.Query(ctx, queryTableColumns, schemaName, t.Name)
 	if err != nil {
 		return nil, nil, err
@@ -135,7 +138,7 @@ func (m TableCreator) DiffTable(ctx context.Context, conn *pgxpool.Conn, schemaN
 	up, down = make([]string, 0, capSize), make([]string, 0, capSize)
 	downLast := make([]string, 0, capSize)
 
-	cUp, cDown, err := m.diffConstraints(ctx, conn, schemaName, t)
+	cUp, cDown, err := m.diffConstraints(ctx, conn, schemaName, t, fakeTSDB)
 	if err != nil {
 		return nil, nil, fmt.Errorf("diffConstraints failed: %w", err)
 	}
@@ -149,7 +152,11 @@ func (m TableCreator) DiffTable(ctx context.Context, conn *pgxpool.Conn, schemaN
 			m.log.Warn("column missing from table, not adding it", "table", t.Name, "column", d)
 			continue
 		}
+		if fakeTSDB && col.Name == fakeTSDBAssumeColumn {
+			continue
+		}
 		if col.Internal() {
+			m.log.Warn("table missing internal column, not adding it", "table", t.Name, "column", d)
 			continue
 		}
 
@@ -190,7 +197,7 @@ func (m TableCreator) DiffTable(ctx context.Context, conn *pgxpool.Conn, schemaN
 
 	// Do relation tables
 	for _, r := range t.Relations {
-		if cr, dr, err := m.DiffTable(ctx, conn, schemaName, r, t); err != nil {
+		if cr, dr, err := m.DiffTable(ctx, conn, schemaName, r, t, fakeTSDB); err != nil {
 			return nil, nil, err
 		} else {
 			up = append(up, cr...)
@@ -274,7 +281,7 @@ func (c constraintMigrations) Squash() constraintMigration {
 	return ret
 }
 
-func (m TableCreator) diffConstraints(ctx context.Context, conn *pgxpool.Conn, schemaName string, t *schema.Table) (up, down constraintMigrations, err error) {
+func (m TableCreator) diffConstraints(ctx context.Context, conn *pgxpool.Conn, schemaName string, t *schema.Table, fakeTSDB bool) (up, down constraintMigrations, err error) {
 	rows, err := conn.Query(ctx, queryTablePKs, schemaName, t.Name)
 	if err != nil {
 		return nil, nil, err
@@ -310,6 +317,10 @@ func (m TableCreator) diffConstraints(ctx context.Context, conn *pgxpool.Conn, s
 					},
 				},
 			}, nil
+	}
+
+	if fakeTSDB && existingPKs[0].Columns[0] != fakeTSDBAssumeColumn {
+		existingPKs[0].Columns = append([]string{fakeTSDBAssumeColumn}, existingPKs[0].Columns...)
 	}
 
 	if reflect.DeepEqual(existingPKs[0].Columns, pks) {

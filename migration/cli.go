@@ -27,8 +27,9 @@ func Run(ctx context.Context, p *provider.Provider, outputPath string) error {
 	prefixParam := flag.String("prefix", defaultPrefix, "Prefix for files")
 	doFullParam := flag.Bool("full", false, "Generate initial migrations (prefix will be 'init')")
 	dialectParam := flag.String("dialect", "", "Dialect to generate initial migrations (empty: all)")
-	dsnParam := flag.String("dsn", os.Getenv("CQ_DSN"), "DSN to compare changes against in upgrade mode")
-	schemaName := flag.String("schema", "public", "Schema to compare tables from in upgrade mode")
+	dsnParam := flag.String("dsn", os.Getenv("CQ_DSN"), "DSN to compare changes against (upgrade mode)")
+	schemaName := flag.String("schema", "public", "Schema to compare tables from (upgrade mode)")
+	fakeTSDB := flag.Bool("fake-tsdb", false, "Run in TSDB mode without TSDB (upgrade mode)")
 	flag.Parse()
 	if flag.NArg() > 0 {
 		flag.Usage()
@@ -70,11 +71,16 @@ func Run(ctx context.Context, p *provider.Provider, outputPath string) error {
 	}
 	defer conn.Release()
 
-	if *dialectType == schema.TSDB && *schemaName == "public" {
+	if *fakeTSDB {
+		dt := schema.TSDB
+		dialectType = &dt
+	}
+
+	if *dialectType == schema.TSDB && *schemaName == "public" && !*fakeTSDB {
 		*schemaName = "history"
 	}
 
-	if err := GenerateDiff(ctx, hclog.L(), conn, *schemaName, *dialectType, p, *outputPathParam, *prefixParam); err != nil {
+	if err := GenerateDiff(ctx, hclog.L(), conn, *schemaName, *dialectType, p, *outputPathParam, *prefixParam, *fakeTSDB); err != nil {
 		return fmt.Errorf("failed to generate migrations: %w", err)
 	}
 

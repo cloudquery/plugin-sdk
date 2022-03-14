@@ -30,13 +30,13 @@ func GenerateFull(ctx context.Context, logger hclog.Logger, p *provider.Provider
 }
 
 // GenerateDiff creates incremental table migrations for the provider based on it's ResourceMap. Entities are compared to a given conn.
-func GenerateDiff(ctx context.Context, logger hclog.Logger, conn *pgxpool.Conn, schemaName string, dialectType schema.DialectType, p *provider.Provider, outputPath, prefix string) error {
+func GenerateDiff(ctx context.Context, logger hclog.Logger, conn *pgxpool.Conn, schemaName string, dialectType schema.DialectType, p *provider.Provider, outputPath, prefix string, fakeTSDB bool) error {
 	dialect, err := schema.GetDialect(dialectType)
 	if err != nil {
 		return err
 	}
 
-	err = generateDiffForDialect(ctx, logger, afero.Afero{Fs: afero.OsFs{}}, conn, schemaName, dialect, p, filepath.Join(outputPath, dialectType.MigrationDirectory()), prefix)
+	err = generateDiffForDialect(ctx, logger, afero.Afero{Fs: afero.OsFs{}}, conn, schemaName, dialect, p, filepath.Join(outputPath, dialectType.MigrationDirectory()), prefix, fakeTSDB)
 	if err == errNoChange {
 		return nil
 	}
@@ -118,7 +118,7 @@ func generateFullForDialect(ctx context.Context, logger hclog.Logger, dialect sc
 
 var errNoChange = fmt.Errorf("no change")
 
-func generateDiffForDialect(ctx context.Context, logger hclog.Logger, fs afero.Afero, conn *pgxpool.Conn, schemaName string, dialect schema.Dialect, p *provider.Provider, outputPath, prefix string) (retErr error) {
+func generateDiffForDialect(ctx context.Context, logger hclog.Logger, fs afero.Afero, conn *pgxpool.Conn, schemaName string, dialect schema.Dialect, p *provider.Provider, outputPath, prefix string, fakeTSDB bool) (retErr error) {
 	cName, dName := filepath.Join(outputPath, prefix+"up.sql"), filepath.Join(outputPath, prefix+"down.sql")
 
 	defer func() {
@@ -170,7 +170,7 @@ func generateDiffForDialect(ctx context.Context, logger hclog.Logger, fs afero.A
 	for _, resName := range resourceKeys(p.ResourceMap) {
 		table := p.ResourceMap[resName]
 
-		ups, downs, err := tc.DiffTable(ctx, conn, schemaName, table, nil)
+		ups, downs, err := tc.DiffTable(ctx, conn, schemaName, table, nil, fakeTSDB)
 		if err != nil {
 			return fmt.Errorf("DiffTable failed for %s: %w", table.Name, err)
 		}
