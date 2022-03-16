@@ -100,12 +100,13 @@ func (e TableExecutor) withTable(t *schema.Table) *TableExecutor {
 // doMultiplexResolve resolves table with multiplexed clients appending all diagnostics returned from each multiplex.
 func (e TableExecutor) doMultiplexResolve(ctx context.Context, clients []schema.ClientMeta) (uint64, diag.Diagnostics) {
 	var (
-		diagsChan      = make(chan diag.Diagnostics)
+		diagsChan      = make(chan diag.Diagnostics, len(clients))
 		totalResources uint64
 	)
 	var (
-		allDiags    diag.Diagnostics
-		doneClients = 0
+		allDiags        diag.Diagnostics
+		doneClients     = 0
+		numberOfClients = 0
 	)
 	logger := clients[0].Logger()
 	logger.Debug("multiplexing client", "count", len(clients), "table", e.Table.Name)
@@ -115,6 +116,8 @@ func (e TableExecutor) doMultiplexResolve(ctx context.Context, clients []schema.
 		if err := e.goroutinesSem.Acquire(ctx, 1); err != nil {
 			return totalResources, allDiags.Add(ClassifyError(err, diag.WithResourceName(e.ResourceName)))
 		}
+		logger.Debug("creating multiplex client new client")
+		numberOfClients++
 		go func(c schema.ClientMeta, diags chan<- diag.Diagnostics) {
 			defer e.goroutinesSem.Release(1)
 			count, resolveDiags := e.callTableResolve(ctx, c, nil)
@@ -126,8 +129,8 @@ func (e TableExecutor) doMultiplexResolve(ctx context.Context, clients []schema.
 	for dd := range diagsChan {
 		allDiags = allDiags.Add(dd)
 		doneClients++
-		logger.Debug("multiplexed client finished", "done", doneClients, "total", len(clients), "table", e.Table.Name)
-		if doneClients >= len(clients) {
+		logger.Debug("multiplexed client finished", "done", doneClients, "total", numberOfClients, "table", e.Table.Name)
+		if doneClients >= numberOfClients {
 			break
 		}
 	}
@@ -164,7 +167,12 @@ func (e TableExecutor) cleanupStaleData(ctx context.Context, client schema.Clien
 	if e.Table.DeleteFilter != nil {
 		filters = append(filters, e.Table.DeleteFilter(client, parent)...)
 	}
-	return e.Db.RemoveStaleData(ctx, e.Table, e.executionStart, filters)
+	if err := e.Db.RemoveStaleData(ctx, e.Table, e.executionStart, filters); err != nil {
+		client.Logger().Warn("failed to clean table stale data", "table", e.Table.Name, "last_update", e.executionStart)
+		return err
+	}
+	client.Logger().Debug("cleaned table stale data successfully", "table", e.Table.Name, "last_update", e.executionStart)
+	return nil
 }
 
 // callTableResolve does the actual resolving of the table calling the root table's resolver and for each returned resource resolves its columns and relations.
