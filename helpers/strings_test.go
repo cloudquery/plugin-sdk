@@ -12,3 +12,9 @@ func TestHasDuplicates(t *testing.T) {
 	assert.True(t, HasDuplicates([]string{"a", "a", "c"}))
 	assert.True(t, HasDuplicates([]string{"a", "a", "c", "c", "f"}))
 }
+
+func TestToStingSliceE(t *testing.T) {
+	arr := &[]string{"a", "b", "c"}
+	newArr, _ := ToStringSliceE(arr)
+	assert.Equal(t, newArr, []string{"a", "b", "c"})
+}

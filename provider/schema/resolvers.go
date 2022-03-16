@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/cloudquery/cq-provider-sdk/helpers"
 	"github.com/gofrs/uuid"
 	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
@@ -132,7 +133,7 @@ func IPAddressResolver(path string) ColumnResolver {
 // IPAddressesResolver("IP")
 func IPAddressesResolver(path string) ColumnResolver {
 	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
-		ipStrs, err := cast.ToStringSliceE(funk.Get(r.Item, path, funk.WithAllowZero()))
+		ipStrs, err := helpers.ToStringSliceE(funk.Get(r.Item, path, funk.WithAllowZero()))
 		if err != nil {
 			return err
 		}
