@@ -30,6 +30,8 @@ type ResourceTestCase struct {
 	NotParallel bool
 	// ParallelFetchingLimit limits parallel resources fetch at a time
 	ParallelFetchingLimit uint64
+	// SkipIgnoreInTest flag which detects if schema.Table or schema.Column should be ignored
+	SkipIgnoreInTest bool
 }
 
 func init() {
@@ -66,7 +68,7 @@ func TestResource(t *testing.T, resource ResourceTestCase) {
 		t.Fatal(err)
 	}
 	for _, table := range resource.Provider.ResourceMap {
-		verifyNoEmptyColumns(t, table, conn)
+		verifyNoEmptyColumns(t, table, conn, resource.SkipIgnoreInTest)
 	}
 
 }
@@ -111,11 +113,12 @@ func fetch(t *testing.T, resource *ResourceTestCase) error {
 	return nil
 }
 
-func verifyNoEmptyColumns(t *testing.T, table *schema.Table, conn pgxscan.Querier) {
+func verifyNoEmptyColumns(t *testing.T, table *schema.Table, conn pgxscan.Querier, shouldSkipIgnoreInTest bool) {
 	t.Helper()
 	t.Run(table.Name, func(t *testing.T) {
 		t.Helper()
-		if table.IgnoreInTests {
+
+		if !shouldSkipIgnoreInTest && table.IgnoreInTests {
 			t.Skipf("table %s marked as IgnoreInTest. Skipping...", table.Name)
 		}
 		s := sq.StatementBuilder.
@@ -139,7 +142,7 @@ func verifyNoEmptyColumns(t *testing.T, table *schema.Table, conn pgxscan.Querie
 		nilColumns := map[string]bool{}
 		// mark all columns as nil
 		for _, c := range table.Columns {
-			if !c.IgnoreInTests {
+			if !shouldSkipIgnoreInTest && !c.IgnoreInTests {
 				nilColumns[c.Name] = true
 			}
 		}
@@ -164,7 +167,7 @@ func verifyNoEmptyColumns(t *testing.T, table *schema.Table, conn pgxscan.Querie
 			t.Errorf("found nil column in table %s. columns=%s", table.Name, strings.Join(nilColumnsArr, ","))
 		}
 		for _, childTable := range table.Relations {
-			verifyNoEmptyColumns(t, childTable, conn)
+			verifyNoEmptyColumns(t, childTable, conn, shouldSkipIgnoreInTest)
 		}
 	})
 }
