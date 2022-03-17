@@ -2,6 +2,7 @@ package cqproto
 
 import (
 	"context"
+	"time"
 
 	"github.com/cloudquery/cq-provider-sdk/provider/diag"
 
@@ -72,6 +73,7 @@ func (g GRPCClient) FetchResources(ctx context.Context, request *FetchResourcesR
 		Resources:             request.Resources,
 		ParallelFetchingLimit: request.ParallelFetchingLimit,
 		MaxGoroutines:         request.MaxGoroutines,
+		Timeout:               int64(request.Timeout.Seconds()),
 		Metadata:              md,
 	})
 	if err != nil {
@@ -187,6 +189,7 @@ func (g *GRPCServer) FetchResources(request *internal.FetchResources_Request, se
 			ParallelFetchingLimit: request.ParallelFetchingLimit,
 			MaxGoroutines:         request.MaxGoroutines,
 			Metadata:              md,
+			Timeout:               time.Duration(request.GetTimeout()) * time.Second,
 		},
 		&GRPCFetchResourcesServer{server: server},
 	)

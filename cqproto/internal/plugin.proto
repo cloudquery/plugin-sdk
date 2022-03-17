@@ -45,6 +45,8 @@ message FetchResources {
     uint64 max_goroutines = 4;
     // Msgpack encoded: Metadata for fetch, used to pass information to cq* resolvers
     bytes metadata = 5;
+    // timeout for each parent resource resolve call
+    int64 timeout = 6;
   }
   message Response {
     // map of resources that have finished fetching

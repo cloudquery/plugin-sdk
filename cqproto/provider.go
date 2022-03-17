@@ -4,6 +4,7 @@ package cqproto
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cloudquery/cq-provider-sdk/cqproto/internal"
 	"github.com/cloudquery/cq-provider-sdk/provider/diag"
@@ -98,6 +99,8 @@ type FetchResourcesRequest struct {
 	ParallelFetchingLimit uint64
 	// MaxGoroutines specified an approximate maximum number of goroutines that will be spanwd during fetch
 	MaxGoroutines uint64
+	// Timeout for each parent resource resolve call
+	Timeout time.Duration
 	// Metadata for the fetch
 	Metadata map[string]interface{}
 }

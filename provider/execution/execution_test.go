@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/cloudquery/cq-provider-sdk/helpers"
 	"github.com/cloudquery/cq-provider-sdk/provider/diag"
@@ -76,6 +77,15 @@ var (
 		return diag.Diagnostics{
 			diag.NewBaseError(nil, diag.RESOLVING, diag.WithResourceName(resource.TableName()), diag.WithSummary("some error")),
 			diag.NewBaseError(nil, diag.RESOLVING, diag.WithResourceName(resource.TableName()), diag.WithSummary("some error 2")),
+		}
+	}
+
+	timeoutResolver = func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Minute):
+			panic("timeoutResolver timed out unexpectedly")
 		}
 	}
 )
@@ -452,10 +462,28 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			ErrorExpected: true,
 			ExpectedDiags: []diag.FlatDiag{
 				{
-					Err:      `error at github.com/cloudquery/cq-provider-sdk/provider/execution.glob..func4[execution_test.go:57] some error`,
+					Err:      `error at github.com/cloudquery/cq-provider-sdk/provider/execution.glob..func4[execution_test.go:58] some error`,
 					Resource: "return_wrap_error",
 					Severity: diag.ERROR,
-					Summary:  `failed to resolve table "simple": error at github.com/cloudquery/cq-provider-sdk/provider/execution.glob..func4[execution_test.go:57] some error`,
+					Summary:  `failed to resolve table "simple": error at github.com/cloudquery/cq-provider-sdk/provider/execution.glob..func4[execution_test.go:58] some error`,
+					Type:     diag.RESOLVING,
+				},
+			},
+		},
+		{
+			Name: "timeout_resolver",
+			Table: &schema.Table{
+				Name:     "timeout_resolver",
+				Resolver: timeoutResolver,
+				Columns:  commonColumns,
+			},
+			ErrorExpected: true,
+			ExpectedDiags: []diag.FlatDiag{
+				{
+					Err:      "context deadline exceeded",
+					Resource: "timeout_resolver",
+					Severity: diag.ERROR,
+					Summary:  `failed to resolve table "timeout_resolver": context deadline exceeded`,
 					Type:     diag.RESOLVING,
 				},
 			},
@@ -470,7 +498,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				storage = tc.SetupStorage(t)
 			}
 			limiter := semaphore.NewWeighted(int64(helpers.GetMaxGoRoutines()))
-			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, tc.ExtraFields, nil, nil, limiter)
+			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, tc.ExtraFields, nil, nil, limiter, 10*time.Second)
 			count, diags := exec.Resolve(context.Background(), executionClient)
 			assert.Equal(t, tc.ExpectedResourceCount, count)
 			if tc.ErrorExpected {
@@ -589,7 +617,7 @@ func TestTableExecutor_resolveResourceValues(t *testing.T) {
 				storage = tc.SetupStorage(t)
 			}
 			limiter := semaphore.NewWeighted(int64(helpers.GetMaxGoRoutines()))
-			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, nil, nil, nil, limiter)
+			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, nil, nil, nil, limiter, 0)
 
 			r := schema.NewResourceData(storage.Dialect(), tc.Table, nil, tc.ResourceData, tc.MetaData, exec.executionStart)
 			// columns should be resolved from ColumnResolver functions or default functions

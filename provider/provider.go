@@ -195,7 +195,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 		if !ok {
 			return fmt.Errorf("plugin %s does not provide resource %s", p.Name, resource)
 		}
-		tableExec := execution.NewTableExecutor(resource, conn, p.Logger, table, p.extraFields, request.Metadata, p.ErrorClassifier, goroutinesSem)
+		tableExec := execution.NewTableExecutor(resource, conn, p.Logger, table, p.extraFields, request.Metadata, p.ErrorClassifier, goroutinesSem, request.Timeout)
 		p.Logger.Debug("fetching table...", "provider", p.Name, "table", table.Name)
 		// Save resource aside
 		r := resource

@@ -45,10 +45,12 @@ type TableExecutor struct {
 	columns [2]schema.ColumnList
 	// goroutinesSem to limit number of goroutines (clients fetched) concurrently
 	goroutinesSem *semaphore.Weighted
+	// timeout for each parent resource resolve call
+	timeout time.Duration
 }
 
 // NewTableExecutor creates a new TableExecutor for given schema.Table
-func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, table *schema.Table, extraFields, metadata map[string]interface{}, classifier ErrorClassifier, goroutinesSem *semaphore.Weighted) TableExecutor {
+func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, table *schema.Table, extraFields, metadata map[string]interface{}, classifier ErrorClassifier, goroutinesSem *semaphore.Weighted, timeout time.Duration) TableExecutor {
 
 	var classifiers = []ErrorClassifier{defaultErrorClassifier}
 	if classifier != nil {
@@ -68,6 +70,7 @@ func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, tabl
 		executionStart: time.Now().Add(executionJitter),
 		columns:        c,
 		goroutinesSem:  goroutinesSem,
+		timeout:        timeout,
 	}
 }
 
@@ -77,6 +80,12 @@ func (e TableExecutor) Resolve(ctx context.Context, meta schema.ClientMeta) (uin
 		if clients := e.Table.Multiplex(meta); len(clients) > 0 {
 			return e.doMultiplexResolve(ctx, clients)
 		}
+	}
+
+	if e.timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, e.timeout)
+		defer cancel()
 	}
 	return e.callTableResolve(ctx, meta, nil)
 }
@@ -133,9 +142,15 @@ func (e TableExecutor) doMultiplexResolve(ctx context.Context, clients []schema.
 		go func(c schema.ClientMeta, diags chan<- diag.Diagnostics) {
 			defer e.goroutinesSem.Release(1)
 			defer wg.Done()
+			if e.timeout > 0 {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithTimeout(ctx, e.timeout)
+				defer cancel()
+			}
+
 			count, resolveDiags := e.callTableResolve(ctx, c, nil)
 			atomic.AddUint64(&totalResources, count)
-			diagsChan <- resolveDiags
+			diags <- resolveDiags
 		}(client, diagsChan)
 	}
 	wg.Wait()
@@ -285,6 +300,9 @@ func (e TableExecutor) resolveResources(ctx context.Context, meta schema.ClientM
 // saveToStorage copies resource data to source, it has ways of inserting, first it tries the most performant CopyFrom if that does work it bulk inserts,
 // finally it inserts each resource separately, appending errors for each failed resource, only successfully inserted resources are returned
 func (e TableExecutor) saveToStorage(ctx context.Context, resources schema.Resources, shouldCascade bool) (schema.Resources, diag.Diagnostics) {
+	if l := len(resources); l > 0 {
+		e.Logger.Debug("storing resources", "table", resources.TableName(), "count", l)
+	}
 	err := e.Db.CopyFrom(ctx, resources, shouldCascade, e.extraFields)
 	if err == nil {
 		return resources, nil
