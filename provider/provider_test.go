@@ -297,7 +297,6 @@ type FetchResourceTableTest struct {
 	ExpectedFetchResponses []*cqproto.FetchResourcesResponse
 	ExpectedError          error
 	MockStorageFunc        func(ctrl *gomock.Controller) *mock.MockStorage
-	PartialFetch           bool
 	ResourcesToFetch       []string
 	Context                func() context.Context
 }
@@ -326,17 +325,17 @@ func TestProvider_FetchResources(t *testing.T) {
 					Summary: cqproto.ResourceFetchSummary{
 						Status:        cqproto.ResourceFetchComplete,
 						ResourceCount: 0,
-						Diagnostics:   diag.Diagnostics{diag.NewBaseError(errors.New("bad error"), diag.RESOLVING, diag.WithResourceName("bad_resource_ignore_error"), diag.WithSeverity(diag.IGNORE), diag.WithSummary(`table "bad_resource_ignore_error" resolver ignored error`))},
+						Diagnostics:   diag.Diagnostics{},
 					},
 				}},
 			ExpectedError: nil,
 			MockStorageFunc: func(ctrl *gomock.Controller) *mock.MockStorage {
 				mockDB := mock.NewMockStorage(ctrl)
 				mockDB.EXPECT().Dialect().Return(schema.PostgresDialect{})
+				mockDB.EXPECT().RemoveStaleData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				mockDB.EXPECT().Close()
 				return mockDB
 			},
-			PartialFetch:     true,
 			ResourcesToFetch: []string{"bad_resource_ignore_error"},
 		},
 		{
@@ -357,7 +356,6 @@ func TestProvider_FetchResources(t *testing.T) {
 				mockDB.EXPECT().Close()
 				return mockDB
 			},
-			PartialFetch:     false,
 			ResourcesToFetch: []string{"bad_resource"},
 		},
 		{

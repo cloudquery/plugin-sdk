@@ -3,3 +3,5 @@
 */.cq/*
 .cq/
 config.hcl
+
+.vscode
