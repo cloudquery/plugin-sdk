@@ -325,7 +325,7 @@ func TestProvider_FetchResources(t *testing.T) {
 					Summary: cqproto.ResourceFetchSummary{
 						Status:        cqproto.ResourceFetchComplete,
 						ResourceCount: 0,
-						Diagnostics:   diag.Diagnostics{},
+						Diagnostics:   diag.Diagnostics{diag.NewBaseError(errors.New("bad error"), diag.RESOLVING, diag.WithResourceName("bad_resource_ignore_error"), diag.WithSeverity(diag.IGNORE), diag.WithSummary(`table "bad_resource_ignore_error" resolver ignored error`))},
 					},
 				}},
 			ExpectedError: nil,

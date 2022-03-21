@@ -274,7 +274,16 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				Resolver: returnErrorResolver,
 				Columns:  commonColumns,
 			},
-			ErrorExpected: false,
+			ErrorExpected: true,
+			ExpectedDiags: []diag.FlatDiag{
+				{
+					Err:      "some error",
+					Resource: "error_returning_ignore",
+					Severity: diag.IGNORE,
+					Summary:  `table "simple" resolver ignored error: some error`,
+					Type:     diag.RESOLVING,
+				},
+			},
 		},
 		{
 			Name: "always_delete",
