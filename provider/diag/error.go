@@ -112,6 +112,7 @@ func (e BaseError) Unwrap() error {
 type BaseErrorOption func(*BaseError)
 
 // WithNoOverwrite sets the noOverwrite flag of BaseError, active for the duration of the application of options
+// Deprecated: Prefer using WithOptionalSeverity on the opposite side instead
 func WithNoOverwrite() BaseErrorOption {
 	return func(e *BaseError) {
 		e.noOverwrite = true
@@ -124,6 +125,16 @@ func WithSeverity(s Severity) BaseErrorOption {
 			e.severity = s
 			e.severitySet = true
 		}
+	}
+}
+
+func WithOptionalSeverity(s Severity) BaseErrorOption {
+	return func(e *BaseError) {
+		if e.noOverwrite || e.severitySet {
+			return
+		}
+		// we keep as e.severitySet = false
+		e.severity = s
 	}
 }
 
