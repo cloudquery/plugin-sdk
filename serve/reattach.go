@@ -3,7 +3,6 @@ package serve
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 
@@ -20,21 +19,16 @@ func ParseReattachProviders(reattachPath string) (map[string]*plugin.ReattachCon
 
 	// Open our reattach config file
 	cfg, err := os.Open(reattachPath)
-	// if we os.Open returns an error then handle it
 	if err != nil {
 		return unmanagedProviders, fmt.Errorf("failed to open provider reattach config: %w", err)
 	}
 	defer cfg.Close()
 
-	data, err := ioutil.ReadAll(cfg)
-	if err != nil {
-		return unmanagedProviders, fmt.Errorf("failed reading reattach config from CQ_REATTACH_PROVIDERS=%s: %w", reattachPath, err)
-	}
-
 	var m map[string]ReattachConfig
-	if err := json.Unmarshal(data, &m); err != nil {
+	if err := json.NewDecoder(cfg).Decode(&m); err != nil {
 		return unmanagedProviders, fmt.Errorf("invalid format for CQ_REATTACH_PROVIDERS: %w", err)
 	}
+
 	for p, c := range m {
 		var addr net.Addr
 		switch c.Addr.Network {
@@ -66,6 +60,7 @@ func saveProviderReattach(path string, data []byte) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	if _, err := f.Write(data); err != nil {
 		return fmt.Errorf("failed to write CQ_REATTACH_PROVIDERS=%s: %w", path, err)
 	}
