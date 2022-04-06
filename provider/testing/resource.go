@@ -142,7 +142,7 @@ func verifyNoEmptyColumns(t *testing.T, table *schema.Table, conn pgxscan.Querie
 		nilColumns := map[string]bool{}
 		// mark all columns as nil
 		for _, c := range table.Columns {
-			if !shouldSkipIgnoreInTest && !c.IgnoreInTests {
+			if shouldSkipIgnoreInTest || !c.IgnoreInTests {
 				nilColumns[c.Name] = true
 			}
 		}
