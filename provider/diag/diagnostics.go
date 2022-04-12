@@ -50,7 +50,7 @@ func (diags Diagnostics) Error() string {
 
 func (diags Diagnostics) HasErrors() bool {
 	for _, d := range diags {
-		if d.Severity() == ERROR {
+		if d.Severity() >= ERROR {
 			return true
 		}
 	}

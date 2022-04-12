@@ -343,7 +343,7 @@ func (e TableExecutor) resolveResourceValues(ctx context.Context, meta schema.Cl
 			stack := string(debug.Stack())
 			e.Logger.Error("resolve table recovered from panic", "table", e.Table.Name, "panic_msg", r, "stack", stack)
 			diags = fromError(fmt.Errorf("column resolve panic: %s", r), diag.WithResourceName(e.ResourceName), diag.WithSeverity(diag.PANIC),
-				diag.WithSummary("resolve table %q recovered from panic.", e.Table.Name), diag.WithDetails("%s", stack))
+				diag.WithSummary("resolve table %q recovered from panic", e.Table.Name), diag.WithDetails("%s", stack))
 		}
 	}()
 
