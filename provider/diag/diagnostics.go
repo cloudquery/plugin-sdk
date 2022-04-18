@@ -130,7 +130,7 @@ func (diags Diagnostics) Warnings() uint64 {
 }
 
 func (diags Diagnostics) Errors() uint64 {
-	return diags.CountBySeverity(ERROR, false)
+	return diags.CountBySeverity(ERROR, false) + diags.CountBySeverity(PANIC, false)
 }
 
 // CountBySeverity returns number of diagnostics of the given severity. If includeSquashed is false, squashed diags are counted as a single diag.
