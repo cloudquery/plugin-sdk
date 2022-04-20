@@ -42,9 +42,12 @@ type Table struct {
 	// AlwaysDelete will always delete table data on fetch regardless if delete is disabled on run,
 	// use this only in specific cases, if you are unsure contact the CloudQuery Team.
 	AlwaysDelete bool
-	// IgnoreInTests if true this skips this column in tests as sometimes it might be hard
-	// to create a reproducible test environment with this column being non nil. For example various error tables such as
-	// security violations and so.
+
+	// IgnoreInTests is used to exclude a table from integration tests.
+	// By default, integration tests fetch all resources from cloudquery's test account, and verifY all tables
+	// have at least one row.
+	// When IgnoreInTests is true, integration tests won't fetch from this table.
+	// Used when it is hard to create a reproducible environment with a row in this table.
 	IgnoreInTests bool
 	// Global tables are usually the same regardless of the provider fetch configuration. Global table data gets fetched
 	// and doesn't produce PK conflict errors instead data is replaced

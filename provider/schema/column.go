@@ -161,8 +161,12 @@ type Column struct {
 	IgnoreError IgnoreErrorFunc
 	// Creation options allow modifying how column is defined when table is created
 	CreationOptions ColumnCreationOptions
-	// IgnoreInTests if true this skips this column in tests as sometimes it might be hard
-	// to create a reproducible test environment with this column being non nill. For example various error columns and so on
+
+	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
+	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
+	// verify all columns are non-nil.
+	// If IgnoreInTests is true, verification is skipped for this column.
+	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
 	IgnoreInTests bool
 
 	// internal is true if this column is managed by the SDK
