@@ -13,9 +13,24 @@ const (
 	PANIC
 )
 
-type DiagnosticType int
+func (s Severity) String() string {
+	switch s {
+	case IGNORE:
+		return "Ignore"
+	case WARNING:
+		return "Warning"
+	case ERROR:
+		return "Error"
+	case PANIC:
+		return "Panic"
+	default:
+		return "Unknown"
+	}
+}
 
-func (d DiagnosticType) String() string {
+type Type int
+
+func (d Type) String() string {
 	switch d {
 	case RESOLVING:
 		return "Resolving"
@@ -25,6 +40,10 @@ func (d DiagnosticType) String() string {
 		return "Throttle"
 	case DATABASE:
 		return "Database"
+	case USER:
+		return "User"
+	case INTERNAL:
+		return "Internal"
 	case UNKNOWN:
 		fallthrough
 	default:
@@ -33,19 +52,20 @@ func (d DiagnosticType) String() string {
 }
 
 const (
-	UNKNOWN DiagnosticType = iota
+	UNKNOWN Type = iota
 	RESOLVING
 	ACCESS
 	THROTTLE
 	DATABASE
 	SCHEMA
 	INTERNAL
+	USER
 )
 
 type Diagnostic interface {
 	error
 	Severity() Severity
-	Type() DiagnosticType
+	Type() Type
 	Description() Description
 }
 

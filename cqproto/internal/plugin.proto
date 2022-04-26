@@ -29,6 +29,7 @@ message ConfigureProvider {
   }
   message Response {
     string error = 1;
+    repeated Diagnostic diagnostics = 2;
   }
 }
 

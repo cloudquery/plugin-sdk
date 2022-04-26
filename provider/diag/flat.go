@@ -5,7 +5,7 @@ type FlatDiag struct {
 	Err         string
 	Resource    string
 	ResourceID  []string
-	Type        DiagnosticType
+	Type        Type
 	Severity    Severity
 	Summary     string
 	Description Description

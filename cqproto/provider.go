@@ -84,9 +84,9 @@ type ConfigureProviderRequest struct {
 }
 
 type ConfigureProviderResponse struct {
-	// Error should be set to a string describing the error.
+	// Diagnostics about the configure action. If includes ERROR severity, operation is aborted.
 	// The error can be either from malformed configuration or failure to setup
-	Error string
+	Diagnostics diag.Diagnostics
 }
 
 // FetchResourcesRequest represents a CloudQuery RPC request of one or more resources
@@ -208,7 +208,7 @@ type ConnectionDetails struct {
 type ProviderDiagnostic struct {
 	ResourceName       string
 	ResourceId         []string
-	DiagnosticType     diag.DiagnosticType
+	DiagnosticType     diag.Type
 	DiagnosticSeverity diag.Severity
 	Summary            string
 	Details            string
@@ -218,7 +218,7 @@ func (p ProviderDiagnostic) Severity() diag.Severity {
 	return p.DiagnosticSeverity
 }
 
-func (p ProviderDiagnostic) Type() diag.DiagnosticType {
+func (p ProviderDiagnostic) Type() diag.Type {
 	return p.DiagnosticType
 }
 

@@ -8,7 +8,7 @@ func (n nativeError) Severity() Severity {
 	return ERROR
 }
 
-func (n nativeError) Type() DiagnosticType {
+func (n nativeError) Type() Type {
 	return INTERNAL
 }
 

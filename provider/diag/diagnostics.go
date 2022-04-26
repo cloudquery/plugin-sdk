@@ -3,6 +3,7 @@ package diag
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/errwrap"
@@ -110,7 +111,7 @@ func (diags Diagnostics) Squash() Diagnostics {
 			}
 		}
 
-		key := fmt.Sprintf("%s_%s_%d_%d", keygen.Error(), keygen.Description().Resource, keygen.Severity(), keygen.Type())
+		key := fmt.Sprintf("%s_%s_%s_%d_%d", reflect.ValueOf(keygen).Type().String(), keygen.Error(), keygen.Description().Resource, keygen.Severity(), keygen.Type())
 		if sd, ok := dd[key]; ok {
 			sd.count += CountDiag(d)
 			continue
@@ -122,6 +123,7 @@ func (diags Diagnostics) Squash() Diagnostics {
 		dd[key] = nsd
 		sdd = append(sdd, nsd)
 	}
+
 	return sdd
 }
 

@@ -31,10 +31,12 @@ func (s SquashedDiag) Description() Description {
 	return description
 }
 
+// Count returns the number of diagnostics inside the squashed diagnostic
 func (s SquashedDiag) Count() uint64 {
 	return s.count
 }
 
+// Redacted returns the redacted version of the first diagnostic, if there is any
 func (s SquashedDiag) Redacted() Diagnostic {
 	rd, ok := s.Diagnostic.(Redactable)
 	if !ok {
@@ -52,6 +54,11 @@ func (s SquashedDiag) Redacted() Diagnostic {
 	}
 }
 
+// Unsquash returns the first diagnostic of the squashed set
+func (s SquashedDiag) Unsquash() Diagnostic {
+	return s.Diagnostic
+}
+
 type Countable interface {
 	Count() uint64
 }
@@ -64,4 +71,19 @@ func CountDiag(d Diagnostic) uint64 {
 	return 1
 }
 
-var _ Countable = (*SquashedDiag)(nil)
+type Unsquashable interface {
+	Unsquash() Diagnostic
+}
+
+func UnsquashDiag(d Diagnostic) Diagnostic {
+	if c, ok := d.(Unsquashable); ok {
+		return c.Unsquash()
+	}
+
+	return d
+}
+
+var (
+	_ Countable    = (*SquashedDiag)(nil)
+	_ Unsquashable = (*SquashedDiag)(nil)
+)
