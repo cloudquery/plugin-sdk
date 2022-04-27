@@ -165,7 +165,7 @@ func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.Configu
 
 func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchResourcesRequest, sender cqproto.FetchResourcesSender) error {
 	if p.meta == nil {
-		return fmt.Errorf("provider client is not configured, call ConfigureProvider first")
+		return fmt.Errorf("provider client is not configured (Hint: Try upgrading cloudquery)")
 	}
 
 	if helpers.HasDuplicates(request.Resources) {
