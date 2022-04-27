@@ -101,13 +101,15 @@ func fetch(t *testing.T, resource *ResourceTestCase) error {
 
 	t.Logf("fetch resources %v", resourceNames)
 
-	if _, err := resource.Provider.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
+	if resp, err := resource.Provider.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
 		CloudQueryVersion: "",
 		Connection: cqproto.ConnectionDetails{DSN: getEnv("DATABASE_URL",
 			"host=localhost user=postgres password=pass DB.name=postgres port=5432")},
 		Config: []byte(resource.Config),
 	}); err != nil {
 		return err
+	} else if resp != nil && resp.Diagnostics.HasErrors() {
+		return resp.Diagnostics
 	}
 
 	var resourceSender = &testResourceSender{
