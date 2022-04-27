@@ -11,22 +11,31 @@ import (
 
 func TestParseConnectionString(t *testing.T) {
 	tbl := []struct {
-		input       string
-		mod         map[string]string
-		expected    string
-		expectError bool
+		input            string
+		mod              map[string]string
+		expected         string
+		expectedPassword string
+		expectError      bool
 	}{
 		{
-			input:    "postgres://a:b@c.d?x=y&z=f",
-			expected: "postgres://a:b@c.d?x=y&z=f",
+			input:            "postgres://a:b@c.d?x=y&z=f",
+			expected:         "postgres://a:b@c.d?x=y&z=f",
+			expectedPassword: "b",
 		},
 		{
-			input:    "host=localhost user=postgres password=pass database=postgres port=5432 sslmode=disable",
-			expected: "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable",
+			input:            "host=localhost user=postgres password=pass database=postgres port=5432 sslmode=disable",
+			expected:         "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable",
+			expectedPassword: "pass",
 		},
 		{
-			input:    "tsdb://a:b@c.d?x=y&z=f",
-			expected: "tsdb://a:b@c.d?x=y&z=f",
+			input:            "tsdb://a:b@c.d?x=y&z=f",
+			expected:         "tsdb://a:b@c.d?x=y&z=f",
+			expectedPassword: "b",
+		},
+		{
+			input:            "postgres://cloudquery:yMLh4SV0j%23gPP%3ET@cluster-id.us-east-2.rds.amazonaws.com:5432/postgres",
+			expected:         "postgres://cloudquery:yMLh4SV0j%23gPP%3ET@cluster-id.us-east-2.rds.amazonaws.com:5432/postgres",
+			expectedPassword: "yMLh4SV0j#gPP>T",
 		},
 	}
 	for _, tc := range tbl {
@@ -38,6 +47,12 @@ func TestParseConnectionString(t *testing.T) {
 		}
 		if err != nil {
 			continue
+		}
+
+		if tc.expectedPassword != "" {
+			v, ok := out.User.Password()
+			assert.True(t, ok)
+			assert.Equal(t, tc.expectedPassword, v)
 		}
 
 		u, err := url.Parse(tc.expected)
