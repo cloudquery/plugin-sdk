@@ -2,7 +2,7 @@ package module
 
 import (
 	"embed"
-	"path/filepath"
+	"path"
 	"strconv"
 
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
@@ -32,7 +32,7 @@ func EmbeddedReader(moduleData embed.FS, basedir string) InfoReader {
 			err error
 		)
 
-		res.AvailableVersions, err = availableVersions(moduleData, filepath.Join(basedir, module))
+		res.AvailableVersions, err = availableVersions(moduleData, path.Join(basedir, module))
 		if err != nil {
 			return res, err
 		}
@@ -40,7 +40,7 @@ func EmbeddedReader(moduleData embed.FS, basedir string) InfoReader {
 		res.Data = make(map[uint32]cqproto.ModuleInfo, len(prefferedVersions))
 
 		for _, v := range prefferedVersions {
-			dir := filepath.Join(basedir, module, strconv.FormatInt(int64(v), 10)) // <basedir>/<module>/<version>/
+			dir := path.Join(basedir, module, strconv.FormatInt(int64(v), 10)) // <basedir>/<module>/<version>/
 			data, err := flatFiles(moduleData, dir, "")
 			if err != nil {
 				return res, err
@@ -92,7 +92,7 @@ func flatFiles(moduleData embed.FS, dir, prefix string) ([]*cqproto.ModuleFile, 
 
 	var ret []*cqproto.ModuleFile
 	for _, f := range files {
-		name := filepath.Join(dir, f.Name())
+		name := path.Join(dir, f.Name())
 
 		if !f.IsDir() {
 			data, err := moduleData.ReadFile(name)
@@ -100,7 +100,7 @@ func flatFiles(moduleData embed.FS, dir, prefix string) ([]*cqproto.ModuleFile, 
 				return nil, err
 			}
 			ret = append(ret, &cqproto.ModuleFile{
-				Name:     filepath.Join(prefix, f.Name()),
+				Name:     path.Join(prefix, f.Name()),
 				Contents: data,
 			})
 			continue
