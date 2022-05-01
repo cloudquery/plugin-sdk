@@ -13,6 +13,10 @@ type ClientMeta interface {
 	Logger() hclog.Logger
 }
 
+type ClientIdentifier interface {
+	Identify() string
+}
+
 type Meta struct {
 	LastUpdate time.Time `json:"last_updated"`
 	FetchId    string    `json:"fetch_id,omitempty"`
