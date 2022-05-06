@@ -172,7 +172,7 @@ func WithResourceId(id []string) BaseErrorOption {
 
 func WithDetails(detail string, args ...interface{}) BaseErrorOption {
 	return func(e *BaseError) {
-		if !e.noOverwrite || e.detail != "" {
+		if !e.noOverwrite || e.detail == "" {
 			e.detail = fmt.Sprintf(detail, args...)
 		}
 	}
