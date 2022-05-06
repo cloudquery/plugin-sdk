@@ -488,6 +488,37 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "panic_column",
+			Table: &schema.Table{
+				Name:     "panic_column_table",
+				Resolver: returnValueResolver,
+				Columns: schema.ColumnList{
+					{
+						Name: "name",
+						Resolver: func(ctx context.Context, meta schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
+							return resource.Set(c.Name, "name_value")
+						},
+					},
+					{
+						Name: "tags",
+						Resolver: func(ctx context.Context, meta schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
+							panic("oops")
+						},
+					},
+				},
+			},
+			ErrorExpected: true,
+			ExpectedDiags: []diag.FlatDiag{
+				{
+					Err:      "column resolve panic: oops",
+					Resource: "panic_column",
+					Severity: diag.PANIC,
+					Type:     diag.RESOLVING,
+					Summary:  `resolve column "tags" in table "panic_column_table" recovered from panic: column resolve panic: oops`,
+				},
+			},
+		},
 	}
 
 	executionClient := executionClient{testlog.New(t)}

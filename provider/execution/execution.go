@@ -397,10 +397,20 @@ func (e TableExecutor) resolveResourceValues(ctx context.Context, meta schema.Cl
 }
 
 // resolveColumns resolves each column in the table and adds them to the resource.
-func (e TableExecutor) resolveColumns(ctx context.Context, meta schema.ClientMeta, resource *schema.Resource, cols []schema.Column) diag.Diagnostics {
+func (e TableExecutor) resolveColumns(ctx context.Context, meta schema.ClientMeta, resource *schema.Resource, cols []schema.Column) (diags diag.Diagnostics) {
+	var col string
 
-	var diags diag.Diagnostics
+	defer func() {
+		if r := recover(); r != nil {
+			stack := string(debug.Stack())
+			e.Logger.Error("resolve columns recovered from panic", "panic_msg", r, "stack", stack, "column_name", col)
+			diags = fromError(fmt.Errorf("column resolve panic: %s", r), diag.WithResourceName(e.ResourceName), diag.WithSeverity(diag.PANIC),
+				diag.WithSummary("resolve column %q in table %q recovered from panic", col, e.Table.Name), diag.WithDetails("%s", stack))
+		}
+	}()
+
 	for _, c := range cols {
+		col = c.Name
 		if c.Resolver != nil {
 			e.Logger.Trace("using custom column resolver", "column", c.Name)
 			err := c.Resolver(ctx, meta, resource, c)
