@@ -204,7 +204,8 @@ func doResourceValues(dialect Dialect, r *Resource) ([]interface{}, error) {
 		if err := c.ValidateType(v); err != nil {
 			return nil, err
 		}
-		if c.Type == TypeJSON {
+		switch c.Type {
+		case TypeJSON:
 			if v == nil {
 				values = append(values, v)
 				continue
@@ -249,9 +250,17 @@ func doResourceValues(dialect Dialect, r *Resource) ([]interface{}, error) {
 				}
 				values = append(values, newV)
 			}
-		} else {
+		case TypeInt:
+			switch data := v.(type) {
+			case int64:
+				values = append(values, int32(data))
+			default:
+				values = append(values, data)
+			}
+		default:
 			values = append(values, v)
 		}
+
 	}
 	return values, nil
 }

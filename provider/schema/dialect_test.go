@@ -29,6 +29,19 @@ var (
 			},
 		},
 	}
+	intTestTable = Table{
+		Name: "test_table_validator",
+		Columns: []Column{
+			{
+				Name: "int32",
+				Type: TypeInt,
+			},
+			{
+				Name: "int64",
+				Type: TypeInt,
+			},
+		},
+	}
 	resources = []Resource{
 		{
 			data: map[string]interface{}{
@@ -137,6 +150,23 @@ var (
 			table: &jsonTestTable,
 		},
 	}
+
+	intResources = []Resource{
+		{
+			data: map[string]interface{}{
+				"int32": 123,
+				"int64": int64(123),
+			},
+			table: &intTestTable,
+		},
+		{
+			data: map[string]interface{}{
+				"int32": 123,
+				"int64": int64(9223372036854775807),
+			},
+			table: &intTestTable,
+		},
+	}
 )
 
 func TestJsonColumn(t *testing.T) {
@@ -148,5 +178,12 @@ func TestJsonColumn(t *testing.T) {
 	for _, r := range failResources {
 		_, err := PostgresDialect{}.GetResourceValues(&r)
 		assert.Error(t, err)
+	}
+}
+
+func TestIntColumn(t *testing.T) {
+	for _, r := range intResources {
+		_, err := PostgresDialect{}.GetResourceValues(&r)
+		assert.Nil(t, err)
 	}
 }

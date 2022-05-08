@@ -206,7 +206,7 @@ func (c Column) checkType(v interface{}) bool {
 	case uint16, int32, *int32:
 		return c.Type == TypeInt
 	case int, *int, uint32, *uint32, int64, *int64:
-		return c.Type == TypeBigInt
+		return c.Type == TypeBigInt || c.Type == TypeInt
 	case []byte:
 		if c.Type == TypeUUID {
 			if _, err := uuid.FromBytes(val); err != nil {
