@@ -272,7 +272,7 @@ func (c Column) checkType(v interface{}) bool {
 			if c.Type == TypeIntArray && reflect.Int == itemKind {
 				return true
 			}
-			if c.Type == TypeJSON && reflect.Struct == itemKind {
+			if c.Type == TypeJSON && (reflect.Struct == itemKind || reflect.Ptr == itemKind) {
 				return true
 			}
 			if c.Type == TypeUUIDArray && reflect2.TypeOf(v).String() == "uuid.UUID" || reflect2.TypeOf(v).String() == "*uuid.UUID" {
