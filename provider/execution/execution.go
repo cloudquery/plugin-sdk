@@ -165,15 +165,16 @@ func (e TableExecutor) doMultiplexResolve(ctx context.Context, clients []schema.
 		go func(c schema.ClientMeta, diags chan<- diag.Diagnostics, id string) {
 			defer e.goroutinesSem.Release(1)
 			defer wg.Done()
+			tableCtx := ctx
 			if e.timeout > 0 {
-				var cancel context.CancelFunc
-				ctx, cancel = context.WithTimeout(ctx, e.timeout)
+				ctx, cancel := context.WithTimeout(ctx, e.timeout)
+				tableCtx = ctx
 				defer cancel()
 			}
 			defer e.Logger.Debug("releasing multiplex client", "ctx_err", ctx.Err())
 			// create client execution add all Client's implied Args to execution logger + add its unique client id, so all its execution can be
 			// identified.
-			count, resolveDiags := e.withLogger(append(c.Logger().ImpliedArgs(), "client_id", id)...).callTableResolve(ctx, c, nil)
+			count, resolveDiags := e.withLogger(append(c.Logger().ImpliedArgs(), "client_id", id)...).callTableResolve(tableCtx, c, nil)
 			atomic.AddUint64(&totalResources, count)
 			diags <- resolveDiags
 		}(client, diagsChan, clientID)
