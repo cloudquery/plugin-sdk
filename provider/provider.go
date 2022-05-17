@@ -9,6 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/cloudquery/cq-provider-sdk/helpers/limit"
+
 	"github.com/cloudquery/cq-provider-sdk/database"
 	"github.com/cloudquery/cq-provider-sdk/migration/migrator"
 	"github.com/cloudquery/cq-provider-sdk/provider/diag"
@@ -189,7 +191,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 	var goroutinesSem *semaphore.Weighted
 	maxGoroutines := request.MaxGoroutines
 	if maxGoroutines == 0 {
-		maxGoroutines = helpers.GetMaxGoRoutines()
+		maxGoroutines = limit.GetMaxGoRoutines()
 	}
 	goroutinesSem = semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
 
