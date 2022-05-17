@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+### [0.9.4](https://github.com/cloudquery/cq-provider-sdk/compare/v0.9.3...v0.9.4) (2022-05-17)
+
+
+### Bug Fixes
+
+* Added json marshaling for []*struct -> json ([#248](https://github.com/cloudquery/cq-provider-sdk/issues/248)) ([bcbc3fa](https://github.com/cloudquery/cq-provider-sdk/commit/bcbc3fa176ecee33c686f5b13a801a319e3948f7))
+* Calculate goroutines with ulimit ([#256](https://github.com/cloudquery/cq-provider-sdk/issues/256)) ([5753765](https://github.com/cloudquery/cq-provider-sdk/commit/575376554835a41ce0a94562b29da3247ff2378f))
+* **deps:** Update hashstructure ([#252](https://github.com/cloudquery/cq-provider-sdk/issues/252)) ([be60d74](https://github.com/cloudquery/cq-provider-sdk/commit/be60d7430a62f4b1d328c05b193ce55dd01c6fd1))
+* Int64 to int automatic conversion added ([#242](https://github.com/cloudquery/cq-provider-sdk/issues/242)) ([4c80f07](https://github.com/cloudquery/cq-provider-sdk/commit/4c80f07e45033f2537bb4995225f40ec5533f270))
+* Race condition ([#255](https://github.com/cloudquery/cq-provider-sdk/issues/255)) ([2f32536](https://github.com/cloudquery/cq-provider-sdk/commit/2f32536a5f6f60d330c5ede61304dccc98594a81))
+* Revert "fix(deps): Update hashstructure ([#252](https://github.com/cloudquery/cq-provider-sdk/issues/252))" ([#260](https://github.com/cloudquery/cq-provider-sdk/issues/260)) ([8534e24](https://github.com/cloudquery/cq-provider-sdk/commit/8534e24236e53fd4d34238775c2a4414d85f4a9d))
+* Use hashing FormatV1 ([#258](https://github.com/cloudquery/cq-provider-sdk/issues/258)) ([646daa5](https://github.com/cloudquery/cq-provider-sdk/commit/646daa57df21c5c06c498572f49d1c0294d6caf2))
+
 ## [v0.6.1] - 2022-01-03
 
 ### :gear: Changed
