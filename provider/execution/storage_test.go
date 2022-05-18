@@ -33,7 +33,7 @@ func (f noopStorage) RemoveStaleData(ctx context.Context, t *schema.Table, execu
 	return nil
 }
 
-func (f noopStorage) CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool, CascadeDeleteFilters map[string]interface{}) error {
+func (f noopStorage) CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error {
 	return nil
 }
 

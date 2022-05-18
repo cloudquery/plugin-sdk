@@ -17,10 +17,8 @@ func (_m *MockedClientMeta) Logger() hclog.Logger {
 	var r0 hclog.Logger
 	if rf, ok := ret.Get(0).(func() hclog.Logger); ok {
 		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(hclog.Logger)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(hclog.Logger)
 	}
 
 	return r0

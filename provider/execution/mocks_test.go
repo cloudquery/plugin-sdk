@@ -21,13 +21,13 @@ func (_m *DatabaseMock) Close() {
 	_m.Called()
 }
 
-// CopyFrom provides a mock function with given fields: ctx, resources, shouldCascade, CascadeDeleteFilters
-func (_m *DatabaseMock) CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool, CascadeDeleteFilters map[string]interface{}) error {
-	ret := _m.Called(ctx, resources, shouldCascade, CascadeDeleteFilters)
+// CopyFrom provides a mock function with given fields: ctx, resources, shouldCascade, cascadeDeleteFilters
+func (_m *DatabaseMock) CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error {
+	ret := _m.Called(ctx, resources, shouldCascade, cascadeDeleteFilters)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, schema.Resources, bool, map[string]interface{}) error); ok {
-		r0 = rf(ctx, resources, shouldCascade, CascadeDeleteFilters)
+		r0 = rf(ctx, resources, shouldCascade, cascadeDeleteFilters)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -90,10 +90,8 @@ func (_m *DatabaseMock) Query(ctx context.Context, query string, args ...interfa
 	var r0 pgx.Rows
 	if rf, ok := ret.Get(0).(func(context.Context, string, ...interface{}) pgx.Rows); ok {
 		r0 = rf(ctx, query, args...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(pgx.Rows)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(pgx.Rows)
 	}
 
 	var r1 error
@@ -127,10 +125,8 @@ func (_m *DatabaseMock) Dialect() schema.Dialect {
 	var r0 schema.Dialect
 	if rf, ok := ret.Get(0).(func() schema.Dialect); ok {
 		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(schema.Dialect)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(schema.Dialect)
 	}
 
 	return r0
