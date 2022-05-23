@@ -112,17 +112,17 @@ func (mr *MockStorageMockRecorder) Exec(arg0, arg1 interface{}, arg2 ...interfac
 }
 
 // Insert mocks base method.
-func (m *MockStorage) Insert(arg0 context.Context, arg1 *schema.Table, arg2 schema.Resources) error {
+func (m *MockStorage) Insert(arg0 context.Context, arg1 *schema.Table, arg2 schema.Resources, arg3 bool, arg4 map[string]interface{}) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Insert", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Insert", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Insert indicates an expected call of Insert.
-func (mr *MockStorageMockRecorder) Insert(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockStorageMockRecorder) Insert(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insert", reflect.TypeOf((*MockStorage)(nil).Insert), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insert", reflect.TypeOf((*MockStorage)(nil).Insert), arg0, arg1, arg2, arg3, arg4)
 }
 
 // Query mocks base method.

@@ -13,10 +13,10 @@ import (
 type Storage interface {
 	QueryExecer
 	Copier
-	Insert(ctx context.Context, t *schema.Table, instance schema.Resources) error
+	Insert(ctx context.Context, t *schema.Table, instance schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error
 	Delete(ctx context.Context, t *schema.Table, kvFilters []interface{}) error
 	RemoveStaleData(ctx context.Context, t *schema.Table, executionStart time.Time, kvFilters []interface{}) error
-	CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool, CascadeDeleteFilters map[string]interface{}) error
+	CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error
 	Close()
 	Dialect() schema.Dialect
 }

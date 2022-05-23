@@ -67,12 +67,12 @@ func (_m *DatabaseMock) Exec(ctx context.Context, query string, args ...interfac
 }
 
 // Insert provides a mock function with given fields: ctx, t, instance
-func (_m *DatabaseMock) Insert(ctx context.Context, t *schema.Table, instance schema.Resources) error {
+func (_m *DatabaseMock) Insert(ctx context.Context, t *schema.Table, instance schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error {
 	ret := _m.Called(ctx, t, instance)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *schema.Table, schema.Resources) error); ok {
-		r0 = rf(ctx, t, instance)
+	if rf, ok := ret.Get(0).(func(context.Context, *schema.Table, schema.Resources, bool, map[string]interface{}) error); ok {
+		r0 = rf(ctx, t, instance, shouldCascade, cascadeDeleteFilters)
 	} else {
 		r0 = ret.Error(0)
 	}
