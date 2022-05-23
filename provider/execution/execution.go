@@ -270,10 +270,8 @@ func (e TableExecutor) callTableResolve(ctx context.Context, client schema.Clien
 		e.Logger.Info("fetched successfully", "count", nc)
 	}
 
-	if !diags.HasErrors() {
-		if err := e.cleanupStaleData(ctx, client, parent); err != nil {
-			return nc, diags.Add(fromError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed to cleanup stale data on table %q", e.Table.Name)))
-		}
+	if err := e.cleanupStaleData(ctx, client, parent); err != nil {
+		return nc, diags.Add(fromError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed to cleanup stale data on table %q", e.Table.Name)))
 	}
 
 	return nc, diags
