@@ -22,6 +22,8 @@ type Meta struct {
 	FetchId    string    `json:"fetch_id,omitempty"`
 }
 
+const FetchIdMetaKey = "cq_fetch_id"
+
 var (
 	cqMeta = Column{
 		Name:        "cq_meta",
@@ -31,7 +33,7 @@ var (
 			mi := Meta{
 				LastUpdate: time.Now().UTC(),
 			}
-			if val, ok := resource.GetMeta("cq_fetch_id"); ok {
+			if val, ok := resource.GetMeta(FetchIdMetaKey); ok {
 				if s, ok := val.(string); ok {
 					mi.FetchId = s
 				}
