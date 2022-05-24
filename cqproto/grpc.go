@@ -27,7 +27,6 @@ func (g GRPCClient) GetProviderSchema(ctx context.Context, _ *GetProviderSchemaR
 		Name:           res.GetName(),
 		Version:        res.GetVersion(),
 		ResourceTables: tablesFromProto(res.GetResourceTables()),
-		Migrations:     migrationsFromProto(res.GetMigrations()),
 	}
 
 	return resp, nil
@@ -140,7 +139,6 @@ func (g *GRPCServer) GetProviderSchema(ctx context.Context, _ *internal.GetProvi
 		Name:           resp.Name,
 		Version:        resp.Version,
 		ResourceTables: tablesToProto(resp.ResourceTables),
-		Migrations:     migrationsToProto(resp.Migrations),
 	}, nil
 
 }
@@ -274,6 +272,7 @@ func tableFromProto(v *internal.Table) *schema.Table {
 		Columns:     cols,
 		Relations:   rels,
 		Options:     opts,
+		Serial:      v.GetSerial(),
 	}
 }
 
@@ -327,6 +326,7 @@ func tableToProto(in *schema.Table) *internal.Table {
 		Options: &internal.TableCreationOptions{
 			PrimaryKeys: in.Options.PrimaryKeys,
 		},
+		Serial: in.Serial,
 	}
 }
 
@@ -435,24 +435,6 @@ func diagnosticsFromProto(resourceName string, in []*internal.Diagnostic) diag.D
 		diagnostics[i] = pdiag
 	}
 	return diagnostics
-}
-
-func migrationsFromProto(in map[string]*internal.DialectMigration) map[string]map[string][]byte {
-	ret := make(map[string]map[string][]byte, len(in))
-	for k := range in {
-		ret[k] = in[k].Migrations
-	}
-	return ret
-}
-
-func migrationsToProto(in map[string]map[string][]byte) map[string]*internal.DialectMigration {
-	ret := make(map[string]*internal.DialectMigration, len(in))
-	for k := range in {
-		ret[k] = &internal.DialectMigration{
-			Migrations: in[k],
-		}
-	}
-	return ret
 }
 
 func moduleInfoFromProto(in map[uint32]*internal.GetModuleInfo_Response_ModuleInfo) map[uint32]ModuleInfo {

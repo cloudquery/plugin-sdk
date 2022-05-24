@@ -124,17 +124,13 @@ message Diagnostic {
   repeated string resourceId = 7;
 }
 
-message DialectMigration {
-  map<string, bytes> migrations = 1;
-}
-
 message GetProviderSchema {
   message Request {}
   message Response {
     string name = 1;
     string version = 2;
     map<string, Table> resource_tables = 3;
-    map<string, DialectMigration> migrations = 5;
+    // next available index: 6
   }
 }
 
@@ -176,6 +172,7 @@ message Table {
   repeated Column columns = 3;
   repeated Table relations = 4;
   optional TableCreationOptions options = 5;
+  string serial = 6;
 }
 
 message Column {

@@ -89,17 +89,9 @@ type Migrator struct {
 	// maps between semantic version to the timestamp it was created at
 	versionMapper map[string]uint
 	versions      version.Collection
-
-	preHook  hookFunc
-	postHook hookFuncWithError
 }
 
 type Option func(*Migrator)
-
-type (
-	hookFunc          func(context.Context) error
-	hookFuncWithError func(context.Context, error) error
-)
 
 func New(log hclog.Logger, dt schema.DialectType, migrationFiles map[string]map[string][]byte, dsnURI, providerName string, opts ...Option) (*Migrator, error) {
 	versionMapper := make(map[string]uint)
@@ -155,25 +147,11 @@ func New(log hclog.Logger, dt schema.DialectType, migrationFiles map[string]map[
 		driver:        driver,
 		versionMapper: versionMapper,
 		versions:      versions,
-		preHook:       func(_ context.Context) error { return nil },
-		postHook:      func(_ context.Context, err error) error { return err },
 	}
 	for _, o := range opts {
 		o(mg)
 	}
 	return mg, nil
-}
-
-func WithPreHook(fn hookFunc) Option {
-	return func(m *Migrator) {
-		m.preHook = fn
-	}
-}
-
-func WithPostHook(fn hookFuncWithError) Option {
-	return func(m *Migrator) {
-		m.postHook = fn
-	}
 }
 
 func (m *Migrator) Close() error {
@@ -186,13 +164,6 @@ func (m *Migrator) Close() error {
 }
 
 func (m *Migrator) UpgradeProvider(version string) (retErr error) {
-	if err := m.preHook(context.Background()); err != nil {
-		return err
-	}
-	defer func() {
-		retErr = m.postHook(context.Background(), retErr)
-	}()
-
 	if version == Latest {
 		return m.m.Up()
 	}
@@ -206,13 +177,6 @@ func (m *Migrator) UpgradeProvider(version string) (retErr error) {
 }
 
 func (m *Migrator) DowngradeProvider(version string) (retErr error) {
-	if err := m.preHook(context.Background()); err != nil {
-		return err
-	}
-	defer func() {
-		retErr = m.postHook(context.Background(), retErr)
-	}()
-
 	if version == Down { // Used in testing
 		return m.m.Down()
 	}
@@ -227,13 +191,6 @@ func (m *Migrator) DowngradeProvider(version string) (retErr error) {
 }
 
 func (m *Migrator) DropProvider(ctx context.Context, schema map[string]*schema.Table) (retErr error) {
-	if err := m.preHook(ctx); err != nil {
-		return err
-	}
-	defer func() {
-		retErr = m.postHook(ctx, retErr)
-	}()
-
 	// we don't use go-migrate's drop since its too violent and it will remove all tables of other providers,
 	// instead we will only drop the migration table and all schema's tables
 	// we additionally don't use a transaction since this results quite often in out of shared memory errors
@@ -278,13 +235,6 @@ func (m *Migrator) Version() (string, bool, error) {
 }
 
 func (m *Migrator) SetVersion(requestedVersion string) (retErr error) {
-	if err := m.preHook(context.Background()); err != nil {
-		return err
-	}
-	defer func() {
-		retErr = m.postHook(context.Background(), retErr)
-	}()
-
 	mv, err := m.FindLatestMigration(requestedVersion)
 	if err != nil {
 		return err

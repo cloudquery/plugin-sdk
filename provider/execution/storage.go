@@ -13,6 +13,7 @@ import (
 type Storage interface {
 	QueryExecer
 	Copier
+	TXer
 	Insert(ctx context.Context, t *schema.Table, instance schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error
 	Delete(ctx context.Context, t *schema.Table, kvFilters []interface{}) error
 	RemoveStaleData(ctx context.Context, t *schema.Table, executionStart time.Time, kvFilters []interface{}) error
@@ -29,4 +30,15 @@ type QueryExecer interface {
 type Copier interface {
 	RawCopyTo(ctx context.Context, w io.Writer, sql string) error
 	RawCopyFrom(ctx context.Context, r io.Reader, sql string) error
+}
+
+type TXer interface {
+	Begin(context.Context) (TXQueryExecer, error)
+}
+
+type TXQueryExecer interface {
+	QueryExecer
+	TXer
+	Rollback(context.Context) error
+	Commit(context.Context) error
 }

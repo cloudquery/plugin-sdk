@@ -2,6 +2,7 @@ package execution
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -11,6 +12,10 @@ import (
 
 type noopStorage struct {
 	D schema.Dialect
+}
+
+func (f noopStorage) Begin(ctx context.Context) (TXQueryExecer, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (f noopStorage) Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error) {

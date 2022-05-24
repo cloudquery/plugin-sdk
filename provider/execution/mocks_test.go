@@ -2,6 +2,7 @@ package execution
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 type DatabaseMock struct {
 	mock.Mock
 }
+
+var _ Storage = (*DatabaseMock)(nil)
 
 // Close provides a mock function with given fields:
 func (_m *DatabaseMock) Close() {
@@ -154,4 +157,8 @@ func (_m *DatabaseMock) RawCopyFrom(ctx context.Context, r io.Reader, sql string
 		r0 = ret.Error(0)
 	}
 	return r0
+}
+
+func (_m *DatabaseMock) Begin(ctx context.Context) (TXQueryExecer, error) {
+	return nil, fmt.Errorf("not implemented")
 }

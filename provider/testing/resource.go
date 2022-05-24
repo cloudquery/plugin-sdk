@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -63,10 +64,9 @@ func TestResource(t *testing.T, resource ResourceTestCase) {
 	l := testlog.New(t)
 	l.SetLevel(hclog.Info)
 	resource.Provider.Logger = l
-	tableCreator := migration.NewTableCreator(l, schema.PostgresDialect{})
 
 	for _, table := range resource.Provider.ResourceMap {
-		if err := dropAndCreateTable(context.Background(), tableCreator, conn, table, nil); err != nil {
+		if err := dropAndCreateTable(context.Background(), conn, table); err != nil {
 			assert.FailNow(t, fmt.Sprintf("failed to create tables %s", table.Name), err)
 		}
 	}
@@ -194,21 +194,16 @@ func verifyNoEmptyColumns(t *testing.T, table *schema.Table, conn pgxscan.Querie
 
 func dropAndCreateTable(
 	ctx context.Context,
-	tableCreator *migration.TableCreator,
 	conn execution.QueryExecer,
-	table *schema.Table,
-	parent *schema.Table) error {
+	table *schema.Table) error {
 
-	ups, downs, err := tableCreator.CreateTableDefinitions(ctx, table, parent)
-
+	ups, err := migration.CreateTableDefinitions(ctx, schema.PostgresDialect{}, table, nil)
 	if err != nil {
 		return err
 	}
 
-	for _, sql := range downs {
-		if err := conn.Exec(ctx, sql); err != nil {
-			return err
-		}
+	if err := dropTables(ctx, conn, table); err != nil {
+		return err
 	}
 
 	for _, sql := range ups {
@@ -217,6 +212,18 @@ func dropAndCreateTable(
 		}
 	}
 
+	return nil
+}
+
+func dropTables(ctx context.Context, db execution.QueryExecer, table *schema.Table) error {
+	if err := db.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", strconv.Quote(table.Name))); err != nil {
+		return err
+	}
+	for _, rel := range table.Relations {
+		if err := dropTables(ctx, db, rel); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

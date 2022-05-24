@@ -221,6 +221,31 @@ func (p PgDatabase) Dialect() schema.Dialect {
 	return p.sd
 }
 
+func (p PgDatabase) Begin(ctx context.Context) (execution.TXQueryExecer, error) {
+	tx, err := p.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &PgTx{tx}, nil
+}
+
+type PgTx struct {
+	pgx.Tx
+}
+
+func (p PgTx) Exec(ctx context.Context, query string, args ...interface{}) error {
+	_, v := p.Tx.Exec(ctx, query, args...)
+	return v
+}
+
+func (p PgTx) Begin(ctx context.Context) (execution.TXQueryExecer, error) {
+	v, err := p.Tx.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &PgTx{v}, nil
+}
+
 func quoteColumns(columns []string) []string {
 	ret := make([]string, len(columns))
 	for i, v := range columns {

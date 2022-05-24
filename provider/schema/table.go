@@ -2,6 +2,10 @@ package schema
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
+	"sort"
+	"strings"
 )
 
 // TableResolver is the main entry point when a table fetch is called.
@@ -52,6 +56,9 @@ type Table struct {
 	// Global tables are usually the same regardless of the provider fetch configuration. Global table data gets fetched
 	// and doesn't produce PK conflict errors instead data is replaced
 	Global bool
+
+	// Serial is used to force a signature change, which forces new table creation and cascading removal of old table and relations
+	Serial string
 }
 
 func (t Table) Column(name string) *Column {
@@ -67,4 +74,58 @@ func (t Table) Column(name string) *Column {
 type TableCreationOptions struct {
 	// List of columns to set as primary keys. If this is empty, a random unique ID is generated.
 	PrimaryKeys []string
+}
+
+func (tco TableCreationOptions) signature() string {
+	return strings.Join(tco.PrimaryKeys, ";")
+}
+
+// Signature returns a comparable string about the structure of the table (columns, options, relations)
+func (t Table) Signature(d Dialect) string {
+	const sdkSignatureSerial = "" // Change this to force a change across all providers
+
+	sigs := append(
+		[]string{
+			"sdk:" + sdkSignatureSerial,
+		},
+		t.signature(d, nil)...,
+	)
+
+	h := sha256.New()
+	h.Write([]byte(strings.Join(sigs, "\n")))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func (t Table) TableNames() []string {
+	ret := []string{t.Name}
+	for _, rel := range t.Relations {
+		ret = append(ret, rel.TableNames()...)
+	}
+	return ret
+}
+
+func (t Table) signature(d Dialect, parent *Table) []string {
+	sigs := make([]string, 0, len(t.Relations)+1)
+	sigs = append(sigs, strings.Join([]string{
+		"t:" + t.Serial,
+		t.Name,
+		d.Columns(&t).signature(),
+		strings.Join(d.PrimaryKeys(&t), ";"),
+		strings.Join(d.Constraints(&t, parent), "|"),
+		t.Options.signature(),
+	}, ","))
+
+	relNames := make([]string, len(t.Relations))
+	relVsTable := make(map[string]*Table, len(t.Relations))
+	for i := range t.Relations {
+		relNames[i] = t.Relations[i].Name
+		relVsTable[t.Relations[i].Name] = t.Relations[i]
+	}
+	sort.Strings(relNames)
+
+	for _, rel := range relNames {
+		sigs = append(sigs, relVsTable[rel].signature(d, &t)...)
+	}
+
+	return sigs
 }

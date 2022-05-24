@@ -7,11 +7,10 @@
 package internal
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -648,53 +647,6 @@ func (x *Diagnostic) GetResourceId() []string {
 	return nil
 }
 
-type DialectMigration struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Migrations map[string][]byte `protobuf:"bytes,1,rep,name=migrations,proto3" json:"migrations,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-}
-
-func (x *DialectMigration) Reset() {
-	*x = DialectMigration{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *DialectMigration) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DialectMigration) ProtoMessage() {}
-
-func (x *DialectMigration) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DialectMigration.ProtoReflect.Descriptor instead.
-func (*DialectMigration) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *DialectMigration) GetMigrations() map[string][]byte {
-	if x != nil {
-		return x.Migrations
-	}
-	return nil
-}
-
 type GetProviderSchema struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -704,7 +656,7 @@ type GetProviderSchema struct {
 func (x *GetProviderSchema) Reset() {
 	*x = GetProviderSchema{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[6]
+		mi := &file_internal_plugin_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -717,7 +669,7 @@ func (x *GetProviderSchema) String() string {
 func (*GetProviderSchema) ProtoMessage() {}
 
 func (x *GetProviderSchema) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[6]
+	mi := &file_internal_plugin_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -730,7 +682,7 @@ func (x *GetProviderSchema) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderSchema.ProtoReflect.Descriptor instead.
 func (*GetProviderSchema) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{6}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{5}
 }
 
 type GetProviderConfig struct {
@@ -742,7 +694,7 @@ type GetProviderConfig struct {
 func (x *GetProviderConfig) Reset() {
 	*x = GetProviderConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[7]
+		mi := &file_internal_plugin_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -755,7 +707,7 @@ func (x *GetProviderConfig) String() string {
 func (*GetProviderConfig) ProtoMessage() {}
 
 func (x *GetProviderConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[7]
+	mi := &file_internal_plugin_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -768,7 +720,7 @@ func (x *GetProviderConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderConfig.ProtoReflect.Descriptor instead.
 func (*GetProviderConfig) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{7}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{6}
 }
 
 type GetModuleInfo struct {
@@ -780,7 +732,7 @@ type GetModuleInfo struct {
 func (x *GetModuleInfo) Reset() {
 	*x = GetModuleInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[8]
+		mi := &file_internal_plugin_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -793,7 +745,7 @@ func (x *GetModuleInfo) String() string {
 func (*GetModuleInfo) ProtoMessage() {}
 
 func (x *GetModuleInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[8]
+	mi := &file_internal_plugin_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -806,7 +758,7 @@ func (x *GetModuleInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetModuleInfo.ProtoReflect.Descriptor instead.
 func (*GetModuleInfo) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{8}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{7}
 }
 
 // Table is the definition of how a table is defined in a provider
@@ -820,12 +772,13 @@ type Table struct {
 	Columns     []*Column             `protobuf:"bytes,3,rep,name=columns,proto3" json:"columns,omitempty"`
 	Relations   []*Table              `protobuf:"bytes,4,rep,name=relations,proto3" json:"relations,omitempty"`
 	Options     *TableCreationOptions `protobuf:"bytes,5,opt,name=options,proto3,oneof" json:"options,omitempty"`
+	Serial      string                `protobuf:"bytes,6,opt,name=serial,proto3" json:"serial,omitempty"`
 }
 
 func (x *Table) Reset() {
 	*x = Table{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[9]
+		mi := &file_internal_plugin_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -838,7 +791,7 @@ func (x *Table) String() string {
 func (*Table) ProtoMessage() {}
 
 func (x *Table) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[9]
+	mi := &file_internal_plugin_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -851,7 +804,7 @@ func (x *Table) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Table.ProtoReflect.Descriptor instead.
 func (*Table) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{9}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Table) GetName() string {
@@ -889,6 +842,13 @@ func (x *Table) GetOptions() *TableCreationOptions {
 	return nil
 }
 
+func (x *Table) GetSerial() string {
+	if x != nil {
+		return x.Serial
+	}
+	return ""
+}
+
 type Column struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -903,7 +863,7 @@ type Column struct {
 func (x *Column) Reset() {
 	*x = Column{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[10]
+		mi := &file_internal_plugin_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -916,7 +876,7 @@ func (x *Column) String() string {
 func (*Column) ProtoMessage() {}
 
 func (x *Column) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[10]
+	mi := &file_internal_plugin_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -929,7 +889,7 @@ func (x *Column) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Column.ProtoReflect.Descriptor instead.
 func (*Column) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{10}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Column) GetName() string {
@@ -972,7 +932,7 @@ type ColumnMeta struct {
 func (x *ColumnMeta) Reset() {
 	*x = ColumnMeta{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[11]
+		mi := &file_internal_plugin_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -985,7 +945,7 @@ func (x *ColumnMeta) String() string {
 func (*ColumnMeta) ProtoMessage() {}
 
 func (x *ColumnMeta) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[11]
+	mi := &file_internal_plugin_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -998,7 +958,7 @@ func (x *ColumnMeta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColumnMeta.ProtoReflect.Descriptor instead.
 func (*ColumnMeta) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{11}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ColumnMeta) GetResolver() *ResolverMeta {
@@ -1027,7 +987,7 @@ type ResolverMeta struct {
 func (x *ResolverMeta) Reset() {
 	*x = ResolverMeta{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[12]
+		mi := &file_internal_plugin_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1040,7 +1000,7 @@ func (x *ResolverMeta) String() string {
 func (*ResolverMeta) ProtoMessage() {}
 
 func (x *ResolverMeta) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[12]
+	mi := &file_internal_plugin_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1053,7 +1013,7 @@ func (x *ResolverMeta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolverMeta.ProtoReflect.Descriptor instead.
 func (*ResolverMeta) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{12}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ResolverMeta) GetName() string {
@@ -1081,7 +1041,7 @@ type TableCreationOptions struct {
 func (x *TableCreationOptions) Reset() {
 	*x = TableCreationOptions{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[13]
+		mi := &file_internal_plugin_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1094,7 +1054,7 @@ func (x *TableCreationOptions) String() string {
 func (*TableCreationOptions) ProtoMessage() {}
 
 func (x *TableCreationOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[13]
+	mi := &file_internal_plugin_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1107,7 +1067,7 @@ func (x *TableCreationOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TableCreationOptions.ProtoReflect.Descriptor instead.
 func (*TableCreationOptions) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{13}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *TableCreationOptions) GetPrimaryKeys() []string {
@@ -1129,7 +1089,7 @@ type ConnectionDetails struct {
 func (x *ConnectionDetails) Reset() {
 	*x = ConnectionDetails{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[14]
+		mi := &file_internal_plugin_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1142,7 +1102,7 @@ func (x *ConnectionDetails) String() string {
 func (*ConnectionDetails) ProtoMessage() {}
 
 func (x *ConnectionDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[14]
+	mi := &file_internal_plugin_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1155,7 +1115,7 @@ func (x *ConnectionDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionDetails.ProtoReflect.Descriptor instead.
 func (*ConnectionDetails) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{14}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ConnectionDetails) GetType() ConnectionType {
@@ -1190,7 +1150,7 @@ type ConfigureProvider_Request struct {
 func (x *ConfigureProvider_Request) Reset() {
 	*x = ConfigureProvider_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[15]
+		mi := &file_internal_plugin_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1203,7 +1163,7 @@ func (x *ConfigureProvider_Request) String() string {
 func (*ConfigureProvider_Request) ProtoMessage() {}
 
 func (x *ConfigureProvider_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[15]
+	mi := &file_internal_plugin_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1259,7 +1219,7 @@ type ConfigureProvider_Response struct {
 func (x *ConfigureProvider_Response) Reset() {
 	*x = ConfigureProvider_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[16]
+		mi := &file_internal_plugin_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1272,7 +1232,7 @@ func (x *ConfigureProvider_Response) String() string {
 func (*ConfigureProvider_Response) ProtoMessage() {}
 
 func (x *ConfigureProvider_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[16]
+	mi := &file_internal_plugin_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1324,7 +1284,7 @@ type FetchResources_Request struct {
 func (x *FetchResources_Request) Reset() {
 	*x = FetchResources_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[17]
+		mi := &file_internal_plugin_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1337,7 +1297,7 @@ func (x *FetchResources_Request) String() string {
 func (*FetchResources_Request) ProtoMessage() {}
 
 func (x *FetchResources_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[17]
+	mi := &file_internal_plugin_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1417,7 +1377,7 @@ type FetchResources_Response struct {
 func (x *FetchResources_Response) Reset() {
 	*x = FetchResources_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[18]
+		mi := &file_internal_plugin_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1430,7 +1390,7 @@ func (x *FetchResources_Response) String() string {
 func (*FetchResources_Response) ProtoMessage() {}
 
 func (x *FetchResources_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[18]
+	mi := &file_internal_plugin_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1497,7 +1457,7 @@ type GetProviderSchema_Request struct {
 func (x *GetProviderSchema_Request) Reset() {
 	*x = GetProviderSchema_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[21]
+		mi := &file_internal_plugin_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1510,7 +1470,7 @@ func (x *GetProviderSchema_Request) String() string {
 func (*GetProviderSchema_Request) ProtoMessage() {}
 
 func (x *GetProviderSchema_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[21]
+	mi := &file_internal_plugin_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1523,7 +1483,7 @@ func (x *GetProviderSchema_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderSchema_Request.ProtoReflect.Descriptor instead.
 func (*GetProviderSchema_Request) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{6, 0}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{5, 0}
 }
 
 type GetProviderSchema_Response struct {
@@ -1531,16 +1491,15 @@ type GetProviderSchema_Response struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name           string                       `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Version        string                       `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	ResourceTables map[string]*Table            `protobuf:"bytes,3,rep,name=resource_tables,json=resourceTables,proto3" json:"resource_tables,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	Migrations     map[string]*DialectMigration `protobuf:"bytes,5,rep,name=migrations,proto3" json:"migrations,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Name           string            `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version        string            `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	ResourceTables map[string]*Table `protobuf:"bytes,3,rep,name=resource_tables,json=resourceTables,proto3" json:"resource_tables,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"` // next available index: 6
 }
 
 func (x *GetProviderSchema_Response) Reset() {
 	*x = GetProviderSchema_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[22]
+		mi := &file_internal_plugin_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1553,7 +1512,7 @@ func (x *GetProviderSchema_Response) String() string {
 func (*GetProviderSchema_Response) ProtoMessage() {}
 
 func (x *GetProviderSchema_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[22]
+	mi := &file_internal_plugin_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1566,7 +1525,7 @@ func (x *GetProviderSchema_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderSchema_Response.ProtoReflect.Descriptor instead.
 func (*GetProviderSchema_Response) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{6, 1}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{5, 1}
 }
 
 func (x *GetProviderSchema_Response) GetName() string {
@@ -1590,13 +1549,6 @@ func (x *GetProviderSchema_Response) GetResourceTables() map[string]*Table {
 	return nil
 }
 
-func (x *GetProviderSchema_Response) GetMigrations() map[string]*DialectMigration {
-	if x != nil {
-		return x.Migrations
-	}
-	return nil
-}
-
 type GetProviderConfig_Request struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1606,7 +1558,7 @@ type GetProviderConfig_Request struct {
 func (x *GetProviderConfig_Request) Reset() {
 	*x = GetProviderConfig_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[25]
+		mi := &file_internal_plugin_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1619,7 +1571,7 @@ func (x *GetProviderConfig_Request) String() string {
 func (*GetProviderConfig_Request) ProtoMessage() {}
 
 func (x *GetProviderConfig_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[25]
+	mi := &file_internal_plugin_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1632,7 +1584,7 @@ func (x *GetProviderConfig_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderConfig_Request.ProtoReflect.Descriptor instead.
 func (*GetProviderConfig_Request) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{7, 0}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{6, 0}
 }
 
 type GetProviderConfig_Response struct {
@@ -1648,7 +1600,7 @@ type GetProviderConfig_Response struct {
 func (x *GetProviderConfig_Response) Reset() {
 	*x = GetProviderConfig_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[26]
+		mi := &file_internal_plugin_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1661,7 +1613,7 @@ func (x *GetProviderConfig_Response) String() string {
 func (*GetProviderConfig_Response) ProtoMessage() {}
 
 func (x *GetProviderConfig_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[26]
+	mi := &file_internal_plugin_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1674,7 +1626,7 @@ func (x *GetProviderConfig_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderConfig_Response.ProtoReflect.Descriptor instead.
 func (*GetProviderConfig_Response) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{7, 1}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{6, 1}
 }
 
 func (x *GetProviderConfig_Response) GetName() string {
@@ -1710,7 +1662,7 @@ type GetModuleInfo_Request struct {
 func (x *GetModuleInfo_Request) Reset() {
 	*x = GetModuleInfo_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[27]
+		mi := &file_internal_plugin_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1723,7 +1675,7 @@ func (x *GetModuleInfo_Request) String() string {
 func (*GetModuleInfo_Request) ProtoMessage() {}
 
 func (x *GetModuleInfo_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[27]
+	mi := &file_internal_plugin_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1736,7 +1688,7 @@ func (x *GetModuleInfo_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetModuleInfo_Request.ProtoReflect.Descriptor instead.
 func (*GetModuleInfo_Request) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{8, 0}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{7, 0}
 }
 
 func (x *GetModuleInfo_Request) GetModule() string {
@@ -1766,7 +1718,7 @@ type GetModuleInfo_Response struct {
 func (x *GetModuleInfo_Response) Reset() {
 	*x = GetModuleInfo_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[28]
+		mi := &file_internal_plugin_proto_msgTypes[25]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1779,7 +1731,7 @@ func (x *GetModuleInfo_Response) String() string {
 func (*GetModuleInfo_Response) ProtoMessage() {}
 
 func (x *GetModuleInfo_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[28]
+	mi := &file_internal_plugin_proto_msgTypes[25]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1792,7 +1744,7 @@ func (x *GetModuleInfo_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetModuleInfo_Response.ProtoReflect.Descriptor instead.
 func (*GetModuleInfo_Response) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{8, 1}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{7, 1}
 }
 
 func (x *GetModuleInfo_Response) GetData() map[uint32]*GetModuleInfo_Response_ModuleInfo {
@@ -1828,7 +1780,7 @@ type GetModuleInfo_Response_ModuleInfo struct {
 func (x *GetModuleInfo_Response_ModuleInfo) Reset() {
 	*x = GetModuleInfo_Response_ModuleInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[30]
+		mi := &file_internal_plugin_proto_msgTypes[27]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1841,7 +1793,7 @@ func (x *GetModuleInfo_Response_ModuleInfo) String() string {
 func (*GetModuleInfo_Response_ModuleInfo) ProtoMessage() {}
 
 func (x *GetModuleInfo_Response_ModuleInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[30]
+	mi := &file_internal_plugin_proto_msgTypes[27]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1854,7 +1806,7 @@ func (x *GetModuleInfo_Response_ModuleInfo) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetModuleInfo_Response_ModuleInfo.ProtoReflect.Descriptor instead.
 func (*GetModuleInfo_Response_ModuleInfo) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{8, 1, 1}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{7, 1, 1}
 }
 
 func (x *GetModuleInfo_Response_ModuleInfo) GetFiles() []*GetModuleInfo_Response_ModuleInfo_ModuleFile {
@@ -1883,7 +1835,7 @@ type GetModuleInfo_Response_ModuleInfo_ModuleFile struct {
 func (x *GetModuleInfo_Response_ModuleInfo_ModuleFile) Reset() {
 	*x = GetModuleInfo_Response_ModuleInfo_ModuleFile{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_plugin_proto_msgTypes[32]
+		mi := &file_internal_plugin_proto_msgTypes[29]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1896,7 +1848,7 @@ func (x *GetModuleInfo_Response_ModuleInfo_ModuleFile) String() string {
 func (*GetModuleInfo_Response_ModuleInfo_ModuleFile) ProtoMessage() {}
 
 func (x *GetModuleInfo_Response_ModuleInfo_ModuleFile) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_plugin_proto_msgTypes[32]
+	mi := &file_internal_plugin_proto_msgTypes[29]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1909,7 +1861,7 @@ func (x *GetModuleInfo_Response_ModuleInfo_ModuleFile) ProtoReflect() protorefle
 
 // Deprecated: Use GetModuleInfo_Response_ModuleInfo_ModuleFile.ProtoReflect.Descriptor instead.
 func (*GetModuleInfo_Response_ModuleInfo_ModuleFile) Descriptor() ([]byte, []int) {
-	return file_internal_plugin_proto_rawDescGZIP(), []int{8, 1, 1, 1}
+	return file_internal_plugin_proto_rawDescGZIP(), []int{7, 1, 1, 1}
 }
 
 func (x *GetModuleInfo_Response_ModuleInfo_ModuleFile) GetName() string {
@@ -2045,106 +1997,87 @@ var file_internal_plugin_proto_rawDesc = []byte{
 	0x22, 0x3a, 0x0a, 0x08, 0x53, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x12, 0x0b, 0x0a, 0x07,
 	0x49, 0x4e, 0x56, 0x41, 0x4c, 0x49, 0x44, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05, 0x45, 0x52, 0x52,
 	0x4f, 0x52, 0x10, 0x01, 0x12, 0x0b, 0x0a, 0x07, 0x57, 0x41, 0x52, 0x4e, 0x49, 0x4e, 0x47, 0x10,
-	0x02, 0x12, 0x09, 0x0a, 0x05, 0x50, 0x41, 0x4e, 0x49, 0x43, 0x10, 0x03, 0x22, 0x9a, 0x01, 0x0a,
-	0x10, 0x44, 0x69, 0x61, 0x6c, 0x65, 0x63, 0x74, 0x4d, 0x69, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f,
-	0x6e, 0x12, 0x47, 0x0a, 0x0a, 0x6d, 0x69, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18,
-	0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x27, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x69,
-	0x61, 0x6c, 0x65, 0x63, 0x74, 0x4d, 0x69, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x4d,
-	0x69, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x0a,
-	0x6d, 0x69, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x1a, 0x3d, 0x0a, 0x0f, 0x4d, 0x69,
-	0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a,
-	0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12,
-	0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05,
-	0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0xb5, 0x03, 0x0a, 0x11, 0x47, 0x65,
-	0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x1a,
-	0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x94, 0x03, 0x0a, 0x08, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x76,
-	0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65,
-	0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x5e, 0x0a, 0x0f, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
-	0x65, 0x5f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x35,
-	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
-	0x65, 0x72, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73,
-	0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x0e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x54,
-	0x61, 0x62, 0x6c, 0x65, 0x73, 0x12, 0x51, 0x0a, 0x0a, 0x6d, 0x69, 0x67, 0x72, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x73, 0x18, 0x05, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x31, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68,
-	0x65, 0x6d, 0x61, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x4d, 0x69, 0x67,
-	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x0a, 0x6d, 0x69,
-	0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x1a, 0x4f, 0x0a, 0x13, 0x52, 0x65, 0x73, 0x6f,
+	0x02, 0x12, 0x09, 0x0a, 0x05, 0x50, 0x41, 0x4e, 0x49, 0x43, 0x10, 0x03, 0x22, 0x8a, 0x02, 0x0a,
+	0x11, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68, 0x65,
+	0x6d, 0x61, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0xe9, 0x01,
+	0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61,
+	0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18,
+	0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x5e, 0x0a, 0x0f, 0x72, 0x65, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x5f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x35, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f,
+	0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x54, 0x61, 0x62,
+	0x6c, 0x65, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x0e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72,
+	0x63, 0x65, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x1a, 0x4f, 0x0a, 0x13, 0x52, 0x65, 0x73, 0x6f,
 	0x75, 0x72, 0x63, 0x65, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12,
 	0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65,
 	0x79, 0x12, 0x22, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
 	0x32, 0x0c, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x52, 0x05,
-	0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0x56, 0x0a, 0x0f, 0x4d, 0x69, 0x67,
-	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03,
-	0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x2d,
-	0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x69, 0x61, 0x6c, 0x65, 0x63, 0x74, 0x4d, 0x69, 0x67,
-	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38,
-	0x01, 0x22, 0x70, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
-	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x50, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a,
-	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d,
-	0x65, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x16, 0x0a, 0x06, 0x63,
-	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x63, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x22, 0x93, 0x05, 0x0a, 0x0d, 0x47, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x75, 0x6c,
-	0x65, 0x49, 0x6e, 0x66, 0x6f, 0x1a, 0x50, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x12, 0x16, 0x0a, 0x06, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x06, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x12, 0x2d, 0x0a, 0x12, 0x70, 0x72, 0x65, 0x66,
-	0x65, 0x72, 0x72, 0x65, 0x64, 0x5f, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x02,
-	0x20, 0x03, 0x28, 0x0d, 0x52, 0x11, 0x70, 0x72, 0x65, 0x66, 0x65, 0x72, 0x72, 0x65, 0x64, 0x56,
-	0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x1a, 0xaf, 0x04, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70,
-	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3b, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x03,
-	0x28, 0x0b, 0x32, 0x27, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x6f,
-	0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x2e, 0x44, 0x61, 0x74, 0x61, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x04, 0x64, 0x61, 0x74,
-	0x61, 0x12, 0x2d, 0x0a, 0x12, 0x61, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x76,
-	0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0d, 0x52, 0x11, 0x61,
-	0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x6c, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73,
-	0x12, 0x33, 0x0a, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x18,
-	0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x69,
-	0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x52, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f,
-	0x73, 0x74, 0x69, 0x63, 0x73, 0x1a, 0x61, 0x0a, 0x09, 0x44, 0x61, 0x74, 0x61, 0x45, 0x6e, 0x74,
-	0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52,
-	0x03, 0x6b, 0x65, 0x79, 0x12, 0x3e, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x4d,
-	0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x05, 0x76,
-	0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0x9e, 0x02, 0x0a, 0x0a, 0x4d, 0x6f, 0x64,
-	0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x49, 0x0a, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73,
-	0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x33, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47,
-	0x65, 0x74, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x2e, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f,
-	0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x46, 0x69, 0x6c, 0x65, 0x52, 0x05, 0x66, 0x69, 0x6c,
-	0x65, 0x73, 0x12, 0x4c, 0x0a, 0x06, 0x65, 0x78, 0x74, 0x72, 0x61, 0x73, 0x18, 0x02, 0x20, 0x03,
-	0x28, 0x0b, 0x32, 0x34, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x6f,
-	0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x2e, 0x45, 0x78, 0x74,
-	0x72, 0x61, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x06, 0x65, 0x78, 0x74, 0x72, 0x61, 0x73,
-	0x1a, 0x39, 0x0a, 0x0b, 0x45, 0x78, 0x74, 0x72, 0x61, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12,
-	0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65,
-	0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0x3c, 0x0a, 0x0a, 0x4d,
-	0x6f, 0x64, 0x75, 0x6c, 0x65, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d,
-	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1a, 0x0a,
-	0x08, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52,
-	0x08, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x73, 0x22, 0xda, 0x01, 0x0a, 0x05, 0x54, 0x61,
-	0x62, 0x6c, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x20, 0x0a, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72,
-	0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x64, 0x65,
-	0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x27, 0x0a, 0x07, 0x63, 0x6f, 0x6c,
-	0x75, 0x6d, 0x6e, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x2e, 0x43, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x52, 0x07, 0x63, 0x6f, 0x6c, 0x75, 0x6d,
-	0x6e, 0x73, 0x12, 0x2a, 0x0a, 0x09, 0x72, 0x65, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18,
-	0x04, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x54, 0x61,
-	0x62, 0x6c, 0x65, 0x52, 0x09, 0x72, 0x65, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x3a,
-	0x0a, 0x07, 0x6f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x1b, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x43, 0x72, 0x65,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x4f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x48, 0x00, 0x52, 0x07,
-	0x6f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x88, 0x01, 0x01, 0x42, 0x0a, 0x0a, 0x08, 0x5f, 0x6f,
+	0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x70, 0x0a, 0x11, 0x47, 0x65, 0x74,
+	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x1a, 0x09,
+	0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x50, 0x0a, 0x08, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72,
+	0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73,
+	0x69, 0x6f, 0x6e, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x18, 0x03, 0x20,
+	0x01, 0x28, 0x0c, 0x52, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x22, 0x93, 0x05, 0x0a, 0x0d,
+	0x47, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x1a, 0x50, 0x0a,
+	0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x6d, 0x6f, 0x64, 0x75,
+	0x6c, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65,
+	0x12, 0x2d, 0x0a, 0x12, 0x70, 0x72, 0x65, 0x66, 0x65, 0x72, 0x72, 0x65, 0x64, 0x5f, 0x76, 0x65,
+	0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0d, 0x52, 0x11, 0x70, 0x72,
+	0x65, 0x66, 0x65, 0x72, 0x72, 0x65, 0x64, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x1a,
+	0xaf, 0x04, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3b, 0x0a, 0x04,
+	0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x27, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f,
+	0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x44, 0x61, 0x74, 0x61, 0x45, 0x6e,
+	0x74, 0x72, 0x79, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x12, 0x2d, 0x0a, 0x12, 0x61, 0x76, 0x61,
+	0x69, 0x6c, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x18,
+	0x02, 0x20, 0x03, 0x28, 0x0d, 0x52, 0x11, 0x61, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x6c, 0x65,
+	0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x33, 0x0a, 0x0b, 0x64, 0x69, 0x61, 0x67,
+	0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x11, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63,
+	0x52, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x1a, 0x61, 0x0a,
+	0x09, 0x44, 0x61, 0x74, 0x61, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65,
+	0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x3e, 0x0a, 0x05,
+	0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66,
+	0x6f, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c,
+	0x65, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01,
+	0x1a, 0x9e, 0x02, 0x0a, 0x0a, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x12,
+	0x49, 0x0a, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x33,
+	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65,
+	0x49, 0x6e, 0x66, 0x6f, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x4d, 0x6f,
+	0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x46,
+	0x69, 0x6c, 0x65, 0x52, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x12, 0x4c, 0x0a, 0x06, 0x65, 0x78,
+	0x74, 0x72, 0x61, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x34, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x66, 0x6f,
+	0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65,
+	0x49, 0x6e, 0x66, 0x6f, 0x2e, 0x45, 0x78, 0x74, 0x72, 0x61, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79,
+	0x52, 0x06, 0x65, 0x78, 0x74, 0x72, 0x61, 0x73, 0x1a, 0x39, 0x0a, 0x0b, 0x45, 0x78, 0x74, 0x72,
+	0x61, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c,
+	0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a,
+	0x02, 0x38, 0x01, 0x1a, 0x3c, 0x0a, 0x0a, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x46, 0x69, 0x6c,
+	0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74,
+	0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x08, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74,
+	0x73, 0x22, 0xf2, 0x01, 0x0a, 0x05, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e,
+	0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12,
+	0x20, 0x0a, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f,
+	0x6e, 0x12, 0x27, 0x0a, 0x07, 0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x73, 0x18, 0x03, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x43, 0x6f, 0x6c, 0x75, 0x6d,
+	0x6e, 0x52, 0x07, 0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x73, 0x12, 0x2a, 0x0a, 0x09, 0x72, 0x65,
+	0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x52, 0x09, 0x72, 0x65, 0x6c,
+	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x3a, 0x0a, 0x07, 0x6f, 0x70, 0x74, 0x69, 0x6f, 0x6e,
+	0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
+	0x54, 0x61, 0x62, 0x6c, 0x65, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x4f, 0x70, 0x74,
+	0x69, 0x6f, 0x6e, 0x73, 0x48, 0x00, 0x52, 0x07, 0x6f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x88,
+	0x01, 0x01, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x65, 0x72, 0x69, 0x61, 0x6c, 0x18, 0x06, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x06, 0x73, 0x65, 0x72, 0x69, 0x61, 0x6c, 0x42, 0x0a, 0x0a, 0x08, 0x5f, 0x6f,
 	0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x22, 0x8c, 0x01, 0x0a, 0x06, 0x43, 0x6f, 0x6c, 0x75, 0x6d,
 	0x6e, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
 	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x20, 0x0a, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70,
@@ -2237,7 +2170,7 @@ func file_internal_plugin_proto_rawDescGZIP() []byte {
 }
 
 var file_internal_plugin_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_internal_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_internal_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_internal_plugin_proto_goTypes = []interface{}{
 	(ColumnType)(0),                           // 0: proto.ColumnType
 	(ConnectionType)(0),                       // 1: proto.ConnectionType
@@ -2249,34 +2182,31 @@ var file_internal_plugin_proto_goTypes = []interface{}{
 	(*ResourceFetchSummary)(nil),              // 7: proto.ResourceFetchSummary
 	(*PartialFetchFailedResource)(nil),        // 8: proto.PartialFetchFailedResource
 	(*Diagnostic)(nil),                        // 9: proto.Diagnostic
-	(*DialectMigration)(nil),                  // 10: proto.DialectMigration
-	(*GetProviderSchema)(nil),                 // 11: proto.GetProviderSchema
-	(*GetProviderConfig)(nil),                 // 12: proto.GetProviderConfig
-	(*GetModuleInfo)(nil),                     // 13: proto.GetModuleInfo
-	(*Table)(nil),                             // 14: proto.Table
-	(*Column)(nil),                            // 15: proto.Column
-	(*ColumnMeta)(nil),                        // 16: proto.ColumnMeta
-	(*ResolverMeta)(nil),                      // 17: proto.ResolverMeta
-	(*TableCreationOptions)(nil),              // 18: proto.TableCreationOptions
-	(*ConnectionDetails)(nil),                 // 19: proto.ConnectionDetails
-	(*ConfigureProvider_Request)(nil),         // 20: proto.ConfigureProvider.Request
-	(*ConfigureProvider_Response)(nil),        // 21: proto.ConfigureProvider.Response
-	(*FetchResources_Request)(nil),            // 22: proto.FetchResources.Request
-	(*FetchResources_Response)(nil),           // 23: proto.FetchResources.Response
-	nil,                                       // 24: proto.FetchResources.Response.FinishedResourcesEntry
-	nil,                                       // 25: proto.DialectMigration.MigrationsEntry
-	(*GetProviderSchema_Request)(nil),         // 26: proto.GetProviderSchema.Request
-	(*GetProviderSchema_Response)(nil),        // 27: proto.GetProviderSchema.Response
-	nil,                                       // 28: proto.GetProviderSchema.Response.ResourceTablesEntry
-	nil,                                       // 29: proto.GetProviderSchema.Response.MigrationsEntry
-	(*GetProviderConfig_Request)(nil),         // 30: proto.GetProviderConfig.Request
-	(*GetProviderConfig_Response)(nil),        // 31: proto.GetProviderConfig.Response
-	(*GetModuleInfo_Request)(nil),             // 32: proto.GetModuleInfo.Request
-	(*GetModuleInfo_Response)(nil),            // 33: proto.GetModuleInfo.Response
-	nil,                                       // 34: proto.GetModuleInfo.Response.DataEntry
-	(*GetModuleInfo_Response_ModuleInfo)(nil), // 35: proto.GetModuleInfo.Response.ModuleInfo
-	nil, // 36: proto.GetModuleInfo.Response.ModuleInfo.ExtrasEntry
-	(*GetModuleInfo_Response_ModuleInfo_ModuleFile)(nil), // 37: proto.GetModuleInfo.Response.ModuleInfo.ModuleFile
+	(*GetProviderSchema)(nil),                 // 10: proto.GetProviderSchema
+	(*GetProviderConfig)(nil),                 // 11: proto.GetProviderConfig
+	(*GetModuleInfo)(nil),                     // 12: proto.GetModuleInfo
+	(*Table)(nil),                             // 13: proto.Table
+	(*Column)(nil),                            // 14: proto.Column
+	(*ColumnMeta)(nil),                        // 15: proto.ColumnMeta
+	(*ResolverMeta)(nil),                      // 16: proto.ResolverMeta
+	(*TableCreationOptions)(nil),              // 17: proto.TableCreationOptions
+	(*ConnectionDetails)(nil),                 // 18: proto.ConnectionDetails
+	(*ConfigureProvider_Request)(nil),         // 19: proto.ConfigureProvider.Request
+	(*ConfigureProvider_Response)(nil),        // 20: proto.ConfigureProvider.Response
+	(*FetchResources_Request)(nil),            // 21: proto.FetchResources.Request
+	(*FetchResources_Response)(nil),           // 22: proto.FetchResources.Response
+	nil,                                       // 23: proto.FetchResources.Response.FinishedResourcesEntry
+	(*GetProviderSchema_Request)(nil),         // 24: proto.GetProviderSchema.Request
+	(*GetProviderSchema_Response)(nil),        // 25: proto.GetProviderSchema.Response
+	nil,                                       // 26: proto.GetProviderSchema.Response.ResourceTablesEntry
+	(*GetProviderConfig_Request)(nil),         // 27: proto.GetProviderConfig.Request
+	(*GetProviderConfig_Response)(nil),        // 28: proto.GetProviderConfig.Response
+	(*GetModuleInfo_Request)(nil),             // 29: proto.GetModuleInfo.Request
+	(*GetModuleInfo_Response)(nil),            // 30: proto.GetModuleInfo.Response
+	nil,                                       // 31: proto.GetModuleInfo.Response.DataEntry
+	(*GetModuleInfo_Response_ModuleInfo)(nil), // 32: proto.GetModuleInfo.Response.ModuleInfo
+	nil, // 33: proto.GetModuleInfo.Response.ModuleInfo.ExtrasEntry
+	(*GetModuleInfo_Response_ModuleInfo_ModuleFile)(nil), // 34: proto.GetModuleInfo.Response.ModuleInfo.ModuleFile
 }
 var file_internal_plugin_proto_depIdxs = []int32{
 	2,  // 0: proto.ResourceFetchSummary.status:type_name -> proto.ResourceFetchSummary.Status
@@ -2284,43 +2214,40 @@ var file_internal_plugin_proto_depIdxs = []int32{
 	3,  // 2: proto.Diagnostic.type:type_name -> proto.Diagnostic.Type
 	4,  // 3: proto.Diagnostic.severity:type_name -> proto.Diagnostic.Severity
 	9,  // 4: proto.Diagnostic.redacted:type_name -> proto.Diagnostic
-	25, // 5: proto.DialectMigration.migrations:type_name -> proto.DialectMigration.MigrationsEntry
-	15, // 6: proto.Table.columns:type_name -> proto.Column
-	14, // 7: proto.Table.relations:type_name -> proto.Table
-	18, // 8: proto.Table.options:type_name -> proto.TableCreationOptions
-	0,  // 9: proto.Column.type:type_name -> proto.ColumnType
-	16, // 10: proto.Column.meta:type_name -> proto.ColumnMeta
-	17, // 11: proto.ColumnMeta.resolver:type_name -> proto.ResolverMeta
-	1,  // 12: proto.ConnectionDetails.type:type_name -> proto.ConnectionType
-	19, // 13: proto.ConfigureProvider.Request.connection:type_name -> proto.ConnectionDetails
-	9,  // 14: proto.ConfigureProvider.Response.diagnostics:type_name -> proto.Diagnostic
-	24, // 15: proto.FetchResources.Response.finished_resources:type_name -> proto.FetchResources.Response.FinishedResourcesEntry
-	8,  // 16: proto.FetchResources.Response.partial_fetch_failed_resources:type_name -> proto.PartialFetchFailedResource
-	7,  // 17: proto.FetchResources.Response.summary:type_name -> proto.ResourceFetchSummary
-	28, // 18: proto.GetProviderSchema.Response.resource_tables:type_name -> proto.GetProviderSchema.Response.ResourceTablesEntry
-	29, // 19: proto.GetProviderSchema.Response.migrations:type_name -> proto.GetProviderSchema.Response.MigrationsEntry
-	14, // 20: proto.GetProviderSchema.Response.ResourceTablesEntry.value:type_name -> proto.Table
-	10, // 21: proto.GetProviderSchema.Response.MigrationsEntry.value:type_name -> proto.DialectMigration
-	34, // 22: proto.GetModuleInfo.Response.data:type_name -> proto.GetModuleInfo.Response.DataEntry
-	9,  // 23: proto.GetModuleInfo.Response.diagnostics:type_name -> proto.Diagnostic
-	35, // 24: proto.GetModuleInfo.Response.DataEntry.value:type_name -> proto.GetModuleInfo.Response.ModuleInfo
-	37, // 25: proto.GetModuleInfo.Response.ModuleInfo.files:type_name -> proto.GetModuleInfo.Response.ModuleInfo.ModuleFile
-	36, // 26: proto.GetModuleInfo.Response.ModuleInfo.extras:type_name -> proto.GetModuleInfo.Response.ModuleInfo.ExtrasEntry
-	26, // 27: proto.Provider.GetProviderSchema:input_type -> proto.GetProviderSchema.Request
-	30, // 28: proto.Provider.GetProviderConfig:input_type -> proto.GetProviderConfig.Request
-	20, // 29: proto.Provider.ConfigureProvider:input_type -> proto.ConfigureProvider.Request
-	22, // 30: proto.Provider.FetchResources:input_type -> proto.FetchResources.Request
-	32, // 31: proto.Provider.GetModuleInfo:input_type -> proto.GetModuleInfo.Request
-	27, // 32: proto.Provider.GetProviderSchema:output_type -> proto.GetProviderSchema.Response
-	31, // 33: proto.Provider.GetProviderConfig:output_type -> proto.GetProviderConfig.Response
-	21, // 34: proto.Provider.ConfigureProvider:output_type -> proto.ConfigureProvider.Response
-	23, // 35: proto.Provider.FetchResources:output_type -> proto.FetchResources.Response
-	33, // 36: proto.Provider.GetModuleInfo:output_type -> proto.GetModuleInfo.Response
-	32, // [32:37] is the sub-list for method output_type
-	27, // [27:32] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	14, // 5: proto.Table.columns:type_name -> proto.Column
+	13, // 6: proto.Table.relations:type_name -> proto.Table
+	17, // 7: proto.Table.options:type_name -> proto.TableCreationOptions
+	0,  // 8: proto.Column.type:type_name -> proto.ColumnType
+	15, // 9: proto.Column.meta:type_name -> proto.ColumnMeta
+	16, // 10: proto.ColumnMeta.resolver:type_name -> proto.ResolverMeta
+	1,  // 11: proto.ConnectionDetails.type:type_name -> proto.ConnectionType
+	18, // 12: proto.ConfigureProvider.Request.connection:type_name -> proto.ConnectionDetails
+	9,  // 13: proto.ConfigureProvider.Response.diagnostics:type_name -> proto.Diagnostic
+	23, // 14: proto.FetchResources.Response.finished_resources:type_name -> proto.FetchResources.Response.FinishedResourcesEntry
+	8,  // 15: proto.FetchResources.Response.partial_fetch_failed_resources:type_name -> proto.PartialFetchFailedResource
+	7,  // 16: proto.FetchResources.Response.summary:type_name -> proto.ResourceFetchSummary
+	26, // 17: proto.GetProviderSchema.Response.resource_tables:type_name -> proto.GetProviderSchema.Response.ResourceTablesEntry
+	13, // 18: proto.GetProviderSchema.Response.ResourceTablesEntry.value:type_name -> proto.Table
+	31, // 19: proto.GetModuleInfo.Response.data:type_name -> proto.GetModuleInfo.Response.DataEntry
+	9,  // 20: proto.GetModuleInfo.Response.diagnostics:type_name -> proto.Diagnostic
+	32, // 21: proto.GetModuleInfo.Response.DataEntry.value:type_name -> proto.GetModuleInfo.Response.ModuleInfo
+	34, // 22: proto.GetModuleInfo.Response.ModuleInfo.files:type_name -> proto.GetModuleInfo.Response.ModuleInfo.ModuleFile
+	33, // 23: proto.GetModuleInfo.Response.ModuleInfo.extras:type_name -> proto.GetModuleInfo.Response.ModuleInfo.ExtrasEntry
+	24, // 24: proto.Provider.GetProviderSchema:input_type -> proto.GetProviderSchema.Request
+	27, // 25: proto.Provider.GetProviderConfig:input_type -> proto.GetProviderConfig.Request
+	19, // 26: proto.Provider.ConfigureProvider:input_type -> proto.ConfigureProvider.Request
+	21, // 27: proto.Provider.FetchResources:input_type -> proto.FetchResources.Request
+	29, // 28: proto.Provider.GetModuleInfo:input_type -> proto.GetModuleInfo.Request
+	25, // 29: proto.Provider.GetProviderSchema:output_type -> proto.GetProviderSchema.Response
+	28, // 30: proto.Provider.GetProviderConfig:output_type -> proto.GetProviderConfig.Response
+	20, // 31: proto.Provider.ConfigureProvider:output_type -> proto.ConfigureProvider.Response
+	22, // 32: proto.Provider.FetchResources:output_type -> proto.FetchResources.Response
+	30, // 33: proto.Provider.GetModuleInfo:output_type -> proto.GetModuleInfo.Response
+	29, // [29:34] is the sub-list for method output_type
+	24, // [24:29] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_internal_plugin_proto_init() }
@@ -2390,18 +2317,6 @@ func file_internal_plugin_proto_init() {
 			}
 		}
 		file_internal_plugin_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DialectMigration); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_internal_plugin_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetProviderSchema); i {
 			case 0:
 				return &v.state
@@ -2413,7 +2328,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetProviderConfig); i {
 			case 0:
 				return &v.state
@@ -2425,7 +2340,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetModuleInfo); i {
 			case 0:
 				return &v.state
@@ -2437,7 +2352,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Table); i {
 			case 0:
 				return &v.state
@@ -2449,7 +2364,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Column); i {
 			case 0:
 				return &v.state
@@ -2461,7 +2376,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ColumnMeta); i {
 			case 0:
 				return &v.state
@@ -2473,7 +2388,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ResolverMeta); i {
 			case 0:
 				return &v.state
@@ -2485,7 +2400,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TableCreationOptions); i {
 			case 0:
 				return &v.state
@@ -2497,7 +2412,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ConnectionDetails); i {
 			case 0:
 				return &v.state
@@ -2509,7 +2424,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ConfigureProvider_Request); i {
 			case 0:
 				return &v.state
@@ -2521,7 +2436,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ConfigureProvider_Response); i {
 			case 0:
 				return &v.state
@@ -2533,7 +2448,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FetchResources_Request); i {
 			case 0:
 				return &v.state
@@ -2545,7 +2460,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FetchResources_Response); i {
 			case 0:
 				return &v.state
@@ -2557,7 +2472,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetProviderSchema_Request); i {
 			case 0:
 				return &v.state
@@ -2569,7 +2484,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetProviderSchema_Response); i {
 			case 0:
 				return &v.state
@@ -2581,7 +2496,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetProviderConfig_Request); i {
 			case 0:
 				return &v.state
@@ -2593,7 +2508,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetProviderConfig_Response); i {
 			case 0:
 				return &v.state
@@ -2605,7 +2520,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetModuleInfo_Request); i {
 			case 0:
 				return &v.state
@@ -2617,7 +2532,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetModuleInfo_Response); i {
 			case 0:
 				return &v.state
@@ -2629,7 +2544,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetModuleInfo_Response_ModuleInfo); i {
 			case 0:
 				return &v.state
@@ -2641,7 +2556,7 @@ func file_internal_plugin_proto_init() {
 				return nil
 			}
 		}
-		file_internal_plugin_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_plugin_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetModuleInfo_Response_ModuleInfo_ModuleFile); i {
 			case 0:
 				return &v.state
@@ -2654,14 +2569,14 @@ func file_internal_plugin_proto_init() {
 			}
 		}
 	}
-	file_internal_plugin_proto_msgTypes[9].OneofWrappers = []interface{}{}
+	file_internal_plugin_proto_msgTypes[8].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_internal_plugin_proto_rawDesc,
 			NumEnums:      5,
-			NumMessages:   33,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

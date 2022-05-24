@@ -10,6 +10,7 @@ import (
 	reflect "reflect"
 	time "time"
 
+	execution "github.com/cloudquery/cq-provider-sdk/provider/execution"
 	schema "github.com/cloudquery/cq-provider-sdk/provider/schema"
 	gomock "github.com/golang/mock/gomock"
 	pgx "github.com/jackc/pgx/v4"
@@ -36,6 +37,21 @@ func NewMockStorage(ctrl *gomock.Controller) *MockStorage {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 	return m.recorder
+}
+
+// Begin mocks base method.
+func (m *MockStorage) Begin(arg0 context.Context) (execution.TXQueryExecer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Begin", arg0)
+	ret0, _ := ret[0].(execution.TXQueryExecer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Begin indicates an expected call of Begin.
+func (mr *MockStorageMockRecorder) Begin(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*MockStorage)(nil).Begin), arg0)
 }
 
 // Close mocks base method.
