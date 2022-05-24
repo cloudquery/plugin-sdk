@@ -10,6 +10,7 @@ import (
 
 const (
 	V4 = 4
+	V5 = 5
 
 	Vunmanaged = -1
 )
