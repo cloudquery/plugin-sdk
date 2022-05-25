@@ -8,13 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudquery/cq-provider-sdk/provider/diag"
-
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cloudquery/cq-provider-sdk/provider/diag"
 	"github.com/cloudquery/cq-provider-sdk/provider/execution"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
-
 	"github.com/doug-martin/goqu/v9"
+	// Init postgres
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jackc/pgconn"
@@ -30,6 +29,12 @@ type PgDatabase struct {
 	sd   schema.Dialect
 }
 
+type PgTx struct {
+	pgx.Tx
+}
+
+var _ execution.Storage = (*PgDatabase)(nil)
+
 func NewPgDatabase(ctx context.Context, logger hclog.Logger, dsn string, sd schema.Dialect) (*PgDatabase, error) {
 	pool, err := Connect(ctx, dsn)
 	if err != nil {
@@ -41,8 +46,6 @@ func NewPgDatabase(ctx context.Context, logger hclog.Logger, dsn string, sd sche
 		sd:   sd,
 	}, nil
 }
-
-var _ execution.Storage = (*PgDatabase)(nil)
 
 // Insert inserts all resources to given table, table and resources are assumed from same table.
 func (p PgDatabase) Insert(ctx context.Context, t *schema.Table, resources schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error {
@@ -227,10 +230,6 @@ func (p PgDatabase) Begin(ctx context.Context) (execution.TXQueryExecer, error) 
 		return nil, err
 	}
 	return &PgTx{tx}, nil
-}
-
-type PgTx struct {
-	pgx.Tx
 }
 
 func (p PgTx) Exec(ctx context.Context, query string, args ...interface{}) error {

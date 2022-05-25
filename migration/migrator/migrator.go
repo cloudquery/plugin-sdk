@@ -11,7 +11,6 @@ import (
 
 	"github.com/cloudquery/cq-provider-sdk/database/dsn"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
-
 	"github.com/golang-migrate/migrate/v4"
 	mpg "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source"
@@ -23,6 +22,20 @@ import (
 	"github.com/spf13/cast"
 	"github.com/xo/dburl"
 )
+
+type Migrator struct {
+	provider    string
+	dsn         string
+	migratorUrl *dburl.URL
+	log         hclog.Logger
+	m           *migrate.Migrate
+	driver      source.Driver
+	// maps between semantic version to the timestamp it was created at
+	versionMapper map[string]uint
+	versions      version.Collection
+}
+
+type Option func(*Migrator)
 
 const (
 	Latest  = "latest"
@@ -78,20 +91,6 @@ func ReadMigrationFiles(log hclog.Logger, migrationFiles embed.FS) (map[string]m
 	}
 	return migrations, nil
 }
-
-type Migrator struct {
-	provider    string
-	dsn         string
-	migratorUrl *dburl.URL
-	log         hclog.Logger
-	m           *migrate.Migrate
-	driver      source.Driver
-	// maps between semantic version to the timestamp it was created at
-	versionMapper map[string]uint
-	versions      version.Collection
-}
-
-type Option func(*Migrator)
 
 func New(log hclog.Logger, dt schema.DialectType, migrationFiles map[string]map[string][]byte, dsnURI, providerName string, opts ...Option) (*Migrator, error) {
 	versionMapper := make(map[string]uint)
@@ -190,7 +189,7 @@ func (m *Migrator) DowngradeProvider(version string) (retErr error) {
 	return m.m.Migrate(mv)
 }
 
-func (m *Migrator) DropProvider(ctx context.Context, schema map[string]*schema.Table) (retErr error) {
+func (m *Migrator) DropProvider(ctx context.Context, tableSchema map[string]*schema.Table) (retErr error) {
 	// we don't use go-migrate's drop since its too violent and it will remove all tables of other providers,
 	// instead we will only drop the migration table and all schema's tables
 	// we additionally don't use a transaction since this results quite often in out of shared memory errors
@@ -204,7 +203,7 @@ func (m *Migrator) DropProvider(ctx context.Context, schema map[string]*schema.T
 	if _, err := conn.Exec(ctx, q); err != nil {
 		return err
 	}
-	for name, table := range schema {
+	for name, table := range tableSchema {
 		m.log.Debug("deleting table and all relations", "table", name, "provider", m.provider)
 		if err := dropTables(ctx, conn, table); err != nil {
 			return err

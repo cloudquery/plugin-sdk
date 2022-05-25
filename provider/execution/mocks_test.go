@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
-
 	"github.com/jackc/pgx/v4"
 	"github.com/stretchr/testify/mock"
 )
@@ -159,6 +158,6 @@ func (_m *DatabaseMock) RawCopyFrom(ctx context.Context, r io.Reader, sql string
 	return r0
 }
 
-func (_m *DatabaseMock) Begin(ctx context.Context) (TXQueryExecer, error) {
+func (*DatabaseMock) Begin(ctx context.Context) (TXQueryExecer, error) {
 	return nil, fmt.Errorf("not implemented")
 }

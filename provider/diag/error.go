@@ -6,20 +6,6 @@ import (
 	"runtime"
 )
 
-// WrapError wraps error with the following string: "error at function_name[filename:line_number]: %w"
-// if err is nil returns nil
-func WrapError(err error) error {
-	if err != nil {
-		// notice that we're using 1, so it will actually log the where
-		// the error happened, 0 = this function, we don't want that.
-		pc, filename, line, ok := runtime.Caller(1)
-		if ok {
-			return fmt.Errorf("error at %s[%s:%d] %w", runtime.FuncForPC(pc).Name(), path.Base(filename), line, err)
-		}
-	}
-	return err
-}
-
 // BaseError is a generic error returned when execution is run, satisfies Diagnostic interface
 type BaseError struct {
 	// err is the underlying go error this diagnostic wraps. Can be nil
@@ -48,6 +34,22 @@ type BaseError struct {
 
 	// if noOverwrite is true, further Options won't overwrite previously set values. Valid for the duration of one "invocation"
 	noOverwrite bool
+}
+
+type BaseErrorOption func(*BaseError)
+
+// WrapError wraps error with the following string: "error at function_name[filename:line_number]: %w"
+// if err is nil returns nil
+func WrapError(err error) error {
+	if err != nil {
+		// notice that we're using 1, so it will actually log the where
+		// the error happened, 0 = this function, we don't want that.
+		pc, filename, line, ok := runtime.Caller(1)
+		if ok {
+			return fmt.Errorf("error at %s[%s:%d] %w", runtime.FuncForPC(pc).Name(), path.Base(filename), line, err)
+		}
+	}
+	return err
 }
 
 // NewBaseError creates a BaseError from given error, except the given error is a BaseError itself
@@ -108,8 +110,6 @@ func (e BaseError) Error() string {
 func (e BaseError) Unwrap() error {
 	return e.err
 }
-
-type BaseErrorOption func(*BaseError)
 
 // WithNoOverwrite sets the noOverwrite flag of BaseError, active for the duration of the application of options
 // Deprecated: Prefer using WithOptionalSeverity on the opposite side instead

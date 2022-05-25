@@ -7,7 +7,6 @@ import (
 )
 
 func TestInterfaceSlice(t *testing.T) {
-
 	someStringPtr := "test"
 	cases := []struct {
 		Name  string

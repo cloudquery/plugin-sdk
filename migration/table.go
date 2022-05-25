@@ -45,11 +45,11 @@ func CreateTableDefinitions(ctx context.Context, dialect schema.Dialect, t *sche
 
 	// Create relation tables
 	for _, r := range t.Relations {
-		if cr, err := CreateTableDefinitions(ctx, dialect, r, t); err != nil {
+		cr, err := CreateTableDefinitions(ctx, dialect, r, t)
+		if err != nil {
 			return nil, err
-		} else {
-			up = append(up, cr...)
 		}
+		up = append(up, cr...)
 	}
 
 	return up, nil

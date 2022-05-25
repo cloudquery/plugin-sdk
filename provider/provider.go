@@ -16,7 +16,6 @@ import (
 	"github.com/cloudquery/cq-provider-sdk/provider/execution"
 	"github.com/cloudquery/cq-provider-sdk/provider/module"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
-
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcl/v2/hclsimple"
@@ -61,6 +60,8 @@ type Provider struct {
 	// storageCreator creates a database based on requested engine
 	storageCreator func(ctx context.Context, logger hclog.Logger, dbURL string) (execution.Storage, error)
 }
+
+var _ cqproto.CQProviderServer = (*Provider)(nil)
 
 func (p *Provider) GetProviderSchema(_ context.Context, _ *cqproto.GetProviderSchemaRequest) (*cqproto.GetProviderSchemaResponse, error) {
 	return &cqproto.GetProviderSchemaResponse{
@@ -194,7 +195,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 	g, gctx := errgroup.WithContext(ctx)
 	finishedResources := make(map[string]bool, len(resources))
 	l := &sync.Mutex{}
-	var totalResourceCount uint64 = 0
+	var totalResourceCount uint64
 	for _, resource := range resources {
 		table, ok := p.ResourceMap[resource]
 		if !ok {
@@ -262,8 +263,6 @@ func (p *Provider) GetModuleInfo(_ context.Context, request *cqproto.GetModuleRe
 		Diagnostics:       diag.FromError(err, diag.INTERNAL),
 	}, nil
 }
-
-var _ cqproto.CQProviderServer = (*Provider)(nil)
 
 func (p *Provider) interpolateAllResources(requestedResources []string) ([]string, error) {
 	if len(requestedResources) != 1 {

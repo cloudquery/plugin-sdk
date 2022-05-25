@@ -202,7 +202,6 @@ func TestDiagnostics_SquashRedactable(t *testing.T) {
 			},
 		},
 	}, FlattenDiags(Diagnostics{r}, false))
-
 }
 
 func TestDiagnostics_Sort(t *testing.T) {

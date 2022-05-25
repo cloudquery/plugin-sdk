@@ -51,9 +51,9 @@ var (
 			if err := resource.GenerateCQId(); err != nil {
 				if resource.Parent == nil {
 					return err
-				} else {
-					meta.Logger().Debug("one of the table pk is nil", "table", resource.table.Name)
 				}
+
+				meta.Logger().Debug("one of the table pk is nil", "table", resource.table.Name)
 			}
 			return resource.Set(c.Name, resource.Id())
 		},

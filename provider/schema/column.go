@@ -18,6 +18,59 @@ import (
 
 type ValueType int
 
+type ResolverMeta struct {
+	Name    string
+	Builtin bool
+}
+
+type ColumnMeta struct {
+	Resolver     *ResolverMeta
+	IgnoreExists bool
+}
+
+type ColumnList []Column
+
+// ColumnResolver is called for each row received in TableResolver's data fetch.
+// execution holds all relevant information regarding execution as well as the Column called.
+// resource holds the current row we are resolving the column for.
+type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resource, c Column) error
+
+// ColumnCreationOptions allow modification of how column is defined when table is created
+type ColumnCreationOptions struct {
+	Unique  bool
+	NotNull bool
+}
+
+// Column definition for Table
+type Column struct {
+	// Name of column
+	Name string
+	// Value Type of column i.e String, UUID etc'
+	Type ValueType
+	// Description about column, this description is added as a comment in the database
+	Description string
+	// Default value if the resolver/default getting gets a nil value
+	Default interface{}
+	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
+	Resolver ColumnResolver
+	// Ignore errors checks if returned error from column resolver should be ignored.
+	IgnoreError IgnoreErrorFunc
+	// Creation options allow modifying how column is defined when table is created
+	CreationOptions ColumnCreationOptions
+
+	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
+	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
+	// verify all columns are non-nil.
+	// If IgnoreInTests is true, verification is skipped for this column.
+	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
+	IgnoreInTests bool
+
+	// internal is true if this column is managed by the SDK
+	internal bool
+	// meta holds serializable information about the column's resolvers and functions
+	meta *ColumnMeta
+}
+
 const (
 	TypeInvalid ValueType = iota
 	TypeBool
@@ -133,47 +186,6 @@ func ValueTypeFromString(s string) ValueType {
 	default:
 		return TypeInvalid
 	}
-}
-
-// ColumnResolver is called for each row received in TableResolver's data fetch.
-// execution holds all relevant information regarding execution as well as the Column called.
-// resource holds the current row we are resolving the column for.
-type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resource, c Column) error
-
-// ColumnCreationOptions allow modification of how column is defined when table is created
-type ColumnCreationOptions struct {
-	Unique  bool
-	NotNull bool
-}
-
-// Column definition for Table
-type Column struct {
-	// Name of column
-	Name string
-	// Value Type of column i.e String, UUID etc'
-	Type ValueType
-	// Description about column, this description is added as a comment in the database
-	Description string
-	// Default value if the resolver/default getting gets a nil value
-	Default interface{}
-	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
-	Resolver ColumnResolver
-	// Ignore errors checks if returned error from column resolver should be ignored.
-	IgnoreError IgnoreErrorFunc
-	// Creation options allow modifying how column is defined when table is created
-	CreationOptions ColumnCreationOptions
-
-	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
-	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
-	// verify all columns are non-nil.
-	// If IgnoreInTests is true, verification is skipped for this column.
-	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
-	IgnoreInTests bool
-
-	// internal is true if this column is managed by the SDK
-	internal bool
-	// meta holds serializable information about the column's resolvers and functions
-	meta *ColumnMeta
 }
 
 func (c Column) Internal() bool {
@@ -327,27 +339,14 @@ func (c Column) signature() string {
 	}, "\n")
 }
 
-type ResolverMeta struct {
-	Name    string
-	Builtin bool
-}
-
-type ColumnMeta struct {
-	Resolver     *ResolverMeta
-	IgnoreExists bool
-}
-
 func SetColumnMeta(c Column, m *ColumnMeta) Column {
 	c.meta = m
 	return c
 }
 
-type ColumnList []Column
-
 // Sift gets a column list and returns a list of provider columns, and another list of internal columns, cqId column being the very last one
-func (c ColumnList) Sift() (ColumnList, ColumnList) {
-	providerCols, internalCols := make(ColumnList, 0, len(c)), make(ColumnList, 0, len(c))
-
+func (c ColumnList) Sift() (providerCols ColumnList, internalCols ColumnList) {
+	providerCols, internalCols = make(ColumnList, 0, len(c)), make(ColumnList, 0, len(c))
 	cqIdColIndex := -1
 	for i := range c {
 		if c[i].internal {

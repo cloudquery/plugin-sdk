@@ -6,19 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/cq-provider-sdk/provider/execution"
-
-	"github.com/cloudquery/cq-provider-sdk/provider/diag"
-
-	"github.com/cloudquery/cq-provider-sdk/provider/schema/mock"
-	"github.com/golang/mock/gomock"
-
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
-	"github.com/cloudquery/faker/v3"
-	"github.com/hashicorp/go-hclog"
-
+	"github.com/cloudquery/cq-provider-sdk/provider/diag"
+	"github.com/cloudquery/cq-provider-sdk/provider/execution"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
-
+	"github.com/cloudquery/cq-provider-sdk/provider/schema/mock"
+	"github.com/cloudquery/faker/v3"
+	"github.com/golang/mock/gomock"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,12 +26,18 @@ type (
 	testClient struct{}
 )
 
-func (t testConfig) Example() string {
-	return ""
+type FetchResourceTableTest struct {
+	Name                   string
+	ExpectedFetchResponses []*cqproto.FetchResourcesResponse
+	ExpectedError          error
+	MockStorageFunc        func(ctrl *gomock.Controller) *mock.MockStorage
+	ResourcesToFetch       []string
+	Context                func() context.Context
 }
 
-func (t testClient) Logger() hclog.Logger {
-	return hclog.Default()
+type testResourceSender struct {
+	t                 *testing.T
+	ExpectedResponses []*cqproto.FetchResourcesResponse
 }
 
 var (
@@ -231,6 +232,14 @@ var (
 	}
 )
 
+func (testConfig) Example() string {
+	return ""
+}
+
+func (testClient) Logger() hclog.Logger {
+	return hclog.Default()
+}
+
 func TestProviderInterpolate(t *testing.T) {
 	r, err := provider.interpolateAllResources([]string{"test"})
 	assert.Nil(t, err)
@@ -246,7 +255,6 @@ func TestProviderInterpolate(t *testing.T) {
 	r, err = provider.interpolateAllResources([]string{"*"})
 	assert.Nil(t, err)
 	assert.ElementsMatch(t, []string{"test", "test1"}, r)
-
 }
 
 func TestTableDuplicates(t *testing.T) {
@@ -291,15 +299,6 @@ func TestProvider_ConfigureProvider(t *testing.T) {
 	assert.True(t, resp.Diagnostics.HasErrors())
 	assert.Equal(t, "test error", resp.Diagnostics.Error())
 	assert.NoError(t, err)
-}
-
-type FetchResourceTableTest struct {
-	Name                   string
-	ExpectedFetchResponses []*cqproto.FetchResourcesResponse
-	ExpectedError          error
-	MockStorageFunc        func(ctrl *gomock.Controller) *mock.MockStorage
-	ResourcesToFetch       []string
-	Context                func() context.Context
 }
 
 func TestProvider_FetchResources(t *testing.T) {
@@ -411,11 +410,6 @@ func TestProvider_FetchResources(t *testing.T) {
 			}
 		})
 	}
-}
-
-type testResourceSender struct {
-	t                 *testing.T
-	ExpectedResponses []*cqproto.FetchResourcesResponse
 }
 
 func (f *testResourceSender) Send(r *cqproto.FetchResourcesResponse) error {

@@ -12,12 +12,11 @@ import (
 	"github.com/cloudquery/cq-provider-sdk/helpers"
 	"github.com/cloudquery/cq-provider-sdk/provider/diag"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
-	"golang.org/x/sync/semaphore"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/iancoleman/strcase"
 	"github.com/modern-go/reflect2"
 	"github.com/thoas/go-funk"
+	"golang.org/x/sync/semaphore"
 )
 
 // executionJitter adds a -1 minute to execution of fetch, so if a user fetches only 1 resources and it finishes
@@ -214,7 +213,6 @@ func (e TableExecutor) callTableResolve(ctx context.Context, client schema.Clien
 
 	if e.Table.Resolver == nil {
 		return 0, diags.Add(diag.NewBaseError(nil, diag.SCHEMA, diag.WithSeverity(diag.ERROR), diag.WithResourceName(e.ResourceName), diag.WithSummary("table %q missing resolver, make sure table implements the resolver", e.Table.Name)))
-
 	}
 	if err := e.truncateTable(ctx, client, parent); err != nil {
 		return 0, diags.Add(ClassifyError(err, diag.WithResourceName(e.ResourceName)))

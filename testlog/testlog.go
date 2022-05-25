@@ -97,7 +97,7 @@ func (l *testLogger) IsError() bool {
 }
 
 // ImpliedArgs returns With key/value pairs
-func (l *testLogger) ImpliedArgs() []interface{} {
+func (*testLogger) ImpliedArgs() []interface{} {
 	return nil
 }
 
@@ -105,7 +105,7 @@ func (l *testLogger) With(args ...interface{}) hclog.Logger {
 	return l
 }
 
-func (l *testLogger) Name() string {
+func (*testLogger) Name() string {
 	return "testLogger"
 }
 
@@ -121,11 +121,11 @@ func (l *testLogger) SetLevel(level hclog.Level) {
 	l.level = level
 }
 
-func (l *testLogger) StandardLogger(opts *hclog.StandardLoggerOptions) *log.Logger {
+func (*testLogger) StandardLogger(opts *hclog.StandardLoggerOptions) *log.Logger {
 	return nil
 }
 
-func (l *testLogger) StandardWriter(opts *hclog.StandardLoggerOptions) io.Writer {
+func (*testLogger) StandardWriter(opts *hclog.StandardLoggerOptions) io.Writer {
 	return nil
 }
 

@@ -4,18 +4,30 @@ import (
 	"context"
 	"time"
 
-	"github.com/cloudquery/cq-provider-sdk/provider/diag"
-
-	"github.com/vmihailenco/msgpack/v5"
-
 	"github.com/cloudquery/cq-provider-sdk/cqproto/internal"
+	"github.com/cloudquery/cq-provider-sdk/provider/diag"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/hashicorp/go-plugin"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 type GRPCClient struct {
 	broker *plugin.GRPCBroker
 	client internal.ProviderClient
+}
+
+type GRPCServer struct {
+	// This is the real implementation
+	Impl CQProviderServer
+	internal.UnimplementedProviderServer
+}
+
+type GRPCFetchResponseStream struct {
+	stream internal.Provider_FetchResourcesClient
+}
+
+type GRPCFetchResourcesServer struct {
+	server internal.Provider_FetchResourcesServer
 }
 
 func (g GRPCClient) GetProviderSchema(ctx context.Context, _ *GetProviderSchemaRequest) (*GetProviderSchemaResponse, error) {
@@ -83,10 +95,6 @@ func (g GRPCClient) FetchResources(ctx context.Context, request *FetchResourcesR
 	return &GRPCFetchResponseStream{res}, nil
 }
 
-type GRPCFetchResponseStream struct {
-	stream internal.Provider_FetchResourcesClient
-}
-
 func (g GRPCFetchResponseStream) Recv() (*FetchResourcesResponse, error) {
 	resp, err := g.stream.Recv()
 	if err != nil {
@@ -124,12 +132,6 @@ func (g GRPCClient) GetModuleInfo(ctx context.Context, request *GetModuleRequest
 	}, nil
 }
 
-type GRPCServer struct {
-	// This is the real implementation
-	Impl CQProviderServer
-	internal.UnimplementedProviderServer
-}
-
 func (g *GRPCServer) GetProviderSchema(ctx context.Context, _ *internal.GetProviderSchema_Request) (*internal.GetProviderSchema_Response, error) {
 	resp, err := g.Impl.GetProviderSchema(ctx, &GetProviderSchemaRequest{})
 	if err != nil {
@@ -140,7 +142,6 @@ func (g *GRPCServer) GetProviderSchema(ctx context.Context, _ *internal.GetProvi
 		Version:        resp.Version,
 		ResourceTables: tablesToProto(resp.ResourceTables),
 	}, nil
-
 }
 
 func (g *GRPCServer) GetProviderConfig(ctx context.Context, _ *internal.GetProviderConfig_Request) (*internal.GetProviderConfig_Response, error) {
@@ -196,10 +197,6 @@ func (g *GRPCServer) FetchResources(request *internal.FetchResources_Request, se
 		},
 		&GRPCFetchResourcesServer{server: server},
 	)
-}
-
-type GRPCFetchResourcesServer struct {
-	server internal.Provider_FetchResourcesServer
 }
 
 func (g GRPCFetchResourcesServer) Send(response *FetchResourcesResponse) error {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
 	"github.com/cloudquery/cq-provider-sdk/provider"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
@@ -48,7 +47,6 @@ type Options struct {
 }
 
 func Serve(opts *Options) {
-
 	if opts.Name == "" {
 		panic("missing provider name")
 	}

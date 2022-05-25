@@ -1,6 +1,35 @@
 package diag
 
+// nolint:revive
 type Severity int
+
+// nolint:revive
+type Type int
+type Diagnostic interface {
+	error
+	Severity() Severity
+	Type() Type
+	Description() Description
+}
+
+type Description struct {
+	Resource   string
+	ResourceID []string
+
+	Summary string
+	Detail  string
+}
+
+const (
+	UNKNOWN Type = iota
+	RESOLVING
+	ACCESS
+	THROTTLE
+	DATABASE
+	SCHEMA
+	INTERNAL
+	USER
+)
 
 const (
 	// IGNORE severity is set for diagnostics that were ignored by the SDK
@@ -28,8 +57,6 @@ func (s Severity) String() string {
 	}
 }
 
-type Type int
-
 func (d Type) String() string {
 	switch d {
 	case RESOLVING:
@@ -49,30 +76,4 @@ func (d Type) String() string {
 	default:
 		return "UNKNOWN"
 	}
-}
-
-const (
-	UNKNOWN Type = iota
-	RESOLVING
-	ACCESS
-	THROTTLE
-	DATABASE
-	SCHEMA
-	INTERNAL
-	USER
-)
-
-type Diagnostic interface {
-	error
-	Severity() Severity
-	Type() Type
-	Description() Description
-}
-
-type Description struct {
-	Resource   string
-	ResourceID []string
-
-	Summary string
-	Detail  string
 }

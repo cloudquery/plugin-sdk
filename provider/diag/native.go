@@ -4,11 +4,11 @@ type nativeError struct {
 	err error
 }
 
-func (n nativeError) Severity() Severity {
+func (nativeError) Severity() Severity {
 	return ERROR
 }
 
-func (n nativeError) Type() Type {
+func (nativeError) Type() Type {
 	return INTERNAL
 }
 

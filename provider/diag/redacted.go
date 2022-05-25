@@ -5,6 +5,14 @@ type RedactedDiagnostic struct {
 	redacted Diagnostic
 }
 
+type Redactable interface {
+	Redacted() Diagnostic
+}
+
+var (
+	_ Redactable = (*RedactedDiagnostic)(nil)
+)
+
 func NewRedactedDiagnostic(vanilla, redacted Diagnostic) RedactedDiagnostic {
 	return RedactedDiagnostic{
 		Diagnostic: vanilla,
@@ -15,11 +23,3 @@ func NewRedactedDiagnostic(vanilla, redacted Diagnostic) RedactedDiagnostic {
 func (p RedactedDiagnostic) Redacted() Diagnostic {
 	return p.redacted
 }
-
-type Redactable interface {
-	Redacted() Diagnostic
-}
-
-var (
-	_ Redactable = (*RedactedDiagnostic)(nil)
-)

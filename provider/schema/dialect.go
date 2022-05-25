@@ -11,15 +11,6 @@ import (
 
 type DialectType string
 
-const (
-	Postgres = DialectType("postgres")
-	TSDB     = DialectType("timescale")
-)
-
-func (t DialectType) MigrationDirectory() string {
-	return string(t)
-}
-
 type Dialect interface {
 	// PrimaryKeys returns the primary keys of table according to dialect
 	PrimaryKeys(t *Table) []string
@@ -40,10 +31,25 @@ type Dialect interface {
 	GetResourceValues(r *Resource) ([]interface{}, error)
 }
 
+type PostgresDialect struct{}
+
+type TSDBDialect struct {
+	pg PostgresDialect
+}
+
+const (
+	Postgres = DialectType("postgres")
+	TSDB     = DialectType("timescale")
+)
+
 var (
 	_ Dialect = (*PostgresDialect)(nil)
 	_ Dialect = (*TSDBDialect)(nil)
 )
+
+func (t DialectType) MigrationDirectory() string {
+	return string(t)
+}
 
 // GetDialect creates and returns a dialect specified by the DialectType
 func GetDialect(t DialectType) (Dialect, error) {
@@ -57,16 +63,14 @@ func GetDialect(t DialectType) (Dialect, error) {
 	}
 }
 
-type PostgresDialect struct{}
-
-func (d PostgresDialect) PrimaryKeys(t *Table) []string {
+func (PostgresDialect) PrimaryKeys(t *Table) []string {
 	if len(t.Options.PrimaryKeys) > 0 {
 		return t.Options.PrimaryKeys
 	}
 	return []string{cqIdColumn.Name}
 }
 
-func (d PostgresDialect) Columns(t *Table) ColumnList {
+func (PostgresDialect) Columns(t *Table) ColumnList {
 	return append([]Column{cqIdColumn, cqMeta}, t.Columns...)
 }
 
@@ -93,11 +97,11 @@ func (d PostgresDialect) Constraints(t, parent *Table) []string {
 	return ret
 }
 
-func (d PostgresDialect) Extra(_, _ *Table) []string {
+func (PostgresDialect) Extra(_, _ *Table) []string {
 	return nil
 }
 
-func (d PostgresDialect) DBTypeFromType(v ValueType) string {
+func (PostgresDialect) DBTypeFromType(v ValueType) string {
 	switch v {
 	case TypeBool:
 		return "boolean"
@@ -146,15 +150,11 @@ func (d PostgresDialect) GetResourceValues(r *Resource) ([]interface{}, error) {
 	return doResourceValues(d, r)
 }
 
-type TSDBDialect struct {
-	pg PostgresDialect
-}
-
 func (d TSDBDialect) PrimaryKeys(t *Table) []string {
 	return append([]string{cqFetchDateColumn.Name}, d.pg.PrimaryKeys(t)...)
 }
 
-func (d TSDBDialect) Columns(t *Table) ColumnList {
+func (TSDBDialect) Columns(t *Table) ColumnList {
 	return append([]Column{cqIdColumn, cqMeta, cqFetchDateColumn}, t.Columns...)
 }
 
@@ -174,7 +174,7 @@ func (d TSDBDialect) Constraints(t, _ *Table) []string {
 	return ret
 }
 
-func (d TSDBDialect) Extra(t, parent *Table) []string {
+func (TSDBDialect) Extra(t, parent *Table) []string {
 	pc := findParentIdColumn(t)
 
 	if parent == nil || pc == nil {
@@ -260,7 +260,6 @@ func doResourceValues(dialect Dialect, r *Resource) ([]interface{}, error) {
 		default:
 			values = append(values, v)
 		}
-
 	}
 	return values, nil
 }

@@ -10,6 +10,19 @@ type SquashedDiag struct {
 	count uint64
 }
 
+type Countable interface {
+	Count() uint64
+}
+
+type Unsquashable interface {
+	Unsquash() Diagnostic
+}
+
+var (
+	_ Countable    = (*SquashedDiag)(nil)
+	_ Unsquashable = (*SquashedDiag)(nil)
+)
+
 func (s SquashedDiag) Description() Description {
 	description := s.Diagnostic.Description()
 
@@ -59,20 +72,12 @@ func (s SquashedDiag) Unsquash() Diagnostic {
 	return s.Diagnostic
 }
 
-type Countable interface {
-	Count() uint64
-}
-
 func CountDiag(d Diagnostic) uint64 {
 	if c, ok := d.(Countable); ok {
 		return c.Count()
 	}
 
 	return 1
-}
-
-type Unsquashable interface {
-	Unsquash() Diagnostic
 }
 
 func UnsquashDiag(d Diagnostic) Diagnostic {
@@ -82,8 +87,3 @@ func UnsquashDiag(d Diagnostic) Diagnostic {
 
 	return d
 }
-
-var (
-	_ Countable    = (*SquashedDiag)(nil)
-	_ Unsquashable = (*SquashedDiag)(nil)
-)

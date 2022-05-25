@@ -10,6 +10,11 @@ import (
 	"github.com/xo/dburl"
 )
 
+var (
+	asciiSpace   = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
+	nonQueryKeys = []string{"host", "port", "database", "password", "user"}
+)
+
 func init() {
 	dburl.Register(dburl.Scheme{
 		Driver:    "timescale",
@@ -75,8 +80,6 @@ func RedactParseError(err error) error {
 
 	return err
 }
-
-var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
 
 // ParseDSNSettings taken from https://github.com/jackc/pgconn
 //nolint
@@ -151,8 +154,6 @@ func parseDSNSettings(s string) (map[string]string, error) {
 	return settings, nil
 }
 
-var nonQueryKeys = []string{"host", "port", "database", "password", "user"}
-
 func convertDSNToURL(connString string) (string, error) {
 	settings, err := parseDSNSettings(connString)
 	if err != nil {
@@ -179,7 +180,6 @@ func convertDSNToURL(connString string) (string, error) {
 	queryParams := make([]string, 0)
 	for k, v := range settings {
 		queryParams = append(queryParams, fmt.Sprintf("%s=%s", k, v))
-
 	}
 	return fmt.Sprintf("%s?%s", baseURL, strings.Join(queryParams, "&")), nil
 }

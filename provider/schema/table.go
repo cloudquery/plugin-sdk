@@ -61,6 +61,12 @@ type Table struct {
 	Serial string
 }
 
+// TableCreationOptions allow modifying how table is created such as defining primary keys, indices, foreign keys and constraints.
+type TableCreationOptions struct {
+	// List of columns to set as primary keys. If this is empty, a random unique ID is generated.
+	PrimaryKeys []string
+}
+
 func (t Table) Column(name string) *Column {
 	for _, c := range t.Columns {
 		if c.Name == name {
@@ -68,12 +74,6 @@ func (t Table) Column(name string) *Column {
 		}
 	}
 	return nil
-}
-
-// TableCreationOptions allow modifying how table is created such as defining primary keys, indices, foreign keys and constraints.
-type TableCreationOptions struct {
-	// List of columns to set as primary keys. If this is empty, a random unique ID is generated.
-	PrimaryKeys []string
 }
 
 func (tco TableCreationOptions) signature() string {

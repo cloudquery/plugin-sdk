@@ -10,14 +10,18 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+type inner struct {
+	NameNoPrefix string `default:"name_no_prefix"`
+}
+
+type prefix struct {
+	Name string `default:"prefix_name"`
+}
+
 type testTableStruct struct {
-	Name  string `default:"test"`
-	Inner struct {
-		NameNoPrefix string `default:"name_no_prefix"`
-	}
-	Prefix struct {
-		Name string `default:"prefix_name"`
-	}
+	Name   string `default:"test"`
+	Inner  inner
+	Prefix prefix
 }
 
 var testTable = &Table{

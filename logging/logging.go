@@ -1,15 +1,14 @@
 package logging
 
 import (
-	"github.com/hashicorp/go-hclog"
-
 	"os"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // New creates a new hclog logger
 func New(options *hclog.LoggerOptions) hclog.Logger {
 	if options.Level == hclog.NoLevel {
-
 		if options == nil {
 			options = &hclog.LoggerOptions{}
 		}

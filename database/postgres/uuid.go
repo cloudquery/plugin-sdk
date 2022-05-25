@@ -10,15 +10,15 @@ type UUID struct {
 	pgtype.UUID
 }
 
-func (dst UUID) Get() interface{} {
-	switch dst.Status {
+func (u UUID) Get() interface{} {
+	switch u.Status {
 	case pgtype.Present:
 		// CQ-Change: Return entire object, not just Bytes
-		return dst
+		return u
 	case pgtype.Null:
 		return nil
 	default:
-		return dst.Status
+		return u.Status
 	}
 }
 

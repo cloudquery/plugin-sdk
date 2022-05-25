@@ -1,9 +1,9 @@
 package schema
 
 import (
-	"github.com/stretchr/testify/assert"
-
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var testTableValidators = Table{

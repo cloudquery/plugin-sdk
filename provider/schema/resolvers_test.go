@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/cq-provider-sdk/helpers"
-
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,19 +20,112 @@ type testStruct struct {
 	unexported bool
 }
 
-var pathTestTable = &Table{
+type testDateStruct struct {
+	Date string
+}
+
+type testNetStruct struct {
+	IP  string
+	MAC string
+	Net string
+	IPS []string
+}
+
+type testTransformersStruct struct {
+	Int      int
+	String   string
+	Float    float64
+	BadFloat string
+}
+
+type testUUIDStruct struct {
+	UUID    string
+	BadUUID string
+}
+
+var TransformersTestTable = &Table{
 	Columns: []Column{
 		{
-			Name: "test",
-			Type: TypeString,
-		},
-		{
-			Name: "int_value",
+			Name: "string_to_int",
 			Type: TypeInt,
 		},
 		{
-			Name: "unexported",
-			Type: TypeBool,
+			Name: "float_to_int",
+			Type: TypeInt,
+		},
+		{
+			Name: "int_to_string",
+			Type: TypeString,
+		},
+		{
+			Name: "float_to_string",
+			Type: TypeString,
+		},
+	},
+}
+
+var networkTestTable = &Table{
+	Columns: []Column{
+		{
+			Name: "ip",
+			Type: TypeInet,
+		},
+		{
+			Name: "mac",
+			Type: TypeMacAddr,
+		},
+		{
+			Name: "net",
+			Type: TypeCIDR,
+		},
+		{
+			Name: "ips",
+			Type: TypeInetArray,
+		},
+	},
+}
+
+var (
+	pathTestTable = &Table{
+		Columns: []Column{
+			{
+				Name: "test",
+				Type: TypeString,
+			},
+			{
+				Name: "int_value",
+				Type: TypeInt,
+			},
+			{
+				Name: "unexported",
+				Type: TypeBool,
+			},
+		},
+	}
+	dateTestTable = &Table{
+		Columns: []Column{
+			{
+				Name: "date",
+				Type: TypeTimestamp,
+			},
+		},
+	}
+	netTests = []testNetStruct{
+		{IP: "192.168.1.12", MAC: "2C:54:91:88:C9:E3", Net: "192.168.0.1/24", IPS: []string{"192.168.1.12"}},
+		{IP: "2001:0db8:85a3:0000:0000:8a2e:0370:7334", MAC: "2C-54-91-88-C9-E3", Net: "2002::1234:abcd:ffff:c0a8:101/64", IPS: []string{"2001:0db8:85a3:0000:0000:8a2e:0370:7334", "192.168.1.12"}},
+		{IP: "::1234:5678", MAC: "2C-54-91-88-C9-E3", Net: "::1234:5678/12", IPS: []string{"::1234:5678", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "192.168.1.12"}},
+	}
+	netTestsFails = []testNetStruct{
+		{IP: "192.168.1/", MAC: "2C:54:91:88:C9", Net: "192.168.0.1-24", IPS: []string{"192.168.1.12", "192.168.1/"}},
+		{IP: "::1234:5678:", MAC: "2C:54-91-88-C9-E3", Net: "2002::1234:abcd:ffff:c0a8:101-64", IPS: []string{"192.168.1.12", "::1234:5678:"}},
+	}
+)
+
+var UUIDTestTable = &Table{
+	Columns: []Column{
+		{
+			Name: "uuid",
+			Type: TypeUUID,
 		},
 	},
 }
@@ -70,20 +162,6 @@ func TestInterfaceSlice(t *testing.T) {
 	pSlice := []*innerStruct{{"asdsa"}, {"asdsa"}, {"asdsa"}}
 	assert.IsTypef(t, sType, helpers.InterfaceSlice(pSlice), "")
 	assert.IsTypef(t, sType, helpers.InterfaceSlice(&pSlice), "")
-
-}
-
-var dateTestTable = &Table{
-	Columns: []Column{
-		{
-			Name: "date",
-			Type: TypeTimestamp,
-		},
-	},
-}
-
-type testDateStruct struct {
-	Date string
 }
 
 func TestDateTimeResolver(t *testing.T) {
@@ -117,44 +195,6 @@ func TestDateTimeResolver(t *testing.T) {
 	assert.Equal(t, resource.Get("date"), &t3)
 }
 
-var networkTestTable = &Table{
-	Columns: []Column{
-		{
-			Name: "ip",
-			Type: TypeInet,
-		},
-		{
-			Name: "mac",
-			Type: TypeMacAddr,
-		},
-		{
-			Name: "net",
-			Type: TypeCIDR,
-		},
-		{
-			Name: "ips",
-			Type: TypeInetArray,
-		},
-	},
-}
-
-type testNetStruct struct {
-	IP  string
-	MAC string
-	Net string
-	IPS []string
-}
-
-var netTests = []testNetStruct{
-	{IP: "192.168.1.12", MAC: "2C:54:91:88:C9:E3", Net: "192.168.0.1/24", IPS: []string{"192.168.1.12"}},
-	{IP: "2001:0db8:85a3:0000:0000:8a2e:0370:7334", MAC: "2C-54-91-88-C9-E3", Net: "2002::1234:abcd:ffff:c0a8:101/64", IPS: []string{"2001:0db8:85a3:0000:0000:8a2e:0370:7334", "192.168.1.12"}},
-	{IP: "::1234:5678", MAC: "2C-54-91-88-C9-E3", Net: "::1234:5678/12", IPS: []string{"::1234:5678", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "192.168.1.12"}},
-}
-var netTestsFails = []testNetStruct{
-	{IP: "192.168.1/", MAC: "2C:54:91:88:C9", Net: "192.168.0.1-24", IPS: []string{"192.168.1.12", "192.168.1/"}},
-	{IP: "::1234:5678:", MAC: "2C:54-91-88-C9-E3", Net: "2002::1234:abcd:ffff:c0a8:101-64", IPS: []string{"192.168.1.12", "::1234:5678:"}},
-}
-
 func TestNetResolvers(t *testing.T) {
 	r1 := IPAddressResolver("IP")
 	r2 := MACAddressResolver("MAC")
@@ -184,34 +224,6 @@ func TestNetResolvers(t *testing.T) {
 	}
 }
 
-var TransformersTestTable = &Table{
-	Columns: []Column{
-		{
-			Name: "string_to_int",
-			Type: TypeInt,
-		},
-		{
-			Name: "float_to_int",
-			Type: TypeInt,
-		},
-		{
-			Name: "int_to_string",
-			Type: TypeString,
-		},
-		{
-			Name: "float_to_string",
-			Type: TypeString,
-		},
-	},
-}
-
-type testTransformersStruct struct {
-	Int      int
-	String   string
-	Float    float64
-	BadFloat string
-}
-
 func TestTransformersResolvers(t *testing.T) {
 	r1 := StringResolver("Int")
 	r2 := StringResolver("Float")
@@ -239,20 +251,6 @@ func TestTransformersResolvers(t *testing.T) {
 	assert.Error(t, err)
 }
 
-var UUIDTestTable = &Table{
-	Columns: []Column{
-		{
-			Name: "uuid",
-			Type: TypeUUID,
-		},
-	},
-}
-
-type testUUIDStruct struct {
-	UUID    string
-	BadUUID string
-}
-
 func TestUUIDResolver(t *testing.T) {
 	r1 := UUIDResolver("UUID")
 	r2 := UUIDResolver("BadUUID")
@@ -260,9 +258,9 @@ func TestUUIDResolver(t *testing.T) {
 
 	err := r1(context.TODO(), nil, resource, Column{Name: "uuid"})
 	assert.Nil(t, err)
-	uuid, err := uuid.FromString("123e4567-e89b-12d3-a456-426614174000")
+	u, err := uuid.FromString("123e4567-e89b-12d3-a456-426614174000")
 	assert.Nil(t, err)
-	assert.Equal(t, uuid, resource.Get("uuid"))
+	assert.Equal(t, u, resource.Get("uuid"))
 
 	err = r2(context.TODO(), nil, resource, Column{Name: "uuid"})
 	assert.Error(t, err)

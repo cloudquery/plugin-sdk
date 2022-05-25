@@ -8,7 +8,6 @@ import (
 
 	"github.com/cloudquery/cq-provider-sdk/database/dsn"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
-
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/hashicorp/go-hclog"
@@ -54,8 +53,8 @@ var (
 )
 
 func getDBUrl() string {
-	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
-		return dsn
+	if d := os.Getenv("DATABASE_URL"); d != "" {
+		return d
 	}
 	return "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable"
 }

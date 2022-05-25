@@ -137,7 +137,7 @@ func (diags Diagnostics) Errors() uint64 {
 
 // CountBySeverity returns number of diagnostics of the given severity. If includeSquashed is false, squashed diags are counted as a single diag.
 func (diags Diagnostics) CountBySeverity(sev Severity, includeSquashed bool) uint64 {
-	var count uint64 = 0
+	var count uint64
 
 	for _, d := range diags {
 		if d.Severity() != sev {

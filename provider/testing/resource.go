@@ -9,14 +9,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/cloudquery/cq-provider-sdk/provider/diag"
-	"github.com/cloudquery/cq-provider-sdk/provider/execution"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cloudquery/cq-provider-sdk/cqproto"
 	"github.com/cloudquery/cq-provider-sdk/database"
 	"github.com/cloudquery/cq-provider-sdk/migration"
 	"github.com/cloudquery/cq-provider-sdk/provider"
+	"github.com/cloudquery/cq-provider-sdk/provider/diag"
+	"github.com/cloudquery/cq-provider-sdk/provider/execution"
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/cloudquery/cq-provider-sdk/testlog"
 	"github.com/cloudquery/faker/v3"
@@ -42,6 +41,16 @@ type ResourceTestCase struct {
 
 // Verifier verifies tables specified by table schema (main table and its relations).
 type Verifier func(t *testing.T, table *schema.Table, conn pgxscan.Querier, shouldSkipIgnoreInTest bool)
+
+type testResourceSender struct {
+	Errors []string
+}
+
+var (
+	dbConnOnce sync.Once
+	pool       execution.QueryExecer
+	dbErr      error
+)
 
 func init() {
 	_ = faker.SetRandomMapAndSliceMinSize(1)
@@ -193,11 +202,7 @@ func verifyNoEmptyColumns(t *testing.T, table *schema.Table, conn pgxscan.Querie
 	})
 }
 
-func dropAndCreateTable(
-	ctx context.Context,
-	conn execution.QueryExecer,
-	table *schema.Table) error {
-
+func dropAndCreateTable(ctx context.Context, conn execution.QueryExecer, table *schema.Table) error {
 	ups, err := migration.CreateTableDefinitions(ctx, schema.PostgresDialect{}, table, nil)
 	if err != nil {
 		return err
@@ -228,10 +233,6 @@ func dropTables(ctx context.Context, db execution.QueryExecer, table *schema.Tab
 	return nil
 }
 
-type testResourceSender struct {
-	Errors []string
-}
-
 func (f *testResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
 	if r.Error != "" {
 		fmt.Printf(r.Error)
@@ -244,12 +245,6 @@ func (f *testResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
 	}
 	return nil
 }
-
-var (
-	dbConnOnce sync.Once
-	pool       execution.QueryExecer
-	dbErr      error
-)
 
 func setupDatabase() (execution.QueryExecer, error) {
 	dbConnOnce.Do(func() {

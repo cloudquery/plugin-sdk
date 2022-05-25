@@ -5,6 +5,12 @@ import (
 	"fmt"
 )
 
+type TableValidator interface {
+	Validate(t *Table) error
+}
+
+type LengthTableValidator struct{}
+
 const (
 	maxTableName  = 63 // maximum allowed identifier length is 63 bytes https://www.postgresql.org/docs/13/limits.html
 	maxColumnName = 63
@@ -20,12 +26,6 @@ func ValidateTable(t *Table) error {
 	}
 	return nil
 }
-
-type TableValidator interface {
-	Validate(t *Table) error
-}
-
-type LengthTableValidator struct{}
 
 func validateTableAttributesNameLength(t *Table) error {
 	// validate table name
@@ -50,6 +50,6 @@ func validateTableAttributesNameLength(t *Table) error {
 	return nil
 }
 
-func (tv LengthTableValidator) Validate(t *Table) error {
+func (LengthTableValidator) Validate(t *Table) error {
 	return validateTableAttributesNameLength(t)
 }

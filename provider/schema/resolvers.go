@@ -100,10 +100,10 @@ func parseDate(dateStr string, rfcs ...string) (date *time.Time, err error) {
 		d, err = time.Parse(rfc, dateStr)
 		if err == nil {
 			date = &d
-			return
+			return date, err
 		}
 	}
-	return
+	return date, err
 }
 
 // IPAddressResolver resolves the ip string value and returns net.IP
