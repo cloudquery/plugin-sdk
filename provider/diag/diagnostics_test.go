@@ -3,6 +3,7 @@ package diag
 import (
 	"errors"
 	"sort"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -236,5 +237,50 @@ func TestDiagnostics_Sort(t *testing.T) {
 		for i := range sorted {
 			assert.Equalf(t, sorted[i], tc.diagsInWrongOrder[tc.expectedOrder[i]], "Case #%d item %d", caseNo+1, i)
 		}
+	}
+}
+
+func TestDiagnostics_BySeverity(t *testing.T) {
+	diagSet := Diagnostics{
+		NewBaseError(errors.New("warn test 1"), RESOLVING, WithSeverity(WARNING)),
+		NewBaseError(errors.New("err test 1"), RESOLVING),
+		NewBaseError(errors.New("ign test 1"), RESOLVING, WithSeverity(IGNORE)),
+		NewBaseError(errors.New("warn test 2"), RESOLVING, WithSeverity(WARNING)),
+		NewBaseError(errors.New("ign test 2"), RESOLVING, WithSeverity(IGNORE)),
+		NewBaseError(errors.New("err test 2"), RESOLVING),
+	}
+
+	cases := []struct {
+		sevs         []Severity
+		expectedErrs []string
+	}{
+		{
+			sevs:         []Severity{WARNING},
+			expectedErrs: []string{"warn test 1", "warn test 2"},
+		},
+		{
+			sevs:         []Severity{ERROR, WARNING},
+			expectedErrs: []string{"warn test 1", "err test 1", "warn test 2", "err test 2"},
+		},
+		{
+			sevs:         []Severity{IGNORE, PANIC},
+			expectedErrs: []string{"ign test 1", "ign test 2"},
+		},
+		{
+			sevs:         []Severity{PANIC},
+			expectedErrs: []string{},
+		},
+	}
+	for caseNo := range cases {
+		t.Run("Test #"+strconv.Itoa(caseNo+1), func(t *testing.T) {
+			tc := cases[caseNo]
+			res := diagSet.BySeverity(tc.sevs...)
+			assert.Equal(t, len(tc.expectedErrs), len(res))
+			resErrs := make([]string, len(res))
+			for i := range res {
+				resErrs[i] = res[i].Error()
+			}
+			assert.Equal(t, tc.expectedErrs, resErrs)
+		})
 	}
 }

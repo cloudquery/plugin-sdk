@@ -152,6 +152,24 @@ func (diags Diagnostics) CountBySeverity(sev Severity, includeSquashed bool) uin
 	return count
 }
 
+// BySeverity returns a subset of diagnostics matching the given severity.
+func (diags Diagnostics) BySeverity(sevs ...Severity) Diagnostics {
+	sevMap := make(map[Severity]struct{}, len(sevs))
+	for i := range sevs {
+		sevMap[sevs[i]] = struct{}{}
+	}
+
+	ret := make(Diagnostics, 0, len(diags))
+	for _, d := range diags {
+		if _, ok := sevMap[d.Severity()]; !ok {
+			continue
+		}
+		ret = append(ret, d)
+	}
+
+	return ret
+}
+
 func (diags Diagnostics) Redacted() Diagnostics {
 	res := make(Diagnostics, len(diags))
 	for i := range diags {
