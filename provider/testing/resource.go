@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/cloudquery/cq-provider-sdk/provider/diag"
 	"github.com/cloudquery/cq-provider-sdk/provider/execution"
 
 	sq "github.com/Masterminds/squirrel"
@@ -236,8 +237,10 @@ func (f *testResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
 		fmt.Printf(r.Error)
 		f.Errors = append(f.Errors, r.Error)
 	}
-	for _, diag := range r.Summary.Diagnostics {
-		f.Errors = append(f.Errors, fmt.Sprintf("resource: %s. summary: %s, details %s", diag.Description().Resource, diag.Description().Summary, diag.Description().Detail))
+	for _, d := range r.Summary.Diagnostics {
+		if d.Severity() != diag.IGNORE {
+			f.Errors = append(f.Errors, fmt.Sprintf("resource: %s. summary: %s, details %s", d.Description().Resource, d.Description().Summary, d.Description().Detail))
+		}
 	}
 	return nil
 }
