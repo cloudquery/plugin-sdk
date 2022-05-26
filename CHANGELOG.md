@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+### [0.10.3](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.2...v0.10.3) (2022-05-26)
+
+
+### Features
+
+* Implement Diagnostics.BySeverity filtering ([#288](https://github.com/cloudquery/cq-provider-sdk/issues/288)) ([75213de](https://github.com/cloudquery/cq-provider-sdk/commit/75213de41aceaa6607b479e822c18b8961772c5b))
+* Sortable flatdiags ([#290](https://github.com/cloudquery/cq-provider-sdk/issues/290)) ([22a7afb](https://github.com/cloudquery/cq-provider-sdk/commit/22a7afb218b536da6f8d3844c6b8bacde4478329))
+
 ### [0.10.2](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.1...v0.10.2) (2022-05-25)
 
 
