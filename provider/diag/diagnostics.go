@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/errwrap"
@@ -11,6 +12,8 @@ import (
 )
 
 type Diagnostics []Diagnostic
+
+var _ sort.Interface = (*Diagnostics)(nil)
 
 func (diags Diagnostics) Error() string {
 	switch {

@@ -13,7 +13,7 @@ func TestDiagnostics_Squash(t *testing.T) {
 	testCases := []struct {
 		Name  string
 		Value Diagnostics
-		Want  []FlatDiag
+		Want  FlatDiags
 	}{
 		{
 			Name: "simple squash no details",
@@ -21,7 +21,7 @@ func TestDiagnostics_Squash(t *testing.T) {
 				NewBaseError(errors.New("error test"), RESOLVING, WithResourceName("a"), WithSummary("some summary")),
 				NewBaseError(errors.New("error test"), RESOLVING, WithResourceName("a"), WithSummary("some summary")),
 			},
-			Want: []FlatDiag{
+			Want: FlatDiags{
 				{
 					Err:      "error test",
 					Resource: "a",
@@ -44,7 +44,7 @@ func TestDiagnostics_Squash(t *testing.T) {
 				NewBaseError(errors.New("error test2"), RESOLVING, WithResourceName("a"), WithSummary("some summary2"), WithDetails("some details2.")),
 				NewBaseError(errors.New("error test2"), RESOLVING, WithResourceName("a"), WithSummary("some summary2"), WithDetails("some details2.")),
 			},
-			Want: []FlatDiag{
+			Want: FlatDiags{
 				{
 					Err:      "error test",
 					Resource: "a",
@@ -77,7 +77,7 @@ func TestDiagnostics_Squash(t *testing.T) {
 				NewBaseError(errors.New("error test"), RESOLVING, WithResourceName("a"), WithSummary("some summary")),
 				NewBaseError(errors.New("error test"), RESOLVING, WithResourceName("b"), WithSummary("some summary")),
 			},
-			Want: []FlatDiag{
+			Want: FlatDiags{
 				{
 					Err:      "error test",
 					Resource: "a",
@@ -110,7 +110,7 @@ func TestDiagnostics_Squash(t *testing.T) {
 				NewBaseError(errors.New("error test"), RESOLVING, WithSeverity(WARNING), WithResourceName("a"), WithSummary("some summary")),
 				NewBaseError(errors.New("error test"), RESOLVING, WithResourceName("a"), WithSummary("some summary")),
 			},
-			Want: []FlatDiag{
+			Want: FlatDiags{
 				{
 					Err:      "error test",
 					Resource: "a",
@@ -160,7 +160,7 @@ func TestDiagnostics_SquashRedactable(t *testing.T) {
 	}
 	out := input.Squash()
 
-	assert.Equal(t, []FlatDiag{
+	assert.Equal(t, FlatDiags{
 		{
 			Err:      "error test: 123",
 			Resource: "a",
@@ -188,7 +188,7 @@ func TestDiagnostics_SquashRedactable(t *testing.T) {
 	r := rd.Redacted()
 	assert.NotNil(t, r)
 
-	assert.Equal(t, []FlatDiag{
+	assert.Equal(t, FlatDiags{
 		{
 			Err:      "error test: xxx",
 			Resource: "a",
