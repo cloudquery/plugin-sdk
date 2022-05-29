@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/cloudquery/cq-provider-sdk/stats"
 	"github.com/hashicorp/go-plugin"
 )
 
@@ -42,6 +43,7 @@ func DebugServe(ctx context.Context, opts *Options) (ReattachConfig, <-chan stru
 		CloseCh:          closeCh,
 	}
 
+	stats.Start(ctx, opts.Logger)
 	go serve(opts)
 
 	var config *plugin.ReattachConfig

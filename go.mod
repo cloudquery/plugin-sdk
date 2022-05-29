@@ -8,6 +8,7 @@ require (
 	github.com/cloudquery/faker/v3 v3.7.4
 	github.com/creasty/defaults v1.5.2
 	github.com/doug-martin/goqu/v9 v9.17.0
+	github.com/elliotchance/orderedmap v1.4.0
 	github.com/georgysavva/scany v0.2.9
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.15.0
@@ -26,6 +27,7 @@ require (
 	github.com/mitchellh/hashstructure v1.1.0
 	github.com/modern-go/reflect2 v1.0.2
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
+	github.com/segmentio/stats/v4 v4.6.3
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cast v1.4.1
 	github.com/stretchr/testify v1.7.0
