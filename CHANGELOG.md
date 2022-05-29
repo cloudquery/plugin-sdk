@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+### [0.10.4](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.3...v0.10.4) (2022-05-29)
+
+
+### Features
+
+* **stats:** Add heartbeat ([#237](https://github.com/cloudquery/cq-provider-sdk/issues/237)) ([e0f10e7](https://github.com/cloudquery/cq-provider-sdk/commit/e0f10e75669e390d3d93d9f6488fa7a1ad562b70))
+
 ### [0.10.3](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.2...v0.10.3) (2022-05-26)
 
 
