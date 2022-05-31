@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mitchellh/hashstructure"
+	"github.com/mitchellh/hashstructure/v2"
 	"github.com/thoas/go-funk"
 )
 
@@ -175,7 +175,7 @@ func hashUUID(objs interface{}) (uuid.UUID, error) {
 	// Use SHA1 because it's fast and is reasonably enough protected against accidental collisions.
 	// There is no scenario here where intentional created collisions could do harm.
 	digester := crypto.SHA1.New()
-	hash, err := hashstructure.Hash(objs, nil)
+	hash, err := hashstructure.Hash(objs, hashstructure.FormatV2, nil)
 	if err != nil {
 		return uuid.Nil, err
 	}
