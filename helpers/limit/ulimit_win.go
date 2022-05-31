@@ -2,6 +2,6 @@
 
 package limit
 
-func getUlimit() (uint64, error) {
-	return 0, nil
+func GetUlimit() (Rlimit, error) {
+	return Rlimit{0, 0}, nil
 }

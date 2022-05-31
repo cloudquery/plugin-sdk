@@ -9,16 +9,21 @@ const (
 	goroutinesPerGB float64 = 250000
 )
 
+type Rlimit struct {
+	Cur uint64
+	Max uint64
+}
+
 func GetMaxGoRoutines() uint64 {
 	limit := calculateGoRoutines(getMemory())
-	ulimit, err := getUlimit()
-	if err != nil || ulimit == 0 {
+	ulimit, err := GetUlimit()
+	if err != nil || ulimit.Max == 0 {
 		return limit
 	}
-	if ulimit > limit {
+	if ulimit.Max > limit {
 		return limit
 	}
-	return ulimit
+	return ulimit.Max
 }
 
 func getMemory() uint64 {

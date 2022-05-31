@@ -6,8 +6,8 @@ import (
 	"syscall"
 )
 
-func getUlimit() (uint64, error) {
+func GetUlimit() (Rlimit, error) {
 	var rLimit syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-	return rLimit.Max, err
+	return Rlimit{rLimit.Cur, rLimit.Max}, err
 }
