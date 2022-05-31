@@ -96,6 +96,12 @@ var (
 			diag.NewBaseError(nil, diag.RESOLVING, diag.WithResourceName(resource.TableName()), diag.WithSummary("some error 2")),
 		}
 	}
+	postResourceResolverWarning = func(ctx context.Context, meta schema.ClientMeta, resource *schema.Resource) error {
+		return diag.Diagnostics{
+			diag.NewBaseError(nil, diag.RESOLVING, diag.WithResourceName(resource.TableName()), diag.WithSummary("some warning"), diag.WithSeverity(diag.WARNING)),
+		}
+	}
+
 	timeoutResolver = func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
 		select {
 		case <-ctx.Done():
@@ -461,6 +467,41 @@ func TestTableExecutor_Resolve(t *testing.T) {
 					Severity: diag.ERROR,
 					Type:     diag.RESOLVING,
 					Summary:  "some error 2",
+				},
+			},
+		},
+		{
+			Name: "post_resource_resolver_warning",
+			SetupStorage: func(t *testing.T) Storage {
+				db := new(DatabaseMock)
+				db.On("RemoveStaleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				db.On("Dialect").Return(schema.PostgresDialect{})
+				db.On("CopyFrom", mock.Anything, mock.Anything, true, map[string]interface{}(nil)).Return(nil).Run(
+					func(args mock.Arguments) {
+						resources := args.Get(1).(schema.Resources)
+						if !assert.Greater(t, len(resources), 0) {
+							return
+						}
+
+						assert.NotNil(t, resources[0].Get("cq_id"))
+					})
+				return db
+			},
+			Table: &schema.Table{
+				Name:                 "post_resource_resolver_warning_table",
+				Resolver:             returnValueResolver,
+				Columns:              commonColumns,
+				PostResourceResolver: postResourceResolverWarning,
+			},
+			ExpectedResourceCount: 1,
+			ErrorExpected:         true,
+			ExpectedDiags: []diag.FlatDiag{
+				{
+					Err:      "some warning",
+					Resource: "post_resource_resolver_warning_table",
+					Severity: diag.WARNING,
+					Type:     diag.RESOLVING,
+					Summary:  "some warning",
 				},
 			},
 		},

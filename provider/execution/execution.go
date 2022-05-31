@@ -373,7 +373,11 @@ func (e TableExecutor) resolveResourceValues(ctx context.Context, meta schema.Cl
 	// call PostRowResolver if defined after columns have been resolved
 	if e.Table.PostResourceResolver != nil {
 		if err := e.Table.PostResourceResolver(ctx, meta, resource); err != nil {
-			return diags.Add(e.handleResolveError(meta, resource, err, diag.WithSummary("post resource resolver failed for %q", e.Table.Name)))
+			diags = diags.Add(e.handleResolveError(meta, resource, err, diag.WithSummary("post resource resolver failed for %q", e.Table.Name)))
+
+			if diags.HasErrors() {
+				return diags
+			}
 		}
 	}
 	// Finally, resolve columns internal to the SDK
