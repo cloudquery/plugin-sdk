@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+### [0.10.6](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.5...v0.10.6) (2022-06-01)
+
+
+### Features
+
+* Return full rlimit ([#301](https://github.com/cloudquery/cq-provider-sdk/issues/301)) ([99b8c5e](https://github.com/cloudquery/cq-provider-sdk/commit/99b8c5e1bf961a34055e96784bd926e96b666c4d))
+
 ### [0.10.5](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.4...v0.10.5) (2022-05-31)
 
 
