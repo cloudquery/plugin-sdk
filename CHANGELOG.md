@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+### [0.10.7](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.6...v0.10.7) (2022-06-01)
+
+
+### Features
+
+* Add TestView helper function ([#305](https://github.com/cloudquery/cq-provider-sdk/issues/305)) ([c4381f5](https://github.com/cloudquery/cq-provider-sdk/commit/c4381f5bb97b4ed5d6dda0d60a4037f195d08dfe))
+
 ### [0.10.6](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.5...v0.10.6) (2022-06-01)
 
 
