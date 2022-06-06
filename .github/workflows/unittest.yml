@@ -10,8 +10,8 @@ jobs:
   unitests:
     strategy:
       matrix:
-        dbversion: ['postgres:latest']
-        go: ['1.16']
+        dbversion: ['postgres:10']
+        go: ['1.17']
         platform: [ ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     services:
@@ -31,11 +31,26 @@ jobs:
           --health-retries 5
     steps:
       - name: Set up Go 1.x
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: ^1.16
+          go-version: ^${{ matrix.go }}
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          # In order:
+          # * Module download cache
+          # * Build cache (Linux)
+          # * Build cache (Mac)
+          # * Build cache (Windows)
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/Library/Caches/go-build
+            ~\AppData\Local\go-build
+          key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.go }}-
       - run: go mod download
       - name: Test
         run: go test -v ./...
