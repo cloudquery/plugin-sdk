@@ -102,7 +102,7 @@ func fetch(t *testing.T, resource *ResourceTestCase) error {
 	t.Helper()
 	resourceNames := make([]string, 0, len(resource.Provider.ResourceMap))
 	for name, table := range resource.Provider.ResourceMap {
-		if table.IgnoreInTests {
+		if !resource.SkipIgnoreInTest && table.IgnoreInTests {
 			t.Logf("skipping resource: %s in tests", name)
 			continue
 		}
