@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.10.11](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.10...v0.10.11) (2022-06-07)
+
+
+### Features
+
+* Remove default value option from column ([#324](https://github.com/cloudquery/cq-provider-sdk/issues/324)) ([33a4353](https://github.com/cloudquery/cq-provider-sdk/commit/33a4353f89912e5bb8644797efc5aa24cc34e149)), closes [#298](https://github.com/cloudquery/cq-provider-sdk/issues/298)
+
 ## [0.10.10](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.9...v0.10.10) (2022-06-07)
 
 
