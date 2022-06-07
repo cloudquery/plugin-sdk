@@ -49,8 +49,6 @@ type Column struct {
 	Type ValueType
 	// Description about column, this description is added as a comment in the database
 	Description string
-	// Default value if the resolver/default getting gets a nil value
-	Default interface{}
 	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
 	Resolver ColumnResolver
 	// Ignore errors checks if returned error from column resolver should be ignored.

@@ -15,7 +15,6 @@ import (
 	"github.com/cloudquery/cq-provider-sdk/stats"
 	"github.com/hashicorp/go-hclog"
 	"github.com/iancoleman/strcase"
-	"github.com/modern-go/reflect2"
 	segmentStats "github.com/segmentio/stats/v4"
 	"github.com/thoas/go-funk"
 	"golang.org/x/sync/semaphore"
@@ -419,25 +418,11 @@ func (e TableExecutor) resolveColumns(ctx context.Context, meta schema.ClientMet
 			} else {
 				diags = diags.Add(e.handleResolveError(meta, resource, err, diag.WithSummary("column resolver %q failed for table %q", c.Name, e.Table.Name)))
 			}
-
-			// TODO: double check logic here
-			if reflect2.IsNil(c.Default) {
-				continue
-			}
-			// Set default value if defined, otherwise it will be nil
-			if err := resource.Set(c.Name, c.Default); err != nil {
-				diags = diags.Add(fromError(err, diag.WithResourceName(e.ResourceName), diag.WithType(diag.INTERNAL),
-					diag.WithSummary("failed to set resource default value for %s@%s", e.Table.Name, c.Name)))
-			}
 			continue
 		}
 		e.Logger.Trace("resolving column value with path", "column", c.Name)
 		// base use case: try to get column with CamelCase name
 		v := funk.Get(resource.Item, strcase.ToCamel(c.Name), funk.WithAllowZero())
-		if v == nil {
-			e.Logger.Trace("using column default value", "column", c.Name, "default", c.Default)
-			v = c.Default
-		}
 		e.Logger.Trace("setting column value", "column", c.Name, "value", v)
 		if err := resource.Set(c.Name, v); err != nil {
 			diags = diags.Add(fromError(err, diag.WithResourceName(e.ResourceName), diag.WithType(diag.INTERNAL),
