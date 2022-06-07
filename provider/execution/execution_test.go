@@ -194,7 +194,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				Resolver:  returnValueResolver,
 				Columns:   commonColumns,
 			},
-			ExpectedResourceCount: 1,
+			ExpectedResourceCount: 0,
 		},
 		{
 			// if tables don't define a resolver, an execution error by execution

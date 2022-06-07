@@ -79,11 +79,10 @@ func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, tabl
 func (e TableExecutor) Resolve(ctx context.Context, meta schema.ClientMeta) (uint64, diag.Diagnostics) {
 	var clients []schema.ClientMeta
 
+	clients = append(clients, meta)
+
 	if e.Table.Multiplex != nil {
 		clients = e.Table.Multiplex(meta)
-	}
-	if len(clients) == 0 {
-		clients = append(clients, meta)
 	}
 
 	return e.doMultiplexResolve(ctx, clients)
