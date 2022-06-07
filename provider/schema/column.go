@@ -98,12 +98,8 @@ func (v ValueType) String() string {
 	switch v {
 	case TypeBool:
 		return "TypeBool"
-	case TypeBigInt:
+	case TypeInt, TypeBigInt, TypeSmallInt:
 		return "TypeBigInt"
-	case TypeSmallInt:
-		return "TypeSmallInt"
-	case TypeInt:
-		return "TypeInt"
 	case TypeFloat:
 		return "TypeFloat"
 	case TypeUUID:
@@ -141,16 +137,13 @@ func (v ValueType) String() string {
 	}
 }
 
+// ValueTypeFromString this function is mainly used by https://github.com/cloudquery/cq-gen
 func ValueTypeFromString(s string) ValueType {
 	switch strings.ToLower(s) {
 	case "bool", "TypeBool":
 		return TypeBool
-	case "int", "TypeInt":
-		return TypeInt
-	case "bigint", "TypeBigInt":
+	case "int", "TypeInt", "bigint", "TypeBigInt", "smallint", "TypeSmallInt":
 		return TypeBigInt
-	case "smallint", "TypeSmallInt":
-		return TypeSmallInt
 	case "float", "TypeFloat":
 		return TypeFloat
 	case "uuid", "TypeUUID":
@@ -214,12 +207,9 @@ func (c Column) checkType(v interface{}) bool {
 	}
 
 	switch val := v.(type) {
-	case int8, *int8, uint8, *uint8, int16, *int16:
-		return c.Type == TypeSmallInt
-	case uint16, int32, *int32:
-		return c.Type == TypeInt
-	case int, *int, uint32, *uint32, int64, *int64:
-		return c.Type == TypeBigInt || c.Type == TypeInt
+	case int8, *int8, uint8, *uint8, int16, *int16, uint16, *uint16, int32, *int32, int, *int, uint32, *uint32, int64, *int64:
+		// TODO: Deprecate all Int Types in favour of BigInt
+		return c.Type == TypeBigInt || c.Type == TypeSmallInt || c.Type == TypeInt
 	case []byte:
 		if c.Type == TypeUUID {
 			if _, err := uuid.FromBytes(val); err != nil {
