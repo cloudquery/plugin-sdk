@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.10.10](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.9...v0.10.10) (2022-06-07)
+
+
+### Features
+
+* Always use BigInt ([#321](https://github.com/cloudquery/cq-provider-sdk/issues/321)) ([2033349](https://github.com/cloudquery/cq-provider-sdk/commit/2033349d3dfa07035ad3c37acba23e285a49c172))
+
 ## [0.10.9](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.8...v0.10.9) (2022-06-07)
 
 
