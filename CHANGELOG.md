@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.11.0](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.11...v0.11.0) (2022-06-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* IgnoreError Recursively for tables and columns (#323)
+
+### Features
+
+* IgnoreError Recursively for tables and columns ([#323](https://github.com/cloudquery/cq-provider-sdk/issues/323)) ([7212d98](https://github.com/cloudquery/cq-provider-sdk/commit/7212d98ade656f8881415cb41930537238e7fe55))
+* Sleep helper ([#328](https://github.com/cloudquery/cq-provider-sdk/issues/328)) ([04459c5](https://github.com/cloudquery/cq-provider-sdk/commit/04459c5edacf9d4bcc2911f39155cb2daa83c3a1))
+
 ## [0.10.11](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.10...v0.10.11) (2022-06-07)
 
 
