@@ -613,6 +613,33 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "ignore_error_recursive",
+			Table: &schema.Table{
+				Name:        "simple",
+				Resolver:    returnValueResolver,
+				IgnoreError: func(err error) bool { return true },
+				Columns:     commonColumns,
+				Relations: []*schema.Table{
+					{
+						Name:     "simple",
+						Resolver: returnErrorResolver,
+						Columns:  commonColumns,
+					},
+				},
+			},
+			ErrorExpected:         true,
+			ExpectedResourceCount: 1,
+			ExpectedDiags: []diag.FlatDiag{
+				{
+					Err:      "some error",
+					Resource: "ignore_error_recursive",
+					Severity: diag.IGNORE,
+					Summary:  `table "simple" resolver ignored error: some error`,
+					Type:     diag.RESOLVING,
+				},
+			},
+		},
 	}
 
 	executionClient := executionClient{testlog.New(t)}
@@ -621,6 +648,9 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			var storage Storage = noopStorage{}
 			if tc.SetupStorage != nil {
 				storage = tc.SetupStorage(t)
+			}
+			if tc.Name == "ignore_error_recursive" {
+				fmt.Println("debug")
 			}
 			limiter := semaphore.NewWeighted(int64(limit.GetMaxGoRoutines()))
 			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, tc.ExtraFields, nil, nil, limiter, 10*time.Second)

@@ -51,18 +51,14 @@ type Column struct {
 	Description string
 	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
 	Resolver ColumnResolver
-	// Ignore errors checks if returned error from column resolver should be ignored.
-	IgnoreError IgnoreErrorFunc
 	// Creation options allow modifying how column is defined when table is created
 	CreationOptions ColumnCreationOptions
-
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
 	IgnoreInTests bool
-
 	// internal is true if this column is managed by the SDK
 	internal bool
 	// meta holds serializable information about the column's resolvers and functions
@@ -305,7 +301,7 @@ func (c Column) Meta() *ColumnMeta {
 	if c.Resolver == nil {
 		return &ColumnMeta{
 			Resolver:     nil,
-			IgnoreExists: c.IgnoreError != nil,
+			IgnoreExists: false,
 		}
 	}
 	fnName := runtime.FuncForPC(reflect.ValueOf(c.Resolver).Pointer()).Name()
@@ -314,7 +310,7 @@ func (c Column) Meta() *ColumnMeta {
 			Name:    strings.TrimPrefix(fnName, "github.com/cloudquery/cq-provider-sdk/provider/"),
 			Builtin: strings.HasPrefix(fnName, "github.com/cloudquery/cq-provider-sdk/"),
 		},
-		IgnoreExists: c.IgnoreError != nil,
+		IgnoreExists: false,
 	}
 }
 

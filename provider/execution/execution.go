@@ -28,6 +28,8 @@ const executionJitter = -1 * time.Minute
 type TableExecutor struct {
 	// ResourceName name of top-level resource associated with table
 	ResourceName string
+	// ParentExecutor is the parent executor, useful for nested tables to propagate up and use IgnoreError and so forth.
+	ParentExecutor *TableExecutor
 	// Table this execution is associated with
 	Table *schema.Table
 	// Database connection to insert data into
@@ -92,6 +94,7 @@ func (e TableExecutor) withTable(t *schema.Table, kv ...interface{}) *TableExecu
 	var c [2]schema.ColumnList
 	c[0], c[1] = e.Db.Dialect().Columns(t).Sift()
 	cpy := e
+	cpy.ParentExecutor = &e
 	cpy.Table = t
 	cpy.Logger = cpy.Logger.With(kv...)
 	cpy.columns = c
@@ -236,7 +239,7 @@ func (e TableExecutor) callTableResolve(ctx context.Context, client schema.Clien
 			close(res)
 		}()
 		if err := e.Table.Resolver(ctx, client, parent, res); err != nil {
-			if e.Table.IgnoreError != nil && e.Table.IgnoreError(err) {
+			if e.IgnoreError(err) {
 				e.Logger.Debug("ignored an error", "err", err)
 				err = diag.NewBaseError(err, diag.RESOLVING, diag.WithSeverity(diag.IGNORE), diag.WithSummary("table %q resolver ignored error", e.Table.Name))
 			}
@@ -412,12 +415,7 @@ func (e TableExecutor) resolveColumns(ctx context.Context, meta schema.ClientMet
 			if funk.ContainsString(e.Db.Dialect().PrimaryKeys(e.Table), c.Name) {
 				return diags.Add(ClassifyError(err, diag.WithResourceName(e.ResourceName), WithResource(resource), diag.WithSummary("failed to resolve column %s@%s", e.Table.Name, c.Name)))
 			}
-			// check if column resolver defined an IgnoreError function, if it does check if ignore should be ignored.
-			if c.IgnoreError != nil && c.IgnoreError(err) {
-				diags = diags.Add(e.handleResolveError(meta, resource, err, diag.WithSeverity(diag.IGNORE), diag.WithSummary("column resolver %q failed for table %q", c.Name, e.Table.Name)))
-			} else {
-				diags = diags.Add(e.handleResolveError(meta, resource, err, diag.WithSummary("column resolver %q failed for table %q", c.Name, e.Table.Name)))
-			}
+			diags = diags.Add(e.handleResolveError(meta, resource, err, diag.WithSummary("column resolver %q failed for table %q", c.Name, e.Table.Name)))
 			continue
 		}
 		e.Logger.Trace("resolving column value with path", "column", c.Name)
@@ -457,6 +455,21 @@ func (e TableExecutor) handleResolveError(meta schema.ClientMeta, r *schema.Reso
 	}
 
 	return errAsDiags
+}
+
+// IsIgnoreError returns true if the error is ignored via the current table IgnoreError function or in any other parent table (in that ordered)
+// it stops checking the moment one of them exists and not until it returns true or fals
+func (e TableExecutor) IgnoreError(err error) bool {
+	// first priority is to check the tables IgnoreError function
+	if e.Table.IgnoreError != nil {
+		return e.Table.IgnoreError(err)
+	}
+	// secondy priority is to check the parent tables IgnoreError recursively
+	if e.ParentExecutor != nil {
+		return e.ParentExecutor.IgnoreError(err)
+	}
+
+	return false
 }
 
 func identifyClient(meta schema.ClientMeta) string {
