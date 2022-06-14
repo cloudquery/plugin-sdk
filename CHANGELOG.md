@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.11.1](https://github.com/cloudquery/cq-provider-sdk/compare/v0.11.0...v0.11.1) (2022-06-14)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/faker/v3 to v3.7.5 ([#334](https://github.com/cloudquery/cq-provider-sdk/issues/334)) ([cd97a4f](https://github.com/cloudquery/cq-provider-sdk/commit/cd97a4fa28bddb274346f002db053b8595370d5d))
+
 ## [0.11.0](https://github.com/cloudquery/cq-provider-sdk/compare/v0.10.11...v0.11.0) (2022-06-08)
 
 
