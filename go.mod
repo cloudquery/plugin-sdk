@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/Masterminds/squirrel v1.5.0
 	github.com/aws/smithy-go v1.4.0
-	github.com/cloudquery/faker/v3 v3.7.4
+	github.com/cloudquery/faker/v3 v3.7.5
 	github.com/creasty/defaults v1.5.2
 	github.com/doug-martin/goqu/v9 v9.17.0
 	github.com/elliotchance/orderedmap v1.4.0
