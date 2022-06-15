@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.11.2](https://github.com/cloudquery/cq-provider-sdk/compare/v0.11.1...v0.11.2) (2022-06-15)
+
+
+### Features
+
+* Calculate max goroutines based on file limit ([#337](https://github.com/cloudquery/cq-provider-sdk/issues/337)) ([fb429b8](https://github.com/cloudquery/cq-provider-sdk/commit/fb429b882599ff88c1032e7509d6034a12af5147))
+
 ## [0.11.1](https://github.com/cloudquery/cq-provider-sdk/compare/v0.11.0...v0.11.1) (2022-06-14)
 
 
