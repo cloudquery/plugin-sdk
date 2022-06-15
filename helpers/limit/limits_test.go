@@ -12,10 +12,10 @@ func TestCalculateGoRoutines(t *testing.T) {
 		Memory     uint64
 		GoRoutines uint64
 	}{
-		{Name: "Zero", Memory: uint64(0), GoRoutines: uint64(500000)},
-		{Name: "Below 1073741824", Memory: uint64(990498816), GoRoutines: uint64(230618)},
-		{Name: "At 1073741824", Memory: uint64(1073741824), GoRoutines: uint64(250000)},
-		{Name: "Above 1073741824", Memory: uint64(1573741824), GoRoutines: uint64(366415)},
+		{Name: "Zero", Memory: uint64(0), GoRoutines: uint64(400000)},
+		{Name: "Below 1073741824", Memory: uint64(990498816), GoRoutines: uint64(184494)},
+		{Name: "At 1073741824", Memory: uint64(1073741824), GoRoutines: uint64(200000)},
+		{Name: "Above 1073741824", Memory: uint64(1573741824), GoRoutines: uint64(293132)},
 	}
 
 	for _, tc := range cases {

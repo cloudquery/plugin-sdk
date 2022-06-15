@@ -31,7 +31,7 @@ func defaultErrorClassifier(_ schema.ClientMeta, resourceName string, err error)
 func ClassifyError(err error, opts ...diag.BaseErrorOption) diag.Diagnostics {
 	if err != nil && strings.Contains(err.Error(), ": socket: too many open files") {
 		// Return a Diagnostic error so that it can be properly propagated back to the user via the CLI
-		opts = append(opts, diag.WithSeverity(diag.WARNING), diag.WithType(diag.THROTTLE), diag.WithSummary("%s", fdLimitMessage))
+		opts = append(opts, diag.WithSeverity(diag.WARNING), diag.WithType(diag.THROTTLE), diag.WithSummary(fdLimitMessage))
 	}
 	return fromError(err, opts...)
 }

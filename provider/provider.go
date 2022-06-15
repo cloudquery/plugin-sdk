@@ -183,6 +183,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 	if maxGoroutines == 0 {
 		maxGoroutines = limit.GetMaxGoRoutines()
 	}
+	p.Logger.Info("calculated max goroutines for fetch execution", "max_goroutines", maxGoroutines)
 	goroutinesSem = semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
 
 	// limiter used to limit the amount of resources fetched concurrently

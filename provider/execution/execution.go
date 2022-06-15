@@ -457,7 +457,7 @@ func (e TableExecutor) handleResolveError(meta schema.ClientMeta, r *schema.Reso
 	return errAsDiags
 }
 
-// IsIgnoreError returns true if the error is ignored via the current table IgnoreError function or in any other parent table (in that ordered)
+// IgnoreError returns true if the error is ignored via the current table IgnoreError function or in any other parent table (in that ordered)
 // it stops checking the moment one of them exists and not until it returns true or fals
 func (e TableExecutor) IgnoreError(err error) bool {
 	// first priority is to check the tables IgnoreError function
