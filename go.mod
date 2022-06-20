@@ -35,7 +35,7 @@ require (
 	github.com/thoas/go-funk v0.9.2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/xo/dburl v0.8.4
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	google.golang.org/grpc v1.45.0
 	google.golang.org/protobuf v1.27.1
 )
