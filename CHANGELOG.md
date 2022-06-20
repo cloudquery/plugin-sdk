@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.11.4](https://github.com/cloudquery/cq-provider-sdk/compare/v0.11.3...v0.11.4) (2022-06-20)
+
+
+### Bug Fixes
+
+* Classify db execution errors ([#342](https://github.com/cloudquery/cq-provider-sdk/issues/342)) ([4b36b47](https://github.com/cloudquery/cq-provider-sdk/commit/4b36b4798151c7480c638758464de64d3efd2752))
+* **deps:** Update github.com/jackc/pgerrcode digest to 469b46a ([#344](https://github.com/cloudquery/cq-provider-sdk/issues/344)) ([7e68b1d](https://github.com/cloudquery/cq-provider-sdk/commit/7e68b1dd407c7f40fa195989c70712d8c3774528))
+* **deps:** Update golang.org/x/sync digest to 0de741c ([#345](https://github.com/cloudquery/cq-provider-sdk/issues/345)) ([a00d795](https://github.com/cloudquery/cq-provider-sdk/commit/a00d79537dded8fa91d0abf5bc868206e9fbbe14))
+* **deps:** Update module github.com/aws/smithy-go to v1.11.3 ([#353](https://github.com/cloudquery/cq-provider-sdk/issues/353)) ([626dffd](https://github.com/cloudquery/cq-provider-sdk/commit/626dffd370167efdf1f22b85b735a4b050917744))
+* **deps:** Update module github.com/creasty/defaults to v1.6.0 ([#355](https://github.com/cloudquery/cq-provider-sdk/issues/355)) ([f5be010](https://github.com/cloudquery/cq-provider-sdk/commit/f5be010c96d01f9fc39fa403537af23a8299074e))
+* **deps:** Update module github.com/doug-martin/goqu/v9 to v9.18.0 ([#356](https://github.com/cloudquery/cq-provider-sdk/issues/356)) ([a5b1b7e](https://github.com/cloudquery/cq-provider-sdk/commit/a5b1b7e52350f415346c108cc43cb98f3c4b1b88))
+* **deps:** Update module github.com/gofrs/uuid to v4.2.0 ([#358](https://github.com/cloudquery/cq-provider-sdk/issues/358)) ([fce8f4b](https://github.com/cloudquery/cq-provider-sdk/commit/fce8f4bb7c464867dd99b7cc798d05fba55df50d))
+* **deps:** Update module github.com/golang-migrate/migrate/v4 to v4.15.2 ([#348](https://github.com/cloudquery/cq-provider-sdk/issues/348)) ([ad98898](https://github.com/cloudquery/cq-provider-sdk/commit/ad98898f0b530123a82be3a0db11a51d9a9ba8cb))
+* **deps:** Update module github.com/hashicorp/go-hclog to v1.2.1 ([#359](https://github.com/cloudquery/cq-provider-sdk/issues/359)) ([94aab01](https://github.com/cloudquery/cq-provider-sdk/commit/94aab01ab4aaca7c89ba1201c20192b0a6e60e62))
+* **deps:** Update module github.com/hashicorp/go-plugin to v1.4.4 ([#349](https://github.com/cloudquery/cq-provider-sdk/issues/349)) ([e96bfe5](https://github.com/cloudquery/cq-provider-sdk/commit/e96bfe57d3ba2621fd58364097a21cc4f5b9c77c))
+* **deps:** Update module github.com/hashicorp/go-version to v1.5.0 ([#360](https://github.com/cloudquery/cq-provider-sdk/issues/360)) ([813caa8](https://github.com/cloudquery/cq-provider-sdk/commit/813caa865097258055f336c69c73be6cded6e8a2))
+* **deps:** Update module github.com/Masterminds/squirrel to v1.5.3 ([#347](https://github.com/cloudquery/cq-provider-sdk/issues/347)) ([9931774](https://github.com/cloudquery/cq-provider-sdk/commit/9931774627d59914a7f5b81dfcf814d2d0478661))
+* **deps:** Update module github.com/stretchr/testify to v1.7.2 ([#350](https://github.com/cloudquery/cq-provider-sdk/issues/350)) ([94a16a5](https://github.com/cloudquery/cq-provider-sdk/commit/94a16a5f485faee3a153043038b69ef43133fc1b))
+* **deps:** Update module github.com/thoas/go-funk to v0.9.2 ([#351](https://github.com/cloudquery/cq-provider-sdk/issues/351)) ([2aa16f7](https://github.com/cloudquery/cq-provider-sdk/commit/2aa16f7946e2234347583abbeaebe093bb406d96))
+* **deps:** Update module github.com/vmihailenco/msgpack/v5 to v5.3.5 ([#352](https://github.com/cloudquery/cq-provider-sdk/issues/352)) ([5ca3b39](https://github.com/cloudquery/cq-provider-sdk/commit/5ca3b39a80437be10ed16c94845e07eee6e19f96))
+
 ## [0.11.3](https://github.com/cloudquery/cq-provider-sdk/compare/v0.11.2...v0.11.3) (2022-06-15)
 
 
