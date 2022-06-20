@@ -3,7 +3,7 @@ module github.com/cloudquery/cq-provider-sdk
 go 1.17
 
 require (
-	github.com/Masterminds/squirrel v1.5.0
+	github.com/Masterminds/squirrel v1.5.3
 	github.com/aws/smithy-go v1.4.0
 	github.com/cloudquery/faker/v3 v3.7.5
 	github.com/creasty/defaults v1.5.2
