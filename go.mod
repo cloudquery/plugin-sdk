@@ -31,7 +31,7 @@ require (
 	github.com/segmentio/stats/v4 v4.6.3
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cast v1.4.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.2
 	github.com/thoas/go-funk v0.9.2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/xo/dburl v0.8.4
@@ -81,6 +81,6 @@ require (
 	golang.org/x/tools v0.1.10 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/genproto v0.0.0-20220314164441-57ef72a4c106 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.3.0-0.dev.0.20220306074811-23e1086441d2 // indirect
 )
