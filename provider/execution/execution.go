@@ -275,7 +275,7 @@ func (e TableExecutor) callTableResolve(ctx context.Context, client schema.Clien
 	}
 
 	if err := e.cleanupStaleData(ctx, client, parent); err != nil {
-		return nc, diags.Add(fromError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed to cleanup stale data on table %q", e.Table.Name)))
+		return nc, diags.Add(ClassifyError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed to cleanup stale data on table %q", e.Table.Name)))
 	}
 
 	return nc, diags
@@ -340,7 +340,7 @@ func (e TableExecutor) saveToStorage(ctx context.Context, resources schema.Resou
 	}
 	e.Logger.Error("failed insert to db", "error", err)
 	// Setup diags, adding first diagnostic that bulk insert failed
-	diags := diag.Diagnostics{}.Add(fromError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed bulk insert on table %q", e.Table.Name)))
+	diags := diag.Diagnostics{}.Add(ClassifyError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed bulk insert on table %q", e.Table.Name)))
 	// Try to insert resource by resource if partial fetch is enabled and an error occurred
 	partialFetchResources := make(schema.Resources, 0)
 	for id := range resources {
