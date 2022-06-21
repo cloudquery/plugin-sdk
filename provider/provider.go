@@ -253,14 +253,10 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 	p.Logger.Info("calculated max goroutines for fetch execution", "max_goroutines", maxGoroutines)
 	goroutinesSem = semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
 
-	// limiter used to limit the amount of resources fetched concurrently
-	var parallelResourceSem *semaphore.Weighted
-	maxParallelFetchingLimit := request.ParallelFetchingLimit
-	if maxParallelFetchingLimit > 0 {
-		parallelResourceSem = semaphore.NewWeighted(helpers.Uint64ToInt64(maxParallelFetchingLimit))
-	}
-
 	g, gctx := errgroup.WithContext(ctx)
+	if request.ParallelFetchingLimit > 0 {
+		g.SetLimit(helpers.Uint64ToInt(request.ParallelFetchingLimit))
+	}
 	finishedResources := make(map[string]bool, len(resources))
 	l := &sync.Mutex{}
 	var totalResourceCount uint64
@@ -276,15 +272,7 @@ func (p *Provider) FetchResources(ctx context.Context, request *cqproto.FetchRes
 		l.Lock()
 		finishedResources[r] = false
 		l.Unlock()
-		if parallelResourceSem != nil {
-			if err := parallelResourceSem.Acquire(ctx, 1); err != nil {
-				return err
-			}
-		}
 		g.Go(func() error {
-			if parallelResourceSem != nil {
-				defer parallelResourceSem.Release(1)
-			}
 			resourceCount, diags := tableExec.Resolve(gctx, p.meta)
 			l.Lock()
 			defer l.Unlock()
