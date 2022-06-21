@@ -26,6 +26,8 @@ message ConfigureProvider {
     bytes config = 3;
     // Msgpack encoded: Allows to inject & override fields into resource tables, use this carefully to override fields. Used in tests.
     bytes extraFields = 5;
+    // Holds the format of the config
+    ConfigFormat format = 6;
   }
   message Response {
     string error = 1;
@@ -134,12 +136,20 @@ message GetProviderSchema {
   }
 }
 
+enum ConfigFormat {
+  HCL = 0;
+  YAML = 1;
+}
+
 message GetProviderConfig {
-  message Request {}
+  message Request {
+    ConfigFormat format = 1;
+  }
   message Response {
     string name = 1;
     string version = 2;
     bytes config = 3;
+    ConfigFormat format = 4;
   }
 }
 

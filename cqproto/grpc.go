@@ -44,13 +44,17 @@ func (g GRPCClient) GetProviderSchema(ctx context.Context, _ *GetProviderSchemaR
 	return resp, nil
 }
 
-func (g GRPCClient) GetProviderConfig(ctx context.Context, _ *GetProviderConfigRequest) (*GetProviderConfigResponse, error) {
-	res, err := g.client.GetProviderConfig(ctx, &internal.GetProviderConfig_Request{})
+func (g GRPCClient) GetProviderConfig(ctx context.Context, request *GetProviderConfigRequest) (*GetProviderConfigResponse, error) {
+	res, err := g.client.GetProviderConfig(ctx, &internal.GetProviderConfig_Request{
+		Format: configFormatFromProto(request.Format),
+	})
 	if err != nil {
 		return nil, err
 	}
+
 	return &GetProviderConfigResponse{
 		Config: res.GetConfig(),
+		Format: configFormatToProto(res.GetFormat()),
 	}, nil
 }
 
@@ -67,6 +71,7 @@ func (g GRPCClient) ConfigureProvider(ctx context.Context, request *ConfigurePro
 		},
 		Config:      request.Config,
 		ExtraFields: fieldsData,
+		Format:      configFormatFromProto(request.Format),
 	})
 	if err != nil {
 		return nil, err
@@ -144,12 +149,18 @@ func (g *GRPCServer) GetProviderSchema(ctx context.Context, _ *internal.GetProvi
 	}, nil
 }
 
-func (g *GRPCServer) GetProviderConfig(ctx context.Context, _ *internal.GetProviderConfig_Request) (*internal.GetProviderConfig_Response, error) {
-	resp, err := g.Impl.GetProviderConfig(ctx, &GetProviderConfigRequest{})
+func (g *GRPCServer) GetProviderConfig(ctx context.Context, request *internal.GetProviderConfig_Request) (*internal.GetProviderConfig_Response, error) {
+	resp, err := g.Impl.GetProviderConfig(ctx, &GetProviderConfigRequest{
+		Format: configFormatToProto(request.Format),
+	})
 	if err != nil {
 		return nil, err
 	}
-	return &internal.GetProviderConfig_Response{Config: resp.Config}, nil
+
+	return &internal.GetProviderConfig_Response{
+		Config: resp.Config,
+		Format: configFormatFromProto(resp.Format),
+	}, nil
 }
 
 func (g *GRPCServer) ConfigureProvider(ctx context.Context, request *internal.ConfigureProvider_Request) (*internal.ConfigureProvider_Response, error) {
@@ -167,6 +178,7 @@ func (g *GRPCServer) ConfigureProvider(ctx context.Context, request *internal.Co
 		},
 		Config:      request.Config,
 		ExtraFields: eFields,
+		Format:      configFormatToProto(request.Format),
 	})
 	if err != nil {
 		return nil, err
@@ -466,4 +478,22 @@ func moduleInfoToProto(in map[uint32]ModuleInfo) map[uint32]*internal.GetModuleI
 		ret[ver] = v
 	}
 	return ret
+}
+
+func configFormatFromProto(in ConfigFormat) internal.ConfigFormat {
+	switch in {
+	case ConfigYAML:
+		return internal.ConfigFormat_YAML
+	default:
+		return internal.ConfigFormat_HCL
+	}
+}
+
+func configFormatToProto(in internal.ConfigFormat) ConfigFormat {
+	switch in {
+	case internal.ConfigFormat_YAML:
+		return ConfigYAML
+	default:
+		return ConfigHCL
+	}
 }

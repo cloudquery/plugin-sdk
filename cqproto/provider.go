@@ -63,11 +63,21 @@ type GetProviderSchemaResponse struct {
 	ResourceTables map[string]*schema.Table
 }
 
+type ConfigFormat int
+
+const (
+	ConfigHCL  = ConfigFormat(0) // Deprecated
+	ConfigYAML = ConfigFormat(1)
+)
+
 // GetProviderConfigRequest represents a CloudQuery RPC request for provider's config
-type GetProviderConfigRequest struct{}
+type GetProviderConfigRequest struct {
+	Format ConfigFormat
+}
 
 type GetProviderConfigResponse struct {
 	Config []byte
+	Format ConfigFormat
 }
 
 type ConfigureProviderRequest struct {
@@ -79,6 +89,8 @@ type ConfigureProviderRequest struct {
 	Config []byte
 	// Fields to inject to every resource on insert
 	ExtraFields map[string]interface{}
+	// ConfigFormat is the format of the passed config
+	Format ConfigFormat
 }
 
 type ConfigureProviderResponse struct {
