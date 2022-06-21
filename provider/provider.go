@@ -191,7 +191,7 @@ func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.Configu
 				}, nil
 			}
 		case cqproto.ConfigYAML:
-			if err := yaml.Unmarshal(request.Config, &providerConfig); err != nil {
+			if err := yaml.Unmarshal(request.Config, providerConfig); err != nil {
 				p.Logger.Error("Failed to load configuration.", "error", err)
 				return &cqproto.ConfigureProviderResponse{
 					Diagnostics: diag.FromError(err, diag.USER),
