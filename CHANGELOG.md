@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Bug Fixes
 
 * Use errgroup SetLimit ([#363](https://github.com/cloudquery/cq-provider-sdk/issues/363)) ([964a1bb](https://github.com/cloudquery/cq-provider-sdk/commit/964a1bbb53cf23537b3c918cef4b9d676b526a9d))
+* YAML decoding ([#366](https://github.com/cloudquery/cq-provider-sdk/issues/366)) ([964a1bb](https://github.com/cloudquery/cq-provider-sdk/commit/862590a2ddd6dbf44894cca49021ee3957a84f43))
 
 ## [0.12.0](https://github.com/cloudquery/cq-provider-sdk/compare/v0.11.4...v0.12.0) (2022-06-21)
 
