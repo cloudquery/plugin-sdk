@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.12.0](https://github.com/cloudquery/cq-provider-sdk/compare/v0.11.4...v0.12.0) (2022-06-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* Support both YAML and HCL config (#332)
+
+### Features
+
+* Support both YAML and HCL config ([#332](https://github.com/cloudquery/cq-provider-sdk/issues/332)) ([2818697](https://github.com/cloudquery/cq-provider-sdk/commit/281869738c00ec66c3cb53e3ac4c6afffd102625))
+
 ## [0.11.4](https://github.com/cloudquery/cq-provider-sdk/compare/v0.11.3...v0.11.4) (2022-06-20)
 
 
