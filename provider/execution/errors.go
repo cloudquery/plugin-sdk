@@ -44,15 +44,16 @@ func WithResource(resource *schema.Resource) diag.BaseErrorOption {
 }
 
 func fromError(err error, opts ...diag.BaseErrorOption) diag.Diagnostics {
+	baseOpts := append([]diag.BaseErrorOption{diag.WithNoOverwrite()}, opts...)
 	switch ti := err.(type) {
 	case diag.Diagnostics:
-		ret := make(diag.Diagnostics, len(ti))
-		for i := range ti {
-			ret[i] = diag.NewBaseError(ti[i], diag.RESOLVING, append([]diag.BaseErrorOption{diag.WithNoOverwrite()}, opts...)...)
+		ret := make(diag.Diagnostics, 0, len(ti))
+		for _, d := range ti {
+			ret = append(ret, diag.NewBaseError(d, diag.RESOLVING, baseOpts...))
 		}
 		return ret
 	default:
-		e := diag.NewBaseError(err, diag.RESOLVING, append([]diag.BaseErrorOption{diag.WithNoOverwrite()}, opts...)...)
+		e := diag.NewBaseError(err, diag.RESOLVING, baseOpts...)
 		return diag.Diagnostics{e}
 	}
 }
