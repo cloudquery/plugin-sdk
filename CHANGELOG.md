@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.12.2](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.1...v0.12.2) (2022-06-24)
+
+
+### Bug Fixes
+
+* Issues when PG username is 'cloudquery' ([#371](https://github.com/cloudquery/cq-provider-sdk/issues/371)) ([3317cae](https://github.com/cloudquery/cq-provider-sdk/commit/3317caef99a5e15d65080222264e39da825676af))
+
 ## [0.12.1](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.0...v0.12.1) (2022-06-21)
 
 
