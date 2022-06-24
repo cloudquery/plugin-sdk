@@ -16,6 +16,11 @@ func Connect(ctx context.Context, dsnURI string) (*pgxpool.Pool, error) {
 		return nil, dsn.RedactParseError(err)
 	}
 	poolCfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		_, err := conn.Exec(ctx, "SET search_path=public")
+		if err != nil {
+			return err
+		}
+
 		UUIDType := pgtype.DataType{
 			Value: &UUID{},
 			Name:  "uuid",
