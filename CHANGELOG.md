@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.12.3](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.2...v0.12.3) (2022-06-26)
+
+
+### Bug Fixes
+
+* Sysctl freebsd ([#370](https://github.com/cloudquery/cq-provider-sdk/issues/370)) ([f52efe9](https://github.com/cloudquery/cq-provider-sdk/commit/f52efe93291f72637ed3236466b9b8c8713efd4a))
+
 ## [0.12.2](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.1...v0.12.2) (2022-06-24)
 
 
