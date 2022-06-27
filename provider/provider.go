@@ -107,8 +107,15 @@ func (p *Provider) GetProviderConfig(_ context.Context, req *cqproto.GetProvider
 
 		data := &yaml.Node{
 			Kind: yaml.MappingNode,
-			// HeadComment doesn't work here
 			Content: []*yaml.Node{
+				{
+					Kind:  yaml.ScalarNode,
+					Value: "configuration",
+				},
+				{
+					Kind: yaml.ScalarNode,
+					Tag:  "!!null",
+				},
 				{
 					Kind: yaml.ScalarNode,
 					// double newline will leave only the last block of comments
