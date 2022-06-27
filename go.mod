@@ -30,7 +30,7 @@ require (
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/segmentio/stats/v4 v4.6.3
 	github.com/spf13/afero v1.8.2
-	github.com/spf13/cast v1.4.1
+	github.com/spf13/cast v1.5.0
 	github.com/stretchr/testify v1.7.5
 	github.com/thoas/go-funk v0.9.2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
