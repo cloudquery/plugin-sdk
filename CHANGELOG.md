@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.12.5](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.4...v0.12.5) (2022-06-27)
+
+
+### Bug Fixes
+
+* Put example YAML from the provider in `configuration` block ([#388](https://github.com/cloudquery/cq-provider-sdk/issues/388)) ([1e06428](https://github.com/cloudquery/cq-provider-sdk/commit/1e0642877da9de8639bc1a6f1c757e82544b2259))
+
 ## [0.12.4](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.3...v0.12.4) (2022-06-27)
 
 
