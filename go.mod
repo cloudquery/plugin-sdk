@@ -29,7 +29,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/segmentio/stats/v4 v4.6.3
-	github.com/spf13/afero v1.6.0
+	github.com/spf13/afero v1.8.2
 	github.com/spf13/cast v1.4.1
 	github.com/stretchr/testify v1.7.5
 	github.com/thoas/go-funk v0.9.2
