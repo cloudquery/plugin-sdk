@@ -31,7 +31,7 @@ require (
 	github.com/segmentio/stats/v4 v4.6.3
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cast v1.4.1
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.7.5
 	github.com/thoas/go-funk v0.9.2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/xo/dburl v0.8.4
@@ -68,7 +68,7 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stretchr/objx v0.3.0 // indirect
+	github.com/stretchr/objx v0.4.0 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/zclconf/go-cty v1.9.1 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
