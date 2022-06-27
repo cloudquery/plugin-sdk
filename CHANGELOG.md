@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.12.4](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.3...v0.12.4) (2022-06-27)
+
+
+### Bug Fixes
+
+* **deps:** fix(deps): Update module github.com/georgysavva/scany to v0.3.0 ([#376](https://github.com/cloudquery/cq-provider-sdk/issues/376)) ([4fd3b03](https://github.com/cloudquery/cq-provider-sdk/commit/4fd3b0372895e5c59c46c7ab2ff88d69d8df7714))
+* **deps:** fix(deps): Update module github.com/hashicorp/hcl/v2 to v2.13.0 ([#377](https://github.com/cloudquery/cq-provider-sdk/issues/377)) ([7e2672a](https://github.com/cloudquery/cq-provider-sdk/commit/7e2672a38bb686c06316a483d085f85bd42c38a4))
+* **deps:** fix(deps): Update module github.com/jackc/pgconn to v1.12.1 ([#378](https://github.com/cloudquery/cq-provider-sdk/issues/378)) ([095f01f](https://github.com/cloudquery/cq-provider-sdk/commit/095f01faf913fef0aa2c75513028f4f12c983be6))
+* **deps:** fix(deps): Update module github.com/jackc/pgtype to v1.11.0 ([#379](https://github.com/cloudquery/cq-provider-sdk/issues/379)) ([906ee1c](https://github.com/cloudquery/cq-provider-sdk/commit/906ee1c773a48d2fbdd05712d2201f6347d49c98))
+* **deps:** fix(deps): Update module github.com/jackc/pgx/v4 to v4.16.1 ([#380](https://github.com/cloudquery/cq-provider-sdk/issues/380)) ([e28a566](https://github.com/cloudquery/cq-provider-sdk/commit/e28a566d7335997cddaa7f550f7d657d88f321af))
+* **deps:** fix(deps): Update module github.com/spf13/afero to v1.8.2 ([#381](https://github.com/cloudquery/cq-provider-sdk/issues/381)) ([0d69466](https://github.com/cloudquery/cq-provider-sdk/commit/0d69466e2f64096470a34b426faa7868accac91f))
+* **deps:** fix(deps): Update module github.com/spf13/cast to v1.5.0 ([#382](https://github.com/cloudquery/cq-provider-sdk/issues/382)) ([ed0b2bd](https://github.com/cloudquery/cq-provider-sdk/commit/ed0b2bd57c3ee326c4a153183c7e4f9c4ae76122))
+* **deps:** fix(deps): Update module github.com/stretchr/testify to v1.7.5 ([#375](https://github.com/cloudquery/cq-provider-sdk/issues/375)) ([634667a](https://github.com/cloudquery/cq-provider-sdk/commit/634667ad631f3d4ccd191328d0ef9689809ecf80))
+* **deps:** fix(deps): Update module github.com/xo/dburl to v0.11.0 ([#383](https://github.com/cloudquery/cq-provider-sdk/issues/383)) ([4d6349d](https://github.com/cloudquery/cq-provider-sdk/commit/4d6349d738e97698006155062aacca951e2dada2))
+* **deps:** fix(deps): Update module google.golang.org/grpc to v1.47.0 ([#384](https://github.com/cloudquery/cq-provider-sdk/issues/384)) ([50d2f1e](https://github.com/cloudquery/cq-provider-sdk/commit/50d2f1e1192c35aebcacfb635592d3b0f9afb5e7))
+* **deps:** fix(deps): Update module google.golang.org/protobuf to v1.28.0 ([#386](https://github.com/cloudquery/cq-provider-sdk/issues/386)) ([9c5c83f](https://github.com/cloudquery/cq-provider-sdk/commit/9c5c83f993e73d8ea9310ebd5f5d2cfce89cc12d))
+
 ## [0.12.3](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.2...v0.12.3) (2022-06-26)
 
 
