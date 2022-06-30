@@ -301,33 +301,51 @@ func (e TableExecutor) resolveResources(ctx context.Context, meta schema.ClientM
 // saveToStorage copies resource data to source, it has ways of inserting, first it tries the most performant CopyFrom if that does work it bulk inserts,
 // finally it inserts each resource separately, appending errors for each failed resource, only successfully inserted resources are returned
 func (e TableExecutor) saveToStorage(ctx context.Context, resources schema.Resources, shouldCascade bool) (schema.Resources, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	if l := len(resources); l > 0 {
 		e.Logger.Debug("storing resources", "count", l)
 	}
 	err := e.Db.CopyFrom(ctx, resources, shouldCascade)
 	if err == nil {
-		return resources, nil
+		return resources, diags
 	}
 	e.Logger.Warn("failed copy-from to db", "error", err)
+	diags = diags.Add(diag.TelemetryFromError(err, diag.CopyFromFailed))
 
 	// fallback insert, copy from sometimes does problems, so we fall back with bulk insert
 	err = e.Db.Insert(ctx, e.Table, resources, shouldCascade)
 	if err == nil {
-		return resources, nil
+		return resources, diags
 	}
 	e.Logger.Error("failed insert to db", "error", err)
+	diags = diags.Add(diag.TelemetryFromError(err, diag.BulkInsertFailed))
 	// Setup diags, adding first diagnostic that bulk insert failed
-	diags := diag.Diagnostics{}.Add(ClassifyError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed bulk insert on table %q", e.Table.Name)))
+	diags = diags.Add(ClassifyError(err, diag.WithType(diag.DATABASE), diag.WithSummary("failed bulk insert on table %q", e.Table.Name)))
 	// Try to insert resource by resource if partial fetch is enabled and an error occurred
 	partialFetchResources := make(schema.Resources, 0)
+	var failed error
+	failedCount := 0
 	for id := range resources {
 		if err := e.Db.Insert(ctx, e.Table, schema.Resources{resources[id]}, shouldCascade); err != nil {
+			failed = err
+			failedCount++
 			e.Logger.Error("failed to insert resource into db", "error", err, "resource_keys", resources[id].PrimaryKeyValues())
 			diags = diags.Add(ClassifyError(err, diag.WithType(diag.DATABASE)))
 			continue
 		}
 		// If there is no error we add the resource to the final result
 		partialFetchResources = append(partialFetchResources, resources[id])
+	}
+	if failed != nil {
+		msg := "all resources"
+		if failedCount < len(resources) {
+			msg = "some resources"
+		}
+		diags = diags.Add(diag.TelemetryFromError(
+			failed,
+			diag.InsertFailed,
+			diag.WithSummary("%s failed to insert into table %q", msg, e.Table.Name),
+		))
 	}
 	return partialFetchResources, diags
 }

@@ -29,6 +29,7 @@ const (
 	SCHEMA
 	INTERNAL
 	USER
+	TELEMETRY
 )
 
 const (
@@ -40,6 +41,13 @@ const (
 	ERROR
 	// PANIC severity are diagnostics that are returned from a panic in the underlying code.
 	PANIC
+)
+
+const (
+	// diagnostics labels for telemetry events
+	CopyFromFailed   = "copy_from_failed"
+	BulkInsertFailed = "bulk_insert_failed"
+	InsertFailed     = "insert_failed"
 )
 
 func (s Severity) String() string {
@@ -71,6 +79,8 @@ func (d Type) String() string {
 		return "User"
 	case INTERNAL:
 		return "Internal"
+	case TELEMETRY:
+		return "Telemetry"
 	case UNKNOWN:
 		fallthrough
 	default:
