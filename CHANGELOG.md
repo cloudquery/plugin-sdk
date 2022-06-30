@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.13.1](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.0...v0.13.1) (2022-06-30)
+
+
+### Features
+
+* Send telemetry about failed COPY FROMs ([#395](https://github.com/cloudquery/cq-provider-sdk/issues/395)) ([8c5a329](https://github.com/cloudquery/cq-provider-sdk/commit/8c5a3295d2f42c8d960235ea5bf7339d50545ad0))
+
 ## [0.13.0](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.5...v0.13.0) (2022-06-30)
 
 
