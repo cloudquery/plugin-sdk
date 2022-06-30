@@ -14,10 +14,10 @@ type Storage interface {
 	QueryExecer
 	Copier
 	TXer
-	Insert(ctx context.Context, t *schema.Table, instance schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error
+	Insert(ctx context.Context, t *schema.Table, instance schema.Resources, shouldCascade bool) error
 	Delete(ctx context.Context, t *schema.Table, kvFilters []interface{}) error
 	RemoveStaleData(ctx context.Context, t *schema.Table, executionStart time.Time, kvFilters []interface{}) error
-	CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error
+	CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool) error
 	Close()
 	Dialect() schema.Dialect
 }

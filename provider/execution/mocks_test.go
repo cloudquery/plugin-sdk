@@ -23,13 +23,13 @@ func (_m *DatabaseMock) Close() {
 	_m.Called()
 }
 
-// CopyFrom provides a mock function with given fields: ctx, resources, shouldCascade, cascadeDeleteFilters
-func (_m *DatabaseMock) CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error {
-	ret := _m.Called(ctx, resources, shouldCascade, cascadeDeleteFilters)
+// CopyFrom provides a mock function with given fields: ctx, resources, shouldCascade
+func (_m *DatabaseMock) CopyFrom(ctx context.Context, resources schema.Resources, shouldCascade bool) error {
+	ret := _m.Called(ctx, resources, shouldCascade)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, schema.Resources, bool, map[string]interface{}) error); ok {
-		r0 = rf(ctx, resources, shouldCascade, cascadeDeleteFilters)
+	if rf, ok := ret.Get(0).(func(context.Context, schema.Resources, bool) error); ok {
+		r0 = rf(ctx, resources, shouldCascade)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -69,12 +69,12 @@ func (_m *DatabaseMock) Exec(ctx context.Context, query string, args ...interfac
 }
 
 // Insert provides a mock function with given fields: ctx, t, instance
-func (_m *DatabaseMock) Insert(ctx context.Context, t *schema.Table, instance schema.Resources, shouldCascade bool, cascadeDeleteFilters map[string]interface{}) error {
+func (_m *DatabaseMock) Insert(ctx context.Context, t *schema.Table, instance schema.Resources, shouldCascade bool) error {
 	ret := _m.Called(ctx, t, instance)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *schema.Table, schema.Resources, bool, map[string]interface{}) error); ok {
-		r0 = rf(ctx, t, instance, shouldCascade, cascadeDeleteFilters)
+	if rf, ok := ret.Get(0).(func(context.Context, *schema.Table, schema.Resources, bool) error); ok {
+		r0 = rf(ctx, t, instance, shouldCascade)
 	} else {
 		r0 = ret.Error(0)
 	}

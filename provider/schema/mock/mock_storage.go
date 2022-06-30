@@ -67,17 +67,17 @@ func (mr *MockStorageMockRecorder) Close() *gomock.Call {
 }
 
 // CopyFrom mocks base method.
-func (m *MockStorage) CopyFrom(arg0 context.Context, arg1 schema.Resources, arg2 bool, arg3 map[string]interface{}) error {
+func (m *MockStorage) CopyFrom(arg0 context.Context, arg1 schema.Resources, arg2 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CopyFrom", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "CopyFrom", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CopyFrom indicates an expected call of CopyFrom.
-func (mr *MockStorageMockRecorder) CopyFrom(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockStorageMockRecorder) CopyFrom(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CopyFrom", reflect.TypeOf((*MockStorage)(nil).CopyFrom), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CopyFrom", reflect.TypeOf((*MockStorage)(nil).CopyFrom), arg0, arg1, arg2)
 }
 
 // Delete mocks base method.
@@ -128,17 +128,17 @@ func (mr *MockStorageMockRecorder) Exec(arg0, arg1 interface{}, arg2 ...interfac
 }
 
 // Insert mocks base method.
-func (m *MockStorage) Insert(arg0 context.Context, arg1 *schema.Table, arg2 schema.Resources, arg3 bool, arg4 map[string]interface{}) error {
+func (m *MockStorage) Insert(arg0 context.Context, arg1 *schema.Table, arg2 schema.Resources, arg3 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Insert", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "Insert", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Insert indicates an expected call of Insert.
-func (mr *MockStorageMockRecorder) Insert(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockStorageMockRecorder) Insert(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insert", reflect.TypeOf((*MockStorage)(nil).Insert), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insert", reflect.TypeOf((*MockStorage)(nil).Insert), arg0, arg1, arg2, arg3)
 }
 
 // Query mocks base method.

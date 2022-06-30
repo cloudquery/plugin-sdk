@@ -21,9 +21,8 @@ import (
 )
 
 type ExecutionTestCase struct {
-	Name        string
-	Table       *schema.Table
-	ExtraFields map[string]interface{}
+	Name  string
+	Table *schema.Table
 
 	SetupStorage          func(t *testing.T) Storage
 	ExpectedResourceCount uint64
@@ -345,54 +344,6 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			},
 		},
 		{
-			Name: "always_delete",
-			SetupStorage: func(t *testing.T) Storage {
-				db := new(DatabaseMock)
-				db.On("Delete", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-				db.On("RemoveStaleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-				db.On("Dialect").Return(noopDialect{})
-				return db
-			},
-			Table: &schema.Table{
-				Name:         "simple",
-				AlwaysDelete: true,
-				DeleteFilter: func(meta schema.ClientMeta, parent *schema.Resource) []interface{} {
-					return []interface{}{}
-				},
-				Resolver: doNothingResolver,
-				Columns:  commonColumns,
-			},
-		},
-		{
-			Name: "always_delete_fail",
-			SetupStorage: func(t *testing.T) Storage {
-				db := new(DatabaseMock)
-				db.On("Delete", mock.Anything, mock.Anything, mock.Anything).
-					Return(fromError(errors.New("failed delete"), diag.WithResourceName("always_delete_fail"), diag.WithType(diag.DATABASE)))
-				db.On("Dialect").Return(noopDialect{})
-				return db
-			},
-			Table: &schema.Table{
-				Name:         "simple",
-				AlwaysDelete: true,
-				DeleteFilter: func(meta schema.ClientMeta, parent *schema.Resource) []interface{} {
-					return []interface{}{}
-				},
-				Resolver: doNothingResolver,
-				Columns:  commonColumns,
-			},
-			ErrorExpected: true,
-			ExpectedDiags: []diag.FlatDiag{
-				{
-					Err:      "failed delete",
-					Resource: "always_delete_fail",
-					Severity: diag.ERROR,
-					Type:     diag.DATABASE,
-					Summary:  "failed delete",
-				},
-			},
-		},
-		{
 			Name: "cleanup_stale_data_fail",
 			SetupStorage: func(t *testing.T) Storage {
 				db := new(DatabaseMock)
@@ -426,7 +377,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				db := new(DatabaseMock)
 				db.On("RemoveStaleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				db.On("Dialect").Return(noopDialect{})
-				db.On("CopyFrom", mock.Anything, mock.Anything, true, map[string]interface{}(nil)).Return(nil)
+				db.On("CopyFrom", mock.Anything, mock.Anything, true).Return(nil)
 				return db
 			},
 			Table: &schema.Table{
@@ -443,7 +394,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				db := new(DatabaseMock)
 				db.On("RemoveStaleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				db.On("Dialect").Return(noopDialect{})
-				db.On("CopyFrom", mock.Anything, mock.Anything, true, map[string]interface{}(nil)).Return(nil)
+				db.On("CopyFrom", mock.Anything, mock.Anything, true).Return(nil)
 				return db
 			},
 			Table: &schema.Table{
@@ -476,7 +427,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				db := new(DatabaseMock)
 				db.On("RemoveStaleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				db.On("Dialect").Return(schema.PostgresDialect{})
-				db.On("CopyFrom", mock.Anything, mock.Anything, true, map[string]interface{}(nil)).Return(nil).Run(
+				db.On("CopyFrom", mock.Anything, mock.Anything, true).Return(nil).Run(
 					func(args mock.Arguments) {
 						resources := args.Get(1).(schema.Resources)
 						if !assert.Greater(t, len(resources), 0) {
@@ -511,7 +462,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				db := new(DatabaseMock)
 				db.On("RemoveStaleData", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				db.On("Dialect").Return(noopDialect{})
-				db.On("CopyFrom", mock.Anything, mock.Anything, true, map[string]interface{}(nil)).Return(nil)
+				db.On("CopyFrom", mock.Anything, mock.Anything, true).Return(nil)
 				return db
 			},
 			Table: &schema.Table{
@@ -556,10 +507,10 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			ErrorExpected: true,
 			ExpectedDiags: []diag.FlatDiag{
 				{
-					Err:      `error at github.com/cloudquery/cq-provider-sdk/provider/execution.glob..func4[execution_test.go:75] some error`,
+					Err:      `error at github.com/cloudquery/cq-provider-sdk/provider/execution.glob..func4[execution_test.go:74] some error`,
 					Resource: "return_wrap_error",
 					Severity: diag.ERROR,
-					Summary:  `failed to resolve table "simple": error at github.com/cloudquery/cq-provider-sdk/provider/execution.glob..func4[execution_test.go:75] some error`,
+					Summary:  `failed to resolve table "simple": error at github.com/cloudquery/cq-provider-sdk/provider/execution.glob..func4[execution_test.go:74] some error`,
 					Type:     diag.RESOLVING,
 				},
 			},
@@ -653,7 +604,7 @@ func TestTableExecutor_Resolve(t *testing.T) {
 				fmt.Println("debug")
 			}
 			limiter := semaphore.NewWeighted(int64(limit.GetMaxGoRoutines()))
-			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, tc.ExtraFields, nil, nil, limiter, 10*time.Second)
+			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, nil, nil, limiter, 10*time.Second)
 			count, diags := exec.Resolve(context.Background(), executionClient)
 			assert.Equal(t, tc.ExpectedResourceCount, count)
 			if tc.ErrorExpected {
@@ -715,7 +666,7 @@ func TestTableExecutor_resolveResourceValues(t *testing.T) {
 				storage = tc.SetupStorage(t)
 			}
 			limiter := semaphore.NewWeighted(int64(limit.GetMaxGoRoutines()))
-			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, nil, nil, nil, limiter, 0)
+			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, nil, nil, limiter, 0)
 
 			r := schema.NewResourceData(storage.Dialect(), tc.Table, nil, tc.ResourceData, tc.MetaData, exec.executionStart)
 			// columns should be resolved from ColumnResolver functions or default functions

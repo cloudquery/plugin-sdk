@@ -24,8 +24,6 @@ message ConfigureProvider {
     ConnectionDetails connection = 2;
     // Holds information such as credentials, regions, accounts, etc'
     bytes config = 3;
-    // Msgpack encoded: Allows to inject & override fields into resource tables, use this carefully to override fields. Used in tests.
-    bytes extraFields = 5;
     // Holds the format of the config
     ConfigFormat format = 6;
   }
