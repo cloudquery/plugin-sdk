@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.13.0](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.5...v0.13.0) (2022-06-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove unused code/features: Global tables, CascadeDeleteFilters, ExtraFields, AlwaysDelete (#392)
+
+### Miscellaneous Chores
+
+* Remove unused code/features: Global tables, CascadeDeleteFilters, ExtraFields, AlwaysDelete ([#392](https://github.com/cloudquery/cq-provider-sdk/issues/392)) ([eee8029](https://github.com/cloudquery/cq-provider-sdk/commit/eee8029748abefce62e0f51d173e467c5f317158))
+
 ## [0.12.5](https://github.com/cloudquery/cq-provider-sdk/compare/v0.12.4...v0.12.5) (2022-06-27)
 
 
