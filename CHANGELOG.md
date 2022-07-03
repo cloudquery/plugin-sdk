@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.13.2](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.1...v0.13.2) (2022-07-03)
+
+
+### Bug Fixes
+
+* Use 'cur' ulimit in calculation, not 'max' ([#399](https://github.com/cloudquery/cq-provider-sdk/issues/399)) ([1acc3de](https://github.com/cloudquery/cq-provider-sdk/commit/1acc3decc40b532be13906713f9e3f7bb905b63b))
+
 ## [0.13.1](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.0...v0.13.1) (2022-06-30)
 
 
