@@ -25,13 +25,13 @@ type Rlimit struct {
 func GetMaxGoRoutines() uint64 {
 	limit := calculateGoRoutines(getMemory())
 	ulimit, err := GetUlimit()
-	if err != nil || ulimit.Max == 0 {
+	if err != nil || ulimit.Cur == 0 {
 		return limit
 	}
-	if ulimit.Max > limit {
+	if ulimit.Cur > limit {
 		return limit
 	}
-	return ulimit.Max
+	return ulimit.Cur
 }
 
 // DiagnoseLimits verifies if user should increase ulimit or max file descriptors to improve number of expected
@@ -48,11 +48,11 @@ func DiagnoseLimits() (diags diag.Diagnostics) {
 			diag.WithDetails("available descriptor capacity is %d want %d to run optimally, consider increasing max file descriptors on machine.", fds, want)))
 	}
 	ulimit, err := GetUlimit()
-	if err == nil && ulimit.Max < want {
+	if err == nil && ulimit.Cur < want {
 		diags = diags.Add(diag.NewBaseError(errors.New("ulimit available for CloudQuery process lower than expected"),
 			diag.USER,
 			diag.WithSeverity(diag.WARNING),
-			diag.WithDetails("set ulimit capacity is %d want %d to run optimally, consider increasing ulimit on this machine.", ulimit.Max, want)))
+			diag.WithDetails("set ulimit capacity is %d want %d to run optimally, consider increasing ulimit on this machine.", ulimit.Cur, want)))
 	}
 	return diags
 }
