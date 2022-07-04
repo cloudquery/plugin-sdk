@@ -10,7 +10,7 @@ require (
 	github.com/doug-martin/goqu/v9 v9.18.0
 	github.com/elliotchance/orderedmap v1.4.0
 	github.com/elliotchance/orderedmap/v2 v2.0.1
-	github.com/georgysavva/scany v0.3.0
+	github.com/georgysavva/scany v1.0.0
 	github.com/gofrs/uuid v4.2.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/golang/mock v1.6.0
