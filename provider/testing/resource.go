@@ -75,52 +75,60 @@ func TestResource(t *testing.T, resource ResourceTestCase) {
 	l.SetLevel(hclog.Info)
 	resource.Provider.Logger = l
 
-	for _, table := range resource.Provider.ResourceMap {
-		if err := dropAndCreateTable(context.Background(), conn, table); err != nil {
-			assert.FailNow(t, fmt.Sprintf("failed to create tables %s", table.Name), err)
-		}
-	}
-
-	if err = fetch(t, &resource); err != nil {
-		t.Fatal(err)
-	}
-
-	for resourceName, table := range resource.Provider.ResourceMap {
-		if verifiers, ok := resource.Verifiers[resourceName]; ok {
-			for _, verifier := range verifiers {
-				verifier(t, table, conn, resource.SkipIgnoreInTest)
-			}
-		} else {
-			// fallback to default verification
-			verifyNoEmptyColumns(t, table, conn, resource.SkipIgnoreInTest)
-		}
-	}
-}
-
-// fetch - fetches resources from the cloud and puts them into database. database config can be specified via DATABASE_URL env variable
-func fetch(t *testing.T, resource *ResourceTestCase) error {
-	t.Helper()
-	resourceNames := make([]string, 0, len(resource.Provider.ResourceMap))
-	for name, table := range resource.Provider.ResourceMap {
-		if !resource.SkipIgnoreInTest && table.IgnoreInTests {
-			t.Logf("skipping resource: %s in tests", name)
-			continue
-		}
-		resourceNames = append(resourceNames, name)
-	}
-
-	t.Logf("fetch resources %v", resourceNames)
-
-	if resp, err := resource.Provider.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
+	// configure provider
+	if resp, configErr := resource.Provider.ConfigureProvider(context.Background(), &cqproto.ConfigureProviderRequest{
 		CloudQueryVersion: "",
 		Connection: cqproto.ConnectionDetails{DSN: getEnv("DATABASE_URL",
 			"host=localhost user=postgres password=pass DB.name=postgres port=5432")},
 		Config: []byte(resource.Config),
-	}); err != nil {
-		return err
+	}); configErr != nil {
+		t.Fatal("failed to configure provider", configErr)
 	} else if resp != nil && resp.Diagnostics.HasErrors() {
-		return resp.Diagnostics
+		t.Fatal("errors while configuring provider", configErr)
 	}
+
+	for resourceName, table := range resource.Provider.ResourceMap {
+		t.Run(resourceName, func(t *testing.T) {
+			testErr := testResource(t, resource, resourceName, table, conn)
+			if testErr != nil {
+				t.Errorf("Error testing %v: %v", table.Name, testErr)
+			}
+		})
+	}
+}
+
+func testResource(t *testing.T, resource ResourceTestCase, name string, table *schema.Table, conn execution.QueryExecer) error {
+	t.Helper()
+
+	if createErr := dropAndCreateTable(context.Background(), conn, table); createErr != nil {
+		assert.FailNow(t, fmt.Sprintf("failed to create table %s", table.Name), createErr)
+	}
+
+	if !resource.SkipIgnoreInTest && table.IgnoreInTests {
+		t.Logf("skipping fetch of resource: %s in tests", name)
+	} else {
+		if err := fetchResource(t, &resource, name); err != nil {
+			return err
+		}
+	}
+
+	if verifiers, ok := resource.Verifiers[name]; ok {
+		for _, verifier := range verifiers {
+			verifier(t, table, conn, resource.SkipIgnoreInTest)
+		}
+	} else {
+		// fallback to default verification
+		verifyNoEmptyColumns(t, table, conn, resource.SkipIgnoreInTest)
+	}
+
+	return nil
+}
+
+// fetchResource - fetches a resource from the cloud and puts them into database. database config can be specified via DATABASE_URL env variable
+func fetchResource(t *testing.T, resource *ResourceTestCase, resourceName string) error {
+	t.Helper()
+
+	t.Logf("fetch resource %v", resourceName)
 
 	var resourceSender = &testResourceSender{
 		Errors: []string{},
@@ -128,7 +136,7 @@ func fetch(t *testing.T, resource *ResourceTestCase) error {
 
 	if err := resource.Provider.FetchResources(context.Background(),
 		&cqproto.FetchResourcesRequest{
-			Resources:             resourceNames,
+			Resources:             []string{resourceName},
 			ParallelFetchingLimit: resource.ParallelFetchingLimit,
 		},
 		resourceSender,
@@ -137,7 +145,7 @@ func fetch(t *testing.T, resource *ResourceTestCase) error {
 	}
 
 	if len(resourceSender.Errors) > 0 {
-		return fmt.Errorf("error/s occur during test, %s", strings.Join(resourceSender.Errors, ", "))
+		return fmt.Errorf("error/s occurred during test, %s", strings.Join(resourceSender.Errors, ", "))
 	}
 
 	return nil

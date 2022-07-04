@@ -45,7 +45,7 @@ type Table struct {
 	Options TableCreationOptions
 
 	// IgnoreInTests is used to exclude a table from integration tests.
-	// By default, integration tests fetch all resources from cloudquery's test account, and verifY all tables
+	// By default, integration tests fetch all resources from cloudquery's test account, and verify all tables
 	// have at least one row.
 	// When IgnoreInTests is true, integration tests won't fetch from this table.
 	// Used when it is hard to create a reproducible environment with a row in this table.
