@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.13.3](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.2...v0.13.3) (2022-07-04)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/aws/smithy-go to v1.12.0 ([#404](https://github.com/cloudquery/cq-provider-sdk/issues/404)) ([c4622df](https://github.com/cloudquery/cq-provider-sdk/commit/c4622dfa5feb140f7a0037af242ec1e9dd204cae))
+* **deps:** Update module github.com/elliotchance/orderedmap to v2 ([#408](https://github.com/cloudquery/cq-provider-sdk/issues/408)) ([403d12c](https://github.com/cloudquery/cq-provider-sdk/commit/403d12cfa907b67e2a39f231380f27c6781766fd))
+* **deps:** Update module github.com/georgysavva/scany to v1 ([#409](https://github.com/cloudquery/cq-provider-sdk/issues/409)) ([4322004](https://github.com/cloudquery/cq-provider-sdk/commit/43220047798dc3442aae6c3292693d8f269a9956))
+* **deps:** Update module github.com/hashicorp/go-version to v1.6.0 ([#405](https://github.com/cloudquery/cq-provider-sdk/issues/405)) ([1a061ca](https://github.com/cloudquery/cq-provider-sdk/commit/1a061ca7b34138d538496dd8acc72bcdff1ece30))
+* **deps:** Update module github.com/lorenzosaino/go-sysctl to v0.3.1 ([#403](https://github.com/cloudquery/cq-provider-sdk/issues/403)) ([ab4ae0f](https://github.com/cloudquery/cq-provider-sdk/commit/ab4ae0f1b928a44dd9cb2c6cb794dd3bd378436d))
+* **deps:** Update module github.com/stretchr/testify to v1.8.0 ([#406](https://github.com/cloudquery/cq-provider-sdk/issues/406)) ([c787359](https://github.com/cloudquery/cq-provider-sdk/commit/c787359ef701a95c2636a9ddbaa9a5641d485fe6))
+
 ## [0.13.2](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.1...v0.13.2) (2022-07-03)
 
 
