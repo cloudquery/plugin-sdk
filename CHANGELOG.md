@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.13.4](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.3...v0.13.4) (2022-07-04)
+
+
+### Features
+
+* **tests:** Fetch only the resources required for test being run ([#400](https://github.com/cloudquery/cq-provider-sdk/issues/400)) ([5fa0315](https://github.com/cloudquery/cq-provider-sdk/commit/5fa031587a54cc967a496448c0e0fc06546c32a9))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/faker/v3 to v3.7.6 ([#412](https://github.com/cloudquery/cq-provider-sdk/issues/412)) ([c02f433](https://github.com/cloudquery/cq-provider-sdk/commit/c02f433f17793397803a248cec15fdcb13926f32))
+
 ## [0.13.3](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.2...v0.13.3) (2022-07-04)
 
 
