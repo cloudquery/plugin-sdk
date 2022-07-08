@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.13.5](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.4...v0.13.5) (2022-07-08)
+
+
+### Bug Fixes
+
+* Optional forced search_path ([#415](https://github.com/cloudquery/cq-provider-sdk/issues/415)) ([89d6b92](https://github.com/cloudquery/cq-provider-sdk/commit/89d6b923e0fa1f878eb7fee12336f2214f1d7ee5))
+
 ## [0.13.4](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.3...v0.13.4) (2022-07-04)
 
 
