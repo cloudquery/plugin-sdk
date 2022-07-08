@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"strings"
 
 	"github.com/cloudquery/cq-provider-sdk/database/dsn"
 	"github.com/jackc/pgtype"
@@ -16,9 +17,12 @@ func Connect(ctx context.Context, dsnURI string) (*pgxpool.Pool, error) {
 		return nil, dsn.RedactParseError(err)
 	}
 	poolCfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		_, err := conn.Exec(ctx, "SET search_path=public")
-		if err != nil {
-			return err
+		// force a known search_path if DSN doesn't specify one
+		if !strings.Contains(dsnURI, "&search_path=") && !strings.Contains(dsnURI, "?search_path=") {
+			_, err := conn.Exec(ctx, "SET search_path=public")
+			if err != nil {
+				return err
+			}
 		}
 
 		UUIDType := pgtype.DataType{
