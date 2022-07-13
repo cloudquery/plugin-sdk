@@ -600,9 +600,6 @@ func TestTableExecutor_Resolve(t *testing.T) {
 			if tc.SetupStorage != nil {
 				storage = tc.SetupStorage(t)
 			}
-			if tc.Name == "ignore_error_recursive" {
-				fmt.Println("debug")
-			}
 			limiter := semaphore.NewWeighted(int64(limit.GetMaxGoRoutines()))
 			exec := NewTableExecutor(tc.Name, storage, testlog.New(t), tc.Table, nil, nil, limiter, 10*time.Second)
 			count, diags := exec.Resolve(context.Background(), executionClient)

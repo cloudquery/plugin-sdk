@@ -14,20 +14,6 @@ const (
 
 type ErrorClassifier func(meta schema.ClientMeta, resourceName string, err error) diag.Diagnostics
 
-func defaultErrorClassifier(_ schema.ClientMeta, resourceName string, err error) diag.Diagnostics {
-	if _, ok := err.(diag.Diagnostic); ok {
-		return nil
-	}
-	if _, ok := err.(diag.Diagnostics); ok {
-		return nil
-	}
-	if strings.Contains(err.Error(), ": socket: too many open files") {
-		// Return a Diagnostic error so that it can be properly propagated back to the user via the CLI
-		return fromError(err, diag.WithResourceName(resourceName), diag.WithSummary(fdLimitMessage), diag.WithType(diag.THROTTLE), diag.WithSeverity(diag.WARNING))
-	}
-	return nil
-}
-
 func ClassifyError(err error, opts ...diag.BaseErrorOption) diag.Diagnostics {
 	if err != nil && strings.Contains(err.Error(), ": socket: too many open files") {
 		// Return a Diagnostic error so that it can be properly propagated back to the user via the CLI

@@ -36,8 +36,8 @@ type TableExecutor struct {
 	Db Storage
 	// Logger associated with this execution
 	Logger hclog.Logger
-	// classifiers
-	classifiers []ErrorClassifier
+	// classifier
+	classifier ErrorClassifier
 	// metadata to be passed to each created resource in the execution, used by cq* resolvers.
 	metadata map[string]interface{}
 	// When the execution started
@@ -52,10 +52,6 @@ type TableExecutor struct {
 
 // NewTableExecutor creates a new TableExecutor for given schema.Table
 func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, table *schema.Table, metadata map[string]interface{}, classifier ErrorClassifier, goroutinesSem *semaphore.Weighted, timeout time.Duration) TableExecutor {
-	var classifiers = []ErrorClassifier{defaultErrorClassifier}
-	if classifier != nil {
-		classifiers = append([]ErrorClassifier{classifier}, classifiers...)
-	}
 	var c [2]schema.ColumnList
 	c[0], c[1] = db.Dialect().Columns(table).Sift()
 
@@ -65,7 +61,7 @@ func NewTableExecutor(resourceName string, db Storage, logger hclog.Logger, tabl
 		Db:             db,
 		Logger:         logger,
 		metadata:       metadata,
-		classifiers:    classifiers,
+		classifier:     classifier,
 		executionStart: time.Now().Add(executionJitter),
 		columns:        c,
 		goroutinesSem:  goroutinesSem,
@@ -435,16 +431,20 @@ func (e TableExecutor) handleResolveError(meta schema.ClientMeta, r *schema.Reso
 		diag.WithSummary("failed to resolve table %q", e.Table.Name),
 	)...)
 
+	if e.classifier == nil {
+		return errAsDiags
+	}
+
 	classifiedDiags := make(diag.Diagnostics, 0, len(errAsDiags))
-	for _, c := range e.classifiers {
-		// fromError gives us diag.Diagnostics, but we need to make sure to pass one diag at a time to the classifiers and collect results,
-		// mostly because Unwrap()/errors.As() can't work on multiple diags
-		for _, d := range errAsDiags {
-			if diags := c(meta, e.ResourceName, d); diags != nil {
-				classifiedDiags = classifiedDiags.Add(diags)
-			}
+
+	// fromError gives us diag.Diagnostics, but we need to make sure to pass one diag at a time to the classifier and collect results,
+	// mostly because Unwrap()/errors.As() can't work on multiple diags
+	for _, d := range errAsDiags {
+		if diags := e.classifier(meta, e.ResourceName, d); diags != nil {
+			classifiedDiags = classifiedDiags.Add(diags)
 		}
 	}
+
 	if classifiedDiags.HasDiags() {
 		return classifiedDiags
 	}
