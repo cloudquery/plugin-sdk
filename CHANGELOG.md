@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.14.0](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.5...v0.14.0) (2022-07-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove HCL config support (#424)
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/faker/v3 to v3.7.7 ([#421](https://github.com/cloudquery/cq-provider-sdk/issues/421)) ([d58adf2](https://github.com/cloudquery/cq-provider-sdk/commit/d58adf2efe98e247bbf152666f3ca72f4ef52493))
+* **deps:** Update module google.golang.org/grpc to v1.48.0 ([#423](https://github.com/cloudquery/cq-provider-sdk/issues/423)) ([49035bb](https://github.com/cloudquery/cq-provider-sdk/commit/49035bba68ea337412abfdfebe61bb8d36f318a2))
+* Remove dead code ([#419](https://github.com/cloudquery/cq-provider-sdk/issues/419)) ([204eaf9](https://github.com/cloudquery/cq-provider-sdk/commit/204eaf9a0c038ada06575cffdc27f1983868bdfd))
+
+
+### Miscellaneous Chores
+
+* Remove HCL config support ([#424](https://github.com/cloudquery/cq-provider-sdk/issues/424)) ([114aace](https://github.com/cloudquery/cq-provider-sdk/commit/114aacee7f70e6d28041a231c6a2effadb73d2f7))
+
 ## [0.13.5](https://github.com/cloudquery/cq-provider-sdk/compare/v0.13.4...v0.13.5) (2022-07-08)
 
 
