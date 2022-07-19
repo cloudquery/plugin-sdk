@@ -24,8 +24,7 @@ message ConfigureProvider {
     ConnectionDetails connection = 2;
     // Holds information such as credentials, regions, accounts, etc'
     bytes config = 3;
-    // Holds the format of the config
-    ConfigFormat format = 6;
+    // next available index: 7
   }
   message Response {
     string error = 1;
@@ -134,6 +133,7 @@ message GetProviderSchema {
   }
 }
 
+// ConfigFormat is deprecated
 enum ConfigFormat {
   HCL = 0;
   YAML = 1;
@@ -141,13 +141,13 @@ enum ConfigFormat {
 
 message GetProviderConfig {
   message Request {
-    ConfigFormat format = 1;
+    // next available index: 2
   }
   message Response {
     string name = 1;
     string version = 2;
     bytes config = 3;
-    ConfigFormat format = 4;
+    ConfigFormat format = 4; // deprecated
   }
 }
 

@@ -20,8 +20,6 @@ import (
 	"github.com/cloudquery/cq-provider-sdk/provider/schema"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcl/v2/hclsimple"
-	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/thoas/go-funk"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
@@ -32,8 +30,6 @@ import (
 type Config interface {
 	// Example returns a configuration example (with comments) so user clients can generate an example config
 	Example() string
-	// Format is the format of the config the provider supports
-	Format() cqproto.ConfigFormat
 }
 
 // Provider is the base structure required to pass and serve an sdk provider.Provider
@@ -47,7 +43,7 @@ type Provider struct {
 	// ResourceMap is all resources supported by this plugin
 	ResourceMap map[string]*schema.Table
 	// Configuration decoded from configure request
-	Config func(format cqproto.ConfigFormat) Config
+	Config func() Config
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	Logger hclog.Logger
 	// ErrorClassifier allows the provider to classify errors it produces during table execution, and return them as diagnostics to the user.
@@ -75,71 +71,53 @@ func (p *Provider) GetProviderSchema(_ context.Context, _ *cqproto.GetProviderSc
 }
 
 func (p *Provider) GetProviderConfig(_ context.Context, req *cqproto.GetProviderConfigRequest) (*cqproto.GetProviderConfigResponse, error) {
-	providerConfig := p.Config(req.Format)
+	providerConfig := p.Config()
 	if err := defaults.Set(providerConfig); err != nil {
 		return &cqproto.GetProviderConfigResponse{}, err
 	}
-	switch providerConfig.Format() {
-	case cqproto.ConfigHCL:
-		data := fmt.Sprintf(`
-		provider "%s" {
-			%s
-			// list of resources to fetch
-			resources = %s
-		}`, p.Name, providerConfig.Example(), helpers.FormatSlice(funk.Keys(p.ResourceMap).([]string)))
 
-		return &cqproto.GetProviderConfigResponse{
-			Config: hclwrite.Format([]byte(data)),
-			Format: cqproto.ConfigHCL,
-		}, nil
-	case cqproto.ConfigYAML:
-		resList := funk.Keys(p.ResourceMap).([]string)
-		sort.Strings(resList)
-		nodes := make([]*yaml.Node, len(resList))
-		for i := range resList {
-			nodes[i] = &yaml.Node{
-				Kind:  yaml.ScalarNode,
-				Value: resList[i],
-			}
+	resList := funk.Keys(p.ResourceMap).([]string)
+	sort.Strings(resList)
+	nodes := make([]*yaml.Node, len(resList))
+	for i := range resList {
+		nodes[i] = &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Value: resList[i],
 		}
-
-		data := &yaml.Node{
-			Kind: yaml.MappingNode,
-			Content: []*yaml.Node{
-				{
-					Kind:  yaml.ScalarNode,
-					Value: "configuration",
-				},
-				{
-					Kind: yaml.ScalarNode,
-					Tag:  "!!null",
-				},
-				{
-					Kind: yaml.ScalarNode,
-					// double newline will leave only the last block of comments
-					HeadComment: strings.TrimRight(providerConfig.Example(), "\r\n") + "\n \nlist of resources to fetch",
-					Value:       "resources",
-				},
-				{
-					Kind:    yaml.SequenceNode,
-					Content: nodes,
-				},
-			},
-		}
-
-		yb, err := yaml.Marshal(data)
-		if err != nil {
-			return &cqproto.GetProviderConfigResponse{}, diag.WrapError(err)
-		}
-
-		return &cqproto.GetProviderConfigResponse{
-			Config: yb,
-			Format: cqproto.ConfigYAML,
-		}, nil
-
-	default:
-		return nil, fmt.Errorf("unknown config format %v", providerConfig.Format())
 	}
+
+	data := &yaml.Node{
+		Kind: yaml.MappingNode,
+		Content: []*yaml.Node{
+			{
+				Kind:  yaml.ScalarNode,
+				Value: "configuration",
+			},
+			{
+				Kind: yaml.ScalarNode,
+				Tag:  "!!null",
+			},
+			{
+				Kind: yaml.ScalarNode,
+				// double newline will leave only the last block of comments
+				HeadComment: strings.TrimRight(providerConfig.Example(), "\r\n") + "\n \nlist of resources to fetch",
+				Value:       "resources",
+			},
+			{
+				Kind:    yaml.SequenceNode,
+				Content: nodes,
+			},
+		},
+	}
+
+	yb, err := yaml.Marshal(data)
+	if err != nil {
+		return &cqproto.GetProviderConfigResponse{}, diag.WrapError(err)
+	}
+
+	return &cqproto.GetProviderConfigResponse{
+		Config: yb,
+	}, nil
 }
 
 func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.ConfigureProviderRequest) (*cqproto.ConfigureProviderResponse, error) {
@@ -169,13 +147,7 @@ func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.Configu
 
 	p.dbURL = request.Connection.DSN
 
-	providerConfig := p.Config(request.Format)
-	if providerConfig.Format() != request.Format {
-		return &cqproto.ConfigureProviderResponse{
-			Diagnostics: diag.FromError(fmt.Errorf("provider %s returned wrong format config: please upgrade provider", p.Name), diag.INTERNAL),
-		}, nil
-	}
-
+	providerConfig := p.Config()
 	if err := defaults.Set(providerConfig); err != nil {
 		return &cqproto.ConfigureProviderResponse{
 			Diagnostics: diag.FromError(err, diag.INTERNAL),
@@ -186,21 +158,11 @@ func (p *Provider) ConfigureProvider(_ context.Context, request *cqproto.Configu
 	if len(request.Config) == 0 {
 		p.Logger.Info("Received empty configuration, using only defaults")
 	} else {
-		switch providerConfig.Format() {
-		case cqproto.ConfigHCL:
-			if err := hclsimple.Decode("config.hcl", request.Config, nil, providerConfig); err != nil {
-				p.Logger.Error("Failed to load configuration.", "error", err)
-				return &cqproto.ConfigureProviderResponse{
-					Diagnostics: diag.FromError(err, diag.USER),
-				}, nil
-			}
-		case cqproto.ConfigYAML:
-			if err := yaml.Unmarshal(request.Config, providerConfig); err != nil {
-				p.Logger.Error("Failed to load configuration.", "error", err)
-				return &cqproto.ConfigureProviderResponse{
-					Diagnostics: diag.FromError(err, diag.USER),
-				}, nil
-			}
+		if err := yaml.Unmarshal(request.Config, providerConfig); err != nil {
+			p.Logger.Error("Failed to load configuration.", "error", err)
+			return &cqproto.ConfigureProviderResponse{
+				Diagnostics: diag.FromError(err, diag.USER),
+			}, nil
 		}
 	}
 

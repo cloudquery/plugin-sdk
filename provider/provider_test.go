@@ -72,7 +72,7 @@ var (
 	testProviderCreatorFunc = func() Provider {
 		return Provider{
 			Name: "unitest",
-			Config: func(_ cqproto.ConfigFormat) Config {
+			Config: func() Config {
 				return &testConfig{}
 			},
 			ResourceMap: map[string]*schema.Table{
@@ -154,7 +154,7 @@ var (
 
 	parallelCheckProvider = Provider{
 		Name: "parallel",
-		Config: func(_ cqproto.ConfigFormat) Config {
+		Config: func() Config {
 			return &testConfig{}
 		},
 		ResourceMap: map[string]*schema.Table{
@@ -234,10 +234,6 @@ var (
 
 func (testConfig) Example() string {
 	return ""
-}
-
-func (testConfig) Format() cqproto.ConfigFormat {
-	return cqproto.ConfigHCL
 }
 
 func (testClient) Logger() hclog.Logger {
