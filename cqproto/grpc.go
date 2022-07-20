@@ -45,14 +45,16 @@ func (g GRPCClient) GetProviderSchema(ctx context.Context, _ *GetProviderSchemaR
 }
 
 func (g GRPCClient) GetProviderConfig(ctx context.Context, request *GetProviderConfigRequest) (*GetProviderConfigResponse, error) {
-	res, err := g.client.GetProviderConfig(ctx, &internal.GetProviderConfig_Request{})
+	res, err := g.client.GetProviderConfig(ctx, &internal.GetProviderConfig_Request{
+		Format: internal.ConfigFormat_YAML,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &GetProviderConfigResponse{
 		Config: res.GetConfig(),
-		Format: 1, // YAML - Deprecated
+		Format: internal.ConfigFormat_YAML,
 	}, nil
 }
 
@@ -64,6 +66,7 @@ func (g GRPCClient) ConfigureProvider(ctx context.Context, request *ConfigurePro
 			Dsn:  request.Connection.DSN,
 		},
 		Config: request.Config,
+		Format: internal.ConfigFormat_YAML,
 	})
 	if err != nil {
 		return nil, err

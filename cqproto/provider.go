@@ -65,11 +65,12 @@ type GetProviderSchemaResponse struct {
 
 // GetProviderConfigRequest represents a CloudQuery RPC request for provider's config
 type GetProviderConfigRequest struct {
+	Format internal.ConfigFormat // Deprecated
 }
 
 type GetProviderConfigResponse struct {
 	Config []byte
-	Format int // Deprecated
+	Format internal.ConfigFormat // Deprecated
 }
 
 type ConfigureProviderRequest struct {
@@ -79,6 +80,7 @@ type ConfigureProviderRequest struct {
 	Connection ConnectionDetails
 	// Config is the configuration the user supplied for the provider
 	Config []byte
+	Format internal.ConfigFormat // Deprecated
 }
 
 type ConfigureProviderResponse struct {
