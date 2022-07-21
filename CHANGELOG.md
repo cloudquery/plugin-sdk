@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.14.2](https://github.com/cloudquery/cq-provider-sdk/compare/v0.14.1...v0.14.2) (2022-07-21)
+
+
+### Features
+
+* add ToPointer helper function to convert values to pointers ([#427](https://github.com/cloudquery/cq-provider-sdk/issues/427)) ([e34dcfb](https://github.com/cloudquery/cq-provider-sdk/commit/e34dcfb0b5cb2e7e44fbabe093719c01eb3ca53d))
+
 ## [0.14.1](https://github.com/cloudquery/cq-provider-sdk/compare/v0.14.0...v0.14.1) (2022-07-20)
 
 
