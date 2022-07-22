@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.14.4](https://github.com/cloudquery/cq-provider-sdk/compare/v0.14.3...v0.14.4) (2022-07-22)
+
+
+### Bug Fixes
+
+* Add support for int32 and int64 array types ([#433](https://github.com/cloudquery/cq-provider-sdk/issues/433)) ([7d4624d](https://github.com/cloudquery/cq-provider-sdk/commit/7d4624dbfed7c02482d7d1ef083275b0f8eb257b))
+
 ## [0.14.3](https://github.com/cloudquery/cq-provider-sdk/compare/v0.14.2...v0.14.3) (2022-07-22)
 
 
