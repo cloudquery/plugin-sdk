@@ -133,42 +133,42 @@ func (v ValueType) String() string {
 
 // ValueTypeFromString this function is mainly used by https://github.com/cloudquery/cq-gen
 func ValueTypeFromString(s string) ValueType {
-	switch strings.ToLower(s) {
-	case "bool", "TypeBool":
+	switch strings.TrimPrefix(strings.ToLower(s), "type") {
+	case "bool":
 		return TypeBool
-	case "int", "TypeInt", "bigint", "TypeBigInt", "smallint", "TypeSmallInt":
+	case "int", "bigint", "smallint":
 		return TypeBigInt
-	case "float", "TypeFloat":
+	case "float":
 		return TypeFloat
-	case "uuid", "TypeUUID":
+	case "uuid":
 		return TypeUUID
-	case "string", "TypeString":
+	case "string":
 		return TypeString
-	case "json", "TypeJSON":
+	case "json":
 		return TypeJSON
-	case "intarray", "TypeIntArray":
+	case "intarray":
 		return TypeIntArray
-	case "stringarray", "TypeStringArray":
+	case "stringarray":
 		return TypeStringArray
 	case "bytearray":
 		return TypeByteArray
-	case "timestamp", "TypeTimestamp":
+	case "timestamp":
 		return TypeTimestamp
-	case "uuidarray", "TypeUUIDArray":
+	case "uuidarray":
 		return TypeUUIDArray
-	case "inet", "TypeInet":
+	case "inet":
 		return TypeInet
-	case "inetrarray", "TypeInetArray":
+	case "inetrarray":
 		return TypeInetArray
-	case "macaddr", "TypeMacAddr":
+	case "macaddr":
 		return TypeMacAddr
-	case "macaddrarray", "TypeMacAddrArray":
+	case "macaddrarray":
 		return TypeMacAddrArray
-	case "cidr", "TypeCIDR":
+	case "cidr":
 		return TypeCIDR
-	case "cidrarray", "TypeCIDRArray":
+	case "cidrarray":
 		return TypeCIDRArray
-	case "invalid", "TypeInvalid":
+	case "invalid":
 		return TypeInvalid
 	default:
 		return TypeInvalid

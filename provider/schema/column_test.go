@@ -143,6 +143,9 @@ func TestValueTypeFromString(t *testing.T) {
 	assert.Equal(t, ValueTypeFromString("JSON"), TypeJSON)
 	assert.Equal(t, ValueTypeFromString("bigint"), TypeBigInt)
 	assert.Equal(t, ValueTypeFromString("Blabla"), TypeInvalid)
+
+	assert.Equal(t, ValueTypeFromString("TypeBigInt"), TypeBigInt)
+	assert.Equal(t, ValueTypeFromString("TypeString"), TypeString)
 }
 
 func BenchmarkColumn_ValidateTypeInt(b *testing.B) {
