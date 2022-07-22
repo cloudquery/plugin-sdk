@@ -232,7 +232,7 @@ func (c Column) checkType(v interface{}) bool {
 		return c.Type == TypeFloat
 	case []string, []*string, *[]string:
 		return c.Type == TypeStringArray || c.Type == TypeJSON
-	case []int, []*int, *[]int:
+	case []int, []*int, *[]int, []int32, []*int32, []int64, []*int64, *[]int64:
 		return c.Type == TypeIntArray || c.Type == TypeJSON
 	case []interface{}:
 		return c.Type == TypeJSON
