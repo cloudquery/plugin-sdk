@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :spider: Fixed
 -->
 
+## [0.14.3](https://github.com/cloudquery/cq-provider-sdk/compare/v0.14.2...v0.14.3) (2022-07-22)
+
+
+### Bug Fixes
+
+* Fix bug in ValueTypeFromString ([#430](https://github.com/cloudquery/cq-provider-sdk/issues/430)) ([6ae324e](https://github.com/cloudquery/cq-provider-sdk/commit/6ae324ea2adeb9e0f83c523ab73c6f827db17bec))
+
 ## [0.14.2](https://github.com/cloudquery/cq-provider-sdk/compare/v0.14.1...v0.14.2) (2022-07-21)
 
 
