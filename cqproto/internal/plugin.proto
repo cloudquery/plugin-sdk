@@ -11,8 +11,6 @@ service Provider {
   rpc ConfigureProvider(ConfigureProvider.Request) returns (ConfigureProvider.Response);
   // Fetch Provider Resources
   rpc FetchResources(FetchResources.Request) returns (stream FetchResources.Response);
-  // Gets info about specific module config embedded inside provider
-  rpc GetModuleInfo(GetModuleInfo.Request) returns (GetModuleInfo.Response);
 }
 
 
@@ -24,9 +22,9 @@ message ConfigureProvider {
     ConnectionDetails connection = 2;
     // Holds information such as credentials, regions, accounts, etc'
     bytes config = 3;
-    reserved 4, 5;
-    // Deprecated. Format of the config, always ConfigYAML
-    ConfigFormat format = 6 [deprecated = true];
+    // Deprecated. Format of the config, always ConfigYAML. DONT REUSE FIELD NUMBER
+    //ConfigFormat format = 6 [deprecated = true];
+    reserved 4,5,6;
   }
   message Response {
     string error = 1;
@@ -135,47 +133,24 @@ message GetProviderSchema {
   }
 }
 
-// ConfigFormat is deprecated
-enum ConfigFormat {
-  Invalid = 0 [deprecated = true];
-  YAML = 1;
-}
 
 message GetProviderConfig {
   message Request {
-    // Deprecated. Format of the config, always ConfigYAML
-    ConfigFormat format = 1;
+    // Deprecated. Format of the config, always ConfigYAML. DONT REUSE FIELD NUMBER
+    //ConfigFormat format = 1 [deprecated = true];
+    reserved 1;
   }
   message Response {
     string name = 1;
     string version = 2;
     bytes config = 3;
-    // Deprecated. Format of the config, always ConfigYAML
-    ConfigFormat format = 4 [deprecated = true];
+    // Deprecated. Format of the config, always ConfigYAML. DONT REUSE FIELD NUMBER
+    // ConfigFormat format = 4 [deprecated = true];
+    reserved 4;
   }
 }
 
-message GetModuleInfo {
-  message Request {
-    string module = 1;
-    repeated uint32 preferred_versions = 2;
-  }
-  message Response {
-    map<uint32, ModuleInfo> data = 1;
-    repeated uint32 available_versions = 2;
-    repeated Diagnostic diagnostics = 3;
 
-    message ModuleInfo {
-      repeated ModuleFile files = 1;
-      map<string, string> extras = 2;
-
-      message ModuleFile {
-        string name = 1;
-        bytes contents = 2;
-      }
-    }
-  }
-}
 
 // Table is the definition of how a table is defined in a provider
 message Table {

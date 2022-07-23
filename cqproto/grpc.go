@@ -45,16 +45,13 @@ func (g GRPCClient) GetProviderSchema(ctx context.Context, _ *GetProviderSchemaR
 }
 
 func (g GRPCClient) GetProviderConfig(ctx context.Context, request *GetProviderConfigRequest) (*GetProviderConfigResponse, error) {
-	res, err := g.client.GetProviderConfig(ctx, &internal.GetProviderConfig_Request{
-		Format: internal.ConfigFormat_YAML,
-	})
+	res, err := g.client.GetProviderConfig(ctx, &internal.GetProviderConfig_Request{})
 	if err != nil {
 		return nil, err
 	}
 
 	return &GetProviderConfigResponse{
 		Config: res.GetConfig(),
-		Format: internal.ConfigFormat_YAML,
 	}, nil
 }
 
@@ -66,7 +63,6 @@ func (g GRPCClient) ConfigureProvider(ctx context.Context, request *ConfigurePro
 			Dsn:  request.Connection.DSN,
 		},
 		Config: request.Config,
-		Format: internal.ConfigFormat_YAML,
 	})
 	if err != nil {
 		return nil, err
@@ -115,21 +111,6 @@ func (g GRPCFetchResponseStream) Recv() (*FetchResourcesResponse, error) {
 		}
 	}
 	return fr, nil
-}
-
-func (g GRPCClient) GetModuleInfo(ctx context.Context, request *GetModuleRequest) (*GetModuleResponse, error) {
-	res, err := g.client.GetModuleInfo(ctx, &internal.GetModuleInfo_Request{
-		Module:            request.Module,
-		PreferredVersions: request.PreferredVersions,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &GetModuleResponse{
-		Data:              moduleInfoFromProto(res.Data),
-		AvailableVersions: res.AvailableVersions,
-		Diagnostics:       diagnosticsFromProto("", res.Diagnostics),
-	}, nil
 }
 
 func (g *GRPCServer) GetProviderSchema(ctx context.Context, _ *internal.GetProviderSchema_Request) (*internal.GetProviderSchema_Response, error) {
@@ -208,25 +189,6 @@ func (g GRPCFetchResourcesServer) Send(response *FetchResourcesResponse) error {
 			Diagnostics:   diagnosticsToProto(response.Summary.Diagnostics),
 		},
 	})
-}
-
-func (g *GRPCServer) GetModuleInfo(ctx context.Context, request *internal.GetModuleInfo_Request) (*internal.GetModuleInfo_Response, error) {
-	resp, err := g.Impl.GetModuleInfo(ctx, &GetModuleRequest{
-		Module:            request.Module,
-		PreferredVersions: request.PreferredVersions,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if resp == nil {
-		return &internal.GetModuleInfo_Response{}, nil
-	}
-
-	return &internal.GetModuleInfo_Response{
-		Data:              moduleInfoToProto(resp.Data),
-		AvailableVersions: resp.AvailableVersions,
-		Diagnostics:       diagnosticsToProto(resp.Diagnostics),
-	}, nil
 }
 
 func tablesFromProto(in map[string]*internal.Table) map[string]*schema.Table {
@@ -428,38 +390,4 @@ func diagnosticsFromProto(resourceName string, in []*internal.Diagnostic) diag.D
 		diagnostics[i] = pdiag
 	}
 	return diagnostics
-}
-
-func moduleInfoFromProto(in map[uint32]*internal.GetModuleInfo_Response_ModuleInfo) map[uint32]ModuleInfo {
-	ret := make(map[uint32]ModuleInfo, len(in))
-	for ver := range in {
-		v := ModuleInfo{
-			Extras: in[ver].Extras,
-		}
-		for _, f := range in[ver].Files {
-			v.Files = append(v.Files, &ModuleFile{
-				Name:     f.GetName(),
-				Contents: f.GetContents(),
-			})
-		}
-		ret[ver] = v
-	}
-	return ret
-}
-
-func moduleInfoToProto(in map[uint32]ModuleInfo) map[uint32]*internal.GetModuleInfo_Response_ModuleInfo {
-	ret := make(map[uint32]*internal.GetModuleInfo_Response_ModuleInfo, len(in))
-	for ver, info := range in {
-		v := &internal.GetModuleInfo_Response_ModuleInfo{
-			Extras: in[ver].Extras,
-		}
-		for j := range info.Files {
-			v.Files = append(v.Files, &internal.GetModuleInfo_Response_ModuleInfo_ModuleFile{
-				Name:     in[ver].Files[j].Name,
-				Contents: in[ver].Files[j].Contents,
-			})
-		}
-		ret[ver] = v
-	}
-	return ret
 }
