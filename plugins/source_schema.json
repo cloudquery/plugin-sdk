@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cloudquery.io/product.schema.json",
+  "title": "Source",
+  "description": "Generic Source Configuration Schema",
+  "type": "object",
+  "properties": {
+    "max_goroutines": {
+      "description": "Max GoRoutines to use",
+      "type": "integer"
+    },
+    "tables": {
+      "description": "Tables to fetch",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": ["tables"]
+}

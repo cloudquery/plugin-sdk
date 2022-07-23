@@ -1,10 +1,9 @@
 package limit
 
 import (
-	"errors"
+	"fmt"
 	"math"
 
-	"github.com/cloudquery/cq-provider-sdk/provider/diag"
 	"github.com/pbnjay/memory"
 )
 
@@ -36,25 +35,25 @@ func GetMaxGoRoutines() uint64 {
 
 // DiagnoseLimits verifies if user should increase ulimit or max file descriptors to improve number of expected
 // goroutines in CQ to improve performance
-func DiagnoseLimits() (diags diag.Diagnostics) {
+func DiagnoseLimits() error {
 	// the amount of goroutines we want based on machine memory
 	want := calculateGoRoutines(getMemory())
 	// calculate file descriptor limit
 	fds, err := calculateFileLimit()
-	if err == nil && fds < want {
-		diags = diags.Add(diag.NewBaseError(errors.New("available file descriptors capacity lower than expected"),
-			diag.USER,
-			diag.WithSeverity(diag.WARNING),
-			diag.WithDetails("available descriptor capacity is %d want %d to run optimally, consider increasing max file descriptors on machine.", fds, want)))
+	if err != nil {
+		return err
+	}
+	if fds < want {
+		fmt.Printf("available descriptor capacity is %d want %d to run optimally, consider increasing max file descriptors on machine.", fds, want)
 	}
 	ulimit, err := GetUlimit()
-	if err == nil && ulimit.Cur < want {
-		diags = diags.Add(diag.NewBaseError(errors.New("ulimit available for CloudQuery process lower than expected"),
-			diag.USER,
-			diag.WithSeverity(diag.WARNING),
-			diag.WithDetails("set ulimit capacity is %d want %d to run optimally, consider increasing ulimit on this machine.", ulimit.Cur, want)))
+	if err != nil {
+		return err
 	}
-	return diags
+	if ulimit.Cur < want {
+		fmt.Printf("set ulimit capacity is %d want %d to run optimally, consider increasing ulimit on this machine.", ulimit.Cur, want)
+	}
+	return err
 }
 
 func getMemory() uint64 {

@@ -1,0 +1,37 @@
+syntax = "proto3";
+package proto;
+option go_package = "/pb";
+// import "/internal/pb/base.proto";
+import "internal/pb/base.proto";
+
+service Source {
+  // Get all tables the source plugin supports
+  rpc GetTables(GetTables.Request) returns (GetTables.Response);
+  // Get an example configuration for the source plugin
+  rpc GetExampleConfig(GetExampleConfig.Request) returns (GetExampleConfig.Response);
+  // Configure the source plugin with the given spec
+  rpc Configure(Configure.Request) returns (Configure.Response);
+  // Fetch resources
+  rpc Fetch(Fetch.Request) returns (stream Fetch.Response);
+}
+
+message Fetch {
+  message Request {
+  }
+  message Response {
+    // marshalled *schema.Resources
+    bytes resource = 1;
+  }
+}
+
+
+message GetTables {
+  message Request {}
+  message Response {
+    string name = 1;
+    string version = 2;
+    // Marshalled []*schema.Table
+    bytes tables = 3;
+  }
+}
+
