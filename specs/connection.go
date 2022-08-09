@@ -1,4 +1,4 @@
-package spec
+package specs
 
 type ConnectionSpec struct {
 	Source      string `yaml:"source"`

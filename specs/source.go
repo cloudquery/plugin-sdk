@@ -1,4 +1,4 @@
-package spec
+package specs
 
 import (
 	"strings"

@@ -6,7 +6,7 @@ import (
 	"github.com/cloudquery/cq-plugin-sdk/internal/pb"
 	"github.com/cloudquery/cq-plugin-sdk/plugins"
 	"github.com/cloudquery/cq-plugin-sdk/schema"
-	"github.com/cloudquery/cq-plugin-sdk/spec"
+	"github.com/cloudquery/cq-plugin-sdk/specs"
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"
 	"gopkg.in/yaml.v3"
@@ -35,7 +35,7 @@ func (s *SourceServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Re
 }
 
 func (s *SourceServer) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.Configure_Response, error) {
-	var spec spec.SourceSpec
+	var spec specs.SourceSpec
 	if err := yaml.Unmarshal(req.Config, &spec); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal config")
 	}
@@ -67,9 +67,11 @@ func (s *SourceServer) Fetch(req *pb.Fetch_Request, stream pb.Source_FetchServer
 		if err != nil {
 			return errors.Wrap(err, "failed to marshal resource")
 		}
-		stream.Send(&pb.Fetch_Response{
+		if err := stream.Send(&pb.Fetch_Response{
 			Resource: b,
-		})
+		}); err != nil {
+			return errors.Wrap(err, "failed to send resource")
+		}
 	}
 	if fetchErr != nil {
 		return fetchErr

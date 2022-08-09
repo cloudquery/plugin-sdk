@@ -1,6 +1,7 @@
+#### Summary
+
 <!-- 🎉 Thank you for making CloudQuery awesome by submitting a PR 🎉 -->
 
-#### Summary
 
 <!--
 Explain what problem this PR addresses

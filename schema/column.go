@@ -6,7 +6,6 @@ import (
 	"net"
 	"reflect"
 	"runtime"
-	"sort"
 	"strings"
 	"time"
 
@@ -314,14 +313,14 @@ func (c Column) Meta() *ColumnMeta {
 	}
 }
 
-func (c Column) signature() string {
-	return strings.Join([]string{
-		"c",
-		c.Name,
-		c.Type.String(),
-		fmt.Sprintf("%t;%t", c.CreationOptions.Unique, c.CreationOptions.NotNull),
-	}, "\n")
-}
+// func (c Column) signature() string {
+// 	return strings.Join([]string{
+// 		"c",
+// 		c.Name,
+// 		c.Type.String(),
+// 		fmt.Sprintf("%t;%t", c.CreationOptions.Unique, c.CreationOptions.NotNull),
+// 	}, "\n")
+// }
 
 func SetColumnMeta(c Column, m *ColumnMeta) Column {
 	c.meta = m
@@ -368,18 +367,18 @@ func (c ColumnList) Get(name string) *Column {
 	return nil
 }
 
-func (c ColumnList) signature() string {
-	names := make([]string, len(c))
-	nameVsColumn := make(map[string]*Column, len(c))
-	for i := range c {
-		names[i] = c[i].Name
-		nameVsColumn[c[i].Name] = &c[i]
-	}
-	sort.Strings(names)
+// func (c ColumnList) signature() string {
+// 	names := make([]string, len(c))
+// 	nameVsColumn := make(map[string]*Column, len(c))
+// 	for i := range c {
+// 		names[i] = c[i].Name
+// 		nameVsColumn[c[i].Name] = &c[i]
+// 	}
+// 	sort.Strings(names)
 
-	sigs := make([]string, len(c))
-	for i, colName := range names {
-		sigs[i] = nameVsColumn[colName].signature()
-	}
-	return strings.Join(sigs, "\n")
-}
+// 	sigs := make([]string, len(c))
+// 	for i, colName := range names {
+// 		sigs[i] = nameVsColumn[colName].signature()
+// 	}
+// 	return strings.Join(sigs, "\n")
+// }

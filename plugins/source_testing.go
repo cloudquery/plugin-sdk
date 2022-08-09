@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/cloudquery/cq-plugin-sdk/schema"
-	"github.com/cloudquery/cq-plugin-sdk/spec"
+	"github.com/cloudquery/cq-plugin-sdk/specs"
 	"github.com/cloudquery/faker/v3"
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/xeipuuv/gojsonschema"
@@ -50,11 +50,11 @@ func TestResource(t *testing.T, tc ResourceTestCase) {
 	resources := make(chan *schema.Resource)
 	var fetchErr error
 	var result *gojsonschema.Result
-	var sourceSpec spec.SourceSpec
-	if err := yaml.Unmarshal([]byte(tc.Config), &sourceSpec); err != nil {
+	var spec specs.SourceSpec
+	if err := yaml.Unmarshal([]byte(tc.Config), &spec); err != nil {
 		t.Fatal("failed to unmarshal source spec:", err)
 	}
-	validationResult, err := tc.Plugin.Init(context.Background(), sourceSpec)
+	validationResult, err := tc.Plugin.Init(context.Background(), spec)
 	if err != nil {
 		t.Fatal("failed to init plugin:", err)
 	}
@@ -81,7 +81,6 @@ func TestResource(t *testing.T, tc ResourceTestCase) {
 func validateResource(t *testing.T, resource *schema.Resource) {
 	t.Helper()
 	for _, columnName := range resource.Table.Columns.Names() {
-
 		if resource.Get(columnName) == nil && !resource.Table.Columns.Get(columnName).IgnoreInTests {
 			t.Errorf("table: %s with unset column %s", resource.Table.Name, columnName)
 		}

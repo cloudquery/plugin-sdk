@@ -6,16 +6,16 @@ import (
 	"sync"
 	"time"
 
-	_ "embed"
-
 	"github.com/cloudquery/cq-plugin-sdk/helpers"
 	"github.com/cloudquery/cq-plugin-sdk/helpers/limit"
 	"github.com/cloudquery/cq-plugin-sdk/schema"
-	"github.com/cloudquery/cq-plugin-sdk/spec"
+	"github.com/cloudquery/cq-plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
 	"github.com/xeipuuv/gojsonschema"
 	"golang.org/x/sync/semaphore"
+
+	_ "embed"
 )
 
 //go:embed source_schema.json
@@ -38,7 +38,7 @@ type SourcePlugin struct {
 	// Version of the plugin
 	Version string
 	// Called upon configure call to validate and init configuration
-	Configure func(context.Context, *SourcePlugin, spec.SourceSpec) (schema.ClientMeta, error)
+	Configure func(context.Context, *SourcePlugin, specs.SourceSpec) (schema.ClientMeta, error)
 	// Tables is all tables supported by this source plugin
 	Tables []*schema.Table
 	// JsonSchema for specific source plugin spec
@@ -50,11 +50,11 @@ type SourcePlugin struct {
 
 	// Internal fields set by configure
 	clientMeta schema.ClientMeta
-	spec       *spec.SourceSpec
+	spec       *specs.SourceSpec
 }
 
-func (p *SourcePlugin) Init(ctx context.Context, s spec.SourceSpec) (*gojsonschema.Result, error) {
-	res, err := spec.ValidateSpec(sourceSchema, s)
+func (p *SourcePlugin) Init(ctx context.Context, spec specs.SourceSpec) (*gojsonschema.Result, error) {
+	res, err := specs.ValidateSpec(sourceSchema, spec)
 	if err != nil {
 		return nil, err
 	}
@@ -64,15 +64,15 @@ func (p *SourcePlugin) Init(ctx context.Context, s spec.SourceSpec) (*gojsonsche
 	if p.Configure == nil {
 		return nil, fmt.Errorf("configure function not defined")
 	}
-	p.clientMeta, err = p.Configure(ctx, p, s)
+	p.clientMeta, err = p.Configure(ctx, p, spec)
 	if err != nil {
 		return res, fmt.Errorf("failed to configure source plugin: %w", err)
 	}
-	p.spec = &s
+	p.spec = &spec
 	return res, nil
 }
 
-// Fetch fetches data acording to source configuration and
+// Fetch fetches data according to source configuration and
 func (p *SourcePlugin) Fetch(ctx context.Context, res chan<- *schema.Resource) error {
 	if p.spec == nil {
 		return fmt.Errorf("source plugin not initialized")
@@ -89,7 +89,7 @@ func (p *SourcePlugin) Fetch(ctx context.Context, res chan<- *schema.Resource) e
 		maxGoroutines = limit.GetMaxGoRoutines()
 	}
 	p.Logger.Info().Uint64("max_goroutines", maxGoroutines).Msg("starting fetch")
-	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(uint64(maxGoroutines)))
+	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
 
 	w := sync.WaitGroup{}
 	for _, table := range p.Tables {

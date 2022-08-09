@@ -7,7 +7,7 @@ import (
 	"github.com/cloudquery/cq-plugin-sdk/internal/pb"
 	"github.com/cloudquery/cq-plugin-sdk/plugins"
 	"github.com/cloudquery/cq-plugin-sdk/schema"
-	"github.com/cloudquery/cq-plugin-sdk/spec"
+	"github.com/cloudquery/cq-plugin-sdk/specs"
 	"github.com/vmihailenco/msgpack/v5"
 	"google.golang.org/grpc"
 	"gopkg.in/yaml.v3"
@@ -31,11 +31,11 @@ func NewLocalDestinationClient(p plugins.DestinationPlugin) *DestinationClient {
 	}
 }
 
-func (c *DestinationClient) Configure(ctx context.Context, spec spec.DestinationSpec) error {
+func (c *DestinationClient) Configure(ctx context.Context, s specs.DestinationSpec) error {
 	if c.localClient != nil {
-		return c.localClient.Configure(ctx, spec)
+		return c.localClient.Configure(ctx, s)
 	}
-	b, err := yaml.Marshal(spec)
+	b, err := yaml.Marshal(s)
 	if err != nil {
 		return fmt.Errorf("failed to marshal spec: %w", err)
 	}
@@ -53,7 +53,7 @@ func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error
 	if err != nil {
 		return "", err
 	}
-	return string(res.Config), nil
+	return res.Config, nil
 }
 
 func (c *DestinationClient) Save(ctx context.Context, msg *FetchResultMessage) error {

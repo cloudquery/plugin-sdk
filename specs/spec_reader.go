@@ -1,4 +1,4 @@
-package spec
+package specs
 
 import (
 	"fmt"
@@ -80,7 +80,7 @@ func (s *SpecReader) GetConnectionByName(name string) ConnectionSpec {
 }
 
 func (s *SpecReader) Connections() []ConnectionSpec {
-	var connections []ConnectionSpec
+	connections := make([]ConnectionSpec, 0, len(s.connections))
 	for _, spec := range s.connections {
 		connections = append(connections, spec)
 	}

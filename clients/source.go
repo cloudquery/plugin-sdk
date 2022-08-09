@@ -11,7 +11,7 @@ import (
 
 	"github.com/cloudquery/cq-plugin-sdk/internal/pb"
 	"github.com/cloudquery/cq-plugin-sdk/schema"
-	"github.com/cloudquery/cq-plugin-sdk/spec"
+	"github.com/cloudquery/cq-plugin-sdk/specs"
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xeipuuv/gojsonschema"
@@ -53,8 +53,8 @@ func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 	return tables, nil
 }
 
-func (c *SourceClient) Configure(ctx context.Context, s spec.SourceSpec) (*gojsonschema.Result, error) {
-	b, err := yaml.Marshal(s)
+func (c *SourceClient) Configure(ctx context.Context, spec specs.SourceSpec) (*gojsonschema.Result, error) {
+	b, err := yaml.Marshal(spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal source spec")
 	}
@@ -82,14 +82,14 @@ func (c *SourceClient) GetExampleConfig(ctx context.Context) (string, error) {
 	if err := t.Execute(&tpl, map[string]interface{}{
 		"Name":                res.Name,
 		"Version":             res.Version,
-		"PluginExampleConfig": string(res.Config),
+		"PluginExampleConfig": res.Config,
 	}); err != nil {
 		return "", fmt.Errorf("failed to generate example config: %w", err)
 	}
 	return tpl.String(), nil
 }
 
-func (c *SourceClient) Fetch(ctx context.Context, spec spec.SourceSpec, res chan<- *FetchResultMessage) error {
+func (c *SourceClient) Fetch(ctx context.Context, spec specs.SourceSpec, res chan<- *FetchResultMessage) error {
 	stream, err := c.pbClient.Fetch(ctx, &pb.Fetch_Request{})
 	if err != nil {
 		return fmt.Errorf("failed to fetch resources: %w", err)

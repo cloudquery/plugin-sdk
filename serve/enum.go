@@ -40,6 +40,6 @@ func (a *enum) Set(p string) error {
 	return nil
 }
 
-func (a *enum) Type() string {
+func (*enum) Type() string {
 	return "string"
 }
