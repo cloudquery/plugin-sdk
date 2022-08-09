@@ -1,0 +1,24 @@
+syntax = "proto3";
+package proto;
+option go_package = "/pb";
+
+message GetExampleConfig {
+  message Request {}
+  message Response {
+    string name = 1;
+    string version = 2;
+    string config = 3;
+  }
+}
+
+message Configure {
+  message Request {
+    // Holds information such as credentials, regions, accounts, etc'
+    // Marshalled spec.SourceSpec or spec.DestinationSpec
+    bytes config = 1;
+  }
+  message Response {
+    string error = 1;
+    bytes jsonschema_result = 2;
+  }
+}

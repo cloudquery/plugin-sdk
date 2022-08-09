@@ -1,131 +1,106 @@
 package serve
 
 import (
-	"context"
 	"fmt"
-	"log"
+	"net"
 	"os"
+	"strings"
 
-	"github.com/cloudquery/cq-provider-sdk/cqproto"
-	"github.com/cloudquery/cq-provider-sdk/provider"
-	"github.com/cloudquery/cq-provider-sdk/stats"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-plugin"
+	"github.com/cloudquery/cq-provider-sdk/internal/pb"
+	"github.com/cloudquery/cq-provider-sdk/internal/servers"
+	"github.com/cloudquery/cq-provider-sdk/plugins"
+	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
+	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 )
 
-var Handshake = plugin.HandshakeConfig{
-	MagicCookieKey:   "CQ_PLUGIN_COOKIE",
-	MagicCookieValue: "6753812e-79c2-4af5-ad01-e6083c374e1f",
-}
-
-const pluginExecutionMsg = `This binary is a plugin. These are not meant to be executed directly.
-Please execute the program that consumes these plugins, which will load any plugins automatically.
-Set CQ_PROVIDER_DEBUG=1 to run plugin in debug mode, for additional info see https://docs.cloudquery.io/docs/developers/debugging.
-`
-
 type Options struct {
-	// Required: Name of provider
-	Name string
-
 	// Required: Provider is the actual provider that will be served.
-	Provider cqproto.CQProviderServer
-
-	// Optional: Logger is the logger that go-plugin will use.
-	Logger hclog.Logger
-
-	// Optional: Set NoLogOutputOverride to not override the log output with an hclog
-	// adapter. This should only be used when running the plugin in
-	// acceptance tests.
-	NoLogOutputOverride bool
-
-	// TestConfig should only be set when the provider is being tested; it
-	// will opt out of go-plugin's lifecycle management and other features,
-	// and will use the supplied configuration options to control the
-	// plugin's lifecycle and communicate connection information. See the
-	// go-plugin GoDoc for more information.
-	TestConfig *plugin.ServeTestConfig
+	SourcePlugin      *plugins.SourcePlugin
+	DestinationPlugin plugins.DestinationPlugin
 }
 
-func Serve(opts *Options) {
-	defer stats.Flush()
+const (
+	serveShort = `Start plugin server`
+)
 
-	if opts.Name == "" {
-		panic("missing provider name")
+func newCmdServe(opts Options) *cobra.Command {
+	var address string
+	var network string
+	logLevel := newEnum([]string{"trace", "debug", "info", "warn", "error"}, "info")
+	logFormat := newEnum([]string{"text", "json"}, "text")
+	cmd := &cobra.Command{
+		Use:   "serve",
+		Short: serveShort,
+		Long:  serveShort,
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			zerologLevel, err := zerolog.ParseLevel(logLevel.String())
+			if err != nil {
+				return err
+			}
+			var logger zerolog.Logger
+			if logFormat.String() == "json" {
+				logger = zerolog.New(os.Stderr).Level(zerologLevel)
+			} else {
+				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Level(zerologLevel)
+			}
+			// opts.Plugin.Logger = logger
+			listener, err := net.Listen(network, address)
+			if err != nil {
+				return fmt.Errorf("failed to listen: %w", err)
+			}
+			// See logging pattern https://github.com/grpc-ecosystem/go-grpc-middleware/blob/v2/providers/zerolog/examples_test.go
+			s := grpc.NewServer(
+				middleware.WithUnaryServerChain(
+					logging.UnaryServerInterceptor(grpczerolog.InterceptorLogger(logger)),
+				),
+				middleware.WithStreamServerChain(
+					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
+				),
+				// grpc.ChainStreamInterceptor(grpc_zero),
+				// grpc.ChainUnaryInterceptor(),
+			)
+
+			if opts.SourcePlugin != nil {
+				opts.SourcePlugin.Logger = logger
+				pb.RegisterSourceServer(s, &servers.SourceServer{Plugin: opts.SourcePlugin})
+			}
+			if opts.DestinationPlugin != nil {
+				opts.SourcePlugin.Logger = logger
+				pb.RegisterDestinationServer(s, &servers.DestinationServer{Plugin: opts.DestinationPlugin})
+			}
+
+			logger.Info().Str("address", listener.Addr().String()).Msg("server listening")
+			if err := s.Serve(listener); err != nil {
+				return fmt.Errorf("failed to serve: %w", err)
+			}
+			return nil
+		},
 	}
-
-	if opts.Provider == nil {
-		panic("missing provider instance")
-	}
-
-	if p, ok := opts.Provider.(*provider.Provider); ok {
-		// If provider didn't set a logger we will set it
-		if p.Logger == nil {
-			p.Logger = hclog.New(&hclog.LoggerOptions{
-				// We send all output to CloudQuery. Go-plugin will take the output and
-				// pass it through another hclog.Logger on the client side where it can
-				// be filtered.
-				Level:      hclog.Debug,
-				JSONFormat: true,
-				Name:       opts.Name,
-			})
-		}
-		// finally set opts logger to the provider's logger
-		if opts.Logger == nil {
-			opts.Logger = p.Logger
-		}
-	}
-
-	// Check of CQ_PROVIDER_DEBUG is turned on. In case it's true the plugin is executed in debug mode, allowing for
-	// the CloudQuery main command to connect to this plugin via the .cq_reattach and the CQ_REATTACH_PROVIDERS env var
-	if provider.IsDebug() {
-		// If this flag is turned on the provider will print trace log, the trace log prints values inserted etc', turn this
-		// flag only if you are debugging locally and need more info on the provider while running it.
-		if os.Getenv("CQ_PROVIDER_DEBUG_TRACE_LOG") == "1" {
-			opts.Logger.SetLevel(hclog.Trace)
-		}
-		if err := Debug(context.Background(), opts.Name, opts); err != nil {
-			panic(fmt.Errorf("failed to run debug: %w", err))
-		}
-		return
-	}
-
-	// If not logger was set by provider create a new logger
-	if opts.Logger == nil {
-		opts.Logger = hclog.New(&hclog.LoggerOptions{
-			Level:      hclog.Debug,
-			JSONFormat: true,
-		})
-	}
-
-	stats.Start(context.Background(), opts.Logger)
-	serve(opts)
+	cmd.Flags().StringVar(&address, "address", "localhost:7777", "address to serve on. can be tcp: `localhost:7777` or unix socket: `/tmp/plugin.rpc.sock`")
+	cmd.Flags().StringVar(&network, "network", "tcp", `the network must be "tcp", "tcp4", "tcp6", "unix" or "unixpacket"`)
+	cmd.Flags().Var(logLevel, "log-level", fmt.Sprintf("log level. one of: %s", strings.Join(logLevel.Allowed, ",")))
+	cmd.Flags().Var(logFormat, "log-format", fmt.Sprintf("log format. one of: %s", strings.Join(logFormat.Allowed, ",")))
+	return cmd
 }
 
-func serve(opts *Options) {
-	if !opts.NoLogOutputOverride {
-		// In order to allow go-plugin to correctly pass log-levels through to
-		// cloudquery, we need to use an hclog.Logger with JSON output. We can
-		// inject this into the std `log` package here, so existing providers will
-		// make use of it automatically.
-		log.SetOutput(opts.Logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}))
+func newCmdRoot(opts Options) *cobra.Command {
+	cmd := &cobra.Command{
+		Use: "plugin <command>",
 	}
+	cmd.AddCommand(newCmdServe(opts))
+	cmd.AddCommand(newCmdDoc(opts))
+	return cmd
+}
 
-	if opts.TestConfig == nil && os.Getenv(Handshake.MagicCookieKey) != Handshake.MagicCookieValue {
-		fmt.Print(pluginExecutionMsg)
+func Serve(opts Options) {
+	if err := newCmdRoot(opts).Execute(); err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: Handshake,
-		VersionedPlugins: map[int]plugin.PluginSet{
-			cqproto.V5: {
-				"provider": &cqproto.CQPlugin{Impl: opts.Provider},
-			},
-		},
-		GRPCServer: func(opts []grpc.ServerOption) *grpc.Server {
-			return grpc.NewServer(opts...)
-		},
-		Logger: opts.Logger,
-		Test:   opts.TestConfig,
-	})
 }
