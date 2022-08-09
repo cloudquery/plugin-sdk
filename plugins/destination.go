@@ -3,8 +3,8 @@ package plugins
 import (
 	"context"
 
-	"github.com/cloudquery/cq-provider-sdk/schema"
-	"github.com/cloudquery/cq-provider-sdk/spec"
+	"github.com/cloudquery/cq-plugin-sdk/schema"
+	"github.com/cloudquery/cq-plugin-sdk/spec"
 	"github.com/rs/zerolog"
 )
 

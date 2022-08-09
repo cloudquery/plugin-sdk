@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cloudquery/cq-provider-sdk/internal/pb"
-	"github.com/cloudquery/cq-provider-sdk/internal/servers"
-	"github.com/cloudquery/cq-provider-sdk/plugins"
+	"github.com/cloudquery/cq-plugin-sdk/internal/pb"
+	"github.com/cloudquery/cq-plugin-sdk/internal/servers"
+	"github.com/cloudquery/cq-plugin-sdk/plugins"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"

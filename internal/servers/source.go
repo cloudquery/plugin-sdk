@@ -3,10 +3,10 @@ package servers
 import (
 	"context"
 
-	"github.com/cloudquery/cq-provider-sdk/internal/pb"
-	"github.com/cloudquery/cq-provider-sdk/plugins"
-	"github.com/cloudquery/cq-provider-sdk/schema"
-	"github.com/cloudquery/cq-provider-sdk/spec"
+	"github.com/cloudquery/cq-plugin-sdk/internal/pb"
+	"github.com/cloudquery/cq-plugin-sdk/plugins"
+	"github.com/cloudquery/cq-plugin-sdk/schema"
+	"github.com/cloudquery/cq-plugin-sdk/spec"
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"
 	"gopkg.in/yaml.v3"

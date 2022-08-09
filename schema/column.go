@@ -307,8 +307,8 @@ func (c Column) Meta() *ColumnMeta {
 	fnName := runtime.FuncForPC(reflect.ValueOf(c.Resolver).Pointer()).Name()
 	return &ColumnMeta{
 		Resolver: &ResolverMeta{
-			Name:    strings.TrimPrefix(fnName, "github.com/cloudquery/cq-provider-sdk/provider/"),
-			Builtin: strings.HasPrefix(fnName, "github.com/cloudquery/cq-provider-sdk/"),
+			Name:    strings.TrimPrefix(fnName, "github.com/cloudquery/cq-plugin-sdk/provider/"),
+			Builtin: strings.HasPrefix(fnName, "github.com/cloudquery/cq-plugin-sdk/"),
 		},
 		IgnoreExists: false,
 	}

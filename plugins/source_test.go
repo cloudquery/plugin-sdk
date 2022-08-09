@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cloudquery/cq-provider-sdk/schema"
+	"github.com/cloudquery/cq-plugin-sdk/schema"
 	"github.com/rs/zerolog"
 	"github.com/xeipuuv/gojsonschema"
 )

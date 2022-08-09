@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/cloudquery/cq-provider-sdk/schema"
-	"github.com/cloudquery/cq-provider-sdk/spec"
+	"github.com/cloudquery/cq-plugin-sdk/schema"
+	"github.com/cloudquery/cq-plugin-sdk/spec"
 	"github.com/cloudquery/faker/v3"
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/xeipuuv/gojsonschema"

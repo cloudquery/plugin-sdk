@@ -8,10 +8,10 @@ import (
 
 	_ "embed"
 
-	"github.com/cloudquery/cq-provider-sdk/helpers"
-	"github.com/cloudquery/cq-provider-sdk/helpers/limit"
-	"github.com/cloudquery/cq-provider-sdk/schema"
-	"github.com/cloudquery/cq-provider-sdk/spec"
+	"github.com/cloudquery/cq-plugin-sdk/helpers"
+	"github.com/cloudquery/cq-plugin-sdk/helpers/limit"
+	"github.com/cloudquery/cq-plugin-sdk/schema"
+	"github.com/cloudquery/cq-plugin-sdk/spec"
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
 	"github.com/xeipuuv/gojsonschema"
