@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cloudquery/cq-plugin-sdk/internal/pb"
-	"github.com/cloudquery/cq-plugin-sdk/internal/servers"
-	"github.com/cloudquery/cq-plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/internal/pb"
+	"github.com/cloudquery/plugin-sdk/internal/servers"
+	"github.com/cloudquery/plugin-sdk/plugins"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -19,7 +19,7 @@ import (
 )
 
 type Options struct {
-	// Required: Provider is the actual provider that will be served.
+	// Required: Source or destination plugin to serve.
 	SourcePlugin      *plugins.SourcePlugin
 	DestinationPlugin plugins.DestinationPlugin
 }

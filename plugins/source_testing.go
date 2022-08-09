@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/cloudquery/cq-plugin-sdk/schema"
-	"github.com/cloudquery/cq-plugin-sdk/specs"
 	"github.com/cloudquery/faker/v3"
+	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/xeipuuv/gojsonschema"
 	"gopkg.in/yaml.v3"

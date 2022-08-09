@@ -13,9 +13,8 @@ The following is a set of guidelines for contributing to this repository.
 [I don't want to read this whole thing, I just have a question!!!](#i-dont-want-to-read-this-whole-thing-i-just-have-a-question)
 
 [What should I know before I get started?](#what-should-i-know-before-i-get-started)
-  * [Core](#cq-core-repo)
-  * [SDK](#cq-provider-sdk-repo)
-  * [Provider](#cq-provider-repos)
+  * [CLI and Plugins](#cq-core-repo)
+  * [SDK](#cloudquery-plugin-sdk-repo)
 
 [How Can I Contribute?](#how-can-i-contribute)
   * [Reporting Bugs](#reporting-bugs)
@@ -37,39 +36,41 @@ This project and everyone participating in it is governed by the [CloudQuery Cod
 
 ### CloudQuery Architecture
 
-CloudQuery has a pluggable architecture and is using the go-plugin to load, run, and communicate between providers via gRPC. To develop a new provider for CloudQuery, you don’t need to understand the inner workings of go-plugin as those are abstracted away via the [provider-sdk](#cq-provider-sdk-repo).
+CloudQuery has a pluggable architecture and is using grpc (go-grpc) to communicate between source plugins, cli and destination plugins. To develop a new plugin for CloudQuery, you don’t need to understand the inner workings of grpc as those are abstracted away via the [plugin-sdk](#cloudquery-plugin-sdk-repo).
+
+CloudQuery has a pluggable architecture and is using the go-plugin to load, run, and communicate between plugins via gRPC. T
 
 ![architecture overview](https://docs.cloudquery.io/assets/images/cloudquery-architecture-02b1d1162883cd02510db2cb75c29d27.png)
 
 ### Breakdown of Responsibilities and Repositories
 
-#### CQ Core [Repo](https://github.com/cloudquery/cloudquery):
+#### CQ CLI and Plugins [Mono Repo](https://github.com/cloudquery/cloudquery):
 - Main entry point and CLI for the user
 - Reading CloudQuery configuration
-- Downloading, verifying, and running providers
+- Downloading, verifying, and running plugins
 - Running policy packs
 - Repository for CQ Core can be found 
 
-#### CQ Provider SDK [Repo](https://github.com/cloudquery/cq-plugin-sdk):
+#### CloudQuery Plugin SDK [Repo](https://github.com/cloudquery/plugin-sdk):
 - Interacting with CQ Core for initialization and configuration
 - Helper functions for defining table schemas
 - Methods for testing the resource
-- Framework for running and building a provider locally
+- Framework for running and building a plugin locally
 
-#### CQ Provider [Repos](https://github.com/search?q=org%3Acloudquery+cq-provider-&type=repositories):
+#### CloudQuery Plugins and CLI [Mono Repo](https://github.com/cloudquery/cloudquery):
 - Executed only by CQ-Core via gRPC 
 - Interaction with remote data sources:
     - Initialization of clients
     - Authentication
     - Fetching of configuration information
-- More information about developing your own provider can be found [here](https://docs.cloudquery.io/docs/developers/developing-new-provider)
+- More information about developing your own plugin can be found [here](https://docs.cloudquery.io/docs/developers/developing-new-provider)
 
 
 ## How Can I Contribute?
 
 ### Reporting Bugs
 
-This section guides you through submitting a bug report for the AWS Provider for CloudQuery. Following these guidelines helps maintainers and the community understand your report :pencil:, reproduce the behavior :computer: :cloud:, and find related reports :mag_right:.
+This section guides you through submitting a bug report for the AWS Plugin for CloudQuery. Following these guidelines helps maintainers and the community understand your report :pencil:, reproduce the behavior :computer: :cloud:, and find related reports :mag_right:.
 
 Before creating bug reports, please check [this list](#before-submitting-a-bug-report) as you might find out that you don't need to create one. When you are creating a bug report, please [include as many details as possible](#how-do-i-submit-a-good-bug-report). Fill out [the required template](.github/ISSUE_TEMPLATE/bug_report.md), the information it asks for helps us resolve issues faster.
 
@@ -101,7 +102,7 @@ Include details about your configuration and environment:
 
 ### Suggesting Enhancements
 
-This section guides you through submitting an enhancement suggestion for CloudQuery, including completely new features, minor improvements to existing functionality and new providers. Following these guidelines helps maintainers and the community understand your suggestion :pencil: and find related suggestions :mag_right:.
+This section guides you through submitting an enhancement suggestion for CloudQuery, including completely new features, minor improvements to existing functionality and new plugins. Following these guidelines helps maintainers and the community understand your suggestion :pencil: and find related suggestions :mag_right:.
 
 Before creating enhancement suggestions, please check [this list](#before-submitting-an-enhancement-suggestion) as you might find out that you don't need to create one. When you are creating an enhancement suggestion, please [include as many details as possible](#how-do-i-submit-a-good-enhancement-suggestion). Fill in [the template](.github/ISSUE_TEMPLATE/feature_request.md), including the steps that you imagine you would take if the feature you're requesting existed.
 
@@ -131,10 +132,10 @@ If you don't see any issues that you think you can help with reach out to the co
 #### Local Development
 
 CloudQuery has the ability to be run locally with a corresponding local postgres database. To get it up and running follow the following instructions:
-* [Building and Running the Provider Locally](../docs/index.md)
+* [Building and Running the plugin Locally](../docs/index.md)
 * [Connecting to a database](https://docs.cloudquery.io/docs/getting-started#spawn-or-connect-to-a-database)
-* [Debugging a Provider](https://docs.cloudquery.io/docs/developers/debugging)
-* [Developing a New Provider](https://docs.cloudquery.io/docs/developers/developing-new-provider)
+* [Debugging a plugin](https://docs.cloudquery.io/docs/developers/debugging)
+* [Developing a new plugin](https://docs.cloudquery.io/docs/developers/developing-new-provider)
 
 #### Commit Messages
 

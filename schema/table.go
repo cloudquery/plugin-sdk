@@ -5,7 +5,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/cloudquery/cq-plugin-sdk/helpers"
+	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/iancoleman/strcase"
 	"github.com/thoas/go-funk"
 )

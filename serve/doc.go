@@ -3,7 +3,7 @@ package serve
 import (
 	"fmt"
 
-	"github.com/cloudquery/cq-plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/spf13/cobra"
 )
 

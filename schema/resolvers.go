@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/cloudquery/cq-plugin-sdk/helpers"
+	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/gofrs/uuid"
 	"github.com/spf13/cast"
 	"github.com/thoas/go-funk"
