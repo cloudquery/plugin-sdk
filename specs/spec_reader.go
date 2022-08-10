@@ -61,7 +61,7 @@ func (s *SpecReader) GetSourceByName(name string) SourceSpec {
 	return SourceSpec{}
 }
 
-func (s *SpecReader) GetDestinatinoByName(name string) DestinationSpec {
+func (s *SpecReader) GetDestinationByName(name string) DestinationSpec {
 	for _, spec := range s.destinations {
 		if spec.Name == name {
 			return spec
