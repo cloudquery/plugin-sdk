@@ -10,7 +10,7 @@ type DestinationSpec struct {
 	Spec     yaml.Node `yaml:"spec"`
 }
 
-func (_ *DestinationSpec) Validate() error {
+func (*DestinationSpec) Validate() error {
 	// TODO post process DestinationSpec after unmarshalling here
 	return nil
 }
