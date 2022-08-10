@@ -27,8 +27,6 @@ func (s *Spec) UnmarshalYAML(n *yaml.Node) error {
 		s.Spec = new(SourceSpec)
 	case "destination":
 		s.Spec = new(DestinationSpec)
-	case "connection":
-		s.Spec = new(ConnectionSpec)
 	default:
 		return fmt.Errorf("unknown kind %s", s.Kind)
 	}

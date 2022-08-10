@@ -17,22 +17,8 @@ type SourceSpec struct {
 	MaxGoRoutines uint64   `json:"max_goroutines" yaml:"max_goroutines"`
 	Tables        []string `json:"tables" yaml:"tables"`
 	SkipTables    []string `json:"skip_tables" yaml:"skip_tables"`
+	Destinations  []string `json:"destinations" yaml:"destinations"`
 	// Spec          yaml.Node `json:"spec" yaml:"spec"`
-}
-
-func SetSourceSpecDefault(s *SourceSpec) {
-	if s.Registry == "" {
-		s.Registry = "github"
-	}
-	if s.Path == "" {
-		s.Path = s.Name
-	}
-	if s.Version == "" {
-		s.Version = "latest"
-	}
-	if !strings.Contains(s.Path, "/") {
-		s.Path = "cloudquery/" + s.Path
-	}
 }
 
 func (s *SourceSpec) UnmarshalYAML(n *yaml.Node) error {

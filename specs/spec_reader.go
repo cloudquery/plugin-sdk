@@ -13,14 +13,12 @@ import (
 type SpecReader struct {
 	sources      map[string]SourceSpec
 	destinations map[string]DestinationSpec
-	connections  map[string]ConnectionSpec
 }
 
 func NewSpecReader(directory string) (*SpecReader, error) {
 	reader := SpecReader{
 		sources:      make(map[string]SourceSpec),
 		destinations: make(map[string]DestinationSpec),
-		connections:  make(map[string]ConnectionSpec),
 	}
 	files, err := ioutil.ReadDir(directory)
 	if err != nil {
@@ -42,14 +40,20 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 				reader.sources[file.Name()] = *s.Spec.(*SourceSpec)
 			case "destination":
 				reader.destinations[file.Name()] = *s.Spec.(*DestinationSpec)
-			case "connection":
-				reader.connections[file.Name()] = *s.Spec.(*ConnectionSpec)
 			default:
 				return nil, fmt.Errorf("unknown kind %s", s.Kind)
 			}
 		}
 	}
 	return &reader, nil
+}
+
+func (r *SpecReader) GetSources() []SourceSpec {
+	sources := make([]SourceSpec, 0, len(r.sources))
+	for _, spec := range r.sources {
+		sources = append(sources, spec)
+	}
+	return sources
 }
 
 func (s *SpecReader) GetSourceByName(name string) SourceSpec {
@@ -68,21 +72,4 @@ func (s *SpecReader) GetDestinatinoByName(name string) DestinationSpec {
 		}
 	}
 	return DestinationSpec{}
-}
-
-func (s *SpecReader) GetConnectionByName(name string) ConnectionSpec {
-	for _, spec := range s.connections {
-		if spec.Source == name {
-			return spec
-		}
-	}
-	return ConnectionSpec{}
-}
-
-func (s *SpecReader) Connections() []ConnectionSpec {
-	connections := make([]ConnectionSpec, 0, len(s.connections))
-	for _, spec := range s.connections {
-		connections = append(connections, spec)
-	}
-	return connections
 }
