@@ -11,6 +11,10 @@ type Spec struct {
 	Spec interface{} `yaml:"-"`
 }
 
+type validator interface {
+	Validate() error
+}
+
 func (s *Spec) UnmarshalYAML(n *yaml.Node) error {
 	type S Spec
 	type T struct {
@@ -32,5 +36,12 @@ func (s *Spec) UnmarshalYAML(n *yaml.Node) error {
 	default:
 		return fmt.Errorf("unknown kind %s", s.Kind)
 	}
-	return obj.Spec.Decode(s.Spec)
+	if err := obj.Spec.Decode(s.Spec); err != nil {
+		return err
+	}
+	if v, ok := s.Spec.(validator); !ok {
+		return nil
+	} else {
+		return v.Validate()
+	}
 }

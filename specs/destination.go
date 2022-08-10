@@ -9,3 +9,7 @@ type DestinationSpec struct {
 	Registry string    `yaml:"registry"`
 	Spec     yaml.Node `yaml:"spec"`
 }
+
+func (s *DestinationSpec) Validate() error {
+	return nil
+}
