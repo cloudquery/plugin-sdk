@@ -39,9 +39,9 @@ func (s *Spec) UnmarshalYAML(n *yaml.Node) error {
 	if err := obj.Spec.Decode(s.Spec); err != nil {
 		return err
 	}
-	if v, ok := s.Spec.(validator); !ok {
-		return nil
-	} else {
+	if v, ok := s.Spec.(validator); ok {
 		return v.Validate()
 	}
+
+	return nil
 }

@@ -5,6 +5,7 @@ type ConnectionSpec struct {
 	Destination string `yaml:"destination"`
 }
 
-func (s *ConnectionSpec) Validate() error {
+func (_ *ConnectionSpec) Validate() error {
+	// TODO post process ConnectionSpec after unmarshalling here
 	return nil
 }
