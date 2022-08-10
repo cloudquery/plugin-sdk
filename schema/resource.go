@@ -1,12 +1,9 @@
 package schema
 
 import (
-	"crypto"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
-	"github.com/mitchellh/hashstructure/v2"
 	"github.com/thoas/go-funk"
 )
 
@@ -22,7 +19,7 @@ type Resource struct {
 	// internal fields
 	Table    *Table                 `msgpack:"table"`
 	Data     map[string]interface{} `msgpack:"data"`
-	cqId     uuid.UUID              `msgpack:"cq_id"`
+	cqId     uuid.UUID
 	metadata map[string]interface{}
 	CColumns []string `msgpack:"columns"`
 }
@@ -141,14 +138,14 @@ func (r Resource) GetMeta(key string) (interface{}, bool) {
 	return v, ok
 }
 
-func (r Resource) getColumnByName(column string) *Column {
-	for _, c := range r.Table.Columns {
-		if strings.Compare(column, c.Name) == 0 {
-			return &c
-		}
-	}
-	return nil
-}
+// func (r Resource) getColumnByName(column string) *Column {
+// 	for _, c := range r.Table.Columns {
+// 		if strings.Compare(column, c.Name) == 0 {
+// 			return &c
+// 		}
+// 	}
+// 	return nil
+// }
 
 func (rr Resources) GetIds() []uuid.UUID {
 	rids := make([]uuid.UUID, len(rr))
@@ -171,17 +168,17 @@ func (rr Resources) ColumnNames() []string {
 	return rr[0].CColumns
 }
 
-func hashUUID(objs interface{}) (uuid.UUID, error) {
-	// Use SHA1 because it's fast and is reasonably enough protected against accidental collisions.
-	// There is no scenario here where intentional created collisions could do harm.
-	digester := crypto.SHA1.New()
-	hash, err := hashstructure.Hash(objs, hashstructure.FormatV2, nil)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	if _, err := fmt.Fprint(digester, hash); err != nil {
-		return uuid.Nil, err
-	}
-	data := digester.Sum(nil)
-	return uuid.NewSHA1(uuid.Nil, data), nil
-}
+// func hashUUID(objs interface{}) (uuid.UUID, error) {
+// 	// Use SHA1 because it's fast and is reasonably enough protected against accidental collisions.
+// 	// There is no scenario here where intentional created collisions could do harm.
+// 	digester := crypto.SHA1.New()
+// 	hash, err := hashstructure.Hash(objs, hashstructure.FormatV2, nil)
+// 	if err != nil {
+// 		return uuid.Nil, err
+// 	}
+// 	if _, err := fmt.Fprint(digester, hash); err != nil {
+// 		return uuid.Nil, err
+// 	}
+// 	data := digester.Sum(nil)
+// 	return uuid.NewSHA1(uuid.Nil, data), nil
+// }

@@ -10,6 +10,8 @@ import (
 var expectedSpecs = map[string]interface{}{
 	"aws.cq.yml": SourceSpec{
 		Name:          "aws",
+		Path:          "cloudquery/aws",
+		Registry:      "github",
 		Version:       "1.0.0",
 		MaxGoRoutines: 10,
 	},

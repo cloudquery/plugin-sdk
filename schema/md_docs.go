@@ -9,6 +9,17 @@ import (
 	"strings"
 )
 
+const tableTmpl = `
+# Table: {{.Name}}
+{{ $.Description }}
+## Columns
+| Name          | Typ           | Description  |
+| ------------- | ------------- | -----------  |
+{{- range $column := $.Columns }}
+|{{$column.Name}}|{{$column.Type}}|{{$column.Description|removeLineBreaks}}|
+{{- end }}
+`
+
 // We are taking a similar approach to Cobra command generation for tables
 // https://github.com/spf13/cobra/blob/main/doc/md_docs.go
 // We also use this in our CLI cloudquery/cloudquery
@@ -46,14 +57,3 @@ func generateMarkdownTree(table *Table, dir string) error {
 	}
 	return ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("%s.md", table.Name)), buf.Bytes(), 0644)
 }
-
-const tableTmpl = `
-# Table: {{.Name}}
-{{ $.Description }}
-## Columns
-| Name          | Typ           | Description  |
-| ------------- | ------------- | -----------  |
-{{- range $column := $.Columns }}
-|{{$column.Name}}|{{$column.Type}}|{{$column.Description|removeLineBreaks}}|
-{{- end }}
-`
