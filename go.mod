@@ -11,7 +11,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.2
 	github.com/iancoleman/strcase v0.2.0
 	github.com/lorenzosaino/go-sysctl v0.3.1
-	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/modern-go/reflect2 v1.0.2
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pkg/errors v0.9.1

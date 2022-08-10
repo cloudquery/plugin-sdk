@@ -3,7 +3,6 @@ package schema
 import (
 	"context"
 	"runtime/debug"
-	"strings"
 
 	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/iancoleman/strcase"
@@ -73,9 +72,9 @@ func (t Table) Column(name string) *Column {
 	return nil
 }
 
-func (tco TableCreationOptions) signature() string {
-	return strings.Join(tco.PrimaryKeys, ";")
-}
+// func (tco TableCreationOptions) signature() string {
+// 	return strings.Join(tco.PrimaryKeys, ";")
+// }
 
 func (t Table) TableNames() []string {
 	ret := []string{t.Name}

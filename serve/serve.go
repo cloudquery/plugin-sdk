@@ -45,9 +45,9 @@ func newCmdServe(opts Options) *cobra.Command {
 			}
 			var logger zerolog.Logger
 			if logFormat.String() == "json" {
-				logger = zerolog.New(os.Stderr).Level(zerologLevel)
+				logger = zerolog.New(os.Stdout).Level(zerologLevel)
 			} else {
-				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Level(zerologLevel)
+				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
 			// opts.Plugin.Logger = logger
 			listener, err := net.Listen(network, address)
