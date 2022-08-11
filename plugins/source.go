@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"sync"
 	"time"
@@ -14,21 +15,7 @@ import (
 	"github.com/thoas/go-funk"
 	"github.com/xeipuuv/gojsonschema"
 	"golang.org/x/sync/semaphore"
-
-	_ "embed"
 )
-
-//go:embed source_schema.json
-var sourceSchema string
-
-const ExampleSourceConfig = `
-# max_goroutines to use when fetching. 0 means default and calculated by CloudQuery
-# max_goroutines: 0
-# By default cloudquery will fetch all tables in the source plugin
-# tables: ["*"]
-# skip_tables specify which tables to skip. especially useful when using "*" for tables
-# skip_tables: []
-`
 
 // SourcePlugin is the base structure required to pass to sdk.serve
 // We take a similar/declerative approach to API here similar to Cobra
@@ -52,6 +39,18 @@ type SourcePlugin struct {
 	clientMeta schema.ClientMeta
 	spec       *specs.SourceSpec
 }
+
+const ExampleSourceConfig = `
+# max_goroutines to use when fetching. 0 means default and calculated by CloudQuery
+# max_goroutines: 0
+# By default cloudquery will fetch all tables in the source plugin
+# tables: ["*"]
+# skip_tables specify which tables to skip. especially useful when using "*" for tables
+# skip_tables: []
+`
+
+//go:embed source_schema.json
+var sourceSchema string
 
 func (p *SourcePlugin) Init(ctx context.Context, spec specs.SourceSpec) (*gojsonschema.Result, error) {
 	res, err := specs.ValidateSpec(sourceSchema, spec)
