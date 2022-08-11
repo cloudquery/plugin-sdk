@@ -1,4 +1,3 @@
-# DONT EDIT. This file is synced from https://github.com/cloudquery/.github/.github
 name: release-please
 on:
   push:
@@ -13,11 +12,14 @@ jobs:
         id: release
         with:
           release-type: go
-          package-name: cq-provider-sdk
+          package-name: plugin-sdk
           token: ${{ secrets.GH_CQ_BOT }}
           pull-request-title-pattern: "chore${scope}: Release${component} v${version}"
           bump-minor-pre-major: true
           bump-patch-for-minor-pre-major: true
+          changelog-notes-type: github
+          # TODO: remove after we merge the first release PR
+          last-release-sha: ccf6ff365b6ac27eaf0bb3f7ea0be68a74935fae
       - name: Parse semver string
         if: steps.release.outputs.release_created
         id: semver_parser
