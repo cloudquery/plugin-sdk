@@ -1,7 +1,6 @@
-# DONT EDIT. This file is synced from https://github.com/cloudquery/.github/.github
 run:
   tests: true
-  timeout: 5m
+  timeout: 10m
   skip-dirs:
     - bin
     - docs
@@ -57,7 +56,7 @@ linters-settings:
       - name: exported
         disabled: false
         arguments:
-          - 'disableStutteringCheck'
+          - "disableStutteringCheck"
       - name: unused-parameter
         disabled: true
       - name: confusing-naming
@@ -93,4 +92,3 @@ linters:
     - unparam
     - unused
     - varcheck
-

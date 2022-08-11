@@ -7,6 +7,11 @@ import (
 	"github.com/pbnjay/memory"
 )
 
+type Rlimit struct {
+	Cur uint64
+	Max uint64
+}
+
 const (
 	gbInBytes         int     = 1024 * 1024 * 1024
 	goroutinesPerGB   float64 = 250000
@@ -15,11 +20,6 @@ const (
 	// only use 75% of the available file descriptors, so to leave for other processes file descriptors
 	mfoReducer = 0.75
 )
-
-type Rlimit struct {
-	Cur uint64
-	Max uint64
-}
 
 func GetMaxGoRoutines() uint64 {
 	limit := calculateGoRoutines(getMemory())
