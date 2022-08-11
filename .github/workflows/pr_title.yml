@@ -1,4 +1,3 @@
-# DONT EDIT. This file is synced from https://github.com/cloudquery/.github/.github
 name: "Validate PR title"
 
 on:
