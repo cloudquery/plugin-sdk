@@ -18,8 +18,6 @@ jobs:
           bump-minor-pre-major: true
           bump-patch-for-minor-pre-major: true
           changelog-notes-type: github
-          # TODO: remove after we merge the first release PR
-          last-release-sha: ccf6ff365b6ac27eaf0bb3f7ea0be68a74935fae
       - name: Parse semver string
         if: steps.release.outputs.release_created
         id: semver_parser
