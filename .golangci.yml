@@ -2,8 +2,6 @@ run:
   tests: true
   timeout: 10m
   skip-dirs:
-    - bin
-    - docs
     - internal/pb
 
 linters-settings:
