@@ -4,32 +4,33 @@ option go_package = "/pb";
 import "internal/pb/base.proto";
 
 service Destination {
-  rpc Configure(Configure.Request) returns (Configure.Response);
   // Get an example configuration for the source plugin
   rpc GetExampleConfig(GetExampleConfig.Request) returns (GetExampleConfig.Response);
-  // Save resources
-  rpc Save(stream Save.Request) returns (Save.Response);
-  // Create tables
-  rpc CreateTables(CreateTables.Request) returns (CreateTables.Response);
+  // Configure the destination plugin with the given credentials and mode
+  rpc Configure(Configure.Request) returns (Configure.Response);
+  // Migrate tables to the given source plugin version
+  rpc Migrate(Migrate.Request) returns (Migrate.Response);
+  // Write resources
+  rpc Write(stream Write.Request) returns (Write.Response);
 }
 
 
-message CreateTables {
+message Migrate {
   message Request {
-    // marshalled []*schema.Table
-    bytes tables = 1;
+    // marshalled sourcePlugin
+    bytes source_plugin = 1;
   }
   message Response {
   }
 }
 
-message Save {
+message Write {
   message Request {
     // marshalled *schema.Resources
     bytes resource = 1;
   }
   message Response {
-    // marshalled goschemajson.Result
+    // error
     string error = 1;
   }
 }

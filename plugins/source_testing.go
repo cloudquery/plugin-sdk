@@ -54,7 +54,7 @@ func TestResource(t *testing.T, tc ResourceTestCase) {
 	if err := yaml.Unmarshal([]byte(tc.Config), &spec); err != nil {
 		t.Fatal("failed to unmarshal source spec:", err)
 	}
-	validationResult, err := tc.Plugin.Init(context.Background(), spec)
+	validationResult, err := tc.Plugin.Configure(context.Background(), spec)
 	if err != nil {
 		t.Fatal("failed to init plugin:", err)
 	}

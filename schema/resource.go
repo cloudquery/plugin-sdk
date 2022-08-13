@@ -4,10 +4,17 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/thoas/go-funk"
+	// "github.com/segmentio/objconv/json"
 )
 
 type Resources []*Resource
+
+// this is sent back to the cli "over the wire" and we want to keep this as small as possible and have specific marshal/unmarshal
+// for this struct
+type WireResource struct {
+	Data      []interface{} `json:"data"`
+	TableName string        `json:"table_name"`
+}
 
 // Resource represents a row in it's associated table, it carries a reference to the original item, and automatically
 // generates an Id based on Table's Columns. Resource data can be accessed by the Get and Set methods
@@ -15,24 +22,21 @@ type Resource struct {
 	// Original resource item that wa from prior resolve
 	Item interface{}
 	// Set if this is an embedded table
-	Parent *Resource `msgpack:"parent"`
+	Parent *Resource
 	// internal fields
-	Table    *Table                 `msgpack:"table"`
-	Data     map[string]interface{} `msgpack:"data"`
-	cqId     uuid.UUID
-	metadata map[string]interface{}
-	CColumns []string `msgpack:"columns"`
+	Table *Table
+	// This is sorted result data by column name
+	Data []interface{}
+	cqId uuid.UUID
 }
 
 func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 	return &Resource{
-		Item:     item,
-		Parent:   parent,
-		Table:    t,
-		Data:     make(map[string]interface{}),
-		cqId:     uuid.New(),
-		CColumns: t.Columns.Names(),
-		// metadata: metadata,
+		Item:   item,
+		Parent: parent,
+		Table:  t,
+		Data:   make([]interface{}, len(t.Columns)),
+		cqId:   uuid.New(),
 	}
 }
 
@@ -64,15 +68,20 @@ func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 // }
 
 func (r *Resource) Get(key string) interface{} {
-	return r.Data[key]
+	i := r.Table.ColumnIndex(key)
+	if i == -1 {
+		return nil
+	}
+	return r.Data[i]
 }
 
 func (r *Resource) Set(key string, value interface{}) error {
-	columnExists := funk.ContainsString(r.CColumns, key)
-	if !columnExists {
+	i := r.Table.ColumnIndex(key)
+	if i == -1 {
 		return fmt.Errorf("column %s does not exist", key)
 	}
-	r.Data[key] = value
+
+	r.Data[i] = value
 	return nil
 }
 
@@ -81,7 +90,7 @@ func (r *Resource) Id() uuid.UUID {
 }
 
 func (r *Resource) Columns() []string {
-	return r.CColumns
+	return r.Table.Columns.Names()
 }
 
 // func (r *Resource) Values() ([]interface{}, error) {
@@ -130,13 +139,13 @@ func (r *Resource) TableName() string {
 	return r.Table.Name
 }
 
-func (r Resource) GetMeta(key string) (interface{}, bool) {
-	if r.metadata == nil {
-		return nil, false
-	}
-	v, ok := r.metadata[key]
-	return v, ok
-}
+// func (r Resource) GetMeta(key string) (interface{}, bool) {
+// 	if r.metadata == nil {
+// 		return nil, false
+// 	}
+// 	v, ok := r.metadata[key]
+// 	return v, ok
+// }
 
 // func (r Resource) getColumnByName(column string) *Column {
 // 	for _, c := range r.Table.Columns {
@@ -165,7 +174,7 @@ func (rr Resources) ColumnNames() []string {
 	if len(rr) == 0 {
 		return []string{}
 	}
-	return rr[0].CColumns
+	return rr[0].Table.Columns.Names()
 }
 
 // func hashUUID(objs interface{}) (uuid.UUID, error) {

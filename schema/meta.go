@@ -17,6 +17,11 @@ type Meta struct {
 
 const FetchIdMetaKey = "cq_fetch_id"
 
+var CqColumns = []Column{
+	{Name: "cq_id", Type: TypeUUID, Description: "Internal CQ ID of the row", CreationOptions: ColumnCreationOptions{Unique: true}},
+	{Name: "cq_fetch_time", Type: TypeTimestamp, Description: "Internal CQ row of when fetch was started (this will be the same for all rows in a single fetch)"},
+}
+
 var (
 	// cqMeta = Column{
 	// 	Name:        "cq_meta",

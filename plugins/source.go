@@ -30,6 +30,8 @@ const ExampleSourceConfig = `
 # skip_tables: []
 `
 
+type SourceConfigureFunc func(context.Context, *SourcePlugin, specs.SourceSpec) (schema.ClientMeta, error)
+
 // SourcePlugin is the base structure required to pass to sdk.serve
 // We take a similar/declerative approach to API here similar to Cobra
 type SourcePlugin struct {
@@ -37,10 +39,12 @@ type SourcePlugin struct {
 	Name string
 	// Version of the plugin
 	Version string
+	// Classify error and return it's severity and type
+	ClassifyError schema.ClassifyErrorFunc
 	// Called upon configure call to validate and init configuration
-	Configure func(context.Context, *SourcePlugin, specs.SourceSpec) (schema.ClientMeta, error)
+	configure SourceConfigureFunc
 	// Tables is all tables supported by this source plugin
-	Tables []*schema.Table
+	Tables schema.Tables
 	// JsonSchema for specific source plugin spec
 	JsonSchema string
 	// ExampleConfig is the example configuration for this plugin
@@ -51,9 +55,59 @@ type SourcePlugin struct {
 	// Internal fields set by configure
 	clientMeta schema.ClientMeta
 	spec       *specs.SourceSpec
+	m          sync.Mutex
 }
 
-func (p *SourcePlugin) Init(ctx context.Context, spec specs.SourceSpec) (*gojsonschema.Result, error) {
+type SourceOption func(*SourcePlugin)
+
+func WithSourceExampleConfig(exampleConfig string) SourceOption {
+	return func(p *SourcePlugin) {
+		p.ExampleConfig = exampleConfig
+	}
+}
+
+func WithSourceJsonSchema(jsonSchema string) SourceOption {
+	return func(p *SourcePlugin) {
+		p.JsonSchema = jsonSchema
+	}
+}
+
+func WithSourceLogger(logger zerolog.Logger) SourceOption {
+	return func(p *SourcePlugin) {
+		p.Logger = logger
+	}
+}
+
+func WithClassifyError(classifyError schema.ClassifyErrorFunc) SourceOption {
+	return func(p *SourcePlugin) {
+		p.ClassifyError = classifyError
+	}
+}
+
+func NewSourcePlugin(name string, version string, tables []*schema.Table, configure SourceConfigureFunc, opts ...SourceOption) *SourcePlugin {
+	p := SourcePlugin{
+		Name:      name,
+		Version:   version,
+		Tables:    tables,
+		configure: configure,
+	}
+	if configure == nil {
+		panic("configure function not defined for source plugin:" + name)
+	}
+	for _, opt := range opts {
+		opt(&p)
+	}
+	return &p
+}
+
+func (p *SourcePlugin) Configure(ctx context.Context, spec specs.SourceSpec) (*gojsonschema.Result, error) {
+	// we permit only one configure per source plugin for security reasons.
+	// in the grpc layer this will behave similarly and for every new configuration/creds the cli will have to create a new process.
+	p.m.Lock()
+	defer p.m.Unlock()
+	if p.spec != nil {
+		return nil, fmt.Errorf("source plugin %s already configured", p.Name)
+	}
 	res, err := specs.ValidateSpec(sourceSchema, spec)
 	if err != nil {
 		return nil, err
@@ -61,10 +115,14 @@ func (p *SourcePlugin) Init(ctx context.Context, spec specs.SourceSpec) (*gojson
 	if !res.Valid() {
 		return res, nil
 	}
-	if p.Configure == nil {
-		return nil, fmt.Errorf("configure function not defined")
+
+	// if resources ["*"] is requested we will fetch all resources
+	p.spec.Tables, err = p.interpolateAllResources(p.spec.Tables)
+	if err != nil {
+		return res, fmt.Errorf("failed to interpolate resources: %w", err)
 	}
-	p.clientMeta, err = p.Configure(ctx, p, spec)
+
+	p.clientMeta, err = p.configure(ctx, p, spec)
 	if err != nil {
 		return res, fmt.Errorf("failed to configure source plugin: %w", err)
 	}
@@ -75,12 +133,7 @@ func (p *SourcePlugin) Init(ctx context.Context, spec specs.SourceSpec) (*gojson
 // Fetch fetches data according to source configuration and
 func (p *SourcePlugin) Fetch(ctx context.Context, res chan<- *schema.Resource) error {
 	if p.spec == nil {
-		return fmt.Errorf("source plugin not initialized")
-	}
-	// if resources ["*"] is requested we will fetch all resources
-	tables, err := p.interpolateAllResources(p.spec.Tables)
-	if err != nil {
-		return fmt.Errorf("failed to interpolate resources: %w", err)
+		return fmt.Errorf("source plugin not configured")
 	}
 
 	// limiter used to limit the amount of resources fetched concurrently
@@ -92,15 +145,22 @@ func (p *SourcePlugin) Fetch(ctx context.Context, res chan<- *schema.Resource) e
 	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
 
 	w := sync.WaitGroup{}
+	totalResources := 0
+	startTime := time.Now()
+	tableNames := p.Tables.TableNames()
 	for _, table := range p.Tables {
 		table := table
-		if funk.ContainsString(p.spec.SkipTables, table.Name) || !funk.ContainsString(tables, table.Name) {
+		if funk.ContainsString(p.spec.SkipTables, table.Name) || !funk.ContainsString(tableNames, table.Name) {
 			p.Logger.Info().Str("table", table.Name).Msg("skipping table")
 			continue
 		}
 		clients := []schema.ClientMeta{p.clientMeta}
 		if table.Multiplex != nil {
 			clients = table.Multiplex(p.clientMeta)
+		}
+		// because table can't import sourceplugin we need to set classifyError if it is not set by table
+		if table.ClassifyError == nil {
+			table.ClassifyError = p.ClassifyError
 		}
 		// we call this here because we dont know when the following goroutine will be called and we do want an order
 		// of table by table
@@ -113,7 +173,8 @@ func (p *SourcePlugin) Fetch(ctx context.Context, res chan<- *schema.Resource) e
 			defer goroutinesSem.Release(int64(totalClients) - newN)
 			wg := sync.WaitGroup{}
 			p.Logger.Info().Str("table", table.Name).Msg("fetch start")
-			startTime := time.Now()
+			tableStartTime := time.Now()
+			totalTableResources := 0
 			for i, client := range clients {
 				client := client
 				i := i
@@ -131,15 +192,17 @@ func (p *SourcePlugin) Fetch(ctx context.Context, res chan<- *schema.Resource) e
 					if newN > 0 && i >= (totalClients-int(newN)) {
 						defer goroutinesSem.Release(1)
 					}
-					table.Resolve(ctx, client, nil, res)
+
+					totalTableResources += table.Resolve(ctx, client, nil, res)
 				}()
 			}
 			wg.Wait()
-			p.Logger.Info().Str("table", table.Name).TimeDiff("duration", time.Now(), startTime).Msg("fetch finished")
+			totalResources += totalTableResources
+			p.Logger.Info().Str("table", table.Name).Int("total_resources", totalTableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
 		}()
 	}
 	w.Wait()
-
+	p.Logger.Info().Int("total_resources", totalResources).TimeDiff("duration", time.Now(), startTime).Msg("fetch finished")
 	return nil
 }
 

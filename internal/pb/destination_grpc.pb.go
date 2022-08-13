@@ -22,13 +22,14 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DestinationClient interface {
-	Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error)
 	// Get an example configuration for the source plugin
 	GetExampleConfig(ctx context.Context, in *GetExampleConfig_Request, opts ...grpc.CallOption) (*GetExampleConfig_Response, error)
-	// Save resources
-	Save(ctx context.Context, opts ...grpc.CallOption) (Destination_SaveClient, error)
-	// Create tables
-	CreateTables(ctx context.Context, in *CreateTables_Request, opts ...grpc.CallOption) (*CreateTables_Response, error)
+	// Configure the destination plugin with the given credentials and mode
+	Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error)
+	// Migrate tables to the given source plugin version
+	Migrate(ctx context.Context, in *Migrate_Request, opts ...grpc.CallOption) (*Migrate_Response, error)
+	// Write resources
+	Write(ctx context.Context, opts ...grpc.CallOption) (Destination_WriteClient, error)
 }
 
 type destinationClient struct {
@@ -37,15 +38,6 @@ type destinationClient struct {
 
 func NewDestinationClient(cc grpc.ClientConnInterface) DestinationClient {
 	return &destinationClient{cc}
-}
-
-func (c *destinationClient) Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error) {
-	out := new(Configure_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/Configure", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *destinationClient) GetExampleConfig(ctx context.Context, in *GetExampleConfig_Request, opts ...grpc.CallOption) (*GetExampleConfig_Response, error) {
@@ -57,60 +49,70 @@ func (c *destinationClient) GetExampleConfig(ctx context.Context, in *GetExample
 	return out, nil
 }
 
-func (c *destinationClient) Save(ctx context.Context, opts ...grpc.CallOption) (Destination_SaveClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Destination_ServiceDesc.Streams[0], "/proto.Destination/Save", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &destinationSaveClient{stream}
-	return x, nil
-}
-
-type Destination_SaveClient interface {
-	Send(*Save_Request) error
-	CloseAndRecv() (*Save_Response, error)
-	grpc.ClientStream
-}
-
-type destinationSaveClient struct {
-	grpc.ClientStream
-}
-
-func (x *destinationSaveClient) Send(m *Save_Request) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *destinationSaveClient) CloseAndRecv() (*Save_Response, error) {
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	m := new(Save_Response)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *destinationClient) CreateTables(ctx context.Context, in *CreateTables_Request, opts ...grpc.CallOption) (*CreateTables_Response, error) {
-	out := new(CreateTables_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/CreateTables", in, out, opts...)
+func (c *destinationClient) Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error) {
+	out := new(Configure_Response)
+	err := c.cc.Invoke(ctx, "/proto.Destination/Configure", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
+func (c *destinationClient) Migrate(ctx context.Context, in *Migrate_Request, opts ...grpc.CallOption) (*Migrate_Response, error) {
+	out := new(Migrate_Response)
+	err := c.cc.Invoke(ctx, "/proto.Destination/Migrate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *destinationClient) Write(ctx context.Context, opts ...grpc.CallOption) (Destination_WriteClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Destination_ServiceDesc.Streams[0], "/proto.Destination/Write", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &destinationWriteClient{stream}
+	return x, nil
+}
+
+type Destination_WriteClient interface {
+	Send(*Write_Request) error
+	CloseAndRecv() (*Write_Response, error)
+	grpc.ClientStream
+}
+
+type destinationWriteClient struct {
+	grpc.ClientStream
+}
+
+func (x *destinationWriteClient) Send(m *Write_Request) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *destinationWriteClient) CloseAndRecv() (*Write_Response, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(Write_Response)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // DestinationServer is the server API for Destination service.
 // All implementations must embed UnimplementedDestinationServer
 // for forward compatibility
 type DestinationServer interface {
-	Configure(context.Context, *Configure_Request) (*Configure_Response, error)
 	// Get an example configuration for the source plugin
 	GetExampleConfig(context.Context, *GetExampleConfig_Request) (*GetExampleConfig_Response, error)
-	// Save resources
-	Save(Destination_SaveServer) error
-	// Create tables
-	CreateTables(context.Context, *CreateTables_Request) (*CreateTables_Response, error)
+	// Configure the destination plugin with the given credentials and mode
+	Configure(context.Context, *Configure_Request) (*Configure_Response, error)
+	// Migrate tables to the given source plugin version
+	Migrate(context.Context, *Migrate_Request) (*Migrate_Response, error)
+	// Write resources
+	Write(Destination_WriteServer) error
 	mustEmbedUnimplementedDestinationServer()
 }
 
@@ -118,17 +120,17 @@ type DestinationServer interface {
 type UnimplementedDestinationServer struct {
 }
 
-func (UnimplementedDestinationServer) Configure(context.Context, *Configure_Request) (*Configure_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
-}
 func (UnimplementedDestinationServer) GetExampleConfig(context.Context, *GetExampleConfig_Request) (*GetExampleConfig_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetExampleConfig not implemented")
 }
-func (UnimplementedDestinationServer) Save(Destination_SaveServer) error {
-	return status.Errorf(codes.Unimplemented, "method Save not implemented")
+func (UnimplementedDestinationServer) Configure(context.Context, *Configure_Request) (*Configure_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
 }
-func (UnimplementedDestinationServer) CreateTables(context.Context, *CreateTables_Request) (*CreateTables_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateTables not implemented")
+func (UnimplementedDestinationServer) Migrate(context.Context, *Migrate_Request) (*Migrate_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Migrate not implemented")
+}
+func (UnimplementedDestinationServer) Write(Destination_WriteServer) error {
+	return status.Errorf(codes.Unimplemented, "method Write not implemented")
 }
 func (UnimplementedDestinationServer) mustEmbedUnimplementedDestinationServer() {}
 
@@ -141,24 +143,6 @@ type UnsafeDestinationServer interface {
 
 func RegisterDestinationServer(s grpc.ServiceRegistrar, srv DestinationServer) {
 	s.RegisterService(&Destination_ServiceDesc, srv)
-}
-
-func _Destination_Configure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Configure_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DestinationServer).Configure(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Destination/Configure",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DestinationServer).Configure(ctx, req.(*Configure_Request))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _Destination_GetExampleConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -179,48 +163,66 @@ func _Destination_GetExampleConfig_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Destination_Save_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(DestinationServer).Save(&destinationSaveServer{stream})
-}
-
-type Destination_SaveServer interface {
-	SendAndClose(*Save_Response) error
-	Recv() (*Save_Request, error)
-	grpc.ServerStream
-}
-
-type destinationSaveServer struct {
-	grpc.ServerStream
-}
-
-func (x *destinationSaveServer) SendAndClose(m *Save_Response) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *destinationSaveServer) Recv() (*Save_Request, error) {
-	m := new(Save_Request)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func _Destination_CreateTables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateTables_Request)
+func _Destination_Configure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Configure_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DestinationServer).CreateTables(ctx, in)
+		return srv.(DestinationServer).Configure(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Destination/CreateTables",
+		FullMethod: "/proto.Destination/Configure",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DestinationServer).CreateTables(ctx, req.(*CreateTables_Request))
+		return srv.(DestinationServer).Configure(ctx, req.(*Configure_Request))
 	}
 	return interceptor(ctx, in, info, handler)
+}
+
+func _Destination_Migrate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Migrate_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DestinationServer).Migrate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Destination/Migrate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DestinationServer).Migrate(ctx, req.(*Migrate_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Destination_Write_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DestinationServer).Write(&destinationWriteServer{stream})
+}
+
+type Destination_WriteServer interface {
+	SendAndClose(*Write_Response) error
+	Recv() (*Write_Request, error)
+	grpc.ServerStream
+}
+
+type destinationWriteServer struct {
+	grpc.ServerStream
+}
+
+func (x *destinationWriteServer) SendAndClose(m *Write_Response) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *destinationWriteServer) Recv() (*Write_Request, error) {
+	m := new(Write_Request)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // Destination_ServiceDesc is the grpc.ServiceDesc for Destination service.
@@ -231,22 +233,22 @@ var Destination_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DestinationServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Configure",
-			Handler:    _Destination_Configure_Handler,
-		},
-		{
 			MethodName: "GetExampleConfig",
 			Handler:    _Destination_GetExampleConfig_Handler,
 		},
 		{
-			MethodName: "CreateTables",
-			Handler:    _Destination_CreateTables_Handler,
+			MethodName: "Configure",
+			Handler:    _Destination_Configure_Handler,
+		},
+		{
+			MethodName: "Migrate",
+			Handler:    _Destination_Migrate_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Save",
-			Handler:       _Destination_Save_Handler,
+			StreamName:    "Write",
+			Handler:       _Destination_Write_Handler,
 			ClientStreams: true,
 		},
 	},

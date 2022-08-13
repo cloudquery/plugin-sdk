@@ -39,7 +39,7 @@ func (s *SourceServer) Configure(ctx context.Context, req *pb.Configure_Request)
 	if err := yaml.Unmarshal(req.Config, &spec); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal config")
 	}
-	jsonschemaResult, err := s.Plugin.Init(ctx, spec)
+	jsonschemaResult, err := s.Plugin.Configure(ctx, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to configure source")
 	}
@@ -63,7 +63,10 @@ func (s *SourceServer) Fetch(req *pb.Fetch_Request, stream pb.Source_FetchServer
 	}()
 
 	for resource := range resources {
-		b, err := msgpack.Marshal(resource)
+		b, err := msgpack.Marshal(schema.WireResource{
+			Data:      resource.Data,
+			TableName: resource.Table.Name,
+		})
 		if err != nil {
 			return errors.Wrap(err, "failed to marshal resource")
 		}
