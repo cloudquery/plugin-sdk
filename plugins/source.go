@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/helpers"
-	"github.com/cloudquery/plugin-sdk/helpers/limit"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -131,16 +130,13 @@ func (p *SourcePlugin) Configure(ctx context.Context, spec specs.SourceSpec) (*g
 }
 
 // Fetch fetches data according to source configuration and
-func (p *SourcePlugin) Fetch(ctx context.Context, res chan<- *schema.Resource) error {
+func (p *SourcePlugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
 	if p.spec == nil {
 		return fmt.Errorf("source plugin not configured")
 	}
 
 	// limiter used to limit the amount of resources fetched concurrently
 	maxGoroutines := p.spec.MaxGoRoutines
-	if maxGoroutines == 0 {
-		maxGoroutines = limit.GetMaxGoRoutines()
-	}
 	p.Logger.Info().Uint64("max_goroutines", maxGoroutines).Msg("starting fetch")
 	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
 

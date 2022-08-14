@@ -65,7 +65,7 @@ func TestResource(t *testing.T, tc ResourceTestCase) {
 	// tc.Plugin.Logger = zerolog.New(zerolog.NewTestWriter(t))
 	go func() {
 		defer close(resources)
-		fetchErr = tc.Plugin.Fetch(context.Background(), resources)
+		fetchErr = tc.Plugin.Sync(context.Background(), resources)
 	}()
 	for resource := range resources {
 		validateResource(t, resource)

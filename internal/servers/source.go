@@ -58,7 +58,7 @@ func (s *SourceServer) Fetch(req *pb.Fetch_Request, stream pb.Source_FetchServer
 	var fetchErr error
 	go func() {
 		defer close(resources)
-		if err := s.Plugin.Fetch(stream.Context(), resources); err != nil {
+		if err := s.Plugin.Sync(stream.Context(), resources); err != nil {
 			fetchErr = errors.Wrap(err, "failed to fetch resources")
 		}
 	}()
