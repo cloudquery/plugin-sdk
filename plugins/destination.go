@@ -29,7 +29,7 @@ import (
 
 type DestinationPlugin interface {
 	Configure(ctx context.Context, spec specs.DestinationSpec) error
-	Migrate(ctx context.Context, plugin *SourcePlugin) error
+	Migrate(ctx context.Context, sourceName string, version string, tables schema.Tables) error
 	Write(ctx context.Context, resources *schema.Resource) error
 	GetExampleConfig() string
 }

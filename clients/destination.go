@@ -2,11 +2,13 @@ package clients
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/specs"
 	"google.golang.org/grpc"
 )
 
@@ -26,6 +28,49 @@ func NewLocalDestinationClient(p plugins.DestinationPlugin) *DestinationClient {
 	return &DestinationClient{
 		localClient: p,
 	}
+}
+
+func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error) {
+	if c.localClient != nil {
+		return c.localClient.GetExampleConfig(), nil
+	}
+	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetExampleConfig_Request{})
+	if err != nil {
+		return "", err
+	}
+	return res.Config, nil
+}
+
+func (c *DestinationClient) Configure(ctx context.Context, spec specs.DestinationSpec) error {
+	if c.localClient != nil {
+		return c.localClient.Configure(ctx, spec)
+	}
+	b, err := json.Marshal(spec)
+	if err != nil {
+		return fmt.Errorf("destination configure: failed to marshal spec: %w", err)
+	}
+	_, err = c.pbClient.Configure(ctx, &pb.Configure_Request{
+		Config: b,
+	})
+	if err != nil {
+		return fmt.Errorf("destination configure: failed to configure: %w", err)
+	}
+	return nil
+}
+
+func (c *DestinationClient) Migrate(ctx context.Context, name string, version string, tables []*schema.Table) error {
+	if c.localClient != nil {
+		return c.Migrate(ctx, name, version, tables)
+	}
+	b, err := json.Marshal(tables)
+	if err != nil {
+		return fmt.Errorf("destination migrate: failed to marshal plugin: %w", err)
+	}
+	_, err = c.pbClient.Migrate(ctx, &pb.Migrate_Request{Name: name, Version: version, Tables: b})
+	if err != nil {
+		return fmt.Errorf("destination migrate: failed to migrate: %w", err)
+	}
+	return nil
 }
 
 func (c *DestinationClient) Write(ctx context.Context, resource *schema.Resource) error {

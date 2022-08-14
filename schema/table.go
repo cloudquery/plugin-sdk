@@ -40,38 +40,38 @@ func (tt Tables) TableNames() []string {
 
 type Table struct {
 	// Name of table
-	Name string
+	Name string `json:"name"`
 	// table description
-	Description string
+	Description string `json:"description"`
 	// Columns are the set of fields that are part of this table
-	Columns ColumnList
+	Columns ColumnList `json:"columns"`
 	// Relations are a set of related tables defines
-	Relations []*Table
+	Relations []*Table `json:"relations"`
 	// Resolver is the main entry point to fetching table data and
-	Resolver TableResolver `msgpack:"-"`
+	Resolver TableResolver `json:"-"`
 	// ClassifyError is a function that classifies error and returns it's severity and type
-	ClassifyError ClassifyErrorFunc `msgpack:"-"`
+	ClassifyError ClassifyErrorFunc `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
-	Multiplex func(meta ClientMeta) []ClientMeta `msgpack:"-"`
+	Multiplex func(meta ClientMeta) []ClientMeta `json:"-"`
 	// Post resource resolver is called after all columns have been resolved, and before resource is inserted to database.
-	PostResourceResolver RowResolver `msgpack:"-"`
+	PostResourceResolver RowResolver `json:"-"`
 	// Options allow modification of how the table is defined when created
-	Options TableCreationOptions
+	Options TableCreationOptions `json:"options"`
 
 	// IgnoreInTests is used to exclude a table from integration tests.
 	// By default, integration tests fetch all resources from cloudquery's test account, and verify all tables
 	// have at least one row.
 	// When IgnoreInTests is true, integration tests won't fetch from this table.
 	// Used when it is hard to create a reproducible environment with a row in this table.
-	IgnoreInTests bool
+	IgnoreInTests bool `json:"ignore_in_tests"`
 
 	// Parent is the parent table in case this table is called via parent table (i.e. relation)
-	Parent *Table
+	Parent *Table `json:"-"`
 
 	// Serial is used to force a signature change, which forces new table creation and cascading removal of old table and relations
-	Serial string
+	Serial string `json:"-"`
 
-	columnsMap map[string]int
+	columnsMap map[string]int `json:"-"`
 }
 
 // TableCreationOptions allow modifying how table is created such as defining primary keys, indices, foreign keys and constraints.

@@ -1,7 +1,6 @@
 kind: source
 spec:
   name: aws
-  version: 1.0.0
+  version: v1.0.0
   max_goroutines: 10
-  spec:
-    regions: ["us-east-1"]
+  registry: local

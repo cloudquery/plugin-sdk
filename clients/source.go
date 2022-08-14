@@ -5,6 +5,7 @@ package clients
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"text/template"
@@ -47,7 +48,7 @@ func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 		return nil, err
 	}
 	var tables []*schema.Table
-	if err := msgpack.Unmarshal(res.Tables, &tables); err != nil {
+	if err := json.Unmarshal(res.Tables, &tables); err != nil {
 		return nil, err
 	}
 	return tables, nil
@@ -89,7 +90,7 @@ func (c *SourceClient) GetExampleConfig(ctx context.Context) (string, error) {
 	return tpl.String(), nil
 }
 
-func (c *SourceClient) Fetch(ctx context.Context, spec specs.SourceSpec, res chan<- *FetchResultMessage) error {
+func (c *SourceClient) Fetch(ctx context.Context, spec specs.SourceSpec, res chan<- *schema.Resource) error {
 	stream, err := c.pbClient.Fetch(ctx, &pb.Fetch_Request{})
 	if err != nil {
 		return fmt.Errorf("failed to fetch resources: %w", err)
@@ -102,8 +103,12 @@ func (c *SourceClient) Fetch(ctx context.Context, spec specs.SourceSpec, res cha
 			}
 			return fmt.Errorf("failed to fetch resources from stream: %w", err)
 		}
-		res <- &FetchResultMessage{
-			Resource: r.Resource,
+		var resource schema.Resource
+		err = json.Unmarshal(r.Resource, &resource)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal resource: %w", err)
 		}
+
+		res <- &resource
 	}
 }

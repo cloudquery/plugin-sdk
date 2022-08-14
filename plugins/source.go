@@ -36,26 +36,26 @@ type SourceConfigureFunc func(context.Context, *SourcePlugin, specs.SourceSpec) 
 // We take a similar/declerative approach to API here similar to Cobra
 type SourcePlugin struct {
 	// Name of plugin i.e aws,gcp, azure etc'
-	Name string
+	Name string `json:"name"`
 	// Version of the plugin
-	Version string
+	Version string `json:"version"`
 	// Classify error and return it's severity and type
-	ClassifyError schema.ClassifyErrorFunc
+	ClassifyError schema.ClassifyErrorFunc `json:"-"`
 	// Called upon configure call to validate and init configuration
-	configure SourceConfigureFunc
+	configure SourceConfigureFunc `json:"-"`
 	// Tables is all tables supported by this source plugin
-	Tables schema.Tables
+	Tables schema.Tables `json:"tables"`
 	// JsonSchema for specific source plugin spec
-	JsonSchema string
+	JsonSchema string `json:"json_schema"`
 	// ExampleConfig is the example configuration for this plugin
-	ExampleConfig string
+	ExampleConfig string `json:"example_config"`
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
-	Logger zerolog.Logger
+	Logger zerolog.Logger `json:"-"`
 
 	// Internal fields set by configure
-	clientMeta schema.ClientMeta
-	spec       *specs.SourceSpec
-	m          sync.Mutex
+	clientMeta schema.ClientMeta `json:"-"`
+	spec       *specs.SourceSpec `json:"-"`
+	m          sync.Mutex        `json:"-"`
 }
 
 type SourceOption func(*SourcePlugin)

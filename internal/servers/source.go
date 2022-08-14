@@ -2,6 +2,7 @@ package servers
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/plugins"
@@ -43,7 +44,7 @@ func (s *SourceServer) Configure(ctx context.Context, req *pb.Configure_Request)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to configure source")
 	}
-	b, err := msgpack.Marshal(jsonschemaResult)
+	b, err := json.Marshal(jsonschemaResult)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal json schema result")
 	}
@@ -63,7 +64,7 @@ func (s *SourceServer) Fetch(req *pb.Fetch_Request, stream pb.Source_FetchServer
 	}()
 
 	for resource := range resources {
-		b, err := msgpack.Marshal(schema.WireResource{
+		b, err := json.Marshal(schema.WireResource{
 			Data:      resource.Data,
 			TableName: resource.Table.Name,
 		})

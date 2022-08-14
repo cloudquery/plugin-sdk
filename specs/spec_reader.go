@@ -56,20 +56,20 @@ func (r *SpecReader) GetSources() []SourceSpec {
 	return sources
 }
 
-func (s *SpecReader) GetSourceByName(name string) SourceSpec {
+func (s *SpecReader) GetSourceByName(name string) *SourceSpec {
 	for _, spec := range s.sources {
 		if spec.Name == name {
-			return spec
+			return &spec
 		}
 	}
-	return SourceSpec{}
+	return nil
 }
 
-func (s *SpecReader) GetDestinatinoByName(name string) DestinationSpec {
+func (s *SpecReader) GetDestinatinoByName(name string) *DestinationSpec {
 	for _, spec := range s.destinations {
 		if spec.Name == name {
-			return spec
+			return &spec
 		}
 	}
-	return DestinationSpec{}
+	return nil
 }

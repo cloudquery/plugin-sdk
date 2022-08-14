@@ -17,8 +17,9 @@ service Destination {
 
 message Migrate {
   message Request {
-    // marshalled sourcePlugin
-    bytes source_plugin = 1;
+    string name = 1;
+    string version = 2;
+    bytes tables = 3;
   }
   message Response {
   }

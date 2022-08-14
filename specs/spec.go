@@ -32,3 +32,15 @@ func (s *Spec) UnmarshalYAML(n *yaml.Node) error {
 	}
 	return obj.Spec.Decode(s.Spec)
 }
+
+func (s Spec) MarshalYAML() (interface{}, error) {
+	type T struct {
+		Kind string      `yaml:"kind,omitempty"`
+		Spec interface{} `yaml:"spec,omitempty"`
+	}
+	tmp := T{
+		Kind: s.Kind,
+		Spec: s.Spec,
+	}
+	return tmp, nil
+}

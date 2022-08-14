@@ -43,25 +43,25 @@ type ColumnCreationOptions struct {
 // Column definition for Table
 type Column struct {
 	// Name of column
-	Name string
+	Name string `json:"name"`
 	// Value Type of column i.e String, UUID etc'
-	Type ValueType
+	Type ValueType `json:"type"`
 	// Description about column, this description is added as a comment in the database
-	Description string
+	Description string `json:"description"`
 	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
-	Resolver ColumnResolver `msgpack:"-"`
+	Resolver ColumnResolver `json:"-"`
 	// Creation options allow modifying how column is defined when table is created
-	CreationOptions ColumnCreationOptions
+	CreationOptions ColumnCreationOptions `json:"creation_options"`
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
-	IgnoreInTests bool
+	IgnoreInTests bool `json:"ignore_in_tests"`
 	// internal is true if this column is managed by the SDK
-	internal bool
+	internal bool `json:"-"`
 	// meta holds serializable information about the column's resolvers and functions
-	meta *ColumnMeta
+	meta *ColumnMeta `json:"-"`
 }
 
 const (
