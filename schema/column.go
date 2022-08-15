@@ -36,28 +36,28 @@ type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resourc
 
 // ColumnCreationOptions allow modification of how column is defined when table is created
 type ColumnCreationOptions struct {
-	Unique  bool
-	NotNull bool
+	Unique  bool `json:"unique,omitempty"`
+	NotNull bool `json:"notnull,omitempty"`
 }
 
 // Column definition for Table
 type Column struct {
 	// Name of column
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 	// Value Type of column i.e String, UUID etc'
-	Type ValueType `json:"type"`
+	Type ValueType `json:"type,omitempty"`
 	// Description about column, this description is added as a comment in the database
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
 	Resolver ColumnResolver `json:"-"`
 	// Creation options allow modifying how column is defined when table is created
-	CreationOptions ColumnCreationOptions `json:"creation_options"`
+	CreationOptions ColumnCreationOptions `json:"creation_options,omitempty"`
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
-	IgnoreInTests bool `json:"ignore_in_tests"`
+	IgnoreInTests bool `json:"-"`
 	// internal is true if this column is managed by the SDK
 	internal bool `json:"-"`
 	// meta holds serializable information about the column's resolvers and functions

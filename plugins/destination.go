@@ -5,6 +5,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/rs/zerolog"
 )
 
 // type DestinationOption func(*DestinationPlugin)
@@ -28,10 +29,14 @@ import (
 // }
 
 type DestinationPlugin interface {
-	Configure(ctx context.Context, spec specs.DestinationSpec) error
-	Migrate(ctx context.Context, sourceName string, version string, tables schema.Tables) error
+	Name() string
+	Version() string
+	ExampleConfig() string
+	JsonSchema() string
+	Initialize(ctx context.Context, spec specs.DestinationSpec) error
+	Migrate(ctx context.Context, tables schema.Tables) error
 	Write(ctx context.Context, resources *schema.Resource) error
-	GetExampleConfig() string
+	SetLogger(logger zerolog.Logger)
 }
 
 // func WithExampleConfig(exampleConfig string) DestinationOption {

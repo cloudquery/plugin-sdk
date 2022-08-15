@@ -1,9 +1,11 @@
 package schema
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
+	"reflect"
 	"testing"
 	"time"
 
@@ -174,5 +176,25 @@ func BenchmarkColumn_ValidateTypeMap(b *testing.B) {
 	m := make(map[string]interface{})
 	for n := 0; n < b.N; n++ {
 		_ = col.ValidateType(m)
+	}
+}
+
+func TestColumnJsonMarshal(t *testing.T) {
+	// we are testing column json marshalling to make sure
+	// this can be easily sent over the wire
+	expected := Column{
+		Name: "test",
+		Type: TypeJSON,
+	}
+	b, err := json.Marshal(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := Column{}
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatal(err)
+	}
+	if reflect.DeepEqual(expected, got) == false {
+		t.Fatalf("expected %v got %v", expected, got)
 	}
 }

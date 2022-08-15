@@ -25,12 +25,12 @@ func (s *DestinationServer) Configure(ctx context.Context, req *pb.Configure_Req
 	if err := yaml.Unmarshal(req.Config, &spec); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
-	return &pb.Configure_Response{}, s.Plugin.Configure(ctx, spec)
+	return &pb.Configure_Response{}, s.Plugin.Initialize(ctx, spec)
 }
 
 func (s *DestinationServer) GetExampleConfig(ctx context.Context, req *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
 	return &pb.GetExampleConfig_Response{
-		Config: s.Plugin.GetExampleConfig(),
+		Config: s.Plugin.ExampleConfig(),
 	}, nil
 }
 

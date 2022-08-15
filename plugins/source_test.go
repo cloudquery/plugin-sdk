@@ -7,6 +7,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 )
 
 type Account struct {
@@ -23,91 +24,71 @@ func (TestConfig) Example() string {
 	return ""
 }
 
-type testSourcePluginClient struct {
-	logger zerolog.Logger
-}
-
-func (t testSourcePluginClient) Logger() *zerolog.Logger {
-	return &t.logger
-}
-
-type testPluginClient struct {
-	logger zerolog.Logger
-}
-
-func (c *testPluginClient) Logger() *zerolog.Logger {
-	return &c.logger
-}
-
-func testPluginConfigure(ctx context.Context, p *SourcePlugin, spec specs.SourceSpec) (schema.ClientMeta, error) {
-	return &testPluginClient{
-		logger: p.Logger,
-	}, nil
-}
-
 func testTable() *schema.Table {
 	return &schema.Table{
 		Name: "testTable",
 		Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
 			res <- map[string]interface{}{
-				"testColumn": 3,
+				"TestColumn": 3,
 			}
 			return nil
 		},
 		Columns: []schema.Column{
 			{
-				Name: "testColumn",
+				Name: "test_column",
 				Type: schema.TypeInt,
 			},
 		},
 	}
 }
 
-const testSourceCfg = `
-kind: source
-spec:
-  name: testSourcePlugin
-  version: 1.0.0
-  spec:
-    accounts:
-    - name: testAccount
-`
+var _ schema.ClientMeta = &testExecutionClient{}
+
+type testExecutionClient struct {
+	logger zerolog.Logger
+}
+
+func (c *testExecutionClient) Logger() *zerolog.Logger {
+	return &c.logger
+}
+
+func newTestExecutionClient(context.Context, *SourcePlugin, specs.SourceSpec) (schema.ClientMeta, error) {
+	return &testExecutionClient{}, nil
+}
 
 func TestSync(t *testing.T) {
-	// ctx := context.Background()
-	// testSourcePlugin := NewSourcePlugin(
-	// 	"test",
-	// 	"v1.0.0",
-	// 	[]*schema.Table{
-	// 		testTable(),
-	// 	},
-	// 	testPluginConfigure,
-	// 	WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
-	// )
-	// yaml.Unmarshal()
-	// testSourcePlugin.Configure(ctx)
-	// 	cfg := `
-	// tables:
-	//   - "*"
-	// configuration:
-	//   regions:
-	//   - "us-east-1"
-	//   accounts:
-	//   - name: "testAccount"
-	//     regions:
-	//     - "us-east-2"
-	// `
-	// 	resources := make(chan *schema.Resource)
-	// 	var fetchErr error
-	// 	var result *gojsonschema.Result
-	// 	go func() {
-	// 		defer close(resources)
-	// 		result, fetchErr = testSourcePlugin.Fetch(context.Background(), []byte(cfg), resources)
-	// 	}()
-	// 	for resource := range resources {
-	// 		t.Logf("%+v", resource)
-	// 	}
-	// 	if fetchErr != nil {
-	// 		t.Errorf("fetch error: %v", fetchErr)
-	// 	}
+	ctx := context.Background()
+	plugin := NewSourcePlugin(
+		"testSourcePlugin",
+		"1.0.0",
+		[]*schema.Table{testTable()},
+		newTestExecutionClient,
+		WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))))
+
+	resources := make(chan *schema.Resource)
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		defer close(resources)
+		return plugin.Sync(ctx,
+			specs.SourceSpec{},
+			resources)
+	})
+
+	for resource := range resources {
+		if resource.Table.Name != "testTable" {
+			t.Fatalf("unexpected resource table name: %s", resource.Table.Name)
+		}
+		obj := resource.Get("test_column")
+		val, ok := obj.(int)
+		if !ok {
+			t.Fatalf("unexpected resource column value (expected int): %v", obj)
+		}
+
+		if val != 3 {
+			t.Fatalf("unexpected resource column value: %v", val)
+		}
+	}
+	if err := g.Wait(); err != nil {
+		t.Fatal(err)
+	}
 }

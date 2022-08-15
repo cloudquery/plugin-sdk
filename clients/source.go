@@ -14,7 +14,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/pkg/errors"
-	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xeipuuv/gojsonschema"
 	"google.golang.org/grpc"
 	"gopkg.in/yaml.v3"
@@ -64,7 +63,7 @@ func (c *SourceClient) Configure(ctx context.Context, spec specs.SourceSpec) (*g
 		return nil, errors.Wrap(err, "failed to configure source")
 	}
 	var validationResult gojsonschema.Result
-	if err := msgpack.Unmarshal(res.JsonschemaResult, &validationResult); err != nil {
+	if err := json.Unmarshal(res.JsonschemaResult, &validationResult); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal validation result")
 	}
 	return &validationResult, nil

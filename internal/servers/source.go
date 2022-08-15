@@ -3,13 +3,13 @@ package servers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/pkg/errors"
-	"github.com/vmihailenco/msgpack/v5"
 	"gopkg.in/yaml.v3"
 )
 
@@ -19,7 +19,7 @@ type SourceServer struct {
 }
 
 func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.GetTables_Response, error) {
-	b, err := msgpack.Marshal(s.Plugin.Tables)
+	b, err := json.Marshal(s.Plugin.Tables())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal tables")
 	}
@@ -30,35 +30,23 @@ func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.Ge
 
 func (s *SourceServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
 	return &pb.GetExampleConfig_Response{
-		Name:    s.Plugin.Name,
-		Version: s.Plugin.Version,
-		Config:  s.Plugin.ExampleConfig}, nil
-}
-
-func (s *SourceServer) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.Configure_Response, error) {
-	var spec specs.SourceSpec
-	if err := yaml.Unmarshal(req.Config, &spec); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal config")
-	}
-	jsonschemaResult, err := s.Plugin.Configure(ctx, spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to configure source")
-	}
-	b, err := json.Marshal(jsonschemaResult)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal json schema result")
-	}
-	return &pb.Configure_Response{
-		JsonschemaResult: b,
-	}, nil
+		Name:    s.Plugin.Name(),
+		Version: s.Plugin.Version(),
+		Config:  s.Plugin.ExampleConfig()}, nil
 }
 
 func (s *SourceServer) Fetch(req *pb.Fetch_Request, stream pb.Source_FetchServer) error {
 	resources := make(chan *schema.Resource)
 	var fetchErr error
+
+	var spec specs.SourceSpec
+	if err := yaml.Unmarshal(req.Spec, &spec); err != nil {
+		return fmt.Errorf("failed to unmarshal source spec: %w", err)
+	}
+
 	go func() {
 		defer close(resources)
-		if err := s.Plugin.Sync(stream.Context(), resources); err != nil {
+		if err := s.Plugin.Sync(stream.Context(), spec, resources); err != nil {
 			fetchErr = errors.Wrap(err, "failed to fetch resources")
 		}
 	}()

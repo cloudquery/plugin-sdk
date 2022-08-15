@@ -9,14 +9,13 @@ service Source {
   rpc GetTables(GetTables.Request) returns (GetTables.Response);
   // Get an example configuration for the source plugin
   rpc GetExampleConfig(GetExampleConfig.Request) returns (GetExampleConfig.Response);
-  // Configure the source plugin with the given spec
-  rpc Configure(Configure.Request) returns (Configure.Response);
   // Fetch resources
   rpc Fetch(Fetch.Request) returns (stream Fetch.Response);
 }
 
 message Fetch {
   message Request {
+    bytes spec = 1;
   }
   message Response {
     // marshalled *schema.Resources

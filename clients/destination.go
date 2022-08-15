@@ -32,7 +32,7 @@ func NewLocalDestinationClient(p plugins.DestinationPlugin) *DestinationClient {
 
 func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error) {
 	if c.localClient != nil {
-		return c.localClient.GetExampleConfig(), nil
+		return c.localClient.ExampleConfig(), nil
 	}
 	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetExampleConfig_Request{})
 	if err != nil {
@@ -43,7 +43,7 @@ func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error
 
 func (c *DestinationClient) Configure(ctx context.Context, spec specs.DestinationSpec) error {
 	if c.localClient != nil {
-		return c.localClient.Configure(ctx, spec)
+		return c.localClient.Initialize(ctx, spec)
 	}
 	b, err := json.Marshal(spec)
 	if err != nil {
@@ -58,15 +58,15 @@ func (c *DestinationClient) Configure(ctx context.Context, spec specs.Destinatio
 	return nil
 }
 
-func (c *DestinationClient) Migrate(ctx context.Context, name string, version string, tables []*schema.Table) error {
+func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table) error {
 	if c.localClient != nil {
-		return c.Migrate(ctx, name, version, tables)
+		return c.localClient.Migrate(ctx, tables)
 	}
 	b, err := json.Marshal(tables)
 	if err != nil {
 		return fmt.Errorf("destination migrate: failed to marshal plugin: %w", err)
 	}
-	_, err = c.pbClient.Migrate(ctx, &pb.Migrate_Request{Name: name, Version: version, Tables: b})
+	_, err = c.pbClient.Migrate(ctx, &pb.Migrate_Request{Tables: b})
 	if err != nil {
 		return fmt.Errorf("destination migrate: failed to migrate: %w", err)
 	}
@@ -90,17 +90,3 @@ func (c *DestinationClient) Write(ctx context.Context, resource *schema.Resource
 
 	return nil
 }
-
-// func (c *DestinationClient) CreateTables(ctx context.Context, tables []*schema.Table) error {
-// 	if c.localClient != nil {
-// 		return c.localClient.CreateTables(ctx, tables)
-// 	}
-// 	b, err := yaml.Marshal(tables)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to marshal tables: %w", err)
-// 	}
-// 	if _, err := c.pbClient.CreateTables(ctx, &pb.CreateTables_Request{Tables: b}); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }

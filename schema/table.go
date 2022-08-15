@@ -20,13 +20,10 @@ import (
 //
 type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error
 
-// IgnoreErrorFunc checks if returned error from table resolver should be ignored.
-type IgnoreErrorFunc func(err error) bool
-
 type RowResolver func(ctx context.Context, meta ClientMeta, resource *Resource) error
 
 // Classify error and return it's severity and type
-type ClassifyErrorFunc func(err error) (bool, string)
+type IgnoreErrorFunc func(err error) (bool, string)
 
 type Tables []*Table
 
@@ -49,8 +46,8 @@ type Table struct {
 	Relations []*Table `json:"relations"`
 	// Resolver is the main entry point to fetching table data and
 	Resolver TableResolver `json:"-"`
-	// ClassifyError is a function that classifies error and returns it's severity and type
-	ClassifyError ClassifyErrorFunc `json:"-"`
+	// IgnoreError is a function that classifies error and returns it's severity and type
+	IgnoreError IgnoreErrorFunc `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
 	Multiplex func(meta ClientMeta) []ClientMeta `json:"-"`
 	// Post resource resolver is called after all columns have been resolved, and before resource is inserted to database.
@@ -131,8 +128,8 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 		}()
 		meta.Logger().Debug().Str("table_name", t.Name).Msg("table resolver started")
 		if err := t.Resolver(ctx, meta, parent, res); err != nil {
-			if t.ClassifyError != nil {
-				if classify, errType := t.ClassifyError(err); classify {
+			if t.IgnoreError != nil {
+				if ignore, errType := t.IgnoreError(err); ignore {
 					meta.Logger().Debug().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("error_type", errType).Msg("table resolver finished with error")
 					return
 				}
