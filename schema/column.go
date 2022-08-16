@@ -59,9 +59,9 @@ type Column struct {
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
 	IgnoreInTests bool `json:"-"`
 	// internal is true if this column is managed by the SDK
-	internal bool `json:"-"`
+	internal bool
 	// meta holds serializable information about the column's resolvers and functions
-	meta *ColumnMeta `json:"-"`
+	meta *ColumnMeta
 }
 
 const (

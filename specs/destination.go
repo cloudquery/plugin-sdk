@@ -50,8 +50,8 @@ func (m WriteMode) MarshalYAML() (interface{}, error) {
 	return m.String(), nil
 }
 
-func (r *WriteMode) UnmarshalYAML(n *yaml.Node) (err error) {
-	*r, err = WriteModeFromString(n.Value)
+func (w *WriteMode) UnmarshalYAML(n *yaml.Node) (err error) {
+	*w, err = WriteModeFromString(n.Value)
 	return err
 }
 

@@ -194,7 +194,7 @@ func TestColumnJsonMarshal(t *testing.T) {
 	if err := json.Unmarshal(b, &got); err != nil {
 		t.Fatal(err)
 	}
-	if reflect.DeepEqual(expected, got) == false {
+	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected %v got %v", expected, got)
 	}
 }

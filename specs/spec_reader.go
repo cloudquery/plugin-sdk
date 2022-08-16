@@ -48,9 +48,9 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 	return &reader, nil
 }
 
-func (r *SpecReader) GetSources() []SourceSpec {
-	sources := make([]SourceSpec, 0, len(r.sources))
-	for _, spec := range r.sources {
+func (s *SpecReader) GetSources() []SourceSpec {
+	sources := make([]SourceSpec, 0, len(s.sources))
+	for _, spec := range s.sources {
 		sources = append(sources, spec)
 	}
 	return sources

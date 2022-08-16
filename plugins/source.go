@@ -121,7 +121,6 @@ const minGoRoutines = 5
 
 // Fetch fetches data according to source configuration and
 func (p *SourcePlugin) Sync(ctx context.Context, spec specs.SourceSpec, res chan<- *schema.Resource) error {
-
 	c, err := p.newExecutionClient(ctx, p, spec)
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)

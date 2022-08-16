@@ -27,14 +27,6 @@ type IgnoreErrorFunc func(err error) (bool, string)
 
 type Tables []*Table
 
-func (tt Tables) TableNames() []string {
-	ret := []string{}
-	for _, t := range tt {
-		ret = append(ret, t.TableNames()...)
-	}
-	return ret
-}
-
 type Table struct {
 	// Name of table
 	Name string `json:"name"`
@@ -68,13 +60,21 @@ type Table struct {
 	// Serial is used to force a signature change, which forces new table creation and cascading removal of old table and relations
 	Serial string `json:"-"`
 
-	columnsMap map[string]int `json:"-"`
+	columnsMap map[string]int
 }
 
 // TableCreationOptions allow modifying how table is created such as defining primary keys, indices, foreign keys and constraints.
 type TableCreationOptions struct {
 	// List of columns to set as primary keys. If this is empty, a random unique ID is generated.
 	PrimaryKeys []string
+}
+
+func (tt Tables) TableNames() []string {
+	ret := []string{}
+	for _, t := range tt {
+		ret = append(ret, t.TableNames()...)
+	}
+	return ret
 }
 
 func (t Table) Column(name string) *Column {

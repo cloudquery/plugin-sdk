@@ -10,6 +10,12 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+var _ schema.ClientMeta = &testExecutionClient{}
+
+type testExecutionClient struct {
+	logger zerolog.Logger
+}
+
 type Account struct {
 	Name    string   `yaml:"name"`
 	Regions []string `yaml:"regions"`
@@ -40,12 +46,6 @@ func testTable() *schema.Table {
 			},
 		},
 	}
-}
-
-var _ schema.ClientMeta = &testExecutionClient{}
-
-type testExecutionClient struct {
-	logger zerolog.Logger
 }
 
 func (c *testExecutionClient) Logger() *zerolog.Logger {

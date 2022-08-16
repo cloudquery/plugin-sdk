@@ -12,7 +12,14 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
+
+var _ schema.ClientMeta = &testExecutionClient{}
+
+type testExecutionClient struct {
+	logger zerolog.Logger
+}
 
 func testTable() *schema.Table {
 	return &schema.Table{
@@ -30,12 +37,6 @@ func testTable() *schema.Table {
 			},
 		},
 	}
-}
-
-var _ schema.ClientMeta = &testExecutionClient{}
-
-type testExecutionClient struct {
-	logger zerolog.Logger
 }
 
 func (c *testExecutionClient) Logger() *zerolog.Logger {
@@ -85,7 +86,7 @@ func TestServe(t *testing.T) {
 
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
 	ctx := context.Background()
-	_, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	_, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}

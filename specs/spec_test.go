@@ -1,16 +1,12 @@
 package specs
 
 import (
-	"embed"
 	"os"
 	"reflect"
 	"testing"
 
 	"gopkg.in/yaml.v3"
 )
-
-//go:embed testdata/*.cq.yml
-var testSpecsFS embed.FS
 
 var testSpecs = map[string]Spec{
 	"testdata/pg.cq.yml": {
