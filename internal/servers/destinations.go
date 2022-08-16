@@ -12,7 +12,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"gopkg.in/yaml.v3"
 )
 
 type DestinationServer struct {
@@ -21,8 +20,8 @@ type DestinationServer struct {
 }
 
 func (s *DestinationServer) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.Configure_Response, error) {
-	var spec specs.DestinationSpec
-	if err := yaml.Unmarshal(req.Config, &spec); err != nil {
+	var spec specs.Destination
+	if err := json.Unmarshal(req.Config, &spec); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
 	return &pb.Configure_Response{}, s.Plugin.Initialize(ctx, spec)

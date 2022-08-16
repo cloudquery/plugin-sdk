@@ -3,20 +3,15 @@
 package clients
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"text/template"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/pkg/errors"
-	"github.com/xeipuuv/gojsonschema"
 	"google.golang.org/grpc"
-	"gopkg.in/yaml.v3"
 )
 
 type SourceClient struct {
@@ -26,14 +21,6 @@ type SourceClient struct {
 type FetchResultMessage struct {
 	Resource []byte
 }
-
-const sourcePluginExampleConfigTemplate = `kind: source
-spec:
-  name: {{.Name}}
-  version: {{.Version}}
-  configuration:
-  {{.PluginExampleConfig | indent 4}}
-`
 
 func NewSourceClient(cc grpc.ClientConnInterface) *SourceClient {
 	return &SourceClient{
@@ -53,44 +40,22 @@ func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 	return tables, nil
 }
 
-func (c *SourceClient) Configure(ctx context.Context, spec specs.SourceSpec) (*gojsonschema.Result, error) {
-	b, err := yaml.Marshal(spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal source spec")
-	}
-	res, err := c.pbClient.Configure(ctx, &pb.Configure_Request{Config: b})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to configure source")
-	}
-	var validationResult gojsonschema.Result
-	if err := json.Unmarshal(res.JsonschemaResult, &validationResult); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal validation result")
-	}
-	return &validationResult, nil
-}
-
-func (c *SourceClient) GetExampleConfig(ctx context.Context) (string, error) {
+func (c *SourceClient) ExampleConfig(ctx context.Context) (string, error) {
 	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetExampleConfig_Request{})
 	if err != nil {
 		return "", fmt.Errorf("failed to get example config: %w", err)
 	}
-	t, err := template.New("source_plugin").Funcs(templateFuncMap()).Parse(sourcePluginExampleConfigTemplate)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %w", err)
-	}
-	var tpl bytes.Buffer
-	if err := t.Execute(&tpl, map[string]interface{}{
-		"Name":                res.Name,
-		"Version":             res.Version,
-		"PluginExampleConfig": res.Config,
-	}); err != nil {
-		return "", fmt.Errorf("failed to generate example config: %w", err)
-	}
-	return tpl.String(), nil
+	return res.Config, nil
 }
 
-func (c *SourceClient) Fetch(ctx context.Context, spec specs.SourceSpec, res chan<- *schema.Resource) error {
-	stream, err := c.pbClient.Fetch(ctx, &pb.Fetch_Request{})
+func (c *SourceClient) Fetch(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
+	b, err := json.Marshal(spec)
+	if err != nil {
+		return fmt.Errorf("failed to marshal source spec: %w", err)
+	}
+	stream, err := c.pbClient.Fetch(ctx, &pb.Fetch_Request{
+		Spec: b,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to fetch resources: %w", err)
 	}

@@ -12,7 +12,7 @@ import (
 
 type ResourceTestCase struct {
 	Plugin *SourcePlugin
-	Spec   specs.SourceSpec
+	Spec   specs.Source
 	// ParallelFetchingLimit limits parallel resources fetch at a time
 	ParallelFetchingLimit uint64
 	// SkipIgnoreInTest flag which detects if schema.Table or schema.Column should be ignored

@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-
-	"gopkg.in/yaml.v3"
 )
 
 type WriteMode int
@@ -15,13 +13,13 @@ const (
 	WriteModeOverwrite
 )
 
-type DestinationSpec struct {
-	Name      string    `yaml:"name,omitempty" json:"name,omitempty"`
-	Version   string    `yaml:"version,omitempty" json:"version,omitempty"`
-	Path      string    `yaml:"path,omitempty" json:"path,omitempty"`
-	Registry  Registry  `yaml:"registry,omitempty" json:"registry,omitempty"`
-	WriteMode WriteMode `yaml:"write_mode,omitempty" json:"write_mode,omitempty"`
-	Spec      yaml.Node `yaml:"spec,omitempty" json:"spec,omitempty"`
+type Destination struct {
+	Name      string      `json:"name,omitempty"`
+	Version   string      `json:"version,omitempty"`
+	Path      string      `json:"path,omitempty"`
+	Registry  Registry    `json:"registry,omitempty"`
+	WriteMode WriteMode   `json:"write_mode,omitempty"`
+	Spec      interface{} `json:"spec,omitempty"`
 }
 
 func (m WriteMode) String() string {
@@ -44,15 +42,6 @@ func (m *WriteMode) UnmarshalJSON(data []byte) (err error) {
 		return err
 	}
 	return nil
-}
-
-func (m WriteMode) MarshalYAML() (interface{}, error) {
-	return m.String(), nil
-}
-
-func (w *WriteMode) UnmarshalYAML(n *yaml.Node) (err error) {
-	*w, err = WriteModeFromString(n.Value)
-	return err
 }
 
 func WriteModeFromString(s string) (WriteMode, error) {

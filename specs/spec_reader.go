@@ -11,14 +11,14 @@ import (
 )
 
 type SpecReader struct {
-	sources      map[string]SourceSpec
-	destinations map[string]DestinationSpec
+	sources      map[string]Source
+	destinations map[string]Destination
 }
 
 func NewSpecReader(directory string) (*SpecReader, error) {
 	reader := SpecReader{
-		sources:      make(map[string]SourceSpec),
-		destinations: make(map[string]DestinationSpec),
+		sources:      make(map[string]Source),
+		destinations: make(map[string]Destination),
 	}
 	files, err := ioutil.ReadDir(directory)
 	if err != nil {
@@ -37,9 +37,9 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 			}
 			switch s.Kind {
 			case "source":
-				reader.sources[file.Name()] = *s.Spec.(*SourceSpec)
+				reader.sources[file.Name()] = *s.Spec.(*Source)
 			case "destination":
-				reader.destinations[file.Name()] = *s.Spec.(*DestinationSpec)
+				reader.destinations[file.Name()] = *s.Spec.(*Destination)
 			default:
 				return nil, fmt.Errorf("unknown kind %s", s.Kind)
 			}
@@ -48,15 +48,15 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 	return &reader, nil
 }
 
-func (s *SpecReader) GetSources() []SourceSpec {
-	sources := make([]SourceSpec, 0, len(s.sources))
+func (s *SpecReader) GetSources() []Source {
+	sources := make([]Source, 0, len(s.sources))
 	for _, spec := range s.sources {
 		sources = append(sources, spec)
 	}
 	return sources
 }
 
-func (s *SpecReader) GetSourceByName(name string) *SourceSpec {
+func (s *SpecReader) GetSourceByName(name string) *Source {
 	for _, spec := range s.sources {
 		if spec.Name == name {
 			return &spec
@@ -65,7 +65,7 @@ func (s *SpecReader) GetSourceByName(name string) *SourceSpec {
 	return nil
 }
 
-func (s *SpecReader) GetDestinatinoByName(name string) *DestinationSpec {
+func (s *SpecReader) GetDestinatinoByName(name string) *Destination {
 	for _, spec := range s.destinations {
 		if spec.Name == name {
 			return &spec

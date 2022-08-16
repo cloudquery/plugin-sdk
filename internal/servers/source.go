@@ -1,6 +1,7 @@
 package servers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
 )
 
 type SourceServer struct {
@@ -28,20 +28,27 @@ func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.Ge
 	}, nil
 }
 
-func (s *SourceServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
+func (s *SourceServer) ExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
+	exampleConfig, err := s.Plugin.ExampleConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get example config: %w", err)
+	}
 	return &pb.GetExampleConfig_Response{
 		Name:    s.Plugin.Name(),
 		Version: s.Plugin.Version(),
-		Config:  s.Plugin.ExampleConfig()}, nil
+		Config:  exampleConfig}, nil
 }
 
-func (s *SourceServer) Fetch(req *pb.Fetch_Request, stream pb.Source_FetchServer) error {
+func (s *SourceServer) Sync(req *pb.Fetch_Request, stream pb.Source_FetchServer) error {
 	resources := make(chan *schema.Resource)
 	var fetchErr error
 
-	var spec specs.SourceSpec
-	if err := yaml.Unmarshal(req.Spec, &spec); err != nil {
-		return fmt.Errorf("failed to unmarshal source spec: %w", err)
+	var spec specs.Source
+	dec := json.NewDecoder(bytes.NewReader(req.Spec))
+	dec.UseNumber()
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&spec); err != nil {
+		return fmt.Errorf("failed to decode source spec: %w", err)
 	}
 
 	go func() {
@@ -52,10 +59,7 @@ func (s *SourceServer) Fetch(req *pb.Fetch_Request, stream pb.Source_FetchServer
 	}()
 
 	for resource := range resources {
-		b, err := json.Marshal(schema.WireResource{
-			Data:      resource.Data,
-			TableName: resource.Table.Name,
-		})
+		b, err := json.Marshal(resource)
 		if err != nil {
 			return errors.Wrap(err, "failed to marshal resource")
 		}

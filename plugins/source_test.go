@@ -2,28 +2,35 @@ package plugins
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
+	"gopkg.in/yaml.v3"
 )
 
 var _ schema.ClientMeta = &testExecutionClient{}
+
+const testSourcePluginExampleConfig = `# specify all accounts you want to sync
+accounts: []
+`
 
 type testExecutionClient struct {
 	logger zerolog.Logger
 }
 
 type Account struct {
-	Name    string   `yaml:"name"`
-	Regions []string `yaml:"regions"`
+	Name    string   `json:"name,omitempty"`
+	Regions []string `json:"regions"`
 }
 
 type TestConfig struct {
-	Accounts []Account `yaml:"accounts"`
-	Regions  []string  `yaml:"regions"`
+	Accounts []Account `json:"accounts"`
+	Regions  []string  `json:"regions"`
 }
 
 func (TestConfig) Example() string {
@@ -52,7 +59,7 @@ func (c *testExecutionClient) Logger() *zerolog.Logger {
 	return &c.logger
 }
 
-func newTestExecutionClient(context.Context, *SourcePlugin, specs.SourceSpec) (schema.ClientMeta, error) {
+func newTestExecutionClient(context.Context, *SourcePlugin, specs.Source) (schema.ClientMeta, error) {
 	return &testExecutionClient{}, nil
 }
 
@@ -63,15 +70,37 @@ func TestSync(t *testing.T) {
 		"1.0.0",
 		[]*schema.Table{testTable()},
 		newTestExecutionClient,
-		WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))))
+		WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
+		WithSourceExampleConfig(testSourcePluginExampleConfig),
+	)
+
+	// test round trip: get example config -> sync with example config -> success
+	exampleConfig, err := plugin.ExampleConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var spec specs.Source
+	if err := yaml.Unmarshal([]byte(exampleConfig), &spec); err != nil {
+		t.Fatal(err)
+	}
+
+	a := json.NewDecoder(strings.NewReader(exampleConfig))
+	json.Strin
+
+	d := yaml.NewDecoder(strings.NewReader(exampleConfig))
+	d.KnownFields(true)
+	if err := d.Decode(&spec); err != nil {
+		t.Fatal(err)
+	}
 
 	resources := make(chan *schema.Resource)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(resources)
-		return plugin.Sync(ctx,
-			specs.SourceSpec{},
+		_, err = plugin.Sync(ctx,
+			*spec.Spec.(*specs.Source),
 			resources)
+		return err
 	})
 
 	for resource := range resources {

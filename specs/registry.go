@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-
-	"gopkg.in/yaml.v3"
 )
 
 type Registry int
@@ -36,26 +34,6 @@ func (r *Registry) UnmarshalJSON(data []byte) (err error) {
 	}
 	return nil
 }
-
-func (r Registry) MarshalYAML() (interface{}, error) {
-	return r.String(), nil
-}
-
-func (r *Registry) UnmarshalYAML(n *yaml.Node) (err error) {
-	*r, err = RegistryFromString(n.Value)
-	return err
-}
-
-// func (r *Registry) UnmarshalYaml(data []byte) (err error) {
-// 	var registry string
-// 	if err := yaml.Unmarshal(data, &registry); err != nil {
-// 		return err
-// 	}
-// 	if *r, err = RegistryFromString(registry); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
 
 func RegistryFromString(s string) (Registry, error) {
 	switch s {

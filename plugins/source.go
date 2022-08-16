@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -12,12 +13,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
 	"golang.org/x/sync/semaphore"
+	"gopkg.in/yaml.v3"
 
 	_ "embed"
 )
-
-//go:embed source_schema.json
-var sourceSchema string
 
 const ExampleSourceConfig = `
 # max_goroutines to use when fetching. 0 means default and calculated by CloudQuery
@@ -28,7 +27,28 @@ const ExampleSourceConfig = `
 # skip_tables: []
 `
 
-type SourceNewExecutionClientFunc func(context.Context, *SourcePlugin, specs.SourceSpec) (schema.ClientMeta, error)
+const sourcePluginExampleConfigTemplate = `kind: source
+spec:
+  name: {{.Name}}
+  version: {{.Version}}
+  # path: Path to the plugin. by default it is the same as the name of the plugin.
+  # registry can be local, github, grpc (default github)
+  # registry: github
+  # max_goroutines used for sync, by default calculated automatically depending on
+  # memory and cpu avaialble
+  # max_goroutines: 0
+  tables: ["*"]
+  # skip_tables is useful if you want to fetch all tables apart from specific ones
+  # skip_tables: []
+  # name of destinations to sync the data
+  destinations: []
+  configuration:
+  {{.PluginExampleConfig | indent 4}}
+`
+
+type SourceNewExecutionClientFunc func(context.Context, *SourcePlugin, specs.Source) (schema.ClientMeta, error)
+
+type SourceNewSpecFunc func() interface{}
 
 // SourcePlugin is the base structure required to pass to sdk.serve
 // We take a similar/declerative approach to API here similar to Cobra
@@ -43,21 +63,15 @@ type SourcePlugin struct {
 	newExecutionClient SourceNewExecutionClientFunc
 	// Tables is all tables supported by this source plugin
 	tables schema.Tables
+	// newSpec return a new struct to be pupolated by the passed configuration
+	newSpec SourceNewSpecFunc
 	// JsonSchema for specific source plugin spec
 	jsonSchema string
-	// ExampleConfig is the example configuration for this plugin
-	exampleConfig string
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
 }
 
 type SourceOption func(*SourcePlugin)
-
-func WithSourceExampleConfig(exampleConfig string) SourceOption {
-	return func(p *SourcePlugin) {
-		p.exampleConfig = exampleConfig
-	}
-}
 
 func WithSourceJsonSchema(jsonSchema string) SourceOption {
 	return func(p *SourcePlugin) {
@@ -77,15 +91,19 @@ func WithClassifyError(ignoreError schema.IgnoreErrorFunc) SourceOption {
 	}
 }
 
-func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc, opts ...SourceOption) *SourcePlugin {
+func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc, newSpec SourceNewSpecFunc, opts ...SourceOption) *SourcePlugin {
 	p := SourcePlugin{
 		name:               name,
 		version:            version,
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
+		newSpec:            newSpec,
 	}
 	if newExecutionClient == nil {
 		panic("newExecutionClient function not defined for source plugin:" + name)
+	}
+	if newSpec == nil {
+		panic("newConfig function not defined for source plugin:" + name)
 	}
 	for _, opt := range opts {
 		opt(&p)
@@ -97,8 +115,24 @@ func (p *SourcePlugin) Tables() schema.Tables {
 	return p.tables
 }
 
-func (p *SourcePlugin) ExampleConfig() string {
-	return p.exampleConfig
+func (p *SourcePlugin) ExampleConfig() (string, error) {
+	spec := specs.Spec{
+		Kind: "source",
+		Spec: specs.Source{
+			Name:         p.name,
+			Version:      p.version,
+			Tables:       []string{"*"},
+			Destinations: []string{},
+			Spec:         p.newSpec(),
+		},
+	}
+	bytes := bytes.NewBuffer([]byte(""))
+	enc := yaml.NewEncoder(bytes)
+	enc.SetIndent(2)
+	if err := enc.Encode(spec); err != nil {
+		return "", err
+	}
+	return bytes.String(), nil
 }
 
 func (p *SourcePlugin) GetJsonSchema() string {
@@ -119,8 +153,8 @@ func (p *SourcePlugin) SetLogger(log zerolog.Logger) {
 
 const minGoRoutines = 5
 
-// Fetch fetches data according to source configuration and
-func (p *SourcePlugin) Sync(ctx context.Context, spec specs.SourceSpec, res chan<- *schema.Resource) error {
+// Sync data from source to the given channel
+func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
 	c, err := p.newExecutionClient(ctx, p, spec)
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)

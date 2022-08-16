@@ -26,8 +26,6 @@ type SourceClient interface {
 	GetTables(ctx context.Context, in *GetTables_Request, opts ...grpc.CallOption) (*GetTables_Response, error)
 	// Get an example configuration for the source plugin
 	GetExampleConfig(ctx context.Context, in *GetExampleConfig_Request, opts ...grpc.CallOption) (*GetExampleConfig_Response, error)
-	// Configure the source plugin with the given spec
-	Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error)
 	// Fetch resources
 	Fetch(ctx context.Context, in *Fetch_Request, opts ...grpc.CallOption) (Source_FetchClient, error)
 }
@@ -52,15 +50,6 @@ func (c *sourceClient) GetTables(ctx context.Context, in *GetTables_Request, opt
 func (c *sourceClient) GetExampleConfig(ctx context.Context, in *GetExampleConfig_Request, opts ...grpc.CallOption) (*GetExampleConfig_Response, error) {
 	out := new(GetExampleConfig_Response)
 	err := c.cc.Invoke(ctx, "/proto.Source/GetExampleConfig", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *sourceClient) Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error) {
-	out := new(Configure_Response)
-	err := c.cc.Invoke(ctx, "/proto.Source/Configure", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -107,8 +96,6 @@ type SourceServer interface {
 	GetTables(context.Context, *GetTables_Request) (*GetTables_Response, error)
 	// Get an example configuration for the source plugin
 	GetExampleConfig(context.Context, *GetExampleConfig_Request) (*GetExampleConfig_Response, error)
-	// Configure the source plugin with the given spec
-	Configure(context.Context, *Configure_Request) (*Configure_Response, error)
 	// Fetch resources
 	Fetch(*Fetch_Request, Source_FetchServer) error
 	mustEmbedUnimplementedSourceServer()
@@ -123,9 +110,6 @@ func (UnimplementedSourceServer) GetTables(context.Context, *GetTables_Request) 
 }
 func (UnimplementedSourceServer) GetExampleConfig(context.Context, *GetExampleConfig_Request) (*GetExampleConfig_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetExampleConfig not implemented")
-}
-func (UnimplementedSourceServer) Configure(context.Context, *Configure_Request) (*Configure_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
 }
 func (UnimplementedSourceServer) Fetch(*Fetch_Request, Source_FetchServer) error {
 	return status.Errorf(codes.Unimplemented, "method Fetch not implemented")
@@ -179,24 +163,6 @@ func _Source_GetExampleConfig_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Source_Configure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Configure_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(SourceServer).Configure(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Source/Configure",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SourceServer).Configure(ctx, req.(*Configure_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Source_Fetch_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Fetch_Request)
 	if err := stream.RecvMsg(m); err != nil {
@@ -232,10 +198,6 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetExampleConfig",
 			Handler:    _Source_GetExampleConfig_Handler,
-		},
-		{
-			MethodName: "Configure",
-			Handler:    _Source_Configure_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

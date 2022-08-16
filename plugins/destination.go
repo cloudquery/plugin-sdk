@@ -33,7 +33,7 @@ type DestinationPlugin interface {
 	Version() string
 	ExampleConfig() string
 	JsonSchema() string
-	Initialize(ctx context.Context, spec specs.DestinationSpec) error
+	Initialize(ctx context.Context, spec specs.Destination) error
 	Migrate(ctx context.Context, tables schema.Tables) error
 	Write(ctx context.Context, resources *schema.Resource) error
 	SetLogger(logger zerolog.Logger)
