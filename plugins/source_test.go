@@ -2,15 +2,12 @@ package plugins
 
 import (
 	"context"
-	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
-	"gopkg.in/yaml.v3"
 )
 
 var _ schema.ClientMeta = &testExecutionClient{}
@@ -28,13 +25,13 @@ type Account struct {
 	Regions []string `json:"regions"`
 }
 
-type TestConfig struct {
+type testSourceSpec struct {
 	Accounts []Account `json:"accounts"`
 	Regions  []string  `json:"regions"`
 }
 
-func (TestConfig) Example() string {
-	return ""
+func newTestSourceSpec() interface{} {
+	return &testSourceSpec{}
 }
 
 func testTable() *schema.Table {
@@ -70,8 +67,8 @@ func TestSync(t *testing.T) {
 		"1.0.0",
 		[]*schema.Table{testTable()},
 		newTestExecutionClient,
+		newTestSourceSpec,
 		WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
-		WithSourceExampleConfig(testSourcePluginExampleConfig),
 	)
 
 	// test round trip: get example config -> sync with example config -> success
@@ -79,17 +76,8 @@ func TestSync(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var spec specs.Source
-	if err := yaml.Unmarshal([]byte(exampleConfig), &spec); err != nil {
-		t.Fatal(err)
-	}
-
-	a := json.NewDecoder(strings.NewReader(exampleConfig))
-	json.Strin
-
-	d := yaml.NewDecoder(strings.NewReader(exampleConfig))
-	d.KnownFields(true)
-	if err := d.Decode(&spec); err != nil {
+	var spec specs.Spec
+	if err := specs.SpecUnmarshalYamlStrict([]byte(exampleConfig), &spec); err != nil {
 		t.Fatal(err)
 	}
 
@@ -97,7 +85,7 @@ func TestSync(t *testing.T) {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(resources)
-		_, err = plugin.Sync(ctx,
+		err = plugin.Sync(ctx,
 			*spec.Spec.(*specs.Source),
 			resources)
 		return err

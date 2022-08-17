@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 type WriteMode int
@@ -20,6 +21,21 @@ type Destination struct {
 	Registry  Registry    `json:"registry,omitempty"`
 	WriteMode WriteMode   `json:"write_mode,omitempty"`
 	Spec      interface{} `json:"spec,omitempty"`
+}
+
+func (d *Destination) SetDefaults() {
+	if d.Registry.String() == "" {
+		d.Registry = RegistryGithub
+	}
+	if d.Path == "" {
+		d.Path = d.Name
+	}
+	if d.Version == "" {
+		d.Version = "latest"
+	}
+	if d.Registry == RegistryGithub && !strings.Contains(d.Path, "/") {
+		d.Path = "cloudquery/" + d.Path
+	}
 }
 
 func (m WriteMode) String() string {

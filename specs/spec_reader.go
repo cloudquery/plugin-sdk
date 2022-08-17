@@ -36,9 +36,9 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 				return nil, fmt.Errorf("failed to unmarshal file %s: %w", file.Name(), err)
 			}
 			switch s.Kind {
-			case "source":
+			case KindSource:
 				reader.sources[file.Name()] = *s.Spec.(*Source)
-			case "destination":
+			case KindDestination:
 				reader.destinations[file.Name()] = *s.Spec.(*Destination)
 			default:
 				return nil, fmt.Errorf("unknown kind %s", s.Kind)

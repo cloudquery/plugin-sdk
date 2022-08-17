@@ -117,7 +117,7 @@ func (p *SourcePlugin) Tables() schema.Tables {
 
 func (p *SourcePlugin) ExampleConfig() (string, error) {
 	spec := specs.Spec{
-		Kind: "source",
+		Kind: specs.KindSource,
 		Spec: specs.Source{
 			Name:         p.name,
 			Version:      p.version,

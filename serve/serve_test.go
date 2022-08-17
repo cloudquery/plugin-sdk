@@ -18,10 +18,15 @@ import (
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
-const testSourcePluginExampleConfig = `
-# specify all accounts you want to sync
-accounts: []
-`
+type testSourceSpec struct {
+	accounts []string `json:"accounts,omitempty"`
+}
+
+func newTestSourceSpec() interface{} {
+	return &testSourceSpec{
+		accounts: []string{"all"},
+	}
+}
 
 type testExecutionClient struct {
 	logger zerolog.Logger
@@ -53,7 +58,7 @@ func (c *testExecutionClient) Logger() *zerolog.Logger {
 	return &c.logger
 }
 
-func newTestExecutionClient(context.Context, *plugins.SourcePlugin, specs.SourceSpec) (schema.ClientMeta, error) {
+func newTestExecutionClient(context.Context, *plugins.SourcePlugin, specs.Source) (schema.ClientMeta, error) {
 	return &testExecutionClient{}, nil
 }
 
@@ -83,8 +88,8 @@ func TestServe(t *testing.T) {
 		"1.0.0",
 		[]*schema.Table{testTable()},
 		newTestExecutionClient,
+		newTestSourceSpec,
 		plugins.WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
-		plugins.WithSourceExampleConfig(testSourcePluginExampleConfig),
 	)
 
 	cmd := newCmdRoot(Options{
@@ -117,7 +122,7 @@ func TestServe(t *testing.T) {
 	wg.Go(func() error {
 		defer close(resources)
 		return c.Fetch(ctx,
-			specs.SourceSpec{
+			specs.Source{
 				Name:     "testSourcePlugin",
 				Version:  "1.0.0",
 				Registry: specs.RegistryGithub,
@@ -137,13 +142,13 @@ func TestServe(t *testing.T) {
 		t.Fatalf("Failed to fetch resources: %v", err)
 	}
 
-	exampleConfig, err := c.GetExampleConfig(ctx)
+	exampleConfig, err := c.ExampleConfig(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get example config: %v", err)
 	}
 
-	if exampleConfig != testSourcePluginExampleConfig {
-		t.Fatalf("Expected example config:\n%s got:\n%s", testSourcePluginExampleConfig, exampleConfig)
+	if exampleConfig != "" {
+		t.Fatalf("Expected example config:\n%s got:\n%s", "", exampleConfig)
 	}
 
 }
