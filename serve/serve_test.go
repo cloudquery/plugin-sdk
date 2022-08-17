@@ -10,6 +10,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -19,12 +20,23 @@ import (
 var _ schema.ClientMeta = &testExecutionClient{}
 
 type testSourceSpec struct {
-	accounts []string `json:"accounts,omitempty"`
+	Accounts []string `json:"accounts,omitempty"`
+}
+
+var expectedExampleSpecConfig = specs.Spec{
+	Kind: specs.KindSource,
+	Spec: &specs.Source{
+		Name:    "testSourcePlugin",
+		Path:    "cloudquery/testSourcePlugin",
+		Version: "v1.0.0",
+		Tables:  []string{"*"},
+		Spec:    map[string]interface{}{"accounts": []interface{}{"all"}},
+	},
 }
 
 func newTestSourceSpec() interface{} {
 	return &testSourceSpec{
-		accounts: []string{"all"},
+		Accounts: []string{"all"},
 	}
 }
 
@@ -85,7 +97,7 @@ func bufDialer(context.Context, string) (net.Conn, error) {
 func TestServe(t *testing.T) {
 	plugin := plugins.NewSourcePlugin(
 		"testSourcePlugin",
-		"1.0.0",
+		"v1.0.0",
 		[]*schema.Table{testTable()},
 		newTestExecutionClient,
 		newTestSourceSpec,
@@ -121,10 +133,10 @@ func TestServe(t *testing.T) {
 	wg := errgroup.Group{}
 	wg.Go(func() error {
 		defer close(resources)
-		return c.Fetch(ctx,
+		return c.Sync(ctx,
 			specs.Source{
 				Name:     "testSourcePlugin",
-				Version:  "1.0.0",
+				Version:  "v1.0.0",
 				Registry: specs.RegistryGithub,
 				Spec:     TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
 			},
@@ -146,9 +158,14 @@ func TestServe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get example config: %v", err)
 	}
+	var exampleSpec specs.Spec
+	if err := specs.SpecUnmarshalYamlStrict([]byte(exampleConfig), &exampleSpec); err != nil {
+		t.Fatalf("Failed to unmarshal example config: %v", err)
+	}
+	// skip internal validation for now
 
-	if exampleConfig != "" {
-		t.Fatalf("Expected example config:\n%s got:\n%s", "", exampleConfig)
+	if diff := cmp.Diff(expectedExampleSpecConfig, exampleSpec); diff != "" {
+		t.Fatalf("Spec mismatch (-want +got):\n%s", diff)
 	}
 
 }

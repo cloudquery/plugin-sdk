@@ -48,16 +48,16 @@ func (c *SourceClient) ExampleConfig(ctx context.Context) (string, error) {
 	return res.Config, nil
 }
 
-func (c *SourceClient) Fetch(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
+func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
 	b, err := json.Marshal(spec)
 	if err != nil {
 		return fmt.Errorf("failed to marshal source spec: %w", err)
 	}
-	stream, err := c.pbClient.Fetch(ctx, &pb.Fetch_Request{
+	stream, err := c.pbClient.Sync(ctx, &pb.Sync_Request{
 		Spec: b,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to fetch resources: %w", err)
+		return fmt.Errorf("failed to sync resources: %w", err)
 	}
 	for {
 		r, err := stream.Recv()

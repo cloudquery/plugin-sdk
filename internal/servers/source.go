@@ -28,7 +28,7 @@ func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.Ge
 	}, nil
 }
 
-func (s *SourceServer) ExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
+func (s *SourceServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
 	exampleConfig, err := s.Plugin.ExampleConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get example config: %w", err)
@@ -39,7 +39,7 @@ func (s *SourceServer) ExampleConfig(context.Context, *pb.GetExampleConfig_Reque
 		Config:  exampleConfig}, nil
 }
 
-func (s *SourceServer) Sync(req *pb.Fetch_Request, stream pb.Source_FetchServer) error {
+func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
 	resources := make(chan *schema.Resource)
 	var fetchErr error
 
@@ -63,7 +63,7 @@ func (s *SourceServer) Sync(req *pb.Fetch_Request, stream pb.Source_FetchServer)
 		if err != nil {
 			return errors.Wrap(err, "failed to marshal resource")
 		}
-		if err := stream.Send(&pb.Fetch_Response{
+		if err := stream.Send(&pb.Sync_Response{
 			Resource: b,
 		}); err != nil {
 			return errors.Wrap(err, "failed to send resource")

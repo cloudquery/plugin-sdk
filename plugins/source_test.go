@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -12,22 +13,18 @@ import (
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
-const testSourcePluginExampleConfig = `# specify all accounts you want to sync
-accounts: []
-`
-
 type testExecutionClient struct {
 	logger zerolog.Logger
 }
 
 type Account struct {
 	Name    string   `json:"name,omitempty"`
-	Regions []string `json:"regions"`
+	Regions []string `json:"regions,omitempty"`
 }
 
 type testSourceSpec struct {
-	Accounts []Account `json:"accounts"`
-	Regions  []string  `json:"regions"`
+	Accounts []Account `json:"accounts,omitempty"`
+	Regions  []string  `json:"regions,omitempty"`
 }
 
 func newTestSourceSpec() interface{} {
@@ -76,6 +73,7 @@ func TestSync(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Println(exampleConfig)
 	var spec specs.Spec
 	if err := specs.SpecUnmarshalYamlStrict([]byte(exampleConfig), &spec); err != nil {
 		t.Fatal(err)

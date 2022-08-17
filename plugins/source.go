@@ -1,8 +1,8 @@
 package plugins
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -10,10 +10,10 @@ import (
 	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/ghodss/yaml"
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
 	"golang.org/x/sync/semaphore"
-	"gopkg.in/yaml.v3"
 
 	_ "embed"
 )
@@ -25,25 +25,6 @@ const ExampleSourceConfig = `
 # tables: ["*"]
 # skip_tables specify which tables to skip. especially useful when using "*" for tables
 # skip_tables: []
-`
-
-const sourcePluginExampleConfigTemplate = `kind: source
-spec:
-  name: {{.Name}}
-  version: {{.Version}}
-  # path: Path to the plugin. by default it is the same as the name of the plugin.
-  # registry can be local, github, grpc (default github)
-  # registry: github
-  # max_goroutines used for sync, by default calculated automatically depending on
-  # memory and cpu avaialble
-  # max_goroutines: 0
-  tables: ["*"]
-  # skip_tables is useful if you want to fetch all tables apart from specific ones
-  # skip_tables: []
-  # name of destinations to sync the data
-  destinations: []
-  configuration:
-  {{.PluginExampleConfig | indent 4}}
 `
 
 type SourceNewExecutionClientFunc func(context.Context, *SourcePlugin, specs.Source) (schema.ClientMeta, error)
@@ -116,23 +97,27 @@ func (p *SourcePlugin) Tables() schema.Tables {
 }
 
 func (p *SourcePlugin) ExampleConfig() (string, error) {
+	sourceSpec := specs.Source{
+		Name:         p.name,
+		Version:      p.version,
+		Tables:       []string{"*"},
+		Destinations: []string{},
+		Spec:         p.newSpec(),
+	}
+	sourceSpec.SetDefaults()
 	spec := specs.Spec{
 		Kind: specs.KindSource,
-		Spec: specs.Source{
-			Name:         p.name,
-			Version:      p.version,
-			Tables:       []string{"*"},
-			Destinations: []string{},
-			Spec:         p.newSpec(),
-		},
+		Spec: &sourceSpec,
 	}
-	bytes := bytes.NewBuffer([]byte(""))
-	enc := yaml.NewEncoder(bytes)
-	enc.SetIndent(2)
-	if err := enc.Encode(spec); err != nil {
-		return "", err
+	b, err := json.Marshal(spec)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal example config to json: %w", err)
 	}
-	return bytes.String(), nil
+	b, err = yaml.JSONToYAML(b)
+	if err != nil {
+		return "", fmt.Errorf("failed to convert json to yaml: %w", err)
+	}
+	return string(b), nil
 }
 
 func (p *SourcePlugin) GetJsonSchema() string {
