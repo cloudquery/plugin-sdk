@@ -33,7 +33,7 @@ func init() {
 
 // type
 
-func TestResource(t *testing.T, tc ResourceTestCase) {
+func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source) {
 	t.Parallel()
 	t.Helper()
 
@@ -49,7 +49,7 @@ func TestResource(t *testing.T, tc ResourceTestCase) {
 	// tc.Plugin.Logger = zerolog.New(zerolog.NewTestWriter(t))
 	go func() {
 		defer close(resources)
-		fetchErr = tc.Plugin.Sync(context.Background(), tc.Spec, resources)
+		fetchErr = plugin.Sync(context.Background(), spec, resources)
 	}()
 
 	for resource := range resources {

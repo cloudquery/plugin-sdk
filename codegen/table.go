@@ -21,6 +21,7 @@ type TableDefinition struct {
 	PostResourceResolver string
 	Options              schema.TableCreationOptions
 	nameTransformer      func(string) string
+	skipFields           []string
 }
 
 type ColumnDefinition struct {

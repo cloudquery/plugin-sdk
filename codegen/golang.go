@@ -53,8 +53,23 @@ func WithNameTransformer(transformer func(string) string) TableOptions {
 	}
 }
 
+func WithSkipFields(fields ...string) TableOptions {
+	return func(t *TableDefinition) {
+		t.skipFields = append(t.skipFields, fields...)
+	}
+}
+
 func defaultTransformer(name string) string {
 	return strcase.ToSnake(name)
+}
+
+func sliceContains(arr []string, s string) bool {
+	for _, v := range arr {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
 
 func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*TableDefinition, error) {
@@ -75,10 +90,14 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 	}
 	for i := 0; i < e.NumField(); i++ {
 		field := e.Type().Field(i)
+		if sliceContains(t.skipFields, field.Name) {
+			continue
+		}
 		columnType, err := valueToSchemaType(field.Type)
 		if err != nil {
 			return nil, err
 		}
+
 		column := ColumnDefinition{
 			Name: t.nameTransformer(field.Name),
 			Type: columnType,
