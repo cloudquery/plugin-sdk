@@ -2,18 +2,14 @@ package plugins
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/ghodss/yaml"
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
-	"golang.org/x/sync/semaphore"
 
 	_ "embed"
 )
@@ -29,8 +25,6 @@ const ExampleSourceConfig = `
 
 type SourceNewExecutionClientFunc func(context.Context, *SourcePlugin, specs.Source) (schema.ClientMeta, error)
 
-type SourceNewSpecFunc func() interface{}
-
 // SourcePlugin is the base structure required to pass to sdk.serve
 // We take a similar/declerative approach to API here similar to Cobra
 type SourcePlugin struct {
@@ -44,19 +38,17 @@ type SourcePlugin struct {
 	newExecutionClient SourceNewExecutionClientFunc
 	// Tables is all tables supported by this source plugin
 	tables schema.Tables
-	// newSpec return a new struct to be pupolated by the passed configuration
-	newSpec SourceNewSpecFunc
-	// JsonSchema for specific source plugin spec
-	jsonSchema string
+	// exampleConfig
+	exampleConfig string
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
 }
 
 type SourceOption func(*SourcePlugin)
 
-func WithSourceJsonSchema(jsonSchema string) SourceOption {
+func WithSourceExampleConfig(exampleConfig string) SourceOption {
 	return func(p *SourcePlugin) {
-		p.jsonSchema = jsonSchema
+		p.exampleConfig = exampleConfig
 	}
 }
 
@@ -72,23 +64,29 @@ func WithClassifyError(ignoreError schema.IgnoreErrorFunc) SourceOption {
 	}
 }
 
-func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc, newSpec SourceNewSpecFunc, opts ...SourceOption) *SourcePlugin {
+// Add internal columns
+func addInternalColumns(tables []*schema.Table) {
+	for _, table := range tables {
+		table.Columns = append(schema.CqColumns, table.Columns...)
+		addInternalColumns(table.Relations)
+	}
+}
+
+func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc, opts ...SourceOption) *SourcePlugin {
 	p := SourcePlugin{
 		name:               name,
 		version:            version,
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
-		newSpec:            newSpec,
 	}
 	if newExecutionClient == nil {
 		panic("newExecutionClient function not defined for source plugin:" + name)
 	}
-	if newSpec == nil {
-		panic("newConfig function not defined for source plugin:" + name)
-	}
 	for _, opt := range opts {
 		opt(&p)
 	}
+	addInternalColumns(p.tables)
+	// add default columns to tables
 	return &p
 }
 
@@ -97,31 +95,7 @@ func (p *SourcePlugin) Tables() schema.Tables {
 }
 
 func (p *SourcePlugin) ExampleConfig() (string, error) {
-	sourceSpec := specs.Source{
-		Name:         p.name,
-		Version:      p.version,
-		Tables:       []string{"*"},
-		Destinations: []string{},
-		Spec:         p.newSpec(),
-	}
-	sourceSpec.SetDefaults()
-	spec := specs.Spec{
-		Kind: specs.KindSource,
-		Spec: &sourceSpec,
-	}
-	b, err := json.Marshal(spec)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal example config to json: %w", err)
-	}
-	b, err = yaml.JSONToYAML(b)
-	if err != nil {
-		return "", fmt.Errorf("failed to convert json to yaml: %w", err)
-	}
-	return string(b), nil
-}
-
-func (p *SourcePlugin) GetJsonSchema() string {
-	return p.jsonSchema
+	return p.exampleConfig, nil
 }
 
 func (p *SourcePlugin) Name() string {
@@ -152,7 +126,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	}
 	p.logger.Info().Uint64("max_goroutines", maxGoroutines).Msg("starting fetch")
 
-	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
+	// goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
 
 	w := sync.WaitGroup{}
 	totalResources := 0
@@ -161,6 +135,10 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	if err != nil {
 		return err
 	}
+
+	// this is the same fetchtime for all resources
+	fetchTime := time.Now()
+
 	for _, table := range p.tables {
 		table := table
 		if funk.ContainsString(spec.SkipTables, table.Name) || !funk.ContainsString(tableNames, table.Name) {
@@ -177,36 +155,29 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 		}
 		// we call this here because we dont know when the following goroutine will be called and we do want an order
 		// of table by table
-		totalClients := len(clients)
-		newN := helpers.TryAcquireMax(goroutinesSem, int64(totalClients))
+		// totalClients := len(clients)
+		// newN, err := helpers.TryAcquireMax(ctx, goroutinesSem, int64(totalClients))
+		// if err != nil {
+		// 	p.logger.Error().Err(err).Msg("failed to TryAcquireMax semaphore. exiting")
+		// 	break
+		// }
 		// goroutinesSem.TryAcquire()
 		w.Add(1)
 		go func() {
 			defer w.Done()
-			defer goroutinesSem.Release(int64(totalClients) - newN)
 			wg := sync.WaitGroup{}
 			p.logger.Info().Str("table", table.Name).Msg("fetch start")
 			tableStartTime := time.Now()
 			totalTableResources := 0
-			for i, client := range clients {
+			for _, client := range clients {
 				client := client
-				i := i
-				// acquire semaphore only if we couldn't acquire it earlier
-				if newN > 0 && i >= (totalClients-int(newN)) {
-					if err := goroutinesSem.Acquire(ctx, 1); err != nil {
-						// this can happen if context was cancelled so we just break out of the loop
-						p.logger.Error().Err(err).Msg("failed to acquire semaphore")
-						return
-					}
-				}
+
+				// i := i
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					if newN > 0 && i >= (totalClients-int(newN)) {
-						defer goroutinesSem.Release(1)
-					}
-
-					totalTableResources += table.Resolve(ctx, client, nil, res)
+					// defer goroutinesSem.Release(1)
+					totalTableResources += table.Resolve(ctx, client, fetchTime, nil, res)
 				}()
 			}
 			wg.Wait()

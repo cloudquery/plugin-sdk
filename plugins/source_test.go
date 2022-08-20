@@ -64,7 +64,6 @@ func TestSync(t *testing.T) {
 		"1.0.0",
 		[]*schema.Table{testTable()},
 		newTestExecutionClient,
-		newTestSourceSpec,
 		WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
 	)
 

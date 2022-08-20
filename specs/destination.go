@@ -38,6 +38,17 @@ func (d *Destination) SetDefaults() {
 	}
 }
 
+func (s *Destination) UnmarshalSpec(out interface{}) error {
+	b, err := json.Marshal(s.Spec)
+	if err != nil {
+		return err
+	}
+	dec := json.NewDecoder(nil)
+	dec.UseNumber()
+	dec.DisallowUnknownFields()
+	return json.Unmarshal(b, out)
+}
+
 func (m WriteMode) String() string {
 	return [...]string{"append-only", "overwrite"}[m]
 }

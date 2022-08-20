@@ -35,7 +35,7 @@ type Table struct {
 	// Columns are the set of fields that are part of this table
 	Columns ColumnList `json:"columns"`
 	// Relations are a set of related tables defines
-	Relations []*Table `json:"relations"`
+	Relations Tables `json:"relations"`
 	// Resolver is the main entry point to fetching table data and
 	Resolver TableResolver `json:"-"`
 	// IgnoreError is a function that classifies error and returns it's severity and type
@@ -115,7 +115,7 @@ func (t Table) TableNames() []string {
 }
 
 // Call the table resolver with with all of it's relation for every reolved resource
-func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resolvedResources chan<- *Resource) int {
+func (t Table) Resolve(ctx context.Context, meta ClientMeta, fetchTime time.Time, parent *Resource, resolvedResources chan<- *Resource) int {
 	res := make(chan interface{})
 	startTime := time.Now()
 	go func() {
@@ -148,7 +148,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 		}
 		totalResources += len(objects)
 		for i := range objects {
-			resource := NewResourceData(&t, parent, objects[i])
+			resource := NewResourceData(&t, parent, fetchTime, objects[i])
 			t.resolveColumns(ctx, meta, resource)
 			if t.PostResourceResolver != nil {
 				meta.Logger().Trace().Str("table_name", t.Name).Msg("post resource resolver started")
@@ -160,7 +160,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 			}
 			resolvedResources <- resource
 			for _, rel := range t.Relations {
-				totalResources += rel.Resolve(ctx, meta, resource, resolvedResources)
+				totalResources += rel.Resolve(ctx, meta, fetchTime, resource, resolvedResources)
 			}
 		}
 	}

@@ -67,9 +67,7 @@ type Column struct {
 const (
 	TypeInvalid ValueType = iota
 	TypeBool
-	TypeSmallInt
 	TypeInt
-	TypeBigInt
 	TypeFloat
 	TypeUUID
 	TypeString
@@ -91,8 +89,8 @@ func (v ValueType) String() string {
 	switch v {
 	case TypeBool:
 		return "TypeBool"
-	case TypeInt, TypeBigInt, TypeSmallInt:
-		return "TypeBigInt"
+	case TypeInt:
+		return "TypeInt"
 	case TypeFloat:
 		return "TypeFloat"
 	case TypeUUID:
@@ -136,7 +134,7 @@ func ValueTypeFromString(s string) ValueType {
 	case "bool":
 		return TypeBool
 	case "int", "bigint", "smallint":
-		return TypeBigInt
+		return TypeInt
 	case "float":
 		return TypeFloat
 	case "uuid":
@@ -202,7 +200,7 @@ func (c Column) checkType(v interface{}) bool {
 	switch val := v.(type) {
 	case int8, *int8, uint8, *uint8, int16, *int16, uint16, *uint16, int32, *int32, int, *int, uint32, *uint32, int64, *int64:
 		// TODO: Deprecate all Int Types in favour of BigInt
-		return c.Type == TypeBigInt || c.Type == TypeSmallInt || c.Type == TypeInt
+		return c.Type == TypeInt
 	case []byte:
 		if c.Type == TypeUUID {
 			if _, err := uuid.FromBytes(val); err != nil {
@@ -277,16 +275,6 @@ func (c Column) checkType(v interface{}) bool {
 		}
 		if kindName == reflect.Struct {
 			return c.Type == TypeJSON
-		}
-		if c.Type == TypeSmallInt && (kindName == reflect.Int8 || kindName == reflect.Int16 || kindName == reflect.Uint8) {
-			return true
-		}
-
-		if c.Type == TypeInt && (kindName == reflect.Uint16 || kindName == reflect.Int32) {
-			return true
-		}
-		if c.Type == TypeBigInt && (kindName == reflect.Int || kindName == reflect.Int64 || kindName == reflect.Uint || kindName == reflect.Uint32 || kindName == reflect.Uint64) {
-			return true
 		}
 	}
 

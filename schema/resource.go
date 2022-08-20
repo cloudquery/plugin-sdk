@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -18,18 +20,18 @@ type Resource struct {
 	// This is sorted result data by column name
 	Data      map[string]interface{} `json:"data"`
 	TableName string                 `json:"table_name"`
-	cqId      uuid.UUID
 }
 
-func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
-	return &Resource{
+func NewResourceData(t *Table, parent *Resource, fetchTime time.Time, item interface{}) *Resource {
+	r := Resource{
 		Item:      item,
 		Parent:    parent,
 		Table:     t,
 		Data:      make(map[string]interface{}, len(t.Columns)),
-		cqId:      uuid.New(),
 		TableName: t.Name,
 	}
+	r.Data[CqFetchTime.Name] = fetchTime
+	return &r
 }
 
 // func (r *Resource) PrimaryKeyValues() []string {
@@ -69,7 +71,10 @@ func (r *Resource) Set(key string, value interface{}) error {
 }
 
 func (r *Resource) Id() uuid.UUID {
-	return r.cqId
+	if r.Data[cqIdColumn.Name] == nil {
+		return uuid.UUID{}
+	}
+	return r.Data[cqIdColumn.Name].(uuid.UUID)
 }
 
 func (r *Resource) Columns() []string {

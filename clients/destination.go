@@ -41,7 +41,7 @@ func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error
 	return res.Config, nil
 }
 
-func (c *DestinationClient) Configure(ctx context.Context, spec specs.Destination) error {
+func (c *DestinationClient) Initialize(ctx context.Context, spec specs.Destination) error {
 	if c.localClient != nil {
 		return c.localClient.Initialize(ctx, spec)
 	}

@@ -100,7 +100,7 @@ func TestServe(t *testing.T) {
 		"v1.0.0",
 		[]*schema.Table{testTable()},
 		newTestExecutionClient,
-		newTestSourceSpec,
+		plugins.WithSourceExampleConfig(""),
 		plugins.WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
 	)
 

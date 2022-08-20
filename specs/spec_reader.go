@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 )
 
 type SpecReader struct {
@@ -32,7 +30,8 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 				return nil, fmt.Errorf("failed to read file %s: %w", file.Name(), err)
 			}
 			var s Spec
-			if err := yaml.Unmarshal(data, &s); err != nil {
+			SpecUnmarshalYamlStrict(data, &s)
+			if err := SpecUnmarshalYamlStrict(data, &s); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal file %s: %w", file.Name(), err)
 			}
 			switch s.Kind {
