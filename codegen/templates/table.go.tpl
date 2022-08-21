@@ -9,6 +9,14 @@
 		{{- if .IgnoreError}}
     IgnoreError:  {{.IgnoreError}},
     {{- end}}
+    {{- if .Options}}
+    Options: schema.TableCreationOptions{
+      PrimaryKeys: []string{
+        {{- range .Options.PrimaryKeys}}
+        "{{.}}",{{- end}}
+      },
+    },
+    {{- end}}
 		Columns: []schema.Column{
 {{range .Columns}}{{template "column.go.tpl" .}}{{end}}
 		},
