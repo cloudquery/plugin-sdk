@@ -179,10 +179,14 @@ func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Re
 			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default started")
 			// base use case: try to get column with CamelCase name
 			v := funk.Get(resource.Item, strcase.ToCamel(c.Name), funk.WithAllowZero())
-			if err := resource.Set(c.Name, v); err != nil {
-				meta.Logger().Error().Str("colum_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver default finished with error")
+			if v != nil {
+				if err := resource.Set(c.Name, v); err != nil {
+					meta.Logger().Error().Str("colum_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver default finished with error")
+				}
+				meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully")
+			} else {
+				meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully with nil")
 			}
-			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully")
 		}
 	}
 }
