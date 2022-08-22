@@ -30,4 +30,5 @@ type ColumnDefinition struct {
 	Resolver      string
 	Description   string
 	IgnoreInTests bool
+	Options       schema.ColumnCreationOptions
 }

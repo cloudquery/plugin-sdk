@@ -36,8 +36,9 @@ type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resourc
 
 // ColumnCreationOptions allow modification of how column is defined when table is created
 type ColumnCreationOptions struct {
-	Unique  bool `json:"unique,omitempty"`
-	NotNull bool `json:"notnull,omitempty"`
+	PrimaryKey bool `json:"primary_key,omitempty"`
+	Unique     bool `json:"unique,omitempty"`
+	NotNull    bool `json:"notnull,omitempty"`
 }
 
 // Column definition for Table

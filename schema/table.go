@@ -86,6 +86,17 @@ func (t Table) Column(name string) *Column {
 	return nil
 }
 
+func (t Table) PrimaryKeys() []string {
+	var primaryKeys []string
+	for _, c := range t.Columns {
+		if c.CreationOptions.PrimaryKey {
+			primaryKeys = append(primaryKeys, c.Name)
+		}
+	}
+
+	return primaryKeys
+}
+
 func (t Table) ColumnIndex(name string) int {
 	var once sync.Once
 	once.Do(func() {
