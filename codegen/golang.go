@@ -3,18 +3,18 @@ package codegen
 import (
 	"embed"
 	"fmt"
+	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/iancoleman/strcase"
 	"io"
 	"reflect"
 	"text/template"
-
-	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/iancoleman/strcase"
+	"time"
 )
 
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
-func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
+func valueToSchemaType(v reflect.Type, f interface{}) (schema.ValueType, error) {
 	k := v.Kind()
 	switch k {
 	case reflect.String:
@@ -26,10 +26,17 @@ func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 		return schema.TypeInt, nil
 	case reflect.Float32, reflect.Float64:
 		return schema.TypeFloat, nil
-	case reflect.Struct, reflect.Map:
+	case reflect.Map:
+		return schema.TypeJSON, nil
+	case reflect.Struct:
+		switch f.(type) {
+		case time.Time:
+			return schema.TypeTimestamp, nil
+		}
 		return schema.TypeJSON, nil
 	case reflect.Pointer:
-		return valueToSchemaType(v.Elem())
+		inf := reflect.ValueOf(v.Elem()).Interface()
+		return valueToSchemaType(v.Elem(), inf)
 	case reflect.Slice:
 		switch v.Elem().Kind() {
 		case reflect.String:
@@ -93,7 +100,8 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 		if sliceContains(t.skipFields, field.Name) {
 			continue
 		}
-		columnType, err := valueToSchemaType(field.Type)
+		v := reflect.Indirect(e).FieldByIndex([]int{i}).Interface()
+		columnType, err := valueToSchemaType(field.Type, v)
 		if err != nil {
 			return nil, err
 		}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 )
@@ -17,8 +18,10 @@ type testStruct struct {
 		IntCol    int    `json:"int_col,omitempty"`
 		StringCol string `json:"string_col,omitempty"`
 	}
-	IntArrayCol    []int    `json:"int_array_col,omitempty"`
-	StringArrayCol []string `json:"string_array_col,omitempty"`
+	IntArrayCol    []int      `json:"int_array_col,omitempty"`
+	StringArrayCol []string   `json:"string_array_col,omitempty"`
+	TimeCol        time.Time  `json:"time_col,omitempty"`
+	TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
 }
 
 var expectedTestTable = TableDefinition{
@@ -51,6 +54,14 @@ var expectedTestTable = TableDefinition{
 		{
 			Name: "string_array_col",
 			Type: schema.TypeStringArray,
+		},
+		{
+			Name: "time_col",
+			Type: schema.TypeTimestamp,
+		},
+		{
+			Name: "time_pointer_col",
+			Type: schema.TypeTimestamp,
 		},
 	},
 	nameTransformer: defaultTransformer,
