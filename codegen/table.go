@@ -31,4 +31,9 @@ type ColumnDefinition struct {
 	Description   string
 	IgnoreInTests bool
 	Options       schema.ColumnCreationOptions
+	Meta          ColumnMeta
+}
+
+type ColumnMeta struct {
+	OriginalName string
 }

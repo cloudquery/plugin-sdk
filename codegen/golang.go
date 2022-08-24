@@ -109,6 +109,9 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 		column := ColumnDefinition{
 			Name: t.nameTransformer(field.Name),
 			Type: columnType,
+			Meta: ColumnMeta{
+				OriginalName: field.Name,
+			},
 		}
 		t.Columns = append(t.Columns, column)
 	}
