@@ -8,13 +8,12 @@ import (
 	"io"
 	"reflect"
 	"text/template"
-	"time"
 )
 
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
-func valueToSchemaType(v reflect.Type, f interface{}) (schema.ValueType, error) {
+func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	k := v.Kind()
 	switch k {
 	case reflect.String:
@@ -29,14 +28,13 @@ func valueToSchemaType(v reflect.Type, f interface{}) (schema.ValueType, error) 
 	case reflect.Map:
 		return schema.TypeJSON, nil
 	case reflect.Struct:
-		switch f.(type) {
-		case time.Time:
+		t := v.PkgPath() + "." + v.Name()
+		if t == "time.Time" {
 			return schema.TypeTimestamp, nil
 		}
 		return schema.TypeJSON, nil
 	case reflect.Pointer:
-		inf := reflect.ValueOf(v.Elem()).Interface()
-		return valueToSchemaType(v.Elem(), inf)
+		return valueToSchemaType(v.Elem())
 	case reflect.Slice:
 		switch v.Elem().Kind() {
 		case reflect.String:
@@ -100,8 +98,7 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 		if sliceContains(t.skipFields, field.Name) {
 			continue
 		}
-		v := reflect.Indirect(e).FieldByIndex([]int{i}).Interface()
-		columnType, err := valueToSchemaType(field.Type, v)
+		columnType, err := valueToSchemaType(field.Type)
 		if err != nil {
 			return nil, err
 		}
