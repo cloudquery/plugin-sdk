@@ -106,9 +106,12 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 			return nil, err
 		}
 
+		// generate a PathResolver to use by default
+		pathResolver := fmt.Sprintf("schema.PathResolver(%q)", field.Name)
 		column := ColumnDefinition{
-			Name: t.nameTransformer(field.Name),
-			Type: columnType,
+			Name:     t.nameTransformer(field.Name),
+			Type:     columnType,
+			Resolver: pathResolver,
 		}
 		t.Columns = append(t.Columns, column)
 	}
