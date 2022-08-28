@@ -151,6 +151,9 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, fetchTime time.Time
 		meta.Logger().Debug().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Msg("table resolver finished successfully")
 	}()
 	totalResources := 0
+	// we want to check for data integirty
+	// in the future we can do that as an optinoal feature via a flag
+	pks := map[string]bool{}
 	// each result is an array of interface{}
 	for elem := range res {
 		objects := helpers.InterfaceSlice(elem)
@@ -168,6 +171,11 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, fetchTime time.Time
 				} else {
 					meta.Logger().Trace().Str("table_name", t.Name).Msg("post resource resolver finished successfully")
 				}
+			}
+			if pks[resource.PrimaryKeyValue()] {
+				meta.Logger().Error().Str("table_name", t.Name).Str("primary_key", resource.PrimaryKeyValue()).Msg("duplicate primary key found")
+			} else {
+				pks[resource.PrimaryKeyValue()] = true
 			}
 			resolvedResources <- resource
 			for _, rel := range t.Relations {

@@ -67,7 +67,11 @@ func WithClassifyError(ignoreError schema.IgnoreErrorFunc) SourceOption {
 // Add internal columns
 func addInternalColumns(tables []*schema.Table) {
 	for _, table := range tables {
-		table.Columns = append(schema.CqColumns, table.Columns...)
+		cqId := schema.CqIdColumn
+		if len(table.PrimaryKeys()) == 0 {
+			cqId.CreationOptions.PrimaryKey = true
+		}
+		table.Columns = append(table.Columns, cqId, schema.CqFetchTime)
 		addInternalColumns(table.Relations)
 	}
 }

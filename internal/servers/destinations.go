@@ -46,7 +46,7 @@ func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 		}
-		if err := s.Plugin.Write(context.Background(), resource); err != nil {
+		if err := s.Plugin.Write(context.Background(), resource.TableName, resource.Data); err != nil {
 			return fmt.Errorf("write: failed to write resource: %w", err)
 		}
 	}

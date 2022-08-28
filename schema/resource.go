@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,32 +36,32 @@ func NewResourceData(t *Table, parent *Resource, fetchTime time.Time, item inter
 	return &r
 }
 
-// func (r *Resource) PrimaryKeyValues() []string {
-// 	tablePrimKeys := r.dialect.PrimaryKeys(r.table)
-// 	if len(tablePrimKeys) == 0 {
-// 		return []string{}
-// 	}
-// 	results := make([]string, 0)
-// 	for _, primKey := range tablePrimKeys {
-// 		data := r.Get(primKey)
-// 		if data == nil {
-// 			continue
-// 		}
-// 		// we can have more types, but PKs are usually either ints, strings or a structure
-// 		// hopefully supporting Stringer interface, otherwise we fallback
-// 		switch v := data.(type) {
-// 		case fmt.Stringer:
-// 			results = append(results, v.String())
-// 		case *string:
-// 			results = append(results, *v)
-// 		case *int:
-// 			results = append(results, fmt.Sprintf("%d", *v))
-// 		default:
-// 			results = append(results, fmt.Sprintf("%v", v))
-// 		}
-// 	}
-// 	return results
-// }
+func (r *Resource) PrimaryKeyValue() string {
+	pks := r.Table.PrimaryKeys()
+	if len(pks) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	for _, primKey := range pks {
+		data := r.Get(primKey)
+		if data == nil {
+			continue
+		}
+		// we can have more types, but PKs are usually either ints, strings or a structure
+		// hopefully supporting Stringer interface, otherwise we fallback
+		switch v := data.(type) {
+		case fmt.Stringer:
+			sb.WriteString(v.String())
+		case *string:
+			sb.WriteString(*v)
+		case *int:
+			sb.WriteString(fmt.Sprintf("%d", *v))
+		default:
+			sb.WriteString(fmt.Sprintf("%d", v))
+		}
+	}
+	return sb.String()
+}
 
 func (r *Resource) Get(key string) interface{} {
 	return r.Data[key]
@@ -71,10 +73,10 @@ func (r *Resource) Set(key string, value interface{}) error {
 }
 
 func (r *Resource) Id() uuid.UUID {
-	if r.Data[cqIdColumn.Name] == nil {
+	if r.Data[CqIdColumn.Name] == nil {
 		return uuid.UUID{}
 	}
-	return r.Data[cqIdColumn.Name].(uuid.UUID)
+	return r.Data[CqIdColumn.Name].(uuid.UUID)
 }
 
 func (r *Resource) Columns() []string {

@@ -73,7 +73,7 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 	return nil
 }
 
-func (c *DestinationClient) Write(ctx context.Context, resource *schema.Resource) error {
+func (c *DestinationClient) Write(ctx context.Context, table string, data map[string]interface{}) error {
 	// var saveClient pb.Destination_SaveClient
 	// var err error
 	// if c.pbClient != nil {
@@ -83,7 +83,7 @@ func (c *DestinationClient) Write(ctx context.Context, resource *schema.Resource
 	// 	}
 	// }
 	if c.localClient != nil {
-		if err := c.localClient.Write(ctx, resource); err != nil {
+		if err := c.localClient.Write(ctx, table, data); err != nil {
 			return fmt.Errorf("failed to save resources: %w", err)
 		}
 	}

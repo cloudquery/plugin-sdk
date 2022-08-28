@@ -10,7 +10,7 @@ import (
 type WriteMode int
 
 const (
-	WriteModeAppendOnly WriteMode = iota
+	WriteModeAppend WriteMode = iota
 	WriteModeOverwrite
 )
 
@@ -50,7 +50,7 @@ func (s *Destination) UnmarshalSpec(out interface{}) error {
 }
 
 func (m WriteMode) String() string {
-	return [...]string{"append-only", "overwrite"}[m]
+	return [...]string{"append", "overwrite"}[m]
 }
 
 func (m WriteMode) MarshalJSON() ([]byte, error) {
@@ -73,8 +73,8 @@ func (m *WriteMode) UnmarshalJSON(data []byte) (err error) {
 
 func WriteModeFromString(s string) (WriteMode, error) {
 	switch s {
-	case "append-only":
-		return WriteModeAppendOnly, nil
+	case "append":
+		return WriteModeAppend, nil
 	case "overwrite":
 		return WriteModeOverwrite, nil
 	}

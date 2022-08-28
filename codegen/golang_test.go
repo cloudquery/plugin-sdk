@@ -3,15 +3,17 @@ package codegen
 import (
 	"bytes"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
 type testStruct struct {
+	// IntCol this is an example documentation comment
 	IntCol    int     `json:"int_col,omitempty"`
 	StringCol string  `json:"string_col,omitempty"`
 	FloatCol  float64 `json:"float_col,omitempty"`
@@ -93,3 +95,7 @@ func TestTableFromGoStruct(t *testing.T) {
 	}
 	fmt.Println(buf.String())
 }
+
+// func TestReadComments(t *testing.T) {
+// 	readComments("github.com/google/go-cmp/cmp")
+// }

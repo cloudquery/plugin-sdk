@@ -317,27 +317,27 @@ func SetColumnMeta(c Column, m *ColumnMeta) Column {
 }
 
 // Sift gets a column list and returns a list of provider columns, and another list of internal columns, cqId column being the very last one
-func (c ColumnList) Sift() (providerCols ColumnList, internalCols ColumnList) {
-	providerCols, internalCols = make(ColumnList, 0, len(c)), make(ColumnList, 0, len(c))
-	cqIdColIndex := -1
-	for i := range c {
-		if c[i].internal {
-			if c[i].Name == cqIdColumn.Name {
-				cqIdColIndex = len(internalCols)
-			}
+// func (c ColumnList) Sift() (providerCols ColumnList, internalCols ColumnList) {
+// 	providerCols, internalCols = make(ColumnList, 0, len(c)), make(ColumnList, 0, len(c))
+// 	cqIdColIndex := -1
+// 	for i := range c {
+// 		if c[i].internal {
+// 			if c[i].Name == cqIdColumn.Name {
+// 				cqIdColIndex = len(internalCols)
+// 			}
 
-			internalCols = append(internalCols, c[i])
-		} else {
-			providerCols = append(providerCols, c[i])
-		}
-	}
+// 			internalCols = append(internalCols, c[i])
+// 		} else {
+// 			providerCols = append(providerCols, c[i])
+// 		}
+// 	}
 
-	// resolve cqId last, as it would need other PKs to be resolved, some might be internal (cq_fetch_date)
-	if lastIndex := len(internalCols) - 1; cqIdColIndex > -1 && cqIdColIndex != lastIndex {
-		internalCols[cqIdColIndex], internalCols[lastIndex] = internalCols[lastIndex], internalCols[cqIdColIndex]
-	}
-	return providerCols, internalCols
-}
+// 	// resolve cqId last, as it would need other PKs to be resolved, some might be internal (cq_fetch_date)
+// 	if lastIndex := len(internalCols) - 1; cqIdColIndex > -1 && cqIdColIndex != lastIndex {
+// 		internalCols[cqIdColIndex], internalCols[lastIndex] = internalCols[lastIndex], internalCols[cqIdColIndex]
+// 	}
+// 	return providerCols, internalCols
+// }
 
 func (c ColumnList) Names() []string {
 	ret := make([]string, len(c))

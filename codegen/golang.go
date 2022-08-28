@@ -3,11 +3,15 @@ package codegen
 import (
 	"embed"
 	"fmt"
-	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/iancoleman/strcase"
+	"go/ast"
 	"io"
 	"reflect"
+	"strings"
 	"text/template"
+
+	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/iancoleman/strcase"
+	"golang.org/x/tools/go/packages"
 )
 
 //go:embed templates/*.go.tpl
@@ -58,9 +62,21 @@ func WithNameTransformer(transformer func(string) string) TableOptions {
 	}
 }
 
-func WithSkipFields(fields ...string) TableOptions {
+func WithSkipFields(fields []string) TableOptions {
 	return func(t *TableDefinition) {
-		t.skipFields = append(t.skipFields, fields...)
+		t.skipFields = fields
+	}
+}
+
+func WithOverrideColumns(columns []ColumnDefinition) TableOptions {
+	return func(t *TableDefinition) {
+		t.overrideColumns = columns
+	}
+}
+
+func WithDescriptionsEnabled() TableOptions {
+	return func(t *TableDefinition) {
+		t.descriptionsEnabled = true
 	}
 }
 
@@ -93,11 +109,25 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 	if e.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("expected struct, got %s", e.Kind())
 	}
+
+	comments := make(map[string]string)
+	if t.descriptionsEnabled {
+		comments = readStructComments(e.Type().PkgPath(), e.Type().Name())
+	}
+
 	for i := 0; i < e.NumField(); i++ {
 		field := e.Type().Field(i)
 		if sliceContains(t.skipFields, field.Name) {
 			continue
 		}
+
+		if t.overrideColumns != nil {
+			if col := t.overrideColumns.GetByName(t.nameTransformer(field.Name)); col != nil {
+				t.Columns = append(t.Columns, *col)
+				continue
+			}
+		}
+
 		columnType, err := valueToSchemaType(field.Type)
 		if err != nil {
 			return nil, err
@@ -106,9 +136,10 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 		// generate a PathResolver to use by default
 		pathResolver := fmt.Sprintf("schema.PathResolver(%q)", field.Name)
 		column := ColumnDefinition{
-			Name:     t.nameTransformer(field.Name),
-			Type:     columnType,
-			Resolver: pathResolver,
+			Name:        t.nameTransformer(field.Name),
+			Type:        columnType,
+			Resolver:    pathResolver,
+			Description: strings.ReplaceAll(comments[field.Name], "`", "'"),
 		}
 		t.Columns = append(t.Columns, column)
 	}
@@ -125,4 +156,44 @@ func (t *TableDefinition) GenerateTemplate(wr io.Writer) error {
 		return fmt.Errorf("failed to execute template: %w", err)
 	}
 	return nil
+}
+
+// type commentReader struct {
+// 	pkgPath  string
+// 	//comments is a map of type->comment
+// 	comments map[string]string
+// }
+
+// func newCommentsReader() {
+
+// }
+
+func readStructComments(pkgPath string, structName string) map[string]string {
+	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax}
+	pkgs, err := packages.Load(cfg, pkgPath)
+	if err != nil {
+		panic(err)
+	}
+	comments := make(map[string]string, 0)
+	for _, p := range pkgs {
+		for _, f := range p.Syntax {
+			ast.Inspect(f, func(n ast.Node) bool {
+				switch x := n.(type) {
+				case *ast.TypeSpec:
+					if st, ok := x.Type.(*ast.StructType); ok {
+						if x.Name.Name == structName {
+							for _, field := range st.Fields.List {
+								if len(field.Names) > 0 {
+									comments[field.Names[0].Name] = field.Doc.Text()
+								}
+							}
+						}
+					}
+				}
+				return true
+			})
+		}
+
+	}
+	return comments
 }

@@ -36,7 +36,6 @@ func init() {
 func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source) {
 	t.Parallel()
 	t.Helper()
-
 	// No need for configuration or db connection, get it out of the way first
 	// testTableIdentifiersForProvider(t, resource.Provider)
 
@@ -51,9 +50,13 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source)
 		defer close(resources)
 		fetchErr = plugin.Sync(context.Background(), spec, resources)
 	}()
-
+	totalResources := 0
 	for resource := range resources {
+		totalResources++
 		validateResource(t, resource)
+	}
+	if totalResources == 0 {
+		t.Fatal("no resources fetched")
 	}
 
 	if fetchErr != nil {
