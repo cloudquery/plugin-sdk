@@ -17,6 +17,12 @@ import (
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
+var pkgCache map[string][]*packages.Package
+
+func init() {
+	pkgCache = map[string][]*packages.Package{}
+}
+
 func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	k := v.Kind()
 	switch k {
@@ -80,8 +86,18 @@ func WithDescriptionsEnabled() TableOptions {
 	}
 }
 
+func WithDescriptionTransformer(transformer func(string) string) TableOptions {
+	return func(t *TableDefinition) {
+		t.descriptionTransformer = transformer
+	}
+}
+
 func defaultTransformer(name string) string {
 	return strcase.ToSnake(name)
+}
+
+func defaultDescriptionTransformer(name string) string {
+	return name
 }
 
 func sliceContains(arr []string, s string) bool {
@@ -95,8 +111,9 @@ func sliceContains(arr []string, s string) bool {
 
 func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*TableDefinition, error) {
 	t := TableDefinition{
-		Name:            name,
-		nameTransformer: defaultTransformer,
+		Name:                   name,
+		nameTransformer:        defaultTransformer,
+		descriptionTransformer: defaultDescriptionTransformer,
 	}
 	for _, opt := range opts {
 		opt(&t)
@@ -112,7 +129,7 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 
 	comments := make(map[string]string)
 	if t.descriptionsEnabled {
-		comments = readStructComments(e.Type().PkgPath(), e.Type().Name())
+		comments = t.readStructComments(e.Type().PkgPath(), e.Type().Name())
 	}
 
 	for i := 0; i < e.NumField(); i++ {
@@ -158,22 +175,22 @@ func (t *TableDefinition) GenerateTemplate(wr io.Writer) error {
 	return nil
 }
 
-// type commentReader struct {
-// 	pkgPath  string
-// 	//comments is a map of type->comment
-// 	comments map[string]string
-// }
-
-// func newCommentsReader() {
-
-// }
-
-func readStructComments(pkgPath string, structName string) map[string]string {
-	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax}
-	pkgs, err := packages.Load(cfg, pkgPath)
-	if err != nil {
-		panic(err)
+func (t *TableDefinition) readStructComments(pkgPath string, structName string) map[string]string {
+	var (
+		pkgs []*packages.Package
+		err  error
+	)
+	if v, ok := pkgCache[pkgPath]; ok {
+		pkgs = v
+	} else {
+		cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax}
+		pkgs, err = packages.Load(cfg, pkgPath)
+		if err != nil {
+			panic(err)
+		}
+		pkgCache[pkgPath] = pkgs
 	}
+
 	comments := make(map[string]string, 0)
 	for _, p := range pkgs {
 		for _, f := range p.Syntax {
@@ -184,7 +201,11 @@ func readStructComments(pkgPath string, structName string) map[string]string {
 						if x.Name.Name == structName {
 							for _, field := range st.Fields.List {
 								if len(field.Names) > 0 {
-									comments[field.Names[0].Name] = field.Doc.Text()
+									doc := field.Doc.Text()
+									if doc == "" {
+										doc = field.Comment.Text()
+									}
+									comments[field.Names[0].Name] = t.descriptionTransformer(cleanComment(doc))
 								}
 							}
 						}
@@ -196,4 +217,8 @@ func readStructComments(pkgPath string, structName string) map[string]string {
 
 	}
 	return comments
+}
+
+func cleanComment(s string) string {
+	return strings.Trim(strings.TrimSpace(s), ".")
 }

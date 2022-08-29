@@ -15,15 +15,16 @@ type TableDefinition struct {
 	Columns     []ColumnDefinition
 	Relations   []*TableDefinition
 
-	Resolver             string
-	IgnoreError          string
-	Multiplex            string
-	PostResourceResolver string
-	Options              schema.TableCreationOptions
-	nameTransformer      func(string) string
-	skipFields           []string
-	overrideColumns      ColumnDefinitions
-	descriptionsEnabled  bool
+	Resolver               string
+	IgnoreError            string
+	Multiplex              string
+	PostResourceResolver   string
+	Options                schema.TableCreationOptions
+	nameTransformer        func(string) string
+	skipFields             []string
+	overrideColumns        ColumnDefinitions
+	descriptionsEnabled    bool
+	descriptionTransformer func(string) string
 }
 
 type ColumnDefinitions []ColumnDefinition
