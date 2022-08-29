@@ -17,11 +17,7 @@ import (
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
-var pkgCache map[string][]*packages.Package
-
-func init() {
-	pkgCache = map[string][]*packages.Package{}
-}
+var pkgCache = map[string][]*packages.Package{}
 
 func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	k := v.Kind()
