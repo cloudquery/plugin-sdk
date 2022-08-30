@@ -57,7 +57,6 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 	var t struct {
 		Kind Kind        `json:"kind"`
 		Spec interface{} `json:"spec"`
-		// Spec yaml.Node `yaml:"spec"`
 	}
 
 	if err := json.Unmarshal(data, &t); err != nil {
@@ -107,15 +106,3 @@ func SpecUnmarshalYamlStrict(b []byte, spec *Spec) error {
 	}
 	return nil
 }
-
-// func (s Spec) MarshalYAML() (interface{}, error) {
-// 	type T struct {
-// 		Kind Kind        `json:"kind,omitempty"`
-// 		Spec interface{} `json:"spec,omitempty"`
-// 	}
-// 	tmp := T{
-// 		Kind: s.Kind,
-// 		Spec: s.Spec,
-// 	}
-// 	return tmp, nil
-// }
