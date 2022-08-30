@@ -4,6 +4,10 @@ import (
 	"testing"
 )
 
+type testDestinationSpec struct {
+	ConnectionString string `json:"connection_string"`
+}
+
 func TestWriteModeFromString(t *testing.T) {
 	var writeMode WriteMode
 	if err := writeMode.UnmarshalJSON([]byte(`"append"`)); err != nil {
@@ -34,10 +38,6 @@ func TestDestinationSetDefaults(t *testing.T) {
 	if destination.Version != "latest" {
 		t.Fatalf("expected latest, got %s", destination.Version)
 	}
-}
-
-type testDestinationSpec struct {
-	ConnectionString string `json:"connection_string"`
 }
 
 func TestDestinationUnmarshalSpec(t *testing.T) {

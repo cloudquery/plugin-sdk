@@ -14,6 +14,9 @@ type tableTestCase struct {
 	Resources []*Resource
 }
 
+type testClient struct {
+}
+
 var tableTestCases = []tableTestCase{
 	{
 		Table: Table{
@@ -43,10 +46,7 @@ var tableTestCases = []tableTestCase{
 	},
 }
 
-type testClient struct {
-}
-
-func (c testClient) Logger() *zerolog.Logger {
+func (testClient) Logger() *zerolog.Logger {
 	return &zerolog.Logger{}
 }
 
@@ -66,7 +66,7 @@ func TestTableExecution(t *testing.T) {
 				if reflect.DeepEqual(resource.Data, tc.Resources[i].Data) {
 					t.Errorf("expected %v, got %v", tc.Resources[i].Data, resource)
 				}
-				i += 1
+				i++
 			}
 		})
 	}

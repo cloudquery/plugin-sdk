@@ -7,39 +7,6 @@ import (
 	"time"
 )
 
-type innerStruct struct {
-	Value string
-}
-
-type testStruct struct {
-	Inner      innerStruct
-	Value      int
-	unexported bool
-}
-
-type testDateStruct struct {
-	Date string
-}
-
-type testNetStruct struct {
-	IP  string
-	MAC string
-	Net string
-	IPS []string
-}
-
-type testTransformersStruct struct {
-	Int      int
-	String   string
-	Float    float64
-	BadFloat string
-}
-
-type testUUIDStruct struct {
-	UUID    string
-	BadUUID string
-}
-
 var resolverTestTable = &Table{
 	Name: "testTable",
 	Columns: []Column{

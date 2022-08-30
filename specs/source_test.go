@@ -2,6 +2,10 @@ package specs
 
 import "testing"
 
+type testSourceSpec struct {
+	Accounts []string `json:"accounts"`
+}
+
 func TestSourceSetDefaults(t *testing.T) {
 	source := Source{
 		Name: "testSource",
@@ -16,10 +20,6 @@ func TestSourceSetDefaults(t *testing.T) {
 	if source.Version != "latest" {
 		t.Fatalf("expected latest, got %s", source.Version)
 	}
-}
-
-type testSourceSpec struct {
-	Accounts []string `json:"accounts"`
 }
 
 func TestSourceUnmarshalSpec(t *testing.T) {
