@@ -19,21 +19,21 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-// bufSize used for unit testing grpc server and client
-const testBufSize = 1024 * 1024
-
-// lis used for unit testing grpc server and client
-var testListener *bufconn.Listener
-
 type Options struct {
 	// Required: Source or destination plugin to serve.
 	SourcePlugin      *plugins.SourcePlugin
 	DestinationPlugin plugins.DestinationPlugin
 }
 
+// bufSize used for unit testing grpc server and client
+const testBufSize = 1024 * 1024
+
 const (
 	serveShort = `Start plugin server`
 )
+
+// lis used for unit testing grpc server and client
+var testListener *bufconn.Listener
 
 func newCmdServe(opts Options) *cobra.Command {
 	var address string

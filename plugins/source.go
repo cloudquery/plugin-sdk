@@ -12,17 +12,6 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-const ExampleSourceConfig = `
-# max_goroutines to use when fetching. 0 means default and calculated by CloudQuery
-# max_goroutines: 0
-# By default CloudQuery will fetch all tables in the source plugin
-# tables: ["*"]
-# skip_tables specify which tables to skip. especially useful when using "*" for tables
-# skip_tables: []
-`
-
-const minGoRoutines = 5
-
 type SourceNewExecutionClientFunc func(context.Context, *SourcePlugin, specs.Source) (schema.ClientMeta, error)
 
 // SourcePlugin is the base structure required to pass to sdk.serve
@@ -45,6 +34,17 @@ type SourcePlugin struct {
 }
 
 type SourceOption func(*SourcePlugin)
+
+const ExampleSourceConfig = `
+# max_goroutines to use when fetching. 0 means default and calculated by CloudQuery
+# max_goroutines: 0
+# By default CloudQuery will fetch all tables in the source plugin
+# tables: ["*"]
+# skip_tables specify which tables to skip. especially useful when using "*" for tables
+# skip_tables: []
+`
+
+const minGoRoutines = 5
 
 func WithSourceExampleConfig(exampleConfig string) SourceOption {
 	return func(p *SourcePlugin) {

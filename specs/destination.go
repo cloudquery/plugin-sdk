@@ -9,11 +9,6 @@ import (
 
 type WriteMode int
 
-const (
-	WriteModeAppend WriteMode = iota
-	WriteModeOverwrite
-)
-
 type Destination struct {
 	Name      string      `json:"name,omitempty"`
 	Version   string      `json:"version,omitempty"`
@@ -22,6 +17,11 @@ type Destination struct {
 	WriteMode WriteMode   `json:"write_mode,omitempty"`
 	Spec      interface{} `json:"spec,omitempty"`
 }
+
+const (
+	WriteModeAppend WriteMode = iota
+	WriteModeOverwrite
+)
 
 func (d *Destination) SetDefaults() {
 	if d.Registry.String() == "" {

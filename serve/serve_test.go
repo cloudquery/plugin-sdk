@@ -17,8 +17,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-var _ schema.ClientMeta = &testExecutionClient{}
-
 type TestSourcePluginSpec struct {
 	Accounts []string `json:"accounts,omitempty" yaml:"accounts,omitempty"`
 }
@@ -26,6 +24,8 @@ type TestSourcePluginSpec struct {
 type testExecutionClient struct {
 	logger zerolog.Logger
 }
+
+var _ schema.ClientMeta = &testExecutionClient{}
 
 var expectedExampleSpecConfig = specs.Spec{
 	Kind: specs.KindSource,

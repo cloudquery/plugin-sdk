@@ -8,17 +8,17 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-const (
-	KindSource Kind = iota
-	KindDestination
-)
-
 type Kind int
 
 type Spec struct {
 	Kind Kind        `json:"kind"`
 	Spec interface{} `json:"spec"`
 }
+
+const (
+	KindSource Kind = iota
+	KindDestination
+)
 
 func (k Kind) String() string {
 	return [...]string{"source", "destination"}[k]

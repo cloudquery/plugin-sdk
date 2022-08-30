@@ -11,8 +11,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var _ schema.ClientMeta = &testExecutionClient{}
-
 type testExecutionClient struct {
 	logger zerolog.Logger
 }
@@ -30,6 +28,8 @@ type Account struct {
 // func newTestSourceSpec() interface{} {
 // 	return &testSourceSpec{}
 // }
+
+var _ schema.ClientMeta = &testExecutionClient{}
 
 func testTable() *schema.Table {
 	return &schema.Table{
