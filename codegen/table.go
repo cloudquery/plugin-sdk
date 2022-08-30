@@ -23,6 +23,7 @@ type TableDefinition struct {
 	nameTransformer      func(string) string
 	skipFields           []string
 	overrideColumns      ColumnDefinitions
+	extraColumns         ColumnDefinitions
 	descriptionsEnabled  bool
 }
 

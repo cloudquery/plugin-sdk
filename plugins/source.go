@@ -83,15 +83,26 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
 	}
-	if newExecutionClient == nil {
-		panic("newExecutionClient function not defined for source plugin:" + name)
-	}
 	for _, opt := range opts {
 		opt(&p)
 	}
 	addInternalColumns(p.tables)
+	if err := p.validate(); err != nil {
+		panic(err)
+	}
 	// add default columns to tables
 	return &p
+}
+
+func (p *SourcePlugin) validate() error {
+	if p.newExecutionClient == nil {
+		return fmt.Errorf("newExecutionClient function not defined for source plugin:" + p.name)
+	}
+
+	if err := p.tables.ValidateDuplicateColumns(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *SourcePlugin) Tables() schema.Tables {

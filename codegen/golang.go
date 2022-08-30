@@ -74,6 +74,12 @@ func WithOverrideColumns(columns []ColumnDefinition) TableOptions {
 	}
 }
 
+func WithExtraColumns(columns []ColumnDefinition) TableOptions {
+	return func(t *TableDefinition) {
+		t.extraColumns = columns
+	}
+}
+
 func WithDescriptionsEnabled() TableOptions {
 	return func(t *TableDefinition) {
 		t.descriptionsEnabled = true
@@ -113,6 +119,16 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 	comments := make(map[string]string)
 	if t.descriptionsEnabled {
 		comments = readStructComments(e.Type().PkgPath(), e.Type().Name())
+	}
+
+	for _, c := range t.extraColumns {
+		if t.overrideColumns != nil {
+			if col := t.overrideColumns.GetByName(c.Name); col != nil {
+				t.Columns = append(t.Columns, *col)
+				continue
+			}
+		}
+		t.Columns = append(t.Columns, c)
 	}
 
 	for i := 0; i < e.NumField(); i++ {
@@ -157,16 +173,6 @@ func (t *TableDefinition) GenerateTemplate(wr io.Writer) error {
 	}
 	return nil
 }
-
-// type commentReader struct {
-// 	pkgPath  string
-// 	//comments is a map of type->comment
-// 	comments map[string]string
-// }
-
-// func newCommentsReader() {
-
-// }
 
 func readStructComments(pkgPath string, structName string) map[string]string {
 	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax}
