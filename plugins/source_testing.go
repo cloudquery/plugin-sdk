@@ -45,7 +45,6 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source)
 	resources := make(chan *schema.Resource)
 	var fetchErr error
 
-	// tc.Plugin.Logger = zerolog.New(zerolog.NewTestWriter(t))
 	go func() {
 		defer close(resources)
 		fetchErr = plugin.Sync(context.Background(), spec, resources)

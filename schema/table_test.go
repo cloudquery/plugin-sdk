@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -34,7 +35,7 @@ var tableTestCases = []tableTestCase{
 		},
 		Resources: []*Resource{
 			{
-				data: map[string]interface{}{
+				Data: map[string]interface{}{
 					"test": 1,
 				},
 			},
@@ -58,12 +59,12 @@ func TestTableExecution(t *testing.T) {
 			resources := make(chan *Resource)
 			go func() {
 				defer close(resources)
-				tc.Table.Resolve(ctx, m, nil, resources)
+				tc.Table.Resolve(ctx, m, time.Now(), nil, resources)
 			}()
 			var i = 0
 			for resource := range resources {
-				if reflect.DeepEqual(resource.data, tc.Resources[i].data) {
-					t.Errorf("expected %v, got %v", tc.Resources[i].data, resource)
+				if reflect.DeepEqual(resource.Data, tc.Resources[i].Data) {
+					t.Errorf("expected %v, got %v", tc.Resources[i].Data, resource)
 				}
 				i += 1
 			}

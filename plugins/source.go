@@ -91,16 +91,22 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 	if err := p.validate(); err != nil {
 		panic(err)
 	}
-	// add default columns to tables
 	return &p
 }
 
 func (p *SourcePlugin) validate() error {
 	if p.newExecutionClient == nil {
-		return fmt.Errorf("newExecutionClient function not defined for source plugin:" + p.name)
+		return fmt.Errorf("newExecutionClient function not defined for source plugin: " + p.name)
 	}
 
-	return p.tables.ValidateDuplicateColumns()
+	if err := p.tables.ValidateDuplicateColumns(); err != nil {
+		return fmt.Errorf("found duplicate columns in source plugin: %s: %w", p.name, err)
+	}
+
+	if err := p.tables.ValidateDuplicateTables(); err != nil {
+		return fmt.Errorf("found duplicate tables in source plugin: %s: %w", p.name, err)
+	}
+	return nil
 }
 
 func (p *SourcePlugin) Tables() schema.Tables {
@@ -219,16 +225,3 @@ func (p *SourcePlugin) interpolateAllResources(tables []string) ([]string, error
 	}
 	return allResources, nil
 }
-
-// func getTableDuplicates(resource string, table *schema.Table, tableNames map[string]string) error {
-// 	for _, r := range table.Relations {
-// 		if err := getTableDuplicates(resource, r, tableNames); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	if existing, ok := tableNames[table.Name]; ok {
-// 		return fmt.Errorf("table name %s used more than once, duplicates are in %s and %s", table.Name, existing, resource)
-// 	}
-// 	tableNames[table.Name] = resource
-// 	return nil
-// }

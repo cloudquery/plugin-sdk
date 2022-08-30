@@ -83,62 +83,6 @@ func (r *Resource) Columns() []string {
 	return r.Table.Columns.Names()
 }
 
-// func (r *Resource) Values() ([]interface{}, error) {
-// 	values := make([]interface{}, 0)
-// 	for _, c := range r.dialect.Columns(r.table) {
-// 		v := r.Get(c.Name)
-// 		if err := c.ValidateType(v); err != nil {
-// 			return nil, err
-// 		}
-// 		values = append(values, v)
-// 	}
-// 	return values, nil
-// }
-
-// func (r *Resource) GenerateCQId() error {
-// 	if len(r.table.Options.PrimaryKeys) == 0 {
-// 		return nil
-// 	}
-// 	pks := r.dialect.PrimaryKeys(r.table)
-// 	objs := make([]interface{}, 0, len(pks))
-// 	for _, pk := range pks {
-// 		if col := r.getColumnByName(pk); col == nil {
-// 			return fmt.Errorf("failed to generate cq_id for %s, pk column missing %s", r.table.Name, pk)
-// 		} else if col.internal {
-// 			continue
-// 		}
-
-// 		value := r.Get(pk)
-// 		if value == nil {
-// 			return fmt.Errorf("failed to generate cq_id for %s, pk field missing %s", r.table.Name, pk)
-// 		}
-// 		objs = append(objs, value)
-// 	}
-// 	id, err := hashUUID(objs)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	r.cqId = id
-// 	return nil
-// }
-
-// func (r Resource) GetMeta(key string) (interface{}, bool) {
-// 	if r.metadata == nil {
-// 		return nil, false
-// 	}
-// 	v, ok := r.metadata[key]
-// 	return v, ok
-// }
-
-// func (r Resource) getColumnByName(column string) *Column {
-// 	for _, c := range r.Table.Columns {
-// 		if strings.Compare(column, c.Name) == 0 {
-// 			return &c
-// 		}
-// 	}
-// 	return nil
-// }
-
 func (rr Resources) GetIds() []uuid.UUID {
 	rids := make([]uuid.UUID, len(rr))
 	for i, r := range rr {
@@ -159,18 +103,3 @@ func (rr Resources) ColumnNames() []string {
 	}
 	return rr[0].Table.Columns.Names()
 }
-
-// func hashUUID(objs interface{}) (uuid.UUID, error) {
-// 	// Use SHA1 because it's fast and is reasonably enough protected against accidental collisions.
-// 	// There is no scenario here where intentional created collisions could do harm.
-// 	digester := crypto.SHA1.New()
-// 	hash, err := hashstructure.Hash(objs, hashstructure.FormatV2, nil)
-// 	if err != nil {
-// 		return uuid.Nil, err
-// 	}
-// 	if _, err := fmt.Fprint(digester, hash); err != nil {
-// 		return uuid.Nil, err
-// 	}
-// 	data := digester.Sum(nil)
-// 	return uuid.NewSHA1(uuid.Nil, data), nil
-// }
