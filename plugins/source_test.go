@@ -22,14 +22,14 @@ type Account struct {
 	Regions []string `json:"regions,omitempty"`
 }
 
-type testSourceSpec struct {
-	Accounts []Account `json:"accounts,omitempty"`
-	Regions  []string  `json:"regions,omitempty"`
-}
+// type testSourceSpec struct {
+// 	Accounts []Account `json:"accounts,omitempty"`
+// 	Regions  []string  `json:"regions,omitempty"`
+// }
 
-func newTestSourceSpec() interface{} {
-	return &testSourceSpec{}
-}
+// func newTestSourceSpec() interface{} {
+// 	return &testSourceSpec{}
+// }
 
 func testTable() *schema.Table {
 	return &schema.Table{

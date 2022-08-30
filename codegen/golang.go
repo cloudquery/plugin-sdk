@@ -14,6 +14,8 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+type TableOptions func(*TableDefinition)
+
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
@@ -53,8 +55,6 @@ func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 		return schema.TypeInvalid, fmt.Errorf("unsupported type: %s", k)
 	}
 }
-
-type TableOptions func(*TableDefinition)
 
 func WithNameTransformer(transformer func(string) string) TableOptions {
 	return func(t *TableDefinition) {
@@ -184,14 +184,11 @@ func readStructComments(pkgPath string, structName string) map[string]string {
 	for _, p := range pkgs {
 		for _, f := range p.Syntax {
 			ast.Inspect(f, func(n ast.Node) bool {
-				switch x := n.(type) {
-				case *ast.TypeSpec:
-					if st, ok := x.Type.(*ast.StructType); ok {
-						if x.Name.Name == structName {
-							for _, field := range st.Fields.List {
-								if len(field.Names) > 0 {
-									comments[field.Names[0].Name] = field.Doc.Text()
-								}
+				if st, ok := n.(*ast.TypeSpec); ok {
+					if st.Name.Name == structName {
+						for _, field := range st.Type.(*ast.StructType).Fields.List {
+							if len(field.Names) > 0 {
+								comments[field.Names[0].Name] = field.Doc.Text()
 							}
 						}
 					}
@@ -199,7 +196,6 @@ func readStructComments(pkgPath string, structName string) map[string]string {
 				return true
 			})
 		}
-
 	}
 	return comments
 }

@@ -19,8 +19,12 @@ import (
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
-type testSourceSpec struct {
-	Accounts []string `json:"accounts,omitempty"`
+type TestSourcePluginSpec struct {
+	Accounts []string `json:"accounts,omitempty" yaml:"accounts,omitempty"`
+}
+
+type testExecutionClient struct {
+	logger zerolog.Logger
 }
 
 var expectedExampleSpecConfig = specs.Spec{
@@ -32,16 +36,6 @@ var expectedExampleSpecConfig = specs.Spec{
 		Tables:  []string{"*"},
 		Spec:    map[string]interface{}{"accounts": []interface{}{"all"}},
 	},
-}
-
-func newTestSourceSpec() interface{} {
-	return &testSourceSpec{
-		Accounts: []string{"all"},
-	}
-}
-
-type testExecutionClient struct {
-	logger zerolog.Logger
 }
 
 func testTable() *schema.Table {
@@ -62,10 +56,6 @@ func testTable() *schema.Table {
 	}
 }
 
-type TestSourcePluginSpec struct {
-	Accounts []string `json:"accounts,omitempty" yaml:"accounts,omitempty"`
-}
-
 func (c *testExecutionClient) Logger() *zerolog.Logger {
 	return &c.logger
 }
@@ -75,20 +65,20 @@ func newTestExecutionClient(context.Context, *plugins.SourcePlugin, specs.Source
 }
 
 // https://stackoverflow.com/questions/32840687/timeout-for-waitgroup-wait
-func waitTimeout(wg *errgroup.Group, timeout time.Duration) (bool, error) {
-	c := make(chan struct{})
-	var err error
-	go func() {
-		defer close(c)
-		err = wg.Wait()
-	}()
-	select {
-	case <-c:
-		return false, err // completed normally
-	case <-time.After(timeout):
-		return true, err // timed out
-	}
-}
+// func waitTimeout(wg *errgroup.Group, timeout time.Duration) (bool, error) {
+// 	c := make(chan struct{})
+// 	var err error
+// 	go func() {
+// 		defer close(c)
+// 		err = wg.Wait()
+// 	}()
+// 	select {
+// 	case <-c:
+// 		return false, err // completed normally
+// 	case <-time.After(timeout):
+// 		return true, err // timed out
+// 	}
+// }
 
 func bufDialer(context.Context, string) (net.Conn, error) {
 	return testListener.Dial()
@@ -119,8 +109,9 @@ spec:
 	})
 	cmd.SetArgs([]string{"serve", "--network", "test"})
 
+	var serveErr error
 	go func() {
-		cmd.Execute()
+		serveErr = cmd.Execute()
 	}()
 
 	// wait for the server to start
@@ -130,6 +121,9 @@ spec:
 		}
 		t.Log("waiting for grpc server to start")
 		time.Sleep(time.Millisecond * 200)
+		if serveErr != nil {
+			t.Fatal(serveErr)
+		}
 	}
 
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service

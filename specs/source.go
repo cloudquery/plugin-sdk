@@ -48,6 +48,6 @@ func (s *Source) UnmarshalSpec(out interface{}) error {
 	return json.Unmarshal(b, out)
 }
 
-func (s *Source) Validate() (*gojsonschema.Result, error) {
+func (*Source) Validate() (*gojsonschema.Result, error) {
 	return nil, nil
 }

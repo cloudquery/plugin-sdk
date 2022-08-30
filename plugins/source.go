@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"sync"
 	"time"
@@ -21,6 +20,8 @@ const ExampleSourceConfig = `
 # skip_tables specify which tables to skip. especially useful when using "*" for tables
 # skip_tables: []
 `
+
+const minGoRoutines = 5
 
 type SourceNewExecutionClientFunc func(context.Context, *SourcePlugin, specs.Source) (schema.ClientMeta, error)
 
@@ -98,10 +99,7 @@ func (p *SourcePlugin) validate() error {
 		return fmt.Errorf("newExecutionClient function not defined for source plugin:" + p.name)
 	}
 
-	if err := p.tables.ValidateDuplicateColumns(); err != nil {
-		return err
-	}
-	return nil
+	return p.tables.ValidateDuplicateColumns()
 }
 
 func (p *SourcePlugin) Tables() schema.Tables {
@@ -123,8 +121,6 @@ func (p *SourcePlugin) Version() string {
 func (p *SourcePlugin) SetLogger(log zerolog.Logger) {
 	p.logger = log
 }
-
-const minGoRoutines = 5
 
 // Sync data from source to the given channel
 func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {

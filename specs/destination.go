@@ -38,8 +38,8 @@ func (d *Destination) SetDefaults() {
 	}
 }
 
-func (s *Destination) UnmarshalSpec(out interface{}) error {
-	b, err := json.Marshal(s.Spec)
+func (d *Destination) UnmarshalSpec(out interface{}) error {
+	b, err := json.Marshal(d.Spec)
 	if err != nil {
 		return err
 	}

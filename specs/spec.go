@@ -8,12 +8,17 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-type Kind int
-
 const (
 	KindSource Kind = iota
 	KindDestination
 )
+
+type Kind int
+
+type Spec struct {
+	Kind Kind        `json:"kind"`
+	Spec interface{} `json:"spec"`
+}
 
 func (k Kind) String() string {
 	return [...]string{"source", "destination"}[k]
@@ -46,11 +51,6 @@ func KindFromString(s string) (Kind, error) {
 	default:
 		return KindSource, fmt.Errorf("unknown registry %s", s)
 	}
-}
-
-type Spec struct {
-	Kind Kind        `json:"kind"`
-	Spec interface{} `json:"spec"`
 }
 
 func (s *Spec) UnmarshalJSON(data []byte) error {

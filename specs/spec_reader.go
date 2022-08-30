@@ -30,7 +30,6 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 				return nil, fmt.Errorf("failed to read file %s: %w", file.Name(), err)
 			}
 			var s Spec
-			SpecUnmarshalYamlStrict(data, &s)
 			if err := SpecUnmarshalYamlStrict(data, &s); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal file %s: %w", file.Name(), err)
 			}
