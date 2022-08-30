@@ -11,11 +11,10 @@ CloudQuery itself is a tool that transforms your cloud infrastructure into query
 * Homepage: https://cloudquery.io
 * Releases: https://github.com/cloudquery/cloudquery/releases
 * Documentation: https://docs.cloudquery.io
-* Schema explorer (schemaspy): https://schema.cloudquery.io/
 * Database Configuration: https://docs.cloudquery.io/database-configuration
 
 ## Supported plugins
 
-Checkout https://hub.cloudquery.io
+https://www.cloudquery.io/plugins
 
 If you want us to add a new plugin or resource please open an [Issue](https://github.com/cloudquery/cloudquery/issues).
