@@ -2,6 +2,7 @@ package schema
 
 import (
 	"context"
+	"fmt"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -75,6 +76,31 @@ func (tt Tables) TableNames() []string {
 		ret = append(ret, t.TableNames()...)
 	}
 	return ret
+}
+
+func (tt Tables) ValidateDuplicateColumns() error {
+	for _, t := range tt {
+		if err := t.ValidateDuplicateColumns(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t Table) ValidateDuplicateColumns() error {
+	columns := make(map[string]bool, len(t.Columns))
+	for _, c := range t.Columns {
+		if _, ok := columns[c.Name]; ok {
+			return fmt.Errorf("duplicate column %s in table %s", c.Name, t.Name)
+		}
+		columns[c.Name] = true
+	}
+	for _, rel := range t.Relations {
+		if err := rel.ValidateDuplicateColumns(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (t Table) Column(name string) *Column {
