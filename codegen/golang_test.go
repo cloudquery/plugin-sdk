@@ -6,10 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-
-	"github.com/cloudquery/plugin-sdk/schema"
 )
 
 type testStruct struct {
