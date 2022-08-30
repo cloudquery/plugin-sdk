@@ -6,3 +6,4 @@ config.hcl
 
 .vscode
 vendor
+cover.out

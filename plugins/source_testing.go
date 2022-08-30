@@ -8,15 +8,11 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/georgysavva/scany/pgxscan"
-	"github.com/xeipuuv/gojsonschema"
-	"gopkg.in/yaml.v3"
 )
 
 type ResourceTestCase struct {
 	Plugin *SourcePlugin
-	Config string
-	// we want it to be parallel by default
-	NotParallel bool
+	Spec   specs.Source
 	// ParallelFetchingLimit limits parallel resources fetch at a time
 	ParallelFetchingLimit uint64
 	// SkipIgnoreInTest flag which detects if schema.Table or schema.Column should be ignored
@@ -37,10 +33,9 @@ func init() {
 
 // type
 
-func TestResource(t *testing.T, tc ResourceTestCase) {
+func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source) {
 	t.Parallel()
 	t.Helper()
-
 	// No need for configuration or db connection, get it out of the way first
 	// testTableIdentifiersForProvider(t, resource.Provider)
 
@@ -49,32 +44,23 @@ func TestResource(t *testing.T, tc ResourceTestCase) {
 	// resource.Plugin.Logger = l
 	resources := make(chan *schema.Resource)
 	var fetchErr error
-	var result *gojsonschema.Result
-	var spec specs.SourceSpec
-	if err := yaml.Unmarshal([]byte(tc.Config), &spec); err != nil {
-		t.Fatal("failed to unmarshal source spec:", err)
-	}
-	validationResult, err := tc.Plugin.Init(context.Background(), spec)
-	if err != nil {
-		t.Fatal("failed to init plugin:", err)
-	}
-	if !validationResult.Valid() {
-		t.Fatal("failed to validate plugin config:", validationResult.Errors())
-	}
 
 	// tc.Plugin.Logger = zerolog.New(zerolog.NewTestWriter(t))
 	go func() {
 		defer close(resources)
-		fetchErr = tc.Plugin.Fetch(context.Background(), resources)
+		fetchErr = plugin.Sync(context.Background(), spec, resources)
 	}()
+	totalResources := 0
 	for resource := range resources {
+		totalResources++
 		validateResource(t, resource)
 	}
+	if totalResources == 0 {
+		t.Fatal("no resources fetched")
+	}
+
 	if fetchErr != nil {
 		t.Fatal(fetchErr)
-	}
-	if result != nil && !result.Valid() {
-		t.Errorf("invalid schema: %v", result.Errors())
 	}
 }
 
@@ -86,132 +72,3 @@ func validateResource(t *testing.T, resource *schema.Resource) {
 		}
 	}
 }
-
-// func testResource(t *testing.T, resource ResourceTestCase, name string, table *schema.Table, conn execution.QueryExecer) error {
-// 	t.Helper()
-
-// 	if createErr := dropAndCreateTable(context.Background(), conn, table); createErr != nil {
-// 		assert.FailNow(t, fmt.Sprintf("failed to create table %s", table.Name), createErr)
-// 	}
-
-// 	if !resource.SkipIgnoreInTest && table.IgnoreInTests {
-// 		t.Logf("skipping fetch of resource: %s in tests", name)
-// 	} else {
-// 		if err := fetchResource(t, &resource, name); err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	if verifiers, ok := resource.Verifiers[name]; ok {
-// 		for _, verifier := range verifiers {
-// 			verifier(t, table, conn, resource.SkipIgnoreInTest)
-// 		}
-// 	} else {
-// 		// fallback to default verification
-// 		verifyNoEmptyColumns(t, table, conn, resource.SkipIgnoreInTest)
-// 	}
-
-// 	return nil
-// }
-
-// // fetchResource - fetches a resource from the cloud and puts them into database. database config can be specified via DATABASE_URL env variable
-// func fetchResource(t *testing.T, resource *ResourceTestCase, resourceName string) error {
-// 	t.Helper()
-
-// 	t.Logf("fetch resource %v", resourceName)
-
-// 	var resourceSender = &testResourceSender{
-// 		Errors: []string{},
-// 	}
-
-// 	if err := resource.Provider.FetchResources(context.Background(),
-// 		&cqproto.FetchResourcesRequest{
-// 			Resources:             []string{resourceName},
-// 			ParallelFetchingLimit: resource.ParallelFetchingLimit,
-// 		},
-// 		resourceSender,
-// 	); err != nil {
-// 		return err
-// 	}
-
-// 	if len(resourceSender.Errors) > 0 {
-// 		return fmt.Errorf("error/s occurred during test, %s", strings.Join(resourceSender.Errors, ", "))
-// 	}
-
-// 	return nil
-// }
-
-// func verifyNoEmptyColumns(t *testing.T, table *schema.Table, conn pgxscan.Querier, shouldSkipIgnoreInTest bool) {
-// 	t.Helper()
-// 	t.Run(table.Name, func(t *testing.T) {
-// 		t.Helper()
-
-// 		if !shouldSkipIgnoreInTest && table.IgnoreInTests {
-// 			t.Skipf("table %s marked as IgnoreInTest. Skipping...", table.Name)
-// 		}
-// 		s := sq.StatementBuilder.
-// 			PlaceholderFormat(sq.Dollar).
-// 			Select(fmt.Sprintf("json_agg(%s)", table.Name)).
-// 			From(table.Name)
-// 		query, args, err := s.ToSql()
-// 		if err != nil {
-// 			t.Fatal(err)
-// 		}
-// 		var data []map[string]interface{}
-// 		if err := pgxscan.Get(context.Background(), conn, &data, query, args...); err != nil {
-// 			t.Fatal(err)
-// 		}
-
-// 		if len(data) == 0 {
-// 			t.Errorf("expected to have at least 1 entry at table %s got zero", table.Name)
-// 			return
-// 		}
-
-// 		nilColumns := map[string]bool{}
-// 		// mark all columns as nil
-// 		for _, c := range table.Columns {
-// 			if shouldSkipIgnoreInTest || !c.IgnoreInTests {
-// 				nilColumns[c.Name] = true
-// 			}
-// 		}
-
-// 		for _, row := range data {
-// 			for c, v := range row {
-// 				if v != nil {
-// 					// as long as we had one row or result with this column not nil it means the resolver worked
-// 					nilColumns[c] = false
-// 				}
-// 			}
-// 		}
-
-// 		var nilColumnsArr []string
-// 		for c, v := range nilColumns {
-// 			if v {
-// 				nilColumnsArr = append(nilColumnsArr, c)
-// 			}
-// 		}
-
-// 		if len(nilColumnsArr) != 0 {
-// 			t.Errorf("found nil column in table %s. columns=%s", table.Name, strings.Join(nilColumnsArr, ","))
-// 		}
-// 		for _, childTable := range table.Relations {
-// 			verifyNoEmptyColumns(t, childTable, conn, shouldSkipIgnoreInTest)
-// 		}
-// 	})
-// }
-
-// func (f *testResourceSender) Send(r *cqproto.FetchResourcesResponse) error {
-// 	if r.Error != "" {
-// 		fmt.Printf(r.Error)
-// 		f.Errors = append(f.Errors, r.Error)
-// 	}
-
-// 	return nil
-// }
-
-// func getEnv(key, fallback string) string {
-// 	if value, ok := os.LookupEnv(key); ok {
-// 		return value
-// 	}
-// 	return fallback
-// }

@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/test/bufconn"
 )
 
 type Options struct {
@@ -24,9 +25,15 @@ type Options struct {
 	DestinationPlugin plugins.DestinationPlugin
 }
 
+// bufSize used for unit testing grpc server and client
+const testBufSize = 1024 * 1024
+
 const (
 	serveShort = `Start plugin server`
 )
+
+// lis used for unit testing grpc server and client
+var testListener *bufconn.Listener
 
 func newCmdServe(opts Options) *cobra.Command {
 	var address string
@@ -50,9 +57,15 @@ func newCmdServe(opts Options) *cobra.Command {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
 			// opts.Plugin.Logger = logger
-			listener, err := net.Listen(network, address)
-			if err != nil {
-				return fmt.Errorf("failed to listen: %w", err)
+			var listener net.Listener
+			if network == "test" {
+				listener = bufconn.Listen(testBufSize)
+				testListener = listener.(*bufconn.Listener)
+			} else {
+				listener, err = net.Listen(network, address)
+				if err != nil {
+					return fmt.Errorf("failed to listen %s:%s: %w", network, address, err)
+				}
 			}
 			// See logging pattern https://github.com/grpc-ecosystem/go-grpc-middleware/blob/v2/providers/zerolog/examples_test.go
 			s := grpc.NewServer(
@@ -67,11 +80,11 @@ func newCmdServe(opts Options) *cobra.Command {
 			)
 
 			if opts.SourcePlugin != nil {
-				opts.SourcePlugin.Logger = logger
+				opts.SourcePlugin.SetLogger(logger)
 				pb.RegisterSourceServer(s, &servers.SourceServer{Plugin: opts.SourcePlugin})
 			}
 			if opts.DestinationPlugin != nil {
-				opts.SourcePlugin.Logger = logger
+				// opts.DestinationPlugin.Logger = logger
 				pb.RegisterDestinationServer(s, &servers.DestinationServer{Plugin: opts.DestinationPlugin})
 			}
 

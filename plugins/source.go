@@ -2,147 +2,208 @@ package plugins
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/helpers"
-	"github.com/cloudquery/plugin-sdk/helpers/limit"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
-	"github.com/xeipuuv/gojsonschema"
-	"golang.org/x/sync/semaphore"
 )
+
+type SourceNewExecutionClientFunc func(context.Context, *SourcePlugin, specs.Source) (schema.ClientMeta, error)
 
 // SourcePlugin is the base structure required to pass to sdk.serve
 // We take a similar/declerative approach to API here similar to Cobra
 type SourcePlugin struct {
 	// Name of plugin i.e aws,gcp, azure etc'
-	Name string
+	name string
 	// Version of the plugin
-	Version string
+	version string
+	// Classify error and return it's severity and type
+	ignoreError schema.IgnoreErrorFunc
 	// Called upon configure call to validate and init configuration
-	Configure func(context.Context, *SourcePlugin, specs.SourceSpec) (schema.ClientMeta, error)
+	newExecutionClient SourceNewExecutionClientFunc
 	// Tables is all tables supported by this source plugin
-	Tables []*schema.Table
-	// JsonSchema for specific source plugin spec
-	JsonSchema string
-	// ExampleConfig is the example configuration for this plugin
-	ExampleConfig string
+	tables schema.Tables
+	// exampleConfig
+	exampleConfig string
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
-	Logger zerolog.Logger
-
-	// Internal fields set by configure
-	clientMeta schema.ClientMeta
-	spec       *specs.SourceSpec
+	logger zerolog.Logger
 }
+
+type SourceOption func(*SourcePlugin)
 
 const ExampleSourceConfig = `
 # max_goroutines to use when fetching. 0 means default and calculated by CloudQuery
 # max_goroutines: 0
-# By default cloudquery will fetch all tables in the source plugin
+# By default CloudQuery will fetch all tables in the source plugin
 # tables: ["*"]
 # skip_tables specify which tables to skip. especially useful when using "*" for tables
 # skip_tables: []
 `
 
-//go:embed source_schema.json
-var sourceSchema string
+const minGoRoutines = 5
 
-func (p *SourcePlugin) Init(ctx context.Context, spec specs.SourceSpec) (*gojsonschema.Result, error) {
-	res, err := specs.ValidateSpec(sourceSchema, spec)
-	if err != nil {
-		return nil, err
+func WithSourceExampleConfig(exampleConfig string) SourceOption {
+	return func(p *SourcePlugin) {
+		p.exampleConfig = exampleConfig
 	}
-	if !res.Valid() {
-		return res, nil
-	}
-	if p.Configure == nil {
-		return nil, fmt.Errorf("configure function not defined")
-	}
-	p.clientMeta, err = p.Configure(ctx, p, spec)
-	if err != nil {
-		return res, fmt.Errorf("failed to configure source plugin: %w", err)
-	}
-	p.spec = &spec
-	return res, nil
 }
 
-// Fetch fetches data according to source configuration and
-func (p *SourcePlugin) Fetch(ctx context.Context, res chan<- *schema.Resource) error {
-	if p.spec == nil {
-		return fmt.Errorf("source plugin not initialized")
+func WithSourceLogger(logger zerolog.Logger) SourceOption {
+	return func(p *SourcePlugin) {
+		p.logger = logger
 	}
-	// if resources ["*"] is requested we will fetch all resources
-	tables, err := p.interpolateAllResources(p.spec.Tables)
+}
+
+func WithClassifyError(ignoreError schema.IgnoreErrorFunc) SourceOption {
+	return func(p *SourcePlugin) {
+		p.ignoreError = ignoreError
+	}
+}
+
+// Add internal columns
+func addInternalColumns(tables []*schema.Table) {
+	for _, table := range tables {
+		cqId := schema.CqIdColumn
+		if len(table.PrimaryKeys()) == 0 {
+			cqId.CreationOptions.PrimaryKey = true
+		}
+		table.Columns = append(table.Columns, cqId, schema.CqFetchTime)
+		addInternalColumns(table.Relations)
+	}
+}
+
+func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc, opts ...SourceOption) *SourcePlugin {
+	p := SourcePlugin{
+		name:               name,
+		version:            version,
+		tables:             tables,
+		newExecutionClient: newExecutionClient,
+	}
+	for _, opt := range opts {
+		opt(&p)
+	}
+	addInternalColumns(p.tables)
+	if err := p.validate(); err != nil {
+		panic(err)
+	}
+	// add default columns to tables
+	return &p
+}
+
+func (p *SourcePlugin) validate() error {
+	if p.newExecutionClient == nil {
+		return fmt.Errorf("newExecutionClient function not defined for source plugin:" + p.name)
+	}
+
+	return p.tables.ValidateDuplicateColumns()
+}
+
+func (p *SourcePlugin) Tables() schema.Tables {
+	return p.tables
+}
+
+func (p *SourcePlugin) ExampleConfig() (string, error) {
+	return p.exampleConfig, nil
+}
+
+func (p *SourcePlugin) Name() string {
+	return p.name
+}
+
+func (p *SourcePlugin) Version() string {
+	return p.version
+}
+
+func (p *SourcePlugin) SetLogger(log zerolog.Logger) {
+	p.logger = log
+}
+
+// Sync data from source to the given channel
+func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
+	c, err := p.newExecutionClient(ctx, p, spec)
 	if err != nil {
-		return fmt.Errorf("failed to interpolate resources: %w", err)
+		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
 
 	// limiter used to limit the amount of resources fetched concurrently
-	maxGoroutines := p.spec.MaxGoRoutines
+	maxGoroutines := spec.MaxGoRoutines
 	if maxGoroutines == 0 {
-		maxGoroutines = limit.GetMaxGoRoutines()
+		maxGoroutines = minGoRoutines
 	}
-	p.Logger.Info().Uint64("max_goroutines", maxGoroutines).Msg("starting fetch")
-	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
+	p.logger.Info().Uint64("max_goroutines", maxGoroutines).Msg("starting fetch")
+
+	// goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
 
 	w := sync.WaitGroup{}
-	for _, table := range p.Tables {
+	totalResources := 0
+	startTime := time.Now()
+	tableNames, err := p.interpolateAllResources(p.tables.TableNames())
+	if err != nil {
+		return err
+	}
+
+	// this is the same fetchtime for all resources
+	fetchTime := time.Now()
+
+	for _, table := range p.tables {
 		table := table
-		if funk.ContainsString(p.spec.SkipTables, table.Name) || !funk.ContainsString(tables, table.Name) {
-			p.Logger.Info().Str("table", table.Name).Msg("skipping table")
+		if funk.ContainsString(spec.SkipTables, table.Name) || !funk.ContainsString(tableNames, table.Name) {
+			p.logger.Info().Str("table", table.Name).Msg("skipping table")
 			continue
 		}
-		clients := []schema.ClientMeta{p.clientMeta}
+		clients := []schema.ClientMeta{c}
 		if table.Multiplex != nil {
-			clients = table.Multiplex(p.clientMeta)
+			clients = table.Multiplex(c)
+		}
+		// because table can't import sourceplugin we need to set classifyError if it is not set by table
+		if table.IgnoreError == nil {
+			table.IgnoreError = p.ignoreError
 		}
 		// we call this here because we dont know when the following goroutine will be called and we do want an order
 		// of table by table
-		totalClients := len(clients)
-		newN := helpers.TryAcquireMax(goroutinesSem, int64(totalClients))
+		// totalClients := len(clients)
+		// newN, err := helpers.TryAcquireMax(ctx, goroutinesSem, int64(totalClients))
+		// if err != nil {
+		// 	p.logger.Error().Err(err).Msg("failed to TryAcquireMax semaphore. exiting")
+		// 	break
+		// }
 		// goroutinesSem.TryAcquire()
 		w.Add(1)
 		go func() {
 			defer w.Done()
-			defer goroutinesSem.Release(int64(totalClients) - newN)
 			wg := sync.WaitGroup{}
-			p.Logger.Info().Str("table", table.Name).Msg("fetch start")
-			startTime := time.Now()
-			for i, client := range clients {
+			p.logger.Info().Str("table", table.Name).Msg("fetch start")
+			tableStartTime := time.Now()
+			totalTableResources := 0
+			for _, client := range clients {
 				client := client
-				i := i
-				// acquire semaphore only if we couldn't acquire it earlier
-				if newN > 0 && i >= (totalClients-int(newN)) {
-					if err := goroutinesSem.Acquire(ctx, 1); err != nil {
-						// this can happen if context was cancelled so we just break out of the loop
-						p.Logger.Error().Err(err).Msg("failed to acquire semaphore")
-						return
-					}
-				}
+
+				// i := i
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					if newN > 0 && i >= (totalClients-int(newN)) {
-						defer goroutinesSem.Release(1)
-					}
-					table.Resolve(ctx, client, nil, res)
+					// defer goroutinesSem.Release(1)
+					totalTableResources += table.Resolve(ctx, client, fetchTime, nil, res)
 				}()
 			}
 			wg.Wait()
-			p.Logger.Info().Str("table", table.Name).TimeDiff("duration", time.Now(), startTime).Msg("fetch finished")
+			totalResources += totalTableResources
+			p.logger.Info().Str("table", table.Name).Int("total_resources", totalTableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
 		}()
 	}
 	w.Wait()
-
+	p.logger.Info().Int("total_resources", totalResources).TimeDiff("duration", time.Now(), startTime).Msg("fetch finished")
 	return nil
 }
 
 func (p *SourcePlugin) interpolateAllResources(tables []string) ([]string, error) {
+	if tables == nil {
+		return make([]string, 0), nil
+	}
 	if !funk.ContainsString(tables, "*") {
 		return tables, nil
 	}
@@ -151,8 +212,8 @@ func (p *SourcePlugin) interpolateAllResources(tables []string) ([]string, error
 		return nil, fmt.Errorf("invalid \"*\" resource, with explicit resources")
 	}
 
-	allResources := make([]string, 0, len(p.Tables))
-	for _, k := range p.Tables {
+	allResources := make([]string, 0, len(p.tables))
+	for _, k := range p.tables {
 		allResources = append(allResources, k.Name)
 	}
 	return allResources, nil

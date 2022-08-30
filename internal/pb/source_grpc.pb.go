@@ -8,6 +8,7 @@ package pb
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -26,10 +27,8 @@ type SourceClient interface {
 	GetTables(ctx context.Context, in *GetTables_Request, opts ...grpc.CallOption) (*GetTables_Response, error)
 	// Get an example configuration for the source plugin
 	GetExampleConfig(ctx context.Context, in *GetExampleConfig_Request, opts ...grpc.CallOption) (*GetExampleConfig_Response, error)
-	// Configure the source plugin with the given spec
-	Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error)
 	// Fetch resources
-	Fetch(ctx context.Context, in *Fetch_Request, opts ...grpc.CallOption) (Source_FetchClient, error)
+	Sync(ctx context.Context, in *Sync_Request, opts ...grpc.CallOption) (Source_SyncClient, error)
 }
 
 type sourceClient struct {
@@ -58,21 +57,12 @@ func (c *sourceClient) GetExampleConfig(ctx context.Context, in *GetExampleConfi
 	return out, nil
 }
 
-func (c *sourceClient) Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error) {
-	out := new(Configure_Response)
-	err := c.cc.Invoke(ctx, "/proto.Source/Configure", in, out, opts...)
+func (c *sourceClient) Sync(ctx context.Context, in *Sync_Request, opts ...grpc.CallOption) (Source_SyncClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Source_ServiceDesc.Streams[0], "/proto.Source/Sync", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
-}
-
-func (c *sourceClient) Fetch(ctx context.Context, in *Fetch_Request, opts ...grpc.CallOption) (Source_FetchClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Source_ServiceDesc.Streams[0], "/proto.Source/Fetch", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &sourceFetchClient{stream}
+	x := &sourceSyncClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -82,17 +72,17 @@ func (c *sourceClient) Fetch(ctx context.Context, in *Fetch_Request, opts ...grp
 	return x, nil
 }
 
-type Source_FetchClient interface {
-	Recv() (*Fetch_Response, error)
+type Source_SyncClient interface {
+	Recv() (*Sync_Response, error)
 	grpc.ClientStream
 }
 
-type sourceFetchClient struct {
+type sourceSyncClient struct {
 	grpc.ClientStream
 }
 
-func (x *sourceFetchClient) Recv() (*Fetch_Response, error) {
-	m := new(Fetch_Response)
+func (x *sourceSyncClient) Recv() (*Sync_Response, error) {
+	m := new(Sync_Response)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -107,10 +97,8 @@ type SourceServer interface {
 	GetTables(context.Context, *GetTables_Request) (*GetTables_Response, error)
 	// Get an example configuration for the source plugin
 	GetExampleConfig(context.Context, *GetExampleConfig_Request) (*GetExampleConfig_Response, error)
-	// Configure the source plugin with the given spec
-	Configure(context.Context, *Configure_Request) (*Configure_Response, error)
 	// Fetch resources
-	Fetch(*Fetch_Request, Source_FetchServer) error
+	Sync(*Sync_Request, Source_SyncServer) error
 	mustEmbedUnimplementedSourceServer()
 }
 
@@ -124,11 +112,8 @@ func (UnimplementedSourceServer) GetTables(context.Context, *GetTables_Request) 
 func (UnimplementedSourceServer) GetExampleConfig(context.Context, *GetExampleConfig_Request) (*GetExampleConfig_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetExampleConfig not implemented")
 }
-func (UnimplementedSourceServer) Configure(context.Context, *Configure_Request) (*Configure_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
-}
-func (UnimplementedSourceServer) Fetch(*Fetch_Request, Source_FetchServer) error {
-	return status.Errorf(codes.Unimplemented, "method Fetch not implemented")
+func (UnimplementedSourceServer) Sync(*Sync_Request, Source_SyncServer) error {
+	return status.Errorf(codes.Unimplemented, "method Sync not implemented")
 }
 func (UnimplementedSourceServer) mustEmbedUnimplementedSourceServer() {}
 
@@ -179,42 +164,24 @@ func _Source_GetExampleConfig_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Source_Configure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Configure_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(SourceServer).Configure(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Source/Configure",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SourceServer).Configure(ctx, req.(*Configure_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Source_Fetch_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(Fetch_Request)
+func _Source_Sync_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Sync_Request)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(SourceServer).Fetch(m, &sourceFetchServer{stream})
+	return srv.(SourceServer).Sync(m, &sourceSyncServer{stream})
 }
 
-type Source_FetchServer interface {
-	Send(*Fetch_Response) error
+type Source_SyncServer interface {
+	Send(*Sync_Response) error
 	grpc.ServerStream
 }
 
-type sourceFetchServer struct {
+type sourceSyncServer struct {
 	grpc.ServerStream
 }
 
-func (x *sourceFetchServer) Send(m *Fetch_Response) error {
+func (x *sourceSyncServer) Send(m *Sync_Response) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -233,15 +200,11 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetExampleConfig",
 			Handler:    _Source_GetExampleConfig_Handler,
 		},
-		{
-			MethodName: "Configure",
-			Handler:    _Source_Configure_Handler,
-		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Fetch",
-			Handler:       _Source_Fetch_Handler,
+			StreamName:    "Sync",
+			Handler:       _Source_Sync_Handler,
 			ServerStreams: true,
 		},
 	},

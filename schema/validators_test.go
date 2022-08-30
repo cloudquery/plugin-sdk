@@ -15,7 +15,7 @@ var testTableValidators = Table{
 		},
 		{
 			Name: "zero_int",
-			Type: TypeBigInt,
+			Type: TypeInt,
 		},
 		{
 			Name: "not_zero_bool",

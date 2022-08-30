@@ -6,21 +6,17 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 )
 
 type SpecReader struct {
-	sources      map[string]SourceSpec
-	destinations map[string]DestinationSpec
-	connections  map[string]ConnectionSpec
+	sources      map[string]Source
+	destinations map[string]Destination
 }
 
 func NewSpecReader(directory string) (*SpecReader, error) {
 	reader := SpecReader{
-		sources:      make(map[string]SourceSpec),
-		destinations: make(map[string]DestinationSpec),
-		connections:  make(map[string]ConnectionSpec),
+		sources:      make(map[string]Source),
+		destinations: make(map[string]Destination),
 	}
 	files, err := ioutil.ReadDir(directory)
 	if err != nil {
@@ -34,16 +30,14 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 				return nil, fmt.Errorf("failed to read file %s: %w", file.Name(), err)
 			}
 			var s Spec
-			if err := yaml.Unmarshal(data, &s); err != nil {
+			if err := SpecUnmarshalYamlStrict(data, &s); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal file %s: %w", file.Name(), err)
 			}
 			switch s.Kind {
-			case "source":
-				reader.sources[file.Name()] = *s.Spec.(*SourceSpec)
-			case "destination":
-				reader.destinations[file.Name()] = *s.Spec.(*DestinationSpec)
-			case "connection":
-				reader.connections[file.Name()] = *s.Spec.(*ConnectionSpec)
+			case KindSource:
+				reader.sources[file.Name()] = *s.Spec.(*Source)
+			case KindDestination:
+				reader.destinations[file.Name()] = *s.Spec.(*Destination)
 			default:
 				return nil, fmt.Errorf("unknown kind %s", s.Kind)
 			}
@@ -52,37 +46,28 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 	return &reader, nil
 }
 
-func (s *SpecReader) GetSourceByName(name string) SourceSpec {
+func (s *SpecReader) GetSources() []Source {
+	sources := make([]Source, 0, len(s.sources))
+	for _, spec := range s.sources {
+		sources = append(sources, spec)
+	}
+	return sources
+}
+
+func (s *SpecReader) GetSourceByName(name string) *Source {
 	for _, spec := range s.sources {
 		if spec.Name == name {
-			return spec
+			return &spec
 		}
 	}
-	return SourceSpec{}
+	return nil
 }
 
-func (s *SpecReader) GetDestinatinoByName(name string) DestinationSpec {
+func (s *SpecReader) GetDestinatinoByName(name string) *Destination {
 	for _, spec := range s.destinations {
 		if spec.Name == name {
-			return spec
+			return &spec
 		}
 	}
-	return DestinationSpec{}
-}
-
-func (s *SpecReader) GetConnectionByName(name string) ConnectionSpec {
-	for _, spec := range s.connections {
-		if spec.Source == name {
-			return spec
-		}
-	}
-	return ConnectionSpec{}
-}
-
-func (s *SpecReader) Connections() []ConnectionSpec {
-	connections := make([]ConnectionSpec, 0, len(s.connections))
-	for _, spec := range s.connections {
-		connections = append(connections, spec)
-	}
-	return connections
+	return nil
 }

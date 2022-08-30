@@ -2,9 +2,10 @@ package schema
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/thoas/go-funk"
 )
 
 type Resources []*Resource
@@ -13,75 +14,73 @@ type Resources []*Resource
 // generates an Id based on Table's Columns. Resource data can be accessed by the Get and Set methods
 type Resource struct {
 	// Original resource item that wa from prior resolve
-	Item interface{}
+	Item interface{} `json:"-"`
 	// Set if this is an embedded table
-	Parent *Resource `msgpack:"parent"`
+	Parent *Resource `json:"-"`
 	// internal fields
-	Table    *Table                 `msgpack:"table"`
-	Data     map[string]interface{} `msgpack:"data"`
-	cqId     uuid.UUID
-	metadata map[string]interface{}
-	CColumns []string `msgpack:"columns"`
+	Table *Table `json:"-"`
+	// This is sorted result data by column name
+	Data      map[string]interface{} `json:"data"`
+	TableName string                 `json:"table_name"`
 }
 
-func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
-	return &Resource{
-		Item:     item,
-		Parent:   parent,
-		Table:    t,
-		Data:     make(map[string]interface{}),
-		cqId:     uuid.New(),
-		CColumns: t.Columns.Names(),
-		// metadata: metadata,
+func NewResourceData(t *Table, parent *Resource, fetchTime time.Time, item interface{}) *Resource {
+	r := Resource{
+		Item:      item,
+		Parent:    parent,
+		Table:     t,
+		Data:      make(map[string]interface{}, len(t.Columns)),
+		TableName: t.Name,
 	}
+	r.Data[CqFetchTime.Name] = fetchTime
+	return &r
 }
 
-// func (r *Resource) PrimaryKeyValues() []string {
-// 	tablePrimKeys := r.dialect.PrimaryKeys(r.table)
-// 	if len(tablePrimKeys) == 0 {
-// 		return []string{}
-// 	}
-// 	results := make([]string, 0)
-// 	for _, primKey := range tablePrimKeys {
-// 		data := r.Get(primKey)
-// 		if data == nil {
-// 			continue
-// 		}
-// 		// we can have more types, but PKs are usually either ints, strings or a structure
-// 		// hopefully supporting Stringer interface, otherwise we fallback
-// 		switch v := data.(type) {
-// 		case fmt.Stringer:
-// 			results = append(results, v.String())
-// 		case *string:
-// 			results = append(results, *v)
-// 		case *int:
-// 			results = append(results, fmt.Sprintf("%d", *v))
-// 		default:
-// 			results = append(results, fmt.Sprintf("%v", v))
-// 		}
-// 	}
-// 	return results
-// }
+func (r *Resource) PrimaryKeyValue() string {
+	pks := r.Table.PrimaryKeys()
+	if len(pks) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	for _, primKey := range pks {
+		data := r.Get(primKey)
+		if data == nil {
+			continue
+		}
+		// we can have more types, but PKs are usually either ints, strings or a structure
+		// hopefully supporting Stringer interface, otherwise we fallback
+		switch v := data.(type) {
+		case fmt.Stringer:
+			sb.WriteString(v.String())
+		case *string:
+			sb.WriteString(*v)
+		case *int:
+			sb.WriteString(fmt.Sprintf("%d", *v))
+		default:
+			sb.WriteString(fmt.Sprintf("%d", v))
+		}
+	}
+	return sb.String()
+}
 
 func (r *Resource) Get(key string) interface{} {
 	return r.Data[key]
 }
 
 func (r *Resource) Set(key string, value interface{}) error {
-	columnExists := funk.ContainsString(r.CColumns, key)
-	if !columnExists {
-		return fmt.Errorf("column %s does not exist", key)
-	}
 	r.Data[key] = value
 	return nil
 }
 
 func (r *Resource) Id() uuid.UUID {
-	return r.cqId
+	if r.Data[CqIdColumn.Name] == nil {
+		return uuid.UUID{}
+	}
+	return r.Data[CqIdColumn.Name].(uuid.UUID)
 }
 
 func (r *Resource) Columns() []string {
-	return r.CColumns
+	return r.Table.Columns.Names()
 }
 
 // func (r *Resource) Values() ([]interface{}, error) {
@@ -123,20 +122,13 @@ func (r *Resource) Columns() []string {
 // 	return nil
 // }
 
-func (r *Resource) TableName() string {
-	if r.Table == nil {
-		return ""
-	}
-	return r.Table.Name
-}
-
-func (r Resource) GetMeta(key string) (interface{}, bool) {
-	if r.metadata == nil {
-		return nil, false
-	}
-	v, ok := r.metadata[key]
-	return v, ok
-}
+// func (r Resource) GetMeta(key string) (interface{}, bool) {
+// 	if r.metadata == nil {
+// 		return nil, false
+// 	}
+// 	v, ok := r.metadata[key]
+// 	return v, ok
+// }
 
 // func (r Resource) getColumnByName(column string) *Column {
 // 	for _, c := range r.Table.Columns {
@@ -165,7 +157,7 @@ func (rr Resources) ColumnNames() []string {
 	if len(rr) == 0 {
 		return []string{}
 	}
-	return rr[0].CColumns
+	return rr[0].Table.Columns.Names()
 }
 
 // func hashUUID(objs interface{}) (uuid.UUID, error) {

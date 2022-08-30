@@ -22,7 +22,7 @@ func newCmdDoc(opts Options) *cobra.Command {
 				return fmt.Errorf("doc generation is only supported for source plugins")
 			}
 
-			return schema.GenerateMarkdownTree(opts.SourcePlugin.Tables, args[0])
+			return schema.GenerateMarkdownTree(opts.SourcePlugin.Tables(), args[0])
 		},
 	}
 }

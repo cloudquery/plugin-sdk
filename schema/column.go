@@ -36,28 +36,29 @@ type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resourc
 
 // ColumnCreationOptions allow modification of how column is defined when table is created
 type ColumnCreationOptions struct {
-	Unique  bool
-	NotNull bool
+	PrimaryKey bool `json:"primary_key,omitempty"`
+	Unique     bool `json:"unique,omitempty"`
+	NotNull    bool `json:"notnull,omitempty"`
 }
 
 // Column definition for Table
 type Column struct {
 	// Name of column
-	Name string
+	Name string `json:"name,omitempty"`
 	// Value Type of column i.e String, UUID etc'
-	Type ValueType
+	Type ValueType `json:"type,omitempty"`
 	// Description about column, this description is added as a comment in the database
-	Description string
+	Description string `json:"description,omitempty"`
 	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
-	Resolver ColumnResolver `msgpack:"-"`
+	Resolver ColumnResolver `json:"-"`
 	// Creation options allow modifying how column is defined when table is created
-	CreationOptions ColumnCreationOptions
+	CreationOptions ColumnCreationOptions `json:"creation_options,omitempty"`
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
-	IgnoreInTests bool
+	IgnoreInTests bool `json:"-"`
 	// internal is true if this column is managed by the SDK
 	internal bool
 	// meta holds serializable information about the column's resolvers and functions
@@ -67,9 +68,7 @@ type Column struct {
 const (
 	TypeInvalid ValueType = iota
 	TypeBool
-	TypeSmallInt
 	TypeInt
-	TypeBigInt
 	TypeFloat
 	TypeUUID
 	TypeString
@@ -91,8 +90,8 @@ func (v ValueType) String() string {
 	switch v {
 	case TypeBool:
 		return "TypeBool"
-	case TypeInt, TypeBigInt, TypeSmallInt:
-		return "TypeBigInt"
+	case TypeInt:
+		return "TypeInt"
 	case TypeFloat:
 		return "TypeFloat"
 	case TypeUUID:
@@ -136,7 +135,7 @@ func ValueTypeFromString(s string) ValueType {
 	case "bool":
 		return TypeBool
 	case "int", "bigint", "smallint":
-		return TypeBigInt
+		return TypeInt
 	case "float":
 		return TypeFloat
 	case "uuid":
@@ -201,8 +200,7 @@ func (c Column) checkType(v interface{}) bool {
 
 	switch val := v.(type) {
 	case int8, *int8, uint8, *uint8, int16, *int16, uint16, *uint16, int32, *int32, int, *int, uint32, *uint32, int64, *int64:
-		// TODO: Deprecate all Int Types in favour of BigInt
-		return c.Type == TypeBigInt || c.Type == TypeSmallInt || c.Type == TypeInt
+		return c.Type == TypeInt
 	case []byte:
 		if c.Type == TypeUUID {
 			if _, err := uuid.FromBytes(val); err != nil {
@@ -260,13 +258,22 @@ func (c Column) checkType(v interface{}) bool {
 		if kindName == reflect.String && c.Type == TypeString {
 			return true
 		}
+		switch kindName {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return c.Type == TypeInt
+		}
 		if kindName == reflect.Slice {
 			itemKind := reflect2.TypeOf(v).Type1().Elem().Kind()
 			if c.Type == TypeStringArray && reflect.String == itemKind {
 				return true
 			}
-			if c.Type == TypeIntArray && reflect.Int == itemKind {
-				return true
+			if c.Type == TypeIntArray {
+				switch itemKind {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					return true
+				}
 			}
 			if c.Type == TypeJSON && (reflect.Struct == itemKind || reflect.Ptr == itemKind) {
 				return true
@@ -277,16 +284,6 @@ func (c Column) checkType(v interface{}) bool {
 		}
 		if kindName == reflect.Struct {
 			return c.Type == TypeJSON
-		}
-		if c.Type == TypeSmallInt && (kindName == reflect.Int8 || kindName == reflect.Int16 || kindName == reflect.Uint8) {
-			return true
-		}
-
-		if c.Type == TypeInt && (kindName == reflect.Uint16 || kindName == reflect.Int32) {
-			return true
-		}
-		if c.Type == TypeBigInt && (kindName == reflect.Int || kindName == reflect.Int64 || kindName == reflect.Uint || kindName == reflect.Uint32 || kindName == reflect.Uint64) {
-			return true
 		}
 	}
 
@@ -328,27 +325,27 @@ func SetColumnMeta(c Column, m *ColumnMeta) Column {
 }
 
 // Sift gets a column list and returns a list of provider columns, and another list of internal columns, cqId column being the very last one
-func (c ColumnList) Sift() (providerCols ColumnList, internalCols ColumnList) {
-	providerCols, internalCols = make(ColumnList, 0, len(c)), make(ColumnList, 0, len(c))
-	cqIdColIndex := -1
-	for i := range c {
-		if c[i].internal {
-			if c[i].Name == cqIdColumn.Name {
-				cqIdColIndex = len(internalCols)
-			}
+// func (c ColumnList) Sift() (providerCols ColumnList, internalCols ColumnList) {
+// 	providerCols, internalCols = make(ColumnList, 0, len(c)), make(ColumnList, 0, len(c))
+// 	cqIdColIndex := -1
+// 	for i := range c {
+// 		if c[i].internal {
+// 			if c[i].Name == cqIdColumn.Name {
+// 				cqIdColIndex = len(internalCols)
+// 			}
 
-			internalCols = append(internalCols, c[i])
-		} else {
-			providerCols = append(providerCols, c[i])
-		}
-	}
+// 			internalCols = append(internalCols, c[i])
+// 		} else {
+// 			providerCols = append(providerCols, c[i])
+// 		}
+// 	}
 
-	// resolve cqId last, as it would need other PKs to be resolved, some might be internal (cq_fetch_date)
-	if lastIndex := len(internalCols) - 1; cqIdColIndex > -1 && cqIdColIndex != lastIndex {
-		internalCols[cqIdColIndex], internalCols[lastIndex] = internalCols[lastIndex], internalCols[cqIdColIndex]
-	}
-	return providerCols, internalCols
-}
+// 	// resolve cqId last, as it would need other PKs to be resolved, some might be internal (cq_fetch_date)
+// 	if lastIndex := len(internalCols) - 1; cqIdColIndex > -1 && cqIdColIndex != lastIndex {
+// 		internalCols[cqIdColIndex], internalCols[lastIndex] = internalCols[lastIndex], internalCols[cqIdColIndex]
+// 	}
+// 	return providerCols, internalCols
+// }
 
 func (c ColumnList) Names() []string {
 	ret := make([]string, len(c))
