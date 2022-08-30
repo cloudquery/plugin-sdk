@@ -70,6 +70,7 @@ func addInternalColumns(tables []*schema.Table) {
 		cqId := schema.CqIdColumn
 		if len(table.PrimaryKeys()) == 0 {
 			cqId.CreationOptions.PrimaryKey = true
+			cqId.CreationOptions.Unique = false
 		}
 		table.Columns = append(table.Columns, cqId, schema.CqFetchTime)
 		addInternalColumns(table.Relations)
