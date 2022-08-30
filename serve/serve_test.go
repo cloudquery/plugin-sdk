@@ -100,7 +100,17 @@ func TestServe(t *testing.T) {
 		"v1.0.0",
 		[]*schema.Table{testTable()},
 		newTestExecutionClient,
-		plugins.WithSourceExampleConfig(""),
+		plugins.WithSourceExampleConfig(`--- 
+kind: source
+spec: 
+  name: testSourcePlugin
+  path: cloudquery/testSourcePlugin
+  spec: 
+    accounts: ["all"]
+  tables: 
+    - "*"
+  version: v1.0.0
+`),
 		plugins.WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
 	)
 
@@ -167,5 +177,4 @@ func TestServe(t *testing.T) {
 	if diff := cmp.Diff(expectedExampleSpecConfig, exampleSpec); diff != "" {
 		t.Fatalf("Spec mismatch (-want +got):\n%s", diff)
 	}
-
 }

@@ -200,7 +200,6 @@ func (c Column) checkType(v interface{}) bool {
 
 	switch val := v.(type) {
 	case int8, *int8, uint8, *uint8, int16, *int16, uint16, *uint16, int32, *int32, int, *int, uint32, *uint32, int64, *int64:
-		// TODO: Deprecate all Int Types in favour of BigInt
 		return c.Type == TypeInt
 	case []byte:
 		if c.Type == TypeUUID {
@@ -259,13 +258,22 @@ func (c Column) checkType(v interface{}) bool {
 		if kindName == reflect.String && c.Type == TypeString {
 			return true
 		}
+		switch kindName {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return c.Type == TypeInt
+		}
 		if kindName == reflect.Slice {
 			itemKind := reflect2.TypeOf(v).Type1().Elem().Kind()
 			if c.Type == TypeStringArray && reflect.String == itemKind {
 				return true
 			}
-			if c.Type == TypeIntArray && reflect.Int == itemKind {
-				return true
+			if c.Type == TypeIntArray {
+				switch itemKind {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					return true
+				}
 			}
 			if c.Type == TypeJSON && (reflect.Struct == itemKind || reflect.Ptr == itemKind) {
 				return true

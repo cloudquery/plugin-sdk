@@ -29,13 +29,13 @@ type SomeInt16 int16
 
 var validateFixtures = []validateFixture{
 	{
-		Column:     Column{Type: TypeBigInt},
-		TestValues: []interface{}{5, 300, funk.PtrOf(555), SomeInt(555)},
-		BadValues:  []interface{}{"a", funk.PtrOf("abc"), SomeInt16(555)},
+		Column:     Column{Type: TypeInt},
+		TestValues: []interface{}{5, 300, funk.PtrOf(555), SomeInt16(555), SomeInt(555)},
+		BadValues:  []interface{}{"a", funk.PtrOf("abc")},
 	},
 	{
-		Column:     Column{Type: TypeSmallInt},
-		TestValues: []interface{}{SomeInt16(555)},
+		Column:     Column{Type: TypeFloat},
+		TestValues: []interface{}{555.5},
 		BadValues:  []interface{}{"a", funk.PtrOf("abc")},
 	},
 	{
@@ -62,7 +62,7 @@ var validateFixtures = []validateFixture{
 	},
 	{
 		Column:     Column{Type: TypeIntArray},
-		TestValues: []interface{}{[]int{1, 2, 3}, []SomeInt{SomeInt(3)}},
+		TestValues: []interface{}{[]int{1, 2, 3}, []SomeInt{SomeInt(3)}, []int16{1, 2, 3}},
 		BadValues:  []interface{}{[]interface{}{1, 2, 3}},
 	},
 	{
@@ -129,12 +129,14 @@ func GenerateCIDR() *net.IPNet {
 
 func TestValidateType(t *testing.T) {
 	for _, f := range validateFixtures {
-		for _, v := range f.TestValues {
-			assert.Nil(t, f.Column.ValidateType(v))
-		}
-		for _, v := range f.BadValues {
-			assert.Error(t, f.Column.ValidateType(v))
-		}
+		t.Run(f.Column.Type.String(), func(t *testing.T) {
+			for _, v := range f.TestValues {
+				assert.Nil(t, f.Column.ValidateType(v))
+			}
+			for _, v := range f.BadValues {
+				assert.Error(t, f.Column.ValidateType(v))
+			}
+		})
 	}
 }
 
@@ -143,10 +145,10 @@ func TestValueTypeFromString(t *testing.T) {
 	// case insensitive
 	assert.Equal(t, ValueTypeFromString("Json"), TypeJSON)
 	assert.Equal(t, ValueTypeFromString("JSON"), TypeJSON)
-	assert.Equal(t, ValueTypeFromString("bigint"), TypeBigInt)
+	assert.Equal(t, ValueTypeFromString("bigint"), TypeInt)
 	assert.Equal(t, ValueTypeFromString("Blabla"), TypeInvalid)
 
-	assert.Equal(t, ValueTypeFromString("TypeBigInt"), TypeBigInt)
+	assert.Equal(t, ValueTypeFromString("TypeBigInt"), TypeInt)
 	assert.Equal(t, ValueTypeFromString("TypeString"), TypeString)
 }
 

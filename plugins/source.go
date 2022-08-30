@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"sync"
 	"time"
@@ -10,14 +11,12 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
-
-	_ "embed"
 )
 
 const ExampleSourceConfig = `
 # max_goroutines to use when fetching. 0 means default and calculated by CloudQuery
 # max_goroutines: 0
-# By default cloudquery will fetch all tables in the source plugin
+# By default CloudQuery will fetch all tables in the source plugin
 # tables: ["*"]
 # skip_tables specify which tables to skip. especially useful when using "*" for tables
 # skip_tables: []
