@@ -4,46 +4,14 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 )
-
-type innerStruct struct {
-	Value string
-}
-
-type testStruct struct {
-	Inner      innerStruct
-	Value      int
-	unexported bool
-}
-
-type testDateStruct struct {
-	Date string
-}
-
-type testNetStruct struct {
-	IP  string
-	MAC string
-	Net string
-	IPS []string
-}
-
-type testTransformersStruct struct {
-	Int      int
-	String   string
-	Float    float64
-	BadFloat string
-}
-
-type testUUIDStruct struct {
-	UUID    string
-	BadUUID string
-}
 
 var resolverTestTable = &Table{
 	Name: "testTable",
 	Columns: []Column{
 		{
-			Name: "stringColumn",
+			Name: "string_column",
 			Type: TypeString,
 		},
 	},
@@ -64,8 +32,8 @@ var resolverTestCases = []struct {
 		Name:                 "PathResolver",
 		Column:               resolverTestTable.Columns[0],
 		ColumnResolver:       PathResolver("PathResolver"),
-		Resource:             NewResourceData(resolverTestTable, nil, resolverTestItem),
-		ExpectedResourceData: map[string]interface{}{"stringColumn": "test"},
+		Resource:             NewResourceData(resolverTestTable, nil, time.Now(), resolverTestItem),
+		ExpectedResourceData: map[string]interface{}{"string_column": "test"},
 	},
 }
 
@@ -78,8 +46,9 @@ func TestResolvers(t *testing.T) {
 				t.Errorf("unexpected error: %v", err)
 				return
 			}
-			if !reflect.DeepEqual(tc.Resource.data, tc.ExpectedResourceData) {
-				t.Errorf("Expected %v, got %v", tc.ExpectedResourceData, tc.Resource.data)
+			delete(tc.Resource.Data, "_cq_fetch_time")
+			if !reflect.DeepEqual(tc.ExpectedResourceData, tc.Resource.Data) {
+				t.Errorf("Expected %v, got %v", tc.ExpectedResourceData, tc.Resource.Data)
 			}
 		})
 	}

@@ -87,6 +87,17 @@ func (tt Tables) ValidateDuplicateColumns() error {
 	return nil
 }
 
+func (tt Tables) ValidateDuplicateTables() error {
+	tables := make(map[string]bool, len(tt))
+	for _, t := range tt {
+		if _, ok := tables[t.Name]; ok {
+			return fmt.Errorf("duplicate table %s", t.Name)
+		}
+		tables[t.Name] = true
+	}
+	return nil
+}
+
 func (t Table) ValidateDuplicateColumns() error {
 	columns := make(map[string]bool, len(t.Columns))
 	for _, c := range t.Columns {
