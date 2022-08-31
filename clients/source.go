@@ -28,6 +28,14 @@ func NewSourceClient(cc grpc.ClientConnInterface) *SourceClient {
 	}
 }
 
+func (c *SourceClient) Name(ctx context.Context) (string, error) {
+	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetExampleConfig_Request{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get example config: %w", err)
+	}
+	return res.Name, nil
+}
+
 func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 	res, err := c.pbClient.GetTables(ctx, &pb.GetTables_Request{})
 	if err != nil {

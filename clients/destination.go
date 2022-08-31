@@ -30,6 +30,14 @@ func NewLocalDestinationClient(p plugins.DestinationPlugin) *DestinationClient {
 	}
 }
 
+func (c *DestinationClient) Name(ctx context.Context) (string, error) {
+	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetExampleConfig_Request{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get example config: %w", err)
+	}
+	return res.Name, nil
+}
+
 func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error) {
 	if c.localClient != nil {
 		return c.localClient.ExampleConfig(), nil
