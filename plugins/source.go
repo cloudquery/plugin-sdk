@@ -138,7 +138,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 
 	// limiter used to limit the amount of resources fetched concurrently
 	maxGoroutines := spec.MaxGoRoutines
-	if maxGoroutines == 0 {
+	if maxGoroutines < minGoRoutines {
 		maxGoroutines = minGoRoutines
 	}
 	p.logger.Info().Uint64("max_goroutines", maxGoroutines).Msg("starting fetch")
