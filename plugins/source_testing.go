@@ -7,7 +7,6 @@ import (
 	"github.com/cloudquery/faker/v3"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/georgysavva/scany/pgxscan"
 )
 
 type ResourceTestCase struct {
@@ -17,14 +16,7 @@ type ResourceTestCase struct {
 	ParallelFetchingLimit uint64
 	// SkipIgnoreInTest flag which detects if schema.Table or schema.Column should be ignored
 	SkipIgnoreInTest bool
-	// Verifiers are map from resource name to its verifiers.
-	// If no verifiers specified for resource (resource name is not in key set of map),
-	// non emptiness check of all columns in table and its relations will be performed.
-	Verifiers map[string][]Verifier
 }
-
-// Verifier verifies tables specified by table schema (main table and its relations).
-type Verifier func(t *testing.T, table *schema.Table, conn pgxscan.Querier, shouldSkipIgnoreInTest bool)
 
 func init() {
 	_ = faker.SetRandomMapAndSliceMinSize(1)
