@@ -155,7 +155,7 @@ spec:
 		}
 	}
 	if err := wg.Wait(); err != nil {
-		t.Fatalf("Failed to fetch resources: %v", err)
+		t.Fatalf("Failed to sync resources: %v", err)
 	}
 
 	exampleConfig, err := c.ExampleConfig(ctx)
