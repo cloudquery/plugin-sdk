@@ -35,7 +35,7 @@ func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 	}
 	var tables []*schema.Table
 	if err := json.Unmarshal(res.Tables, &tables); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal tables: %s: %w", string(res.Tables), err)
 	}
 	return tables, nil
 }

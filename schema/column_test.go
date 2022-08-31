@@ -131,10 +131,14 @@ func TestValidateType(t *testing.T) {
 	for _, f := range validateFixtures {
 		t.Run(f.Column.Type.String(), func(t *testing.T) {
 			for _, v := range f.TestValues {
-				assert.Nil(t, f.Column.ValidateType(v))
+				if f.Column.ValidateType(v) != nil {
+					t.Errorf("%v is not a valid value for %s", v, f.Column.Type.String())
+				}
 			}
 			for _, v := range f.BadValues {
-				assert.Error(t, f.Column.ValidateType(v))
+				if f.Column.ValidateType(v) == nil {
+					t.Errorf("%v is not a valid value for %s", v, f.Column.Type.String())
+				}
 			}
 		})
 	}

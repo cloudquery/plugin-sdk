@@ -2,8 +2,6 @@ package schema
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 var testTableValidators = Table{
@@ -27,17 +25,23 @@ var testTableValidators = Table{
 func TestTableValidators(t *testing.T) {
 	// table has passed all validators
 	err := ValidateTable(&testTableValidators)
-	assert.Nil(t, err)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	// table name is too long
 	tableWithLongName := testTableValidators
 	tableWithLongName.Name = "WithLongNametableWithLongNametableWithLongNametableWithLongNamet"
 	err = ValidateTable(&tableWithLongName)
-	assert.Error(t, err)
+	if err == nil {
+		t.Errorf("expected error but got none")
+	}
 
 	// column name is too long
 	tableWithLongColumnName := testTableValidators
 	tableWithLongName.Columns[0].Name = "tableWithLongColumnNametableWithLongColumnNametableWithLongColumnName"
 	err = ValidateTable(&tableWithLongColumnName)
-	assert.Error(t, err)
+	if err == nil {
+		t.Errorf("expected error but got none")
+	}
 }
