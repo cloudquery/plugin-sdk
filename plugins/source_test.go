@@ -68,10 +68,7 @@ func TestSync(t *testing.T) {
 	)
 
 	// test round trip: get example config -> sync with example config -> success
-	exampleConfig, err := plugin.ExampleConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
+	exampleConfig := plugin.ExampleConfig()
 	fmt.Println(exampleConfig)
 	var spec specs.Spec
 	if err := specs.SpecUnmarshalYamlStrict([]byte(exampleConfig), &spec); err != nil {
@@ -82,7 +79,7 @@ func TestSync(t *testing.T) {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(resources)
-		err = plugin.Sync(ctx,
+		err := plugin.Sync(ctx,
 			*spec.Spec.(*specs.Source),
 			resources)
 		return err

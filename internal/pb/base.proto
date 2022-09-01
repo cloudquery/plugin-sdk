@@ -2,12 +2,24 @@ syntax = "proto3";
 package proto;
 option go_package = "/pb";
 
-message GetExampleConfig {
+message GetName {
   message Request {}
   message Response {
     string name = 1;
-    string version = 2;
-    string config = 3;
+  }
+}
+
+message GetVersion {
+  message Request {}
+  message Response {
+    string version = 1;
+  }
+}
+
+message GetExampleConfig {
+  message Request {}
+  message Response {
+    string config = 1;
   }
 }
 

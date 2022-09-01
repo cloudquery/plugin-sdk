@@ -35,15 +35,6 @@ type SourcePlugin struct {
 
 type SourceOption func(*SourcePlugin)
 
-const ExampleSourceConfig = `
-# max_goroutines to use when fetching. 0 means default and calculated by CloudQuery
-# max_goroutines: 0
-# By default CloudQuery will fetch all tables in the source plugin
-# tables: ["*"]
-# skip_tables specify which tables to skip. especially useful when using "*" for tables
-# skip_tables: []
-`
-
 const minGoRoutines = 5
 
 func WithSourceExampleConfig(exampleConfig string) SourceOption {
@@ -113,8 +104,8 @@ func (p *SourcePlugin) Tables() schema.Tables {
 	return p.tables
 }
 
-func (p *SourcePlugin) ExampleConfig() (string, error) {
-	return p.exampleConfig, nil
+func (p *SourcePlugin) ExampleConfig() string {
+	return p.exampleConfig
 }
 
 func (p *SourcePlugin) Name() string {

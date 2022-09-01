@@ -28,15 +28,22 @@ func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.Ge
 	}, nil
 }
 
-func (s *SourceServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
-	exampleConfig, err := s.Plugin.ExampleConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get example config: %w", err)
-	}
-	return &pb.GetExampleConfig_Response{
-		Name:    s.Plugin.Name(),
+func (s *SourceServer) GetName(context.Context, *pb.GetName_Request) (*pb.GetName_Response, error) {
+	return &pb.GetName_Response{
+		Name: s.Plugin.Name(),
+	}, nil
+}
+
+func (s *SourceServer) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVersion_Response, error) {
+	return &pb.GetVersion_Response{
 		Version: s.Plugin.Version(),
-		Config:  exampleConfig}, nil
+	}, nil
+}
+
+func (s *SourceServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
+	return &pb.GetExampleConfig_Response{
+		Config: s.Plugin.ExampleConfig(),
+	}, nil
 }
 
 func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {

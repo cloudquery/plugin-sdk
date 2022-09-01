@@ -14,7 +14,7 @@ import (
 
 type DestinationClient struct {
 	pbClient pb.DestinationClient
-	// this can be used if we have a plugin which is compiled in so we dont need to do any grpc requests
+	// this can be used if we have a plugin which is compiled in, so we don't need to do any grpc requests
 	localClient plugins.DestinationPlugin
 }
 
@@ -31,11 +31,25 @@ func NewLocalDestinationClient(p plugins.DestinationPlugin) *DestinationClient {
 }
 
 func (c *DestinationClient) Name(ctx context.Context) (string, error) {
-	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetExampleConfig_Request{})
+	if c.localClient != nil {
+		return c.localClient.Name(), nil
+	}
+	res, err := c.pbClient.GetName(ctx, &pb.GetName_Request{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get example config: %w", err)
+		return "", fmt.Errorf("failed to get name: %w", err)
 	}
 	return res.Name, nil
+}
+
+func (c *DestinationClient) Version(ctx context.Context) (string, error) {
+	if c.localClient != nil {
+		return c.localClient.Version(), nil
+	}
+	res, err := c.pbClient.GetVersion(ctx, &pb.GetVersion_Request{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get version: %w", err)
+	}
+	return res.Version, nil
 }
 
 func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error) {
