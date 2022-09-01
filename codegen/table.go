@@ -12,13 +12,14 @@ type ResourceDefinition struct {
 type TableDefinition struct {
 	Name        string
 	Description string
-	Columns     []ColumnDefinition
+	Columns     ColumnDefinitions
 	Relations   []*TableDefinition
 
 	Resolver             string
 	IgnoreError          string
 	Multiplex            string
 	PostResourceResolver string
+	PreResourceResolver  string
 	Options              schema.TableCreationOptions
 	nameTransformer      func(string) string
 	skipFields           []string

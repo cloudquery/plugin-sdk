@@ -159,6 +159,7 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 		}
 		t.Columns = append(t.Columns, column)
 	}
+
 	return &t, nil
 }
 

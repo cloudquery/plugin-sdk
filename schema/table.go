@@ -45,6 +45,8 @@ type Table struct {
 	Multiplex func(meta ClientMeta) []ClientMeta `json:"-"`
 	// Post resource resolver is called after all columns have been resolved, and before resource is inserted to database.
 	PostResourceResolver RowResolver `json:"-"`
+	// Pre resource resolver is called before all columns are resolved but after resource is created
+	PreResourceResolver RowResolver `json:"-"`
 	// Options allow modification of how the table is defined when created
 	Options TableCreationOptions `json:"options"`
 
@@ -200,6 +202,13 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 		totalResources += len(objects)
 		for i := range objects {
 			resource := NewResourceData(&t, parent, syncTime, objects[i])
+			if t.PreResourceResolver != nil {
+				if err := t.PreResourceResolver(ctx, meta, resource); err != nil {
+					meta.Logger().Error().Str("table_name", t.Name).Err(err).Msg("pre resource resolver failed")
+				} else {
+					meta.Logger().Trace().Str("table_name", t.Name).Msg("pre resource resolver finished successfully")
+				}
+			}
 			t.resolveColumns(ctx, meta, resource)
 			if t.PostResourceResolver != nil {
 				meta.Logger().Trace().Str("table_name", t.Name).Msg("post resource resolver started")

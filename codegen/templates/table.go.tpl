@@ -6,6 +6,9 @@
 		{{- if .Resolver}}
     Resolver:     {{.Resolver}},
     {{- end}}
+    {{- if .PreResourceResolver}}
+    PreResourceResolver:     {{.PreResourceResolver}},
+    {{- end}}
 		{{- if .Multiplex}}
     Multiplex:    {{.Multiplex}},
     {{- end}}
