@@ -12,7 +12,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.2
 	github.com/iancoleman/strcase v0.2.0
 	github.com/modern-go/reflect2 v1.0.2
-	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.27.0
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/cobra v1.5.0
@@ -22,7 +21,7 @@ require (
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	golang.org/x/tools v0.1.11
 	google.golang.org/grpc v1.48.0
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
