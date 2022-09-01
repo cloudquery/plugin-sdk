@@ -10,7 +10,8 @@ import (
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type SourceServer struct {
@@ -21,7 +22,7 @@ type SourceServer struct {
 func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.GetTables_Response, error) {
 	b, err := json.Marshal(s.Plugin.Tables())
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal tables")
+		return nil, fmt.Errorf("failed to marshal tables: %w", err)
 	}
 	return &pb.GetTables_Response{
 		Tables: b,
@@ -48,36 +49,36 @@ func (s *SourceServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Re
 
 func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
 	resources := make(chan *schema.Resource)
-	var fetchErr error
+	var syncErr error
 
 	var spec specs.Source
 	dec := json.NewDecoder(bytes.NewReader(req.Spec))
 	dec.UseNumber()
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&spec); err != nil {
-		return fmt.Errorf("failed to decode source spec: %w", err)
+		return status.Errorf(codes.InvalidArgument, "failed to decode spec: %v", err)
 	}
 
 	go func() {
 		defer close(resources)
 		if err := s.Plugin.Sync(stream.Context(), spec, resources); err != nil {
-			fetchErr = errors.Wrap(err, "failed to fetch resources")
+			syncErr = fmt.Errorf("failed to sync resources: %w", err)
 		}
 	}()
 
 	for resource := range resources {
 		b, err := json.Marshal(resource)
 		if err != nil {
-			return errors.Wrap(err, "failed to marshal resource")
+			return status.Errorf(codes.Internal, "failed to marshal resource: %v", err)
 		}
 		if err := stream.Send(&pb.Sync_Response{
 			Resource: b,
 		}); err != nil {
-			return errors.Wrap(err, "failed to send resource")
+			return status.Errorf(codes.Internal, "failed to send resource: %v", err)
 		}
 	}
-	if fetchErr != nil {
-		return fetchErr
+	if syncErr != nil {
+		return syncErr
 	}
 
 	return nil

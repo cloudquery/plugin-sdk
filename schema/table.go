@@ -12,7 +12,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-// TableResolver is the main entry point when a table fetch is called.
+// TableResolver is the main entry point when a table is sync is called.
 //
 // Table resolver has 3 main arguments:
 // - meta(ClientMeta): is the client returned by the plugin.Provider Configure call
@@ -163,7 +163,7 @@ func (t Table) TableNames() []string {
 }
 
 // Call the table resolver with with all of it's relation for every reolved resource
-func (t Table) Resolve(ctx context.Context, meta ClientMeta, fetchTime time.Time, parent *Resource, resolvedResources chan<- *Resource) int {
+func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time, parent *Resource, resolvedResources chan<- *Resource) int {
 	res := make(chan interface{})
 	startTime := time.Now()
 	go func() {
@@ -199,7 +199,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, fetchTime time.Time
 		}
 		totalResources += len(objects)
 		for i := range objects {
-			resource := NewResourceData(&t, parent, fetchTime, objects[i])
+			resource := NewResourceData(&t, parent, syncTime, objects[i])
 			t.resolveColumns(ctx, meta, resource)
 			if t.PostResourceResolver != nil {
 				meta.Logger().Trace().Str("table_name", t.Name).Msg("post resource resolver started")
@@ -216,7 +216,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, fetchTime time.Time
 			}
 			resolvedResources <- resource
 			for _, rel := range t.Relations {
-				totalResources += rel.Resolve(ctx, meta, fetchTime, resource, resolvedResources)
+				totalResources += rel.Resolve(ctx, meta, syncTime, resource, resolvedResources)
 			}
 		}
 	}

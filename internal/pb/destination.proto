@@ -35,7 +35,5 @@ message Write {
     bytes resource = 1;
   }
   message Response {
-    // error
-    string error = 1;
   }
 }
