@@ -9,9 +9,18 @@ func InterfaceSlice(slice interface{}) []interface{} {
 		return nil
 	}
 	s := reflect.ValueOf(slice)
-	// Keep the distinction between nil and empty slice input
-	if s.Kind() == reflect.Ptr && s.Elem().Kind() == reflect.Slice && s.Elem().IsNil() {
-		return nil
+	//handle slice behind pointer
+	if s.Kind() == reflect.Ptr && s.Elem().Kind() == reflect.Slice {
+		// Keep the distinction between nil and empty slice input
+		if s.Elem().IsNil() {
+			return nil
+		}
+
+		ret := make([]interface{}, s.Elem().Len())
+		for i := 0; i < s.Elem().Len(); i++ {
+			ret[i] = s.Elem().Index(i).Interface()
+		}
+		return ret
 	}
 	if s.Kind() != reflect.Slice {
 		return []interface{}{slice}
