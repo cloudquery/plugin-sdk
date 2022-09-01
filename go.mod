@@ -1,6 +1,6 @@
 module github.com/cloudquery/plugin-sdk
 
-go 1.17
+go 1.19
 
 require (
 	github.com/cloudquery/faker/v3 v3.7.7
