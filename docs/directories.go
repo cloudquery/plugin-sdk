@@ -15,14 +15,11 @@ func PrepareDirectory(dirname string) error {
 	files, err := ioutil.ReadDir(dirname)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		// create directory if it does not exist
-		if err := os.MkdirAll(dirname, 0744); err != nil {
-			return err
-		}
-		return nil
+		return os.MkdirAll(dirname, 0744)
 	}
 	for _, d := range files {
 		if err := os.RemoveAll(path.Join(dirname, d.Name())); err != nil {
-			return fmt.Errorf("Failed to remove files: %s\n", err)
+			return fmt.Errorf("failed to remove files: %s\n", err)
 		}
 	}
 	return nil
