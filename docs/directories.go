@@ -19,7 +19,7 @@ func PrepareDirectory(dirname string) error {
 	}
 	for _, d := range files {
 		if err := os.RemoveAll(path.Join(dirname, d.Name())); err != nil {
-			return fmt.Errorf("failed to remove files: %s\n", err)
+			return fmt.Errorf("failed to remove files: %s", err)
 		}
 	}
 	return nil
