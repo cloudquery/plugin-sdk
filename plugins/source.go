@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -14,14 +15,14 @@ import (
 
 type SourceNewExecutionClientFunc func(context.Context, *SourcePlugin, specs.Source) (schema.ClientMeta, error)
 
-// SourcePlugin is the base structure required to pass to sdk.serve
-// We take a similar/declerative approach to API here similar to Cobra
+// SourcePlugin is the base structure required by calls to serve.Serve.
+// We take a declarative approach to API here, similar to Cobra.
 type SourcePlugin struct {
-	// Name of plugin i.e aws,gcp, azure etc'
+	// Name of plugin i.e aws, gcp, azure, etc
 	name string
 	// Version of the plugin
 	version string
-	// Classify error and return it's severity and type
+	// Classify error and return its severity and type
 	ignoreError schema.IgnoreErrorFunc
 	// Called upon configure call to validate and init configuration
 	newExecutionClient SourceNewExecutionClientFunc
@@ -87,6 +88,10 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 func (p *SourcePlugin) validate() error {
 	if p.newExecutionClient == nil {
 		return fmt.Errorf("newExecutionClient function not defined for source plugin: " + p.name)
+	}
+
+	if p.name == "" {
+		return errors.New("plugin name should not be empty")
 	}
 
 	if err := p.tables.ValidateDuplicateColumns(); err != nil {

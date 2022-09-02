@@ -22,7 +22,7 @@ import (
 type Options struct {
 	// Required: Source or destination plugin to serve.
 	SourcePlugin      *plugins.SourcePlugin
-	DestinationPlugin plugins.DestinationPlugin
+	DestinationPlugin *plugins.DestinationPlugin
 }
 
 // bufSize used for unit testing grpc server and client
@@ -84,7 +84,7 @@ func newCmdServe(opts Options) *cobra.Command {
 				pb.RegisterSourceServer(s, &servers.SourceServer{Plugin: opts.SourcePlugin})
 			}
 			if opts.DestinationPlugin != nil {
-				// opts.DestinationPlugin.Logger = logger
+				opts.DestinationPlugin.SetLogger(logger)
 				pb.RegisterDestinationServer(s, &servers.DestinationServer{Plugin: opts.DestinationPlugin})
 			}
 

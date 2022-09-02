@@ -16,7 +16,7 @@ import (
 
 type DestinationServer struct {
 	pb.UnimplementedDestinationServer
-	Plugin plugins.DestinationPlugin
+	Plugin *plugins.DestinationPlugin
 }
 
 func (s *DestinationServer) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.Configure_Response, error) {
