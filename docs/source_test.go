@@ -2,16 +2,21 @@ package docs
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
+	"path"
+	"testing"
+
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
-	"io/ioutil"
-	"os"
-	"path"
-	"testing"
 )
+
+type testExecutionClient struct {
+	logger zerolog.Logger
+}
 
 var testTables = []*schema.Table{
 	{
@@ -72,10 +77,6 @@ Description for relational table
 	},
 }
 
-type testExecutionClient struct {
-	logger zerolog.Logger
-}
-
 func (c *testExecutionClient) Logger() *zerolog.Logger {
 	return &c.logger
 }
@@ -92,13 +93,13 @@ func TestGenerateSourcePluginDocs(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	p := plugins.NewSourcePlugin("test", "v1.0.0", testTables, newTestExecutionClient)
-	err := GenerateSourcePluginDocs(p, tmpdir, true)
+	err := GenerateSourcePluginDocs(p, tmpdir)
 	if err != nil {
 		t.Fatalf("unexpected error calling GenerateSourcePluginDocs: %v", err)
 	}
 
 	for _, exp := range expectFiles {
-		output := path.Join(tmpdir, tablesDir, exp.Name)
+		output := path.Join(tmpdir, exp.Name)
 		got, err := ioutil.ReadFile(output)
 		if err != nil {
 			t.Fatalf("error reading %q: %v ", exp.Name, err)
