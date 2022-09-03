@@ -154,10 +154,6 @@ func (t Table) ColumnIndex(name string) int {
 	return -1
 }
 
-// func (tco TableCreationOptions) signature() string {
-// 	return strings.Join(tco.PrimaryKeys, ";")
-// }
-
 func (t Table) TableNames() []string {
 	ret := []string{t.Name}
 	for _, rel := range t.Relations {
@@ -172,9 +168,9 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 	startTime := time.Now()
 	go func() {
 		defer func() {
-			if r := recover(); r != nil {
+			if err := recover(); err != nil {
 				stack := string(debug.Stack())
-				meta.Logger().Error().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("stack", stack).Msg("table resolver finished with panic")
+				meta.Logger().Error().Interface("error", err).Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("stack", stack).Msg("table resolver finished with panic")
 			}
 			close(res)
 		}()
