@@ -43,9 +43,11 @@ type Table struct {
 	IgnoreError IgnoreErrorFunc `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
 	Multiplex func(meta ClientMeta) []ClientMeta `json:"-"`
-	// Post resource resolver is called after all columns have been resolved, and before resource is inserted to database.
+	// PostResourceResolver is called after all columns have been resolved, but before the Resource is sent to be inserted. The ordering of resolvers is:
+	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
 	PostResourceResolver RowResolver `json:"-"`
-	// Pre resource resolver is called before all columns are resolved but after resource is created
+	// PreResourceResolver is called before all columns are resolved but after Resource is created. The ordering of resolvers is:
+	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
 	PreResourceResolver RowResolver `json:"-"`
 	// Options allow modification of how the table is defined when created
 	Options TableCreationOptions `json:"options"`
