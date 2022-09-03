@@ -235,22 +235,22 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource) {
 	for _, c := range t.Columns {
 		if c.Resolver != nil {
-			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver custom started")
+			meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver custom started")
 			if err := c.Resolver(ctx, meta, resource, c); err != nil {
-				meta.Logger().Error().Str("colum_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver finished with error")
+				meta.Logger().Error().Str("column_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver finished with error")
 			}
-			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver finished successfully")
+			meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver finished successfully")
 		} else {
-			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default started")
+			meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver default started")
 			// base use case: try to get column with CamelCase name
 			v := funk.Get(resource.Item, strcase.ToCamel(c.Name), funk.WithAllowZero())
 			if v != nil {
 				if err := resource.Set(c.Name, v); err != nil {
-					meta.Logger().Error().Str("colum_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver default finished with error")
+					meta.Logger().Error().Str("column_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver default finished with error")
 				}
-				meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully")
+				meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully")
 			} else {
-				meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully with nil")
+				meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully with nil")
 			}
 		}
 	}

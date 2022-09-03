@@ -20,7 +20,7 @@
 		},
 {{with .Relations}}
 		Relations: []*schema.Table{
-{{range .}}{{template "table.go.tpl" .}}{{end}}
+{{range .}}{{.}}{{end}},
 		},
 {{end}}
 }

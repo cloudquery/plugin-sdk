@@ -13,7 +13,7 @@ type TableDefinition struct {
 	Name        string
 	Description string
 	Columns     ColumnDefinitions
-	Relations   []*TableDefinition
+	Relations   []string
 
 	Resolver             string
 	IgnoreError          string
