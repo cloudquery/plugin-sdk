@@ -43,8 +43,12 @@ type Table struct {
 	IgnoreError IgnoreErrorFunc `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
 	Multiplex func(meta ClientMeta) []ClientMeta `json:"-"`
-	// Post resource resolver is called after all columns have been resolved, and before resource is inserted to database.
+	// PostResourceResolver is called after all columns have been resolved, but before the Resource is sent to be inserted. The ordering of resolvers is:
+	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
 	PostResourceResolver RowResolver `json:"-"`
+	// PreResourceResolver is called before all columns are resolved but after Resource is created. The ordering of resolvers is:
+	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
+	PreResourceResolver RowResolver `json:"-"`
 	// Options allow modification of how the table is defined when created
 	Options TableCreationOptions `json:"options"`
 
@@ -200,6 +204,13 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 		totalResources += len(objects)
 		for i := range objects {
 			resource := NewResourceData(&t, parent, syncTime, objects[i])
+			if t.PreResourceResolver != nil {
+				if err := t.PreResourceResolver(ctx, meta, resource); err != nil {
+					meta.Logger().Error().Str("table_name", t.Name).Err(err).Msg("pre resource resolver failed")
+				} else {
+					meta.Logger().Trace().Str("table_name", t.Name).Msg("pre resource resolver finished successfully")
+				}
+			}
 			t.resolveColumns(ctx, meta, resource)
 			if t.PostResourceResolver != nil {
 				meta.Logger().Trace().Str("table_name", t.Name).Msg("post resource resolver started")
@@ -226,22 +237,22 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource) {
 	for _, c := range t.Columns {
 		if c.Resolver != nil {
-			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver custom started")
+			meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver custom started")
 			if err := c.Resolver(ctx, meta, resource, c); err != nil {
-				meta.Logger().Error().Str("colum_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver finished with error")
+				meta.Logger().Error().Str("column_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver finished with error")
 			}
-			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver finished successfully")
+			meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver finished successfully")
 		} else {
-			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default started")
+			meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver default started")
 			// base use case: try to get column with CamelCase name
 			v := funk.Get(resource.Item, strcase.ToCamel(c.Name), funk.WithAllowZero())
 			if v != nil {
 				if err := resource.Set(c.Name, v); err != nil {
-					meta.Logger().Error().Str("colum_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver default finished with error")
+					meta.Logger().Error().Str("column_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver default finished with error")
 				}
-				meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully")
+				meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully")
 			} else {
-				meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully with nil")
+				meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully with nil")
 			}
 		}
 	}

@@ -72,6 +72,11 @@ func (r *Resource) Set(key string, value interface{}) error {
 	return nil
 }
 
+// Override original item (this is useful for apis that follow list/details pattern)
+func (r *Resource) SetItem(item interface{}) {
+	r.Item = item
+}
+
 func (r *Resource) Id() uuid.UUID {
 	if r.Data[CqIdColumn.Name] == nil {
 		return uuid.UUID{}
