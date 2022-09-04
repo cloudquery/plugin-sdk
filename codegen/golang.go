@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"text/template"
+	"unicode"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/iancoleman/strcase"
@@ -133,6 +134,12 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 
 	for i := 0; i < e.NumField(); i++ {
 		field := e.Type().Field(i)
+		if len(field.Name) == 0 {
+			continue
+		}
+		if unicode.IsLower(rune(field.Name[0])) {
+			continue
+		}
 		if sliceContains(t.skipFields, field.Name) {
 			continue
 		}
@@ -146,7 +153,8 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 
 		columnType, err := valueToSchemaType(field.Type)
 		if err != nil {
-			return nil, err
+			fmt.Printf("skipping field %s, got err: %v\n", field.Name, err)
+			continue
 		}
 
 		// generate a PathResolver to use by default
