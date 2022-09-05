@@ -5,13 +5,11 @@ import (
 	"math/rand"
 	"reflect"
 	"time"
-
-	"github.com/rs/zerolog"
 )
 
 type faker struct {
 	max_depth int
-	logger    zerolog.Logger
+	// logger    zerolog.Logger
 }
 
 type FakerOption func(*faker)

@@ -13,7 +13,7 @@ type testFakerStruct struct {
 
 func TestFaker(t *testing.T) {
 	a := testFakerStruct{}
-	if err := FakeStruct(&a); err != nil {
+	if err := FakeObject(&a); err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println(a)
