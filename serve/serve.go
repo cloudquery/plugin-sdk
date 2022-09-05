@@ -5,10 +5,12 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/servers"
 	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -23,6 +25,7 @@ type Options struct {
 	// Required: Source or destination plugin to serve.
 	SourcePlugin      *plugins.SourcePlugin
 	DestinationPlugin plugins.DestinationPlugin
+	SentryDsn         string
 }
 
 // bufSize used for unit testing grpc server and client
@@ -38,6 +41,7 @@ var testListener *bufconn.Listener
 func newCmdServe(opts Options) *cobra.Command {
 	var address string
 	var network string
+	var noSentry bool
 	logLevel := newEnum([]string{"trace", "debug", "info", "warn", "error"}, "info")
 	logFormat := newEnum([]string{"text", "json"}, "text")
 	cmd := &cobra.Command{
@@ -56,6 +60,27 @@ func newCmdServe(opts Options) *cobra.Command {
 			} else {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
+			if !noSentry {
+				err = sentry.Init(sentry.ClientOptions{
+					Dsn:     opts.SentryDsn,
+					Release: opts.SourcePlugin.Version(),
+					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations
+					Integrations: func(integrations []sentry.Integration) []sentry.Integration {
+						var filteredIntegrations []sentry.Integration
+						for _, integration := range integrations {
+							if integration.Name() == "Modules" {
+								continue
+							}
+							filteredIntegrations = append(filteredIntegrations, integration)
+						}
+						return filteredIntegrations
+					},
+				})
+				if err != nil {
+					log.Error().Err(err).Msg("Error initializing sentry")
+				}
+			}
+
 			// opts.Plugin.Logger = logger
 			var listener net.Listener
 			if network == "test" {
@@ -99,6 +124,8 @@ func newCmdServe(opts Options) *cobra.Command {
 	cmd.Flags().StringVar(&network, "network", "tcp", `the network must be "tcp", "tcp4", "tcp6", "unix" or "unixpacket"`)
 	cmd.Flags().Var(logLevel, "log-level", fmt.Sprintf("log level. one of: %s", strings.Join(logLevel.Allowed, ",")))
 	cmd.Flags().Var(logFormat, "log-format", fmt.Sprintf("log format. one of: %s", strings.Join(logFormat.Allowed, ",")))
+	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
+
 	return cmd
 }
 
@@ -112,7 +139,11 @@ func newCmdRoot(opts Options) *cobra.Command {
 }
 
 func Serve(opts Options) {
+	defer func() {
+		sentry.Flush(5 * time.Second)
+	}()
 	if err := newCmdRoot(opts).Execute(); err != nil {
+		sentry.CaptureMessage(err.Error())
 		fmt.Println(err)
 		os.Exit(1)
 	}

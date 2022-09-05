@@ -81,6 +81,12 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 	if err := p.validate(); err != nil {
 		panic(err)
 	}
+	// if ignore error is not set on a table level set it with the plugin
+	for _, table := range p.tables {
+		if table.IgnoreError == nil && p.ignoreError != nil {
+			table.IgnoreError = p.ignoreError
+		}
+	}
 	return &p
 }
 
