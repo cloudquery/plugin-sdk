@@ -149,7 +149,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	for _, table := range p.tables {
 		table := table
 		if funk.ContainsString(spec.SkipTables, table.Name) || !funk.ContainsString(tableNames, table.Name) {
-			p.logger.Info().Str("table", table.Name).Msg("skipping table")
+			p.logger.Debug().Str("table", table.Name).Msg("skipping table")
 			continue
 		}
 		clients := []schema.ClientMeta{c}
