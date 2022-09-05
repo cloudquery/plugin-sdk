@@ -28,11 +28,11 @@ type Options struct {
 	SentryDsn         string
 }
 
-// bufSize used for unit testing grpc server and client
-const testBufSize = 1024 * 1024
-
 const (
 	serveShort = `Start plugin server`
+	// bufSize used for unit testing grpc server and client
+	testBufSize  = 1024 * 1024
+	flushTimeout = 5 * time.Second
 )
 
 // lis used for unit testing grpc server and client
@@ -60,26 +60,6 @@ func newCmdServe(opts Options) *cobra.Command {
 			} else {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
-			if !noSentry {
-				err = sentry.Init(sentry.ClientOptions{
-					Dsn:     opts.SentryDsn,
-					Release: opts.SourcePlugin.Version(),
-					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations
-					Integrations: func(integrations []sentry.Integration) []sentry.Integration {
-						var filteredIntegrations []sentry.Integration
-						for _, integration := range integrations {
-							if integration.Name() == "Modules" {
-								continue
-							}
-							filteredIntegrations = append(filteredIntegrations, integration)
-						}
-						return filteredIntegrations
-					},
-				})
-				if err != nil {
-					log.Error().Err(err).Msg("Error initializing sentry")
-				}
-			}
 
 			// opts.Plugin.Logger = logger
 			var listener net.Listener
@@ -100,17 +80,39 @@ func newCmdServe(opts Options) *cobra.Command {
 				middleware.WithStreamServerChain(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
-				// grpc.ChainStreamInterceptor(grpc_zero),
-				// grpc.ChainUnaryInterceptor(),
 			)
 
+			version := "development"
 			if opts.SourcePlugin != nil {
 				opts.SourcePlugin.SetLogger(logger)
 				pb.RegisterSourceServer(s, &servers.SourceServer{Plugin: opts.SourcePlugin})
+				version = opts.SourcePlugin.Version()
 			}
 			if opts.DestinationPlugin != nil {
 				// opts.DestinationPlugin.Logger = logger
 				pb.RegisterDestinationServer(s, &servers.DestinationServer{Plugin: opts.DestinationPlugin})
+				version = opts.DestinationPlugin.Version()
+			}
+
+			if !noSentry && version != "development" {
+				err = sentry.Init(sentry.ClientOptions{
+					Dsn:     opts.SentryDsn,
+					Release: opts.SourcePlugin.Version(),
+					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations
+					Integrations: func(integrations []sentry.Integration) []sentry.Integration {
+						var filteredIntegrations []sentry.Integration
+						for _, integration := range integrations {
+							if integration.Name() == "Modules" {
+								continue
+							}
+							filteredIntegrations = append(filteredIntegrations, integration)
+						}
+						return filteredIntegrations
+					},
+				})
+				if err != nil {
+					log.Error().Err(err).Msg("Error initializing sentry")
+				}
 			}
 
 			logger.Info().Str("address", listener.Addr().String()).Msg("server listening")
@@ -139,12 +141,11 @@ func newCmdRoot(opts Options) *cobra.Command {
 }
 
 func Serve(opts Options) {
-	defer func() {
-		sentry.Flush(5 * time.Second)
-	}()
 	if err := newCmdRoot(opts).Execute(); err != nil {
 		sentry.CaptureMessage(err.Error())
+		sentry.Flush(flushTimeout)
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	sentry.Flush(flushTimeout)
 }
