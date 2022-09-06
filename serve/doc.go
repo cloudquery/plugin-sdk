@@ -2,8 +2,8 @@ package serve
 
 import (
 	"fmt"
-	"github.com/cloudquery/plugin-sdk/docs"
 
+	"github.com/cloudquery/plugin-sdk/docs"
 	"github.com/spf13/cobra"
 )
 
