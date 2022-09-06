@@ -3,12 +3,12 @@ package serve
 import (
 	"fmt"
 
-	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/docs"
 	"github.com/spf13/cobra"
 )
 
 const (
-	docShort = "Generate markdown documentation for table"
+	docShort = "Generate markdown documentation for tables"
 )
 
 func newCmdDoc(opts Options) *cobra.Command {
@@ -22,7 +22,7 @@ func newCmdDoc(opts Options) *cobra.Command {
 				return fmt.Errorf("doc generation is only supported for source plugins")
 			}
 
-			return schema.GenerateMarkdownTree(opts.SourcePlugin.Tables(), args[0])
+			return docs.GenerateSourcePluginDocs(opts.SourcePlugin, args[0])
 		},
 	}
 }
