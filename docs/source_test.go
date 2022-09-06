@@ -81,7 +81,7 @@ func (c *testExecutionClient) Logger() *zerolog.Logger {
 	return &c.logger
 }
 
-func newTestExecutionClient(context.Context, *plugins.SourcePlugin, specs.Source) (schema.ClientMeta, error) {
+func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
 	return &testExecutionClient{}, nil
 }
 
