@@ -50,8 +50,6 @@ type Table struct {
 	// PreResourceResolver is called before all columns are resolved but after Resource is created. The ordering of resolvers is:
 	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
 	PreResourceResolver RowResolver `json:"-"`
-	// Options allow modification of how the table is defined when created
-	Options TableCreationOptions `json:"options"`
 
 	// IgnoreInTests is used to exclude a table from integration tests.
 	// By default, integration tests fetch all resources from cloudquery's test account, and verify all tables
@@ -67,12 +65,6 @@ type Table struct {
 	Serial string `json:"-"`
 
 	columnsMap map[string]int
-}
-
-// TableCreationOptions allow modifying how table is created such as defining primary keys, indices, foreign keys and constraints.
-type TableCreationOptions struct {
-	// List of columns to set as primary keys. If this is empty, a random unique ID is generated.
-	PrimaryKeys []string
 }
 
 func (tt Tables) TableNames() []string {

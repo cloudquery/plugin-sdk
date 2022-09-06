@@ -20,7 +20,6 @@ type TableDefinition struct {
 	Multiplex            string
 	PostResourceResolver string
 	PreResourceResolver  string
-	Options              schema.TableCreationOptions
 	nameTransformer      func(string) string
 	skipFields           []string
 	overrideColumns      ColumnDefinitions
