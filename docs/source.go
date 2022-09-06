@@ -63,6 +63,7 @@ func renderTable(table *schema.Table, dir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create file %v: %v", outputPath, err)
 	}
+	defer f.Close()
 	return t.Execute(f, table)
 }
 
