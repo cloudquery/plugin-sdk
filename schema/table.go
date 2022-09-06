@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/helpers"
+	"github.com/getsentry/sentry-go"
 	"github.com/iancoleman/strcase"
 	"github.com/thoas/go-funk"
 )
@@ -178,10 +179,15 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 		if err := t.Resolver(ctx, meta, parent, res); err != nil {
 			if t.IgnoreError != nil {
 				if ignore, errType := t.IgnoreError(err); ignore {
-					meta.Logger().Debug().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("error_type", errType).Msg("table resolver finished with error")
+					meta.Logger().Debug().Stack().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("error_type", errType).Err(err).Msg("table resolver finished with error")
 					return
 				}
 			}
+			sentry.WithScope(func(scope *sentry.Scope) {
+				scope.SetTag("table", t.Name)
+				scope.SetLevel(sentry.LevelError)
+				sentry.CaptureMessage(err.Error())
+			})
 			meta.Logger().Error().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Err(err).Msg("table resolver finished with error")
 			return
 		}
@@ -190,7 +196,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 	totalResources := 0
 	// we want to check for data integrity
 	// in the future we can do that as an optinoal feature via a flag
-	pks := map[string]bool{}
+	// pks := map[string]bool{}
 	// each result is an array of interface{}
 	for elem := range res {
 		objects := helpers.InterfaceSlice(elem)
@@ -211,16 +217,16 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 			if t.PostResourceResolver != nil {
 				meta.Logger().Trace().Str("table_name", t.Name).Msg("post resource resolver started")
 				if err := t.PostResourceResolver(ctx, meta, resource); err != nil {
-					meta.Logger().Error().Str("table_name", t.Name).Err(err).Msg("post resource resolver finished with error")
+					meta.Logger().Error().Str("table_name", t.Name).Stack().Err(err).Msg("post resource resolver finished with error")
 				} else {
 					meta.Logger().Trace().Str("table_name", t.Name).Msg("post resource resolver finished successfully")
 				}
 			}
-			if pks[resource.PrimaryKeyValue()] {
-				meta.Logger().Error().Str("table_name", t.Name).Str("primary_key", resource.PrimaryKeyValue()).Msg("duplicate primary key found")
-			} else {
-				pks[resource.PrimaryKeyValue()] = true
-			}
+			// if pks[resource.PrimaryKeyValue()] {
+			// 	meta.Logger().Error().Str("table_name", t.Name).Str("primary_key", resource.PrimaryKeyValue()).Msg("duplicate primary key found")
+			// } else {
+			// 	pks[resource.PrimaryKeyValue()] = true
+			// }
 			resolvedResources <- resource
 			for _, rel := range t.Relations {
 				totalResources += rel.Resolve(ctx, meta, syncTime, resource, resolvedResources)
