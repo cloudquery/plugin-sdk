@@ -12,7 +12,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-type SourceNewExecutionClientFunc func(context.Context, *SourcePlugin, specs.Source) (schema.ClientMeta, error)
+type SourceNewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
 
 // SourcePlugin is the base structure required to pass to sdk.serve
 // We take a similar/declerative approach to API here similar to Cobra
@@ -81,6 +81,12 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 	if err := p.validate(); err != nil {
 		panic(err)
 	}
+	// if ignore error is not set on a table level set it with the plugin
+	for _, table := range p.tables {
+		if table.IgnoreError == nil && p.ignoreError != nil {
+			table.IgnoreError = p.ignoreError
+		}
+	}
 	return &p
 }
 
@@ -121,7 +127,7 @@ func (p *SourcePlugin) SetLogger(log zerolog.Logger) {
 
 // Sync data from source to the given channel
 func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
-	c, err := p.newExecutionClient(ctx, p, spec)
+	c, err := p.newExecutionClient(ctx, p.logger, spec)
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
@@ -138,7 +144,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	w := sync.WaitGroup{}
 	totalResources := 0
 	startTime := time.Now()
-	tableNames, err := p.interpolateAllResources(p.tables.TableNames())
+	tableNames, err := p.interpolateAllResources(spec.Tables)
 	if err != nil {
 		return err
 	}
@@ -149,7 +155,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	for _, table := range p.tables {
 		table := table
 		if funk.ContainsString(spec.SkipTables, table.Name) || !funk.ContainsString(tableNames, table.Name) {
-			p.logger.Info().Str("table", table.Name).Msg("skipping table")
+			p.logger.Debug().Str("table", table.Name).Msg("skipping table")
 			continue
 		}
 		clients := []schema.ClientMeta{c}

@@ -6,6 +6,9 @@
 		{{- if .Resolver}}
     Resolver:     {{.Resolver}},
     {{- end}}
+    {{- if .PreResourceResolver}}
+    PreResourceResolver:     {{.PreResourceResolver}},
+    {{- end}}
 		{{- if .Multiplex}}
     Multiplex:    {{.Multiplex}},
     {{- end}}
@@ -17,7 +20,7 @@
 		},
 {{with .Relations}}
 		Relations: []*schema.Table{
-{{range .}}{{template "table.go.tpl" .}}{{end}}
+{{range .}}{{.}}{{end}},
 		},
 {{end}}
 }
