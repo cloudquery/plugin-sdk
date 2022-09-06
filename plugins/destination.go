@@ -13,6 +13,7 @@ import (
 type DestinationNewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error)
 
 type DestinationClient interface {
+	Initialize(ctx context.Context, spec specs.Destination) error
 	Migrate(ctx context.Context, tables schema.Tables) error
 	Write(ctx context.Context, table string, data map[string]interface{}) error
 	SetLogger(logger zerolog.Logger)
@@ -58,6 +59,10 @@ func (p *DestinationPlugin) Version() string {
 
 func (p *DestinationPlugin) ExampleConfig() string {
 	return p.exampleConfig
+}
+
+func (p *DestinationPlugin) Initialize(ctx context.Context, spec specs.Destination) error {
+	return p.client.Initialize(ctx, spec)
 }
 
 func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) error {

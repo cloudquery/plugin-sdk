@@ -51,6 +51,23 @@ func (c *DestinationClient) Version(ctx context.Context) (string, error) {
 	return res.Version, nil
 }
 
+func (c *DestinationClient) Initialize(ctx context.Context, spec specs.Destination) error {
+	if c.localClient != nil {
+		return c.localClient.Initialize(ctx, spec)
+	}
+	b, err := json.Marshal(spec)
+	if err != nil {
+		return fmt.Errorf("destination configure: failed to marshal spec: %w", err)
+	}
+	_, err = c.pbClient.Configure(ctx, &pb.Configure_Request{
+		Config: b,
+	})
+	if err != nil {
+		return fmt.Errorf("destination configure: failed to configure: %w", err)
+	}
+	return nil
+}
+
 func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error) {
 	if c.localClient != nil {
 		return c.localClient.ExampleConfig(), nil
@@ -62,7 +79,7 @@ func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error
 	return res.Config, nil
 }
 
-func (c *DestinationClient) Migrate(ctx context.Context, spec specs.Destination, tables []*schema.Table) error {
+func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table) error {
 	if c.localClient != nil {
 		return c.localClient.Migrate(ctx, tables)
 	}
@@ -77,7 +94,7 @@ func (c *DestinationClient) Migrate(ctx context.Context, spec specs.Destination,
 	return nil
 }
 
-func (c *DestinationClient) Write(ctx context.Context, spec specs.Destination, table string, data map[string]interface{}) error {
+func (c *DestinationClient) Write(ctx context.Context, table string, data map[string]interface{}) error {
 	// var saveClient pb.Destination_SaveClient
 	// var err error
 	// if c.pbClient != nil {

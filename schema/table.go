@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/helpers"
+	"github.com/getsentry/sentry-go"
 	"github.com/iancoleman/strcase"
 	"github.com/thoas/go-funk"
 )
@@ -43,8 +44,12 @@ type Table struct {
 	IgnoreError IgnoreErrorFunc `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
 	Multiplex func(meta ClientMeta) []ClientMeta `json:"-"`
-	// Post resource resolver is called after all columns have been resolved, and before resource is inserted to database.
+	// PostResourceResolver is called after all columns have been resolved, but before the Resource is sent to be inserted. The ordering of resolvers is:
+	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
 	PostResourceResolver RowResolver `json:"-"`
+	// PreResourceResolver is called before all columns are resolved but after Resource is created. The ordering of resolvers is:
+	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
+	PreResourceResolver RowResolver `json:"-"`
 	// Options allow modification of how the table is defined when created
 	Options TableCreationOptions `json:"options"`
 
@@ -150,10 +155,6 @@ func (t Table) ColumnIndex(name string) int {
 	return -1
 }
 
-// func (tco TableCreationOptions) signature() string {
-// 	return strings.Join(tco.PrimaryKeys, ";")
-// }
-
 func (t Table) TableNames() []string {
 	ret := []string{t.Name}
 	for _, rel := range t.Relations {
@@ -168,9 +169,9 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 	startTime := time.Now()
 	go func() {
 		defer func() {
-			if r := recover(); r != nil {
+			if err := recover(); err != nil {
 				stack := string(debug.Stack())
-				meta.Logger().Error().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("stack", stack).Msg("table resolver finished with panic")
+				meta.Logger().Error().Interface("error", err).Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("stack", stack).Msg("table resolver finished with panic")
 			}
 			close(res)
 		}()
@@ -178,10 +179,15 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 		if err := t.Resolver(ctx, meta, parent, res); err != nil {
 			if t.IgnoreError != nil {
 				if ignore, errType := t.IgnoreError(err); ignore {
-					meta.Logger().Debug().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("error_type", errType).Msg("table resolver finished with error")
+					meta.Logger().Debug().Stack().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("error_type", errType).Err(err).Msg("table resolver finished with error")
 					return
 				}
 			}
+			sentry.WithScope(func(scope *sentry.Scope) {
+				scope.SetTag("table", t.Name)
+				scope.SetLevel(sentry.LevelError)
+				sentry.CaptureMessage(err.Error())
+			})
 			meta.Logger().Error().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Err(err).Msg("table resolver finished with error")
 			return
 		}
@@ -190,7 +196,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 	totalResources := 0
 	// we want to check for data integrity
 	// in the future we can do that as an optinoal feature via a flag
-	pks := map[string]bool{}
+	// pks := map[string]bool{}
 	// each result is an array of interface{}
 	for elem := range res {
 		objects := helpers.InterfaceSlice(elem)
@@ -200,20 +206,27 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 		totalResources += len(objects)
 		for i := range objects {
 			resource := NewResourceData(&t, parent, syncTime, objects[i])
+			if t.PreResourceResolver != nil {
+				if err := t.PreResourceResolver(ctx, meta, resource); err != nil {
+					meta.Logger().Error().Str("table_name", t.Name).Err(err).Msg("pre resource resolver failed")
+				} else {
+					meta.Logger().Trace().Str("table_name", t.Name).Msg("pre resource resolver finished successfully")
+				}
+			}
 			t.resolveColumns(ctx, meta, resource)
 			if t.PostResourceResolver != nil {
 				meta.Logger().Trace().Str("table_name", t.Name).Msg("post resource resolver started")
 				if err := t.PostResourceResolver(ctx, meta, resource); err != nil {
-					meta.Logger().Error().Str("table_name", t.Name).Err(err).Msg("post resource resolver finished with error")
+					meta.Logger().Error().Str("table_name", t.Name).Stack().Err(err).Msg("post resource resolver finished with error")
 				} else {
 					meta.Logger().Trace().Str("table_name", t.Name).Msg("post resource resolver finished successfully")
 				}
 			}
-			if pks[resource.PrimaryKeyValue()] {
-				meta.Logger().Error().Str("table_name", t.Name).Str("primary_key", resource.PrimaryKeyValue()).Msg("duplicate primary key found")
-			} else {
-				pks[resource.PrimaryKeyValue()] = true
-			}
+			// if pks[resource.PrimaryKeyValue()] {
+			// 	meta.Logger().Error().Str("table_name", t.Name).Str("primary_key", resource.PrimaryKeyValue()).Msg("duplicate primary key found")
+			// } else {
+			// 	pks[resource.PrimaryKeyValue()] = true
+			// }
 			resolvedResources <- resource
 			for _, rel := range t.Relations {
 				totalResources += rel.Resolve(ctx, meta, syncTime, resource, resolvedResources)
@@ -226,22 +239,22 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource) {
 	for _, c := range t.Columns {
 		if c.Resolver != nil {
-			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver custom started")
+			meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver custom started")
 			if err := c.Resolver(ctx, meta, resource, c); err != nil {
-				meta.Logger().Error().Str("colum_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver finished with error")
+				meta.Logger().Error().Str("column_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver finished with error")
 			}
-			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver finished successfully")
+			meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver finished successfully")
 		} else {
-			meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default started")
+			meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver default started")
 			// base use case: try to get column with CamelCase name
 			v := funk.Get(resource.Item, strcase.ToCamel(c.Name), funk.WithAllowZero())
 			if v != nil {
 				if err := resource.Set(c.Name, v); err != nil {
-					meta.Logger().Error().Str("colum_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver default finished with error")
+					meta.Logger().Error().Str("column_name", c.Name).Str("table_name", t.Name).Err(err).Msg("column resolver default finished with error")
 				}
-				meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully")
+				meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully")
 			} else {
-				meta.Logger().Trace().Str("colum_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully with nil")
+				meta.Logger().Trace().Str("column_name", c.Name).Str("table_name", t.Name).Msg("column resolver default finished successfully with nil")
 			}
 		}
 	}
