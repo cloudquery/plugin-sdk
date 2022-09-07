@@ -24,9 +24,6 @@ type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, 
 
 type RowResolver func(ctx context.Context, meta ClientMeta, resource *Resource) error
 
-// Classify error and return it's severity and type
-type IgnoreErrorFunc func(err error) (bool, string)
-
 type Tables []*Table
 
 type Table struct {
@@ -40,8 +37,6 @@ type Table struct {
 	Relations Tables `json:"relations"`
 	// Resolver is the main entry point to fetching table data and
 	Resolver TableResolver `json:"-"`
-	// IgnoreError is a function that classifies error and returns it's severity and type
-	IgnoreError IgnoreErrorFunc `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
 	Multiplex func(meta ClientMeta) []ClientMeta `json:"-"`
 	// PostResourceResolver is called after all columns have been resolved, but before the Resource is sent to be inserted. The ordering of resolvers is:
@@ -162,6 +157,10 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
+				sentry.WithScope(func(scope *sentry.Scope) {
+					scope.SetTag("table", t.Name)
+					sentry.CurrentHub().Recover(err)
+				})
 				stack := string(debug.Stack())
 				meta.Logger().Error().Interface("error", err).Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("stack", stack).Msg("table resolver finished with panic")
 			}
@@ -169,27 +168,12 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 		}()
 		meta.Logger().Debug().Str("table_name", t.Name).Msg("table resolver started")
 		if err := t.Resolver(ctx, meta, parent, res); err != nil {
-			if t.IgnoreError != nil {
-				if ignore, errType := t.IgnoreError(err); ignore {
-					meta.Logger().Debug().Stack().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Str("error_type", errType).Err(err).Msg("table resolver finished with error")
-					return
-				}
-			}
-			sentry.WithScope(func(scope *sentry.Scope) {
-				scope.SetTag("table", t.Name)
-				scope.SetLevel(sentry.LevelError)
-				sentry.CaptureMessage(err.Error())
-			})
 			meta.Logger().Error().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Err(err).Msg("table resolver finished with error")
 			return
 		}
 		meta.Logger().Debug().Str("table_name", t.Name).TimeDiff("duration", time.Now(), startTime).Msg("table resolver finished successfully")
 	}()
 	totalResources := 0
-	// we want to check for data integrity
-	// in the future we can do that as an optinoal feature via a flag
-	// pks := map[string]bool{}
-	// each result is an array of interface{}
 	for elem := range res {
 		objects := helpers.InterfaceSlice(elem)
 		if len(objects) == 0 {
@@ -214,11 +198,6 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 					meta.Logger().Trace().Str("table_name", t.Name).Msg("post resource resolver finished successfully")
 				}
 			}
-			// if pks[resource.PrimaryKeyValue()] {
-			// 	meta.Logger().Error().Str("table_name", t.Name).Str("primary_key", resource.PrimaryKeyValue()).Msg("duplicate primary key found")
-			// } else {
-			// 	pks[resource.PrimaryKeyValue()] = true
-			// }
 			resolvedResources <- resource
 			for _, rel := range t.Relations {
 				totalResources += rel.Resolve(ctx, meta, syncTime, resource, resolvedResources)
