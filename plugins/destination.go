@@ -14,9 +14,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:embed templates/destination.go.tpl
-var destinationFS embed.FS
-
 type DestinationNewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error)
 
 type DestinationClient interface {
@@ -51,6 +48,9 @@ type DestinationExampleConfigOptions struct {
 	Path     string
 	Registry specs.Registry
 }
+
+//go:embed templates/destination.go.tpl
+var destinationFS embed.FS
 
 // WithDestinationExampleConfig sets an example config to user. It should only contain
 // the inner "spec" part of a destination config. In other words, only the part specific to

@@ -16,9 +16,6 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-//go:embed templates/source.go.tpl
-var sourceFS embed.FS
-
 type SourceNewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
 
 // SourcePlugin is the base structure required by calls to serve.Serve.
@@ -51,6 +48,9 @@ type SourceExampleConfigOptions struct {
 }
 
 const minGoRoutines = 5
+
+//go:embed templates/source.go.tpl
+var sourceFS embed.FS
 
 func WithSourceExampleConfig(exampleConfig string) SourceOption {
 	return func(p *SourcePlugin) {

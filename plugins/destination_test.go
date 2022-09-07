@@ -11,6 +11,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type testDestinationClient struct {
+	logger *zerolog.Logger
+}
+
 const wantDestinationConfig = `
 kind: destination
 spec:
@@ -33,10 +37,6 @@ spec:
   spec:
     test: hello
 `
-
-type testDestinationClient struct {
-	logger *zerolog.Logger
-}
 
 func (*testDestinationClient) Initialize(ctx context.Context, spec specs.Destination) error {
 	return nil
