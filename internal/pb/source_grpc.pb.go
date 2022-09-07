@@ -8,7 +8,6 @@ package pb
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -28,7 +27,7 @@ type SourceClient interface {
 	// Get the current version of the plugin
 	GetVersion(ctx context.Context, in *GetVersion_Request, opts ...grpc.CallOption) (*GetVersion_Response, error)
 	// Get an example configuration for the source plugin
-	GetExampleConfig(ctx context.Context, in *GetSourceExampleConfig_Request, opts ...grpc.CallOption) (*GetSourceExampleConfig_Response, error)
+	GetExampleConfig(ctx context.Context, in *GetExampleConfig_Request, opts ...grpc.CallOption) (*GetExampleConfig_Response, error)
 	// Get all tables the source plugin supports
 	GetTables(ctx context.Context, in *GetTables_Request, opts ...grpc.CallOption) (*GetTables_Response, error)
 	// Fetch resources
@@ -61,8 +60,8 @@ func (c *sourceClient) GetVersion(ctx context.Context, in *GetVersion_Request, o
 	return out, nil
 }
 
-func (c *sourceClient) GetExampleConfig(ctx context.Context, in *GetSourceExampleConfig_Request, opts ...grpc.CallOption) (*GetSourceExampleConfig_Response, error) {
-	out := new(GetSourceExampleConfig_Response)
+func (c *sourceClient) GetExampleConfig(ctx context.Context, in *GetExampleConfig_Request, opts ...grpc.CallOption) (*GetExampleConfig_Response, error) {
+	out := new(GetExampleConfig_Response)
 	err := c.cc.Invoke(ctx, "/proto.Source/GetExampleConfig", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -120,7 +119,7 @@ type SourceServer interface {
 	// Get the current version of the plugin
 	GetVersion(context.Context, *GetVersion_Request) (*GetVersion_Response, error)
 	// Get an example configuration for the source plugin
-	GetExampleConfig(context.Context, *GetSourceExampleConfig_Request) (*GetSourceExampleConfig_Response, error)
+	GetExampleConfig(context.Context, *GetExampleConfig_Request) (*GetExampleConfig_Response, error)
 	// Get all tables the source plugin supports
 	GetTables(context.Context, *GetTables_Request) (*GetTables_Response, error)
 	// Fetch resources
@@ -138,7 +137,7 @@ func (UnimplementedSourceServer) GetName(context.Context, *GetName_Request) (*Ge
 func (UnimplementedSourceServer) GetVersion(context.Context, *GetVersion_Request) (*GetVersion_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVersion not implemented")
 }
-func (UnimplementedSourceServer) GetExampleConfig(context.Context, *GetSourceExampleConfig_Request) (*GetSourceExampleConfig_Response, error) {
+func (UnimplementedSourceServer) GetExampleConfig(context.Context, *GetExampleConfig_Request) (*GetExampleConfig_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetExampleConfig not implemented")
 }
 func (UnimplementedSourceServer) GetTables(context.Context, *GetTables_Request) (*GetTables_Response, error) {
@@ -197,7 +196,7 @@ func _Source_GetVersion_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _Source_GetExampleConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSourceExampleConfig_Request)
+	in := new(GetExampleConfig_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -209,7 +208,7 @@ func _Source_GetExampleConfig_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: "/proto.Source/GetExampleConfig",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SourceServer).GetExampleConfig(ctx, req.(*GetSourceExampleConfig_Request))
+		return srv.(SourceServer).GetExampleConfig(ctx, req.(*GetExampleConfig_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }

@@ -15,13 +15,7 @@ import (
 type DestinationClient struct {
 	pbClient pb.DestinationClient
 	// this can be used if we have a plugin which is compiled in, so we don't need to do any grpc requests
-	localClient *plugins.DestinationPlugin
-}
-
-// DestinationExampleConfigOptions can be used to override default example values.
-type DestinationExampleConfigOptions struct {
-	Path     string
-	Registry specs.Registry
+	localClient plugins.DestinationPlugin
 }
 
 func NewDestinationClient(cc grpc.ClientConnInterface) *DestinationClient {
@@ -30,7 +24,7 @@ func NewDestinationClient(cc grpc.ClientConnInterface) *DestinationClient {
 	}
 }
 
-func NewLocalDestinationClient(p *plugins.DestinationPlugin) *DestinationClient {
+func NewLocalDestinationClient(p plugins.DestinationPlugin) *DestinationClient {
 	return &DestinationClient{
 		localClient: p,
 	}
@@ -58,6 +52,17 @@ func (c *DestinationClient) Version(ctx context.Context) (string, error) {
 	return res.Version, nil
 }
 
+func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error) {
+	if c.localClient != nil {
+		return c.localClient.ExampleConfig(), nil
+	}
+	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetExampleConfig_Request{})
+	if err != nil {
+		return "", err
+	}
+	return res.Config, nil
+}
+
 func (c *DestinationClient) Initialize(ctx context.Context, spec specs.Destination) error {
 	if c.localClient != nil {
 		return c.localClient.Initialize(ctx, spec)
@@ -73,23 +78,6 @@ func (c *DestinationClient) Initialize(ctx context.Context, spec specs.Destinati
 		return fmt.Errorf("destination configure: failed to configure: %w", err)
 	}
 	return nil
-}
-
-func (c *DestinationClient) GetExampleConfig(ctx context.Context, opts DestinationExampleConfigOptions) (string, error) {
-	if c.localClient != nil {
-		return c.localClient.ExampleConfig(plugins.DestinationExampleConfigOptions{
-			Registry: opts.Registry,
-			Path:     opts.Path,
-		})
-	}
-	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetDestinationExampleConfig_Request{
-		Registry: opts.Registry.String(),
-		Path:     opts.Path,
-	})
-	if err != nil {
-		return "", err
-	}
-	return res.Config, nil
 }
 
 func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table) error {

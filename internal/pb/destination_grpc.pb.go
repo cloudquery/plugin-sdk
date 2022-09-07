@@ -8,7 +8,6 @@ package pb
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -28,7 +27,7 @@ type DestinationClient interface {
 	// Get the current version of the plugin
 	GetVersion(ctx context.Context, in *GetVersion_Request, opts ...grpc.CallOption) (*GetVersion_Response, error)
 	// Get an example configuration for the plugin
-	GetExampleConfig(ctx context.Context, in *GetDestinationExampleConfig_Request, opts ...grpc.CallOption) (*GetDestinationExampleConfig_Response, error)
+	GetExampleConfig(ctx context.Context, in *GetExampleConfig_Request, opts ...grpc.CallOption) (*GetExampleConfig_Response, error)
 	// Configure the plugin with the given credentials and mode
 	Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error)
 	// Migrate tables to the given plugin version
@@ -63,8 +62,8 @@ func (c *destinationClient) GetVersion(ctx context.Context, in *GetVersion_Reque
 	return out, nil
 }
 
-func (c *destinationClient) GetExampleConfig(ctx context.Context, in *GetDestinationExampleConfig_Request, opts ...grpc.CallOption) (*GetDestinationExampleConfig_Response, error) {
-	out := new(GetDestinationExampleConfig_Response)
+func (c *destinationClient) GetExampleConfig(ctx context.Context, in *GetExampleConfig_Request, opts ...grpc.CallOption) (*GetExampleConfig_Response, error) {
+	out := new(GetExampleConfig_Response)
 	err := c.cc.Invoke(ctx, "/proto.Destination/GetExampleConfig", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -133,7 +132,7 @@ type DestinationServer interface {
 	// Get the current version of the plugin
 	GetVersion(context.Context, *GetVersion_Request) (*GetVersion_Response, error)
 	// Get an example configuration for the plugin
-	GetExampleConfig(context.Context, *GetDestinationExampleConfig_Request) (*GetDestinationExampleConfig_Response, error)
+	GetExampleConfig(context.Context, *GetExampleConfig_Request) (*GetExampleConfig_Response, error)
 	// Configure the plugin with the given credentials and mode
 	Configure(context.Context, *Configure_Request) (*Configure_Response, error)
 	// Migrate tables to the given plugin version
@@ -153,7 +152,7 @@ func (UnimplementedDestinationServer) GetName(context.Context, *GetName_Request)
 func (UnimplementedDestinationServer) GetVersion(context.Context, *GetVersion_Request) (*GetVersion_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVersion not implemented")
 }
-func (UnimplementedDestinationServer) GetExampleConfig(context.Context, *GetDestinationExampleConfig_Request) (*GetDestinationExampleConfig_Response, error) {
+func (UnimplementedDestinationServer) GetExampleConfig(context.Context, *GetExampleConfig_Request) (*GetExampleConfig_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetExampleConfig not implemented")
 }
 func (UnimplementedDestinationServer) Configure(context.Context, *Configure_Request) (*Configure_Response, error) {
@@ -215,7 +214,7 @@ func _Destination_GetVersion_Handler(srv interface{}, ctx context.Context, dec f
 }
 
 func _Destination_GetExampleConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetDestinationExampleConfig_Request)
+	in := new(GetExampleConfig_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -227,7 +226,7 @@ func _Destination_GetExampleConfig_Handler(srv interface{}, ctx context.Context,
 		FullMethod: "/proto.Destination/GetExampleConfig",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DestinationServer).GetExampleConfig(ctx, req.(*GetDestinationExampleConfig_Request))
+		return srv.(DestinationServer).GetExampleConfig(ctx, req.(*GetExampleConfig_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }

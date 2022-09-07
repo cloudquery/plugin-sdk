@@ -19,6 +19,7 @@ import (
 // - meta(ClientMeta): is the client returned by the plugin.Provider Configure call
 // - parent(Resource): resource is the parent resource in case this table is called via parent table (i.e. relation)
 // - res(chan interface{}): is a channel to pass results fetched by the TableResolver
+//
 type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error
 
 type RowResolver func(ctx context.Context, meta ClientMeta, resource *Resource) error

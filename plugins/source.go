@@ -1,13 +1,9 @@
 package plugins
 
 import (
-	"bytes"
 	"context"
-	"embed"
-	"errors"
 	"fmt"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -18,10 +14,10 @@ import (
 
 type SourceNewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
 
-// SourcePlugin is the base structure required by calls to serve.Serve.
-// We take a declarative approach to API here, similar to Cobra.
+// SourcePlugin is the base structure required to pass to sdk.serve
+// We take a similar/declerative approach to API here similar to Cobra
 type SourcePlugin struct {
-	// Name of plugin i.e aws, gcp, azure, etc
+	// Name of plugin i.e aws,gcp, azure etc'
 	name string
 	// Version of the plugin
 	version string
@@ -33,22 +29,11 @@ type SourcePlugin struct {
 	exampleConfig string
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
-	// configTemplate will be used to generate example config
-	configTemplate *template.Template
 }
 
 type SourceOption func(*SourcePlugin)
 
-// SourceExampleConfigOptions can be used to override default example values.
-type SourceExampleConfigOptions struct {
-	Path     string
-	Registry specs.Registry
-}
-
 const minGoRoutines = 5
-
-//go:embed templates/source.go.tpl
-var sourceFS embed.FS
 
 func WithSourceExampleConfig(exampleConfig string) SourceOption {
 	return func(p *SourcePlugin) {
@@ -75,20 +60,11 @@ func addInternalColumns(tables []*schema.Table) {
 }
 
 func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc, opts ...SourceOption) *SourcePlugin {
-	cfgTemplate := "source.go.tpl"
-	tpl, err := template.New(cfgTemplate).Funcs(template.FuncMap{
-		"indent": indentSpaces,
-	}).ParseFS(sourceFS, "templates/"+cfgTemplate)
-	if err != nil {
-		panic("failed to parse " + cfgTemplate + ":" + err.Error())
-	}
-
 	p := SourcePlugin{
 		name:               name,
 		version:            version,
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
-		configTemplate:     tpl,
 	}
 	for _, opt := range opts {
 		opt(&p)
@@ -105,10 +81,6 @@ func (p *SourcePlugin) validate() error {
 		return fmt.Errorf("newExecutionClient function not defined for source plugin: " + p.name)
 	}
 
-	if p.name == "" {
-		return errors.New("plugin name should not be empty")
-	}
-
 	if err := p.tables.ValidateDuplicateColumns(); err != nil {
 		return fmt.Errorf("found duplicate columns in source plugin: %s: %w", p.name, err)
 	}
@@ -123,21 +95,8 @@ func (p *SourcePlugin) Tables() schema.Tables {
 	return p.tables
 }
 
-func (p *SourcePlugin) ExampleConfig(opts SourceExampleConfigOptions) (string, error) {
-	spec := specs.Source{
-		Name:     p.name,
-		Version:  p.version,
-		Path:     opts.Path,
-		Registry: opts.Registry,
-		Spec:     p.exampleConfig,
-	}
-	spec.SetDefaults()
-	w := bytes.NewBufferString("")
-	err := p.configTemplate.Execute(w, spec)
-	if err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
-	}
-	return w.String(), nil
+func (p *SourcePlugin) ExampleConfig() string {
+	return p.exampleConfig
 }
 
 func (p *SourcePlugin) Name() string {
