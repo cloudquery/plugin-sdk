@@ -68,8 +68,6 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - deadcode
-    - decorder
     - depguard
     - dupl
     - errcheck
@@ -85,8 +83,6 @@ linters:
     - prealloc
     - revive
     - staticcheck
-    - structcheck
     - unconvert
     - unparam
     - unused
-    - varcheck

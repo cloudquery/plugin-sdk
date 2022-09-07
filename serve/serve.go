@@ -96,8 +96,10 @@ func newCmdServe(opts Options) *cobra.Command {
 
 			if !noSentry && version != "development" {
 				err = sentry.Init(sentry.ClientOptions{
-					Dsn:     opts.SentryDsn,
-					Release: opts.SourcePlugin.Version(),
+					Dsn:              opts.SentryDsn,
+					Debug:            false,
+					AttachStacktrace: true,
+					Release:          opts.SourcePlugin.Version(),
 					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations
 					Integrations: func(integrations []sentry.Integration) []sentry.Integration {
 						var filteredIntegrations []sentry.Integration

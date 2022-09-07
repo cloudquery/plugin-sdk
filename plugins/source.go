@@ -25,8 +25,6 @@ type SourcePlugin struct {
 	name string
 	// Version of the plugin
 	version string
-	// Classify error and return its severity and type
-	ignoreError schema.IgnoreErrorFunc
 	// Called upon configure call to validate and init configuration
 	newExecutionClient SourceNewExecutionClientFunc
 	// Tables is all tables supported by this source plugin
@@ -64,12 +62,6 @@ func WithSourceLogger(logger zerolog.Logger) SourceOption {
 	}
 }
 
-func WithClassifyError(ignoreError schema.IgnoreErrorFunc) SourceOption {
-	return func(p *SourcePlugin) {
-		p.ignoreError = ignoreError
-	}
-}
-
 // Add internal columns
 func addInternalColumns(tables []*schema.Table) {
 	for _, table := range tables {
@@ -104,12 +96,6 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 	addInternalColumns(p.tables)
 	if err := p.validate(); err != nil {
 		panic(err)
-	}
-	// if ignore error is not set on a table level set it with the plugin
-	for _, table := range p.tables {
-		if table.IgnoreError == nil && p.ignoreError != nil {
-			table.IgnoreError = p.ignoreError
-		}
 	}
 	return &p
 }
@@ -202,10 +188,6 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 		clients := []schema.ClientMeta{c}
 		if table.Multiplex != nil {
 			clients = table.Multiplex(c)
-		}
-		// because table can't import sourceplugin we need to set classifyError if it is not set by table
-		if table.IgnoreError == nil {
-			table.IgnoreError = p.ignoreError
 		}
 		// we call this here because we dont know when the following goroutine will be called and we do want an order
 		// of table by table

@@ -23,7 +23,7 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 	}
 
 	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".yml") {
+		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") && strings.HasSuffix(file.Name(), ".yml") {
 			data, err := os.ReadFile(filepath.Join(directory, file.Name()))
 			if err != nil {
 				return nil, fmt.Errorf("failed to read file %s: %w", file.Name(), err)
