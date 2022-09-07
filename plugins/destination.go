@@ -26,6 +26,24 @@ type DestinationClient interface {
 	SetLogger(logger zerolog.Logger)
 }
 
+// DestinationPlugin is the base structure required by calls to serve.Serve.
+type DestinationPlugin struct {
+	// name of plugin i.e aws, gcp, azure, etc
+	name string
+	// version of the plugin
+	version string
+	// example config for the plugin
+	exampleConfig string
+	// called on init to create a new DestinationClient
+	newExecutionClient DestinationNewExecutionClientFunc
+	// logger that should be used by the plugin
+	logger zerolog.Logger
+	// client returned by call to newExecutionClient
+	client DestinationClient
+	// configTemplate will be used to generate example config
+	configTemplate *template.Template
+}
+
 type DestinationOption func(*DestinationPlugin)
 
 // DestinationExampleConfigOptions can be used to override default example values.
@@ -47,24 +65,6 @@ func WithDestinationLogger(logger zerolog.Logger) DestinationOption {
 	return func(p *DestinationPlugin) {
 		p.logger = logger
 	}
-}
-
-// DestinationPlugin is the base structure required by calls to serve.Serve.
-type DestinationPlugin struct {
-	// name of plugin i.e aws, gcp, azure, etc
-	name string
-	// version of the plugin
-	version string
-	// example config for the plugin
-	exampleConfig string
-	// called on init to create a new DestinationClient
-	newExecutionClient DestinationNewExecutionClientFunc
-	// logger that should be used by the plugin
-	logger zerolog.Logger
-	// client returned by call to newExecutionClient
-	client DestinationClient
-	// configTemplate will be used to generate example config
-	configTemplate *template.Template
 }
 
 func (p *DestinationPlugin) Name() string {

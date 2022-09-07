@@ -2,12 +2,12 @@ package plugins
 
 import (
 	"context"
-	"github.com/google/go-cmp/cmp"
 	"strings"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 )

@@ -2,12 +2,13 @@ package plugins
 
 import (
 	"context"
+	"strings"
+	"testing"
+
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
-	"strings"
-	"testing"
 )
 
 const wantDestinationConfig = `
@@ -37,13 +38,13 @@ type testDestinationClient struct {
 	logger *zerolog.Logger
 }
 
-func (t *testDestinationClient) Initialize(ctx context.Context, spec specs.Destination) error {
+func (*testDestinationClient) Initialize(ctx context.Context, spec specs.Destination) error {
 	return nil
 }
-func (t *testDestinationClient) Migrate(ctx context.Context, tables schema.Tables) error {
+func (*testDestinationClient) Migrate(ctx context.Context, tables schema.Tables) error {
 	return nil
 }
-func (t *testDestinationClient) Write(ctx context.Context, table string, data map[string]interface{}) error {
+func (*testDestinationClient) Write(ctx context.Context, table string, data map[string]interface{}) error {
 	return nil
 }
 func (t *testDestinationClient) SetLogger(logger zerolog.Logger) {
