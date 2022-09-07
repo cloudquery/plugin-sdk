@@ -7,10 +7,11 @@
 package pb
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -96,44 +97,6 @@ func (*GetVersion) Descriptor() ([]byte, []int) {
 	return file_internal_pb_base_proto_rawDescGZIP(), []int{1}
 }
 
-type GetExampleConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *GetExampleConfig) Reset() {
-	*x = GetExampleConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_base_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetExampleConfig) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetExampleConfig) ProtoMessage() {}
-
-func (x *GetExampleConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_base_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetExampleConfig.ProtoReflect.Descriptor instead.
-func (*GetExampleConfig) Descriptor() ([]byte, []int) {
-	return file_internal_pb_base_proto_rawDescGZIP(), []int{2}
-}
-
 type Configure struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -143,7 +106,7 @@ type Configure struct {
 func (x *Configure) Reset() {
 	*x = Configure{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_base_proto_msgTypes[3]
+		mi := &file_internal_pb_base_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -156,7 +119,7 @@ func (x *Configure) String() string {
 func (*Configure) ProtoMessage() {}
 
 func (x *Configure) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_base_proto_msgTypes[3]
+	mi := &file_internal_pb_base_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +132,7 @@ func (x *Configure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Configure.ProtoReflect.Descriptor instead.
 func (*Configure) Descriptor() ([]byte, []int) {
-	return file_internal_pb_base_proto_rawDescGZIP(), []int{3}
+	return file_internal_pb_base_proto_rawDescGZIP(), []int{2}
 }
 
 type GetName_Request struct {
@@ -181,7 +144,7 @@ type GetName_Request struct {
 func (x *GetName_Request) Reset() {
 	*x = GetName_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_base_proto_msgTypes[4]
+		mi := &file_internal_pb_base_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -194,7 +157,7 @@ func (x *GetName_Request) String() string {
 func (*GetName_Request) ProtoMessage() {}
 
 func (x *GetName_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_base_proto_msgTypes[4]
+	mi := &file_internal_pb_base_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -221,7 +184,7 @@ type GetName_Response struct {
 func (x *GetName_Response) Reset() {
 	*x = GetName_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_base_proto_msgTypes[5]
+		mi := &file_internal_pb_base_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -234,7 +197,7 @@ func (x *GetName_Response) String() string {
 func (*GetName_Response) ProtoMessage() {}
 
 func (x *GetName_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_base_proto_msgTypes[5]
+	mi := &file_internal_pb_base_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -266,7 +229,7 @@ type GetVersion_Request struct {
 func (x *GetVersion_Request) Reset() {
 	*x = GetVersion_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_base_proto_msgTypes[6]
+		mi := &file_internal_pb_base_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -279,7 +242,7 @@ func (x *GetVersion_Request) String() string {
 func (*GetVersion_Request) ProtoMessage() {}
 
 func (x *GetVersion_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_base_proto_msgTypes[6]
+	mi := &file_internal_pb_base_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -306,7 +269,7 @@ type GetVersion_Response struct {
 func (x *GetVersion_Response) Reset() {
 	*x = GetVersion_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_base_proto_msgTypes[7]
+		mi := &file_internal_pb_base_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -319,7 +282,7 @@ func (x *GetVersion_Response) String() string {
 func (*GetVersion_Response) ProtoMessage() {}
 
 func (x *GetVersion_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_base_proto_msgTypes[7]
+	mi := &file_internal_pb_base_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -342,91 +305,6 @@ func (x *GetVersion_Response) GetVersion() string {
 	return ""
 }
 
-type GetExampleConfig_Request struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *GetExampleConfig_Request) Reset() {
-	*x = GetExampleConfig_Request{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_base_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetExampleConfig_Request) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetExampleConfig_Request) ProtoMessage() {}
-
-func (x *GetExampleConfig_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_base_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetExampleConfig_Request.ProtoReflect.Descriptor instead.
-func (*GetExampleConfig_Request) Descriptor() ([]byte, []int) {
-	return file_internal_pb_base_proto_rawDescGZIP(), []int{2, 0}
-}
-
-type GetExampleConfig_Response struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Config string `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
-}
-
-func (x *GetExampleConfig_Response) Reset() {
-	*x = GetExampleConfig_Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_base_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetExampleConfig_Response) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetExampleConfig_Response) ProtoMessage() {}
-
-func (x *GetExampleConfig_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_base_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetExampleConfig_Response.ProtoReflect.Descriptor instead.
-func (*GetExampleConfig_Response) Descriptor() ([]byte, []int) {
-	return file_internal_pb_base_proto_rawDescGZIP(), []int{2, 1}
-}
-
-func (x *GetExampleConfig_Response) GetConfig() string {
-	if x != nil {
-		return x.Config
-	}
-	return ""
-}
-
 type Configure_Request struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -440,7 +318,7 @@ type Configure_Request struct {
 func (x *Configure_Request) Reset() {
 	*x = Configure_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_base_proto_msgTypes[10]
+		mi := &file_internal_pb_base_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -453,7 +331,7 @@ func (x *Configure_Request) String() string {
 func (*Configure_Request) ProtoMessage() {}
 
 func (x *Configure_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_base_proto_msgTypes[10]
+	mi := &file_internal_pb_base_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -466,7 +344,7 @@ func (x *Configure_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Configure_Request.ProtoReflect.Descriptor instead.
 func (*Configure_Request) Descriptor() ([]byte, []int) {
-	return file_internal_pb_base_proto_rawDescGZIP(), []int{3, 0}
+	return file_internal_pb_base_proto_rawDescGZIP(), []int{2, 0}
 }
 
 func (x *Configure_Request) GetConfig() []byte {
@@ -488,7 +366,7 @@ type Configure_Response struct {
 func (x *Configure_Response) Reset() {
 	*x = Configure_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_base_proto_msgTypes[11]
+		mi := &file_internal_pb_base_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -501,7 +379,7 @@ func (x *Configure_Response) String() string {
 func (*Configure_Response) ProtoMessage() {}
 
 func (x *Configure_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_base_proto_msgTypes[11]
+	mi := &file_internal_pb_base_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -514,7 +392,7 @@ func (x *Configure_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Configure_Response.ProtoReflect.Descriptor instead.
 func (*Configure_Response) Descriptor() ([]byte, []int) {
-	return file_internal_pb_base_proto_rawDescGZIP(), []int{3, 1}
+	return file_internal_pb_base_proto_rawDescGZIP(), []int{2, 1}
 }
 
 func (x *Configure_Response) GetError() string {
@@ -543,20 +421,16 @@ var file_internal_pb_base_proto_rawDesc = []byte{
 	0x69, 0x6f, 0x6e, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24,
 	0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65,
 	0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72,
-	0x73, 0x69, 0x6f, 0x6e, 0x22, 0x41, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x45, 0x78, 0x61, 0x6d, 0x70,
-	0x6c, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x22, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
-	0x16, 0x0a, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x22, 0x7d, 0x0a, 0x09, 0x43, 0x6f, 0x6e, 0x66, 0x69,
-	0x67, 0x75, 0x72, 0x65, 0x1a, 0x21, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
-	0x16, 0x0a, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52,
-	0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x1a, 0x4d, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x12, 0x2b, 0x0a, 0x11, 0x6a, 0x73, 0x6f,
-	0x6e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x5f, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x0c, 0x52, 0x10, 0x6a, 0x73, 0x6f, 0x6e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61,
-	0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x42, 0x05, 0x5a, 0x03, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x73, 0x69, 0x6f, 0x6e, 0x22, 0x7d, 0x0a, 0x09, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72,
+	0x65, 0x1a, 0x21, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x16, 0x0a, 0x06,
+	0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x63, 0x6f,
+	0x6e, 0x66, 0x69, 0x67, 0x1a, 0x4d, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x12, 0x14, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x12, 0x2b, 0x0a, 0x11, 0x6a, 0x73, 0x6f, 0x6e, 0x73, 0x63,
+	0x68, 0x65, 0x6d, 0x61, 0x5f, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x0c, 0x52, 0x10, 0x6a, 0x73, 0x6f, 0x6e, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x52, 0x65, 0x73,
+	0x75, 0x6c, 0x74, 0x42, 0x05, 0x5a, 0x03, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x33,
 }
 
 var (
@@ -571,20 +445,17 @@ func file_internal_pb_base_proto_rawDescGZIP() []byte {
 	return file_internal_pb_base_proto_rawDescData
 }
 
-var file_internal_pb_base_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_internal_pb_base_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_internal_pb_base_proto_goTypes = []interface{}{
-	(*GetName)(nil),                   // 0: proto.GetName
-	(*GetVersion)(nil),                // 1: proto.GetVersion
-	(*GetExampleConfig)(nil),          // 2: proto.GetExampleConfig
-	(*Configure)(nil),                 // 3: proto.Configure
-	(*GetName_Request)(nil),           // 4: proto.GetName.Request
-	(*GetName_Response)(nil),          // 5: proto.GetName.Response
-	(*GetVersion_Request)(nil),        // 6: proto.GetVersion.Request
-	(*GetVersion_Response)(nil),       // 7: proto.GetVersion.Response
-	(*GetExampleConfig_Request)(nil),  // 8: proto.GetExampleConfig.Request
-	(*GetExampleConfig_Response)(nil), // 9: proto.GetExampleConfig.Response
-	(*Configure_Request)(nil),         // 10: proto.Configure.Request
-	(*Configure_Response)(nil),        // 11: proto.Configure.Response
+	(*GetName)(nil),             // 0: proto.GetName
+	(*GetVersion)(nil),          // 1: proto.GetVersion
+	(*Configure)(nil),           // 2: proto.Configure
+	(*GetName_Request)(nil),     // 3: proto.GetName.Request
+	(*GetName_Response)(nil),    // 4: proto.GetName.Response
+	(*GetVersion_Request)(nil),  // 5: proto.GetVersion.Request
+	(*GetVersion_Response)(nil), // 6: proto.GetVersion.Response
+	(*Configure_Request)(nil),   // 7: proto.Configure.Request
+	(*Configure_Response)(nil),  // 8: proto.Configure.Response
 }
 var file_internal_pb_base_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -625,18 +496,6 @@ func file_internal_pb_base_proto_init() {
 			}
 		}
 		file_internal_pb_base_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetExampleConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_internal_pb_base_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Configure); i {
 			case 0:
 				return &v.state
@@ -648,7 +507,7 @@ func file_internal_pb_base_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_base_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_pb_base_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetName_Request); i {
 			case 0:
 				return &v.state
@@ -660,7 +519,7 @@ func file_internal_pb_base_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_base_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_pb_base_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetName_Response); i {
 			case 0:
 				return &v.state
@@ -672,7 +531,7 @@ func file_internal_pb_base_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_base_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_pb_base_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetVersion_Request); i {
 			case 0:
 				return &v.state
@@ -684,7 +543,7 @@ func file_internal_pb_base_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_base_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_pb_base_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetVersion_Response); i {
 			case 0:
 				return &v.state
@@ -696,31 +555,7 @@ func file_internal_pb_base_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_base_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetExampleConfig_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_internal_pb_base_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetExampleConfig_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_internal_pb_base_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_pb_base_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Configure_Request); i {
 			case 0:
 				return &v.state
@@ -732,7 +567,7 @@ func file_internal_pb_base_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_base_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_pb_base_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Configure_Response); i {
 			case 0:
 				return &v.state
@@ -751,7 +586,7 @@ func file_internal_pb_base_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_internal_pb_base_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

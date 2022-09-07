@@ -24,7 +24,7 @@ import (
 type Options struct {
 	// Required: Source or destination plugin to serve.
 	SourcePlugin      *plugins.SourcePlugin
-	DestinationPlugin plugins.DestinationPlugin
+	DestinationPlugin *plugins.DestinationPlugin
 	SentryDsn         string
 }
 
@@ -89,7 +89,7 @@ func newCmdServe(opts Options) *cobra.Command {
 				version = opts.SourcePlugin.Version()
 			}
 			if opts.DestinationPlugin != nil {
-				// opts.DestinationPlugin.Logger = logger
+				opts.DestinationPlugin.SetLogger(logger)
 				pb.RegisterDestinationServer(s, &servers.DestinationServer{Plugin: opts.DestinationPlugin})
 				version = opts.DestinationPlugin.Version()
 			}
