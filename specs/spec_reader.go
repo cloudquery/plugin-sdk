@@ -2,7 +2,6 @@ package specs
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,7 +17,7 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 		sources:      make(map[string]Source),
 		destinations: make(map[string]Destination),
 	}
-	files, err := ioutil.ReadDir(directory)
+	files, err := os.ReadDir(directory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory %s: %w", directory, err)
 	}
