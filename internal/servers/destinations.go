@@ -16,7 +16,7 @@ import (
 
 type DestinationServer struct {
 	pb.UnimplementedDestinationServer
-	Plugin *plugins.DestinationPlugin
+	Plugin plugins.DestinationPlugin
 }
 
 func (s *DestinationServer) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.Configure_Response, error) {
@@ -39,20 +39,9 @@ func (s *DestinationServer) GetVersion(context.Context, *pb.GetVersion_Request) 
 	}, nil
 }
 
-func (s *DestinationServer) GetExampleConfig(_ context.Context, r *pb.GetDestinationExampleConfig_Request) (*pb.GetDestinationExampleConfig_Response, error) {
-	registry, err := specs.RegistryFromString(r.GetRegistry())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid value for registry: %v", err)
-	}
-	cfg, err := s.Plugin.ExampleConfig(plugins.DestinationExampleConfigOptions{
-		Path:     r.GetPath(),
-		Registry: registry,
-	})
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to generate destination config: %v", err)
-	}
-	return &pb.GetDestinationExampleConfig_Response{
-		Config: cfg,
+func (s *DestinationServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
+	return &pb.GetExampleConfig_Response{
+		Config: s.Plugin.ExampleConfig(),
 	}, nil
 }
 

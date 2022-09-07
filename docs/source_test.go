@@ -2,6 +2,7 @@ package docs
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -99,7 +100,7 @@ func TestGenerateSourcePluginDocs(t *testing.T) {
 
 	for _, exp := range expectFiles {
 		output := path.Join(tmpdir, exp.Name)
-		got, err := os.ReadFile(output)
+		got, err := ioutil.ReadFile(output)
 		if err != nil {
 			t.Fatalf("error reading %q: %v ", exp.Name, err)
 		}

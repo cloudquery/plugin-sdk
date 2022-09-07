@@ -1,2 +1,2 @@
-// codgen helps autogenerate cloudquery plugins configured by definition
+//codgen helps autogenerate cloudquery plugins configured by definition
 package codegen

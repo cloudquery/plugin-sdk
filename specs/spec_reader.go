@@ -2,6 +2,7 @@ package specs
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +18,7 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 		sources:      make(map[string]Source),
 		destinations: make(map[string]Destination),
 	}
-	files, err := os.ReadDir(directory)
+	files, err := ioutil.ReadDir(directory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory %s: %w", directory, err)
 	}
@@ -62,7 +63,7 @@ func (s *SpecReader) GetSourceByName(name string) *Source {
 	return nil
 }
 
-func (s *SpecReader) GetDestinationByName(name string) *Destination {
+func (s *SpecReader) GetDestinatinoByName(name string) *Destination {
 	for _, spec := range s.destinations {
 		if spec.Name == name {
 			return &spec

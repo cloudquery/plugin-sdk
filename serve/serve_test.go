@@ -30,12 +30,11 @@ var _ schema.ClientMeta = &testExecutionClient{}
 var expectedExampleSpecConfig = specs.Spec{
 	Kind: specs.KindSource,
 	Spec: &specs.Source{
-		Name:         "testSourcePlugin",
-		Path:         "cloudquery/testSourcePlugin",
-		Version:      "v1.0.0",
-		Tables:       []string{"*"},
-		Destinations: []string{"*"},
-		Spec:         map[string]interface{}{"accounts": []interface{}{"all"}},
+		Name:    "testSourcePlugin",
+		Path:    "cloudquery/testSourcePlugin",
+		Version: "v1.0.0",
+		Tables:  []string{"*"},
+		Spec:    map[string]interface{}{"accounts": []interface{}{"all"}},
 	},
 }
 
@@ -91,7 +90,17 @@ func TestServe(t *testing.T) {
 		"v1.0.0",
 		[]*schema.Table{testTable()},
 		newTestExecutionClient,
-		plugins.WithSourceExampleConfig(`accounts: ["all"]`),
+		plugins.WithSourceExampleConfig(`--- 
+kind: source
+spec: 
+  name: testSourcePlugin
+  path: cloudquery/testSourcePlugin
+  spec: 
+    accounts: ["all"]
+  tables: 
+    - "*"
+  version: v1.0.0
+`),
 		plugins.WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
 	)
 
@@ -149,8 +158,7 @@ func TestServe(t *testing.T) {
 		t.Fatalf("Failed to sync resources: %v", err)
 	}
 
-	opts := clients.SourceExampleConfigOptions{}
-	exampleConfig, err := c.ExampleConfig(ctx, opts)
+	exampleConfig, err := c.ExampleConfig(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get example config: %v", err)
 	}

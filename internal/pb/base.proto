@@ -16,6 +16,13 @@ message GetVersion {
   }
 }
 
+message GetExampleConfig {
+  message Request {}
+  message Response {
+    string config = 1;
+  }
+}
+
 message Configure {
   message Request {
     // Holds information such as credentials, regions, accounts, etc'
