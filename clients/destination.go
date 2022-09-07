@@ -17,6 +17,12 @@ type DestinationClient struct {
 	localClient *plugins.DestinationPlugin
 }
 
+// DestinationExampleConfigOptions can be used to override default example values.
+type DestinationExampleConfigOptions struct {
+	Path     string
+	Registry specs.Registry
+}
+
 func NewDestinationClient(cc grpc.ClientConnInterface) *DestinationClient {
 	return &DestinationClient{
 		pbClient: pb.NewDestinationClient(cc),
@@ -68,11 +74,17 @@ func (c *DestinationClient) Initialize(ctx context.Context, spec specs.Destinati
 	return nil
 }
 
-func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error) {
+func (c *DestinationClient) GetExampleConfig(ctx context.Context, opts DestinationExampleConfigOptions) (string, error) {
 	if c.localClient != nil {
-		return c.localClient.ExampleConfig(), nil
+		return c.localClient.ExampleConfig(plugins.DestinationExampleConfigOptions{
+			Registry: opts.Registry,
+			Path:     opts.Path,
+		})
 	}
-	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetExampleConfig_Request{})
+	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetDestinationExampleConfig_Request{
+		Registry: opts.Registry.String(),
+		Path:     opts.Path,
+	})
 	if err != nil {
 		return "", err
 	}

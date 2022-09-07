@@ -22,6 +22,12 @@ type FetchResultMessage struct {
 	Resource []byte
 }
 
+// SourceExampleConfigOptions can be used to override default example values.
+type SourceExampleConfigOptions struct {
+	Path     string
+	Registry specs.Registry
+}
+
 func NewSourceClient(cc grpc.ClientConnInterface) *SourceClient {
 	return &SourceClient{
 		pbClient: pb.NewSourceClient(cc),
@@ -44,8 +50,11 @@ func (c *SourceClient) Version(ctx context.Context) (string, error) {
 	return res.Version, nil
 }
 
-func (c *SourceClient) ExampleConfig(ctx context.Context) (string, error) {
-	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetExampleConfig_Request{})
+func (c *SourceClient) ExampleConfig(ctx context.Context, opts SourceExampleConfigOptions) (string, error) {
+	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetSourceExampleConfig_Request{
+		Registry: opts.Registry.String(),
+		Path:     opts.Path,
+	})
 	if err != nil {
 		return "", fmt.Errorf("failed to get example config: %w", err)
 	}

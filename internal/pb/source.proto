@@ -10,11 +10,21 @@ service Source {
   // Get the current version of the plugin
   rpc GetVersion(GetVersion.Request) returns (GetVersion.Response);
   // Get an example configuration for the source plugin
-  rpc GetExampleConfig(GetExampleConfig.Request) returns (GetExampleConfig.Response);
+  rpc GetExampleConfig(GetSourceExampleConfig.Request) returns (GetSourceExampleConfig.Response);
   // Get all tables the source plugin supports
   rpc GetTables(GetTables.Request) returns (GetTables.Response);
   // Fetch resources
   rpc Sync(Sync.Request) returns (stream Sync.Response);
+}
+
+message GetSourceExampleConfig {
+  message Request {
+    string registry = 1;
+    string path = 2;
+  }
+  message Response {
+    string config = 1;
+  }
 }
 
 message Sync {

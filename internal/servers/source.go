@@ -41,9 +41,20 @@ func (s *SourceServer) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.
 	}, nil
 }
 
-func (s *SourceServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
-	return &pb.GetExampleConfig_Response{
-		Config: s.Plugin.ExampleConfig(),
+func (s *SourceServer) GetExampleConfig(ctx context.Context, r *pb.GetSourceExampleConfig_Request) (*pb.GetSourceExampleConfig_Response, error) {
+	registry, err := specs.RegistryFromString(r.GetRegistry())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid value for registry: %v", err)
+	}
+	cfg, err := s.Plugin.ExampleConfig(plugins.SourceExampleConfigOptions{
+		Path:     r.GetPath(),
+		Registry: registry,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to generate source config: %v", err)
+	}
+	return &pb.GetSourceExampleConfig_Response{
+		Config: cfg,
 	}, nil
 }
 

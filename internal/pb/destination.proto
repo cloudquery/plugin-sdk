@@ -9,7 +9,7 @@ service Destination {
   // Get the current version of the plugin
   rpc GetVersion(GetVersion.Request) returns (GetVersion.Response);
   // Get an example configuration for the plugin
-  rpc GetExampleConfig(GetExampleConfig.Request) returns (GetExampleConfig.Response);
+  rpc GetExampleConfig(GetDestinationExampleConfig.Request) returns (GetDestinationExampleConfig.Response);
   // Configure the plugin with the given credentials and mode
   rpc Configure(Configure.Request) returns (Configure.Response);
   // Migrate tables to the given plugin version
@@ -18,6 +18,15 @@ service Destination {
   rpc Write(stream Write.Request) returns (Write.Response);
 }
 
+message GetDestinationExampleConfig {
+  message Request {
+    string registry = 1;
+    string path = 2;
+  }
+  message Response {
+    string config = 1;
+  }
+}
 
 message Migrate {
   message Request {
