@@ -6,9 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bradleyjkemp/cupaloy"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/require"
 )
 
 type testStruct struct {
@@ -98,3 +100,33 @@ func TestTableFromGoStruct(t *testing.T) {
 // func TestReadComments(t *testing.T) {
 // 	readComments("github.com/google/go-cmp/cmp")
 // }
+
+func TestGenerateTemplate(t *testing.T) {
+	type args struct {
+		table *TableDefinition
+	}
+
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "should add comma between relations",
+			args: args{
+				table: &TableDefinition{
+					Name:      "with relations",
+					Relations: []string{"relation1", "relation2"},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := bytes.NewBufferString("")
+			err := tt.args.table.GenerateTemplate(buf)
+			require.NoError(t, err)
+			cupaloy.SnapshotT(t, buf.Bytes())
+		})
+	}
+}

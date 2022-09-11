@@ -27,6 +27,7 @@ require (
 )
 
 require (
+	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
