@@ -7,6 +7,7 @@ import (
 	"github.com/cloudquery/faker/v3"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/stretchr/testify/require"
 )
 
 type ResourceTestCase struct {
@@ -23,17 +24,26 @@ func init() {
 	_ = faker.SetRandomMapAndSliceMaxSize(1)
 }
 
-// type
+func getResourcesCountPerTable(table *schema.Table) int {
+	resourcesCount := 1
+	for _, relation := range table.Relations {
+		resourcesCount += getResourcesCountPerTable(relation)
+	}
+
+	return resourcesCount
+}
+
+func getResourcesCount(tables schema.Tables) int {
+	total := 0
+	for _, table := range tables {
+		total += getResourcesCountPerTable(table)
+	}
+	return total
+}
 
 func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source) {
-	// t.Parallel()
 	t.Helper()
-	// No need for configuration or db connection, get it out of the way first
-	// testTableIdentifiersForProvider(t, resource.Provider)
 
-	// l := testlog.New(t)
-	// l.SetLevel(hclog.Info)
-	// resource.Plugin.Logger = l
 	resources := make(chan *schema.Resource)
 	var fetchErr error
 
@@ -46,12 +56,10 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source)
 		totalResources++
 		validateResource(t, resource)
 	}
-	if fetchErr != nil {
-		t.Fatal(fetchErr)
-	}
-	if totalResources == 0 {
-		t.Fatal("no resources fetched")
-	}
+	require.NoError(t, fetchErr)
+
+	resourcesCount := getResourcesCount(plugin.Tables())
+	require.Equal(t, resourcesCount, totalResources, "expected %d resources, got %d", resourcesCount, totalResources)
 }
 
 func validateResource(t *testing.T, resource *schema.Resource) {
