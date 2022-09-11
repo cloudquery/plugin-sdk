@@ -24,42 +24,53 @@ func init() {
 	_ = faker.SetRandomMapAndSliceMaxSize(1)
 }
 
-func getResourcesCountPerTable(table *schema.Table) int {
-	resourcesCount := 1
-	for _, relation := range table.Relations {
-		resourcesCount += getResourcesCountPerTable(relation)
-	}
-
-	return resourcesCount
-}
-
-func getResourcesCount(tables schema.Tables) int {
-	total := 0
-	for _, table := range tables {
-		total += getResourcesCountPerTable(table)
-	}
-	return total
-}
-
 func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source) {
 	t.Helper()
 
-	resources := make(chan *schema.Resource)
+	resourcesChannel := make(chan *schema.Resource)
 	var fetchErr error
 
 	go func() {
-		defer close(resources)
-		fetchErr = plugin.Sync(context.Background(), spec, resources)
+		defer close(resourcesChannel)
+		fetchErr = plugin.Sync(context.Background(), spec, resourcesChannel)
 	}()
-	totalResources := 0
-	for resource := range resources {
-		totalResources++
-		validateResource(t, resource)
+
+	syncedResources := make([]*schema.Resource, 0)
+	for resource := range resourcesChannel {
+		syncedResources = append(syncedResources, resource)
 	}
 	require.NoError(t, fetchErr)
 
-	resourcesCount := getResourcesCount(plugin.Tables())
-	require.Equal(t, resourcesCount, totalResources, "expected %d resources, got %d", resourcesCount, totalResources)
+	validateTables(t, plugin.Tables(), syncedResources)
+}
+
+func getTableResource(t *testing.T, table *schema.Table, resources []*schema.Resource) *schema.Resource {
+	t.Helper()
+	for _, resource := range resources {
+		if resource.Table.Name == table.Name {
+			return resource
+		}
+	}
+
+	return nil
+}
+
+func validateTable(t *testing.T, table *schema.Table, resources []*schema.Resource) {
+	t.Helper()
+	resource := getTableResource(t, table, resources)
+	if resource != nil {
+		validateResource(t, resource)
+	} else {
+		t.Errorf("Expected table %s to be synced but it was not found", table.Name)
+	}
+}
+
+func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Resource) {
+	t.Helper()
+	for _, table := range tables {
+		validateTable(t, table, resources)
+		validateTables(t, table.Relations, resources)
+	}
 }
 
 func validateResource(t *testing.T, resource *schema.Resource) {
