@@ -1,0 +1,13 @@
+{
+		Name:         "with relations",
+		Columns: []schema.Column{
+
+		},
+
+		Relations: []*schema.Table{
+relation1,
+relation2,
+
+		},
+
+}
