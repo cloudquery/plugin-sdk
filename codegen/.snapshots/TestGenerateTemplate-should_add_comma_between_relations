@@ -5,7 +5,9 @@
 		},
 
 		Relations: []*schema.Table{
-relation1relation2,
+relation1,
+relation2,
+
 		},
 
 }

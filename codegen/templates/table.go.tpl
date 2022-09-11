@@ -20,7 +20,8 @@
 		},
 {{with .Relations}}
 		Relations: []*schema.Table{
-{{range .}}{{.}}{{end}},
+{{range .}}{{.}},
+{{end}}
 		},
 {{end}}
 }
