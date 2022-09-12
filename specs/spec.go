@@ -78,7 +78,7 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(b, s.Spec)
 }
 
-func UnmarshalJsonStrict(b []byte, out interface{}) error {
+func UnmarshalJSONStrict(b []byte, out interface{}) error {
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.DisallowUnknownFields()
 	dec.UseNumber()
