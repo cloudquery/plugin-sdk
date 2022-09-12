@@ -55,12 +55,6 @@ linters-settings:
         disabled: false
         arguments:
           - "disableStutteringCheck"
-      - name: unused-parameter
-        disabled: true
-      - name: confusing-naming
-        disabled: true
-      - name: flag-parameter
-        disabled: true
       - name: nested-structs
         disabled: true
 
