@@ -60,9 +60,9 @@ func validateTable(t *testing.T, table *schema.Table, resources []*schema.Resour
 	resource := getTableResource(t, table, resources)
 	if resource != nil {
 		validateResource(t, resource)
-	} else {
-		t.Errorf("Expected table %s to be synced but it was not found", table.Name)
+		return
 	}
+	t.Errorf("Expected table %s to be synced but it was not found", table.Name)
 }
 
 func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Resource) {
