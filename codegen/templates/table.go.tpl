@@ -9,6 +9,9 @@
     {{- if .PreResourceResolver}}
     PreResourceResolver:     {{.PreResourceResolver}},
     {{- end}}
+    {{- if .PostResourceResolver}}
+    PostResourceResolver:     {{.PostResourceResolver}},
+    {{- end}}
 		{{- if .Multiplex}}
     Multiplex:    {{.Multiplex}},
     {{- end}}
