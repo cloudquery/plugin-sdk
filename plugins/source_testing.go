@@ -7,6 +7,7 @@ import (
 	"github.com/cloudquery/faker/v3"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/stretchr/testify/require"
 )
 
 type ResourceTestCase struct {
@@ -23,34 +24,52 @@ func init() {
 	_ = faker.SetRandomMapAndSliceMaxSize(1)
 }
 
-// type
-
 func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source) {
-	// t.Parallel()
 	t.Helper()
-	// No need for configuration or db connection, get it out of the way first
-	// testTableIdentifiersForProvider(t, resource.Provider)
 
-	// l := testlog.New(t)
-	// l.SetLevel(hclog.Info)
-	// resource.Plugin.Logger = l
-	resources := make(chan *schema.Resource)
+	resourcesChannel := make(chan *schema.Resource)
 	var fetchErr error
 
 	go func() {
-		defer close(resources)
-		fetchErr = plugin.Sync(context.Background(), spec, resources)
+		defer close(resourcesChannel)
+		fetchErr = plugin.Sync(context.Background(), spec, resourcesChannel)
 	}()
-	totalResources := 0
-	for resource := range resources {
-		totalResources++
-		validateResource(t, resource)
+
+	syncedResources := make([]*schema.Resource, 0)
+	for resource := range resourcesChannel {
+		syncedResources = append(syncedResources, resource)
 	}
-	if fetchErr != nil {
-		t.Fatal(fetchErr)
+	require.NoError(t, fetchErr)
+
+	validateTables(t, plugin.Tables(), syncedResources)
+}
+
+func getTableResource(t *testing.T, table *schema.Table, resources []*schema.Resource) *schema.Resource {
+	t.Helper()
+	for _, resource := range resources {
+		if resource.Table.Name == table.Name {
+			return resource
+		}
 	}
-	if totalResources == 0 {
-		t.Fatal("no resources fetched")
+
+	return nil
+}
+
+func validateTable(t *testing.T, table *schema.Table, resources []*schema.Resource) {
+	t.Helper()
+	resource := getTableResource(t, table, resources)
+	if resource == nil {
+		t.Errorf("Expected table %s to be synced but it was not found", table.Name)
+		return
+	}
+	validateResource(t, resource)
+}
+
+func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Resource) {
+	t.Helper()
+	for _, table := range tables {
+		validateTable(t, table, resources)
+		validateTables(t, table.Relations, resources)
 	}
 }
 
