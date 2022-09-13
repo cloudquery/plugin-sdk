@@ -16,10 +16,10 @@ const tableTmpl = `
 # Table: {{.Name}}
 {{ $.Description }}
 ## Columns
-| Name        | Type           | Description  |
-| ------------- | ------------- | -----  |
+| Name        | Type           |
+| ------------- | ------------- |
 {{- range $column := $.Columns }}
-|{{$column.Name}}|{{$column.Type | formatType}}|{{$column.Description|removeLineBreaks}}|
+|{{$column.Name}}|{{$column.Type | formatType}}|
 {{- end }}
 `
 
