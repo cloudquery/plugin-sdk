@@ -22,7 +22,6 @@ type TableDefinition struct {
 	PreResourceResolver  string
 	nameTransformer      func(string) string
 	skipFields           []string
-	overrideColumns      ColumnDefinitions
 	extraColumns         ColumnDefinitions
 	descriptionsEnabled  bool
 }

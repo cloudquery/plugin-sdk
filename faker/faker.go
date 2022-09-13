@@ -8,19 +8,18 @@ import (
 )
 
 type faker struct {
-	max_depth int
-	// logger    zerolog.Logger
+	maxDepth int
 }
 
-type FakerOption func(*faker)
+type Option func(*faker)
 
 func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	t := reflect.TypeOf(a)
 	if t == nil {
 		return reflect.Value{}, fmt.Errorf("interface{} not allowed")
 	}
-	f.max_depth--
-	if f.max_depth < 0 {
+	f.maxDepth--
+	if f.maxDepth < 0 {
 		return reflect.Value{}, fmt.Errorf("max_depth reached")
 	}
 	k := t.Kind()
@@ -143,13 +142,13 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	}
 }
 
-func WithMaxDepth(depth int) FakerOption {
+func WithMaxDepth(depth int) Option {
 	return func(f *faker) {
-		f.max_depth = depth
+		f.maxDepth = depth
 	}
 }
 
-func FakeObject(obj interface{}, opts ...FakerOption) error {
+func FakeObject(obj interface{}, opts ...Option) error {
 	reflectType := reflect.TypeOf(obj)
 
 	if reflectType.Kind() != reflect.Ptr {
@@ -160,7 +159,7 @@ func FakeObject(obj interface{}, opts ...FakerOption) error {
 		return fmt.Errorf("object is nil %s", reflectType.Elem().String())
 	}
 	f := &faker{
-		max_depth: 12,
+		maxDepth: 12,
 	}
 	for _, o := range opts {
 		o(f)

@@ -77,11 +77,11 @@ func (r *Resource) SetItem(item interface{}) {
 	r.Item = item
 }
 
-func (r *Resource) Id() uuid.UUID {
-	if r.Data[CqIdColumn.Name] == nil {
+func (r *Resource) ID() uuid.UUID {
+	if r.Data[CqIDColumn.Name] == nil {
 		return uuid.UUID{}
 	}
-	return r.Data[CqIdColumn.Name].(uuid.UUID)
+	return r.Data[CqIDColumn.Name].(uuid.UUID)
 }
 
 func (r *Resource) Columns() []string {
@@ -91,7 +91,7 @@ func (r *Resource) Columns() []string {
 func (rr Resources) GetIds() []uuid.UUID {
 	rids := make([]uuid.UUID, len(rr))
 	for i, r := range rr {
-		rids[i] = r.Id()
+		rids[i] = r.ID()
 	}
 	return rids
 }

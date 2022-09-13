@@ -26,10 +26,10 @@ func CQUUIDResolver() ColumnResolver {
 	}
 }
 
-// ParentIdResolver resolves the cq_id from the parent
+// ParentIDResolver resolves the cq_id from the parent
 // if you want to reference the parent's primary keys use ParentResourceFieldResolver as required.
-func ParentIdResolver(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
-	return r.Set(c.Name, r.Parent.Id())
+func ParentIDResolver(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
+	return r.Set(c.Name, r.Parent.ID())
 }
 
 // ParentResourceFieldResolver resolves a field from the parent's resource, the value is expected to be set

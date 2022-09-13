@@ -139,6 +139,7 @@ func newCmdRoot(opts Options) *cobra.Command {
 	}
 	cmd.AddCommand(newCmdServe(opts))
 	cmd.AddCommand(newCmdDoc(opts))
+	cmd.CompletionOptions.DisableDefaultCmd = true
 	return cmd
 }
 

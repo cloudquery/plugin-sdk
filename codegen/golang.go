@@ -69,12 +69,6 @@ func WithSkipFields(fields []string) TableOptions {
 	}
 }
 
-func WithOverrideColumns(columns []ColumnDefinition) TableOptions {
-	return func(t *TableDefinition) {
-		t.overrideColumns = columns
-	}
-}
-
 func WithExtraColumns(columns []ColumnDefinition) TableOptions {
 	return func(t *TableDefinition) {
 		t.extraColumns = columns
@@ -122,15 +116,7 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 		comments = readStructComments(e.Type().PkgPath(), e.Type().Name())
 	}
 
-	for _, c := range t.extraColumns {
-		if t.overrideColumns != nil {
-			if col := t.overrideColumns.GetByName(c.Name); col != nil {
-				t.Columns = append(t.Columns, *col)
-				continue
-			}
-		}
-		t.Columns = append(t.Columns, c)
-	}
+	t.Columns = append(t.Columns, t.extraColumns...)
 
 	for i := 0; i < e.NumField(); i++ {
 		field := e.Type().Field(i)
@@ -142,13 +128,6 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 		}
 		if sliceContains(t.skipFields, field.Name) {
 			continue
-		}
-
-		if t.overrideColumns != nil {
-			if col := t.overrideColumns.GetByName(t.nameTransformer(field.Name)); col != nil {
-				t.Columns = append(t.Columns, *col)
-				continue
-			}
 		}
 
 		columnType, err := valueToSchemaType(field.Type)
