@@ -11,7 +11,7 @@ type faker struct {
 	maxDepth int
 }
 
-type FakerOption func(*faker)
+type Option func(*faker)
 
 func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	t := reflect.TypeOf(a)
@@ -142,13 +142,13 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	}
 }
 
-func WithMaxDepth(depth int) FakerOption {
+func WithMaxDepth(depth int) Option {
 	return func(f *faker) {
 		f.maxDepth = depth
 	}
 }
 
-func FakeObject(obj interface{}, opts ...FakerOption) error {
+func FakeObject(obj interface{}, opts ...Option) error {
 	reflectType := reflect.TypeOf(obj)
 
 	if reflectType.Kind() != reflect.Ptr {
