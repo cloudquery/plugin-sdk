@@ -50,11 +50,11 @@ func WithSourceLogger(logger zerolog.Logger) SourceOption {
 // Add internal columns
 func addInternalColumns(tables []*schema.Table) {
 	for _, table := range tables {
-		cqId := schema.CqIdColumn
+		cqID := schema.CqIDColumn
 		if len(table.PrimaryKeys()) == 0 {
-			cqId.CreationOptions.PrimaryKey = true
+			cqID.CreationOptions.PrimaryKey = true
 		}
-		table.Columns = append(table.Columns, cqId, schema.CqFetchTime)
+		table.Columns = append(table.Columns, cqID, schema.CqFetchTime)
 		addInternalColumns(table.Relations)
 	}
 }
