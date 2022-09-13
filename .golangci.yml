@@ -51,10 +51,6 @@ linters-settings:
         disabled: true
       - name: deep-exit
         disabled: true
-      - name: exported
-        disabled: false
-        arguments:
-          - "disableStutteringCheck"
       - name: nested-structs
         disabled: true
 

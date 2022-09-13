@@ -6,11 +6,12 @@ import (
 	"path"
 	"testing"
 
+	"github.com/bradleyjkemp/cupaloy/v2"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 type testExecutionClient struct {
@@ -23,9 +24,8 @@ var testTables = []*schema.Table{
 		Description: "Description for test table",
 		Columns: []schema.Column{
 			{
-				Name:        "int_col",
-				Type:        schema.TypeInt,
-				Description: "Int column",
+				Name: "int_col",
+				Type: schema.TypeInt,
 			},
 		},
 		Relations: []*schema.Table{
@@ -34,45 +34,12 @@ var testTables = []*schema.Table{
 				Description: "Description for relational table",
 				Columns: []schema.Column{
 					{
-						Name:        "string_col",
-						Type:        schema.TypeString,
-						Description: "String column",
+						Name: "string_col",
+						Type: schema.TypeString,
 					},
 				},
 			},
 		},
-	},
-}
-
-var expectFiles = []struct {
-	Name    string
-	Content string
-}{
-	{
-		Name: "test_table.md",
-		Content: `
-# Table: test_table
-Description for test table
-## Columns
-| Name        | Type           | Description  |
-| ------------- | ------------- | -----  |
-|int_col|Int|Int column|
-|_cq_id|UUID|Internal CQ ID of the row|
-|_cq_fetch_time|Timestamp|Internal CQ row of when fetch was started (this will be the same for all rows in a single fetch)|
-`,
-	},
-	{
-		Name: "relation_table.md",
-		Content: `
-# Table: relation_table
-Description for relational table
-## Columns
-| Name        | Type           | Description  |
-| ------------- | ------------- | -----  |
-|string_col|String|String column|
-|_cq_id|UUID|Internal CQ ID of the row|
-|_cq_fetch_time|Timestamp|Internal CQ row of when fetch was started (this will be the same for all rows in a single fetch)|
-`,
 	},
 }
 
@@ -97,15 +64,13 @@ func TestGenerateSourcePluginDocs(t *testing.T) {
 		t.Fatalf("unexpected error calling GenerateSourcePluginDocs: %v", err)
 	}
 
+	expectFiles := []string{"test_table.md", "relation_table.md"}
 	for _, exp := range expectFiles {
-		output := path.Join(tmpdir, exp.Name)
-		got, err := os.ReadFile(output)
-		if err != nil {
-			t.Fatalf("error reading %q: %v ", exp.Name, err)
-		}
-
-		if diff := cmp.Diff(string(got), exp.Content); diff != "" {
-			t.Errorf("Generate docs for %q not as expected (+got, -want): %v", exp.Name, diff)
-		}
+		t.Run(exp, func(t *testing.T) {
+			output := path.Join(tmpdir, exp)
+			got, err := os.ReadFile(output)
+			require.NoError(t, err)
+			cupaloy.SnapshotT(t, got)
+		})
 	}
 }
