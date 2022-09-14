@@ -32,7 +32,7 @@ type SourcePlugin struct {
 
 type SourceOption func(*SourcePlugin)
 
-const defaultConcurrency = 1
+const defaultConcurrency = 20
 
 func WithSourceExampleConfig(exampleConfig string) SourceOption {
 	return func(p *SourcePlugin) {
