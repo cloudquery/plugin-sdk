@@ -189,17 +189,18 @@ func (p *SourcePlugin) interpolateAllResources(tables []string) ([]string, error
 	if tables == nil {
 		return make([]string, 0), nil
 	}
-	if !funk.ContainsString(tables, "*") {
-		return tables, nil
+
+	if funk.Equal(tables, []string{"*"}) {
+		allResources := make([]string, 0, len(p.tables))
+		for _, k := range p.tables {
+			allResources = append(allResources, k.Name)
+		}
+		return allResources, nil
 	}
 
-	if len(tables) > 1 {
+	if funk.ContainsString(tables, "*") {
 		return nil, fmt.Errorf("invalid \"*\" resource, with explicit resources")
 	}
 
-	allResources := make([]string, 0, len(p.tables))
-	for _, k := range p.tables {
-		allResources = append(allResources, k.Name)
-	}
-	return allResources, nil
+	return tables, nil
 }
