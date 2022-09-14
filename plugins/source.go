@@ -3,7 +3,6 @@ package plugins
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -33,7 +32,7 @@ type SourcePlugin struct {
 
 type SourceOption func(*SourcePlugin)
 
-const minGoRoutines = 5
+const defaultConcurrency = 1
 
 func WithSourceExampleConfig(exampleConfig string) SourceOption {
 	return func(p *SourcePlugin) {
@@ -119,16 +118,12 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	}
 
 	// limiter used to limit the amount of resources fetched concurrently
-	maxGoroutines := spec.MaxGoRoutines
-	if maxGoroutines < minGoRoutines {
-		maxGoroutines = minGoRoutines
+	concurrency := spec.Concurrency
+	if concurrency == 0 {
+		concurrency = defaultConcurrency
 	}
-	p.logger.Info().Uint64("max_goroutines", maxGoroutines).Msg("starting fetch")
+	p.logger.Info().Uint64("concurrency", concurrency).Msg("starting fetch")
 
-	// goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
-
-	w := sync.WaitGroup{}
-	totalResources := 0
 	startTime := time.Now()
 	tableNames, err := p.interpolateAllResources(spec.Tables)
 	if err != nil {
@@ -136,8 +131,9 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	}
 
 	// this is the same fetchtime for all resources
-	fetchTime := time.Now()
+	syncTime := time.Now()
 
+	tableJobs := make([]workerJob, 0)
 	for _, table := range p.tables {
 		table := table
 		if funk.ContainsString(spec.SkipTables, table.Name) || !funk.ContainsString(tableNames, table.Name) {
@@ -148,39 +144,40 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 		if table.Multiplex != nil {
 			clients = table.Multiplex(c)
 		}
-		// we call this here because we dont know when the following goroutine will be called and we do want an order
-		// of table by table
-		// totalClients := len(clients)
-		// newN, err := helpers.TryAcquireMax(ctx, goroutinesSem, int64(totalClients))
-		// if err != nil {
-		// 	p.logger.Error().Err(err).Msg("failed to TryAcquireMax semaphore. exiting")
-		// 	break
-		// }
-		// goroutinesSem.TryAcquire()
-		w.Add(1)
-		go func() {
-			defer w.Done()
-			wg := sync.WaitGroup{}
-			p.logger.Info().Str("table", table.Name).Msg("fetch start")
-			tableStartTime := time.Now()
-			totalTableResources := 0
-			for _, client := range clients {
-				client := client
 
-				// i := i
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					// defer goroutinesSem.Release(1)
-					totalTableResources += table.Resolve(ctx, client, fetchTime, nil, res)
-				}()
-			}
-			wg.Wait()
-			totalResources += totalTableResources
-			p.logger.Info().Str("table", table.Name).Int("total_resources", totalTableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
-		}()
+		for _, client := range clients {
+			client := client
+			tableJobs = append(tableJobs, workerJob{
+				ctx:      ctx,
+				logger:   &p.logger,
+				client:   client,
+				table:    table,
+				syncTime: syncTime,
+				res:      res,
+			})
+		}
 	}
-	w.Wait()
+
+	jobsCount := len(tableJobs)
+	jobs := make(chan workerJob, jobsCount)
+	results := make(chan workerResult, jobsCount)
+
+	for w := uint64(1); w <= concurrency; w++ {
+		go worker(jobs, results)
+	}
+
+	for i := 0; i < jobsCount; i++ {
+		jobs <- tableJobs[i]
+	}
+	close(jobs)
+
+	totalResources := 0
+	for i := 0; i < jobsCount; i++ {
+		result := <-results
+		totalResources += result.totalResources
+	}
+	close(results)
+
 	p.logger.Info().Int("total_resources", totalResources).TimeDiff("duration", time.Now(), startTime).Msg("fetch finished")
 	return nil
 }
@@ -202,4 +199,28 @@ func (p *SourcePlugin) interpolateAllResources(tables []string) ([]string, error
 		allResources = append(allResources, k.Name)
 	}
 	return allResources, nil
+}
+
+type workerJob struct {
+	ctx      context.Context
+	logger   *zerolog.Logger
+	client   schema.ClientMeta
+	table    *schema.Table
+	syncTime time.Time
+	parent   *schema.Resource
+	res      chan<- *schema.Resource
+}
+
+type workerResult struct {
+	totalResources int
+}
+
+func worker(jobs chan workerJob, results chan<- workerResult) {
+	for job := range jobs {
+		tableStartTime := time.Now()
+		job.logger.Info().Str("table", job.table.Name).Msg("fetch table started")
+		resources := job.table.Resolve(job.ctx, job.client, job.syncTime, job.parent, job.res)
+		job.logger.Info().Str("table", job.table.Name).Int("total_resources", resources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
+		results <- workerResult{totalResources: resources}
+	}
 }

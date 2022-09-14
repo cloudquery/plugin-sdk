@@ -5,8 +5,8 @@
   "description": "Generic Source Configuration Schema",
   "type": "object",
   "properties": {
-    "max_goroutines": {
-      "description": "Max GoRoutines to use",
+    "concurrency": {
+      "description": "Concurrency level",
       "type": "integer"
     },
     "tables": {

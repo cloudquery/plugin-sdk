@@ -178,7 +178,6 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 		if len(objects) == 0 {
 			continue
 		}
-		totalResources += len(objects)
 		for i := range objects {
 			resource := NewResourceData(&t, parent, syncTime, objects[i])
 			if t.PreResourceResolver != nil {
@@ -198,6 +197,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 				}
 			}
 
+			totalResources++
 			resolvedResources <- resource
 			for _, rel := range t.Relations {
 				totalResources += rel.Resolve(ctx, meta, syncTime, resource, resolvedResources)

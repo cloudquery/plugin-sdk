@@ -14,12 +14,12 @@ type Source struct {
 	// Path is the path in the registry
 	Path string `json:"path,omitempty"`
 	// Registry can be github,local,grpc. Might support things like https in the future.
-	Registry      Registry    `json:"registry,omitempty"`
-	MaxGoRoutines uint64      `json:"max_goroutines,omitempty"`
-	Tables        []string    `json:"tables,omitempty"`
-	SkipTables    []string    `json:"skip_tables,omitempty"`
-	Destinations  []string    `json:"destinations,omitempty"`
-	Spec          interface{} `json:"spec,omitempty"`
+	Registry     Registry    `json:"registry,omitempty"`
+	Concurrency  uint64      `json:"concurrency,omitempty"`
+	Tables       []string    `json:"tables,omitempty"`
+	SkipTables   []string    `json:"skip_tables,omitempty"`
+	Destinations []string    `json:"destinations,omitempty"`
+	Spec         interface{} `json:"spec,omitempty"`
 }
 
 func (s *Source) SetDefaults() {
