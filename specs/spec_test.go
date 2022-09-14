@@ -17,16 +17,6 @@ var testSpecs = map[string]Spec{
 			WriteMode: WriteModeOverwrite,
 		},
 	},
-	// "testdata/aws.cq.yml": {
-	// 	Kind: KindSource,
-	// 	Spec: &Source{
-	// 		Name:          "aws",
-	// 		Path:          "aws",
-	// 		Version:       "v1.0.0",
-	// 		MaxGoRoutines: 10,
-	// 		Registry:      RegistryLocal,
-	// 	},
-	// },
 }
 
 func TestSpecYamlMarshal(t *testing.T) {

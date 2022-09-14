@@ -1,8 +1,0 @@
-kind: source
-spec:
-  name: aws
-  version: v1.0.0
-  max_goroutines: 10
-  registry: local
-
-  
