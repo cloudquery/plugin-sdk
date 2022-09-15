@@ -146,7 +146,7 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 	}
 
 	// generate a PathResolver to use by default
-	pathResolver := fmt.Sprintf("schema.PathResolver(%q)", field.Name)
+	pathResolver := fmt.Sprintf(`schema.PathResolver("%s")`, field.Name)
 	name := t.nameTransformer(field)
 	if parent != nil {
 		pathResolver = fmt.Sprintf(`schema.PathResolver("%s.%s")`, parent.Name, field.Name)
