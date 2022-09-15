@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -101,5 +102,55 @@ func TestSync(t *testing.T) {
 	}
 	if err := g.Wait(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestSourcePlugin_interpolateAllResources(t *testing.T) {
+	tests := []struct {
+		name                string
+		plugin              SourcePlugin
+		configurationTables []string
+		want                []string
+		wantErr             bool
+	}{
+		{
+			name:                "should return all tables when '*' is provided",
+			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "table 1"}, {Name: "table 2"}, {Name: "table 3"}}},
+			configurationTables: []string{"*"},
+			want:                []string{"table 1", "table 2", "table 3"},
+			wantErr:             false,
+		},
+		{
+			name:                "should return specific tables when they are provided",
+			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "table 1"}, {Name: "table 2"}, {Name: "table 3"}}},
+			configurationTables: []string{"table 1"},
+			want:                []string{"table 1"},
+			wantErr:             false,
+		},
+		{
+			name:                "should return error when '*' is provided with other tables",
+			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "table 1"}, {Name: "table 2"}, {Name: "table 3"}}},
+			configurationTables: []string{"table 1", "*"},
+			wantErr:             true,
+		},
+		{
+			name:    "should return empty array when nil is provided",
+			plugin:  SourcePlugin{tables: []*schema.Table{{Name: "table 1"}}},
+			want:    []string{},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.plugin.interpolateAllResources(tt.configurationTables)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SourcePlugin.interpolateAllResources() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("SourcePlugin.interpolateAllResources() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
