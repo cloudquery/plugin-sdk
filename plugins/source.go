@@ -162,7 +162,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	jobs := make(chan workerJob, jobsCount)
 	results := make(chan workerResult, jobsCount)
 
-	for w := uint64(1); w <= concurrency; w++ {
+	for i := uint64(0); i < concurrency; i++ {
 		go worker(jobs, results)
 	}
 
