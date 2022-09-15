@@ -14,6 +14,11 @@ import (
 
 type TableOptions func(*TableDefinition)
 
+type structFieldWithPath struct {
+	*reflect.StructField
+	path string
+}
+
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
@@ -72,6 +77,20 @@ func WithExtraColumns(columns []ColumnDefinition) TableOptions {
 	}
 }
 
+// Unwrap specific struct fields (1 level deep only)
+func WithUnwrapFieldsStructs(fields []string) TableOptions {
+	return func(t *TableDefinition) {
+		t.structFieldsToUnwrap = fields
+	}
+}
+
+// Unwrap all fields that are embedded structs (1 level deep only)
+func WithUnwrapAllEmbeddedStructs() TableOptions {
+	return func(t *TableDefinition) {
+		t.unwrapAllEmbeddedStructFields = true
+	}
+}
+
 func defaultTransformer(name string) string {
 	return strcase.ToSnake(name)
 }
@@ -83,6 +102,61 @@ func sliceContains(arr []string, s string) bool {
 		}
 	}
 	return false
+}
+
+func isFieldStruct(reflectType reflect.Type) bool {
+	return reflectType.Kind() == reflect.Struct || (reflectType.Kind() == reflect.Ptr && reflectType.Elem().Kind() == reflect.Struct)
+}
+
+func shouldUnwrapField(t *TableDefinition, field reflect.StructField) bool {
+	return isFieldStruct(field.Type) && (t.unwrapAllEmbeddedStructFields && field.Anonymous || sliceContains(t.structFieldsToUnwrap, field.Name))
+}
+
+func getUnwrappedFields(t *TableDefinition, field reflect.StructField) []structFieldWithPath {
+	reflectType := field.Type
+	if reflectType.Kind() == reflect.Ptr {
+		reflectType = reflectType.Elem()
+	}
+
+	fields := make([]structFieldWithPath, 0)
+	for i := 0; i < reflectType.NumField(); i++ {
+		sf := reflectType.Field(i)
+		if ignoreField(t, &sf) {
+			continue
+		}
+		path := sf.Name
+		// For non embedded structs we need to add the parent field name to the path
+		if !field.Anonymous {
+			path = field.Name + "." + path
+		}
+		fields = append(fields, structFieldWithPath{StructField: &sf, path: path})
+	}
+	return fields
+}
+
+func ignoreField(t *TableDefinition, field *reflect.StructField) bool {
+	return len(field.Name) == 0 || unicode.IsLower(rune(field.Name[0])) || sliceContains(t.skipFields, field.Name)
+}
+
+func addColumnFromField(t *TableDefinition, field structFieldWithPath) {
+	if ignoreField(t, field.StructField) {
+		return
+	}
+
+	columnType, err := valueToSchemaType(field.Type)
+	if err != nil {
+		fmt.Printf("skipping field %s, got err: %v\n", field.Name, err)
+		return
+	}
+
+	// generate a PathResolver to use by default
+	pathResolver := fmt.Sprintf("schema.PathResolver(%q)", field.path)
+	column := ColumnDefinition{
+		Name:     t.nameTransformer(field.Name),
+		Type:     columnType,
+		Resolver: pathResolver,
+	}
+	t.Columns = append(t.Columns, column)
 }
 
 func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*TableDefinition, error) {
@@ -106,30 +180,15 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 
 	for i := 0; i < e.NumField(); i++ {
 		field := e.Type().Field(i)
-		if len(field.Name) == 0 {
-			continue
-		}
-		if unicode.IsLower(rune(field.Name[0])) {
-			continue
-		}
-		if sliceContains(t.skipFields, field.Name) {
-			continue
-		}
 
-		columnType, err := valueToSchemaType(field.Type)
-		if err != nil {
-			fmt.Printf("skipping field %s, got err: %v\n", field.Name, err)
-			continue
+		if shouldUnwrapField(&t, field) {
+			unwrappedFields := getUnwrappedFields(&t, field)
+			for _, f := range unwrappedFields {
+				addColumnFromField(&t, f)
+			}
+		} else {
+			addColumnFromField(&t, structFieldWithPath{StructField: &field, path: field.Name})
 		}
-
-		// generate a PathResolver to use by default
-		pathResolver := fmt.Sprintf("schema.PathResolver(%q)", field.Name)
-		column := ColumnDefinition{
-			Name:     t.nameTransformer(field.Name),
-			Type:     columnType,
-			Resolver: pathResolver,
-		}
-		t.Columns = append(t.Columns, column)
 	}
 
 	return &t, nil
