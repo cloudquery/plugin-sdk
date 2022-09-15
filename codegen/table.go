@@ -11,19 +11,20 @@ type ResourceDefinition struct {
 
 type TableDefinition struct {
 	Name        string
-	Description string
 	Columns     ColumnDefinitions
+	Description string
 	Relations   []string
 
-	Resolver             string
-	IgnoreError          string
-	Multiplex            string
-	PostResourceResolver string
-	PreResourceResolver  string
-	nameTransformer      func(string) string
-	skipFields           []string
-	extraColumns         ColumnDefinitions
-	descriptionsEnabled  bool
+	Resolver                      string
+	IgnoreError                   string
+	Multiplex                     string
+	PostResourceResolver          string
+	PreResourceResolver           string
+	nameTransformer               func(string) string
+	skipFields                    []string
+	extraColumns                  ColumnDefinitions
+	structFieldsToUnwrap          []string
+	unwrapAllEmbeddedStructFields bool
 }
 
 type ColumnDefinitions []ColumnDefinition
