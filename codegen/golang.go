@@ -129,7 +129,7 @@ func (t *TableDefinition) ignoreField(field reflect.StructField) bool {
 	return len(field.Name) == 0 || unicode.IsLower(rune(field.Name[0])) || sliceContains(t.skipFields, field.Name)
 }
 
-func (t *TableDefinition) addColumnFromField(field reflect.StructField, prefix string) {
+func (t *TableDefinition) addColumnFromField(field reflect.StructField, parentFieldName string) {
 	if t.ignoreField(field) {
 		return
 	}
@@ -141,12 +141,15 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, prefix s
 	}
 
 	// generate a PathResolver to use by default
-	pathResolver := fmt.Sprintf("schema.PathResolver(%q)", field.Name)
-	if prefix != "" {
-		pathResolver = fmt.Sprintf("schema.PathResolver(%s.%q)", prefix, field.Name)
+	pathResolver := fmt.Sprintf(`schema.PathResolver("%s")`, field.Name)
+	name := t.nameTransformer(field.Name)
+	if parentFieldName != "" {
+		pathResolver = fmt.Sprintf(`schema.PathResolver("%s.%s")`, parentFieldName, field.Name)
+		name = t.nameTransformer(parentFieldName) + "_" + name
 	}
+
 	column := ColumnDefinition{
-		Name:     prefix + t.nameTransformer(field.Name),
+		Name:     name,
 		Type:     columnType,
 		Resolver: pathResolver,
 	}
@@ -177,13 +180,13 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 
 		if t.shouldUnwrapField(field) {
 			unwrappedFields := t.getUnwrappedFields(field)
-			prefix := field.Name
+			parentFieldName := ""
 			// For non embedded structs we need to add the parent field name to the path
 			if !field.Anonymous {
-				prefix = field.Name + "." + prefix
+				parentFieldName = field.Name
 			}
 			for _, f := range unwrappedFields {
-				t.addColumnFromField(f, prefix)
+				t.addColumnFromField(f, parentFieldName)
 			}
 		} else {
 			t.addColumnFromField(field, "")

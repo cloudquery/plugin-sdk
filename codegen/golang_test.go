@@ -110,7 +110,7 @@ var expectedTestTableNonEmbeddedStruct = TableDefinition{
 		// Should not be unwrapped
 		ColumnDefinition{Name: "test_struct", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TestStruct")`},
 		// Should be unwrapped
-		ColumnDefinition{Name: "embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`},
+		ColumnDefinition{Name: "non_embedded_embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`},
 	},
 	nameTransformer: defaultTransformer,
 }
@@ -142,7 +142,7 @@ func TestTableFromGoStruct(t *testing.T) {
 			want: expectedTestTableEmbeddedStruct,
 		},
 		{
-			name: "should unwrap specific structs when option is set",
+			name: "should_unwrap_specific_structs_when_option_is_set",
 			args: args{
 				testStruct: testStructWithNonEmbeddedStruct{},
 				options:    []TableOptions{WithUnwrapFieldsStructs([]string{"NonEmbedded"})},
