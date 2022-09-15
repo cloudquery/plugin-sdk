@@ -14,11 +14,6 @@ import (
 
 type TableOptions func(*TableDefinition)
 
-type structFieldWithPath struct {
-	*reflect.StructField
-	path string
-}
-
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
@@ -108,38 +103,34 @@ func isFieldStruct(reflectType reflect.Type) bool {
 	return reflectType.Kind() == reflect.Struct || (reflectType.Kind() == reflect.Ptr && reflectType.Elem().Kind() == reflect.Struct)
 }
 
-func shouldUnwrapField(t *TableDefinition, field reflect.StructField) bool {
+func (t *TableDefinition) shouldUnwrapField(field reflect.StructField) bool {
 	return isFieldStruct(field.Type) && (t.unwrapAllEmbeddedStructFields && field.Anonymous || sliceContains(t.structFieldsToUnwrap, field.Name))
 }
 
-func getUnwrappedFields(t *TableDefinition, field reflect.StructField) []structFieldWithPath {
+func (t *TableDefinition) getUnwrappedFields(field reflect.StructField) []reflect.StructField {
 	reflectType := field.Type
 	if reflectType.Kind() == reflect.Ptr {
 		reflectType = reflectType.Elem()
 	}
 
-	fields := make([]structFieldWithPath, 0)
+	fields := make([]reflect.StructField, 0)
 	for i := 0; i < reflectType.NumField(); i++ {
 		sf := reflectType.Field(i)
-		if ignoreField(t, &sf) {
+		if t.ignoreField(sf) {
 			continue
 		}
-		path := sf.Name
-		// For non embedded structs we need to add the parent field name to the path
-		if !field.Anonymous {
-			path = field.Name + "." + path
-		}
-		fields = append(fields, structFieldWithPath{StructField: &sf, path: path})
+
+		fields = append(fields, sf)
 	}
 	return fields
 }
 
-func ignoreField(t *TableDefinition, field *reflect.StructField) bool {
+func (t *TableDefinition) ignoreField(field reflect.StructField) bool {
 	return len(field.Name) == 0 || unicode.IsLower(rune(field.Name[0])) || sliceContains(t.skipFields, field.Name)
 }
 
-func addColumnFromField(t *TableDefinition, field structFieldWithPath) {
-	if ignoreField(t, field.StructField) {
+func (t *TableDefinition) addColumnFromField(field reflect.StructField, prefix string) {
+	if t.ignoreField(field) {
 		return
 	}
 
@@ -150,9 +141,12 @@ func addColumnFromField(t *TableDefinition, field structFieldWithPath) {
 	}
 
 	// generate a PathResolver to use by default
-	pathResolver := fmt.Sprintf("schema.PathResolver(%q)", field.path)
+	pathResolver := fmt.Sprintf("schema.PathResolver(%q)", field.Name)
+	if prefix != "" {
+		pathResolver = fmt.Sprintf("schema.PathResolver(%s.%q)", prefix, field.Name)
+	}
 	column := ColumnDefinition{
-		Name:     t.nameTransformer(field.Name),
+		Name:     prefix + t.nameTransformer(field.Name),
 		Type:     columnType,
 		Resolver: pathResolver,
 	}
@@ -160,12 +154,12 @@ func addColumnFromField(t *TableDefinition, field structFieldWithPath) {
 }
 
 func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*TableDefinition, error) {
-	t := TableDefinition{
+	t := &TableDefinition{
 		Name:            name,
 		nameTransformer: defaultTransformer,
 	}
 	for _, opt := range opts {
-		opt(&t)
+		opt(t)
 	}
 
 	e := reflect.ValueOf(obj)
@@ -181,17 +175,22 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 	for i := 0; i < e.NumField(); i++ {
 		field := e.Type().Field(i)
 
-		if shouldUnwrapField(&t, field) {
-			unwrappedFields := getUnwrappedFields(&t, field)
+		if t.shouldUnwrapField(field) {
+			unwrappedFields := t.getUnwrappedFields(field)
+			prefix := field.Name
+			// For non embedded structs we need to add the parent field name to the path
+			if !field.Anonymous {
+				prefix = field.Name + "." + prefix
+			}
 			for _, f := range unwrappedFields {
-				addColumnFromField(&t, f)
+				t.addColumnFromField(f, prefix)
 			}
 		} else {
-			addColumnFromField(&t, structFieldWithPath{StructField: &field, path: field.Name})
+			t.addColumnFromField(field, "")
 		}
 	}
 
-	return &t, nil
+	return t, nil
 }
 
 func (t *TableDefinition) GenerateTemplate(wr io.Writer) error {
