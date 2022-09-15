@@ -23,7 +23,6 @@ type TableDefinition struct {
 	nameTransformer      func(string) string
 	skipFields           []string
 	extraColumns         ColumnDefinitions
-	descriptionsEnabled  bool
 }
 
 type ColumnDefinitions []ColumnDefinition

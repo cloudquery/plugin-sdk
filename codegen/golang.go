@@ -3,16 +3,13 @@ package codegen
 import (
 	"embed"
 	"fmt"
-	"go/ast"
 	"io"
 	"reflect"
-	"strings"
 	"text/template"
 	"unicode"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/iancoleman/strcase"
-	"golang.org/x/tools/go/packages"
 )
 
 type TableOptions func(*TableDefinition)
@@ -75,12 +72,6 @@ func WithExtraColumns(columns []ColumnDefinition) TableOptions {
 	}
 }
 
-func WithDescriptionsEnabled() TableOptions {
-	return func(t *TableDefinition) {
-		t.descriptionsEnabled = true
-	}
-}
-
 func defaultTransformer(name string) string {
 	return strcase.ToSnake(name)
 }
@@ -111,11 +102,6 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 		return nil, fmt.Errorf("expected struct, got %s", e.Kind())
 	}
 
-	comments := make(map[string]string)
-	if t.descriptionsEnabled {
-		comments = readStructComments(e.Type().PkgPath(), e.Type().Name())
-	}
-
 	t.Columns = append(t.Columns, t.extraColumns...)
 
 	for i := 0; i < e.NumField(); i++ {
@@ -139,10 +125,9 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 		// generate a PathResolver to use by default
 		pathResolver := fmt.Sprintf("schema.PathResolver(%q)", field.Name)
 		column := ColumnDefinition{
-			Name:        t.nameTransformer(field.Name),
-			Type:        columnType,
-			Resolver:    pathResolver,
-			Description: strings.ReplaceAll(comments[field.Name], "`", "'"),
+			Name:     t.nameTransformer(field.Name),
+			Type:     columnType,
+			Resolver: pathResolver,
 		}
 		t.Columns = append(t.Columns, column)
 	}
@@ -160,30 +145,4 @@ func (t *TableDefinition) GenerateTemplate(wr io.Writer) error {
 		return fmt.Errorf("failed to execute template: %w", err)
 	}
 	return nil
-}
-
-func readStructComments(pkgPath string, structName string) map[string]string {
-	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax}
-	pkgs, err := packages.Load(cfg, pkgPath)
-	if err != nil {
-		panic(err)
-	}
-	comments := make(map[string]string, 0)
-	for _, p := range pkgs {
-		for _, f := range p.Syntax {
-			ast.Inspect(f, func(n ast.Node) bool {
-				if st, ok := n.(*ast.TypeSpec); ok {
-					if st.Name.Name == structName {
-						for _, field := range st.Type.(*ast.StructType).Fields.List {
-							if len(field.Names) > 0 {
-								comments[field.Names[0].Name] = field.Doc.Text()
-							}
-						}
-					}
-				}
-				return true
-			})
-		}
-	}
-	return comments
 }
