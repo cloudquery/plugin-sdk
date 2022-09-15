@@ -31,6 +31,8 @@ type testStruct struct {
 	StringArrayCol []string   `json:"string_array_col,omitempty"`
 	TimeCol        time.Time  `json:"time_col,omitempty"`
 	TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
+	JSONTAG        *string    `json:"json_tag"`
+	NOJSONTAG      *string
 	*embeddedStruct
 }
 
@@ -89,6 +91,16 @@ var expectedColumns = []ColumnDefinition{
 		Name:     "time_pointer_col",
 		Type:     schema.TypeTimestamp,
 		Resolver: `schema.PathResolver("TimePointerCol")`,
+	},
+	{
+		Name:     "json_tag",
+		Type:     schema.TypeString,
+		Resolver: `schema.PathResolver("JSONTAG")`,
+	},
+	{
+		Name:     "nojsontag",
+		Type:     schema.TypeString,
+		Resolver: `schema.PathResolver("NOJSONTAG")`,
 	},
 }
 
