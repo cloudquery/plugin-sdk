@@ -136,7 +136,7 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parentFi
 
 	columnType, err := valueToSchemaType(field.Type)
 	if err != nil {
-		fmt.Printf("skipping field %s, got err: %v\n", field.Name, err)
+		fmt.Printf("skipping field %s on table %s, got err: %v\n", field.Name, t.Name, err)
 		return
 	}
 
