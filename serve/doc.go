@@ -1,3 +1,4 @@
+// Package serve defines the main APIs to serve source and destination plugins
 package serve
 
 import (

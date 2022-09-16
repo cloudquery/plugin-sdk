@@ -7,19 +7,30 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-// Source is the shared configuration for all source plugins
+// Source is the spec for a source plugin
 type Source struct {
-	Name    string `json:"name,omitempty"`
+	// Name of the source plugin to use
+	Name string `json:"name,omitempty"`
+	// Version of the source plugin to use
 	Version string `json:"version,omitempty"`
-	// Path is the path in the registry
+	// Path is the canonical path to the source plugin in a given registry
+	// For example:
+	// in github the path will be: org/repo
+	// in local the path will be the path to the binary: ./path/to/binary
+	// in grpc the path will be the address of the grpc server: host:port
 	Path string `json:"path,omitempty"`
-	// Registry can be github,local,grpc. Might support things like https in the future.
-	Registry      Registry    `json:"registry,omitempty"`
-	MaxGoRoutines uint64      `json:"max_goroutines,omitempty"`
-	Tables        []string    `json:"tables,omitempty"`
-	SkipTables    []string    `json:"skip_tables,omitempty"`
-	Destinations  []string    `json:"destinations,omitempty"`
-	Spec          interface{} `json:"spec,omitempty"`
+	// Registry can be github,local,grpc.
+	Registry      Registry `json:"registry,omitempty"`
+	MaxGoRoutines uint64   `json:"max_goroutines,omitempty"`
+	// Tables to sync from the source plugin
+	Tables []string `json:"tables,omitempty"`
+	// SkipTables mentions tables to skip from the source plugin. Useful if glob is used in Tables
+	SkipTables []string `json:"skip_tables,omitempty"`
+	// Destinations names of the destinations to sync the data to
+	Destinations []string `json:"destinations,omitempty"`
+	// Spec is the specific spec defined by an exact source plugin.
+	// This is different in every source plugin.
+	Spec interface{} `json:"spec,omitempty"`
 }
 
 func (s *Source) SetDefaults() {
@@ -37,6 +48,7 @@ func (s *Source) SetDefaults() {
 	}
 }
 
+// UnmarshalSpec unmarshals the internal spec into the given interface
 func (s *Source) UnmarshalSpec(out interface{}) error {
 	b, err := json.Marshal(s.Spec)
 	if err != nil {
