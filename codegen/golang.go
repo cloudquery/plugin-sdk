@@ -73,9 +73,15 @@ func WithExtraColumns(columns []ColumnDefinition) TableOptions {
 }
 
 // Unwrap specific struct fields (1 level deep only)
-func WithUnwrapFieldsStructs(fields []string) TableOptions {
+func WithUnwrapFieldsWithParentName(fields []string) TableOptions {
 	return func(t *TableDefinition) {
-		t.structFieldsToUnwrap = fields
+		t.fieldsToUnwrapWithParentName = fields
+	}
+}
+
+func WithUnwrapFieldsNoParentName(fields []string) TableOptions {
+	return func(t *TableDefinition) {
+		t.fieldsToUnwrapWithoutParentName = fields
 	}
 }
 
@@ -103,8 +109,12 @@ func isFieldStruct(reflectType reflect.Type) bool {
 	return reflectType.Kind() == reflect.Struct || (reflectType.Kind() == reflect.Ptr && reflectType.Elem().Kind() == reflect.Struct)
 }
 
-func (t *TableDefinition) shouldUnwrapField(field reflect.StructField) bool {
-	return isFieldStruct(field.Type) && (t.unwrapAllEmbeddedStructFields && field.Anonymous || sliceContains(t.structFieldsToUnwrap, field.Name))
+func (t *TableDefinition) shouldUnwrapFieldWithParentName(field reflect.StructField) bool {
+	return isFieldStruct(field.Type) && sliceContains(t.fieldsToUnwrapWithParentName, field.Name)
+}
+
+func (t *TableDefinition) shouldUnwrapFieldWithoutParentName(field reflect.StructField) bool {
+	return isFieldStruct(field.Type) && (t.unwrapAllEmbeddedStructFields && field.Anonymous) || sliceContains(t.fieldsToUnwrapWithoutParentName, field.Name)
 }
 
 func (t *TableDefinition) getUnwrappedFields(field reflect.StructField) []reflect.StructField {
@@ -129,7 +139,11 @@ func (t *TableDefinition) ignoreField(field reflect.StructField) bool {
 	return len(field.Name) == 0 || unicode.IsLower(rune(field.Name[0])) || sliceContains(t.skipFields, field.Name)
 }
 
-func (t *TableDefinition) addColumnFromField(field reflect.StructField, parentFieldName string) {
+// Adds a column with PathResolver("<parentFieldName>.<field.Name>").
+// addParentFieldNameToColumnName is only used if 'parentFieldName' != "".
+// If 'addParentFieldNameToColumnName' is true, the column will be named "<parent_field_name>.<field_name>" (in lowercase).
+// If 'addParentFieldNameToColumnName' is false, the column will just be named "<field_name>"
+func (t *TableDefinition) addColumnFromField(field reflect.StructField, parentFieldName string, addParentFieldNameToColumnName bool) {
 	if t.ignoreField(field) {
 		return
 	}
@@ -140,16 +154,24 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parentFi
 		return
 	}
 
+	var pathResolver string
+	var columnName string
+
 	// generate a PathResolver to use by default
-	pathResolver := fmt.Sprintf(`schema.PathResolver("%s")`, field.Name)
-	name := t.nameTransformer(field.Name)
-	if parentFieldName != "" {
+	if parentFieldName == "" {
+		pathResolver = fmt.Sprintf(`schema.PathResolver("%s")`, field.Name)
+		columnName = t.nameTransformer(field.Name)
+	} else {
 		pathResolver = fmt.Sprintf(`schema.PathResolver("%s.%s")`, parentFieldName, field.Name)
-		name = t.nameTransformer(parentFieldName) + "_" + name
+		if addParentFieldNameToColumnName {
+			columnName = t.nameTransformer(parentFieldName) + "_" + t.nameTransformer(field.Name)
+		} else {
+			columnName = t.nameTransformer(field.Name)
+		}
 	}
 
 	column := ColumnDefinition{
-		Name:     name,
+		Name:     columnName,
 		Type:     columnType,
 		Resolver: pathResolver,
 	}
@@ -178,18 +200,31 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 	for i := 0; i < e.NumField(); i++ {
 		field := e.Type().Field(i)
 
-		if t.shouldUnwrapField(field) {
+		if t.shouldUnwrapFieldWithParentName(field) {
 			unwrappedFields := t.getUnwrappedFields(field)
-			parentFieldName := ""
-			// For non embedded structs we need to add the parent field name to the path
-			if !field.Anonymous {
-				parentFieldName = field.Name
-			}
 			for _, f := range unwrappedFields {
-				t.addColumnFromField(f, parentFieldName)
+				t.addColumnFromField(
+					f,
+					field.Name, /*parentFieldName*/
+					true,       /*addParentFieldNameToColumnName*/
+				)
+
+			}
+		} else if t.shouldUnwrapFieldWithoutParentName(field) {
+			unwrappedField := t.getUnwrappedFields(field)
+			for _, f := range unwrappedField {
+				t.addColumnFromField(
+					f,
+					field.Name, /*parentFieldName*/
+					false,      /*addParentFieldNameToColumnName*/
+				)
 			}
 		} else {
-			t.addColumnFromField(field, "")
+			t.addColumnFromField(
+				field,
+				"",    /*parentFieldName*/
+				false, /*addParentFieldNameToColumnName*/
+			)
 		}
 	}
 

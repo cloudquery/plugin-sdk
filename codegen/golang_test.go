@@ -92,6 +92,54 @@ var expectedColumns = []ColumnDefinition{
 	},
 }
 
+var expectedColumnsWithParentNameInResolver = []ColumnDefinition{
+	{
+		Name:     "int_col",
+		Type:     schema.TypeInt,
+		Resolver: `schema.PathResolver("testStruct.IntCol")`,
+	},
+	{
+		Name:     "string_col",
+		Type:     schema.TypeString,
+		Resolver: `schema.PathResolver("testStruct.StringCol")`,
+	},
+	{
+		Name:     "float_col",
+		Type:     schema.TypeFloat,
+		Resolver: `schema.PathResolver("testStruct.FloatCol")`,
+	},
+	{
+		Name:     "bool_col",
+		Type:     schema.TypeBool,
+		Resolver: `schema.PathResolver("testStruct.BoolCol")`,
+	},
+	{
+		Name:     "json_col",
+		Type:     schema.TypeJSON,
+		Resolver: `schema.PathResolver("testStruct.JSONCol")`,
+	},
+	{
+		Name:     "int_array_col",
+		Type:     schema.TypeIntArray,
+		Resolver: `schema.PathResolver("testStruct.IntArrayCol")`,
+	},
+	{
+		Name:     "string_array_col",
+		Type:     schema.TypeStringArray,
+		Resolver: `schema.PathResolver("testStruct.StringArrayCol")`,
+	},
+	{
+		Name:     "time_col",
+		Type:     schema.TypeTimestamp,
+		Resolver: `schema.PathResolver("testStruct.TimeCol")`,
+	},
+	{
+		Name:     "time_pointer_col",
+		Type:     schema.TypeTimestamp,
+		Resolver: `schema.PathResolver("testStruct.TimePointerCol")`,
+	},
+}
+
 var expectedTestTable = TableDefinition{
 	Name:            "test_struct",
 	Columns:         expectedColumns,
@@ -100,17 +148,28 @@ var expectedTestTable = TableDefinition{
 
 var expectedTestTableEmbeddedStruct = TableDefinition{
 	Name:            "test_struct",
-	Columns:         append(expectedColumns, ColumnDefinition{Name: "embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("EmbeddedString")`}),
+	Columns:         append(expectedColumnsWithParentNameInResolver, ColumnDefinition{Name: "embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("embeddedStruct.EmbeddedString")`}),
 	nameTransformer: defaultTransformer,
 }
 
-var expectedTestTableNonEmbeddedStruct = TableDefinition{
+var expectedTestTableNonEmbeddedStructWithParentName = TableDefinition{
 	Name: "test_struct",
 	Columns: ColumnDefinitions{
 		// Should not be unwrapped
 		ColumnDefinition{Name: "test_struct", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TestStruct")`},
 		// Should be unwrapped
 		ColumnDefinition{Name: "non_embedded_embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`},
+	},
+	nameTransformer: defaultTransformer,
+}
+
+var expectedTestTableNonEmbeddedStructNoParentName = TableDefinition{
+	Name: "test_struct",
+	Columns: ColumnDefinitions{
+		// Should not be unwrapped
+		ColumnDefinition{Name: "test_struct", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TestStruct")`},
+		// Should be unwrapped
+		ColumnDefinition{Name: "embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`},
 	},
 	nameTransformer: defaultTransformer,
 }
@@ -145,9 +204,17 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should_unwrap_specific_structs_when_option_is_set",
 			args: args{
 				testStruct: testStructWithNonEmbeddedStruct{},
-				options:    []TableOptions{WithUnwrapFieldsStructs([]string{"NonEmbedded"})},
+				options:    []TableOptions{WithUnwrapFieldsWithParentName([]string{"NonEmbedded"})},
 			},
-			want: expectedTestTableNonEmbeddedStruct,
+			want: expectedTestTableNonEmbeddedStructWithParentName,
+		},
+		{
+			name: "should_unwrap_scepcific_struct_no_parent_name",
+			args: args{
+				testStruct: testStructWithNonEmbeddedStruct{},
+				options:    []TableOptions{WithUnwrapFieldsNoParentName([]string{"NonEmbedded"})},
+			},
+			want: expectedTestTableNonEmbeddedStructNoParentName,
 		},
 	}
 

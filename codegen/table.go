@@ -15,16 +15,17 @@ type TableDefinition struct {
 	Description string
 	Relations   []string
 
-	Resolver                      string
-	IgnoreError                   string
-	Multiplex                     string
-	PostResourceResolver          string
-	PreResourceResolver           string
-	nameTransformer               func(string) string
-	skipFields                    []string
-	extraColumns                  ColumnDefinitions
-	structFieldsToUnwrap          []string
-	unwrapAllEmbeddedStructFields bool
+	Resolver                        string
+	IgnoreError                     string
+	Multiplex                       string
+	PostResourceResolver            string
+	PreResourceResolver             string
+	nameTransformer                 func(string) string
+	skipFields                      []string
+	extraColumns                    ColumnDefinitions
+	fieldsToUnwrapWithParentName    []string // These structs are unwrapped into columns named "<parent>_<field>"
+	fieldsToUnwrapWithoutParentName []string // These structs are unwrapped into columns named "<field>"
+	unwrapAllEmbeddedStructFields   bool     // Embedded (anonymous) structs are always unwrapped without the parent name
 }
 
 type ColumnDefinitions []ColumnDefinition
