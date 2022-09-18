@@ -39,10 +39,6 @@ var testTables = []*schema.Table{
 // 	return &c.logger
 // }
 
-// func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
-// 	return &testExecutionClient{}, nil
-// }
-
 func TestGenerateSourcePluginDocs(t *testing.T) {
 	tmpdir, tmpErr := os.MkdirTemp("", "docs_test_*")
 	if tmpErr != nil {
