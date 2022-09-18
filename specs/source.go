@@ -17,7 +17,7 @@ type Source struct {
 	// For example:
 	// in github the path will be: org/repo
 	// For the local registry the path will be the path to the binary: ./path/to/binary
-	// in grpc the path will be the address of the grpc server: host:port
+	// For the gRPC registry the path will be the address of the gRPC server: host:port
 	Path string `json:"path,omitempty"`
 	// Registry can be github,local,grpc.
 	Registry      Registry `json:"registry,omitempty"`
