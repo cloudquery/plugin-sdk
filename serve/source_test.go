@@ -104,8 +104,8 @@ spec:
 		plugins.WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
 	)
 
-	cmd := newCmdRoot(Options{
-		SourcePlugin: plugin,
+	cmd := newCmdSourceRoot(&sourceServe{
+		plugin: plugin,
 	})
 	cmd.SetArgs([]string{"serve", "--network", "test"})
 
