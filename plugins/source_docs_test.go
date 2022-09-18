@@ -35,7 +35,6 @@ var testTables = []*schema.Table{
 	},
 }
 
-
 func TestGenerateSourcePluginDocs(t *testing.T) {
 	tmpdir, tmpErr := os.MkdirTemp("", "docs_test_*")
 	if tmpErr != nil {
