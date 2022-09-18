@@ -2,7 +2,7 @@
 # Table: test_table
 Description for test table
 ## Columns
-| Name        | Type           |
+| Name          | Type          |
 | ------------- | ------------- |
 |int_col|Int|
 |_cq_id|UUID|

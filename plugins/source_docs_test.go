@@ -1,22 +1,18 @@
-package docs
+package plugins
 
 import (
-	"context"
 	"os"
 	"path"
 	"testing"
 
 	"github.com/bradleyjkemp/cupaloy/v2"
-	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
-type testExecutionClient struct {
-	logger zerolog.Logger
-}
+// type testExecutionClient struct {
+// 	logger zerolog.Logger
+// }
 
 var testTables = []*schema.Table{
 	{
@@ -43,13 +39,13 @@ var testTables = []*schema.Table{
 	},
 }
 
-func (c *testExecutionClient) Logger() *zerolog.Logger {
-	return &c.logger
-}
+// func (c *testExecutionClient) Logger() *zerolog.Logger {
+// 	return &c.logger
+// }
 
-func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
-	return &testExecutionClient{}, nil
-}
+// func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
+// 	return &testExecutionClient{}, nil
+// }
 
 func TestGenerateSourcePluginDocs(t *testing.T) {
 	tmpdir, tmpErr := os.MkdirTemp("", "docs_test_*")
@@ -58,13 +54,13 @@ func TestGenerateSourcePluginDocs(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	p := plugins.NewSourcePlugin("test", "v1.0.0", testTables, newTestExecutionClient)
-	err := GenerateSourcePluginDocs(p, tmpdir)
+	p := NewSourcePlugin("test", "v1.0.0", testTables, newTestExecutionClient)
+	err := p.GenerateSourcePluginDocs(tmpdir)
 	if err != nil {
 		t.Fatalf("unexpected error calling GenerateSourcePluginDocs: %v", err)
 	}
 
-	expectFiles := []string{"test_table.md", "relation_table.md"}
+	expectFiles := []string{"test_table.md", "relation_table.md", "README.md"}
 	for _, exp := range expectFiles {
 		t.Run(exp, func(t *testing.T) {
 			output := path.Join(tmpdir, exp)

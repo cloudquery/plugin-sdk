@@ -2,7 +2,7 @@
 # Table: relation_table
 Description for relational table
 ## Columns
-| Name        | Type           |
+| Name          | Type          |
 | ------------- | ------------- |
 |string_col|String|
 |_cq_id|UUID|
