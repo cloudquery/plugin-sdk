@@ -24,7 +24,7 @@ type Source struct {
 	MaxGoRoutines uint64   `json:"max_goroutines,omitempty"`
 	// Tables to sync from the source plugin
 	Tables []string `json:"tables,omitempty"`
-	// SkipTables mentions tables to skip from the source plugin. Useful if glob is used in Tables
+	// SkipTables defines tables to skip when syncing data. Useful if a glob pattern is used in Tables
 	SkipTables []string `json:"skip_tables,omitempty"`
 	// Destinations names of the destinations to sync the data to
 	Destinations []string `json:"destinations,omitempty"`
