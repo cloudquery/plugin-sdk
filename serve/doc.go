@@ -4,7 +4,6 @@ package serve
 import (
 	"fmt"
 
-	"github.com/cloudquery/plugin-sdk/docs"
 	"github.com/spf13/cobra"
 )
 
@@ -22,8 +21,7 @@ func newCmdDoc(opts Options) *cobra.Command {
 			if opts.SourcePlugin == nil {
 				return fmt.Errorf("doc generation is only supported for source plugins")
 			}
-
-			return docs.GenerateSourcePluginDocs(opts.SourcePlugin, args[0])
+			return opts.SourcePlugin.GenerateSourcePluginDocs(args[0])
 		},
 	}
 }
