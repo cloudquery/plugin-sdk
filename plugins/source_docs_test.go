@@ -35,9 +35,6 @@ var testTables = []*schema.Table{
 	},
 }
 
-// func (c *testExecutionClient) Logger() *zerolog.Logger {
-// 	return &c.logger
-// }
 
 func TestGenerateSourcePluginDocs(t *testing.T) {
 	tmpdir, tmpErr := os.MkdirTemp("", "docs_test_*")
