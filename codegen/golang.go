@@ -156,6 +156,7 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parentFi
 	t.Columns = append(t.Columns, column)
 }
 
+// NewTableFromStruct creates a new TableDefinition from a struct by inspecting its fields
 func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*TableDefinition, error) {
 	t := &TableDefinition{
 		Name:            name,
