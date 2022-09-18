@@ -8,12 +8,12 @@ Destinations plugins allows writing the data from any of the source plugins to a
 
 ## Getting Started & Documentation
 
-- Homepage: https://cloudquery.io
-- Releases: https://github.com/cloudquery/cloudquery/releases
-- Documentation: https://docs.cloudquery.io
+* [Homepage](https://www.cloudquery.io)
+* [Releases](https://github.com/cloudquery/cloudquery/releases?q=cli%2F&expanded=true)
+* [Documentation](https://www.cloudquery.io/docs)
 
 ## Supported plugins
 
-https://www.cloudquery.io/plugins
+<https://www.cloudquery.io/plugins>
 
 If you want us to add a new plugin or resource please open an [Issue](https://github.com/cloudquery/cloudquery/issues).
