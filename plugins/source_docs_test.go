@@ -10,10 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// type testExecutionClient struct {
-// 	logger zerolog.Logger
-// }
-
 var testTables = []*schema.Table{
 	{
 		Name:        "test_table",
