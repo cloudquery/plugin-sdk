@@ -7,8 +7,6 @@ import "internal/pb/base.proto";
 service Source {
   // Get the name of the plugin
   rpc GetName(GetName.Request) returns (GetName.Response);
-  // Get the current version of the plugin
-  rpc GetVersion(GetVersion.Request) returns (GetVersion.Response);
   // Get an example configuration for the source plugin
   rpc GetExampleConfig(GetExampleConfig.Request) returns (GetExampleConfig.Response);
   // Get all tables the source plugin supports
