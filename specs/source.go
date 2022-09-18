@@ -26,7 +26,7 @@ type Source struct {
 	Tables []string `json:"tables,omitempty"`
 	// SkipTables defines tables to skip when syncing data. Useful if a glob pattern is used in Tables
 	SkipTables []string `json:"skip_tables,omitempty"`
-	// Destinations names of the destinations to sync the data to
+	// Destinations are the names of destination plugins to send sync data to
 	Destinations []string `json:"destinations,omitempty"`
 	// Spec defines plugin specific configuration
 	// This is different in every source plugin.
