@@ -28,7 +28,7 @@ type Source struct {
 	SkipTables []string `json:"skip_tables,omitempty"`
 	// Destinations names of the destinations to sync the data to
 	Destinations []string `json:"destinations,omitempty"`
-	// Spec is the specific spec defined by an exact source plugin.
+	// Spec defines plugin specific configuration
 	// This is different in every source plugin.
 	Spec interface{} `json:"spec,omitempty"`
 }
