@@ -16,7 +16,7 @@ type Source struct {
 	// Path is the canonical path to the source plugin in a given registry
 	// For example:
 	// in github the path will be: org/repo
-	// in local the path will be the path to the binary: ./path/to/binary
+	// For the local registry the path will be the path to the binary: ./path/to/binary
 	// in grpc the path will be the address of the grpc server: host:port
 	Path string `json:"path,omitempty"`
 	// Registry can be github,local,grpc.
