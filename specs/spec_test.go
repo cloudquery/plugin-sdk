@@ -20,11 +20,11 @@ var testSpecs = map[string]Spec{
 	"testdata/aws.yml": {
 		Kind: KindSource,
 		Spec: &Source{
-			Name:          "aws",
-			Path:          "aws",
-			Version:       "v1.0.0",
-			MaxGoRoutines: 10,
-			Registry:      RegistryLocal,
+			Name:        "aws",
+			Path:        "aws",
+			Version:     "v1.0.0",
+			Concurrency: 10,
+			Registry:    RegistryLocal,
 		},
 	},
 }

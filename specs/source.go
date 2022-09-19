@@ -20,8 +20,8 @@ type Source struct {
 	// For the gRPC registry the path will be the address of the gRPC server: host:port
 	Path string `json:"path,omitempty"`
 	// Registry can be github,local,grpc.
-	Registry      Registry `json:"registry,omitempty"`
-	MaxGoRoutines uint64   `json:"max_goroutines,omitempty"`
+	Registry    Registry `json:"registry,omitempty"`
+	Concurrency uint64   `json:"concurrency,omitempty"`
 	// Tables to sync from the source plugin
 	Tables []string `json:"tables,omitempty"`
 	// SkipTables defines tables to skip when syncing data. Useful if a glob pattern is used in Tables
