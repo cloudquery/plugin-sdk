@@ -103,7 +103,7 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 					Dsn:              source.sentryDSN,
 					Debug:            false,
 					AttachStacktrace: true,
-					Release:          source.plugin.Version(),
+					Release:          version,
 					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations
 					Integrations: func(integrations []sentry.Integration) []sentry.Integration {
 						var filteredIntegrations []sentry.Integration
@@ -160,5 +160,6 @@ func newCmdSourceRoot(source *sourceServe) *cobra.Command {
 	cmd.AddCommand(newCmdSourceServe(source))
 	cmd.AddCommand(newCmdSourceDoc(source))
 	cmd.CompletionOptions.DisableDefaultCmd = true
+	cmd.Version = source.plugin.Version()
 	return cmd
 }
