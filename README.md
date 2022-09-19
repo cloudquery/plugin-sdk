@@ -1,20 +1,19 @@
-CloudQuery Plugin SDK ![License](https://img.shields.io/github/license/cloudquery/cloudquery?style=flat-square)
-=======================
+# CloudQuery Plugin SDK
 
-This SDK enables building CloudQuery plugins which allows CloudQuery's users to extract/load/transform existing and popular service providers as well as custom in-house solutions into a SQL Database.
+CloudQuery SDK enables building CloudQuery source and destination plugins.
 
-CloudQuery itself is a tool that transforms your cloud infrastructure into queryable SQL for easy monitoring, governance and security. You can find more about CloudQuery on its website and its GitHub repository.
+Source plugins allows developers to extract information from third party APIs and enjoying built-in transformations, concurrency, logging, testing and database agnostic support via destination plugins.
 
+Destinations plugins allows writing the data from any of the source plugins to an additional database, message queue, storage or any other destination without recompiling any of the source plugins.
 
 ## Getting Started & Documentation
 
-* Homepage: https://cloudquery.io
-* Releases: https://github.com/cloudquery/cloudquery/releases
-* Documentation: https://docs.cloudquery.io
-* Database Configuration: https://docs.cloudquery.io/database-configuration
+* [Homepage](https://www.cloudquery.io)
+* [Releases](https://github.com/cloudquery/cloudquery/releases?q=cli%2F&expanded=true)
+* [Documentation](https://www.cloudquery.io/docs)
 
 ## Supported plugins
 
-https://www.cloudquery.io/plugins
+<https://www.cloudquery.io/plugins>
 
 If you want us to add a new plugin or resource please open an [Issue](https://github.com/cloudquery/cloudquery/issues).

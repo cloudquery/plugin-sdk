@@ -59,6 +59,8 @@ func addInternalColumns(tables []*schema.Table) {
 	}
 }
 
+// NewSourcePlugin returns a new plugin with a given name, version, tables, newExecutionClient
+// and additional options.
 func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc, opts ...SourceOption) *SourcePlugin {
 	p := SourcePlugin{
 		name:               name,
@@ -91,27 +93,32 @@ func (p *SourcePlugin) validate() error {
 	return nil
 }
 
+// Tables returns all supported tables by this source plugin
 func (p *SourcePlugin) Tables() schema.Tables {
 	return p.tables
 }
 
+// ExampleConfig returns an example configuration for this source plugin
 func (p *SourcePlugin) ExampleConfig() string {
 	return p.exampleConfig
 }
 
+// Name return the name of this plugin
 func (p *SourcePlugin) Name() string {
 	return p.name
 }
 
+// Version returns the version of this plugin
 func (p *SourcePlugin) Version() string {
 	return p.version
 }
 
+// SetLogger sets the logger for this plugin which will be used in Sync and all other function calls.
 func (p *SourcePlugin) SetLogger(log zerolog.Logger) {
 	p.logger = log
 }
 
-// Sync data from source to the given channel
+// Sync is syncing data from the requested tables in spec to the given channel
 func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
 	c, err := p.newExecutionClient(ctx, p.logger, spec)
 	if err != nil {
@@ -189,17 +196,18 @@ func (p *SourcePlugin) interpolateAllResources(tables []string) ([]string, error
 	if tables == nil {
 		return make([]string, 0), nil
 	}
-	if !funk.ContainsString(tables, "*") {
-		return tables, nil
+
+	if funk.Equal(tables, []string{"*"}) {
+		allResources := make([]string, 0, len(p.tables))
+		for _, k := range p.tables {
+			allResources = append(allResources, k.Name)
+		}
+		return allResources, nil
 	}
 
-	if len(tables) > 1 {
+	if funk.ContainsString(tables, "*") {
 		return nil, fmt.Errorf("invalid \"*\" resource, with explicit resources")
 	}
 
-	allResources := make([]string, 0, len(p.tables))
-	for _, k := range p.tables {
-		allResources = append(allResources, k.Name)
-	}
-	return allResources, nil
+	return tables, nil
 }

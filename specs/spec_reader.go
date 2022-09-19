@@ -62,6 +62,14 @@ func (s *SpecReader) GetSourceByName(name string) *Source {
 	return nil
 }
 
+func (s *SpecReader) GetDestinations() []Destination {
+	destinations := make([]Destination, 0, len(s.destinations))
+	for _, spec := range s.destinations {
+		destinations = append(destinations, spec)
+	}
+	return destinations
+}
+
 func (s *SpecReader) GetDestinationByName(name string) *Destination {
 	for _, spec := range s.destinations {
 		if spec.Name == name {
