@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 	"text/template"
 	"unicode"
 
@@ -54,7 +55,7 @@ func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	}
 }
 
-func WithNameTransformer(transformer func(string) string) TableOptions {
+func WithNameTransformer(transformer func(field reflect.StructField) string) TableOptions {
 	return func(t *TableDefinition) {
 		t.nameTransformer = transformer
 	}
@@ -86,7 +87,11 @@ func WithUnwrapAllEmbeddedStructs() TableOptions {
 	}
 }
 
-func defaultTransformer(name string) string {
+func defaultTransformer(field reflect.StructField) string {
+	name := field.Name
+	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
+		name = jsonTag
+	}
 	return strcase.ToSnake(name)
 }
 
@@ -129,7 +134,7 @@ func (t *TableDefinition) ignoreField(field reflect.StructField) bool {
 	return len(field.Name) == 0 || unicode.IsLower(rune(field.Name[0])) || sliceContains(t.skipFields, field.Name)
 }
 
-func (t *TableDefinition) addColumnFromField(field reflect.StructField, parentFieldName string) {
+func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *reflect.StructField) {
 	if t.ignoreField(field) {
 		return
 	}
@@ -142,10 +147,10 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parentFi
 
 	// generate a PathResolver to use by default
 	pathResolver := fmt.Sprintf(`schema.PathResolver("%s")`, field.Name)
-	name := t.nameTransformer(field.Name)
-	if parentFieldName != "" {
-		pathResolver = fmt.Sprintf(`schema.PathResolver("%s.%s")`, parentFieldName, field.Name)
-		name = t.nameTransformer(parentFieldName) + "_" + name
+	name := t.nameTransformer(field)
+	if parent != nil {
+		pathResolver = fmt.Sprintf(`schema.PathResolver("%s.%s")`, parent.Name, field.Name)
+		name = t.nameTransformer(*parent) + "_" + name
 	}
 
 	column := ColumnDefinition{
@@ -181,16 +186,16 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 
 		if t.shouldUnwrapField(field) {
 			unwrappedFields := t.getUnwrappedFields(field)
-			parentFieldName := ""
+			var parent *reflect.StructField
 			// For non embedded structs we need to add the parent field name to the path
 			if !field.Anonymous {
-				parentFieldName = field.Name
+				parent = &field
 			}
 			for _, f := range unwrappedFields {
-				t.addColumnFromField(f, parentFieldName)
+				t.addColumnFromField(f, parent)
 			}
 		} else {
-			t.addColumnFromField(field, "")
+			t.addColumnFromField(field, nil)
 		}
 	}
 
