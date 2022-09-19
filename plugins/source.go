@@ -6,10 +6,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
+	"golang.org/x/sync/semaphore"
 )
 
 type SourceNewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
@@ -33,7 +35,10 @@ type SourcePlugin struct {
 
 type SourceOption func(*SourcePlugin)
 
-const minGoRoutines = 5
+const (
+	minGoRoutines        = 5
+	defaultMaxGoRoutines = 500000
+)
 
 func WithSourceExampleConfig(exampleConfig string) SourceOption {
 	return func(p *SourcePlugin) {
@@ -127,23 +132,21 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 
 	// limiter used to limit the amount of resources fetched concurrently
 	maxGoroutines := spec.MaxGoRoutines
+	if maxGoroutines == 0 {
+		maxGoroutines = defaultMaxGoRoutines
+	}
 	if maxGoroutines < minGoRoutines {
 		maxGoroutines = minGoRoutines
 	}
 	p.logger.Info().Uint64("max_goroutines", maxGoroutines).Msg("starting fetch")
-
-	// goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
-
-	w := sync.WaitGroup{}
+	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
+	wg := sync.WaitGroup{}
 	totalResources := 0
 	startTime := time.Now()
 	tableNames, err := p.interpolateAllResources(spec.Tables)
 	if err != nil {
 		return err
 	}
-
-	// this is the same fetchtime for all resources
-	fetchTime := time.Now()
 
 	for _, table := range p.tables {
 		table := table
@@ -155,39 +158,26 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 		if table.Multiplex != nil {
 			clients = table.Multiplex(c)
 		}
-		// we call this here because we dont know when the following goroutine will be called and we do want an order
-		// of table by table
-		// totalClients := len(clients)
-		// newN, err := helpers.TryAcquireMax(ctx, goroutinesSem, int64(totalClients))
-		// if err != nil {
-		// 	p.logger.Error().Err(err).Msg("failed to TryAcquireMax semaphore. exiting")
-		// 	break
-		// }
-		// goroutinesSem.TryAcquire()
-		w.Add(1)
-		go func() {
-			defer w.Done()
-			wg := sync.WaitGroup{}
-			p.logger.Info().Str("table", table.Name).Msg("fetch start")
-			tableStartTime := time.Now()
-			totalTableResources := 0
-			for _, client := range clients {
-				client := client
-
-				// i := i
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					// defer goroutinesSem.Release(1)
-					totalTableResources += table.Resolve(ctx, client, fetchTime, nil, res)
-				}()
+		for _, client := range clients {
+			client := client
+			wg.Add(1)
+			if err := goroutinesSem.Acquire(ctx, 1); err != nil {
+				// This mean context was cancelled
+				return err
 			}
-			wg.Wait()
-			totalResources += totalTableResources
-			p.logger.Info().Str("table", table.Name).Int("total_resources", totalTableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
-		}()
+			go func() {
+				defer wg.Done()
+				defer goroutinesSem.Release(1)
+				// TODO: prob introduce client.Identify() to be used in logs
+				tableStartTime := time.Now()
+				p.logger.Info().Str("table", table.Name).Msg("fetch start")
+				totalTableResources := table.Resolve(ctx, client, startTime, nil, res)
+				totalResources += totalTableResources
+				p.logger.Info().Str("table", table.Name).Int("total_resources", totalTableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
+			}()
+		}
 	}
-	w.Wait()
+	wg.Wait()
 	p.logger.Info().Int("total_resources", totalResources).TimeDiff("duration", time.Now(), startTime).Msg("fetch finished")
 	return nil
 }
