@@ -162,7 +162,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 			client := client
 			wg.Add(1)
 			if err := goroutinesSem.Acquire(ctx, 1); err != nil {
-				// This mean context was cancelled
+				// This means context was cancelled
 				return err
 			}
 			go func() {
