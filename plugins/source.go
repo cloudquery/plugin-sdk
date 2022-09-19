@@ -36,7 +36,7 @@ type SourcePlugin struct {
 type SourceOption func(*SourcePlugin)
 
 const (
-	defaultMaxGoRoutines = 500000
+	defaultConcurrency = 500000
 )
 
 func WithSourceExampleConfig(exampleConfig string) SourceOption {
