@@ -2,7 +2,5 @@ kind: source
 spec:
   name: aws
   version: v1.0.0
-  max_goroutines: 10
+  concurrency: 10
   registry: local
-
-  

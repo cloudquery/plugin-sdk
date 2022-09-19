@@ -8,11 +8,11 @@ import (
 
 var sources = map[string]Source{
 	"aws.yml": {
-		Name:          "aws",
-		Path:          "aws",
-		Version:       "v1.0.0",
-		MaxGoRoutines: 10,
-		Registry:      RegistryLocal,
+		Name:        "aws",
+		Path:        "aws",
+		Version:     "v1.0.0",
+		Concurrency: 10,
+		Registry:    RegistryLocal,
 	},
 }
 
