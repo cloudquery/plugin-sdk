@@ -1,6 +1,8 @@
 package codegen
 
 import (
+	"reflect"
+
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
@@ -20,7 +22,7 @@ type TableDefinition struct {
 	Multiplex                     string
 	PostResourceResolver          string
 	PreResourceResolver           string
-	nameTransformer               func(string) string
+	nameTransformer               func(reflect.StructField) string
 	skipFields                    []string
 	extraColumns                  ColumnDefinitions
 	structFieldsToUnwrap          []string
