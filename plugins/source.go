@@ -132,7 +132,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	// limiter used to limit the amount of resources fetched concurrently
 	concurrency := spec.Concurrency
 	if concurrency == 0 {
-		concurrency = defaultMaxGoRoutines
+		concurrency = defaultConcurrency
 	}
 	p.logger.Info().Uint64("concurrency", concurrency).Msg("starting fetch")
 	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(concurrency))
