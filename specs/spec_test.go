@@ -7,7 +7,7 @@ import (
 )
 
 var testSpecs = map[string]Spec{
-	"testdata/pg.cq.yml": {
+	"testdata/postgresql.yml": {
 		Kind: KindDestination,
 		Spec: &Destination{
 			Name:      "postgresql",
@@ -17,7 +17,7 @@ var testSpecs = map[string]Spec{
 			WriteMode: WriteModeOverwrite,
 		},
 	},
-	"testdata/aws.cq.yml": {
+	"testdata/aws.yml": {
 		Kind: KindSource,
 		Spec: &Source{
 			Name:          "aws",

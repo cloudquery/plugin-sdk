@@ -7,7 +7,7 @@ import (
 )
 
 var sources = map[string]Source{
-	"aws.cq.yml": {
+	"aws.yml": {
 		Name:          "aws",
 		Path:          "aws",
 		Version:       "v1.0.0",
@@ -17,7 +17,7 @@ var sources = map[string]Source{
 }
 
 var destinations = map[string]Destination{
-	"pg.cq.yml": {
+	"postgresql.yml": {
 		Name:      "postgresql",
 		Path:      "postgresql",
 		Version:   "v1.0.0",
