@@ -23,6 +23,8 @@ type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, 
 
 type RowResolver func(ctx context.Context, meta ClientMeta, resource *Resource) error
 
+type Multiplexer func(meta ClientMeta) []ClientMeta
+
 type Tables []*Table
 
 type Table struct {
@@ -37,7 +39,7 @@ type Table struct {
 	// Resolver is the main entry point to fetching table data and
 	Resolver TableResolver `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
-	Multiplex func(meta ClientMeta) []ClientMeta `json:"-"`
+	Multiplex Multiplexer `json:"-"`
 	// PostResourceResolver is called after all columns have been resolved, but before the Resource is sent to be inserted. The ordering of resolvers is:
 	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
 	PostResourceResolver RowResolver `json:"-"`
