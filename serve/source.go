@@ -49,6 +49,7 @@ func Source(plugin *plugins.SourcePlugin, opts ...SourceOption) {
 	sentry.Flush(flushTimeout)
 }
 
+// nolint:dupl
 func newCmdSourceServe(source *sourceServe) *cobra.Command {
 	var address string
 	var network string

@@ -49,6 +49,7 @@ func Destination(plugin plugins.DestinationPlugin, opts ...DestinationOption) {
 	sentry.Flush(flushTimeout)
 }
 
+// nolint:dupl
 func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 	var address string
 	var network string
