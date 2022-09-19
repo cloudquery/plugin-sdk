@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type embeddedStruct struct {
@@ -23,16 +24,22 @@ type testStruct struct {
 	StringCol string  `json:"string_col,omitempty"`
 	FloatCol  float64 `json:"float_col,omitempty"`
 	BoolCol   bool    `json:"bool_col,omitempty"`
-	JSONCol   struct {
+
+	JSONCol struct {
 		IntCol    int    `json:"int_col,omitempty"`
 		StringCol string `json:"string_col,omitempty"`
 	}
-	IntArrayCol    []int      `json:"int_array_col,omitempty"`
-	StringArrayCol []string   `json:"string_array_col,omitempty"`
-	TimeCol        time.Time  `json:"time_col,omitempty"`
-	TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
-	JSONTAG        *string    `json:"json_tag"`
-	NOJSONTAG      *string
+
+	IntArrayCol    []int    `json:"int_array_col,omitempty"`
+	StringArrayCol []string `json:"string_array_col,omitempty"`
+
+	TimeCol        time.Time              `json:"time_col,omitempty"`
+	TimePointerCol *time.Time             `json:"time_pointer_col,omitempty"`
+	ProtoTimeCol   *timestamppb.Timestamp `json:"proto_time_col,omitempty"`
+
+	JSONTAG   *string `json:"json_tag"`
+	NOJSONTAG *string
+
 	*embeddedStruct
 }
 
@@ -91,6 +98,11 @@ var expectedColumns = []ColumnDefinition{
 		Name:     "time_pointer_col",
 		Type:     schema.TypeTimestamp,
 		Resolver: `schema.PathResolver("TimePointerCol")`,
+	},
+	{
+		Name:     "proto_time_col",
+		Type:     schema.TypeTimestamp,
+		Resolver: `schema.PathResolver("ProtoTimeCol")`,
 	},
 	{
 		Name:     "json_tag",

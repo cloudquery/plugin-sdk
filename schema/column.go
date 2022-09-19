@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/modern-go/reflect2"
 	"github.com/thoas/go-funk"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ValueType int
@@ -231,7 +232,8 @@ func (c Column) checkType(v interface{}) bool {
 		return c.Type == TypeIntArray || c.Type == TypeJSON
 	case []interface{}:
 		return c.Type == TypeJSON
-	case time.Time, *time.Time:
+	case time.Time, *time.Time,
+		timestamppb.Timestamp, *timestamppb.Timestamp:
 		return c.Type == TypeTimestamp
 	case uuid.UUID, *uuid.UUID:
 		return c.Type == TypeUUID

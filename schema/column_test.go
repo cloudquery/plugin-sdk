@@ -13,6 +13,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type validateFixture struct {
@@ -45,7 +47,8 @@ var validateFixtures = []validateFixture{
 	},
 	{
 		Column:     Column{Type: TypeTimestamp},
-		TestValues: []interface{}{time.Now()},
+		TestValues: []interface{}{time.Now(), timestamppb.Now()},
+		BadValues:  []interface{}{"aaa", durationpb.New(time.Second)},
 	},
 	{
 		Column:     Column{Type: TypeUUID},

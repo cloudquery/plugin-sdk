@@ -33,8 +33,8 @@ func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	case reflect.Map:
 		return schema.TypeJSON, nil
 	case reflect.Struct:
-		t := v.PkgPath() + "." + v.Name()
-		if t == "time.Time" {
+		switch t := v.PkgPath() + "." + v.Name(); t {
+		case "time.Time", "google.golang.org/protobuf/types/known/timestamppb.Timestamp":
 			return schema.TypeTimestamp, nil
 		}
 		return schema.TypeJSON, nil

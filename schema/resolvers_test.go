@@ -2,38 +2,52 @@ package schema
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var resolverTestTable = &Table{
 	Name: "testTable",
 	Columns: []Column{
 		{
-			Name: "string_column",
-			Type: TypeString,
+			Name:     "string_column",
+			Type:     TypeString,
+			Resolver: PathResolver("PathResolver"),
+		},
+		{
+			Name:     "at",
+			Type:     TypeTimestamp,
+			Resolver: PathResolver("At"),
 		},
 	},
 }
 
-var resolverTestItem = map[string]interface{}{
-	"PathResolver": "test",
-}
+var (
+	timestamp        = time.Now().UTC()
+	tsProto          = timestamppb.New(timestamp)
+	resolverTestItem = map[string]interface{}{
+		"PathResolver": "test",
+		"At":           tsProto,
+	}
+)
 
 var resolverTestCases = []struct {
 	Name                 string
-	Column               Column
-	ColumnResolver       ColumnResolver
+	Columns              ColumnList
 	Resource             *Resource
 	ExpectedResourceData map[string]interface{}
 }{
 	{
-		Name:                 "PathResolver",
-		Column:               resolverTestTable.Columns[0],
-		ColumnResolver:       PathResolver("PathResolver"),
-		Resource:             NewResourceData(resolverTestTable, nil, time.Now(), resolverTestItem),
-		ExpectedResourceData: map[string]interface{}{"string_column": "test"},
+		Name:     "PathResolver",
+		Columns:  resolverTestTable.Columns,
+		Resource: NewResourceData(resolverTestTable, nil, time.Now(), resolverTestItem),
+		ExpectedResourceData: map[string]interface{}{
+			"string_column": "test",
+			"at":            timestamp,
+		},
 	},
 }
 
@@ -41,15 +55,12 @@ func TestResolvers(t *testing.T) {
 	for _, tc := range resolverTestCases {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
-			err := tc.ColumnResolver(context.Background(), nil, tc.Resource, tc.Column)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-				return
+			for _, column := range tc.Columns {
+				err := column.Resolver(context.Background(), nil, tc.Resource, column)
+				require.NoError(t, err)
 			}
 			delete(tc.Resource.Data, "_cq_fetch_time")
-			if !reflect.DeepEqual(tc.ExpectedResourceData, tc.Resource.Data) {
-				t.Errorf("Expected %v, got %v", tc.ExpectedResourceData, tc.Resource.Data)
-			}
+			require.Equal(t, tc.ExpectedResourceData, tc.Resource.Data)
 		})
 	}
 }

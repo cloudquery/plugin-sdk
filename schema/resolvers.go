@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/thoas/go-funk"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // PathResolver resolves a field in the Resource.Item
@@ -15,7 +16,12 @@ import (
 // PathResolver("InnerStruct.InnerInnerStruct.Field")
 func PathResolver(path string) ColumnResolver {
 	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
-		return r.Set(c.Name, funk.Get(r.Item, path, funk.WithAllowZero()))
+		data := funk.Get(r.Item, path, funk.WithAllowZero())
+		// special case for timestamppb.Timestamp
+		if ts, ok := data.(*timestamppb.Timestamp); ok {
+			data = ts.AsTime()
+		}
+		return r.Set(c.Name, data)
 	}
 }
 
