@@ -13,11 +13,20 @@ import (
 const tableTmpl = `
 # Table: {{.Name}}
 {{ $.Description }}
+{{ $length := len $.PrimaryKeys -}} 
+{{ if eq $length 1 }}
+The primary key for this table is **{{ index $.PrimaryKeys 0 }}**.
+{{ else }}
+The composite primary key for this table is ({{ range $index, $pk := $.PrimaryKeys -}}
+	{{if $index }}, {{end -}}
+		**{{$pk}}**
+	{{- end -}}).
+{{ end }}
 ## Columns
 | Name          | Type          |
 | ------------- | ------------- |
 {{- range $column := $.Columns }}
-|{{$column.Name}}|{{$column.Type | formatType}}|
+|{{$column.Name}}{{if $column.CreationOptions.PrimaryKey}} (PK){{end}}|{{$column.Type | formatType}}|
 {{- end }}
 `
 

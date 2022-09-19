@@ -19,6 +19,16 @@ var testTables = []*schema.Table{
 				Name: "int_col",
 				Type: schema.TypeInt,
 			},
+			{
+				Name:            "id_col",
+				Type:            schema.TypeInt,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+			},
+			{
+				Name:            "id_col2",
+				Type:            schema.TypeInt,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+			},
 		},
 		Relations: []*schema.Table{
 			{
