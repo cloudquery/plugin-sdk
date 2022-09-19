@@ -17,8 +17,9 @@ type Options struct {
 const (
 	serveShort = `Start plugin server`
 	// bufSize used for unit testing grpc server and client
-	testBufSize  = 1024 * 1024
-	flushTimeout = 5 * time.Second
+	testBufSize        = 1024 * 1024
+	flushTimeout       = 5 * time.Second
+	developmentVersion = "development"
 )
 
 // lis used for unit testing grpc server and client
