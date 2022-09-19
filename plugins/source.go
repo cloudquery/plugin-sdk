@@ -36,7 +36,6 @@ type SourcePlugin struct {
 type SourceOption func(*SourcePlugin)
 
 const (
-	minGoRoutines        = 5
 	defaultMaxGoRoutines = 500000
 )
 
@@ -131,15 +130,12 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	}
 
 	// limiter used to limit the amount of resources fetched concurrently
-	maxGoroutines := spec.MaxGoRoutines
-	if maxGoroutines == 0 {
-		maxGoroutines = defaultMaxGoRoutines
+	concurrency := spec.Concurrency
+	if concurrency == 0 {
+		concurrency = defaultMaxGoRoutines
 	}
-	if maxGoroutines < minGoRoutines {
-		maxGoroutines = minGoRoutines
-	}
-	p.logger.Info().Uint64("max_goroutines", maxGoroutines).Msg("starting fetch")
-	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(maxGoroutines))
+	p.logger.Info().Uint64("concurrency", concurrency).Msg("starting fetch")
+	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(concurrency))
 	wg := sync.WaitGroup{}
 	totalResources := 0
 	startTime := time.Now()
