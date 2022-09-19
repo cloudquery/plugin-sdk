@@ -56,7 +56,7 @@ func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 
 func WithNameTransformer(transformer func(string) string) TableOptions {
 	return func(t *TableDefinition) {
-		t.Name = transformer(t.Name)
+		t.nameTransformer = transformer
 	}
 }
 
