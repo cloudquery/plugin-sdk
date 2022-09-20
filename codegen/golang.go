@@ -91,6 +91,10 @@ func WithUnwrapAllEmbeddedStructs() TableOptions {
 func defaultTransformer(field reflect.StructField) string {
 	name := field.Name
 	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
+		// return empty string if the field is not related api response
+		if jsonTag == "-" {
+			return ""
+		}
 		name = jsonTag
 	}
 	return strcase.ToSnake(name)
@@ -149,6 +153,10 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 	// generate a PathResolver to use by default
 	pathResolver := fmt.Sprintf(`schema.PathResolver("%s")`, field.Name)
 	name := t.nameTransformer(field)
+	// skip field if there is no name
+	if name == "" {
+		return
+	}
 	if parent != nil {
 		pathResolver = fmt.Sprintf(`schema.PathResolver("%s.%s")`, parent.Name, field.Name)
 		name = t.nameTransformer(*parent) + "_" + name
