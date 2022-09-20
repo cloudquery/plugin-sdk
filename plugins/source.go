@@ -63,6 +63,15 @@ func addInternalColumns(tables []*schema.Table) {
 	}
 }
 
+// Set parent links on relational tables
+func setParents(tables []*schema.Table) {
+	for _, table := range tables {
+		for i := range table.Relations {
+			table.Relations[i].Parent = table
+		}
+	}
+}
+
 // NewSourcePlugin returns a new plugin with a given name, version, tables, newExecutionClient
 // and additional options.
 func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc, opts ...SourceOption) *SourcePlugin {
@@ -76,6 +85,7 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 		opt(&p)
 	}
 	addInternalColumns(p.tables)
+	setParents(p.tables)
 	if err := p.validate(); err != nil {
 		panic(err)
 	}
