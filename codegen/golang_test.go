@@ -32,6 +32,7 @@ type testStruct struct {
 	TimeCol        time.Time  `json:"time_col,omitempty"`
 	TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
 	JSONTAG        *string    `json:"json_tag"`
+	JSONTAG_SKIP   *string    `json:"-"`
 	NOJSONTAG      *string
 	*embeddedStruct
 }
