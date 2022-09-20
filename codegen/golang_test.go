@@ -3,6 +3,7 @@ package codegen
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -45,6 +46,10 @@ type testStructWithEmbeddedStruct struct {
 type testStructWithNonEmbeddedStruct struct {
 	TestStruct  *testStruct
 	NonEmbedded *embeddedStruct
+}
+
+type testStructWithCustomType struct {
+	TimeCol time.Time `json:"time_col,omitempty"`
 }
 
 var expectedColumns = []ColumnDefinition{
@@ -155,12 +160,29 @@ func TestTableFromGoStruct(t *testing.T) {
 			want: expectedTestTableEmbeddedStruct,
 		},
 		{
-			name: "should_unwrap_specific_structs_when_option_is_set",
+			name: "should unwrap specific structs when option is set",
 			args: args{
 				testStruct: testStructWithNonEmbeddedStruct{},
 				options:    []TableOptions{WithUnwrapFieldsStructs([]string{"NonEmbedded"})},
 			},
 			want: expectedTestTableNonEmbeddedStruct,
+		},
+		{
+			name: "should override schema type when option is set",
+			args: args{
+				testStruct: testStructWithCustomType{},
+				options: []TableOptions{WithValueTypeOverride(func(t reflect.Type) *schema.ValueType {
+					if t.Kind() == reflect.Struct {
+						overrideType := schema.TypeJSON
+						return &overrideType
+					}
+					return nil
+				})},
+			},
+			want: TableDefinition{Name: "test_struct",
+				// We expect the time column to be of type JSON, since we override the type of all structs to be JSON
+				Columns:         ColumnDefinitions{{Name: "time_col", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TimeCol")`}},
+				nameTransformer: defaultTransformer},
 		},
 	}
 
