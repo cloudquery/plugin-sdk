@@ -33,8 +33,8 @@ func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	case reflect.Map:
 		return schema.TypeJSON, nil
 	case reflect.Struct:
-		typeString := v.PkgPath() + "." + v.Name()
-		if typeString == "time.Time" {
+		t := v.PkgPath() + "." + v.Name()
+		if t == "time.Time" {
 			return schema.TypeTimestamp, nil
 		}
 		return schema.TypeJSON, nil
