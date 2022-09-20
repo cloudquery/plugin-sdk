@@ -18,12 +18,7 @@ type TableOptions func(*TableDefinition)
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
-func (t TableDefinition) valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
-	if t.valueTypeOverride != nil {
-		if vt := t.valueTypeOverride(v); vt != nil {
-			return *vt, nil
-		}
-	}
+func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	k := v.Kind()
 	switch k {
 	case reflect.String:
@@ -44,7 +39,7 @@ func (t TableDefinition) valueToSchemaType(v reflect.Type) (schema.ValueType, er
 		}
 		return schema.TypeJSON, nil
 	case reflect.Pointer:
-		return t.valueToSchemaType(v.Elem())
+		return valueToSchemaType(v.Elem())
 	case reflect.Slice:
 		switch v.Elem().Kind() {
 		case reflect.String:
@@ -93,7 +88,7 @@ func WithUnwrapAllEmbeddedStructs() TableOptions {
 }
 
 // Allows overriding the schema type for a specific field. Return `nil` to fallback to default behavior
-func WithValueTypeOverride(resolver func(reflect.Type) *schema.ValueType) TableOptions {
+func WithValueTypeOverride(resolver func(reflect.StructField) *schema.ValueType) TableOptions {
 	return func(t *TableDefinition) {
 		t.valueTypeOverride = resolver
 	}
@@ -155,7 +150,17 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		return
 	}
 
-	columnType, err := t.valueToSchemaType(field.Type)
+	var overrideType *schema.ValueType
+	if t.valueTypeOverride != nil {
+		overrideType = t.valueTypeOverride(field)
+	}
+	var columnType schema.ValueType
+	var err error
+	if overrideType == nil {
+		columnType, err = valueToSchemaType(field.Type)
+	} else {
+		columnType = *overrideType
+	}
 	if err != nil {
 		fmt.Printf("skipping field %s on table %s, got err: %v\n", field.Name, t.Name, err)
 		return
