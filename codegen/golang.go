@@ -88,6 +88,12 @@ func WithUnwrapAllEmbeddedStructs() TableOptions {
 	}
 }
 
+func WithValueToSchemaType(resolver func(reflect.Type) (schema.ValueType, error)) TableOptions {
+	return func(t *TableDefinition) {
+		t.valueToSchemaType = resolver
+	}
+}
+
 func DefaultTransformer(field reflect.StructField) string {
 	name := field.Name
 	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
@@ -144,7 +150,14 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		return
 	}
 
-	columnType, err := valueToSchemaType(field.Type)
+	var columnType schema.ValueType
+	var err error
+	if t.valueToSchemaType != nil {
+		columnType, err = t.valueToSchemaType(field.Type)
+	}
+	if err != nil {
+		columnType, err = valueToSchemaType(field.Type)
+	}
 	if err != nil {
 		fmt.Printf("skipping field %s on table %s, got err: %v\n", field.Name, t.Name, err)
 		return
