@@ -17,10 +17,15 @@ import (
 func PathResolver(path string) ColumnResolver {
 	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
 		data := funk.Get(r.Item, path, funk.WithAllowZero())
+
 		// special case for timestamppb.Timestamp
-		if ts, ok := data.(*timestamppb.Timestamp); ok {
-			data = ts.AsTime()
+		switch t := data.(type) {
+		case timestamppb.Timestamp:
+			data = t.AsTime()
+		case *timestamppb.Timestamp:
+			data = t.AsTime()
 		}
+
 		return r.Set(c.Name, data)
 	}
 }
