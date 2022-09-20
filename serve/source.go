@@ -155,7 +155,7 @@ func newCmdSourceDoc(source *sourceServe) *cobra.Command {
 
 func newCmdSourceRoot(source *sourceServe) *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "source-plugin <command>",
+		Use: fmt.Sprintf("%s <command>", source.plugin.Name()),
 	}
 	cmd.AddCommand(newCmdSourceServe(source))
 	cmd.AddCommand(newCmdSourceDoc(source))

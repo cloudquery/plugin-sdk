@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,35 +11,8 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
-const tableTmpl = `
-# Table: {{.Name}}
-{{ $.Description }}
-{{ $length := len $.PrimaryKeys -}} 
-{{ if eq $length 1 }}
-The primary key for this table is **{{ index $.PrimaryKeys 0 }}**.
-{{ else }}
-The composite primary key for this table is ({{ range $index, $pk := $.PrimaryKeys -}}
-	{{if $index }}, {{end -}}
-		**{{$pk}}**
-	{{- end -}}).
-{{ end }}
-## Columns
-| Name          | Type          |
-| ------------- | ------------- |
-{{- range $column := $.Columns }}
-|{{$column.Name}}{{if $column.CreationOptions.PrimaryKey}} (PK){{end}}|{{$column.Type | formatType}}|
-{{- end }}
-`
-
-const allTablesTpml = `
-# Source Plugin: {{.Name}}
-## Tables
-| Name          | Description   |
-| ------------- | ------------- |
-{{- range $table := $.Tables }}
-|{{$table.Name}}|{{$table.Description }}|
-{{- end }}
-`
+//go:embed templates/*.go.tpl
+var templatesFS embed.FS
 
 // GenerateSourcePluginDocs creates table documentation for the source plugin based on its list of tables
 func (p *SourcePlugin) GenerateSourcePluginDocs(dir string) error {
@@ -48,7 +22,7 @@ func (p *SourcePlugin) GenerateSourcePluginDocs(dir string) error {
 			return err
 		}
 	}
-	t, err := template.New("").Parse(allTablesTpml)
+	t, err := template.New("all_tables.go.tpl").ParseFS(templatesFS, "templates/all_tables.go.tpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse template for README.md: %v", err)
 	}
@@ -84,7 +58,7 @@ func renderTable(table *schema.Table, dir string) error {
 			return strings.ReplaceAll(text, "\n", " ")
 		},
 	})
-	t, err := t.New("").Parse(tableTmpl)
+	t, err := t.New("table.go.tpl").ParseFS(templatesFS, "templates/table.go.tpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %v", err)
 	}

@@ -139,7 +139,7 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 
 func newCmdDestinationRoot(destination *destinationServe) *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "destination-plugin <command>",
+		Use: fmt.Sprintf("%s <command>", destination.plugin.Name()),
 	}
 	cmd.AddCommand(newCmdDestinationServe(destination))
 	cmd.CompletionOptions.DisableDefaultCmd = true
