@@ -27,7 +27,7 @@ type TableDefinition struct {
 	extraColumns                  ColumnDefinitions
 	structFieldsToUnwrap          []string
 	unwrapAllEmbeddedStructFields bool
-	valueToSchemaType             func(reflect.Type) (schema.ValueType, error)
+	valueToSchemaTypeOverride     func(reflect.Type) *schema.ValueType
 }
 
 type ColumnDefinitions []ColumnDefinition
