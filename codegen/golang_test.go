@@ -171,12 +171,12 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should override schema type when option is set",
 			args: args{
 				testStruct: testStructWithCustomType{},
-				options: []TableOptions{WithValueTypeOverride(func(f reflect.StructField) *schema.ValueType {
+				options: []TableOptions{WithValueTypeOverride(func(f reflect.StructField) (*schema.ValueType, error) {
 					if f.Type.Kind() == reflect.Struct {
 						overrideType := schema.TypeJSON
-						return &overrideType
+						return &overrideType, nil
 					}
-					return nil
+					return nil, nil
 				})},
 			},
 			want: TableDefinition{Name: "test_struct",

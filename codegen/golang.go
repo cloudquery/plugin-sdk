@@ -88,7 +88,7 @@ func WithUnwrapAllEmbeddedStructs() TableOptions {
 }
 
 // WithValueTypeOverride sets a function that can override the schema type for specific fields. Return `nil` to fall back to default behavior.
-func WithValueTypeOverride(resolver func(reflect.StructField) *schema.ValueType) TableOptions {
+func WithValueTypeOverride(resolver func(reflect.StructField) (*schema.ValueType, error)) TableOptions {
 	return func(t *TableDefinition) {
 		t.valueTypeOverride = resolver
 	}
@@ -150,12 +150,17 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		return
 	}
 
+	var err error
 	var overrideType *schema.ValueType
 	if t.valueTypeOverride != nil {
-		overrideType = t.valueTypeOverride(field)
+		overrideType, err = t.valueTypeOverride(field)
 	}
+	if err != nil {
+		fmt.Printf("skipping field %s on table %s, valueTypeOverride returned an err: %v\n", field.Name, t.Name, err)
+		return
+	}
+
 	var columnType schema.ValueType
-	var err error
 	if overrideType == nil {
 		columnType, err = valueToSchemaType(field.Type)
 	} else {
