@@ -19,8 +19,8 @@ type TableOptions func(*TableDefinition)
 var TemplatesFS embed.FS
 
 func (t TableDefinition) valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
-	if t.valueToSchemaTypeOverride != nil {
-		if vt := t.valueToSchemaTypeOverride(v); vt != nil {
+	if t.valueTypeOverride != nil {
+		if vt := t.valueTypeOverride(v); vt != nil {
 			return *vt, nil
 		}
 	}
@@ -92,9 +92,10 @@ func WithUnwrapAllEmbeddedStructs() TableOptions {
 	}
 }
 
-func WithValueToSchemaType(resolver func(reflect.Type) *schema.ValueType) TableOptions {
+// Allows overriding the schema type for a specific field. Return `nil` to fallback to default behavior
+func WithValueTypeOverride(resolver func(reflect.Type) *schema.ValueType) TableOptions {
 	return func(t *TableDefinition) {
-		t.valueToSchemaTypeOverride = resolver
+		t.valueTypeOverride = resolver
 	}
 }
 
