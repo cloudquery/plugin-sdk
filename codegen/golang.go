@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"strings"
 	"text/template"
-	"time"
 	"unicode"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -39,8 +38,8 @@ func (t TableDefinition) valueToSchemaType(v reflect.Type) (schema.ValueType, er
 	case reflect.Map:
 		return schema.TypeJSON, nil
 	case reflect.Struct:
-		timeValue := time.Time{}
-		if v == reflect.TypeOf(timeValue) {
+		typeString := v.PkgPath() + "." + v.Name()
+		if typeString == "time.Time" {
 			return schema.TypeTimestamp, nil
 		}
 		return schema.TypeJSON, nil
