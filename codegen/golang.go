@@ -88,7 +88,7 @@ func WithUnwrapAllEmbeddedStructs() TableOptions {
 	}
 }
 
-func defaultTransformer(field reflect.StructField) string {
+func DefaultTransformer(field reflect.StructField) string {
 	name := field.Name
 	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
 		// return empty string if the field is not related api response
@@ -174,7 +174,7 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*TableDefinition, error) {
 	t := &TableDefinition{
 		Name:            name,
-		nameTransformer: defaultTransformer,
+		nameTransformer: DefaultTransformer,
 	}
 	for _, opt := range opts {
 		opt(t)

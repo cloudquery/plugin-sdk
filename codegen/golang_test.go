@@ -108,13 +108,13 @@ var expectedColumns = []ColumnDefinition{
 var expectedTestTable = TableDefinition{
 	Name:            "test_struct",
 	Columns:         expectedColumns,
-	nameTransformer: defaultTransformer,
+	nameTransformer: DefaultTransformer,
 }
 
 var expectedTestTableEmbeddedStruct = TableDefinition{
 	Name:            "test_struct",
 	Columns:         append(expectedColumns, ColumnDefinition{Name: "embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("EmbeddedString")`}),
-	nameTransformer: defaultTransformer,
+	nameTransformer: DefaultTransformer,
 }
 
 var expectedTestTableNonEmbeddedStruct = TableDefinition{
@@ -125,7 +125,7 @@ var expectedTestTableNonEmbeddedStruct = TableDefinition{
 		// Should be unwrapped
 		ColumnDefinition{Name: "non_embedded_embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`},
 	},
-	nameTransformer: defaultTransformer,
+	nameTransformer: DefaultTransformer,
 }
 
 func TestTableFromGoStruct(t *testing.T) {
