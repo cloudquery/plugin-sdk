@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/cloudquery/faker/v3"
@@ -75,9 +76,36 @@ func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Reso
 
 func validateResource(t *testing.T, resource *schema.Resource) {
 	t.Helper()
+	// we want to marshal and unmarshal to mimic over-the-wire behavior
+	b, err := json.Marshal(resource.Data)
+	if err != nil {
+		t.Fatalf("failed to marshal resource data: %v", err)
+	}
+	var data map[string]interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		t.Fatalf("failed to unmarshal resource data: %v", err)
+	}
 	for _, columnName := range resource.Table.Columns.Names() {
-		if resource.Get(columnName) == nil && !resource.Table.Columns.Get(columnName).IgnoreInTests {
+		if data[columnName] == nil && !resource.Table.Columns.Get(columnName).IgnoreInTests {
 			t.Errorf("table: %s with unset column %s", resource.Table.Name, columnName)
+		}
+		val := data[columnName]
+		if val != nil {
+			switch resource.Table.Columns.Get(columnName).Type {
+			case schema.TypeJSON:
+				if _, err := json.Marshal(val); err != nil {
+					t.Errorf("table: %s with invalid json column %s", resource.Table.Name, columnName)
+				}
+			default:
+				// todo
+			}
+		}
+	}
+
+	// check that every key in the returned object exist as a column in the table
+	for key := range data {
+		if col := resource.Table.Columns.Get(key); col == nil {
+			t.Errorf("table: %s with unknown column %s", resource.Table.Name, key)
 		}
 	}
 }
