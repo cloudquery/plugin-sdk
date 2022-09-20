@@ -153,6 +153,9 @@ func (t Table) TableNames() []string {
 
 // Call the table resolver with with all of it's relation for every reolved resource
 func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time, parent *Resource, resolvedResources chan<- *Resource) int {
+	tableStartTime := time.Now()
+	meta.Logger().Info().Str("table", t.Name).Msg("fetch start")
+
 	res := make(chan interface{})
 	startTime := time.Now()
 	go func() {
@@ -174,13 +177,13 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 		}
 		meta.Logger().Debug().Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Msg("table resolver finished successfully")
 	}()
-	totalResources := 0
+	tableResources := 0
+	relationsResources := 0
 	for elem := range res {
 		objects := helpers.InterfaceSlice(elem)
 		if len(objects) == 0 {
 			continue
 		}
-		totalResources += len(objects)
 		for i := range objects {
 			resource := NewResourceData(&t, parent, syncTime, objects[i])
 			if t.PreResourceResolver != nil {
@@ -200,13 +203,16 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 				}
 			}
 
+			tableResources++
 			resolvedResources <- resource
 			for _, rel := range t.Relations {
-				totalResources += rel.Resolve(ctx, meta, syncTime, resource, resolvedResources)
+				relationsResources += rel.Resolve(ctx, meta, syncTime, resource, resolvedResources)
 			}
 		}
 	}
-	return totalResources
+	meta.Logger().Info().Str("table", t.Name).Int("total_resources", tableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
+
+	return tableResources + relationsResources
 }
 
 func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource) {

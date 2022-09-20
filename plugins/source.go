@@ -165,11 +165,8 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 				defer wg.Done()
 				defer goroutinesSem.Release(1)
 				// TODO: prob introduce client.Identify() to be used in logs
-				tableStartTime := time.Now()
-				p.logger.Info().Str("table", table.Name).Msg("fetch start")
-				totalTableResources := table.Resolve(ctx, client, startTime, nil, res)
-				totalResources += totalTableResources
-				p.logger.Info().Str("table", table.Name).Int("total_resources", totalTableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
+
+				totalResources += table.Resolve(ctx, client, startTime, nil, res)
 			}()
 		}
 	}
