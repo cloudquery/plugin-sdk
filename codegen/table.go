@@ -4,12 +4,16 @@ import (
 	"reflect"
 
 	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 )
 
 type ResourceDefinition struct {
 	Name  string
 	Table *TableDefinition
 }
+
+type NameTransformer func(reflect.StructField) (string, error)
+type TypeTransformer func(reflect.StructField) (schema.ValueType, error)
 
 type TableDefinition struct {
 	Name        string
@@ -22,11 +26,13 @@ type TableDefinition struct {
 	Multiplex                     string
 	PostResourceResolver          string
 	PreResourceResolver           string
-	nameTransformer               func(reflect.StructField) string
+	nameTransformer               NameTransformer
+	typeTransformer               TypeTransformer
 	skipFields                    []string
 	extraColumns                  ColumnDefinitions
 	structFieldsToUnwrap          []string
 	unwrapAllEmbeddedStructFields bool
+	logger                        zerolog.Logger
 }
 
 type ColumnDefinitions []ColumnDefinition
