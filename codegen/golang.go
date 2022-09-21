@@ -168,6 +168,13 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
 	}
 
+	if columnType == schema.TypeInvalid {
+		columnType, err = DefaultTypeTransformer(field)
+		if err != nil {
+			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
+		}
+	}
+
 	// generate a PathResolver to use by default
 	pathResolver := fmt.Sprintf(`schema.PathResolver("%s")`, field.Name)
 	name, err := t.nameTransformer(field)
