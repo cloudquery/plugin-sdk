@@ -20,11 +20,11 @@ type TableOptions func(*TableDefinition)
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
-func defaultTypeTransformer(v reflect.Type) (schema.ValueType, error) {
+func DefaultTypeTransformer(v reflect.Type) (schema.ValueType, error) {
 	k := v.Kind()
 	switch k {
 	case reflect.Pointer:
-		return defaultTypeTransformer(v.Elem())
+		return DefaultTypeTransformer(v.Elem())
 	case reflect.String:
 		return schema.TypeString, nil
 	case reflect.Bool:
@@ -159,21 +159,9 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		return nil
 	}
 
-	var columnType schema.ValueType = schema.TypeInvalid
-	var err error
-	if t.typeTransformer != nil {
-		columnType, err = t.typeTransformer(field.Type)
-		if err != nil {
-			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
-		}
-	}
-
-	if columnType == schema.TypeInvalid {
-		var err error
-		columnType, err = defaultTypeTransformer(field.Type)
-		if err != nil {
-			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
-		}
+	columnType, err := t.typeTransformer(field.Type)
+	if err != nil {
+		return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
 	}
 
 	// generate a PathResolver to use by default
@@ -209,6 +197,7 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 	t := &TableDefinition{
 		Name:            name,
 		nameTransformer: DefaultTransformer,
+		typeTransformer: DefaultTypeTransformer,
 	}
 	for _, opt := range opts {
 		opt(t)
