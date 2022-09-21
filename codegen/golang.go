@@ -195,8 +195,8 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 // NewTableFromStruct creates a new TableDefinition from a struct by inspecting its fields
 func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*TableDefinition, error) {
 	t := &TableDefinition{
-		Name:              name,
-		nameTransformer:   DefaultTransformer,
+		Name:            name,
+		nameTransformer: DefaultTransformer,
 		typeTransformer: defaultTypeTransformer,
 	}
 	for _, opt := range opts {
@@ -224,10 +224,14 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 				parent = &field
 			}
 			for _, f := range unwrappedFields {
-				t.addColumnFromField(f, parent)
+				if err := t.addColumnFromField(f, parent); err != nil {
+					return nil, fmt.Errorf("failed to add column from field %s: %w", f.Name, err)
+				}
 			}
 		} else {
-			t.addColumnFromField(field, nil)
+			if err := t.addColumnFromField(field, nil); err != nil {
+				return nil, fmt.Errorf("failed to add column for field %s: %w", field.Name, err)
+			}
 		}
 	}
 

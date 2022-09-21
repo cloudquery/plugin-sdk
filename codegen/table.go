@@ -27,12 +27,12 @@ type TableDefinition struct {
 	PostResourceResolver          string
 	PreResourceResolver           string
 	nameTransformer               NameTransformer
-	typeTransformer          			TypeTransformer
+	typeTransformer               TypeTransformer
 	skipFields                    []string
 	extraColumns                  ColumnDefinitions
 	structFieldsToUnwrap          []string
 	unwrapAllEmbeddedStructFields bool
-	logger zerolog.Logger
+	logger                        zerolog.Logger
 }
 
 type ColumnDefinitions []ColumnDefinition
