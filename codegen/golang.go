@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/iancoleman/strcase"
 )
 
@@ -19,14 +20,11 @@ type TableOptions func(*TableDefinition)
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
-func valueToSchemaType(v reflect.Type, override func(reflect.Type) schema.ValueType) (schema.ValueType, error) {
-	if custom := override(v); custom != schema.TypeInvalid {
-		return custom, nil
-	}
+func defaultTypeTransformer(v reflect.Type) (schema.ValueType, error) {
 	k := v.Kind()
 	switch k {
 	case reflect.Pointer:
-		return valueToSchemaType(v.Elem(), override)
+		return defaultTypeTransformer(v.Elem())
 	case reflect.String:
 		return schema.TypeString, nil
 	case reflect.Bool:
@@ -59,7 +57,7 @@ func valueToSchemaType(v reflect.Type, override func(reflect.Type) schema.ValueT
 	}
 }
 
-func WithNameTransformer(transformer func(field reflect.StructField) string) TableOptions {
+func WithNameTransformer(transformer NameTransformer) TableOptions {
 	return func(t *TableDefinition) {
 		t.nameTransformer = transformer
 	}
@@ -91,29 +89,30 @@ func WithUnwrapAllEmbeddedStructs() TableOptions {
 	}
 }
 
-// WithValueTypeOverride sets a function that can override the schema type for specific fields. Return `schema.TypeInvalid` to fall back to default behavior.
-func WithValueTypeOverride(resolver func(any) schema.ValueType) TableOptions {
-	return func(definition *TableDefinition) {
-		definition.valueTypeOverride = func(t reflect.Type) schema.ValueType {
-			return resolver(reflect.New(t).Interface())
-		}
+// WithLogger
+func WithLogger(logger zerolog.Logger) TableOptions {
+	return func(t *TableDefinition) {
+		t.logger = logger
 	}
 }
 
-func DefaultTransformer(field reflect.StructField) string {
+// WithValueTypeTransformer sets a function that can override the schema type for specific fields. Return `schema.TypeInvalid` to fall back to default behavior.
+func WithTypeTransformer(transformer TypeTransformer) TableOptions {
+	return func(t *TableDefinition) {
+		t.typeTransformer = transformer
+	}
+}
+
+func DefaultTransformer(field reflect.StructField) (string, error) {
 	name := field.Name
 	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
 		// return empty string if the field is not related api response
 		if jsonTag == "-" {
-			return ""
+			return "", nil
 		}
 		name = jsonTag
 	}
-	return strcase.ToSnake(name)
-}
-
-func defaultValueTypeOverride(reflect.Type) schema.ValueType {
-	return schema.TypeInvalid
+	return strcase.ToSnake(name), nil
 }
 
 func sliceContains(arr []string, s string) bool {
@@ -155,27 +154,33 @@ func (t *TableDefinition) ignoreField(field reflect.StructField) bool {
 	return len(field.Name) == 0 || unicode.IsLower(rune(field.Name[0])) || sliceContains(t.skipFields, field.Name)
 }
 
-func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *reflect.StructField) {
+func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *reflect.StructField) error {
 	if t.ignoreField(field) {
-		return
+		return nil
 	}
 
-	columnType, err := valueToSchemaType(field.Type, t.valueTypeOverride)
+	columnType, err := t.typeTransformer(field.Type)
 	if err != nil {
-		fmt.Printf("skipping field %s on table %s, got err: %v\n", field.Name, t.Name, err)
-		return
+		return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
 	}
 
 	// generate a PathResolver to use by default
 	pathResolver := fmt.Sprintf(`schema.PathResolver("%s")`, field.Name)
-	name := t.nameTransformer(field)
+	name, err := t.nameTransformer(field)
+	if err != nil {
+		return fmt.Errorf("failed to transform field name for field %s: %w", field.Name, err)
+	}
 	// skip field if there is no name
 	if name == "" {
-		return
+		return nil
 	}
 	if parent != nil {
 		pathResolver = fmt.Sprintf(`schema.PathResolver("%s.%s")`, parent.Name, field.Name)
-		name = t.nameTransformer(*parent) + "_" + name
+		parentName, err := t.nameTransformer(*parent)
+		if err != nil {
+			return fmt.Errorf("failed to transform field name for parent field %s: %w", parent.Name, err)
+		}
+		name = fmt.Sprintf("%s_%s", parentName, name)
 	}
 
 	column := ColumnDefinition{
@@ -184,6 +189,7 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		Resolver: pathResolver,
 	}
 	t.Columns = append(t.Columns, column)
+	return nil
 }
 
 // NewTableFromStruct creates a new TableDefinition from a struct by inspecting its fields
@@ -191,7 +197,7 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 	t := &TableDefinition{
 		Name:              name,
 		nameTransformer:   DefaultTransformer,
-		valueTypeOverride: defaultValueTypeOverride,
+		typeTransformer: defaultTypeTransformer,
 	}
 	for _, opt := range opts {
 		opt(t)

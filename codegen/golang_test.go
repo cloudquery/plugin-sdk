@@ -3,6 +3,7 @@ package codegen
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -170,12 +171,12 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should override schema type when option is set",
 			args: args{
 				testStruct: testStructWithCustomType{},
-				options: []TableOptions{WithValueTypeOverride(func(a any) schema.ValueType {
-					switch a.(type) {
-					case time.Time, *time.Time:
-						return schema.TypeJSON
+				options: []TableOptions{WithTypeTransformer(func(t reflect.Type) (schema.ValueType, error) {
+					switch t {
+					case reflect.TypeOf(time.Time{}), reflect.TypeOf(&time.Time{}):
+						return schema.TypeJSON, nil
 					default:
-						return schema.TypeInvalid
+						return schema.TypeInvalid, nil
 					}
 				})},
 			},
