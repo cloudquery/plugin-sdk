@@ -1,0 +1,12 @@
+{
+		Name:         "with relations",
+		Columns: []schema.Column{
+{
+  Name:        "ignore_in_tests",
+  Type:        schema.TypeString,
+  IgnoreInTests: true,
+},
+
+		},
+
+}
