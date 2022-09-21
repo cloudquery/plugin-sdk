@@ -159,10 +159,23 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		return nil
 	}
 
-	columnType, err := t.typeTransformer(field.Type)
-	if err != nil {
-		return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
+	var columnType schema.ValueType = schema.TypeInvalid
+	var err error
+	if t.typeTransformer != nil {
+		columnType, err = t.typeTransformer(field.Type)
+		if err != nil {
+			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
+		}
 	}
+
+	if columnType == schema.TypeInvalid {
+		var err error
+		columnType, err = defaultTypeTransformer(field.Type)
+		if err != nil {
+			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
+		}
+	}
+
 
 	// generate a PathResolver to use by default
 	pathResolver := fmt.Sprintf(`schema.PathResolver("%s")`, field.Name)
@@ -197,7 +210,6 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOptions) (*Ta
 	t := &TableDefinition{
 		Name:            name,
 		nameTransformer: DefaultTransformer,
-		typeTransformer: defaultTypeTransformer,
 	}
 	for _, opt := range opts {
 		opt(t)
