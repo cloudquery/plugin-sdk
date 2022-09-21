@@ -33,6 +33,7 @@ type testStruct struct {
 	JSONTAG        *string    `json:"json_tag"`
 	SKIPJSONTAG    *string    `json:"-"`
 	NOJSONTAG      *string
+	InterfaceCol   interface{}
 
 	*embeddedStruct
 }
