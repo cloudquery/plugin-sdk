@@ -182,7 +182,7 @@ func TestTableFromGoStruct(t *testing.T) {
 			want: TableDefinition{Name: "test_struct",
 				// We expect the time column to be of type JSON, since we override the type of all structs to be JSON
 				Columns:         ColumnDefinitions{{Name: "time_col", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TimeCol")`}},
-				nameTransformer: defaultTransformer},
+				nameTransformer: DefaultTransformer},
 		},
 	}
 
