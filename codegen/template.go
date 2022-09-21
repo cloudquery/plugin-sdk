@@ -7,8 +7,6 @@ import (
 	"text/template"
 )
 
-type TableOptions func(*TableDefinition)
-
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
