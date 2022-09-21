@@ -35,6 +35,7 @@ type testStruct struct {
 	JSONTAG        *string    `json:"json_tag"`
 	SKIPJSONTAG    *string    `json:"-"`
 	NOJSONTAG      *string
+
 	*embeddedStruct
 }
 
@@ -221,6 +222,17 @@ func TestGenerateTemplate(t *testing.T) {
 				table: &TableDefinition{
 					Name:      "with relations",
 					Relations: []string{"relation1", "relation2"},
+				},
+			},
+		},
+		{
+			name: "should add ignore_in_tests to columns",
+			args: args{
+				table: &TableDefinition{
+					Name: "with relations",
+					Columns: []ColumnDefinition{
+						{Name: "ignore_in_tests", Type: schema.TypeString, IgnoreInTests: true},
+					},
 				},
 			},
 		},

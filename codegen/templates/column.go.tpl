@@ -13,5 +13,8 @@
       PrimaryKey: true,
     {{- end }}
   },
-  {{- end}}  
+  {{- end}}
+  {{- if .IgnoreInTests}}
+  IgnoreInTests: true,
+  {{- end}}
 },
