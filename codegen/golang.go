@@ -12,6 +12,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/iancoleman/strcase"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type TableOptions func(*TableDefinition)
@@ -38,6 +39,14 @@ func valueToSchemaType(v reflect.Type) (schema.ValueType, error) {
 		if v == reflect.TypeOf(timeValue) {
 			return schema.TypeTimestamp, nil
 		}
+
+		// Case specific for k8s - They use 'metav1.Time' which is a shallow wrapper with an embedded 'time.Time'
+		// struct.
+		metav1Time := metav1.Time{}
+		if v == reflect.TypeOf(metav1Time) {
+			return schema.TypeTimestamp, nil
+		}
+
 		return schema.TypeJSON, nil
 	case reflect.Pointer:
 		return valueToSchemaType(v.Elem())
