@@ -25,8 +25,9 @@ type (
 		PostResourceResolver string
 		PreResourceResolver  string
 
-		nameTransformer NameTransformer
-		typeTransformer TypeTransformer
+		nameTransformer     NameTransformer
+		typeTransformer     TypeTransformer
+		resolverTransformer ResolverTransformer
 
 		extraColumns ColumnDefinitions
 
@@ -54,9 +55,10 @@ func (t *TableDefinition) ignoreField(field reflect.StructField) bool {
 // NewTableFromStruct creates a new TableDefinition from a struct by inspecting its fields
 func NewTableFromStruct(name string, obj interface{}, opts ...TableOption) (*TableDefinition, error) {
 	t := &TableDefinition{
-		Name:            name,
-		nameTransformer: DefaultNameTransformer,
-		typeTransformer: DefaultTypeTransformer,
+		Name:                name,
+		nameTransformer:     DefaultNameTransformer,
+		typeTransformer:     DefaultTypeTransformer,
+		resolverTransformer: DefaultResolverTransformer,
 	}
 	for _, opt := range opts {
 		opt(t)

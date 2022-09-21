@@ -6,13 +6,6 @@ import (
 
 type TableOption func(*TableDefinition)
 
-// WithNameTransformer overrides how column name will be determined.
-func WithNameTransformer(transformer NameTransformer) TableOption {
-	return func(t *TableDefinition) {
-		t.nameTransformer = transformer
-	}
-}
-
 // WithSkipFields allows to specify what struct fields should be skipped.
 func WithSkipFields(fields []string) TableOption {
 	return func(t *TableDefinition) {
@@ -48,9 +41,26 @@ func WithLogger(logger zerolog.Logger) TableOption {
 	}
 }
 
+// WithNameTransformer overrides how column name will be determined.
+// DefaultNameTransformer is used as the default.
+func WithNameTransformer(transformer NameTransformer) TableOption {
+	return func(t *TableDefinition) {
+		t.nameTransformer = transformer
+	}
+}
+
 // WithTypeTransformer sets a function that can override the schema type for specific fields. Return `schema.TypeInvalid` to fall back to default behavior.
+// DefaultTypeTransformer is used as the default.
 func WithTypeTransformer(transformer TypeTransformer) TableOption {
 	return func(t *TableDefinition) {
 		t.typeTransformer = transformer
+	}
+}
+
+// WithResolverTransformer sets a function that can override the resolver for a field.
+// DefaultResolverTransformer is used as the default.
+func WithResolverTransformer(transformer ResolverTransformer) TableOption {
+	return func(t *TableDefinition) {
+		t.resolverTransformer = transformer
 	}
 }

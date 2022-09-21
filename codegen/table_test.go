@@ -47,6 +47,12 @@ type (
 	testStructWithCustomType struct {
 		TimeCol time.Time `json:"time_col,omitempty"`
 	}
+
+	customStruct                 struct{}
+	testStructForCustomResolvers struct {
+		TimeCol time.Time    `json:"time_col,omitempty"`
+		Custom  customStruct `json:"custom"`
+	}
 )
 
 var (
@@ -108,14 +114,18 @@ var (
 		},
 	}
 	expectedTestTable = TableDefinition{
-		Name:            "test_struct",
-		Columns:         expectedColumns,
-		nameTransformer: DefaultNameTransformer,
+		Name:                "test_struct",
+		Columns:             expectedColumns,
+		nameTransformer:     DefaultNameTransformer,
+		typeTransformer:     DefaultTypeTransformer,
+		resolverTransformer: DefaultResolverTransformer,
 	}
 	expectedTestTableEmbeddedStruct = TableDefinition{
-		Name:            "test_struct",
-		Columns:         append(expectedColumns, ColumnDefinition{Name: "embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("EmbeddedString")`}),
-		nameTransformer: DefaultNameTransformer,
+		Name:                "test_struct",
+		Columns:             append(expectedColumns, ColumnDefinition{Name: "embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("EmbeddedString")`}),
+		nameTransformer:     DefaultNameTransformer,
+		typeTransformer:     DefaultTypeTransformer,
+		resolverTransformer: DefaultResolverTransformer,
 	}
 	expectedTestTableNonEmbeddedStruct = TableDefinition{
 		Name: "test_struct",
@@ -125,9 +135,47 @@ var (
 			// Should be unwrapped
 			ColumnDefinition{Name: "non_embedded_embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`},
 		},
-		nameTransformer: DefaultNameTransformer,
+		nameTransformer:     DefaultNameTransformer,
+		typeTransformer:     DefaultTypeTransformer,
+		resolverTransformer: DefaultResolverTransformer,
+	}
+	expectedTestTableStructForCustomResolvers = TableDefinition{
+		Name: "test_struct",
+		Columns: ColumnDefinitions{
+			{
+				Name:     "time_col",
+				Type:     schema.TypeTimestamp,
+				Resolver: `schema.PathResolver("TimeCol")`,
+			},
+			{
+				Name:     "custom",
+				Type:     schema.TypeTimestamp,
+				Resolver: `customResolver("Custom")`,
+			},
+		},
+		nameTransformer:     DefaultNameTransformer,
+		typeTransformer:     customTypeTransformer,
+		resolverTransformer: customResolverTransformer,
 	}
 )
+
+func customResolverTransformer(field reflect.StructField, path string) string {
+	switch reflect.New(field.Type).Interface().(type) {
+	case customStruct, *customStruct:
+		return `customResolver("` + path + `")`
+	default:
+		return defaultResolver(path)
+	}
+}
+
+func customTypeTransformer(field reflect.StructField) (schema.ValueType, error) {
+	switch reflect.New(field.Type).Interface().(type) {
+	case customStruct, *customStruct:
+		return schema.TypeTimestamp, nil
+	default:
+		return schema.TypeInvalid, nil
+	}
+}
 
 func TestTableFromGoStruct(t *testing.T) {
 	type args struct {
@@ -180,6 +228,17 @@ func TestTableFromGoStruct(t *testing.T) {
 				// We expect the time column to be of type JSON, since we override the type of `time.Time` to be JSON
 				Columns:         ColumnDefinitions{{Name: "time_col", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TimeCol")`}},
 				nameTransformer: DefaultNameTransformer},
+		},
+		{
+			name: "should use custom resolvers",
+			args: args{
+				testStruct: testStructForCustomResolvers{},
+				options: []TableOption{
+					WithTypeTransformer(customTypeTransformer),
+					WithResolverTransformer(customResolverTransformer),
+				},
+			},
+			want: expectedTestTableStructForCustomResolvers,
 		},
 	}
 
