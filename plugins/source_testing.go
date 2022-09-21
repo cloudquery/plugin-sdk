@@ -93,6 +93,11 @@ func validateResource(t *testing.T, resource *schema.Resource) {
 		if val != nil {
 			switch resource.Table.Columns.Get(columnName).Type {
 			case schema.TypeJSON:
+				switch val.(type) {
+				case string, []byte:
+					t.Errorf("table: %s JSON column %s is being set with a string or byte slice. Either the unmarhsalled object should be passed in, or the column type should be changed to string", resource.Table.Name, columnName)
+					continue
+				}
 				if _, err := json.Marshal(val); err != nil {
 					t.Errorf("table: %s with invalid json column %s", resource.Table.Name, columnName)
 				}
