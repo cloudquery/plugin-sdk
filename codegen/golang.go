@@ -20,11 +20,11 @@ type TableOptions func(*TableDefinition)
 //go:embed templates/*.go.tpl
 var TemplatesFS embed.FS
 
-func DefaultTypeTransformer(v reflect.Type) (schema.ValueType, error) {
+func DefaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	k := v.Kind()
 	switch k {
 	case reflect.Pointer:
-		return DefaultTypeTransformer(v.Elem())
+		return DefaultGoTypeToSchemaType(v.Elem())
 	case reflect.String:
 		return schema.TypeString, nil
 	case reflect.Bool:
@@ -55,6 +55,10 @@ func DefaultTypeTransformer(v reflect.Type) (schema.ValueType, error) {
 	default:
 		return schema.TypeInvalid, fmt.Errorf("unsupported type: %s", k)
 	}
+}
+
+func DefaultTypeTransformer(v reflect.StructField) (schema.ValueType, error) {
+	return DefaultGoTypeToSchemaType(v.Type)
 }
 
 func WithNameTransformer(transformer NameTransformer) TableOptions {
@@ -159,7 +163,7 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		return nil
 	}
 
-	columnType, err := t.typeTransformer(field.Type)
+	columnType, err := t.typeTransformer(field)
 	if err != nil {
 		return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
 	}

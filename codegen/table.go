@@ -13,7 +13,7 @@ type ResourceDefinition struct {
 }
 
 type NameTransformer func(reflect.StructField) (string, error)
-type TypeTransformer func(reflect.Type) (schema.ValueType, error)
+type TypeTransformer func(reflect.StructField) (schema.ValueType, error)
 
 type TableDefinition struct {
 	Name        string

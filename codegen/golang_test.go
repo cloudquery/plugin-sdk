@@ -171,8 +171,8 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should override schema type when option is set",
 			args: args{
 				testStruct: testStructWithCustomType{},
-				options: []TableOptions{WithTypeTransformer(func(t reflect.Type) (schema.ValueType, error) {
-					switch t {
+				options: []TableOptions{WithTypeTransformer(func(t reflect.StructField) (schema.ValueType, error) {
+					switch t.Type {
 					case reflect.TypeOf(time.Time{}), reflect.TypeOf(&time.Time{}):
 						return schema.TypeJSON, nil
 					default:
