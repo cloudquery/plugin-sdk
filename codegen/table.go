@@ -73,11 +73,21 @@ func (t *TableDefinition) getUnwrappedFields(field reflect.StructField) []reflec
 	return fields
 }
 
+func isTypeIgnored(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Interface, reflect.Func, reflect.Chan, reflect.UnsafePointer:
+		return true
+	default:
+		return false
+	}
+}
+
 func (t *TableDefinition) ignoreField(field reflect.StructField) bool {
 	switch {
 	case len(field.Name) == 0,
 		slices.Contains(t.skipFields, field.Name),
-		!field.IsExported():
+		!field.IsExported(),
+		isTypeIgnored(field.Type):
 		return true
 	default:
 		return false
