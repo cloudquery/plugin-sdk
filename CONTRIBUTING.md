@@ -15,7 +15,7 @@ This is the repository for CloudQuery SDK. If you are looking for CloudQuery CLI
 
 ### gRPC
 
-CloudQuery has a pluggable architecture and is using [gRPC](https://grpc.io/) to communicate between source plugins, CLI and destination plugins. To develop a new plugin for CloudQuery, you don’t need to understand the inner workings of gRPC as those are abstracted away via the [plugin-sdk](#cloudquery-plugin-sdk-repository).
+CloudQuery has a pluggable architecture and uses [gRPC](https://grpc.io/) to communicate between source plugins, CLI and destination plugins. To develop a new plugin for CloudQuery, you don’t need to understand the inner workings of gRPC as those are abstracted via the [plugin-sdk](#cloudquery-plugin-sdk-repository).
 
 If you want to make any changes to the protocol between plugins and the CLI you will need to install all [go-gRPC prerequisites](https://grpc.io/docs/languages/go/quickstart/#prerequisites).
 
