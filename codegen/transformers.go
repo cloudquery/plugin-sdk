@@ -66,3 +66,13 @@ func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 		return schema.TypeInvalid, fmt.Errorf("unsupported type: %s", k)
 	}
 }
+
+type ResolverTransformer func(field reflect.StructField, path string) (string, error)
+
+func DefaultResolverTransformer(_ reflect.StructField, path string) (string, error) {
+	return defaultResolver(path), nil
+}
+
+func defaultResolver(path string) string {
+	return `schema.PathResolver("` + path + `")`
+}

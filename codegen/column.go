@@ -45,8 +45,7 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		}
 	}
 
-	// generate a PathResolver to use by default
-	pathResolver := fmt.Sprintf(`schema.PathResolver("%s")`, field.Name)
+	path := field.Name
 	name, err := t.nameTransformer(field)
 	if err != nil {
 		return fmt.Errorf("failed to transform field name for field %s: %w", field.Name, err)
@@ -56,19 +55,27 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		return nil
 	}
 	if parent != nil {
-		pathResolver = fmt.Sprintf(`schema.PathResolver("%s.%s")`, parent.Name, field.Name)
 		parentName, err := t.nameTransformer(*parent)
 		if err != nil {
 			return fmt.Errorf("failed to transform field name for parent field %s: %w", parent.Name, err)
 		}
-		name = fmt.Sprintf("%s_%s", parentName, name)
+		name = parentName + "_" + name
+		path = parent.Name + `.` + path
+	}
+	resolver, err := t.resolverTransformer(field, path)
+	if err != nil {
+		return err
+	}
+	if resolver == "" {
+		resolver = defaultResolver(path)
 	}
 
-	column := ColumnDefinition{
-		Name:     name,
-		Type:     columnType,
-		Resolver: pathResolver,
-	}
-	t.Columns = append(t.Columns, column)
+	t.Columns = append(t.Columns,
+		ColumnDefinition{
+			Name:     name,
+			Type:     columnType,
+			Resolver: resolver,
+		},
+	)
 	return nil
 }

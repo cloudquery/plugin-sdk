@@ -8,8 +8,6 @@ service Destination {
   rpc GetName(GetName.Request) returns (GetName.Response);
   // Get the current version of the plugin
   rpc GetVersion(GetVersion.Request) returns (GetVersion.Response);
-  // Get an example configuration for the plugin
-  rpc GetExampleConfig(GetExampleConfig.Request) returns (GetExampleConfig.Response);
   // Configure the plugin with the given credentials and mode
   rpc Configure(Configure.Request) returns (Configure.Response);
   // Migrate tables to the given plugin version
