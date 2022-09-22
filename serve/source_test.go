@@ -10,7 +10,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -64,22 +63,6 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 	return &testExecutionClient{}, nil
 }
 
-// https://stackoverflow.com/questions/32840687/timeout-for-waitgroup-wait
-// func waitTimeout(wg *errgroup.Group, timeout time.Duration) (bool, error) {
-// 	c := make(chan struct{})
-// 	var err error
-// 	go func() {
-// 		defer close(c)
-// 		err = wg.Wait()
-// 	}()
-// 	select {
-// 	case <-c:
-// 		return false, err // completed normally
-// 	case <-time.After(timeout):
-// 		return true, err // timed out
-// 	}
-// }
-
 func bufDialer(context.Context, string) (net.Conn, error) {
 	return testListener.Dial()
 }
@@ -90,17 +73,6 @@ func TestServe(t *testing.T) {
 		"v1.0.0",
 		[]*schema.Table{testTable()},
 		newTestExecutionClient,
-		plugins.WithSourceExampleConfig(`--- 
-kind: source
-spec: 
-  name: testSourcePlugin
-  path: cloudquery/testSourcePlugin
-  spec: 
-    accounts: ["all"]
-  tables: 
-    - "*"
-  version: v1.0.0
-`),
 		plugins.WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
 	)
 
@@ -156,19 +128,5 @@ spec:
 	}
 	if err := wg.Wait(); err != nil {
 		t.Fatalf("Failed to sync resources: %v", err)
-	}
-
-	exampleConfig, err := c.ExampleConfig(ctx)
-	if err != nil {
-		t.Fatalf("Failed to get example config: %v", err)
-	}
-	var exampleSpec specs.Spec
-	if err := specs.SpecUnmarshalYamlStrict([]byte(exampleConfig), &exampleSpec); err != nil {
-		t.Fatalf("Failed to unmarshal example config: %v", err)
-	}
-	// skip internal validation for now
-
-	if diff := cmp.Diff(expectedExampleSpecConfig, exampleSpec); diff != "" {
-		t.Fatalf("Spec mismatch (-want +got):\n%s", diff)
 	}
 }

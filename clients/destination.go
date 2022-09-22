@@ -52,17 +52,6 @@ func (c *DestinationClient) Version(ctx context.Context) (string, error) {
 	return res.Version, nil
 }
 
-func (c *DestinationClient) GetExampleConfig(ctx context.Context) (string, error) {
-	if c.localClient != nil {
-		return c.localClient.ExampleConfig(), nil
-	}
-	res, err := c.pbClient.GetExampleConfig(ctx, &pb.GetExampleConfig_Request{})
-	if err != nil {
-		return "", err
-	}
-	return res.Config, nil
-}
-
 func (c *DestinationClient) Initialize(ctx context.Context, spec specs.Destination) error {
 	if c.localClient != nil {
 		return c.localClient.Initialize(ctx, spec)

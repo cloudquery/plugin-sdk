@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -68,12 +67,9 @@ func TestSync(t *testing.T) {
 		WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
 	)
 
-	// test round trip: get example config -> sync with example config -> success
-	exampleConfig := plugin.ExampleConfig()
-	fmt.Println(exampleConfig)
-	var spec specs.Spec
-	if err := specs.SpecUnmarshalYamlStrict([]byte(exampleConfig), &spec); err != nil {
-		t.Fatal(err)
+	spec := specs.Source{
+		Name:   "testSource",
+		Tables: []string{"*"},
 	}
 
 	resources := make(chan *schema.Resource)
@@ -81,7 +77,7 @@ func TestSync(t *testing.T) {
 	g.Go(func() error {
 		defer close(resources)
 		err := plugin.Sync(ctx,
-			*spec.Spec.(*specs.Source),
+			spec,
 			resources)
 		return err
 	})

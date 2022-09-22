@@ -39,12 +39,6 @@ func (s *DestinationServer) GetVersion(context.Context, *pb.GetVersion_Request) 
 	}, nil
 }
 
-func (s *DestinationServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
-	return &pb.GetExampleConfig_Response{
-		Config: s.Plugin.ExampleConfig(),
-	}, nil
-}
-
 func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 	for {
 		r, err := msg.Recv()
