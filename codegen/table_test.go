@@ -159,12 +159,12 @@ var (
 	}
 )
 
-func customResolverTransformer(field reflect.StructField, path string) string {
+func customResolverTransformer(field reflect.StructField, path string) (string, error) {
 	switch reflect.New(field.Type).Interface().(type) {
 	case customStruct, *customStruct:
-		return `customResolver("` + path + `")`
+		return `customResolver("` + path + `")`, nil
 	default:
-		return defaultResolver(path)
+		return "", nil
 	}
 }
 

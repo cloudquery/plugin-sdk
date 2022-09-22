@@ -59,6 +59,8 @@ func WithTypeTransformer(transformer TypeTransformer) TableOption {
 
 // WithResolverTransformer sets a function that can override the resolver for a field.
 // DefaultResolverTransformer is used as the default.
+// If the transformer provided returns error, gen will fail.
+// To fallback onto the default resolver return "", nil.
 func WithResolverTransformer(transformer ResolverTransformer) TableOption {
 	return func(t *TableDefinition) {
 		t.resolverTransformer = transformer

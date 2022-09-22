@@ -62,7 +62,13 @@ func (t *TableDefinition) addColumnFromField(field reflect.StructField, parent *
 		name = parentName + "_" + name
 		path = parent.Name + `.` + path
 	}
-	resolver := t.resolverTransformer(field, path)
+	resolver, err := t.resolverTransformer(field, path)
+	if err != nil {
+		return err
+	}
+	if resolver == "" {
+		resolver = defaultResolver(path)
+	}
 
 	t.Columns = append(t.Columns,
 		ColumnDefinition{

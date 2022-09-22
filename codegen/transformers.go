@@ -67,10 +67,10 @@ func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	}
 }
 
-type ResolverTransformer func(field reflect.StructField, path string) string
+type ResolverTransformer func(field reflect.StructField, path string) (string, error)
 
-func DefaultResolverTransformer(_ reflect.StructField, path string) string {
-	return defaultResolver(path)
+func DefaultResolverTransformer(_ reflect.StructField, path string) (string, error) {
+	return defaultResolver(path), nil
 }
 
 func defaultResolver(path string) string {
