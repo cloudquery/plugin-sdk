@@ -31,9 +31,9 @@ type (
 		StringArrayCol []string   `json:"string_array_col,omitempty"`
 		TimeCol        time.Time  `json:"time_col,omitempty"`
 		TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
-		JSONTAG        *string    `json:"json_tag"`
-		SKIPJSONTAG    *string    `json:"-"`
-		NOJSONTAG      *string
+		JSONTag        *string    `json:"json_tag"`
+		SkipJSONTag    *string    `json:"-"`
+		NoJSONTag      *string
 		*embeddedStruct
 	}
 	testStructWithEmbeddedStruct struct {
@@ -46,6 +46,19 @@ type (
 	}
 	testStructWithCustomType struct {
 		TimeCol time.Time `json:"time_col,omitempty"`
+	}
+
+	testStructCaseCheck struct {
+		IPAddress   string
+		CDNs        string
+		MyCDN       string
+		CIDR        int
+		IPV6        int
+		IPv6Test    int
+		Ipv6Address int
+		AccountID   string
+		PostgreSQL  string
+		IDs         string
 	}
 )
 
@@ -99,12 +112,12 @@ var (
 		{
 			Name:     "json_tag",
 			Type:     schema.TypeString,
-			Resolver: `schema.PathResolver("JSONTAG")`,
+			Resolver: `schema.PathResolver("JSONTag")`,
 		},
 		{
-			Name:     "nojsontag",
+			Name:     "no_json_tag",
 			Type:     schema.TypeString,
-			Resolver: `schema.PathResolver("NOJSONTAG")`,
+			Resolver: `schema.PathResolver("NoJSONTag")`,
 		},
 	}
 	expectedTestTable = TableDefinition{
@@ -179,6 +192,28 @@ func TestTableFromGoStruct(t *testing.T) {
 			want: TableDefinition{Name: "test_struct",
 				// We expect the time column to be of type JSON, since we override the type of `time.Time` to be JSON
 				Columns:         ColumnDefinitions{{Name: "time_col", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TimeCol")`}},
+				nameTransformer: DefaultNameTransformer},
+		},
+		{
+			name: "should handle multi case",
+			args: args{
+				testStruct: testStructCaseCheck{},
+				options:    []TableOption{WithAcronymsOfNames([]string{"CDN", "IP", "IPv6", "IPV6", "CIDR"})},
+			},
+			want: TableDefinition{Name: "test_struct",
+				// We expect the time column to be of type JSON, since we override the type of `time.Time` to be JSON
+				Columns: ColumnDefinitions{
+					{Name: "ip_address", Type: schema.TypeString, Resolver: `schema.PathResolver("IPAddress")`},
+					{Name: "cdns", Type: schema.TypeString, Resolver: `schema.PathResolver("CDNs")`},
+					{Name: "my_cdn", Type: schema.TypeString, Resolver: `schema.PathResolver("MyCDN")`},
+					{Name: "cidr", Type: schema.TypeInt, Resolver: `schema.PathResolver("CIDR")`},
+					{Name: "ipv6", Type: schema.TypeInt, Resolver: `schema.PathResolver("IPV6")`},
+					{Name: "ipv6_test", Type: schema.TypeInt, Resolver: `schema.PathResolver("IPv6Test")`},
+					{Name: "ipv6_address", Type: schema.TypeInt, Resolver: `schema.PathResolver("Ipv6Address")`},
+					{Name: "account_id", Type: schema.TypeString, Resolver: `schema.PathResolver("AccountID")`},
+					{Name: "postgre_sql", Type: schema.TypeString, Resolver: `schema.PathResolver("PostgreSQL")`},
+					{Name: "ids", Type: schema.TypeString, Resolver: `schema.PathResolver("IDs")`},
+				},
 				nameTransformer: DefaultNameTransformer},
 		},
 	}

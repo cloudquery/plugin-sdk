@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/iancoleman/strcase"
 )
 
 type NameTransformer func(reflect.StructField) (string, error)
@@ -21,7 +21,7 @@ func DefaultNameTransformer(field reflect.StructField) (string, error) {
 		}
 		name = jsonTag
 	}
-	return strcase.ToSnake(name), nil
+	return helpers.ToSnake(name), nil
 }
 
 type TypeTransformer func(reflect.StructField) (schema.ValueType, error)

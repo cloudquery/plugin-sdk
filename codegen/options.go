@@ -1,6 +1,7 @@
 package codegen
 
 import (
+	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/rs/zerolog"
 )
 
@@ -10,6 +11,15 @@ type TableOption func(*TableDefinition)
 func WithNameTransformer(transformer NameTransformer) TableOption {
 	return func(t *TableDefinition) {
 		t.nameTransformer = transformer
+	}
+}
+
+// WithAcronymsOfNames adds acronyms to be handled by NameTransformer
+func WithAcronymsOfNames(acronyms []string) TableOption {
+	return func(t *TableDefinition) {
+		for _, a := range acronyms {
+			helpers.AddInitialism(a)
+		}
 	}
 }
 
