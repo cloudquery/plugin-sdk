@@ -14,3 +14,15 @@ func isFieldStruct(reflectType reflect.Type) bool {
 		return false
 	}
 }
+
+func isTypeIgnored(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Interface,
+		reflect.Func,
+		reflect.Chan,
+		reflect.UnsafePointer:
+		return true
+	default:
+		return false
+	}
+}
