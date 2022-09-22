@@ -243,7 +243,7 @@ func TestTableFromGoStruct(t *testing.T) {
 				nameTransformer: DefaultNameTransformer},
 		},
 		{
-			name: "should handle multi case",
+			name: "should handle default and custom acronyms correctly",
 			args: args{
 				testStruct: testStructCaseCheck{},
 				options:    []TableOption{WithAcronymsOfNames([]string{"CDN", "IP", "IPv6", "IPV6", "CIDR"})},
