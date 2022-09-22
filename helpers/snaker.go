@@ -3,6 +3,9 @@ package helpers
 import (
 	"strings"
 	"unicode"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func AddInitialism(i string) {
@@ -11,6 +14,9 @@ func AddInitialism(i string) {
 
 // ToSnake converts a given string to snake case
 func ToSnake(s string) string {
+	if s == "" {
+		return s
+	}
 	var result string
 	var words []string
 	var lastPos int
@@ -52,8 +58,22 @@ func ToSnake(s string) string {
 	return result
 }
 
-// ToCamel returns a string converted from snake case to uppercase
+// ToPascal returns a string converted from snake case to pascal case
+func ToPascal(s string) string {
+	if s == "" {
+		return s
+	}
+	result := ToCamel(s)
+	c := cases.Title(language.Und, cases.NoLower)
+
+	return c.String(result)
+}
+
+// ToCamel returns a string converted from snake case to camel case
 func ToCamel(s string) string {
+	if s == "" {
+		return s
+	}
 	var result string
 
 	words := strings.Split(s, "_")
