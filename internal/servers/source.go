@@ -41,12 +41,6 @@ func (s *SourceServer) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.
 	}, nil
 }
 
-func (s *SourceServer) GetExampleConfig(context.Context, *pb.GetExampleConfig_Request) (*pb.GetExampleConfig_Response, error) {
-	return &pb.GetExampleConfig_Response{
-		Config: s.Plugin.ExampleConfig(),
-	}, nil
-}
-
 func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
 	resources := make(chan *schema.Resource)
 	var syncErr error

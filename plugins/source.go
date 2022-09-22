@@ -27,8 +27,6 @@ type SourcePlugin struct {
 	newExecutionClient SourceNewExecutionClientFunc
 	// Tables is all tables supported by this source plugin
 	tables schema.Tables
-	// exampleConfig
-	exampleConfig string
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
 }
@@ -38,12 +36,6 @@ type SourceOption func(*SourcePlugin)
 const (
 	defaultConcurrency = 500000
 )
-
-func WithSourceExampleConfig(exampleConfig string) SourceOption {
-	return func(p *SourcePlugin) {
-		p.exampleConfig = exampleConfig
-	}
-}
 
 func WithSourceLogger(logger zerolog.Logger) SourceOption {
 	return func(p *SourcePlugin) {
@@ -110,11 +102,6 @@ func (p *SourcePlugin) validate() error {
 // Tables returns all supported tables by this source plugin
 func (p *SourcePlugin) Tables() schema.Tables {
 	return p.tables
-}
-
-// ExampleConfig returns an example configuration for this source plugin
-func (p *SourcePlugin) ExampleConfig() string {
-	return p.exampleConfig
 }
 
 // Name return the name of this plugin
