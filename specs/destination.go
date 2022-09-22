@@ -2,10 +2,16 @@ package specs
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
+	"text/template"
 )
+
+//go:embed templates/destination.go.tpl
+var destinationExampleTemplate string
 
 type WriteMode int
 
@@ -49,6 +55,27 @@ func (d *Destination) UnmarshalSpec(out interface{}) error {
 	return json.Unmarshal(b, out)
 }
 
+func (s *Destination) WriteExample(w io.Writer) error {
+	tmpSource := *s
+	if tmpSource.Registry == RegistryGithub && strings.HasPrefix(tmpSource.Path, "cloudquery/") {
+		tmpSource.Spec = fmt.Sprintf("Check documentation here: https://github.com/cloudquery/cloudquery/tree/main/cli/internal/destinations/%s", tmpSource.Name)
+	} else if tmpSource.Registry == RegistryGithub {
+		splitPath := strings.Split(tmpSource.Path, "/")
+		if len(splitPath) != 2 {
+			return fmt.Errorf("invalid path: %s", tmpSource.Path)
+		}
+		tmpSource.Spec = fmt.Sprintf("Check documentation here: https://github.com/%s/cq-destination-%s", splitPath[0], splitPath[1])
+	}
+	tpl, err := template.New("sourceTemplate").Parse(sourceExampleTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to parse source template: %w", err)
+	}
+	if err := tpl.Execute(w, tmpSource); err != nil {
+		return fmt.Errorf("failed to execute source template: %w", err)
+	}
+	return nil
+}
+
 func (m WriteMode) String() string {
 	return [...]string{"append", "overwrite"}[m]
 }
@@ -80,3 +107,5 @@ func WriteModeFromString(s string) (WriteMode, error) {
 	}
 	return 0, fmt.Errorf("invalid write mode: %s", s)
 }
+
+

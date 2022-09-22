@@ -1,6 +1,9 @@
 package specs
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 type testSourceSpec struct {
 	Accounts []string `json:"accounts"`
@@ -19,6 +22,52 @@ func TestSourceSetDefaults(t *testing.T) {
 	}
 	if source.Version != "latest" {
 		t.Fatalf("expected latest, got %s", source.Version)
+	}
+}
+
+const expectedSourceExample = `kind: "source"
+spec:
+  # Name of the plugin.
+  name: "testSource"
+
+  # Version of the plugin to use.
+  version: "v0.1.0"
+
+  # Registry to use (one of "github", "local" or "grpc").
+  registry: "github"
+
+  # Path to plugin. Required format depends on the registry.
+  path: "cloudquery/testSource"
+
+  # List of tables to sync.
+  tables: ["*"]
+
+  ## Tables to skip during sync. Optional.
+  # skip_tables: []
+
+  # Names of destination plugins to sync to.
+  destinations: ["postgresql"]
+
+  ## Approximate cap on number of requests to perform concurrently. Optional.
+  # concurrency: 1000
+
+  # Plugin-specific configuration.
+  spec:
+    # Check documentation here: https://github.com/cloudquery/cloudquery/tree/main/plugins/source/testSource`
+
+func TestSourceWriteExample(t *testing.T) {
+	spec := Source{
+		Name: "testSource",
+		Version: "v0.1.0",
+		Path: "cloudquery/testSource",
+		Registry: RegistryGithub,
+	}
+	var sb strings.Builder
+	if err := spec.WriteExample(&sb); err != nil {
+		t.Fatalf("failed to write example: %v", err)
+	}
+	if sb.String() != expectedSourceExample {
+		t.Fatalf("expected example:\n%s\ngot\n%s\n", expectedSourceExample, sb.String())
 	}
 }
 

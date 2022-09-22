@@ -2,10 +2,18 @@ package specs
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"strings"
+	"text/template"
+
+	_ "embed"
 
 	"github.com/xeipuuv/gojsonschema"
 )
+
+//go:embed templates/source.go.tpl
+var sourceExampleTemplate string
 
 // Source is the spec for a source plugin
 type Source struct {
@@ -62,4 +70,25 @@ func (s *Source) UnmarshalSpec(out interface{}) error {
 
 func (*Source) Validate() (*gojsonschema.Result, error) {
 	return nil, nil
+}
+
+func (s *Source) WriteExample(w io.Writer) error {
+	tmpSource := *s
+	if tmpSource.Registry == RegistryGithub && strings.HasPrefix(tmpSource.Path, "cloudquery/") {
+		tmpSource.Spec = fmt.Sprintf("Check documentation here: https://github.com/cloudquery/cloudquery/tree/main/plugins/source/%s", tmpSource.Name)
+	} else if tmpSource.Registry == RegistryGithub {
+		splitPath := strings.Split(tmpSource.Path, "/")
+		if len(splitPath) != 2 {
+			return fmt.Errorf("invalid path: %s", tmpSource.Path)
+		}
+		tmpSource.Spec = fmt.Sprintf("Check documentation here: https://github.com/%s/cq-source-%s", splitPath[0], splitPath[1])
+	}
+	tpl, err := template.New("sourceTemplate").Parse(sourceExampleTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to parse source template: %w", err)
+	}
+	if err := tpl.Execute(w, tmpSource); err != nil {
+		return fmt.Errorf("failed to execute source template: %w", err)
+	}
+	return nil
 }
