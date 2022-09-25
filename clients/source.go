@@ -55,7 +55,10 @@ func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 	return tables, nil
 }
 
-func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
+// Sync start syncing for the source client per the given spec and returning the results
+// in the given channel. res is marshaled schema.Resource. We are not unmarshalling this for performance reasons
+// as usually this is sent over-the-wire anyway to a destination plugin
+func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- []byte) error {
 	b, err := json.Marshal(spec)
 	if err != nil {
 		return fmt.Errorf("failed to marshal source spec: %w", err)
@@ -74,12 +77,6 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- *
 			}
 			return fmt.Errorf("failed to fetch resources from stream: %w", err)
 		}
-		var resource schema.Resource
-		err = json.Unmarshal(r.Resource, &resource)
-		if err != nil {
-			return fmt.Errorf("failed to unmarshal resource: %w", err)
-		}
-
-		res <- &resource
+		res <- r.Resource
 	}
 }

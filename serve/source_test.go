@@ -2,6 +2,7 @@ package serve
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"testing"
 	"time"
@@ -105,7 +106,7 @@ func TestServe(t *testing.T) {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
 	c := clients.NewSourceClient(conn)
-	resources := make(chan *schema.Resource)
+	resources := make(chan []byte)
 	wg := errgroup.Group{}
 	wg.Go(func() error {
 		defer close(resources)
@@ -118,7 +119,11 @@ func TestServe(t *testing.T) {
 			},
 			resources)
 	})
-	for resource := range resources {
+	for resourceB := range resources {
+		var resource schema.Resource
+		if err := json.Unmarshal(resourceB, &resource); err != nil {
+			t.Fatalf("failed to unmarshal resource: %v", err)
+		}
 		if resource.TableName != "test_table" {
 			t.Fatalf("Expected resource with table name test: %s", resource.TableName)
 		}

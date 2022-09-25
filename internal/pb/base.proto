@@ -24,6 +24,5 @@ message Configure {
   }
   message Response {
     string error = 1;
-    bytes jsonschema_result = 2;
   }
 }

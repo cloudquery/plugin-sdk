@@ -39,6 +39,14 @@ func (s *DestinationServer) GetVersion(context.Context, *pb.GetVersion_Request) 
 	}, nil
 }
 
+func (s *DestinationServer) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migrate_Response, error) {
+	var tables []*schema.Table
+	if err := json.Unmarshal(req.Tables, &tables); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
+	}
+	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
+}
+
 func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 	for {
 		r, err := msg.Recv()
