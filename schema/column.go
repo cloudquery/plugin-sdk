@@ -154,7 +154,7 @@ func ValueTypeFromString(s string) ValueType {
 		return TypeUUIDArray
 	case "inet":
 		return TypeInet
-	case "inetrarray":
+	case "inetarray":
 		return TypeInetArray
 	case "macaddr":
 		return TypeMacAddr
