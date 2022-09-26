@@ -3,6 +3,10 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/bradleyjkemp/cupaloy/v2 v2.7.0 h1:AT0vOjO68RcLyenLCHOGZzSNiuto7ziqzq6Q1/3xzMQ=
 github.com/bradleyjkemp/cupaloy/v2 v2.7.0/go.mod h1:bm7JXdkRd4BHJk9HpwqAI8BoAY1lps46Enkdqw6aRX0=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
+github.com/cloudquery/caser v0.0.2 h1:62bJA2g0xIeN5GaSi7+l0sAturKVa8gRQy1uJ1DdtdY=
+github.com/cloudquery/caser v0.0.2/go.mod h1:c8xYpNo0xxlg/16WzjsFvvwDcZSl120ZkZLN5f7YCrM=
+github.com/cloudquery/caser v0.0.3 h1:Uj4GaUVpzibMfNnrq3GW6+y8Tb7afNgDUfO29WUwULA=
+github.com/cloudquery/caser v0.0.3/go.mod h1:c8xYpNo0xxlg/16WzjsFvvwDcZSl120ZkZLN5f7YCrM=
 github.com/cloudquery/faker/v3 v3.7.7 h1:vODOmAXGhxAacVrUOjr4Jti2lFhXgkPjG6/L3C2REgQ=
 github.com/cloudquery/faker/v3 v3.7.7/go.mod h1:1b8WVG9Gh0T2hVo1a8dWeXfu0AhqSB6J/mmJaesqOeo=
 github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e/go.mod h1:F5haX7vjVVG0kc13fIWeqUViNPyEJxv/OmvnBo0Yme4=

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/internal/snaker"
+	"github.com/cloudquery/caser"
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
@@ -24,8 +24,8 @@ func DefaultNameTransformer(field reflect.StructField) (string, error) {
 		name = jsonTag
 	}
 
-	snaker.ConfigureInitialisms(customInitialisms)
-	return snaker.ToSnake(name), nil
+	caser.ConfigureInitialisms(customInitialisms)
+	return caser.ToSnake(name), nil
 }
 
 type TypeTransformer func(reflect.StructField) (schema.ValueType, error)
