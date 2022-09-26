@@ -246,7 +246,7 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should handle default and custom acronyms correctly",
 			args: args{
 				testStruct: testStructCaseCheck{},
-				options:    []TableOption{WithAcronymsOfNames([]string{"CDN", "IP", "IPv6", "IPV6", "CIDR"})},
+				options:    []TableOption{WithCustomNameInitialisms([]string{"CDN", "IP", "IPv6", "IPV6", "CIDR"})},
 			},
 			want: TableDefinition{Name: "test_struct",
 				// We expect the time column to be of type JSON, since we override the type of `time.Time` to be JSON

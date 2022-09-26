@@ -1,7 +1,6 @@
 package codegen
 
 import (
-	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/rs/zerolog"
 )
 
@@ -68,11 +67,12 @@ func WithResolverTransformer(transformer ResolverTransformer) TableOption {
 	}
 }
 
-// WithAcronymsOfNames adds acronyms to be handled by NameTransformer
-func WithAcronymsOfNames(acronyms []string) TableOption {
+// WithCustomNameInitialisms adds acronyms to be handled by NameTransformer
+func WithCustomNameInitialisms(acronyms []string) TableOption {
 	return func(t *TableDefinition) {
+		customInitialisms = make(map[string]bool, len(acronyms))
 		for _, a := range acronyms {
-			helpers.AddInitialism(a)
+			customInitialisms[a] = true
 		}
 	}
 }

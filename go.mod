@@ -5,6 +5,8 @@ go 1.19
 require (
 	github.com/bradleyjkemp/cupaloy/v2 v2.7.0
 	github.com/cloudquery/faker/v3 v3.7.7
+	github.com/cloudquery/snaker v0.0.1
+	github.com/ettle/strcase v0.1.1
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/uuid v4.3.0+incompatible

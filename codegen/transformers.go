@@ -6,11 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/snaker"
 )
 
 type NameTransformer func(reflect.StructField) (string, error)
+
+var customInitialisms map[string]bool
 
 func DefaultNameTransformer(field reflect.StructField) (string, error) {
 	name := field.Name
@@ -21,7 +23,9 @@ func DefaultNameTransformer(field reflect.StructField) (string, error) {
 		}
 		name = jsonTag
 	}
-	return helpers.ToSnake(name), nil
+
+	snaker.ConfigureInitialisms(customInitialisms)
+	return snaker.ToSnake(name), nil
 }
 
 type TypeTransformer func(reflect.StructField) (schema.ValueType, error)
