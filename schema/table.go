@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/helpers"
-	"github.com/cloudquery/snaker"
+	"github.com/cloudquery/plugin-sdk/internal/snaker"
 	"github.com/getsentry/sentry-go"
 	"github.com/thoas/go-funk"
 )

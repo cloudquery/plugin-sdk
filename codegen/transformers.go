@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/internal/snaker"
 	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/cloudquery/snaker"
 )
 
 type NameTransformer func(reflect.StructField) (string, error)
