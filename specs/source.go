@@ -71,7 +71,7 @@ func (s *Source) Validate() error {
 		return fmt.Errorf("version must start with v")
 	}
 	if len(s.Destinations) == 0 {
-		return fmt.Errorf("at leats one destination is required")
+		return fmt.Errorf("at least one destination is required")
 	}
 	return nil
 }
