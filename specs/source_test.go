@@ -104,7 +104,7 @@ spec:
   name: test
   version: v1.1.0
 `,
-		"at leats one destination is required",
+		"at least one destination is required",
 		nil,
 	},
 	{
