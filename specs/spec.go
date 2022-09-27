@@ -58,8 +58,10 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 		Kind Kind        `json:"kind"`
 		Spec interface{} `json:"spec"`
 	}
-
-	if err := json.Unmarshal(data, &t); err != nil {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	dec.UseNumber()
+	if err := dec.Decode(&t); err != nil {
 		return err
 	}
 	s.Kind = t.Kind
@@ -75,7 +77,10 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(b, s.Spec)
+	dec = json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	dec.DisallowUnknownFields()
+	return dec.Decode(s.Spec)
 }
 
 func UnmarshalJSONStrict(b []byte, out interface{}) error {
@@ -94,15 +99,7 @@ func SpecUnmarshalYamlStrict(b []byte, spec *Spec) error {
 	dec.DisallowUnknownFields()
 	dec.UseNumber()
 	if err := dec.Decode(spec); err != nil {
-		return fmt.Errorf("failed to decode json: %w", err)
-	}
-	switch spec.Kind {
-	case KindSource:
-		spec.Spec.(*Source).SetDefaults()
-	case KindDestination:
-		spec.Spec.(*Destination).SetDefaults()
-	default:
-		return fmt.Errorf("unknown kind %s", spec.Kind)
+		return fmt.Errorf("failed to decode spec: %w", err)
 	}
 	return nil
 }
