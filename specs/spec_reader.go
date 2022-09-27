@@ -92,7 +92,7 @@ func NewSpecReader(paths []string) (*SpecReader, error) {
 		return nil, fmt.Errorf("expecting at least once source in: %v ", paths)
 	}
 	if len(reader.Destinations) == 0 {
-		return nil, fmt.Errorf("expecting at least once desintation %v ", paths)
+		return nil, fmt.Errorf("expecting at least one destination in: %v", paths)
 	}
 	return reader, nil
 }
