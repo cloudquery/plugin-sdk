@@ -98,7 +98,6 @@ func TestInversion(t *testing.T) {
 		{Pascal: "TestV1"},
 		{Pascal: "TestIPv4"},
 		{Pascal: "TestIPv4"},
-		{Pascal: "EC2"},
 		{Pascal: "S3"},
 	}
 	t.Parallel()
