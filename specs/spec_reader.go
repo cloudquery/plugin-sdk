@@ -22,6 +22,7 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 		return nil, fmt.Errorf("failed to read directory %s: %w", directory, err)
 	}
 
+	configFilesCount := 0
 	for _, file := range files {
 		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") && strings.HasSuffix(file.Name(), ".yml") {
 			data, err := os.ReadFile(filepath.Join(directory, file.Name()))
@@ -32,6 +33,7 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 			if err := SpecUnmarshalYamlStrict(data, &s); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal file %s: %w", file.Name(), err)
 			}
+			configFilesCount++
 			switch s.Kind {
 			case KindSource:
 				reader.sources[file.Name()] = *s.Spec.(*Source)
@@ -41,6 +43,9 @@ func NewSpecReader(directory string) (*SpecReader, error) {
 				return nil, fmt.Errorf("unknown kind %s", s.Kind)
 			}
 		}
+	}
+	if configFilesCount == 0 {
+		return nil, fmt.Errorf("no valid config files found in directory %s", directory)
 	}
 	return &reader, nil
 }

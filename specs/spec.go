@@ -49,7 +49,7 @@ func KindFromString(s string) (Kind, error) {
 	case "destination":
 		return KindDestination, nil
 	default:
-		return KindSource, fmt.Errorf("unknown registry %s", s)
+		return KindSource, fmt.Errorf("unknown kind %s", s)
 	}
 }
 
