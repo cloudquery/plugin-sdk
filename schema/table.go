@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudquery/caser"
+	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/getsentry/sentry-go"
 	"github.com/thoas/go-funk"
