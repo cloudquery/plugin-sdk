@@ -5,7 +5,7 @@ import (
 )
 
 func TestLoadSpecs(t *testing.T) {
-	specReader, err := NewSpecReader("testdata/valid")
+	specReader, err := NewSpecReader("testdata")
 	if err != nil {
 		t.Fatal(err)
 	}
