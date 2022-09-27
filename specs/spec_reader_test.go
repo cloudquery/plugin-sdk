@@ -10,9 +10,9 @@ func TestLoadSpecs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(specReader.sources) != 1 {
-		t.Fatalf("expected 1 source got %d", len(specReader.sources))
+		t.Fatalf("got: %d expected: 1", len(specReader.sources))
 	}
 	if len(specReader.destinations) != 1 {
-		t.Fatalf("expected 1 destination got %d", len(specReader.destinations))
+		t.Fatalf("got: %d expected: 1", len(specReader.destinations))
 	}
 }
