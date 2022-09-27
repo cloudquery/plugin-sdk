@@ -30,9 +30,6 @@ func (d *Destination) SetDefaults() {
 	if d.Path == "" {
 		d.Path = d.Name
 	}
-	if d.Version == "" {
-		d.Version = "latest"
-	}
 	if d.Registry == RegistryGithub && !strings.Contains(d.Path, "/") {
 		d.Path = "cloudquery/" + d.Path
 	}
@@ -43,10 +40,23 @@ func (d *Destination) UnmarshalSpec(out interface{}) error {
 	if err != nil {
 		return err
 	}
-	dec := json.NewDecoder(nil)
+	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.UseNumber()
 	dec.DisallowUnknownFields()
-	return json.Unmarshal(b, out)
+	return dec.Decode(out)
+}
+
+func (d *Destination) Validate() error {
+	if d.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if d.Version == "" {
+		return fmt.Errorf("version is required")
+	}
+	if !strings.HasPrefix(d.Version, "v") {
+		return fmt.Errorf("version must start with v")
+	}
+	return nil
 }
 
 func (m WriteMode) String() string {

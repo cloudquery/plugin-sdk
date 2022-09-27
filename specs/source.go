@@ -1,10 +1,10 @@
 package specs
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
-
-	"github.com/xeipuuv/gojsonschema"
 )
 
 // Source is the spec for a source plugin
@@ -40,11 +40,11 @@ func (s *Source) SetDefaults() {
 	if s.Path == "" {
 		s.Path = s.Name
 	}
-	if s.Version == "" {
-		s.Version = "latest"
-	}
 	if s.Registry == RegistryGithub && !strings.Contains(s.Path, "/") {
 		s.Path = "cloudquery/" + s.Path
+	}
+	if s.Tables == nil {
+		s.Tables = []string{"*"}
 	}
 }
 
@@ -54,12 +54,24 @@ func (s *Source) UnmarshalSpec(out interface{}) error {
 	if err != nil {
 		return err
 	}
-	dec := json.NewDecoder(nil)
+	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.UseNumber()
 	dec.DisallowUnknownFields()
-	return json.Unmarshal(b, out)
+	return dec.Decode(out)
 }
 
-func (*Source) Validate() (*gojsonschema.Result, error) {
-	return nil, nil
+func (s *Source) Validate() error {
+	if s.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if s.Version == "" {
+		return fmt.Errorf("version is required")
+	}
+	if !strings.HasPrefix(s.Version, "v") {
+		return fmt.Errorf("version must start with v")
+	}
+	if len(s.Destinations) == 0 {
+		return fmt.Errorf("at least one destination is required")
+	}
+	return nil
 }
