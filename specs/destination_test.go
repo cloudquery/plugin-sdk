@@ -26,7 +26,6 @@ func TestWriteModeFromString(t *testing.T) {
 	}
 }
 
-
 func TestDestinationSpecUnmarshalSpec(t *testing.T) {
 	destination := Destination{
 		Spec: map[string]interface{}{
@@ -42,20 +41,17 @@ func TestDestinationSpecUnmarshalSpec(t *testing.T) {
 	}
 }
 
-
-
-
 var destinationUnmarshalSpecTestCases = []struct {
-	name string
-	spec string
-	err string
+	name   string
+	spec   string
+	err    string
 	source *Source
 }{
 	{
-	"invalid_kind",
-	`kind: nice`,
-	"failed to decode spec: unknown kind nice",
-	nil,
+		"invalid_kind",
+		`kind: nice`,
+		"failed to decode spec: unknown kind nice",
+		nil,
 	},
 	{
 		"invalid_type",
@@ -65,7 +61,7 @@ spec:
 `,
 		"failed to decode spec: json: cannot unmarshal number into Go struct field Source.name of type string",
 		&Source{
-			Name: "test",
+			Name:   "test",
 			Tables: []string{"*"},
 		},
 	},
@@ -77,7 +73,7 @@ spec:
 `,
 		`failed to decode spec: json: unknown field "namea"`,
 		&Source{
-			Name: "test",
+			Name:   "test",
 			Tables: []string{"*"},
 		},
 	},
@@ -100,24 +96,22 @@ func TestDestinationUnmarshalSpec(t *testing.T) {
 			if cmp.Diff(source, tc.source) != "" {
 				t.Fatalf("expected:%v got:%v", tc.source, source)
 			}
-
 		})
 	}
 }
 
-
 var destinationUnmarshalSpecValidateTestCases = []struct {
-	name string
-	spec string
-	err string
+	name        string
+	spec        string
+	err         string
 	destination *Destination
 }{
 	{
-	"required_name",
-	`kind: destination
+		"required_name",
+		`kind: destination
 spec:`,
-	"name is required",
-	nil,
+		"name is required",
+		nil,
 	},
 	{
 		"required_version",
@@ -127,32 +121,32 @@ spec:
 `,
 		"version is required",
 		nil,
-		},
-		{
-			"required_version_format",
-			`kind: destination
+	},
+	{
+		"required_version_format",
+		`kind: destination
 spec:
   name: test
   version: 1.1.0
 `,
 		"version must start with v",
 		nil,
-		},
-		{
-			"success",
-			`kind: destination
+	},
+	{
+		"success",
+		`kind: destination
 spec:
   name: test
   version: v1.1.0
 `,
 		"",
 		&Destination{
-			Name: "test",
+			Name:     "test",
 			Registry: RegistryGithub,
-			Path: "cloudquery/test",
-			Version: "v1.1.0",
+			Path:     "cloudquery/test",
+			Version:  "v1.1.0",
 		},
-		},
+	},
 }
 
 func TestDestinationUnmarshalSpecValidate(t *testing.T) {
@@ -177,7 +171,6 @@ func TestDestinationUnmarshalSpecValidate(t *testing.T) {
 			if cmp.Diff(destination, tc.destination) != "" {
 				t.Fatalf("expected:%v got:%v", tc.destination, destination)
 			}
-
 		})
 	}
 }

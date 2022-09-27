@@ -46,7 +46,7 @@ func (d *Destination) UnmarshalSpec(out interface{}) error {
 	return dec.Decode(out)
 }
 
-func (d * Destination) Validate() error {
+func (d *Destination) Validate() error {
 	if d.Name == "" {
 		return fmt.Errorf("name is required")
 	}

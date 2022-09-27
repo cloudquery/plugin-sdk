@@ -6,18 +6,17 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-
 var sourceUnmarshalSpecTestCases = []struct {
-	name string
-	spec string
-	err string
+	name   string
+	spec   string
+	err    string
 	source *Source
 }{
 	{
-	"invalid_kind",
-	`kind: nice`,
-	"failed to decode spec: unknown kind nice",
-	nil,
+		"invalid_kind",
+		`kind: nice`,
+		"failed to decode spec: unknown kind nice",
+		nil,
 	},
 	{
 		"invalid_type",
@@ -27,7 +26,7 @@ spec:
 `,
 		"failed to decode spec: json: cannot unmarshal number into Go struct field Source.name of type string",
 		&Source{
-			Name: "test",
+			Name:   "test",
 			Tables: []string{"*"},
 		},
 	},
@@ -39,7 +38,7 @@ spec:
 `,
 		`failed to decode spec: json: unknown field "namea"`,
 		&Source{
-			Name: "test",
+			Name:   "test",
 			Tables: []string{"*"},
 		},
 	},
@@ -62,24 +61,22 @@ func TestSourceUnmarshalSpec(t *testing.T) {
 			if cmp.Diff(source, tc.source) != "" {
 				t.Fatalf("expected:%v got:%v", tc.source, source)
 			}
-
 		})
 	}
 }
 
-
 var sourceUnmarshalSpecValidateTestCases = []struct {
-	name string
-	spec string
-	err string
+	name   string
+	spec   string
+	err    string
 	source *Source
 }{
 	{
-	"required_name",
-	`kind: source
+		"required_name",
+		`kind: source
 spec:`,
-	"name is required",
-	nil,
+		"name is required",
+		nil,
 	},
 	{
 		"required_version",
@@ -89,30 +86,30 @@ spec:
 `,
 		"version is required",
 		nil,
-		},
-		{
-			"required_version_format",
-			`kind: source
+	},
+	{
+		"required_version_format",
+		`kind: source
 spec:
   name: test
   version: 1.1.0
 `,
 		"version must start with v",
 		nil,
-		},
-		{
-			"destination_required",
-			`kind: source
+	},
+	{
+		"destination_required",
+		`kind: source
 spec:
   name: test
   version: v1.1.0
 `,
 		"at leats one destination is required",
 		nil,
-		},
-		{
-			"success",
-			`kind: source
+	},
+	{
+		"success",
+		`kind: source
 spec:
   name: test
   version: v1.1.0
@@ -120,14 +117,14 @@ spec:
 `,
 		"",
 		&Source{
-			Name: "test",
-			Registry: RegistryGithub,
-			Path: "cloudquery/test",
-			Version: "v1.1.0",
-			Tables: []string{"*"},
+			Name:         "test",
+			Registry:     RegistryGithub,
+			Path:         "cloudquery/test",
+			Version:      "v1.1.0",
+			Tables:       []string{"*"},
 			Destinations: []string{"test"},
 		},
-		},
+	},
 }
 
 func TestSourceUnmarshalSpecValidate(t *testing.T) {
@@ -152,7 +149,6 @@ func TestSourceUnmarshalSpecValidate(t *testing.T) {
 			if cmp.Diff(source, tc.source) != "" {
 				t.Fatalf("expected:%v got:%v", tc.source, source)
 			}
-
 		})
 	}
 }
