@@ -66,3 +66,13 @@ func WithResolverTransformer(transformer ResolverTransformer) TableOption {
 		t.resolverTransformer = transformer
 	}
 }
+
+// WithCustomNameInitialisms adds acronyms to be handled by NameTransformer
+func WithCustomNameInitialisms(acronyms []string) TableOption {
+	return func(t *TableDefinition) {
+		customInitialisms = make(map[string]bool, len(acronyms))
+		for _, a := range acronyms {
+			customInitialisms[a] = true
+		}
+	}
+}

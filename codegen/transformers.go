@@ -6,11 +6,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/iancoleman/strcase"
 )
 
 type NameTransformer func(reflect.StructField) (string, error)
+
+var customInitialisms map[string]bool
 
 func DefaultNameTransformer(field reflect.StructField) (string, error) {
 	name := field.Name
@@ -21,7 +23,9 @@ func DefaultNameTransformer(field reflect.StructField) (string, error) {
 		}
 		name = jsonTag
 	}
-	return strcase.ToSnake(name), nil
+
+	caser.ConfigureInitialisms(customInitialisms)
+	return caser.ToSnake(name), nil
 }
 
 type TypeTransformer func(reflect.StructField) (schema.ValueType, error)

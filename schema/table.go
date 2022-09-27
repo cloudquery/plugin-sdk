@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/getsentry/sentry-go"
-	"github.com/iancoleman/strcase"
 	"github.com/thoas/go-funk"
 )
 
@@ -226,7 +226,7 @@ func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Re
 		} else {
 			meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver default started")
 			// base use case: try to get column with CamelCase name
-			v := funk.Get(resource.Item, strcase.ToCamel(c.Name), funk.WithAllowZero())
+			v := funk.Get(resource.Item, caser.ToPascal(c.Name), funk.WithAllowZero())
 			if v != nil {
 				if err := resource.Set(c.Name, v); err != nil {
 					meta.Logger().Error().Str("column_name", c.Name).Str("table", t.Name).Err(err).Msg("column resolver default finished with error")
