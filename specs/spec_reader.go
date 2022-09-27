@@ -20,9 +20,8 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 	data = []byte(os.ExpandEnv(string(data)))
 
 	// support multiple yamls in one file
-	for i, doc := range strings.Split(string(data), "---") {
+	for _, doc := range strings.Split(string(data), "\n---\n") {
 		var s Spec
-		fmt.Printf("what %d %s\n", i, path)
 		if err := SpecUnmarshalYamlStrict([]byte(doc), &s); err != nil {
 			return fmt.Errorf("failed to unmarshal file %s: %w", path, err)
 		}
