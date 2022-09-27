@@ -31,11 +31,19 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 			if r.Sources[source.Name] != nil {
 				return fmt.Errorf("duplicate source name %s", source.Name)
 			}
+			source.SetDefaults()
+			if err := source.Validate(); err != nil {
+				return fmt.Errorf("failed to validate source %s: %w", source.Name, err)
+			}
 			r.Sources[source.Name] = source
 		case KindDestination:
 			destination := s.Spec.(*Destination)
 			if r.Destinations[destination.Name] != nil {
 				return fmt.Errorf("duplicate destination name %s", destination.Name)
+			}
+			destination.SetDefaults()
+			if err := destination.Validate(); err != nil {
+				return fmt.Errorf("failed to validate destination %s: %w", destination.Name, err)
 			}
 			r.Destinations[destination.Name] = destination
 		default:
