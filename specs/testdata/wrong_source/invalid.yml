@@ -1,0 +1,6 @@
+kind: test
+spec:
+  name: test
+  version: v1.0.0
+  registry: grpc
+  write_mode: overwrite
