@@ -21,6 +21,7 @@ func Test_ToSnake(t *testing.T) {
 		{Camel: "QueryStoreRetention", Snake: "query_store_retention"},
 		{Camel: "TestCamelCaseLongString", Snake: "test_camel_case_long_string"},
 		{Camel: "testCamelCaseLongString", Snake: "test_camel_case_long_string"},
+		{Camel: "testIPv4", Snake: "test_ipv4"},
 	}
 	t.Parallel()
 	for _, tc := range generatorTests {
@@ -38,13 +39,13 @@ func Test_ToCamel(t *testing.T) {
 
 	generatorTests := []test{
 		{Camel: "testCamelCase", Snake: "test_camel_case"},
-		{Camel: "testCamelCase", Snake: "test_camel_case"},
 		{Camel: "accountID", Snake: "account_id"},
 		{Camel: "arns", Snake: "arns"},
 		{Camel: "postgreSQL", Snake: "postgre_sql"},
 		{Camel: "queryStoreRetention", Snake: "query_store_retention"},
 		{Camel: "testCamelCaseLongString", Snake: "test_camel_case_long_string"},
 		{Camel: "testCamelCaseLongString", Snake: "test_camel_case_long_string"},
+		{Camel: "testIPv4", Snake: "test_ipv4"},
 	}
 	t.Parallel()
 	for _, tc := range generatorTests {
@@ -56,24 +57,54 @@ func Test_ToCamel(t *testing.T) {
 
 func Test_ToPascal(t *testing.T) {
 	type test struct {
-		Camel string
-		Snake string
+		Pascal string
+		Snake  string
 	}
 
 	generatorTests := []test{
-		{Camel: "TestCamelCase", Snake: "test_camel_case"},
-		{Camel: "TestCamelCase", Snake: "test_camel_case"},
-		{Camel: "AccountID", Snake: "account_id"},
-		{Camel: "Arns", Snake: "arns"},
-		{Camel: "PostgreSQL", Snake: "postgre_sql"},
-		{Camel: "QueryStoreRetention", Snake: "query_store_retention"},
-		{Camel: "TestCamelCaseLongString", Snake: "test_camel_case_long_string"},
-		{Camel: "TestCamelCaseLongString", Snake: "test_camel_case_long_string"},
+		{Pascal: "TestCamelCase", Snake: "test_camel_case"},
+		{Pascal: "AccountID", Snake: "account_id"},
+		{Pascal: "Arns", Snake: "arns"},
+		{Pascal: "PostgreSQL", Snake: "postgre_sql"},
+		{Pascal: "QueryStoreRetention", Snake: "query_store_retention"},
+		{Pascal: "TestCamelCaseLongString", Snake: "test_camel_case_long_string"},
+		{Pascal: "TestCamelCaseLongString", Snake: "test_camel_case_long_string"},
+		{Pascal: "TestV1", Snake: "test_v1"},
+		{Pascal: "TestIPv4", Snake: "test_ipv4"},
+		{Pascal: "Ec2", Snake: "ec2"},
+		{Pascal: "S3", Snake: "s3"},
 	}
 	t.Parallel()
 	for _, tc := range generatorTests {
-		t.Run(tc.Camel, func(t *testing.T) {
-			assert.Equal(t, tc.Camel, ToPascal(tc.Snake))
+		t.Run(tc.Pascal, func(t *testing.T) {
+			assert.Equal(t, tc.Pascal, ToPascal(tc.Snake))
+		})
+	}
+}
+
+func TestInversion(t *testing.T) {
+	type test struct {
+		Pascal string
+	}
+
+	generatorTests := []test{
+		{Pascal: "TestCamelCase"},
+		{Pascal: "AccountID"},
+		{Pascal: "Arns"},
+		{Pascal: "PostgreSQL"},
+		{Pascal: "QueryStoreRetention"},
+		{Pascal: "TestCamelCaseLongString"},
+		{Pascal: "TestCamelCaseLongString"},
+		{Pascal: "TestV1"},
+		{Pascal: "TestIPv4"},
+		{Pascal: "TestIPv4"},
+		{Pascal: "EC2"},
+		{Pascal: "S3"},
+	}
+	t.Parallel()
+	for _, tc := range generatorTests {
+		t.Run(tc.Pascal, func(t *testing.T) {
+			assert.Equal(t, tc.Pascal, ToPascal(ToSnake(tc.Pascal)))
 		})
 	}
 }
@@ -87,8 +118,10 @@ func Test_Configure(t *testing.T) {
 	generatorTests := []test{
 		{Camel: "CDNs", Snake: "cdns"},
 		{Camel: "ARNs", Snake: "arns"},
+		{Camel: "EC2", Snake: "ec2"},
+		{Camel: "S3", Snake: "s3"},
 	}
-	ConfigureInitialisms(map[string]bool{"CDN": true, "ARN": true})
+	ConfigureInitialisms(map[string]bool{"CDN": true, "ARN": true, "EC2": true})
 	t.Parallel()
 	for _, tc := range generatorTests {
 		t.Run(tc.Camel, func(t *testing.T) {

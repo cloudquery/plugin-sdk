@@ -48,6 +48,11 @@ func ToSnake(s string) string {
 			result += "_"
 		}
 
+		if exception, ok := camelToSnakeExceptions[word]; ok {
+			result += exception
+			continue
+		}
+
 		result += strings.ToLower(word)
 	}
 
@@ -74,7 +79,7 @@ func ToCamel(s string) string {
 
 	words := strings.Split(s, "_")
 	for i, word := range words {
-		if exception := snakeToCamelExceptions[word]; len(exception) > 0 {
+		if exception, ok := snakeToCamelExceptions[word]; ok {
 			result += exception
 			continue
 		}
