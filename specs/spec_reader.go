@@ -70,12 +70,12 @@ func NewSpecReader(paths []string) (*SpecReader, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to open path %s: %w", path, err)
 		}
-		defer file.Close()
 		fileInfo, err := file.Stat()
 		if err != nil {
+			file.Close()
 			return nil, fmt.Errorf("failed to stat path %s: %w", path, err)
 		}
-
+		file.Close()
 		if fileInfo.IsDir() {
 			if err := reader.loadSpecsFromDir(path); err != nil {
 				return nil, err
@@ -95,5 +95,3 @@ func NewSpecReader(paths []string) (*SpecReader, error) {
 	}
 	return reader, nil
 }
-
-
