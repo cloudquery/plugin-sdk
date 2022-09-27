@@ -1,0 +1,14 @@
+kind: source
+spec:
+  name: gcp
+  version: v1.0.0
+  concurrency: 10
+  registry: local
+---
+kind: destination
+spec:
+  name: postgresqlv2
+  path: cloudquery/postgresql
+  version: v1.0.0
+  registry: grpc
+  write_mode: overwrite
