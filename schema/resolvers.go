@@ -32,9 +32,8 @@ func ParentIDResolver(_ context.Context, _ ClientMeta, r *Resource, c Column) er
 	return r.Set(c.Name, r.Parent.ID())
 }
 
-// ParentResourceFieldResolver resolves a field from the parent's resource, the value is expected to be set
-// if name isn't set the field will be set to null
-func ParentResourceFieldResolver(name string) ColumnResolver {
+// ParentColumnResolver resolves a column from the parent's table data, if name isn't set the column will be set to null
+func ParentColumnResolver(name string) ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		return r.Set(c.Name, r.Parent.Get(name))
 	}
