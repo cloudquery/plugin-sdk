@@ -22,6 +22,12 @@ func Test_ToSnake(t *testing.T) {
 		{Camel: "TestCamelCaseLongString", Snake: "test_camel_case_long_string"},
 		{Camel: "testCamelCaseLongString", Snake: "test_camel_case_long_string"},
 		{Camel: "testIPv4", Snake: "test_ipv4"},
+		{Camel: "CoreIPs", Snake: "core_ips"},
+		{Camel: "CoreIps", Snake: "core_ips"},
+		{Camel: "CoreV1", Snake: "core_v1"},
+		{Camel: "APIVersion", Snake: "api_version"},
+		{Camel: "TTLSecondsAfterFinished", Snake: "ttl_seconds_after_finished"},
+		{Camel: "PodCIDRs", Snake: "pod_cidrs"},
 	}
 	t.Parallel()
 	for _, tc := range generatorTests {
