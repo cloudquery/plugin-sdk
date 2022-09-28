@@ -3,7 +3,9 @@ package codegen
 import (
 	"bytes"
 	"fmt"
+	"github.com/cloudquery/plugin-sdk/caser"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -190,6 +192,20 @@ func customTypeTransformer(field reflect.StructField) (schema.ValueType, error) 
 	}
 }
 
+func customNameTransformer(field reflect.StructField) (string, error) {
+	name := field.Name
+	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
+		// return empty string if the field is not related api response
+		if jsonTag == "-" {
+			return "", nil
+		}
+		name = jsonTag
+	}
+
+	c := caser.New(caser.WithCustomInitialims(map[string]bool{"CDN": true, "IP": true, "IPv6": true, "IPV6": true, "CIDR": true}))
+	return c.ToSnake(name), nil
+}
+
 func TestTableFromGoStruct(t *testing.T) {
 	type args struct {
 		testStruct interface{}
@@ -246,7 +262,7 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should handle default and custom acronyms correctly",
 			args: args{
 				testStruct: testStructCaseCheck{},
-				options:    []TableOption{WithCustomNameInitialisms([]string{"CDN", "IP", "IPv6", "IPV6", "CIDR"})},
+				options:    []TableOption{WithNameTransformer(customNameTransformer)},
 			},
 			want: TableDefinition{Name: "test_struct",
 				// We expect the time column to be of type JSON, since we override the type of `time.Time` to be JSON

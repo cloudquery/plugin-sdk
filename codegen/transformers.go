@@ -12,8 +12,6 @@ import (
 
 type NameTransformer func(reflect.StructField) (string, error)
 
-var customInitialisms map[string]bool
-
 func DefaultNameTransformer(field reflect.StructField) (string, error) {
 	name := field.Name
 	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
@@ -24,8 +22,8 @@ func DefaultNameTransformer(field reflect.StructField) (string, error) {
 		name = jsonTag
 	}
 
-	caser.ConfigureInitialisms(customInitialisms)
-	return caser.ToSnake(name), nil
+	c := caser.New()
+	return c.ToSnake(name), nil
 }
 
 type TypeTransformer func(reflect.StructField) (schema.ValueType, error)

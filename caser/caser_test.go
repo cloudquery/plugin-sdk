@@ -30,9 +30,10 @@ func Test_ToSnake(t *testing.T) {
 		{Camel: "PodCIDRs", Snake: "pod_cidrs"},
 	}
 	t.Parallel()
+	c := New()
 	for _, tc := range generatorTests {
 		t.Run(tc.Camel, func(t *testing.T) {
-			assert.Equal(t, tc.Snake, ToSnake(tc.Camel))
+			assert.Equal(t, tc.Snake, c.ToSnake(tc.Camel))
 		})
 	}
 }
@@ -54,9 +55,10 @@ func Test_ToCamel(t *testing.T) {
 		{Camel: "testIPv4", Snake: "test_ipv4"},
 	}
 	t.Parallel()
+	c := New()
 	for _, tc := range generatorTests {
 		t.Run(tc.Camel, func(t *testing.T) {
-			assert.Equal(t, tc.Camel, ToCamel(tc.Snake))
+			assert.Equal(t, tc.Camel, c.ToCamel(tc.Snake))
 		})
 	}
 }
@@ -81,9 +83,10 @@ func Test_ToPascal(t *testing.T) {
 		{Pascal: "S3", Snake: "s3"},
 	}
 	t.Parallel()
+	c := New()
 	for _, tc := range generatorTests {
 		t.Run(tc.Pascal, func(t *testing.T) {
-			assert.Equal(t, tc.Pascal, ToPascal(tc.Snake))
+			assert.Equal(t, tc.Pascal, c.ToPascal(tc.Snake))
 		})
 	}
 }
@@ -107,9 +110,10 @@ func TestInversion(t *testing.T) {
 		{Pascal: "S3"},
 	}
 	t.Parallel()
+	c := New()
 	for _, tc := range generatorTests {
 		t.Run(tc.Pascal, func(t *testing.T) {
-			assert.Equal(t, tc.Pascal, ToPascal(ToSnake(tc.Pascal)))
+			assert.Equal(t, tc.Pascal, c.ToPascal(c.ToSnake(tc.Pascal)))
 		})
 	}
 }
@@ -126,11 +130,30 @@ func Test_Configure(t *testing.T) {
 		{Camel: "EC2", Snake: "ec2"},
 		{Camel: "S3", Snake: "s3"},
 	}
-	ConfigureInitialisms(map[string]bool{"CDN": true, "ARN": true, "EC2": true})
 	t.Parallel()
+	c := New(WithCustomInitialims(map[string]bool{"CDN": true, "ARN": true, "EC2": true}))
 	for _, tc := range generatorTests {
 		t.Run(tc.Camel, func(t *testing.T) {
-			assert.Equal(t, tc.Snake, ToSnake(tc.Camel))
+			assert.Equal(t, tc.Snake, c.ToSnake(tc.Camel))
+		})
+	}
+}
+
+func Test_Exceptions(t *testing.T) {
+	type test struct {
+		Camel string
+		Snake string
+	}
+
+	generatorTests := []test{
+		{Camel: "TEst", Snake: "test"},
+		{Camel: "TTv2", Snake: "ttv2"},
+	}
+	t.Parallel()
+	c := New(WithCustomExceptions(map[string]string{"test": "TEst", "ttv2": "TTv2"}))
+	for _, tc := range generatorTests {
+		t.Run(tc.Camel, func(t *testing.T) {
+			assert.Equal(t, tc.Camel, c.ToCamel(tc.Snake))
 		})
 	}
 }

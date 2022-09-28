@@ -216,6 +216,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 }
 
 func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource) {
+	csr := caser.New()
 	for _, c := range t.Columns {
 		if c.Resolver != nil {
 			meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver custom started")
@@ -226,7 +227,7 @@ func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Re
 		} else {
 			meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver default started")
 			// base use case: try to get column with CamelCase name
-			v := funk.Get(resource.Item, caser.ToPascal(c.Name), funk.WithAllowZero())
+			v := funk.Get(resource.Item, csr.ToPascal(c.Name), funk.WithAllowZero())
 			if v != nil {
 				if err := resource.Set(c.Name, v); err != nil {
 					meta.Logger().Error().Str("column_name", c.Name).Str("table", t.Name).Err(err).Msg("column resolver default finished with error")
