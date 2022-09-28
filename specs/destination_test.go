@@ -133,6 +133,36 @@ spec:
 		nil,
 	},
 	{
+		"version_is_not_required_for_grpc_registry",
+		`kind: destination
+spec:
+  name: test
+  registry: grpc
+  path: "localhost:9999"
+`,
+		"",
+		&Destination{
+			Name:     "test",
+			Registry: RegistryGrpc,
+			Path:     "localhost:9999",
+		},
+	},
+	{
+		"version_is_not_required_for_local_registry",
+		`kind: destination
+spec:
+  name: test
+  registry: local
+  path: "/home/user/some_executable"
+`,
+		"",
+		&Destination{
+			Name:     "test",
+			Registry: RegistryLocal,
+			Path:     "/home/user/some_executable",
+		},
+	},
+	{
 		"success",
 		`kind: destination
 spec:
