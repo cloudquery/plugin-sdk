@@ -134,7 +134,7 @@ func Test_Configure(t *testing.T) {
 		{Camel: "S3", Snake: "s3"},
 	}
 	t.Parallel()
-	c := New(WithCustomInitialims(map[string]bool{"CDN": true, "ARN": true, "EC2": true}))
+	c := New(WithCustomInitialisms(map[string]bool{"CDN": true, "ARN": true, "EC2": true}))
 	for _, tc := range generatorTests {
 		t.Run(tc.Camel, func(t *testing.T) {
 			assert.Equal(t, tc.Snake, c.ToSnake(tc.Camel))

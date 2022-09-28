@@ -202,7 +202,7 @@ func customNameTransformer(field reflect.StructField) (string, error) {
 		name = jsonTag
 	}
 
-	c := caser.New(caser.WithCustomInitialims(map[string]bool{"CDN": true, "IP": true, "IPv6": true, "IPV6": true, "CIDR": true}))
+	c := caser.New(caser.WithCustomInitialisms(map[string]bool{"CDN": true, "IP": true, "IPv6": true, "IPV6": true, "CIDR": true}))
 	return c.ToSnake(name), nil
 }
 
