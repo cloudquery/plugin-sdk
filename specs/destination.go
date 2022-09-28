@@ -50,12 +50,16 @@ func (d *Destination) Validate() error {
 	if d.Name == "" {
 		return fmt.Errorf("name is required")
 	}
-	if d.Version == "" {
-		return fmt.Errorf("version is required")
+
+	if d.Registry == RegistryGithub {
+		if d.Version == "" {
+			return fmt.Errorf("version is required")
+		}
+		if !strings.HasPrefix(d.Version, "v") {
+			return fmt.Errorf("version must start with v")
+		}
 	}
-	if !strings.HasPrefix(d.Version, "v") {
-		return fmt.Errorf("version must start with v")
-	}
+
 	return nil
 }
 

@@ -64,12 +64,16 @@ func (s *Source) Validate() error {
 	if s.Name == "" {
 		return fmt.Errorf("name is required")
 	}
-	if s.Version == "" {
-		return fmt.Errorf("version is required")
+
+	if s.Registry == RegistryGithub {
+		if s.Version == "" {
+			return fmt.Errorf("version is required")
+		}
+		if !strings.HasPrefix(s.Version, "v") {
+			return fmt.Errorf("version must start with v")
+		}
 	}
-	if !strings.HasPrefix(s.Version, "v") {
-		return fmt.Errorf("version must start with v")
-	}
+
 	if len(s.Destinations) == 0 {
 		return fmt.Errorf("at least one destination is required")
 	}
