@@ -99,7 +99,6 @@ func (c *Caser) ToSnake(s string) string {
 
 			words = append(words, s[lastPos:i])
 			lastPos = i
-
 		}
 	}
 
