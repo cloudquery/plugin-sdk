@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/rs/zerolog"
 	"golang.org/x/exp/slices"
 )
@@ -38,7 +37,6 @@ type (
 		unwrapAllEmbeddedStructFields bool
 
 		logger zerolog.Logger
-		caser  *caser.Caser
 	}
 )
 
@@ -61,7 +59,6 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOption) (*Tab
 		nameTransformer:     DefaultNameTransformer,
 		typeTransformer:     DefaultTypeTransformer,
 		resolverTransformer: DefaultResolverTransformer,
-		caser:               caser.New(),
 	}
 	for _, opt := range opts {
 		opt(t)
