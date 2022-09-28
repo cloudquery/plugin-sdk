@@ -48,11 +48,14 @@ func (s *DestinationServer) Migrate(ctx context.Context, req *pb.Migrate_Request
 }
 
 func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
+	failedWrites := uint64(0)
 	for {
 		r, err := msg.Recv()
 		if err != nil {
 			if err == io.EOF {
-				return nil
+				return msg.SendAndClose(&pb.Write_Response{
+					FailedWrites: failedWrites,
+				})
 			}
 			return fmt.Errorf("write: failed to receive msg: %w", err)
 		}
@@ -60,8 +63,8 @@ func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 		}
-		if err := s.Plugin.Write(context.Background(), resource.TableName, resource.Data); err != nil {
-			return fmt.Errorf("write: failed to write resource: %w", err)
+		if err := s.Plugin.Write(msg.Context(), resource.TableName, resource.Data); err != nil {
+			failedWrites++
 		}
 	}
 }

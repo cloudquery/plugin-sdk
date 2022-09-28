@@ -33,5 +33,6 @@ message Write {
     bytes resource = 1;
   }
   message Response {
+    uint64 failed_writes = 1;
   }
 }
