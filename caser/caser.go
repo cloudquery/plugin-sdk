@@ -16,8 +16,8 @@ type Caser struct {
 
 type Option func(*Caser)
 
-// WithCustomInitialims allows to specify custom initialisms for caser.
-func WithCustomInitialims(fields map[string]bool) Option {
+// WithCustomInitialisms allows specifying custom initialisms for caser.
+func WithCustomInitialisms(fields map[string]bool) Option {
 	return func(c *Caser) {
 		for k, v := range fields {
 			c.initialisms[k] = v
