@@ -56,6 +56,8 @@ func New(opts ...Option) *Caser {
 	return c
 }
 
+// getCapWord gets the next sequence of capitalized letters as a single word.
+// If there is a word after capitalized sequence it leaves one letter as beginning of the next word
 func getCapWord(s string) string {
 	for i, r := range s {
 		if !unicode.IsUpper(r) {
