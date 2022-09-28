@@ -71,14 +71,17 @@ func (c *DestinationClient) Write(ctx context.Context, resources <-chan []byte) 
 	if err != nil {
 		return 0, fmt.Errorf("failed to create save client: %w", err)
 	}
-	var failedWrites uint64
 	for resource := range resources {
 		if err := saveClient.Send(&pb.Write_Request{
 			Resource: resource,
 		}); err != nil {
-			failedWrites++
+			return 0, err
 		}
 	}
+	res, err := saveClient.CloseAndRecv()
+	if err != nil {
+		return 0, fmt.Errorf("failed to CloseAndRecv client: %w", err)
+	}
 
-	return failedWrites, nil
+	return res.FailedWrites, nil
 }
