@@ -28,6 +28,9 @@ func Test_ToSnake(t *testing.T) {
 		{Camel: "APIVersion", Snake: "api_version"},
 		{Camel: "TTLSecondsAfterFinished", Snake: "ttl_seconds_after_finished"},
 		{Camel: "PodCIDRs", Snake: "pod_cidrs"},
+		{Camel: "IAMRoles", Snake: "iam_roles"},
+		{Camel: "testIAM", Snake: "test_iam"},
+		{Camel: "TestAWSMode", Snake: "test_aws_mode"},
 	}
 	t.Parallel()
 	c := New()

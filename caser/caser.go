@@ -36,14 +36,6 @@ func WithCustomExceptions(fields map[string]string) Option {
 	}
 }
 
-func reverseMap(m map[string]string) map[string]string {
-	n := make(map[string]string, len(m))
-	for k, v := range m {
-		n[v] = k
-	}
-	return n
-}
-
 // New creates a new instance of caser
 func New(opts ...Option) *Caser {
 	c := &Caser{
@@ -64,6 +56,18 @@ func New(opts ...Option) *Caser {
 	return c
 }
 
+func getCapWord(s string) string {
+	for i, r := range s {
+		if !unicode.IsUpper(r) {
+			if i == 0 {
+				return ""
+			}
+			return s[:i-1]
+		}
+	}
+	return s
+}
+
 // ToSnake converts a given string to snake case
 func (c *Caser) ToSnake(s string) string {
 	if s == "" {
@@ -76,6 +80,7 @@ func (c *Caser) ToSnake(s string) string {
 
 	for i := 0; i < len(rs); i++ {
 		if i > 0 && unicode.IsUpper(rs[i]) {
+			// check if next word is initialism
 			if initialism := c.startsWithInitialism(s[lastPos:]); initialism != "" {
 				words = append(words, initialism)
 
@@ -84,8 +89,17 @@ func (c *Caser) ToSnake(s string) string {
 				continue
 			}
 
+			if capWord := getCapWord(s[lastPos:]); capWord != "" {
+				words = append(words, capWord)
+
+				i = lastPos + len(capWord)
+				lastPos = i
+				continue
+			}
+
 			words = append(words, s[lastPos:i])
 			lastPos = i
+
 		}
 	}
 
