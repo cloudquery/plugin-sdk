@@ -3,7 +3,6 @@ package schema
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/thoas/go-funk"
 )
 
@@ -16,13 +15,6 @@ import (
 func PathResolver(path string) ColumnResolver {
 	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
 		return r.Set(c.Name, funk.Get(r.Item, path, funk.WithAllowZero()))
-	}
-}
-
-func CQUUIDResolver() ColumnResolver {
-	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
-		uuidGen := uuid.New()
-		return r.Set(c.Name, uuidGen)
 	}
 }
 
