@@ -3,7 +3,6 @@ package schema
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/thoas/go-funk"
 )
 
@@ -19,13 +18,6 @@ func PathResolver(path string) ColumnResolver {
 	}
 }
 
-func CQUUIDResolver() ColumnResolver {
-	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
-		uuidGen := uuid.New()
-		return r.Set(c.Name, uuidGen)
-	}
-}
-
 // ParentIDResolver resolves the cq_id from the parent
 // if you want to reference the parent's primary keys use ParentResourceFieldResolver as required.
 func ParentIDResolver(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
@@ -36,12 +28,5 @@ func ParentIDResolver(_ context.Context, _ ClientMeta, r *Resource, c Column) er
 func ParentColumnResolver(name string) ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		return r.Set(c.Name, r.Parent.Get(name))
-	}
-}
-
-// ParentPathResolver resolves a field from the parent
-func ParentPathResolver(path string) ColumnResolver {
-	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
-		return r.Set(c.Name, funk.Get(r.Parent.Item, path, funk.WithAllowZero()))
 	}
 }
