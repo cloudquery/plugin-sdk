@@ -31,10 +31,3 @@ func ParentResourceFieldResolver(name string) ColumnResolver {
 		return r.Set(c.Name, r.Parent.Get(name))
 	}
 }
-
-// ParentPathResolver resolves a field from the parent
-func ParentPathResolver(path string) ColumnResolver {
-	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
-		return r.Set(c.Name, funk.Get(r.Parent.Item, path, funk.WithAllowZero()))
-	}
-}
