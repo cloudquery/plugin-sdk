@@ -12,7 +12,7 @@ import (
 
 type NameTransformer func(reflect.StructField) (string, error)
 
-var customInitialisms map[string]bool
+var defaultCaser = caser.New()
 
 func DefaultNameTransformer(field reflect.StructField) (string, error) {
 	name := field.Name
@@ -23,9 +23,7 @@ func DefaultNameTransformer(field reflect.StructField) (string, error) {
 		}
 		name = jsonTag
 	}
-
-	caser.ConfigureInitialisms(customInitialisms)
-	return caser.ToSnake(name), nil
+	return defaultCaser.ToSnake(name), nil
 }
 
 type TypeTransformer func(reflect.StructField) (schema.ValueType, error)

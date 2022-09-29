@@ -8,8 +8,70 @@ import (
 	"golang.org/x/text/language"
 )
 
+type Caser struct {
+	initialisms            map[string]bool
+	camelToSnakeExceptions map[string]string
+	snakeToCamelException  map[string]string
+}
+
+type Option func(*Caser)
+
+// WithCustomInitialisms allows specifying custom initialisms for caser.
+func WithCustomInitialisms(fields map[string]bool) Option {
+	return func(c *Caser) {
+		for k, v := range fields {
+			c.initialisms[k] = v
+		}
+	}
+}
+
+// WithCustomExceptions allows to specify custom exceptions for caser.
+// The parameter is a map of camel:snake values like map[string]string{"oauth":"OAuth"}
+func WithCustomExceptions(fields map[string]string) Option {
+	return func(c *Caser) {
+		for k, v := range fields {
+			c.camelToSnakeExceptions[v] = k
+			c.snakeToCamelException[k] = v
+		}
+	}
+}
+
+// New creates a new instance of caser
+func New(opts ...Option) *Caser {
+	c := &Caser{
+		initialisms:            make(map[string]bool),
+		camelToSnakeExceptions: make(map[string]string),
+		snakeToCamelException:  make(map[string]string),
+	}
+	for k, v := range commonInitialisms {
+		c.initialisms[k] = v
+	}
+	for k, v := range commonExceptions {
+		c.snakeToCamelException[k] = v
+		c.camelToSnakeExceptions[v] = k
+	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
+}
+
+// getCapWord gets the next sequence of capitalized letters as a single word.
+// If there is a word after capitalized sequence it leaves one letter as beginning of the next word
+func getCapWord(s string) string {
+	for i, r := range s {
+		if !unicode.IsUpper(r) {
+			if i == 0 {
+				return ""
+			}
+			return s[:i-1]
+		}
+	}
+	return s
+}
+
 // ToSnake converts a given string to snake case
-func ToSnake(s string) string {
+func (c *Caser) ToSnake(s string) string {
 	if s == "" {
 		return s
 	}
@@ -20,10 +82,19 @@ func ToSnake(s string) string {
 
 	for i := 0; i < len(rs); i++ {
 		if i > 0 && unicode.IsUpper(rs[i]) {
-			if initialism := startsWithInitialism(s[lastPos:]); initialism != "" {
+			// check if next word is initialism
+			if initialism := c.startsWithInitialism(s[lastPos:]); initialism != "" {
 				words = append(words, initialism)
 
 				i = lastPos + len(initialism)
+				lastPos = i
+				continue
+			}
+
+			if capWord := getCapWord(s[lastPos:]); capWord != "" {
+				words = append(words, capWord)
+
+				i = lastPos + len(capWord)
 				lastPos = i
 				continue
 			}
@@ -48,7 +119,7 @@ func ToSnake(s string) string {
 			result += "_"
 		}
 
-		if exception, ok := camelToSnakeExceptions[word]; ok {
+		if exception, ok := c.camelToSnakeExceptions[word]; ok {
 			result += exception
 			continue
 		}
@@ -60,18 +131,17 @@ func ToSnake(s string) string {
 }
 
 // ToPascal returns a string converted from snake case to pascal case
-func ToPascal(s string) string {
+func (c *Caser) ToPascal(s string) string {
 	if s == "" {
 		return s
 	}
-	result := ToCamel(s)
-	c := cases.Title(language.Und, cases.NoLower)
-
-	return c.String(result)
+	result := c.ToCamel(s)
+	csr := cases.Title(language.Und, cases.NoLower)
+	return csr.String(result)
 }
 
 // ToCamel returns a string converted from snake case to camel case
-func ToCamel(s string) string {
+func (c *Caser) ToCamel(s string) string {
 	if s == "" {
 		return s
 	}
@@ -79,14 +149,14 @@ func ToCamel(s string) string {
 
 	words := strings.Split(s, "_")
 	for i, word := range words {
-		if exception, ok := snakeToCamelExceptions[word]; ok {
+		if exception, ok := c.snakeToCamelException[word]; ok {
 			result += exception
 			continue
 		}
 
 		if i > 0 {
 			upper := strings.ToUpper(word)
-			if len(s) > i-1 && commonInitialisms[upper] {
+			if len(s) > i-1 && c.initialisms[upper] {
 				result += upper
 				continue
 			}
@@ -102,4 +172,17 @@ func ToCamel(s string) string {
 	}
 
 	return result
+}
+
+// startsWithInitialism returns the initialism if the given string begins with it
+func (c *Caser) startsWithInitialism(s string) string {
+	var initialism string
+	// the longest initialism is 5 char, the shortest 2
+	// we choose the longest match
+	for i := 1; i <= len(s) && i <= 5; i++ {
+		if len(s) > i-1 && c.initialisms[s[:i]] && len(s[:i]) > len(initialism) {
+			initialism = s[:i]
+		}
+	}
+	return initialism
 }
