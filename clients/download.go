@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 )
 
 type PluginType string
@@ -19,12 +18,7 @@ const (
 	PluginTypeDestination PluginType = "destination"
 )
 
-func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath string, version string, typ PluginType, writers ...io.Writer) error {
-	pathSplit := strings.Split(githubPath, "/")
-	if len(pathSplit) != 2 {
-		return fmt.Errorf("invalid github path. should be in format: owner/repo")
-	}
-	org, name := pathSplit[0], pathSplit[1]
+func DownloadPluginFromGithub(ctx context.Context, localPath string, org string, name string, version string, typ PluginType, writers ...io.Writer) error {
 	downloadDir := filepath.Dir(localPath)
 	pluginZipPath := localPath + ".zip"
 	// https://github.com/cloudquery/cloudquery/releases/download/plugins-source-test-v1.1.5/test_darwin_amd64.zip
