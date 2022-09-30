@@ -47,9 +47,9 @@ func NewSourceClient(cc grpc.ClientConnInterface) *SourceClient {
 	}
 }
 
-// NewSourceClientSpawn starts a new source plugin process, connects to it via gRPC server
+// NewSourceClientFromPath starts a new source plugin process, connects to it via gRPC server
 // and returns a new SourceClient
-func NewSourceClientSpawn(ctx context.Context, path string, opts ...SourceClientOption) (*SourceClient, error) {
+func NewSourceClientFromPath(ctx context.Context, path string, opts ...SourceClientOption) (*SourceClient, error) {
 	c := &SourceClient{
 		logger: log.Logger,
 	}

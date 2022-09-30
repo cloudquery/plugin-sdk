@@ -102,7 +102,7 @@ func downloadFile(ctx context.Context, localPath string, url string, writers ...
 	var w []io.Writer
 	w = append(w, out)
 	w = append(w, writers...)
-	
+
 	// Writer the body to file
 	_, err = io.Copy(io.MultiWriter(w...), resp.Body)
 	if err != nil {

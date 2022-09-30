@@ -40,9 +40,9 @@ func NewDestinationClient(cc grpc.ClientConnInterface) *DestinationClient {
 	}
 }
 
-// NewDestinationClientSpawn starts a new destination plugin process, connects to it via gRPC server
+// NewDestinationClientFromPath starts a new destination plugin process, connects to it via gRPC server
 // and returns a new DestinationClient
-func NewDestinationClient(ctx context.Context, path string, opts ...DestinationClientOption) (*DestinationClient, error) {
+func NewDestinationClientFromPath(ctx context.Context, path string, opts ...DestinationClientOption) (*DestinationClient, error) {
 	c := &DestinationClient{
 		logger: log.Logger,
 	}

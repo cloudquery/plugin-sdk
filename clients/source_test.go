@@ -35,7 +35,7 @@ func TestSourceClient(t *testing.T) {
 			if err := DownloadPluginFromGithub(ctx, localPath, tc.Path, tc.Version, PluginTypeSource); err != nil {
 				t.Fatal(err)
 			}
-			c, err := NewSourceClientSpawn(ctx, localPath, WithSourceLogger(l))
+			c, err := NewSourceClientFromPath(ctx, localPath, WithSourceLogger(l))
 			if err != nil {
 				t.Fatal(err)
 			}
