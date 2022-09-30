@@ -35,7 +35,7 @@ func TestDestinationClient(t *testing.T) {
 			if err := DownloadPluginFromGithub(ctx, localPath, tc.Path, tc.Version, PluginTypeDestination); err != nil {
 				t.Fatal(err)
 			}
-			c, err := NewDestinationClientFromPath(ctx, localPath, WithDestinationLogger(l))
+			c, err := NewManagedDestinationClient(ctx, localPath, WithDestinationLogger(l))
 			if err != nil {
 				t.Fatal(err)
 			}
