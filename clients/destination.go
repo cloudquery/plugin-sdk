@@ -18,12 +18,12 @@ import (
 )
 
 type DestinationClient struct {
-	pbClient pb.DestinationClient
-	cmd      *exec.Cmd
-	logger    zerolog.Logger
-	conn 	 *grpc.ClientConn
+	pbClient       pb.DestinationClient
+	cmd            *exec.Cmd
+	logger         zerolog.Logger
+	conn           *grpc.ClientConn
 	grpcSocketName string
-	cmdWaitErr error
+	cmdWaitErr     error
 }
 
 type DestinationClientOption func(*DestinationClient)
@@ -44,7 +44,7 @@ func NewDestinationClient(cc grpc.ClientConnInterface) *DestinationClient {
 // and returns a new SourceClient
 func NewDestinationClientSpawn(ctx context.Context, path string, opts ...DestinationClientOption) (*DestinationClient, error) {
 	c := &DestinationClient{
-		logger:    log.Logger,
+		logger: log.Logger,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -161,7 +161,7 @@ func (c *DestinationClient) Write(ctx context.Context, resources <-chan []byte) 
 // Close is used only in conjuncetion with NewDestinationPluginSpawn
 // it closes the connection it created, kills the spawned process and removes the socket file
 func (c *DestinationClient) Close() error {
-	if c.grpcSocketName != ""{
+	if c.grpcSocketName != "" {
 		defer os.Remove(c.grpcSocketName)
 	}
 

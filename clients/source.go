@@ -20,12 +20,12 @@ import (
 
 // SourceClient
 type SourceClient struct {
-	pbClient pb.SourceClient
-	cmd      *exec.Cmd
-	logger    zerolog.Logger
-	conn 	 *grpc.ClientConn
+	pbClient       pb.SourceClient
+	cmd            *exec.Cmd
+	logger         zerolog.Logger
+	conn           *grpc.ClientConn
 	grpcSocketName string
-	cmdWaitErr error
+	cmdWaitErr     error
 }
 
 type FetchResultMessage struct {
@@ -51,7 +51,7 @@ func NewSourceClient(cc grpc.ClientConnInterface) *SourceClient {
 // and returns a new SourceClient
 func NewSourceClientSpawn(ctx context.Context, path string, opts ...SourceClientOption) (*SourceClient, error) {
 	c := &SourceClient{
-		logger:    log.Logger,
+		logger: log.Logger,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -154,11 +154,10 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	}
 }
 
-
 // Close is used only in conjuncetion with NewSourcePluginSpawn
 // it closes the connection it created, kills the spawned process and removes the socket file
 func (c *SourceClient) Close() error {
-	if c.grpcSocketName != ""{
+	if c.grpcSocketName != "" {
 		defer os.Remove(c.grpcSocketName)
 	}
 

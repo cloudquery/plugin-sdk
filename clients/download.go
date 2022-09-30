@@ -21,7 +21,6 @@ const (
 	PluginTypeDestination PluginType = "destination"
 )
 
-
 func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath string, version string, typ PluginType) error {
 	pathSplit := strings.Split(githubPath, "/")
 	if len(pathSplit) != 2 {
@@ -31,10 +30,10 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath 
 	downloadDir := filepath.Dir(localPath)
 	pluginZipPath := localPath + ".zip"
 	// https://github.com/cloudquery/cloudquery/releases/download/plugins-source-test-v1.1.5/test_darwin_amd64.zip
-	downloadUrl := fmt.Sprintf("https://github.com/cloudquery/cloudquery/releases/download/plugins-%s-%s-%s/%s_%s_%s.zip", typ, name, version, name, runtime.GOOS, runtime.GOARCH)
+	downloadURL := fmt.Sprintf("https://github.com/cloudquery/cloudquery/releases/download/plugins-%s-%s-%s/%s_%s_%s.zip", typ, name, version, name, runtime.GOOS, runtime.GOARCH)
 	if org != "cloudquery" {
 		// https://github.com/yevgenypats/cq-source-test/releases/download/v1.0.1/cq-source-test_darwin_amd64.zip
-		downloadUrl = fmt.Sprintf("https://github.com/%s/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", org, typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH)
+		downloadURL = fmt.Sprintf("https://github.com/%s/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", org, typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH)
 	}
 
 	if _, err := os.Stat(localPath); err == nil {
@@ -45,7 +44,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath 
 		return fmt.Errorf("failed to create plugin directory %s: %w", downloadDir, err)
 	}
 
-	err := downloadFile(pluginZipPath, downloadUrl, "Downloading "+string(typ)+" plugin "+name+" version "+version)
+	err := downloadFile(ctx, pluginZipPath, downloadURL, "Downloading "+string(typ)+" plugin "+name+" version "+version)
 	if err != nil {
 		return fmt.Errorf("failed to download plugin: %w", err)
 	}
@@ -79,16 +78,20 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath 
 	return nil
 }
 
-func downloadFile(filepath, url, description string) (err error) {
+func downloadFile(ctx context.Context, localPath, url, description string) (err error) {
 	// Create the file
-	out, err := os.Create(filepath)
+	out, err := os.Create(localPath)
 	if err != nil {
-		return fmt.Errorf("failed to create file %s: %w", filepath, err)
+		return fmt.Errorf("failed to create file %s: %w", localPath, err)
 	}
 	defer out.Close()
 
 	// Get the data
-	resp, err := http.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed create request %s: %w", url, err)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to get url %s: %w", url, err)
 	}
@@ -105,7 +108,7 @@ func downloadFile(filepath, url, description string) (err error) {
 	// Writer the body to file
 	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to copy body to file %s: %w", filepath, err)
+		return fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
 	}
 
 	return nil
