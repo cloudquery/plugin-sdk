@@ -50,7 +50,7 @@ func WithSourceDirectory(directory string) func(*SourceClient) {
 	}
 }
 
-func WithSourceGrpcConn(userConn *grpc.ClientConn) func(*SourceClient) {
+func WithSourceGRPCConnection(userConn *grpc.ClientConn) func(*SourceClient) {
 	return func(c *SourceClient) {
 		// we use a different variable here because we don't want to close a connection that wasn't created by us.
 		c.userConn = userConn
