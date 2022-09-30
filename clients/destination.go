@@ -38,7 +38,7 @@ func WithDestinationLogger(logger zerolog.Logger) func(*DestinationClient) {
 	}
 }
 
-func WithDesintationDirectory(directory string) func(*DestinationClient) {
+func WithDestinationDirectory(directory string) func(*DestinationClient) {
 	return func(c *DestinationClient) {
 		c.directory = directory
 	}
