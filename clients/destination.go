@@ -158,7 +158,7 @@ func (c *DestinationClient) Write(ctx context.Context, resources <-chan []byte) 
 	return res.FailedWrites, nil
 }
 
-// Close is used only in conjunction with NewDestinationPluginSpawn.
+// Close is used only in conjunction with NewManagedDestinationClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
 func (c *DestinationClient) Close() error {
 	if c.grpcSocketName != "" {

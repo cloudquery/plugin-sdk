@@ -154,7 +154,7 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	}
 }
 
-// Close is used only in conjunetion with NewSourcePluginSpawn.
+// Close is used only in conjunetion with NewManagedSourceClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
 func (c *SourceClient) Close() error {
 	if c.grpcSocketName != "" {
