@@ -7,18 +7,20 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 type DestinationClient struct {
 	pbClient       pb.DestinationClient
+	directory      string
 	cmd            *exec.Cmd
 	logger         zerolog.Logger
 	conn           *grpc.ClientConn
@@ -34,21 +36,48 @@ func WithDestinationLogger(logger zerolog.Logger) func(*DestinationClient) {
 	}
 }
 
-func NewDestinationClient(cc grpc.ClientConnInterface) *DestinationClient {
-	return &DestinationClient{
-		pbClient: pb.NewDestinationClient(cc),
+func WithDesintationDirectory(directory string) func(*DestinationClient) {
+	return func(c *DestinationClient) {
+		c.directory = directory
 	}
 }
 
-// NewManagedDestinationClient starts a new destination plugin process, connects to it via gRPC server
-// and returns a new DestinationClient
-func NewManagedDestinationClient(ctx context.Context, path string, opts ...DestinationClientOption) (*DestinationClient, error) {
+func NewDestinationClient(ctx context.Context, registry specs.Registry, path string, version string, opts ...DestinationClientOption) (*DestinationClient, error) {
 	c := &DestinationClient{
-		logger: log.Logger,
+		directory: "./",
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
+	switch registry {
+	case specs.RegistryGrpc:
+		conn, err := grpc.Dial(path, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return nil, fmt.Errorf("failed to dial grpc source plugin at %s: %w", path, err)
+		}
+		c.pbClient = pb.NewDestinationClient(conn)
+		return c, nil
+	case specs.RegistryLocal:
+		return c.newManagedClient(ctx, path)
+	case specs.RegistryGithub:
+		pathSplit := strings.Split(path, "/")
+		if len(pathSplit) != 2 {
+			return nil, fmt.Errorf("invalid github plugin path: %s. format should be owner/repo", path)
+		}
+		org, name := pathSplit[0], pathSplit[1]
+		localPath := filepath.Join(c.directory, "plugins", string(PluginTypeSource), org, name, version, "plugin")
+		if err := DownloadPluginFromGithub(ctx, localPath, org, name, version, PluginTypeDestination); err != nil {
+			return nil, err
+		}
+		return c.newManagedClient(ctx, localPath)
+	default:
+		return nil, fmt.Errorf("unsupported registry %s", registry)
+	}
+}
+
+// newManagedClient starts a new destination plugin process from local file, connects to it via gRPC server
+// and returns a new DestinationClient
+func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (*DestinationClient, error) {
 	c.grpcSocketName = generateRandomUnixSocketName()
 	// spawn the plugin first and then connect
 	cmd := exec.CommandContext(ctx, path, "serve", "--network", "unix", "--address", c.grpcSocketName,

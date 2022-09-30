@@ -3,7 +3,6 @@ package clients
 import (
 	"context"
 	"os"
-	"path"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -31,11 +30,7 @@ func TestSourceClient(t *testing.T) {
 	for _, tc := range newSourceClientTestCases {
 		t.Run(tc.Path+"_"+tc.Version, func(t *testing.T) {
 			dirName := t.TempDir()
-			localPath := path.Join(dirName, "plugin")
-			if err := DownloadPluginFromGithub(ctx, localPath, tc.Path, tc.Version, PluginTypeSource); err != nil {
-				t.Fatal(err)
-			}
-			c, err := NewManagedSourceClient(ctx, localPath, WithSourceLogger(l))
+			c, err := NewSourceClient(ctx, tc.Registry, tc.Path, tc.Version, WithSourceLogger(l), WithSourceDirectory(dirName))
 			if err != nil {
 				t.Fatal(err)
 			}

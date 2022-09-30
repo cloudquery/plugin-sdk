@@ -105,7 +105,10 @@ func TestServe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
-	c := clients.NewSourceClient(conn)
+	c, err := clients.NewSourceClient(ctx, specs.RegistryGrpc, "", "", clients.WithSourceGrpcConn(conn))
+	if err != nil {
+		t.Fatal(err)
+	}
 	resources := make(chan []byte)
 	wg := errgroup.Group{}
 	wg.Go(func() error {
