@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/schollz/progressbar/v3"
 )
 
 type PluginType string
@@ -21,7 +19,7 @@ const (
 	PluginTypeDestination PluginType = "destination"
 )
 
-func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath string, version string, typ PluginType) error {
+func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath string, version string, typ PluginType, writer io.Writer) error {
 	pathSplit := strings.Split(githubPath, "/")
 	if len(pathSplit) != 2 {
 		return fmt.Errorf("invalid github path. should be in format: owner/repo")
@@ -44,7 +42,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath 
 		return fmt.Errorf("failed to create plugin directory %s: %w", downloadDir, err)
 	}
 
-	err := downloadFile(ctx, pluginZipPath, downloadURL, "Downloading "+string(typ)+" plugin "+name+" version "+version)
+	err := downloadFile(ctx, pluginZipPath, downloadURL, writer)
 	if err != nil {
 		return fmt.Errorf("failed to download plugin: %w", err)
 	}
@@ -78,7 +76,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath 
 	return nil
 }
 
-func downloadFile(ctx context.Context, localPath, url, description string) (err error) {
+func downloadFile(ctx context.Context, localPath string, url string, writer io.Writer) (err error) {
 	// Create the file
 	out, err := os.Create(localPath)
 	if err != nil {
@@ -101,12 +99,9 @@ func downloadFile(ctx context.Context, localPath, url, description string) (err 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad status: %s. downloading %s", resp.Status, url)
 	}
-	bar := progressbar.DefaultBytes(
-		resp.ContentLength,
-		description,
-	)
+	writers := io.MultiWriter(out, writer)
 	// Writer the body to file
-	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
+	_, err = io.Copy(writers, resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
 	}
