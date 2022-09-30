@@ -23,6 +23,7 @@ import (
 type SourceClient struct {
 	pbClient       pb.SourceClient
 	directory      string
+	writers        []io.Writer
 	cmd            *exec.Cmd
 	logger         zerolog.Logger
 	userConn       *grpc.ClientConn
@@ -56,6 +57,13 @@ func WithSourceGrpcConn(userConn *grpc.ClientConn) func(*SourceClient) {
 	}
 }
 
+// WithSourceWriters adds writers when downloading plugins from github
+func WithSourceWriters(writers ...io.Writer) func(*SourceClient) {
+	return func(c *SourceClient) {
+		c.writers = writers
+	}
+}
+
 // NewSourceClient connect to gRPC server running source plugin and returns a new SourceClient
 func NewSourceClient(ctx context.Context, registry specs.Registry, path string, version string, opts ...SourceClientOption) (*SourceClient, error) {
 	var err error
@@ -86,7 +94,7 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 		}
 		org, name := pathSplit[0], pathSplit[1]
 		localPath := filepath.Join(c.directory, "plugins", string(PluginTypeSource), org, name, version, "plugin")
-		if err := DownloadPluginFromGithub(ctx, localPath, org, name, version, PluginTypeSource); err != nil {
+		if err := DownloadPluginFromGithub(ctx, localPath, org, name, version, PluginTypeSource, c.writers...); err != nil {
 			return nil, err
 		}
 		return c.newManagedClient(ctx, localPath)
