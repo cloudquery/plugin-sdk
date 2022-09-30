@@ -43,14 +43,17 @@ func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 		return schema.TypeBool, nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		// need to check for duration here, as Go time.Duration is int64
+		if v == reflect.TypeOf(time.Duration(0)) {
+			return schema.TypeDuration, nil
+		}
 		return schema.TypeInt, nil
 	case reflect.Float32, reflect.Float64:
 		return schema.TypeFloat, nil
 	case reflect.Map:
 		return schema.TypeJSON, nil
 	case reflect.Struct:
-		timeValue := time.Time{}
-		if v == reflect.TypeOf(timeValue) {
+		if v == reflect.TypeOf(time.Time{}) {
 			return schema.TypeTimestamp, nil
 		}
 		return schema.TypeJSON, nil

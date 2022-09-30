@@ -3,12 +3,12 @@ package codegen
 import (
 	"bytes"
 	"fmt"
-	"github.com/cloudquery/plugin-sdk/caser"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -22,6 +22,7 @@ type (
 	testStruct struct {
 		// IntCol this is an example documentation comment
 		IntCol    int     `json:"int_col,omitempty"`
+		Int64Col  int64   `json:"int64_col,omitempty"`
 		StringCol string  `json:"string_col,omitempty"`
 		FloatCol  float64 `json:"float_col,omitempty"`
 		BoolCol   bool    `json:"bool_col,omitempty"`
@@ -29,12 +30,14 @@ type (
 			IntCol    int    `json:"int_col,omitempty"`
 			StringCol string `json:"string_col,omitempty"`
 		}
-		IntArrayCol    []int      `json:"int_array_col,omitempty"`
-		StringArrayCol []string   `json:"string_array_col,omitempty"`
-		TimeCol        time.Time  `json:"time_col,omitempty"`
-		TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
-		JSONTag        *string    `json:"json_tag"`
-		SkipJSONTag    *string    `json:"-"`
+		IntArrayCol    []int          `json:"int_array_col,omitempty"`
+		StringArrayCol []string       `json:"string_array_col,omitempty"`
+		TimeCol        time.Time      `json:"time_col,omitempty"`
+		TimePointerCol *time.Time     `json:"time_pointer_col,omitempty"`
+		DurCol         time.Duration  `json:"dur_col,omitempty"`
+		DurPointerCol  *time.Duration `json:"dur_pointer_col"`
+		JSONTag        *string        `json:"json_tag"`
+		SkipJSONTag    *string        `json:"-"`
 		NoJSONTag      *string
 		*embeddedStruct
 	}
@@ -78,6 +81,11 @@ var (
 			Resolver: `schema.PathResolver("IntCol")`,
 		},
 		{
+			Name:     "int64_col",
+			Type:     schema.TypeInt,
+			Resolver: `schema.PathResolver("Int64Col")`,
+		},
+		{
 			Name:     "string_col",
 			Type:     schema.TypeString,
 			Resolver: `schema.PathResolver("StringCol")`,
@@ -116,6 +124,16 @@ var (
 			Name:     "time_pointer_col",
 			Type:     schema.TypeTimestamp,
 			Resolver: `schema.PathResolver("TimePointerCol")`,
+		},
+		{
+			Name:     "dur_col",
+			Type:     schema.TypeDuration,
+			Resolver: `schema.PathResolver("DurCol")`,
+		},
+		{
+			Name:     "dur_pointer_col",
+			Type:     schema.TypeDuration,
+			Resolver: `schema.PathResolver("DurPointerCol")`,
 		},
 		{
 			Name:     "json_tag",

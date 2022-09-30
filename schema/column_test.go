@@ -48,6 +48,11 @@ var validateFixtures = []validateFixture{
 		TestValues: []interface{}{time.Now()},
 	},
 	{
+		Column:     Column{Type: TypeDuration},
+		TestValues: []interface{}{time.Minute},
+		BadValues:  []interface{}{int64(2), -3, 5.0, time.Now()},
+	},
+	{
 		Column:     Column{Type: TypeUUID},
 		TestValues: []interface{}{uuid.New(), uuid.New().String()},
 		BadValues:  []interface{}{uuid.New().String()[:5], 5555555},
