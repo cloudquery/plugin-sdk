@@ -82,6 +82,7 @@ const (
 	TypeCIDRArray
 	TypeMacAddr
 	TypeMacAddrArray
+	TypeTimeInterval
 )
 
 func (v ValueType) String() string {
@@ -104,6 +105,8 @@ func (v ValueType) String() string {
 		return "TypeStringArray"
 	case TypeTimestamp:
 		return "TypeTimestamp"
+	case TypeTimeInterval:
+		return "TypeTimeInterval"
 	case TypeByteArray:
 		return "TypeByteArray"
 	case TypeUUIDArray:
@@ -166,6 +169,8 @@ func ValueTypeFromString(s string) ValueType {
 		return TypeCIDRArray
 	case "invalid":
 		return TypeInvalid
+	case "TypeTimeInterval":
+		return TypeTimeInterval
 	default:
 		return TypeInvalid
 	}
@@ -233,6 +238,8 @@ func (c Column) checkType(v interface{}) bool {
 		return c.Type == TypeJSON
 	case time.Time, *time.Time:
 		return c.Type == TypeTimestamp
+	case time.Duration, *time.Duration:
+		return c.Type == TypeTimeInterval
 	case uuid.UUID, *uuid.UUID:
 		return c.Type == TypeUUID
 	case gofrs.UUID, *gofrs.UUID:
