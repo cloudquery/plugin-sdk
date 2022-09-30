@@ -41,6 +41,9 @@ func (*testDestinationClient) Write(context.Context, string, map[string]interfac
 }
 func (*testDestinationClient) SetLogger(zerolog.Logger) {
 }
+func (*testDestinationClient) Close(context.Context) error {
+	return nil
+}
 
 func TestDestination(t *testing.T) {
 	plugin := plugins.DestinationPlugin(&testDestinationClient{})
