@@ -64,11 +64,11 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 	return &testExecutionClient{}, nil
 }
 
-func bufDialer(context.Context, string) (net.Conn, error) {
-	return testListener.Dial()
+func bufSourceDialer(context.Context, string) (net.Conn, error) {
+	return testSourceListener.Dial()
 }
 
-func TestServe(t *testing.T) {
+func TestServeSource(t *testing.T) {
 	plugin := plugins.NewSourcePlugin(
 		"testSourcePlugin",
 		"v1.0.0",
@@ -89,7 +89,7 @@ func TestServe(t *testing.T) {
 
 	// wait for the server to start
 	for {
-		if testListener != nil {
+		if testSourceListener != nil {
 			break
 		}
 		t.Log("waiting for grpc server to start")
@@ -101,11 +101,14 @@ func TestServe(t *testing.T) {
 
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
 	ctx := context.Background()
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufSourceDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
-	c := clients.NewSourceClient(conn)
+	c, err := clients.NewSourceClient(ctx, specs.RegistryGrpc, "", "", clients.WithSourceGRPCConnection(conn))
+	if err != nil {
+		t.Fatal(err)
+	}
 	resources := make(chan []byte)
 	wg := errgroup.Group{}
 	wg.Go(func() error {

@@ -22,4 +22,5 @@ const (
 )
 
 // lis used for unit testing grpc server and client
-var testListener *bufconn.Listener
+var testSourceListener *bufconn.Listener
+var testDestinationListener *bufconn.Listener
