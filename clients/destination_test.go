@@ -30,7 +30,7 @@ func TestDestinationClient(t *testing.T) {
 	for _, tc := range newDestinationClientTestCases {
 		t.Run(tc.Path+"_"+tc.Version, func(t *testing.T) {
 			dirName := t.TempDir()
-			c, err := NewDestinationClient(ctx, tc.Registry, tc.Path, tc.Version, WithDestinationLogger(l), WithDesintationDirectory(dirName))
+			c, err := NewDestinationClient(ctx, tc.Registry, tc.Path, tc.Version, WithDestinationLogger(l), WithDestinationDirectory(dirName))
 			if err != nil {
 				t.Fatal(err)
 			}
