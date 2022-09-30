@@ -63,8 +63,12 @@ func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 		}
-		if err := s.Plugin.Write(msg.Context(), resource.TableName, resource.Data); err != nil {
+		if err := s.Plugin.WriteRow(msg.Context(), resource.TableName, resource.Data); err != nil {
 			failedWrites++
 		}
 	}
+}
+
+func (s *DestinationServer) Close(msg pb.Destination_CloseServer) error {
+	return s.Plugin.Close(msg.Context())
 }

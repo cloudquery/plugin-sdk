@@ -14,6 +14,8 @@ service Destination {
   rpc Migrate(Migrate.Request) returns (Migrate.Response);
   // Write resources
   rpc Write(stream Write.Request) returns (Write.Response);
+  // Send signal to flush and close open connections
+  rpc Close(stream Close.Request) returns (Close.Response);
 }
 
 
@@ -35,4 +37,10 @@ message Write {
   message Response {
     uint64 failed_writes = 1;
   }
+}
+
+
+message Close {
+  message Request {}
+  message Response {}
 }
