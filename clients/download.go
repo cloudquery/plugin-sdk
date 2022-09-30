@@ -19,7 +19,7 @@ const (
 	PluginTypeDestination PluginType = "destination"
 )
 
-func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath string, version string, typ PluginType, writer io.Writer) error {
+func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath string, version string, typ PluginType, writers ...io.Writer) error {
 	pathSplit := strings.Split(githubPath, "/")
 	if len(pathSplit) != 2 {
 		return fmt.Errorf("invalid github path. should be in format: owner/repo")
@@ -42,7 +42,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath 
 		return fmt.Errorf("failed to create plugin directory %s: %w", downloadDir, err)
 	}
 
-	err := downloadFile(ctx, pluginZipPath, downloadURL, writer)
+	err := downloadFile(ctx, pluginZipPath, downloadURL, writers...)
 	if err != nil {
 		return fmt.Errorf("failed to download plugin: %w", err)
 	}
@@ -76,7 +76,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, githubPath 
 	return nil
 }
 
-func downloadFile(ctx context.Context, localPath string, url string, writer io.Writer) (err error) {
+func downloadFile(ctx context.Context, localPath string, url string, writers ...io.Writer) (err error) {
 	// Create the file
 	out, err := os.Create(localPath)
 	if err != nil {
@@ -99,9 +99,12 @@ func downloadFile(ctx context.Context, localPath string, url string, writer io.W
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad status: %s. downloading %s", resp.Status, url)
 	}
-	writers := io.MultiWriter(out, writer)
+	var w []io.Writer
+	w = append(w, out)
+	w = append(w, writers...)
+	
 	// Writer the body to file
-	_, err = io.Copy(writers, resp.Body)
+	_, err = io.Copy(io.MultiWriter(w...), resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
 	}

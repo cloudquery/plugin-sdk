@@ -32,7 +32,7 @@ func TestDestinationClient(t *testing.T) {
 		t.Run(tc.Path+"_"+tc.Version, func(t *testing.T) {
 			dirName := t.TempDir()
 			localPath := path.Join(dirName, "plugin")
-			if err := DownloadPluginFromGithub(ctx, localPath, tc.Path, tc.Version, PluginTypeDestination, nil); err != nil {
+			if err := DownloadPluginFromGithub(ctx, localPath, tc.Path, tc.Version, PluginTypeDestination); err != nil {
 				t.Fatal(err)
 			}
 			c, err := NewDestinationClientSpawn(ctx, localPath, WithDestinationLogger(l))
