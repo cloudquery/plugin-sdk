@@ -25,6 +25,7 @@ type DestinationClient struct {
 	writers        []io.Writer
 	cmd            *exec.Cmd
 	logger         zerolog.Logger
+	userConn       *grpc.ClientConn
 	conn           *grpc.ClientConn
 	grpcSocketName string
 	cmdWaitErr     error
@@ -51,7 +52,15 @@ func WithDestinationWithWriters(writers ...io.Writer) func(*DestinationClient) {
 	}
 }
 
+func WithDestinationGrpcConn(userConn *grpc.ClientConn) func(*DestinationClient) {
+	return func(c *DestinationClient) {
+		// we use a different variable here because we don't want to close a connection that wasn't created by us.
+		c.userConn = userConn
+	}
+}
+
 func NewDestinationClient(ctx context.Context, registry specs.Registry, path string, version string, opts ...DestinationClientOption) (*DestinationClient, error) {
+	var err error
 	c := &DestinationClient{
 		directory: "./",
 	}
@@ -60,11 +69,15 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 	}
 	switch registry {
 	case specs.RegistryGrpc:
-		conn, err := grpc.Dial(path, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			return nil, fmt.Errorf("failed to dial grpc source plugin at %s: %w", path, err)
+		if c.userConn == nil {
+			c.conn, err = grpc.Dial(path, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				return nil, fmt.Errorf("failed to dial grpc source plugin at %s: %w", path, err)
+			}
+			c.pbClient = pb.NewDestinationClient(c.conn)
+		} else {
+			c.pbClient = pb.NewDestinationClient(c.userConn)
 		}
-		c.pbClient = pb.NewDestinationClient(conn)
 		return c, nil
 	case specs.RegistryLocal:
 		return c.newManagedClient(ctx, path)

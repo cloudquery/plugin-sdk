@@ -77,7 +77,7 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 			var listener net.Listener
 			if network == "test" {
 				listener = bufconn.Listen(testBufSize)
-				testListener = listener.(*bufconn.Listener)
+				testDestinationListener = listener.(*bufconn.Listener)
 			} else {
 				listener, err = net.Listen(network, address)
 				if err != nil {
