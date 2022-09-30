@@ -127,12 +127,12 @@ var (
 		},
 		{
 			Name:     "dur_col",
-			Type:     schema.TypeDuration,
+			Type:     schema.TypeTimeInterval,
 			Resolver: `schema.PathResolver("DurCol")`,
 		},
 		{
 			Name:     "dur_pointer_col",
-			Type:     schema.TypeDuration,
+			Type:     schema.TypeTimeInterval,
 			Resolver: `schema.PathResolver("DurPointerCol")`,
 		},
 		{

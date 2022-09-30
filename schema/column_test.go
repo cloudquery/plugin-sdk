@@ -48,7 +48,7 @@ var validateFixtures = []validateFixture{
 		TestValues: []interface{}{time.Now()},
 	},
 	{
-		Column:     Column{Type: TypeDuration},
+		Column:     Column{Type: TypeTimeInterval},
 		TestValues: []interface{}{time.Minute},
 		BadValues:  []interface{}{int64(2), -3, 5.0, time.Now()},
 	},

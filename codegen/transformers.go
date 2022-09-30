@@ -45,7 +45,7 @@ func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		// need to check for duration here, as Go time.Duration is int64
 		if v == reflect.TypeOf(time.Duration(0)) {
-			return schema.TypeDuration, nil
+			return schema.TypeTimeInterval, nil
 		}
 		return schema.TypeInt, nil
 	case reflect.Float32, reflect.Float64:
