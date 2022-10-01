@@ -94,7 +94,7 @@ func TestDestination(t *testing.T) {
 		}
 		// call all methods as sanity check
 		if err := c.Close(); err != nil {
-			return err
+			return fmt.Errorf("failed to close: %w", err)
 		}
 		return nil
 	})
