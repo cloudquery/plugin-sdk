@@ -68,3 +68,7 @@ func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 		}
 	}
 }
+
+func (s *DestinationServer) Close(msg pb.Destination_CloseServer) error {
+	return s.Plugin.Close(msg.Context())
+}

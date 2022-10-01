@@ -21,6 +21,7 @@ type Destination struct {
 const (
 	WriteModeAppend WriteMode = iota
 	WriteModeOverwrite
+	WriteModeOverwriteDeletestale
 )
 
 func (d *Destination) SetDefaults() {
@@ -64,7 +65,7 @@ func (d *Destination) Validate() error {
 }
 
 func (m WriteMode) String() string {
-	return [...]string{"append", "overwrite"}[m]
+	return [...]string{"append", "overwrite", "overwrite-deletestale"}[m]
 }
 
 func (m WriteMode) MarshalJSON() ([]byte, error) {
@@ -91,6 +92,8 @@ func WriteModeFromString(s string) (WriteMode, error) {
 		return WriteModeAppend, nil
 	case "overwrite":
 		return WriteModeOverwrite, nil
+	case "overwrite-deletestale":
+		return WriteModeOverwriteDeletestale, nil
 	}
 	return 0, fmt.Errorf("invalid write mode: %s", s)
 }

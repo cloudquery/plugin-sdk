@@ -41,6 +41,9 @@ func (*testDestinationClient) Write(context.Context, string, map[string]interfac
 }
 func (*testDestinationClient) SetLogger(zerolog.Logger) {
 }
+func (*testDestinationClient) Close(context.Context) error {
+	return nil
+}
 
 func TestDestination(t *testing.T) {
 	plugin := plugins.DestinationPlugin(&testDestinationClient{})
@@ -88,6 +91,10 @@ func TestDestination(t *testing.T) {
 		}
 		if name != "testDestinationPlugin" {
 			return fmt.Errorf("expected name to be testDestinationPlugin but got %s", name)
+		}
+		// call all methods as sanity check
+		if err := c.Close(); err != nil {
+			return fmt.Errorf("failed to close: %w", err)
 		}
 		return nil
 	})
