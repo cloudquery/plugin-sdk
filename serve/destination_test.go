@@ -92,6 +92,10 @@ func TestDestination(t *testing.T) {
 		if name != "testDestinationPlugin" {
 			return fmt.Errorf("expected name to be testDestinationPlugin but got %s", name)
 		}
+		// call all methods as sanity check
+		if err := c.Close(); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err := wg.Wait(); err != nil {
