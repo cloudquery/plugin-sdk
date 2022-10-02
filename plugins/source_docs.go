@@ -54,9 +54,6 @@ func renderAllTables(t *schema.Table, dir string) error {
 func renderTable(table *schema.Table, dir string) error {
 	t := template.New("").Funcs(map[string]interface{}{
 		"formatType": formatType,
-		"removeLineBreaks": func(text string) string {
-			return strings.ReplaceAll(text, "\n", " ")
-		},
 	})
 	t, err := t.New("table.go.tpl").ParseFS(templatesFS, "templates/table.go.tpl")
 	if err != nil {
