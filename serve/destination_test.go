@@ -41,7 +41,7 @@ func (*testDestinationClient) Write(context.Context, string, map[string]interfac
 func (*testDestinationClient) Close(context.Context) error {
 	return nil
 }
-func (*testDestinationClient) DeleteStale(context.Context, []string, string, time.Time) error {
+func (*testDestinationClient) DeleteStale(context.Context, string, string, time.Time) error {
 	return nil
 }
 

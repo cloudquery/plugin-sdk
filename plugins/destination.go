@@ -19,7 +19,6 @@ type DestinationClient interface {
 	Close(ctx context.Context) error
 }
 
-
 type DestinationPlugin struct {
 	// Name of destination plugin i.e postgresql,snowflake
 	name string
@@ -77,7 +76,6 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 	if p.client == nil {
 		return fmt.Errorf("destination client not initialized")
 	}
-	p.addInternalColumns(tables)
 	p.tables = tables
 	return p.client.Migrate(ctx, tables)
 }
@@ -88,8 +86,12 @@ func (p *DestinationPlugin) Write(ctx context.Context, source string, syncTime t
 	}
 	summary := WriteSummary{}
 	for r := range res {
-		r.Data[schema.CqSourceName.Name] = source
-		r.Data[schema.CqSyncTime.Name] = syncTime
+		if _, ok := r.Data[schema.CqSourceName.Name]; ok {
+			r.Data[schema.CqSourceName.Name] = source
+		}
+		if _, ok := r.Data[schema.CqSyncTime.Name]; ok {
+			r.Data[schema.CqSyncTime.Name] = syncTime
+		}
 		err := p.client.Write(ctx, r.TableName, r.Data)
 		if err != nil {
 			summary.FailedWrites++
@@ -124,11 +126,4 @@ func (p *DestinationPlugin) Close(ctx context.Context) error {
 		return fmt.Errorf("destination client not initialized")
 	}
 	return p.client.Close(ctx)
-}
-
-func (p *DestinationPlugin) addInternalColumns(tables schema.Tables) {
-	for _, t := range tables {
-		t.Columns = append(schema.CqDestColumns, t.Columns...)
-		p.addInternalColumns(t.Relations)
-	}
 }

@@ -13,6 +13,7 @@ The following tables depend on `test_table`:
 | ------------- | ------------- |
 |_cq_id|UUID|
 |_cq_parent_id|UUID|
+|_cq_source_name|String|
 |_cq_sync_time|Timestamp|
 |int_col|Int|
 |id_col (PK)|Int|

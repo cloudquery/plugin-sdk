@@ -24,16 +24,6 @@ var CqParentIDColumn = Column{Name: "_cq_parent_id", Type: TypeUUID, Description
 var CqSyncTime = Column{Name: "_cq_sync_time", Type: TypeTimestamp, Description: "Internal CQ row of when sync was started (this will be the same for all rows in a single fetch)"}
 var CqSourceName = Column{Name: "_cq_source_name", Type: TypeString, Description: "Internal CQ row that references the source plugin name data was retrieved"}
 
-var CqSourceColumns = []Column{
-	CqIDColumn,
-	CqParentIDColumn,
-}
-
-var CqDestColumns = []Column{
-	CqSyncTime,
-	CqSourceName,
-}
-
 func cqUUIDResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		uuidGen := uuid.New()
