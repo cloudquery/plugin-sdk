@@ -1,13 +1,13 @@
 package plugins
 
 import (
+	_ "embed"
 	"os"
 	"path"
 	"testing"
 
-	"github.com/bradleyjkemp/cupaloy/v2"
 	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/stretchr/testify/require"
+	"github.com/google/go-cmp/cmp"
 )
 
 var testTables = []*schema.Table{
@@ -45,6 +45,21 @@ var testTables = []*schema.Table{
 	},
 }
 
+//go:embed testdata/test_table.md
+var testTableMd []byte
+
+//go:embed testdata/relation_table.md
+var relationTableMd []byte
+
+//go:embed testdata/README.md
+var readmeMd []byte
+
+var expectedDocFiles = map[string][]byte{
+	"test_table.md":     testTableMd,
+	"relation_table.md": relationTableMd,
+	"README.md":         readmeMd,
+}
+
 func TestGenerateSourcePluginDocs(t *testing.T) {
 	tmpdir, tmpErr := os.MkdirTemp("", "docs_test_*")
 	if tmpErr != nil {
@@ -58,13 +73,16 @@ func TestGenerateSourcePluginDocs(t *testing.T) {
 		t.Fatalf("unexpected error calling GenerateSourcePluginDocs: %v", err)
 	}
 
-	expectFiles := []string{"test_table.md", "relation_table.md", "README.md"}
-	for _, exp := range expectFiles {
-		t.Run(exp, func(t *testing.T) {
-			output := path.Join(tmpdir, exp)
+	for filename, content := range expectedDocFiles {
+		t.Run(filename, func(t *testing.T) {
+			output := path.Join(tmpdir, filename)
 			got, err := os.ReadFile(output)
-			require.NoError(t, err)
-			cupaloy.SnapshotT(t, got)
+			if err != nil {
+				t.Fatalf("failed to read file %s: %v", output, err)
+			}
+			if diff := cmp.Diff(content, got); diff != "" {
+				t.Fatalf("unexpected file contents %s: %v", output, diff)
+			}
 		})
 	}
 }

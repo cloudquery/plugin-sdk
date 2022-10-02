@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/caser"
@@ -26,6 +27,12 @@ type RowResolver func(ctx context.Context, meta ClientMeta, resource *Resource) 
 type Multiplexer func(meta ClientMeta) []ClientMeta
 
 type Tables []*Table
+
+type SyncSummary struct {
+	Resources uint64
+	Errors    uint64
+	Panics    uint64
+}
 
 type Table struct {
 	// Name of table
@@ -152,8 +159,9 @@ func (t Table) TableNames() []string {
 }
 
 // Call the table resolver with with all of it's relation for every reolved resource
-func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time, parent *Resource, resolvedResources chan<- *Resource) int {
+func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resolvedResources chan<- *Resource) SyncSummary {
 	tableStartTime := time.Now()
+	summary := SyncSummary{}
 	meta.Logger().Info().Str("table", t.Name).Msg("fetch start")
 
 	res := make(chan interface{})
@@ -167,61 +175,71 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, syncTime time.Time,
 				})
 				stack := string(debug.Stack())
 				meta.Logger().Error().Interface("error", err).Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Str("stack", stack).Msg("table resolver finished with panic")
+				atomic.AddUint64(&summary.Panics, 1)
 			}
 			close(res)
 		}()
 		meta.Logger().Debug().Str("table", t.Name).Msg("table resolver started")
 		if err := t.Resolver(ctx, meta, parent, res); err != nil {
 			meta.Logger().Error().Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Err(err).Msg("table resolver finished with error")
+			atomic.AddUint64(&summary.Errors, 1)
 			return
 		}
 		meta.Logger().Debug().Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Msg("table resolver finished successfully")
 	}()
 	tableResources := 0
-	relationsResources := 0
 	for elem := range res {
 		objects := helpers.InterfaceSlice(elem)
 		if len(objects) == 0 {
 			continue
 		}
 		for i := range objects {
-			resource := NewResourceData(&t, parent, syncTime, objects[i])
+			resource := NewResourceData(&t, parent, objects[i])
 			if t.PreResourceResolver != nil {
 				if err := t.PreResourceResolver(ctx, meta, resource); err != nil {
 					meta.Logger().Error().Str("table", t.Name).Err(err).Msg("pre resource resolver failed")
+					atomic.AddUint64(&summary.Errors, 1)
 				} else {
 					meta.Logger().Trace().Str("table", t.Name).Msg("pre resource resolver finished successfully")
 				}
 			}
-			t.resolveColumns(ctx, meta, resource)
+			columnSummary := t.resolveColumns(ctx, meta, resource)
+			atomic.AddUint64(&summary.Errors, columnSummary.Errors)
+			summary.Errors += columnSummary.Errors
 			if t.PostResourceResolver != nil {
 				meta.Logger().Trace().Str("table", t.Name).Msg("post resource resolver started")
 				if err := t.PostResourceResolver(ctx, meta, resource); err != nil {
 					meta.Logger().Error().Str("table", t.Name).Stack().Err(err).Msg("post resource resolver finished with error")
+					atomic.AddUint64(&summary.Errors, 1)
 				} else {
 					meta.Logger().Trace().Str("table", t.Name).Msg("post resource resolver finished successfully")
 				}
 			}
 
-			tableResources++
+			atomic.AddUint64(&summary.Resources, 1)
 			resolvedResources <- resource
 			for _, rel := range t.Relations {
-				relationsResources += rel.Resolve(ctx, meta, syncTime, resource, resolvedResources)
+				relationSummary := rel.Resolve(ctx, meta, resource, resolvedResources)
+				atomic.AddUint64(&summary.Errors, relationSummary.Errors)
+				atomic.AddUint64(&summary.Panics, relationSummary.Panics)
+				atomic.AddUint64(&summary.Resources, relationSummary.Resources)
 			}
 		}
 	}
 	meta.Logger().Info().Str("table", t.Name).Int("total_resources", tableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
 
-	return tableResources + relationsResources
+	return summary
 }
 
-func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource) {
+func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource) SyncSummary {
+	summary := SyncSummary{}
 	csr := caser.New()
 	for _, c := range t.Columns {
 		if c.Resolver != nil {
 			meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver custom started")
 			if err := c.Resolver(ctx, meta, resource, c); err != nil {
 				meta.Logger().Error().Str("column_name", c.Name).Str("table", t.Name).Err(err).Msg("column resolver finished with error")
+				summary.Errors++
 			}
 			meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver finished successfully")
 		} else {
@@ -231,6 +249,7 @@ func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Re
 			if v != nil {
 				if err := resource.Set(c.Name, v); err != nil {
 					meta.Logger().Error().Str("column_name", c.Name).Str("table", t.Name).Err(err).Msg("column resolver default finished with error")
+					summary.Errors++
 				}
 				meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver default finished successfully")
 			} else {
@@ -238,4 +257,5 @@ func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Re
 			}
 		}
 	}
+	return summary
 }

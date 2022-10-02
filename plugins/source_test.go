@@ -64,7 +64,6 @@ func TestSync(t *testing.T) {
 		"1.0.0",
 		[]*schema.Table{testTable()},
 		newTestExecutionClient,
-		WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
 	)
 
 	spec := specs.Source{
@@ -76,7 +75,8 @@ func TestSync(t *testing.T) {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(resources)
-		err := plugin.Sync(ctx,
+		_, err := plugin.Sync(ctx,
+			zerolog.New(zerolog.NewTestWriter(t)),
 			spec,
 			resources)
 		return err

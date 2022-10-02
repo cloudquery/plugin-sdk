@@ -4,7 +4,6 @@ import (
 	"context"
 	"reflect"
 	"testing"
-	"time"
 )
 
 var resolverTestTable = &Table{
@@ -32,7 +31,7 @@ var resolverTestCases = []struct {
 		Name:                 "PathResolver",
 		Column:               resolverTestTable.Columns[0],
 		ColumnResolver:       PathResolver("PathResolver"),
-		Resource:             NewResourceData(resolverTestTable, nil, time.Now(), resolverTestItem),
+		Resource:             NewResourceData(resolverTestTable, nil, resolverTestItem),
 		ExpectedResourceData: map[string]interface{}{"string_column": "test"},
 	},
 }

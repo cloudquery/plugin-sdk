@@ -8,6 +8,7 @@ import (
 	"github.com/cloudquery/faker/v3"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +26,7 @@ func init() {
 	_ = faker.SetRandomMapAndSliceMaxSize(1)
 }
 
-func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source) {
+func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source) {
 	t.Helper()
 
 	resourcesChannel := make(chan *schema.Resource)
@@ -33,7 +34,7 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source)
 
 	go func() {
 		defer close(resourcesChannel)
-		fetchErr = plugin.Sync(context.Background(), spec, resourcesChannel)
+		_, fetchErr = plugin.Sync(context.Background(), logger, spec, resourcesChannel)
 	}()
 
 	syncedResources := make([]*schema.Resource, 0)

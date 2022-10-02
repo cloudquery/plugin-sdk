@@ -19,9 +19,9 @@ type Destination struct {
 }
 
 const (
-	WriteModeAppend WriteMode = iota
+	WriteModeOverwriteDeletestale WriteMode = iota
 	WriteModeOverwrite
-	WriteModeOverwriteDeletestale
+	WriteModeAppend
 )
 
 func (d *Destination) SetDefaults() {

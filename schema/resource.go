@@ -3,7 +3,6 @@ package schema
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -24,7 +23,7 @@ type Resource struct {
 	TableName string                 `json:"table_name"`
 }
 
-func NewResourceData(t *Table, parent *Resource, fetchTime time.Time, item interface{}) *Resource {
+func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 	r := Resource{
 		Item:      item,
 		Parent:    parent,
@@ -32,7 +31,6 @@ func NewResourceData(t *Table, parent *Resource, fetchTime time.Time, item inter
 		Data:      make(map[string]interface{}, len(t.Columns)),
 		TableName: t.Name,
 	}
-	r.Data[CqFetchTime.Name] = fetchTime
 	return &r
 }
 
