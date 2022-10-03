@@ -204,7 +204,7 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	}
 }
 
-// Terminate is used only in conjunetion with NewManagedSourceClient.
+// Terminate is used only in conjunction with NewManagedSourceClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
 func (c *SourceClient) Terminate() error {
 	if c.grpcSocketName != "" {
