@@ -62,7 +62,7 @@ func WithDestinationGrpcConn(userConn *grpc.ClientConn) func(*DestinationClient)
 func NewDestinationClient(ctx context.Context, registry specs.Registry, path string, version string, opts ...DestinationClientOption) (*DestinationClient, error) {
 	var err error
 	c := &DestinationClient{
-		directory: "./",
+		directory: DefaultDownloadDir,
 	}
 	for _, opt := range opts {
 		opt(c)
