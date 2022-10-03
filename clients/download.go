@@ -16,6 +16,7 @@ type PluginType string
 const (
 	PluginTypeSource      PluginType = "source"
 	PluginTypeDestination PluginType = "destination"
+	DefaultDownloadDir               = ".cq"
 )
 
 func DownloadPluginFromGithub(ctx context.Context, localPath string, org string, name string, version string, typ PluginType, writers ...io.Writer) error {

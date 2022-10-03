@@ -68,7 +68,7 @@ func WithSourceWriters(writers ...io.Writer) func(*SourceClient) {
 func NewSourceClient(ctx context.Context, registry specs.Registry, path string, version string, opts ...SourceClientOption) (*SourceClient, error) {
 	var err error
 	c := &SourceClient{
-		directory: "./",
+		directory: DefaultDownloadDir,
 	}
 	for _, opt := range opts {
 		opt(c)
