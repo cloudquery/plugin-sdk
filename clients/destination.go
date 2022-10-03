@@ -88,6 +88,7 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 		}
 		org, name := pathSplit[0], pathSplit[1]
 		localPath := filepath.Join(c.directory, "plugins", string(PluginTypeDestination), org, name, version, "plugin")
+		localPath = withBinarySuffix(localPath)
 		if err := DownloadPluginFromGithub(ctx, localPath, org, name, version, PluginTypeDestination, c.writers...); err != nil {
 			return nil, err
 		}
