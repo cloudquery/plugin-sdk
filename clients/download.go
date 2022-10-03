@@ -50,9 +50,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	if org != "cloudquery" {
 		pathInArchive = fmt.Sprintf("cq-%s-%s", typ, name)
 	}
-	if runtime.GOOS == "windows" {
-		pathInArchive += ".exe"
-	}
+	pathInArchive = withBinarySuffix(pathInArchive)
 
 	fileInArchive, err := archive.Open(pathInArchive)
 	if err != nil {
@@ -107,4 +105,11 @@ func downloadFile(ctx context.Context, localPath string, url string, writers ...
 	}
 
 	return nil
+}
+
+func withBinarySuffix(path string) string {
+	if runtime.GOOS == "windows" {
+		return path + ".exe"
+	}
+	return path
 }
