@@ -18,7 +18,6 @@ var templatesFS embed.FS
 func (p *SourcePlugin) GenerateSourcePluginDocs(dir string) error {
 	for _, table := range p.Tables() {
 		if err := renderAllTables(table, dir); err != nil {
-			fmt.Printf("render table %s error: %s", table.Name, err)
 			return err
 		}
 	}
