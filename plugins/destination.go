@@ -100,7 +100,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, source string, syncTime t
 			summary.SuccessWrites++
 		}
 	}
-	if p.spec.WriteMode == specs.WriteModeOverwriteDeletestale {
+	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
 		failedDeletes := p.DeleteStale(ctx, p.tables.TableNames(), source, syncTime)
 		summary.FailedDeletes = failedDeletes
 	}
