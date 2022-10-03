@@ -10,13 +10,16 @@ import (
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type SourceServer struct {
 	pb.UnimplementedSourceServer
-	Plugin *plugins.SourcePlugin
+	Plugin  *plugins.SourcePlugin
+	Logger  zerolog.Logger
+	summary *schema.SyncSummary
 }
 
 func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.GetTables_Response, error) {
@@ -41,6 +44,16 @@ func (s *SourceServer) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.
 	}, nil
 }
 
+func (s *SourceServer) GetSyncSummary(context.Context, *pb.GetSyncSummary_Request) (*pb.GetSyncSummary_Response, error) {
+	b, err := json.Marshal(s.summary)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal summary: %w", err)
+	}
+	return &pb.GetSyncSummary_Response{
+		Summary: b,
+	}, nil
+}
+
 func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
 	resources := make(chan *schema.Resource)
 	var syncErr error
@@ -55,7 +68,9 @@ func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) e
 
 	go func() {
 		defer close(resources)
-		if err := s.Plugin.Sync(stream.Context(), spec, resources); err != nil {
+		var err error
+		s.summary, err = s.Plugin.Sync(stream.Context(), s.Logger, spec, resources)
+		if err != nil {
 			syncErr = fmt.Errorf("failed to sync resources: %w", err)
 		}
 	}()

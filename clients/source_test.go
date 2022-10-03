@@ -34,7 +34,11 @@ func TestSourceClient(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer c.Close()
+			defer func() {
+				if err := c.Terminate(); err != nil {
+					t.Fatalf("failed to terminate source client: %v", err)
+				}
+			}()
 			tables, err := c.GetTables(ctx)
 			if err != nil {
 				t.Fatal("failed to get tables", err)

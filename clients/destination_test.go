@@ -34,7 +34,14 @@ func TestDestinationClient(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer c.Close()
+			defer func() {
+				if err := c.Terminate(); err != nil {
+					t.Fatalf("failed to terminate destination client: %v", err)
+				}
+			}()
+			if err := c.Initialize(ctx, specs.Destination{}); err != nil {
+				t.Fatal(err)
+			}
 			name, err := c.Name(ctx)
 			if err != nil {
 				t.Fatal("failed to get name", err)

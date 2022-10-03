@@ -154,7 +154,7 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) (*Sour
 func (c *SourceClient) Name(ctx context.Context) (string, error) {
 	res, err := c.pbClient.GetName(ctx, &pb.GetName_Request{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get name: %w", err)
+		return "", fmt.Errorf("failed to call GetName: %w", err)
 	}
 	return res.Name, nil
 }
@@ -162,7 +162,7 @@ func (c *SourceClient) Name(ctx context.Context) (string, error) {
 func (c *SourceClient) Version(ctx context.Context) (string, error) {
 	res, err := c.pbClient.GetVersion(ctx, &pb.GetVersion_Request{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get version: %w", err)
+		return "", fmt.Errorf("failed to call GetVersion: %w", err)
 	}
 	return res.Version, nil
 }
@@ -170,11 +170,11 @@ func (c *SourceClient) Version(ctx context.Context) (string, error) {
 func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 	res, err := c.pbClient.GetTables(ctx, &pb.GetTables_Request{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to call GetTables: %w", err)
 	}
 	var tables []*schema.Table
 	if err := json.Unmarshal(res.Tables, &tables); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal tables: %w", err)
 	}
 	return tables, nil
 }
@@ -191,7 +191,7 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 		Spec: b,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to sync resources: %w", err)
+		return fmt.Errorf("failed to call Sync: %w", err)
 	}
 	for {
 		r, err := stream.Recv()
@@ -205,9 +205,9 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	}
 }
 
-// Close is used only in conjunetion with NewManagedSourceClient.
+// Terminate is used only in conjunction with NewManagedSourceClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
-func (c *SourceClient) Close() error {
+func (c *SourceClient) Terminate() error {
 	if c.grpcSocketName != "" {
 		defer os.Remove(c.grpcSocketName)
 	}
@@ -223,6 +223,18 @@ func (c *SourceClient) Close() error {
 		}
 	}
 	return nil
+}
+
+func (c *SourceClient) GetSyncSummary(ctx context.Context) (*schema.SyncSummary, error) {
+	res, err := c.pbClient.GetSyncSummary(ctx, &pb.GetSyncSummary_Request{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to call GetSyncSummary: %w", err)
+	}
+	var summary schema.SyncSummary
+	if err := json.Unmarshal(res.Summary, &summary); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal sync summary: %w", err)
+	}
+	return &summary, nil
 }
 
 func (c *SourceClient) GetWaitError() error {

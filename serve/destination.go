@@ -21,7 +21,7 @@ import (
 )
 
 type destinationServe struct {
-	plugin    plugins.DestinationPlugin
+	plugin    *plugins.DestinationPlugin
 	sentryDSN string
 }
 
@@ -33,7 +33,7 @@ func WithDestinationSentryDSN(dsn string) DestinationOption {
 	}
 }
 
-func Destination(plugin plugins.DestinationPlugin, opts ...DestinationOption) {
+func Destination(plugin *plugins.DestinationPlugin, opts ...DestinationOption) {
 	s := &destinationServe{
 		plugin: plugin,
 	}
@@ -73,7 +73,6 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
 
-			// opts.Plugin.Logger = logger
 			var listener net.Listener
 			if network == "test" {
 				listener = bufconn.Listen(testBufSize)
@@ -93,9 +92,10 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
 			)
-
-			destination.plugin.SetLogger(logger)
-			pb.RegisterDestinationServer(s, &servers.DestinationServer{Plugin: destination.plugin})
+			pb.RegisterDestinationServer(s, &servers.DestinationServer{
+				Plugin: destination.plugin,
+				Logger: logger,
+			})
 			version := destination.plugin.Version()
 
 			if destination.sentryDSN != "" && version != "development" {

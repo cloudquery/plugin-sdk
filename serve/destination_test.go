@@ -24,12 +24,10 @@ func bufDestinationDialer(context.Context, string) (net.Conn, error) {
 type testDestinationClient struct {
 }
 
-func (*testDestinationClient) Name() string {
-	return "testDestinationPlugin"
+func newDestinationClient(context.Context, zerolog.Logger, specs.Destination) (plugins.DestinationClient, error) {
+	return &testDestinationClient{}, nil
 }
-func (*testDestinationClient) Version() string {
-	return "development"
-}
+
 func (*testDestinationClient) Initialize(context.Context, specs.Destination) error {
 	return nil
 }
@@ -39,14 +37,16 @@ func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 func (*testDestinationClient) Write(context.Context, string, map[string]interface{}) error {
 	return nil
 }
-func (*testDestinationClient) SetLogger(zerolog.Logger) {
-}
+
 func (*testDestinationClient) Close(context.Context) error {
+	return nil
+}
+func (*testDestinationClient) DeleteStale(context.Context, string, string, time.Time) error {
 	return nil
 }
 
 func TestDestination(t *testing.T) {
-	plugin := plugins.DestinationPlugin(&testDestinationClient{})
+	plugin := plugins.NewDestinationPlugin("testDestinationPlugin", "development", newDestinationClient)
 	s := &destinationServe{
 		plugin: plugin,
 	}
@@ -85,6 +85,10 @@ func TestDestination(t *testing.T) {
 	wg := errgroup.Group{}
 	wg.Go(func() error {
 		defer close(resources)
+		if err := c.Initialize(ctx, specs.Destination{}); err != nil {
+			return err
+		}
+
 		name, err := c.Name(ctx)
 		if err != nil {
 			return err
@@ -93,8 +97,11 @@ func TestDestination(t *testing.T) {
 			return fmt.Errorf("expected name to be testDestinationPlugin but got %s", name)
 		}
 		// call all methods as sanity check
-		if err := c.Close(); err != nil {
-			return fmt.Errorf("failed to close: %w", err)
+		if err := c.DeleteStale(ctx, nil, "testSource", time.Now()); err != nil {
+			return fmt.Errorf("failed to call DeleteStale: %w", err)
+		}
+		if err := c.Close(ctx); err != nil {
+			return fmt.Errorf("failed to call Close: %w", err)
 		}
 		return nil
 	})

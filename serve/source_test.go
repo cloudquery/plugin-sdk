@@ -73,9 +73,7 @@ func TestServeSource(t *testing.T) {
 		"testSourcePlugin",
 		"v1.0.0",
 		[]*schema.Table{testTable()},
-		newTestExecutionClient,
-		plugins.WithSourceLogger(zerolog.New(zerolog.NewTestWriter(t))),
-	)
+		newTestExecutionClient)
 
 	cmd := newCmdSourceRoot(&sourceServe{
 		plugin: plugin,
