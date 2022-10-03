@@ -16,6 +16,9 @@ var templatesFS embed.FS
 
 // GenerateSourcePluginDocs creates table documentation for the source plugin based on its list of tables
 func (p *SourcePlugin) GenerateSourcePluginDocs(dir string) error {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
+	}
 	for _, table := range p.Tables() {
 		if err := renderAllTables(table, dir); err != nil {
 			return err
