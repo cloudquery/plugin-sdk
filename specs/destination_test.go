@@ -211,7 +211,7 @@ func TestWriteMode(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if writeModeStr  != writeMode.String(){
+		if writeModeStr != writeMode.String() {
 			t.Fatalf("expected:%s got:%s", writeModeStr, writeMode.String())
 		}
 	}

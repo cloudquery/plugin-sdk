@@ -28,8 +28,6 @@ type SourcePlugin struct {
 	newExecutionClient SourceNewExecutionClientFunc
 	// Tables is all tables supported by this source plugin
 	tables schema.Tables
-	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
-	// logger zerolog.Logger
 }
 
 const (
