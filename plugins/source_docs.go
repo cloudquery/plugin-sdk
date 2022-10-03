@@ -18,7 +18,6 @@ var templatesFS embed.FS
 func (p *SourcePlugin) GenerateSourcePluginDocs(dir string) error {
 	for _, table := range p.Tables() {
 		if err := renderAllTables(table, dir); err != nil {
-			fmt.Printf("render table %s error: %s", table.Name, err)
 			return err
 		}
 	}
@@ -54,9 +53,6 @@ func renderAllTables(t *schema.Table, dir string) error {
 func renderTable(table *schema.Table, dir string) error {
 	t := template.New("").Funcs(map[string]interface{}{
 		"formatType": formatType,
-		"removeLineBreaks": func(text string) string {
-			return strings.ReplaceAll(text, "\n", " ")
-		},
 	})
 	t, err := t.New("table.go.tpl").ParseFS(templatesFS, "templates/table.go.tpl")
 	if err != nil {

@@ -1,2 +1,5 @@
 *       @yevgenypats
 CHANGELOG.md
+go.mod
+go.sum
+.github/
