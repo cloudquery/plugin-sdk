@@ -68,7 +68,7 @@ func WithSourceWriters(writers ...io.Writer) func(*SourceClient) {
 func NewSourceClient(ctx context.Context, registry specs.Registry, path string, version string, opts ...SourceClientOption) (*SourceClient, error) {
 	var err error
 	c := &SourceClient{
-		directory: "./",
+		directory: DefaultDownloadDir,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -94,6 +94,7 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 		}
 		org, name := pathSplit[0], pathSplit[1]
 		localPath := filepath.Join(c.directory, "plugins", string(PluginTypeSource), org, name, version, "plugin")
+		localPath = withBinarySuffix(localPath)
 		if err := DownloadPluginFromGithub(ctx, localPath, org, name, version, PluginTypeSource, c.writers...); err != nil {
 			return nil, err
 		}

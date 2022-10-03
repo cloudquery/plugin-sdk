@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflow/lint_markdown.yml"
-      - "*.md"
+      - "**.md"
 
 jobs:
   lint-grammar:
@@ -15,7 +15,7 @@ jobs:
       - name: Vale
         uses: errata-ai/vale-action@v2
         with:
-          vale_flags: "--glob='!{docs/.snapshots/*,CHANGELOG.md,.github/styles/proselint/README.md}'"
+          vale_flags: "--glob='!{plugins/.snapshots/*,CHANGELOG.md,.github/styles/proselint/README.md}'"
           filter_mode: nofilter
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
@@ -25,7 +25,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@v3
       - name: markdownlint-cli
-        uses: nosborn/github-action-markdown-cli@v3.0.1
+        uses: nosborn/github-action-markdown-cli@v3.2.0
         with:
           files: .
           config_file: .markdownlint.yaml
