@@ -51,6 +51,14 @@ func NewDestinationPlugin(name string, version string, newDestinationClient NewD
 	return p
 }
 
+func (p *DestinationPlugin) Name() string {
+	return p.name
+}
+
+func (p *DestinationPlugin) Version() string {
+	return p.version
+}
+
 // we need lazy loading because we want to be able to initialize after
 func (p *DestinationPlugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Destination) error {
 	var err error
@@ -61,14 +69,6 @@ func (p *DestinationPlugin) Init(ctx context.Context, logger zerolog.Logger, spe
 		return err
 	}
 	return nil
-}
-
-func (p *DestinationPlugin) Name() string {
-	return p.name
-}
-
-func (p *DestinationPlugin) Version() string {
-	return p.version
 }
 
 // we implement all DestinationClient functions so we can hook into pre-post behavior
