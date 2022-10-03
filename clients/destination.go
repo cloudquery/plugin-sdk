@@ -223,7 +223,7 @@ func (c *DestinationClient) Close(ctx context.Context) error {
 func (c *DestinationClient) DeleteStale(ctx context.Context, tables schema.Tables, source string, timestamp time.Time) error {
 	b, err := json.Marshal(tables)
 	if err != nil {
-		return fmt.Errorf("destination migrate: failed to marshal plugin: %w", err)
+		return fmt.Errorf("destination delete stale: failed to marshal plugin: %w", err)
 	}
 	if _, err := c.pbClient.DeleteStale(ctx, &pb.DeleteStale_Request{
 		Source:    source,
