@@ -11,10 +11,6 @@ cut_body_and_text = true
 cut_body_before = "<!-- 🎉 Thank you for making CloudQuery awesome by submitting a PR 🎉 -->"
 title = "pull_request_title"
 
-[merge.automerge_dependencies]
-usernames = ["cq-bot"]
-versions = ["patch"]
-
 [merge]
 blocking_labels = ["wip", "no automerge"]
 notify_on_conflict = false
