@@ -31,7 +31,7 @@ type SourceClient struct {
 	conn           *grpc.ClientConn
 	grpcSocketName string
 	cmdWaitErr     error
-	wg             sync.WaitGroup
+	wg             *sync.WaitGroup
 }
 
 type FetchResultMessage struct {
@@ -71,6 +71,7 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 	var err error
 	c := &SourceClient{
 		directory: DefaultDownloadDir,
+		wg:        &sync.WaitGroup{},
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -212,6 +213,9 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 // Terminate is used only in conjunction with NewManagedSourceClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
 func (c *SourceClient) Terminate() error {
+	// wait for log streaming to complete before returning from this function
+	defer c.wg.Wait()
+
 	if c.grpcSocketName != "" {
 		defer os.Remove(c.grpcSocketName)
 	}
@@ -226,9 +230,6 @@ func (c *SourceClient) Terminate() error {
 			return err
 		}
 	}
-
-	// wait for log streaming to complete before returning
-	c.wg.Wait()
 
 	return nil
 }
