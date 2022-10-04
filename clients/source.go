@@ -213,9 +213,6 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 // Terminate is used only in conjunction with NewManagedSourceClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
 func (c *SourceClient) Terminate() error {
-	// wait for log streaming to complete before returning from this function
-	defer c.wg.Wait()
-
 	if c.grpcSocketName != "" {
 		defer os.Remove(c.grpcSocketName)
 	}
@@ -227,9 +224,15 @@ func (c *SourceClient) Terminate() error {
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
 		if err := c.cmd.Process.Kill(); err != nil {
+			// if we fail to kill the process, we also won't wait for logs to finish streaming
+			// (since we cannot guarantee when/if that will happen)
+			c.logger.Error().Err(err).Msg("failed to kill process")
 			return err
 		}
 	}
+
+	// wait for log streaming to complete before returning from this function
+	c.wg.Wait()
 
 	return nil
 }
