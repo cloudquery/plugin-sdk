@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 
@@ -97,7 +98,7 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad status: %s. downloading %s", resp.Status, url)
 	}
-	bar := progressbar.DefaultBytes(resp.ContentLength, "Downloading: "+url)
+	bar := progressbar.DefaultBytes(resp.ContentLength, "Downloading: "+path.Base(url))
 
 	// Writer the body to file
 	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
