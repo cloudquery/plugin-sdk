@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -24,7 +23,6 @@ import (
 type DestinationClient struct {
 	pbClient       pb.DestinationClient
 	directory      string
-	writers        []io.Writer
 	cmd            *exec.Cmd
 	logger         zerolog.Logger
 	userConn       *grpc.ClientConn
@@ -44,13 +42,6 @@ func WithDestinationLogger(logger zerolog.Logger) func(*DestinationClient) {
 func WithDestinationDirectory(directory string) func(*DestinationClient) {
 	return func(c *DestinationClient) {
 		c.directory = directory
-	}
-}
-
-// WithDestinationWithWriters adds writers when downloading plugins from github
-func WithDestinationWithWriters(writers ...io.Writer) func(*DestinationClient) {
-	return func(c *DestinationClient) {
-		c.writers = writers
 	}
 }
 
@@ -91,7 +82,7 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 		org, name := pathSplit[0], pathSplit[1]
 		localPath := filepath.Join(c.directory, "plugins", string(PluginTypeDestination), org, name, version, "plugin")
 		localPath = withBinarySuffix(localPath)
-		if err := DownloadPluginFromGithub(ctx, localPath, org, name, version, PluginTypeDestination, c.writers...); err != nil {
+		if err := DownloadPluginFromGithub(ctx, localPath, org, name, version, PluginTypeDestination); err != nil {
 			return nil, err
 		}
 		return c.newManagedClient(ctx, localPath)
