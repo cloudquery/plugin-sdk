@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -30,6 +31,7 @@ type SourceClient struct {
 	conn           *grpc.ClientConn
 	grpcSocketName string
 	cmdWaitErr     error
+	wg             *sync.WaitGroup
 }
 
 type FetchResultMessage struct {
@@ -62,6 +64,7 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 	var err error
 	c := &SourceClient{
 		directory: DefaultDownloadDir,
+		wg:        &sync.WaitGroup{},
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -112,7 +115,10 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) (*Sour
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start plugin %s: %w", path, err)
 	}
+
+	c.wg.Add(1)
 	go func() {
+		defer c.wg.Done()
 		if err := cmd.Wait(); err != nil {
 			c.cmdWaitErr = err
 			c.logger.Error().Err(err).Str("plugin", path).Msg("plugin exited")
@@ -120,7 +126,9 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) (*Sour
 	}()
 	c.cmd = cmd
 
+	c.wg.Add(1)
 	go func() {
+		defer c.wg.Done()
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			var structuredLogLine map[string]interface{}
@@ -205,6 +213,9 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 // Terminate is used only in conjunction with NewManagedSourceClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
 func (c *SourceClient) Terminate() error {
+	// wait for log streaming to complete before returning from this function
+	defer c.wg.Wait()
+
 	if c.grpcSocketName != "" {
 		defer os.Remove(c.grpcSocketName)
 	}
@@ -216,9 +227,11 @@ func (c *SourceClient) Terminate() error {
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
 		if err := c.cmd.Process.Kill(); err != nil {
+			c.logger.Error().Err(err).Msg("failed to kill process")
 			return err
 		}
 	}
+
 	return nil
 }
 

@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
@@ -30,6 +31,7 @@ type DestinationClient struct {
 	conn           *grpc.ClientConn
 	grpcSocketName string
 	cmdWaitErr     error
+	wg             *sync.WaitGroup
 }
 
 type DestinationClientOption func(*DestinationClient)
@@ -57,6 +59,7 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 	var err error
 	c := &DestinationClient{
 		directory: DefaultDownloadDir,
+		wg:        &sync.WaitGroup{},
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -107,7 +110,10 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start plugin %s: %w", path, err)
 	}
+
+	c.wg.Add(1)
 	go func() {
+		c.wg.Done()
 		if err := cmd.Wait(); err != nil {
 			c.cmdWaitErr = err
 			c.logger.Error().Err(err).Str("plugin", path).Msg("plugin exited")
@@ -115,7 +121,9 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (
 	}()
 	c.cmd = cmd
 
+	c.wg.Add(1)
 	go func() {
+		defer c.wg.Done()
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			var structuredLogLine map[string]interface{}
@@ -235,6 +243,9 @@ func (c *DestinationClient) DeleteStale(ctx context.Context, tables schema.Table
 // Terminate is used only in conjunction with NewManagedDestinationClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
 func (c *DestinationClient) Terminate() error {
+	// wait for log streaming to complete before returning from this function
+	defer c.wg.Wait()
+
 	if c.grpcSocketName != "" {
 		defer os.Remove(c.grpcSocketName)
 	}
@@ -246,9 +257,11 @@ func (c *DestinationClient) Terminate() error {
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
 		if err := c.cmd.Process.Kill(); err != nil {
+			c.logger.Error().Err(err).Msg("failed to kill process")
 			return err
 		}
 	}
+
 	return nil
 }
 
