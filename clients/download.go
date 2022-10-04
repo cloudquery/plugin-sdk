@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/schollz/progressbar/v3"
 )
 
 type PluginType string
@@ -19,7 +21,7 @@ const (
 	DefaultDownloadDir               = ".cq"
 )
 
-func DownloadPluginFromGithub(ctx context.Context, localPath string, org string, name string, version string, typ PluginType, writers ...io.Writer) error {
+func DownloadPluginFromGithub(ctx context.Context, localPath string, org string, name string, version string, typ PluginType) error {
 	downloadDir := filepath.Dir(localPath)
 	pluginZipPath := localPath + ".zip"
 	// https://github.com/cloudquery/cloudquery/releases/download/plugins-source-test-v1.1.5/test_darwin_amd64.zip
@@ -37,7 +39,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 		return fmt.Errorf("failed to create plugin directory %s: %w", downloadDir, err)
 	}
 
-	err := downloadFile(ctx, pluginZipPath, downloadURL, writers...)
+	err := downloadFile(ctx, pluginZipPath, downloadURL)
 	if err != nil {
 		return fmt.Errorf("failed to download plugin: %w", err)
 	}
@@ -72,7 +74,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	return nil
 }
 
-func downloadFile(ctx context.Context, localPath string, url string, writers ...io.Writer) (err error) {
+func downloadFile(ctx context.Context, localPath string, url string) (err error) {
 	// Create the file
 	out, err := os.Create(localPath)
 	if err != nil {
@@ -95,12 +97,10 @@ func downloadFile(ctx context.Context, localPath string, url string, writers ...
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad status: %s. downloading %s", resp.Status, url)
 	}
-	var w []io.Writer
-	w = append(w, out)
-	w = append(w, writers...)
+	bar := progressbar.DefaultBytes(resp.ContentLength, "Downloading")
 
 	// Writer the body to file
-	_, err = io.Copy(io.MultiWriter(w...), resp.Body)
+	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
 	}
