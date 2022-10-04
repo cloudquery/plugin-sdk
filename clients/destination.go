@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
@@ -29,6 +30,7 @@ type DestinationClient struct {
 	conn           *grpc.ClientConn
 	grpcSocketName string
 	cmdWaitErr     error
+	wg             *sync.WaitGroup
 }
 
 type DestinationClientOption func(*DestinationClient)
@@ -56,6 +58,7 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 	var err error
 	c := &DestinationClient{
 		directory: DefaultDownloadDir,
+		wg:        &sync.WaitGroup{},
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -114,7 +117,9 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (
 	}()
 	c.cmd = cmd
 
+	c.wg.Add(1)
 	go func() {
+		defer c.wg.Done()
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			var structuredLogLine map[string]interface{}
@@ -240,10 +245,16 @@ func (c *DestinationClient) Terminate() error {
 		}
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
+		// if we fail to kill the process, we also won't wait for logs to finish streaming
+		// (since we cannot guarantee when/if that will happen)
 		if err := c.cmd.Process.Kill(); err != nil {
 			return err
 		}
 	}
+
+	// wait for log streaming to complete before returning from this function
+	c.wg.Wait()
+
 	return nil
 }
 
