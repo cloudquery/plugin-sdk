@@ -1,4 +1,5 @@
 # Table: {{.Name}}
+
 {{ $.Description }}
 {{ $length := len $.PrimaryKeys -}}
 {{ if eq $length 1 }}

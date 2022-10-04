@@ -1,8 +1,8 @@
 syntax = "proto3";
 package proto;
 option go_package = "/pb";
-// import "/internal/pb/base.proto";
 import "internal/pb/base.proto";
+import "google/protobuf/timestamp.proto";
 
 service Source {
   // Get the name of the plugin
@@ -11,6 +11,9 @@ service Source {
   rpc GetVersion(GetVersion.Request) returns (GetVersion.Response);
   // Get all tables the source plugin supports
   rpc GetTables(GetTables.Request) returns (GetTables.Response);
+  // GetSyncSummary returns the latest sync summary of the source plugin. we don't want to send the summary on
+  // every sync request.
+  rpc GetSyncSummary(GetSyncSummary.Request) returns (GetSyncSummary.Response);
   // Fetch resources
   rpc Sync(Sync.Request) returns (stream Sync.Response);
 }
@@ -18,10 +21,20 @@ service Source {
 message Sync {
   message Request {
     bytes spec = 1;
+    // sync timestamp
+    google.protobuf.Timestamp timestamp = 2;
   }
   message Response {
     // marshalled *schema.Resources
     bytes resource = 1;
+  }
+}
+
+message GetSyncSummary {
+  message Request {}
+  message Response {
+    // marshalled *schema.SyncSummary
+    bytes summary = 1;
   }
 }
 

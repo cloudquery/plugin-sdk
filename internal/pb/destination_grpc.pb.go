@@ -32,6 +32,11 @@ type DestinationClient interface {
 	Migrate(ctx context.Context, in *Migrate_Request, opts ...grpc.CallOption) (*Migrate_Response, error)
 	// Write resources
 	Write(ctx context.Context, opts ...grpc.CallOption) (Destination_WriteClient, error)
+	// Send signal to flush and close open connections
+	Close(ctx context.Context, in *Close_Request, opts ...grpc.CallOption) (*Close_Response, error)
+	// DeleteStale deletes stale data that was inserted by a given source
+	// and is older than the given timestamp
+	DeleteStale(ctx context.Context, in *DeleteStale_Request, opts ...grpc.CallOption) (*DeleteStale_Response, error)
 }
 
 type destinationClient struct {
@@ -112,6 +117,24 @@ func (x *destinationWriteClient) CloseAndRecv() (*Write_Response, error) {
 	return m, nil
 }
 
+func (c *destinationClient) Close(ctx context.Context, in *Close_Request, opts ...grpc.CallOption) (*Close_Response, error) {
+	out := new(Close_Response)
+	err := c.cc.Invoke(ctx, "/proto.Destination/Close", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *destinationClient) DeleteStale(ctx context.Context, in *DeleteStale_Request, opts ...grpc.CallOption) (*DeleteStale_Response, error) {
+	out := new(DeleteStale_Response)
+	err := c.cc.Invoke(ctx, "/proto.Destination/DeleteStale", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DestinationServer is the server API for Destination service.
 // All implementations must embed UnimplementedDestinationServer
 // for forward compatibility
@@ -126,6 +149,11 @@ type DestinationServer interface {
 	Migrate(context.Context, *Migrate_Request) (*Migrate_Response, error)
 	// Write resources
 	Write(Destination_WriteServer) error
+	// Send signal to flush and close open connections
+	Close(context.Context, *Close_Request) (*Close_Response, error)
+	// DeleteStale deletes stale data that was inserted by a given source
+	// and is older than the given timestamp
+	DeleteStale(context.Context, *DeleteStale_Request) (*DeleteStale_Response, error)
 	mustEmbedUnimplementedDestinationServer()
 }
 
@@ -147,6 +175,12 @@ func (UnimplementedDestinationServer) Migrate(context.Context, *Migrate_Request)
 }
 func (UnimplementedDestinationServer) Write(Destination_WriteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Write not implemented")
+}
+func (UnimplementedDestinationServer) Close(context.Context, *Close_Request) (*Close_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
+}
+func (UnimplementedDestinationServer) DeleteStale(context.Context, *DeleteStale_Request) (*DeleteStale_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteStale not implemented")
 }
 func (UnimplementedDestinationServer) mustEmbedUnimplementedDestinationServer() {}
 
@@ -259,6 +293,42 @@ func (x *destinationWriteServer) Recv() (*Write_Request, error) {
 	return m, nil
 }
 
+func _Destination_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Close_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DestinationServer).Close(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Destination/Close",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DestinationServer).Close(ctx, req.(*Close_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Destination_DeleteStale_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteStale_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DestinationServer).DeleteStale(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Destination/DeleteStale",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DestinationServer).DeleteStale(ctx, req.(*DeleteStale_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Destination_ServiceDesc is the grpc.ServiceDesc for Destination service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -281,6 +351,14 @@ var Destination_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Migrate",
 			Handler:    _Destination_Migrate_Handler,
+		},
+		{
+			MethodName: "Close",
+			Handler:    _Destination_Close_Handler,
+		},
+		{
+			MethodName: "DeleteStale",
+			Handler:    _Destination_DeleteStale_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

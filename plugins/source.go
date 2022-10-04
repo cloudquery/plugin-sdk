@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/helpers"
@@ -27,21 +28,11 @@ type SourcePlugin struct {
 	newExecutionClient SourceNewExecutionClientFunc
 	// Tables is all tables supported by this source plugin
 	tables schema.Tables
-	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
-	logger zerolog.Logger
 }
-
-type SourceOption func(*SourcePlugin)
 
 const (
 	defaultConcurrency = 500000
 )
-
-func WithSourceLogger(logger zerolog.Logger) SourceOption {
-	return func(p *SourcePlugin) {
-		p.logger = logger
-	}
-}
 
 // Add internal columns
 func addInternalColumns(tables []*schema.Table) {
@@ -50,7 +41,7 @@ func addInternalColumns(tables []*schema.Table) {
 		if len(table.PrimaryKeys()) == 0 {
 			cqID.CreationOptions.PrimaryKey = true
 		}
-		table.Columns = append(table.Columns, cqID, schema.CqFetchTime)
+		table.Columns = append([]schema.Column{cqID, schema.CqParentIDColumn, schema.CqSourceName, schema.CqSyncTime}, table.Columns...)
 		addInternalColumns(table.Relations)
 	}
 }
@@ -66,15 +57,12 @@ func setParents(tables []*schema.Table) {
 
 // NewSourcePlugin returns a new plugin with a given name, version, tables, newExecutionClient
 // and additional options.
-func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc, opts ...SourceOption) *SourcePlugin {
+func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc) *SourcePlugin {
 	p := SourcePlugin{
 		name:               name,
 		version:            version,
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
-	}
-	for _, opt := range opts {
-		opt(&p)
 	}
 	addInternalColumns(p.tables)
 	setParents(p.tables)
@@ -114,16 +102,11 @@ func (p *SourcePlugin) Version() string {
 	return p.version
 }
 
-// SetLogger sets the logger for this plugin which will be used in Sync and all other function calls.
-func (p *SourcePlugin) SetLogger(log zerolog.Logger) {
-	p.logger = log
-}
-
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
-	c, err := p.newExecutionClient(ctx, p.logger, spec)
+func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec specs.Source, res chan<- *schema.Resource) (*schema.SyncSummary, error) {
+	c, err := p.newExecutionClient(ctx, logger, spec)
 	if err != nil {
-		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
+		return nil, fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
 
 	// limiter used to limit the amount of resources fetched concurrently
@@ -131,20 +114,20 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	if concurrency == 0 {
 		concurrency = defaultConcurrency
 	}
-	p.logger.Info().Uint64("concurrency", concurrency).Msg("starting fetch")
+	logger.Info().Uint64("concurrency", concurrency).Msg("starting fetch")
 	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(concurrency))
 	wg := sync.WaitGroup{}
-	totalResources := 0
+	summary := schema.SyncSummary{}
 	startTime := time.Now()
 	tableNames, err := p.interpolateAllResources(spec.Tables)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, table := range p.tables {
 		table := table
 		if funk.ContainsString(spec.SkipTables, table.Name) || !funk.ContainsString(tableNames, table.Name) {
-			p.logger.Debug().Str("table", table.Name).Msg("skipping table")
+			logger.Debug().Str("table", table.Name).Msg("skipping table")
 			continue
 		}
 		clients := []schema.ClientMeta{c}
@@ -156,20 +139,23 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 			wg.Add(1)
 			if err := goroutinesSem.Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
-				return err
+				return nil, err
 			}
 			go func() {
 				defer wg.Done()
 				defer goroutinesSem.Release(1)
 				// TODO: prob introduce client.Identify() to be used in logs
 
-				totalResources += table.Resolve(ctx, client, startTime, nil, res)
+				tableSummary := table.Resolve(ctx, client, nil, res)
+				atomic.AddUint64(&summary.Resources, tableSummary.Resources)
+				atomic.AddUint64(&summary.Errors, tableSummary.Errors)
+				atomic.AddUint64(&summary.Panics, tableSummary.Panics)
 			}()
 		}
 	}
 	wg.Wait()
-	p.logger.Info().Int("total_resources", totalResources).TimeDiff("duration", time.Now(), startTime).Msg("fetch finished")
-	return nil
+	logger.Info().Uint64("total_resources", summary.Resources).TimeDiff("duration", time.Now(), startTime).Msg("fetch finished")
+	return &summary, nil
 }
 
 func (p *SourcePlugin) interpolateAllResources(tables []string) ([]string, error) {

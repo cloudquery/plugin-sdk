@@ -2,6 +2,7 @@ syntax = "proto3";
 package proto;
 option go_package = "/pb";
 import "internal/pb/base.proto";
+import "google/protobuf/timestamp.proto";
 
 service Destination {
   // Get the name of the plugin
@@ -14,6 +15,11 @@ service Destination {
   rpc Migrate(Migrate.Request) returns (Migrate.Response);
   // Write resources
   rpc Write(stream Write.Request) returns (Write.Response);
+  // Send signal to flush and close open connections
+  rpc Close(Close.Request) returns (Close.Response);
+  // DeleteStale deletes stale data that was inserted by a given source
+  // and is older than the given timestamp
+  rpc DeleteStale(DeleteStale.Request) returns (DeleteStale.Response);
 }
 
 
@@ -31,8 +37,27 @@ message Write {
   message Request {
     // marshalled *schema.Resources
     bytes resource = 1;
+    string source = 2;
+    google.protobuf.Timestamp timestamp = 3;
   }
   message Response {
     uint64 failed_writes = 1;
+  }
+}
+
+
+message Close {
+  message Request {}
+  message Response {}
+}
+
+message DeleteStale {
+  message Request {
+    string source = 1;
+    google.protobuf.Timestamp timestamp = 2;
+    bytes tables = 3;
+  }
+  message Response {
+    uint64 failed_deletes = 1;
   }
 }

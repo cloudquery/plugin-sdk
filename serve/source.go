@@ -94,8 +94,10 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 				),
 			)
 
-			source.plugin.SetLogger(logger)
-			pb.RegisterSourceServer(s, &servers.SourceServer{Plugin: source.plugin})
+			pb.RegisterSourceServer(s, &servers.SourceServer{
+				Plugin: source.plugin,
+				Logger: logger,
+			})
 			version := source.plugin.Version()
 
 			if source.sentryDSN != "" && version != "development" {

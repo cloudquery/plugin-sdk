@@ -204,3 +204,15 @@ func TestDestinationUnmarshalSpecValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestWriteMode(t *testing.T) {
+	for _, writeModeStr := range writeModeStrings {
+		writeMode, err := WriteModeFromString(writeModeStr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if writeModeStr != writeMode.String() {
+			t.Fatalf("expected:%s got:%s", writeModeStr, writeMode.String())
+		}
+	}
+}

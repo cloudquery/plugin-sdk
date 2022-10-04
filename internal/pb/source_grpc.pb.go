@@ -28,6 +28,9 @@ type SourceClient interface {
 	GetVersion(ctx context.Context, in *GetVersion_Request, opts ...grpc.CallOption) (*GetVersion_Response, error)
 	// Get all tables the source plugin supports
 	GetTables(ctx context.Context, in *GetTables_Request, opts ...grpc.CallOption) (*GetTables_Response, error)
+	// GetSyncSummary returns the latest sync summary of the source plugin. we don't want to send the summary on
+	// every sync request.
+	GetSyncSummary(ctx context.Context, in *GetSyncSummary_Request, opts ...grpc.CallOption) (*GetSyncSummary_Response, error)
 	// Fetch resources
 	Sync(ctx context.Context, in *Sync_Request, opts ...grpc.CallOption) (Source_SyncClient, error)
 }
@@ -61,6 +64,15 @@ func (c *sourceClient) GetVersion(ctx context.Context, in *GetVersion_Request, o
 func (c *sourceClient) GetTables(ctx context.Context, in *GetTables_Request, opts ...grpc.CallOption) (*GetTables_Response, error) {
 	out := new(GetTables_Response)
 	err := c.cc.Invoke(ctx, "/proto.Source/GetTables", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sourceClient) GetSyncSummary(ctx context.Context, in *GetSyncSummary_Request, opts ...grpc.CallOption) (*GetSyncSummary_Response, error) {
+	out := new(GetSyncSummary_Response)
+	err := c.cc.Invoke(ctx, "/proto.Source/GetSyncSummary", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +121,9 @@ type SourceServer interface {
 	GetVersion(context.Context, *GetVersion_Request) (*GetVersion_Response, error)
 	// Get all tables the source plugin supports
 	GetTables(context.Context, *GetTables_Request) (*GetTables_Response, error)
+	// GetSyncSummary returns the latest sync summary of the source plugin. we don't want to send the summary on
+	// every sync request.
+	GetSyncSummary(context.Context, *GetSyncSummary_Request) (*GetSyncSummary_Response, error)
 	// Fetch resources
 	Sync(*Sync_Request, Source_SyncServer) error
 	mustEmbedUnimplementedSourceServer()
@@ -126,6 +141,9 @@ func (UnimplementedSourceServer) GetVersion(context.Context, *GetVersion_Request
 }
 func (UnimplementedSourceServer) GetTables(context.Context, *GetTables_Request) (*GetTables_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTables not implemented")
+}
+func (UnimplementedSourceServer) GetSyncSummary(context.Context, *GetSyncSummary_Request) (*GetSyncSummary_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSyncSummary not implemented")
 }
 func (UnimplementedSourceServer) Sync(*Sync_Request, Source_SyncServer) error {
 	return status.Errorf(codes.Unimplemented, "method Sync not implemented")
@@ -197,6 +215,24 @@ func _Source_GetTables_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Source_GetSyncSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSyncSummary_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SourceServer).GetSyncSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Source/GetSyncSummary",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SourceServer).GetSyncSummary(ctx, req.(*GetSyncSummary_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Source_Sync_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Sync_Request)
 	if err := stream.RecvMsg(m); err != nil {
@@ -236,6 +272,10 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTables",
 			Handler:    _Source_GetTables_Handler,
+		},
+		{
+			MethodName: "GetSyncSummary",
+			Handler:    _Source_GetSyncSummary_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

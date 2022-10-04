@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -17,6 +18,7 @@ import (
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type DestinationClient struct {
@@ -62,7 +64,7 @@ func WithDestinationGrpcConn(userConn *grpc.ClientConn) func(*DestinationClient)
 func NewDestinationClient(ctx context.Context, registry specs.Registry, path string, version string, opts ...DestinationClientOption) (*DestinationClient, error) {
 	var err error
 	c := &DestinationClient{
-		directory: "./",
+		directory: DefaultDownloadDir,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -87,7 +89,8 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 			return nil, fmt.Errorf("invalid github plugin path: %s. format should be owner/repo", path)
 		}
 		org, name := pathSplit[0], pathSplit[1]
-		localPath := filepath.Join(c.directory, "plugins", string(PluginTypeSource), org, name, version, "plugin")
+		localPath := filepath.Join(c.directory, "plugins", string(PluginTypeDestination), org, name, version, "plugin")
+		localPath = withBinarySuffix(localPath)
 		if err := DownloadPluginFromGithub(ctx, localPath, org, name, version, PluginTypeDestination, c.writers...); err != nil {
 			return nil, err
 		}
@@ -147,7 +150,7 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (
 func (c *DestinationClient) Name(ctx context.Context) (string, error) {
 	res, err := c.pbClient.GetName(ctx, &pb.GetName_Request{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get name: %w", err)
+		return "", fmt.Errorf("failed to call GetName: %w", err)
 	}
 	return res.Name, nil
 }
@@ -155,7 +158,7 @@ func (c *DestinationClient) Name(ctx context.Context) (string, error) {
 func (c *DestinationClient) Version(ctx context.Context) (string, error) {
 	res, err := c.pbClient.GetVersion(ctx, &pb.GetVersion_Request{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get version: %w", err)
+		return "", fmt.Errorf("failed to call GetVersion: %w", err)
 	}
 	return res.Version, nil
 }
@@ -169,7 +172,7 @@ func (c *DestinationClient) Initialize(ctx context.Context, spec specs.Destinati
 		Config: b,
 	})
 	if err != nil {
-		return fmt.Errorf("destination configure: failed to configure: %w", err)
+		return fmt.Errorf("destination configure: failed to call Configure: %w", err)
 	}
 	return nil
 }
@@ -181,7 +184,7 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 	}
 	_, err = c.pbClient.Migrate(ctx, &pb.Migrate_Request{Tables: b})
 	if err != nil {
-		return fmt.Errorf("destination migrate: failed to migrate: %w", err)
+		return fmt.Errorf("failed to call Migrate: %w", err)
 	}
 	return nil
 }
@@ -189,16 +192,18 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 // Write writes rows as they are received from the channel to the destination plugin.
 // resources is marshaled schema.Resource. We are not marshalling this inside the function
 // because usually it is alreadun marshalled from the source plugin.
-func (c *DestinationClient) Write(ctx context.Context, resources <-chan []byte) (uint64, error) {
+func (c *DestinationClient) Write(ctx context.Context, source string, syncTime time.Time, resources <-chan []byte) (uint64, error) {
 	saveClient, err := c.pbClient.Write(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create save client: %w", err)
+		return 0, fmt.Errorf("failed to call Write: %w", err)
 	}
 	for resource := range resources {
 		if err := saveClient.Send(&pb.Write_Request{
-			Resource: resource,
+			Resource:  resource,
+			Source:    source,
+			Timestamp: timestamppb.New(syncTime),
 		}); err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to call Write.Send: %w", err)
 		}
 	}
 	res, err := saveClient.CloseAndRecv()
@@ -209,9 +214,31 @@ func (c *DestinationClient) Write(ctx context.Context, resources <-chan []byte) 
 	return res.FailedWrites, nil
 }
 
-// Close is used only in conjunction with NewManagedDestinationClient.
+func (c *DestinationClient) Close(ctx context.Context) error {
+	if _, err := c.pbClient.Close(ctx, &pb.Close_Request{}); err != nil {
+		return fmt.Errorf("failed to close destination: %w", err)
+	}
+	return nil
+}
+
+func (c *DestinationClient) DeleteStale(ctx context.Context, tables schema.Tables, source string, timestamp time.Time) error {
+	b, err := json.Marshal(tables)
+	if err != nil {
+		return fmt.Errorf("destination delete stale: failed to marshal plugin: %w", err)
+	}
+	if _, err := c.pbClient.DeleteStale(ctx, &pb.DeleteStale_Request{
+		Source:    source,
+		Timestamp: timestamppb.New(timestamp),
+		Tables:    b,
+	}); err != nil {
+		return fmt.Errorf("failed to call DeleteStale: %w", err)
+	}
+	return nil
+}
+
+// Terminate is used only in conjunction with NewManagedDestinationClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
-func (c *DestinationClient) Close() error {
+func (c *DestinationClient) Terminate() error {
 	if c.grpcSocketName != "" {
 		defer os.Remove(c.grpcSocketName)
 	}
