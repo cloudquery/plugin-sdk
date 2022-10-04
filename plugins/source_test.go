@@ -157,6 +157,12 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 			configurationSkipTables: []string{"table 1"},
 			wantErr:                 true,
 		},
+		{
+			name:                "should return an error if child table is without its parent",
+			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "table 1", Parent: &schema.Table{Name: "table 2"}}, {Name: "table 2"}}},
+			configurationTables: []string{"table 1"},
+			wantErr:             true,
+		},
 	}
 
 	for _, tt := range tests {

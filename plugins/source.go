@@ -116,7 +116,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 	if concurrency == 0 {
 		concurrency = defaultConcurrency
 	}
-	logger.Info().Uint64("concurrency", concurrency).Msg("starting fetch")
+	logger.Info().Uint64("concurrency", concurrency).Msg("starting sync")
 	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(concurrency))
 	wg := sync.WaitGroup{}
 	summary := schema.SyncSummary{}
@@ -125,6 +125,8 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 	if err != nil {
 		return nil, err
 	}
+
+	logger.Debug().Interface("tables", tableNames).Msg("got table names")
 
 	for _, table := range p.tables {
 		table := table
@@ -156,13 +158,20 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 		}
 	}
 	wg.Wait()
-	logger.Info().Uint64("total_resources", summary.Resources).TimeDiff("duration", time.Now(), startTime).Msg("fetch finished")
+	logger.Info().Uint64("total_resources", summary.Resources).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return &summary, nil
 }
 
 func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]string, error) {
 	if len(tables) == 0 {
 		return nil, fmt.Errorf("list of tables is empty")
+	}
+
+	// raise an error if skip tables contains a wildcard or glob pattern
+	for _, t := range skipTables {
+		if strings.Contains(t, "*") {
+			return nil, fmt.Errorf("glob matching in skipped table name %q is not currently supported", t)
+		}
 	}
 
 	// handle wildcard entry
@@ -188,11 +197,6 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]str
 			return nil, fmt.Errorf("glob matching in table name %q is not currently supported", t)
 		}
 	}
-	for _, t := range skipTables {
-		if strings.Contains(t, "*") {
-			return nil, fmt.Errorf("glob matching in skipped table name %q is not currently supported", t)
-		}
-	}
 
 	// raise an error if a table is both explicitly included and skipped
 	for _, t := range tables {
@@ -205,6 +209,22 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]str
 	for _, t := range tables {
 		if !funk.ContainsString(p.tables.TableNames(), t) {
 			return nil, fmt.Errorf("name %s does not match any known table names", t)
+		}
+	}
+
+	// raise an error if child table is included, but not its parent table
+	selectedTables := map[string]bool{}
+	for _, t := range tables {
+		selectedTables[t] = true
+	}
+	for _, t := range tables {
+		for _, tt := range p.tables {
+			if tt.Name != t {
+				continue
+			}
+			if tt.Parent != nil && !selectedTables[tt.Parent.Name] {
+				return nil, fmt.Errorf("table %s is a child table, and requires its parent table %s to also be fetched", t, tt.Parent.Name)
+			}
 		}
 	}
 
