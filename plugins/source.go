@@ -167,7 +167,7 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]str
 		return nil, fmt.Errorf("list of tables is empty")
 	}
 
-	// raise an error if skip tables contains a wildcard or glob pattern
+	// return an error if skip tables contains a wildcard or glob pattern
 	for _, t := range skipTables {
 		if strings.Contains(t, "*") {
 			return nil, fmt.Errorf("glob matching in skipped table name %q is not currently supported", t)
@@ -191,28 +191,28 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]str
 		return nil, fmt.Errorf("wildcard \"*\" table not allowed with explicit tables")
 	}
 
-	// raise an error if other kinds of glob-matching is detected
+	// return an error if other kinds of glob-matching is detected
 	for _, t := range tables {
 		if strings.Contains(t, "*") {
 			return nil, fmt.Errorf("glob matching in table name %q is not currently supported", t)
 		}
 	}
 
-	// raise an error if a table is both explicitly included and skipped
+	// return an error if a table is both explicitly included and skipped
 	for _, t := range tables {
 		if funk.ContainsString(skipTables, t) {
 			return nil, fmt.Errorf("table %s cannot be both included and skipped", t)
 		}
 	}
 
-	// raise an error if a given table name doesn't match any known tables
+	// return an error if a given table name doesn't match any known tables
 	for _, t := range tables {
 		if !funk.ContainsString(p.tables.TableNames(), t) {
 			return nil, fmt.Errorf("name %s does not match any known table names", t)
 		}
 	}
 
-	// raise an error if child table is included, but not its parent table
+	// return an error if child table is included, but not its parent table
 	selectedTables := map[string]bool{}
 	for _, t := range tables {
 		selectedTables[t] = true
