@@ -223,7 +223,7 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]str
 				continue
 			}
 			if tt.Parent != nil && !selectedTables[tt.Parent.Name] {
-				return nil, fmt.Errorf("table %s is a child table, and requires its parent table %s to also be fetched", t, tt.Parent.Name)
+				return nil, fmt.Errorf("table %s is a child table, and requires its parent table %s to also be synced", t, tt.Parent.Name)
 			}
 		}
 	}
