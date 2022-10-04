@@ -131,6 +131,7 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) (*Sour
 
 	c.wg.Add(1)
 	go func() {
+		defer c.wg.Done()
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			var structuredLogLine map[string]interface{}
@@ -141,7 +142,6 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) (*Sour
 				jsonToLog(c.logger, structuredLogLine)
 			}
 		}
-		c.wg.Done()
 	}()
 
 	c.conn, err = grpc.DialContext(ctx, "unix://"+c.grpcSocketName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
