@@ -3,7 +3,7 @@ module github.com/cloudquery/plugin-sdk
 go 1.19
 
 require (
-	github.com/bradleyjkemp/cupaloy/v2 v2.7.0
+	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/faker/v3 v3.7.7
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/ghodss/yaml v1.0.0
