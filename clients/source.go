@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -30,6 +31,7 @@ type SourceClient struct {
 	conn           *grpc.ClientConn
 	grpcSocketName string
 	cmdWaitErr     error
+	wg             sync.WaitGroup
 }
 
 type FetchResultMessage struct {
@@ -127,6 +129,7 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) (*Sour
 	}()
 	c.cmd = cmd
 
+	c.wg.Add(1)
 	go func() {
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
@@ -138,6 +141,7 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) (*Sour
 				jsonToLog(c.logger, structuredLogLine)
 			}
 		}
+		c.wg.Done()
 	}()
 
 	c.conn, err = grpc.DialContext(ctx, "unix://"+c.grpcSocketName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
@@ -222,6 +226,10 @@ func (c *SourceClient) Terminate() error {
 			return err
 		}
 	}
+
+	// wait for log streaming to complete before returning
+	c.wg.Wait()
+
 	return nil
 }
 
