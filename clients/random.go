@@ -3,7 +3,7 @@ package clients
 import (
 	"math/rand"
 	"os"
-	"path"
+	"path/filepath"
 	"time"
 )
 
@@ -23,5 +23,5 @@ func randSeq(n int) string {
 }
 
 func generateRandomUnixSocketName() string {
-	return path.Join(unixSocketDir, "cq-"+randSeq(16)+".sock")
+	return filepath.Join(unixSocketDir, "cq-"+randSeq(16)+".sock")
 }
