@@ -108,9 +108,9 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 	return nil
 }
 
-func withBinarySuffix(path string) string {
+func withBinarySuffix(filePath string) string {
 	if runtime.GOOS == "windows" {
-		return path + ".exe"
+		return filePath + ".exe"
 	}
-	return path
+	return filePath
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -66,7 +67,7 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 	switch registry {
 	case specs.RegistryGrpc:
 		if c.userConn == nil {
-			c.conn, err = grpc.Dial(path, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			c.conn, err = grpc.DialContext(ctx, path, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				return nil, fmt.Errorf("failed to dial grpc source plugin at %s: %w", path, err)
 			}
@@ -135,7 +136,11 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (
 		}
 	}()
 
-	c.conn, err = grpc.DialContext(ctx, "unix://"+c.grpcSocketName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	dialer := func(ctx context.Context, addr string) (net.Conn, error) {
+		d := &net.Dialer{}
+		return d.DialContext(ctx, "unix", addr)
+	}
+	c.conn, err = grpc.DialContext(ctx, c.grpcSocketName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock(), grpc.WithContextDialer(dialer))
 	if err != nil {
 		if err := cmd.Process.Kill(); err != nil {
 			c.logger.Error().Err(err).Msg("failed to kill plugin process")
