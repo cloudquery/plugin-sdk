@@ -2,8 +2,9 @@ package serve
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -53,10 +53,18 @@ func TestDestination(t *testing.T) {
 
 	cmd := newCmdDestinationRoot(s)
 	cmd.SetArgs([]string{"serve", "--network", "test"})
-
-	var serveErr error
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	var serverErr error
 	go func() {
-		serveErr = cmd.Execute()
+		defer wg.Done()
+		serverErr = cmd.ExecuteContext(ctx)
+	}()
+	defer func() {
+		cancel()
+		wg.Wait()
 	}()
 
 	// wait for the server to start
@@ -66,13 +74,9 @@ func TestDestination(t *testing.T) {
 		}
 		t.Log("waiting for grpc server to start")
 		time.Sleep(time.Millisecond * 200)
-		if serveErr != nil {
-			t.Fatal(serveErr)
-		}
 	}
 
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
-	ctx := context.Background()
 	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDestinationDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
@@ -81,31 +85,64 @@ func TestDestination(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resources := make(chan []byte)
-	wg := errgroup.Group{}
-	wg.Go(func() error {
-		defer close(resources)
-		if err := c.Initialize(ctx, specs.Destination{}); err != nil {
-			return err
+	defer func() {
+		if err := c.Terminate(); err != nil {
+			t.Fatal(err)
 		}
+	}()
 
-		name, err := c.Name(ctx)
-		if err != nil {
-			return err
-		}
-		if name != "testDestinationPlugin" {
-			return fmt.Errorf("expected name to be testDestinationPlugin but got %s", name)
-		}
-		// call all methods as sanity check
-		if err := c.DeleteStale(ctx, nil, "testSource", time.Now()); err != nil {
-			return fmt.Errorf("failed to call DeleteStale: %w", err)
-		}
-		if err := c.Close(ctx); err != nil {
-			return fmt.Errorf("failed to call Close: %w", err)
-		}
-		return nil
-	})
-	if err := wg.Wait(); err != nil {
-		t.Fatalf("Failed to get name from destination plugin: %v", err)
+	if err := c.Initialize(ctx, specs.Destination{}); err != nil {
+		t.Fatal(err)
+	}
+
+	name, err := c.Name(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if name != "testDestinationPlugin" {
+		t.Fatalf("expected name to be testDestinationPlugin but got %s", name)
+	}
+
+	version, err := c.Version(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if version != "development" {
+		t.Fatalf("expected version to be development but got %s", version)
+	}
+
+	if err := c.Migrate(ctx, schema.Tables{testTable()}); err != nil {
+		t.Fatal(err)
+	}
+
+	resource := schema.NewResourceData(testTable(), nil, nil)
+	resource.Data["id"] = "test"
+	b, err := json.Marshal(resource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resources := make(chan []byte, 1)
+	resources <- b
+	close(resources)
+	failedWrites, err := c.Write(ctx, "test", time.Now(), resources)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if failedWrites != 0 {
+		t.Fatalf("expected failed writes to be 0 but got %d", failedWrites)
+	}
+
+	if err := c.DeleteStale(ctx, nil, "testSource", time.Now()); err != nil {
+		t.Fatalf("failed to call DeleteStale: %v", err)
+	}
+
+	if err := c.Close(ctx); err != nil {
+		t.Fatalf("failed to call Close: %v", err)
+	}
+
+	cancel()
+	wg.Wait()
+	if serverErr != nil {
+		t.Fatal(serverErr)
 	}
 }

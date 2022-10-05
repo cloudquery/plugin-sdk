@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"strings"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
@@ -120,8 +121,25 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 					log.Error().Err(err).Msg("Error initializing sentry")
 				}
 			}
+			ctx := cmd.Context()
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt)
+			defer func() {
+				signal.Stop(c)
+			}()
 
-			logger.Info().Str("address", listener.Addr().String()).Msg("server listening")
+			go func() {
+				select {
+				case <-c:
+					logger.Info().Str("address", listener.Addr().String()).Msg("Got interrupt. Destination plugin server shuting down")
+					s.Stop()
+				case <-ctx.Done():
+					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Destination plugin server shuting down")
+					s.Stop()
+				}
+			}()
+
+			logger.Info().Str("address", listener.Addr().String()).Msg("Destination plugin server listening")
 			if err := s.Serve(listener); err != nil {
 				return fmt.Errorf("failed to serve: %w", err)
 			}
