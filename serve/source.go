@@ -134,10 +134,10 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 			go func() {
 				select {
 				case <-c:
-					logger.Info().Str("address", listener.Addr().String()).Msg("Got interrupt. Source plugin server shuting down")
+					logger.Info().Str("address", listener.Addr().String()).Msg("Got interrupt. Source plugin server shutting down")
 					s.Stop()
 				case <-ctx.Done():
-					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Source plugin server shuting down")
+					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Source plugin server shutting down")
 					s.Stop()
 				}
 			}()
