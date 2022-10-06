@@ -116,7 +116,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 	if concurrency == 0 {
 		concurrency = defaultConcurrency
 	}
-	logger.Info().Uint64("concurrency", concurrency).Msg("starting sync")
+	logger.Info().Uint64("concurrency", concurrency).Msg("starting source plugin sync")
 	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(concurrency))
 	wg := sync.WaitGroup{}
 	summary := schema.SyncSummary{}
@@ -170,7 +170,7 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]str
 	// return an error if skip tables contains a wildcard or glob pattern
 	for _, t := range skipTables {
 		if strings.Contains(t, "*") {
-			return nil, fmt.Errorf("glob matching in skipped table name %q is not currently supported", t)
+			return nil, fmt.Errorf("glob matching in skipped table name %q is not supported", t)
 		}
 	}
 
@@ -194,7 +194,7 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]str
 	// return an error if other kinds of glob-matching is detected
 	for _, t := range tables {
 		if strings.Contains(t, "*") {
-			return nil, fmt.Errorf("glob matching in table name %q is not currently supported", t)
+			return nil, fmt.Errorf("glob matching in table name %q is not supported", t)
 		}
 	}
 
