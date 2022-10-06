@@ -206,7 +206,11 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 			}
 			return fmt.Errorf("failed to fetch resources from stream: %w", err)
 		}
-		res <- r.Resource
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case res <- r.Resource:
+		}
 	}
 }
 

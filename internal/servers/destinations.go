@@ -89,7 +89,13 @@ func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 			wg.Wait()
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 		}
-		resources <- resource
+		select {
+		case resources <- resource:
+		case <-msg.Context().Done():
+			close(resources)
+			wg.Wait()
+			return msg.Context().Err()
+		}
 	}
 }
 
