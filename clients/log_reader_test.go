@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"bufio"
 	"github.com/google/go-cmp/cmp"
 	"io"
 	"strings"
@@ -13,6 +14,14 @@ func longStr(len int) string {
 		b[i] = byte(65 + (i % 26)) // cycle through letters A to Z
 	}
 	return string(b)
+}
+
+func genLogs(num, lineLen int) string {
+	s := make([]string, num)
+	for i := 0; i < num; i++ {
+		s[i] = longStr(lineLen)
+	}
+	return strings.Join(s, "\n")
 }
 
 func Test_LogReader(t *testing.T) {
@@ -66,4 +75,40 @@ func Test_LogReader(t *testing.T) {
 			}
 		})
 	}
+}
+
+// we store these package-level variables so that the compiler cannot eliminate the Benchmarks themselves
+var (
+	bufScannerResult []byte
+	logReaderResult  []byte
+)
+
+func Benchmark_BufferedScanner(b *testing.B) {
+	logs := genLogs(10, 10000)
+	bs := bufio.NewScanner(io.NopCloser(strings.NewReader(logs)))
+	b.ResetTimer()
+	var got []byte
+	for n := 0; n < b.N; n++ {
+		for bs.Scan() {
+			got = bs.Bytes()
+		}
+	}
+	bufScannerResult = got
+}
+
+func Benchmark_LogReader(b *testing.B) {
+	logs := genLogs(10, 10000)
+	lr := newLogReader(io.NopCloser(strings.NewReader(logs)))
+	b.ResetTimer()
+	var got []byte
+	for n := 0; n < b.N; n++ {
+		for {
+			line, err := lr.NextLine()
+			if err == io.EOF {
+				break
+			}
+			got = line
+		}
+	}
+	logReaderResult = got
 }
