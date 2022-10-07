@@ -152,7 +152,7 @@ func TestServeSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	close(resources)
-		
+
 	for resourceB := range resources {
 		var resource schema.Resource
 		if err := json.Unmarshal(resourceB, &resource); err != nil {
