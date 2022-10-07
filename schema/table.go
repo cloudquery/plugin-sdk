@@ -180,6 +180,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 					sentry.CurrentHub().CaptureMessage(stack)
 				})
 				meta.Logger().Error().Interface("error", err).Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Str("stack", stack).Msg("table resolver finished with panic")
+				//nolint:all as we use atomic. (false positive)
 				atomic.AddUint64(&summary.Panics, 1)
 			}
 			close(res)
@@ -187,6 +188,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 		meta.Logger().Debug().Str("table", t.Name).Msg("table resolver started")
 		if err := t.Resolver(ctx, meta, parent, res); err != nil {
 			meta.Logger().Error().Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Err(err).Msg("table resolver finished with error")
+			//nolint:all as we use atomic. (false positive)
 			atomic.AddUint64(&summary.Errors, 1)
 			return
 		}
