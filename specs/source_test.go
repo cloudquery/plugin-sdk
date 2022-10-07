@@ -83,8 +83,19 @@ spec:`,
 		`kind: source
 spec:
   name: test
+  path: cloudquery/test
 `,
 		"version is required",
+		nil,
+	},
+	{
+		"required_version",
+		`kind: source
+spec:
+  name: test
+  version: 1.1.0
+`,
+		"path is required",
 		nil,
 	},
 	{
@@ -92,6 +103,7 @@ spec:
 		`kind: source
 spec:
   name: test
+  path: cloudquery/test
   version: 1.1.0
 `,
 		"version must start with v",
@@ -102,6 +114,7 @@ spec:
 		`kind: source
 spec:
   name: test
+  path: cloudquery/test
   version: v1.1.0
 `,
 		"at least one destination is required",
@@ -112,6 +125,7 @@ spec:
 		`kind: source
 spec:
   name: test
+  path: cloudquery/test
   version: v1.1.0
   destinations: ["test"]
 `,
