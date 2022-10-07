@@ -134,9 +134,14 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) (*Sour
 			line, err := lr.NextLine()
 			if errors.Is(err, io.EOF) {
 				break
-			} else if err != nil {
-				c.logger.Err(err).Str("line", string(line)).Msg("failed to read log line from plugin")
+			}
+			if errors.Is(err, errLogLineToLong) {
+				c.logger.Err(err).Str("line", string(line)).Msg("skipping too long log line")
 				continue
+			}
+			if err != nil {
+				c.logger.Err(err).Msg("failed to read log line from plugin")
+				break
 			}
 			var structuredLogLine map[string]interface{}
 			if err := json.Unmarshal(line, &structuredLogLine); err != nil {
