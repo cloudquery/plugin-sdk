@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"strings"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
@@ -123,7 +124,25 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 				}
 			}
 
-			logger.Info().Str("address", listener.Addr().String()).Msg("server listening")
+			ctx := cmd.Context()
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt)
+			defer func() {
+				signal.Stop(c)
+			}()
+
+			go func() {
+				select {
+				case <-c:
+					logger.Info().Str("address", listener.Addr().String()).Msg("Got interrupt. Source plugin server shutting down")
+					s.Stop()
+				case <-ctx.Done():
+					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Source plugin server shutting down")
+					s.Stop()
+				}
+			}()
+
+			logger.Info().Str("address", listener.Addr().String()).Msg("Source plugin server listening")
 			if err := s.Serve(listener); err != nil {
 				return fmt.Errorf("failed to serve: %w", err)
 			}

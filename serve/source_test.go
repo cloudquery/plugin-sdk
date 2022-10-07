@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -79,26 +79,28 @@ func TestServeSource(t *testing.T) {
 		plugin: plugin,
 	})
 	cmd.SetArgs([]string{"serve", "--network", "test"})
-
-	var serveErr error
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	var serverErr error
 	go func() {
-		serveErr = cmd.Execute()
+		defer wg.Done()
+		serverErr = cmd.ExecuteContext(ctx)
 	}()
-
-	// wait for the server to start
+	defer func() {
+		cancel()
+		wg.Wait()
+	}()
 	for {
 		if testSourceListener != nil {
 			break
 		}
 		t.Log("waiting for grpc server to start")
 		time.Sleep(time.Millisecond * 200)
-		if serveErr != nil {
-			t.Fatal(serveErr)
-		}
 	}
 
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
-	ctx := context.Background()
 	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufSourceDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
@@ -107,20 +109,50 @@ func TestServeSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resources := make(chan []byte)
-	wg := errgroup.Group{}
-	wg.Go(func() error {
-		defer close(resources)
-		return c.Sync(ctx,
-			specs.Source{
-				Name:     "testSourcePlugin",
-				Version:  "v1.0.0",
-				Registry: specs.RegistryGithub,
-				Tables:   []string{"*"},
-				Spec:     TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
-			},
-			resources)
-	})
+	defer func() {
+		if err := c.Terminate(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	name, err := c.Name(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if name != "testSourcePlugin" {
+		t.Fatalf("expected name to be testSourcePlugin but got %s", name)
+	}
+
+	version, err := c.Version(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if version != "v1.0.0" {
+		t.Fatalf("Expected version to be v1.0.0 but got %s", version)
+	}
+
+	tables, err := c.GetTables(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tables) != 1 {
+		t.Fatalf("Expected 1 table but got %d", len(tables))
+	}
+
+	resources := make(chan []byte, 1)
+	if err := c.Sync(ctx,
+		specs.Source{
+			Name:     "testSourcePlugin",
+			Version:  "v1.0.0",
+			Registry: specs.RegistryGithub,
+			Tables:   []string{"*"},
+			Spec:     TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
+		},
+		resources); err != nil {
+		t.Fatal(err)
+	}
+	close(resources)
+		
 	for resourceB := range resources {
 		var resource schema.Resource
 		if err := json.Unmarshal(resourceB, &resource); err != nil {
@@ -133,7 +165,24 @@ func TestServeSource(t *testing.T) {
 			t.Fatalf("Expected resource {'test_column':3} got: %v", resource.Data)
 		}
 	}
-	if err := wg.Wait(); err != nil {
-		t.Fatalf("Failed to sync resources: %v", err)
+
+	summary, err := c.GetSyncSummary(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary.Resources != 1 {
+		t.Fatalf("Got: %d Expected 1 resource", summary.Resources)
+	}
+	if summary.Errors != 0 {
+		t.Fatalf("Got: %d Expected 0 error", summary.Errors)
+	}
+	if summary.Panics != 0 {
+		t.Fatalf("Got: %d Expected 0 panics", summary.Panics)
+	}
+
+	cancel()
+	wg.Wait()
+	if serverErr != nil {
+		t.Fatal(serverErr)
 	}
 }

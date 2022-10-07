@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
@@ -29,6 +31,7 @@ type DestinationClient struct {
 	conn           *grpc.ClientConn
 	grpcSocketName string
 	cmdWaitErr     error
+	wg             *sync.WaitGroup
 }
 
 type DestinationClientOption func(*DestinationClient)
@@ -56,6 +59,7 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 	var err error
 	c := &DestinationClient{
 		directory: DefaultDownloadDir,
+		wg:        &sync.WaitGroup{},
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -63,7 +67,7 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 	switch registry {
 	case specs.RegistryGrpc:
 		if c.userConn == nil {
-			c.conn, err = grpc.Dial(path, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			c.conn, err = grpc.DialContext(ctx, path, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				return nil, fmt.Errorf("failed to dial grpc source plugin at %s: %w", path, err)
 			}
@@ -106,7 +110,10 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start plugin %s: %w", path, err)
 	}
+
+	c.wg.Add(1)
 	go func() {
+		c.wg.Done()
 		if err := cmd.Wait(); err != nil {
 			c.cmdWaitErr = err
 			c.logger.Error().Err(err).Str("plugin", path).Msg("plugin exited")
@@ -114,7 +121,9 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (
 	}()
 	c.cmd = cmd
 
+	c.wg.Add(1)
 	go func() {
+		defer c.wg.Done()
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			var structuredLogLine map[string]interface{}
@@ -127,7 +136,11 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (
 		}
 	}()
 
-	c.conn, err = grpc.DialContext(ctx, "unix://"+c.grpcSocketName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	dialer := func(ctx context.Context, addr string) (net.Conn, error) {
+		d := &net.Dialer{}
+		return d.DialContext(ctx, "unix", addr)
+	}
+	c.conn, err = grpc.DialContext(ctx, c.grpcSocketName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock(), grpc.WithContextDialer(dialer))
 	if err != nil {
 		if err := cmd.Process.Kill(); err != nil {
 			c.logger.Error().Err(err).Msg("failed to kill plugin process")
@@ -230,6 +243,9 @@ func (c *DestinationClient) DeleteStale(ctx context.Context, tables schema.Table
 // Terminate is used only in conjunction with NewManagedDestinationClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
 func (c *DestinationClient) Terminate() error {
+	// wait for log streaming to complete before returning from this function
+	defer c.wg.Wait()
+
 	if c.grpcSocketName != "" {
 		defer os.Remove(c.grpcSocketName)
 	}
@@ -241,9 +257,11 @@ func (c *DestinationClient) Terminate() error {
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
 		if err := c.cmd.Process.Kill(); err != nil {
+			c.logger.Error().Err(err).Msg("failed to kill process")
 			return err
 		}
 	}
+
 	return nil
 }
 

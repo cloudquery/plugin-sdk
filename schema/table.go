@@ -199,9 +199,10 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 				if err := t.PreResourceResolver(ctx, meta, resource); err != nil {
 					meta.Logger().Error().Str("table", t.Name).Err(err).Msg("pre resource resolver failed")
 					atomic.AddUint64(&summary.Errors, 1)
-				} else {
-					meta.Logger().Trace().Str("table", t.Name).Msg("pre resource resolver finished successfully")
+					continue
 				}
+
+				meta.Logger().Trace().Str("table", t.Name).Msg("pre resource resolver finished successfully")
 			}
 			columnSummary := t.resolveColumns(ctx, meta, resource)
 			atomic.AddUint64(&summary.Errors, columnSummary.Errors)

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/schollz/progressbar/v3"
 )
@@ -97,7 +98,8 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad status: %s. downloading %s", resp.Status, url)
 	}
-	bar := progressbar.DefaultBytes(resp.ContentLength, "Downloading: "+url)
+	fmt.Printf("Downloading %s\n", url)
+	bar := downloadProgressBar(resp.ContentLength, "Downloading")
 
 	// Writer the body to file
 	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
@@ -108,9 +110,31 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 	return nil
 }
 
-func withBinarySuffix(path string) string {
-	if runtime.GOOS == "windows" {
-		return path + ".exe"
+func downloadProgressBar(maxBytes int64, description ...string) *progressbar.ProgressBar {
+	desc := ""
+	if len(description) > 0 {
+		desc = description[0]
 	}
-	return path
+	return progressbar.NewOptions64(
+		maxBytes,
+		progressbar.OptionSetDescription(desc),
+		progressbar.OptionSetWriter(os.Stdout),
+		progressbar.OptionShowBytes(true),
+		progressbar.OptionSetWidth(10),
+		progressbar.OptionThrottle(65*time.Millisecond),
+		progressbar.OptionShowCount(),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Fprint(os.Stdout, "\n")
+		}),
+		progressbar.OptionSpinnerType(14),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetRenderBlankState(true),
+	)
+}
+
+func withBinarySuffix(filePath string) string {
+	if runtime.GOOS == "windows" {
+		return filePath + ".exe"
+	}
+	return filePath
 }

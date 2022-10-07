@@ -24,6 +24,8 @@ var newSourceClientTestCases = []specs.Source{
 	},
 }
 
+// TestSourceClient mostly checks the download and spawn logic. it doesn't call all methods as those are
+// tested under serve/tests
 func TestSourceClient(t *testing.T) {
 	ctx := context.Background()
 	l := zerolog.New(zerolog.NewTestWriter(t)).Output(zerolog.ConsoleWriter{Out: os.Stderr}).Level(zerolog.DebugLevel)
