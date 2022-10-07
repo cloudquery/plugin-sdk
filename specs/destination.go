@@ -32,12 +32,6 @@ func (d *Destination) SetDefaults() {
 	if d.Registry.String() == "" {
 		d.Registry = RegistryGithub
 	}
-	if d.Path == "" {
-		d.Path = d.Name
-	}
-	if d.Registry == RegistryGithub && !strings.Contains(d.Path, "/") {
-		d.Path = "cloudquery/" + d.Path
-	}
 }
 
 func (d *Destination) UnmarshalSpec(out interface{}) error {
@@ -54,6 +48,10 @@ func (d *Destination) UnmarshalSpec(out interface{}) error {
 func (d *Destination) Validate() error {
 	if d.Name == "" {
 		return fmt.Errorf("name is required")
+	}
+
+	if d.Path == "" {
+		return fmt.Errorf("path is required")
 	}
 
 	if d.Registry == RegistryGithub {

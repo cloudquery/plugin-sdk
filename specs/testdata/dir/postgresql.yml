@@ -3,4 +3,5 @@ spec:
   name: postgresql
   version: v1.0.0
   registry: grpc
+  path: locahost:7775
   write_mode: overwrite

@@ -89,7 +89,7 @@ spec:
 		nil,
 	},
 	{
-		"required_version",
+		"required_path",
 		`kind: source
 spec:
   name: test

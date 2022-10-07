@@ -2,6 +2,7 @@ package specs
 
 import (
 	"fmt"
+	"github.com/cloudquery/plugin-sdk/helpers"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,7 +21,7 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 	data = []byte(os.ExpandEnv(string(data)))
 
 	// support multiple yamls in one file
-	for _, doc := range strings.Split(string(data), "\n---\n") {
+	for _, doc := range strings.Split(string(helpers.NormalizeNewlines(data)), "\n---\n") {
 		var s Spec
 		if err := SpecUnmarshalYamlStrict([]byte(doc), &s); err != nil {
 			return fmt.Errorf("failed to unmarshal file %s: %w", path, err)

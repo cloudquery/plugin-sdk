@@ -109,7 +109,8 @@ var destinationUnmarshalSpecValidateTestCases = []struct {
 	{
 		"required_name",
 		`kind: destination
-spec:`,
+spec:
+  path: cloudquery/test`,
 		"name is required",
 		nil,
 	},
@@ -118,8 +119,19 @@ spec:`,
 		`kind: destination
 spec:
   name: test
+  path: cloudquery/tes
 `,
 		"version is required",
+		nil,
+	},
+	{
+		"required_path",
+		`kind: destination
+spec:
+  name: test
+  version: v1.1.0
+`,
+		"path is required",
 		nil,
 	},
 	{
@@ -127,6 +139,7 @@ spec:
 		`kind: destination
 spec:
   name: test
+  path: cloudquery/tes
   version: 1.1.0
 `,
 		"version must start with v",
@@ -167,6 +180,7 @@ spec:
 		`kind: destination
 spec:
   name: test
+  path: cloudquery/test
   version: v1.1.0
 `,
 		"",
