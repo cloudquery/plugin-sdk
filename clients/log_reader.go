@@ -6,13 +6,17 @@ import (
 	"io"
 )
 
+// logReaderPrefixLen is used when returning a partial line as context in NextLine
 const logReaderPrefixLen = 1000
 
+// logReader is a custom implementation similar to bufio.Scanner, but provides a way to handle lines
+// (or tokens) that exceed the buffer size.
 type logReader struct {
 	bufferedReader *bufio.Reader
 	reader         io.ReadCloser // reader provided by the client
 }
 
+// newLogReader creates a new logReader to read log lines from an io.ReadCloser
 func newLogReader(reader io.ReadCloser) *logReader {
 	return &logReader{
 		reader:         reader,
@@ -20,6 +24,10 @@ func newLogReader(reader io.ReadCloser) *logReader {
 	}
 }
 
+// NextLine reads and returns the next log line from the reader. An io.EOF error is returned
+// if the end of the stream has been reached. This implementation is different from bufio.Scanner as it
+// also returns an error if a line is too long to fit into the buffer. In this case, an error is returned
+// together with a limited prefix of the line.
 func (r *logReader) NextLine() ([]byte, error) {
 	line, isPrefix, err := r.bufferedReader.ReadLine()
 	if !isPrefix || err != nil {
