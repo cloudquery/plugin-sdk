@@ -113,7 +113,7 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (
 
 	c.wg.Add(1)
 	go func() {
-		c.wg.Done()
+		defer c.wg.Done()
 		if err := cmd.Wait(); err != nil {
 			c.cmdWaitErr = err
 			c.logger.Error().Err(err).Str("plugin", path).Msg("plugin exited")
