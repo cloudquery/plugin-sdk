@@ -166,8 +166,10 @@ func (t Table) TableNames() []string {
 
 // Call the table resolver with with all of it's relation for every reolved resource
 func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resolvedResources chan<- *Resource) (summary *SyncSummary) {
+	summary = &SyncSummary{}
 	tableStartTime := time.Now()
 	meta.Logger().Info().Str("table", t.Name).Msg("table resolver started")
+	summary = &SyncSummary{}
 
 	res := make(chan interface{})
 	startTime := time.Now()
@@ -208,6 +210,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 }
 
 func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resolvedResources chan<- *Resource) (summary *SyncSummary) {
+	summary = &SyncSummary{}
 	resource := NewResourceData(&t, parent, item)
 	objectStartTime := time.Now()
 	csr := caser.New()
@@ -270,8 +273,7 @@ func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resou
 	resolvedResources <- resource
 
 	for _, rel := range t.Relations {
-		relationSummary := rel.Resolve(ctx, meta, resource, resolvedResources)
-		summary.Merge(relationSummary)
+		summary.Merge(rel.Resolve(ctx, meta, resource, resolvedResources))
 	}
 
 	return summary
