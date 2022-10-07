@@ -50,9 +50,12 @@ func (s *DestinationServer) Migrate(ctx context.Context, req *pb.Migrate_Request
 	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
 }
 
+// Note the order of operations in this method is important!
+// Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 	resources := make(chan *schema.Resource)
 	var writeSummary *plugins.WriteSummary
+
 	r, err := msg.Recv()
 	if err != nil {
 		if err == io.EOF {
@@ -62,12 +65,27 @@ func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 		}
 		return fmt.Errorf("write: failed to receive msg: %w", err)
 	}
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		writeSummary = s.Plugin.Write(msg.Context(), r.Source, r.Timestamp.AsTime(), resources)
 	}()
+
+	var resource *schema.Resource
+	if err := json.Unmarshal(r.Resource, &resource); err != nil {
+		close(resources)
+		wg.Wait()
+		return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
+	}
+	select {
+	case resources <- resource:
+	case <-msg.Context().Done():
+		close(resources)
+		wg.Wait()
+		return msg.Context().Err()
+	}
 
 	for {
 		r, err := msg.Recv()
@@ -87,7 +105,7 @@ func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
 			wg.Wait()
-			return status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
+			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
 		select {
 		case resources <- resource:
