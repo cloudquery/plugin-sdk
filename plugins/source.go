@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,7 +19,7 @@ import (
 type SourceNewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
 
 // SourcePlugin is the base structure required to pass to sdk.serve
-// We take a similar/declerative approach to API here similar to Cobra
+// We take a declarative approach to API here similar to Cobra
 type SourcePlugin struct {
 	// Name of plugin i.e aws,gcp, azure etc'
 	name string
@@ -84,6 +85,7 @@ func (p *SourcePlugin) validate() error {
 	if err := p.tables.ValidateDuplicateTables(); err != nil {
 		return fmt.Errorf("found duplicate tables in source plugin: %s: %w", p.name, err)
 	}
+
 	return nil
 }
 
@@ -114,19 +116,21 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 	if concurrency == 0 {
 		concurrency = defaultConcurrency
 	}
-	logger.Info().Uint64("concurrency", concurrency).Msg("starting fetch")
+	logger.Info().Uint64("concurrency", concurrency).Msg("starting source plugin sync")
 	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(concurrency))
 	wg := sync.WaitGroup{}
 	summary := schema.SyncSummary{}
 	startTime := time.Now()
-	tableNames, err := p.interpolateAllResources(spec.Tables)
+	tableNames, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
 	if err != nil {
 		return nil, err
 	}
 
+	logger.Debug().Interface("tables", tableNames).Msg("got table names")
+
 	for _, table := range p.tables {
 		table := table
-		if funk.ContainsString(spec.SkipTables, table.Name) || !funk.ContainsString(tableNames, table.Name) {
+		if !funk.ContainsString(tableNames, table.Name) {
 			logger.Debug().Str("table", table.Name).Msg("skipping table")
 			continue
 		}
@@ -154,25 +158,74 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 		}
 	}
 	wg.Wait()
-	logger.Info().Uint64("total_resources", summary.Resources).TimeDiff("duration", time.Now(), startTime).Msg("fetch finished")
+	logger.Info().Uint64("total_resources", summary.Resources).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return &summary, nil
 }
 
-func (p *SourcePlugin) interpolateAllResources(tables []string) ([]string, error) {
-	if tables == nil {
-		return make([]string, 0), nil
+func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]string, error) {
+	if len(tables) == 0 {
+		return nil, fmt.Errorf("list of tables is empty")
 	}
 
+	// return an error if skip tables contains a wildcard or glob pattern
+	for _, t := range skipTables {
+		if strings.Contains(t, "*") {
+			return nil, fmt.Errorf("glob matching in skipped table name %q is not supported", t)
+		}
+	}
+
+	// handle wildcard entry
 	if funk.Equal(tables, []string{"*"}) {
 		allResources := make([]string, 0, len(p.tables))
 		for _, k := range p.tables {
+			if funk.ContainsString(skipTables, k.Name) {
+				continue
+			}
 			allResources = append(allResources, k.Name)
 		}
 		return allResources, nil
 	}
 
+	// wildcard should not be combined with other tables
 	if funk.ContainsString(tables, "*") {
-		return nil, fmt.Errorf("invalid \"*\" resource, with explicit resources")
+		return nil, fmt.Errorf("wildcard \"*\" table not allowed with explicit tables")
+	}
+
+	// return an error if other kinds of glob-matching is detected
+	for _, t := range tables {
+		if strings.Contains(t, "*") {
+			return nil, fmt.Errorf("glob matching in table name %q is not supported", t)
+		}
+	}
+
+	// return an error if a table is both explicitly included and skipped
+	for _, t := range tables {
+		if funk.ContainsString(skipTables, t) {
+			return nil, fmt.Errorf("table %s cannot be both included and skipped", t)
+		}
+	}
+
+	// return an error if a given table name doesn't match any known tables
+	for _, t := range tables {
+		if !funk.ContainsString(p.tables.TableNames(), t) {
+			return nil, fmt.Errorf("name %s does not match any known table names", t)
+		}
+	}
+
+	// return an error if child table is included, but not its parent table
+	selectedTables := map[string]bool{}
+	for _, t := range tables {
+		selectedTables[t] = true
+	}
+	for _, t := range tables {
+		for _, tt := range p.tables {
+			if tt.Name != t {
+				continue
+			}
+			if tt.Parent != nil && !selectedTables[tt.Parent.Name] {
+				return nil, fmt.Errorf("table %s is a child table, and requires its parent table %s to also be synced", t, tt.Parent.Name)
+			}
+		}
 	}
 
 	return tables, nil
