@@ -70,7 +70,7 @@ type Table struct {
 	columnsMap map[string]int
 }
 
-func (s *SyncSummary) Merge(other SyncSummary) {
+func (s *SyncSummary) Merge(other *SyncSummary) {
 	atomic.AddUint64(&s.Resources, other.Resources)
 	atomic.AddUint64(&s.Errors, other.Errors)
 	atomic.AddUint64(&s.Panics, other.Panics)
@@ -165,7 +165,7 @@ func (t Table) TableNames() []string {
 }
 
 // Call the table resolver with with all of it's relation for every reolved resource
-func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resolvedResources chan<- *Resource) (summary SyncSummary) {
+func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resolvedResources chan<- *Resource) (summary *SyncSummary) {
 	tableStartTime := time.Now()
 	meta.Logger().Info().Str("table", t.Name).Msg("table resolver started")
 
@@ -207,7 +207,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 	return summary
 }
 
-func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resolvedResources chan<- *Resource) (summary SyncSummary) {
+func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resolvedResources chan<- *Resource) (summary *SyncSummary) {
 	resource := NewResourceData(&t, parent, item)
 	objectStartTime := time.Now()
 	csr := caser.New()
@@ -220,7 +220,7 @@ func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resou
 				sentry.CurrentHub().CaptureMessage(stack)
 			})
 			meta.Logger().Error().Interface("error", err).Str("table", t.Name).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("object resolver finished with panic")
-			summary.Panics += 1
+			summary.Panics++
 		}
 	}()
 	if t.PreResourceResolver != nil {
@@ -261,12 +261,12 @@ func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resou
 		meta.Logger().Trace().Str("table", t.Name).Msg("post resource resolver started")
 		if err := t.PostResourceResolver(ctx, meta, resource); err != nil {
 			meta.Logger().Error().Str("table", t.Name).Stack().Err(err).Msg("post resource resolver finished with error")
-			summary.Errors += 1
+			summary.Errors++
 		} else {
 			meta.Logger().Trace().Str("table", t.Name).Msg("post resource resolver finished successfully")
 		}
 	}
-	summary.Resources += 1
+	summary.Resources = 1
 	resolvedResources <- resource
 
 	for _, rel := range t.Relations {

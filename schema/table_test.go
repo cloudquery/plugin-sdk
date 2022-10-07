@@ -11,7 +11,7 @@ import (
 type tableTestCase struct {
 	Table     *Table
 	Resources []*Resource
-	Summary *SyncSummary
+	Summary   *SyncSummary
 }
 
 type testClient struct {
@@ -145,25 +145,25 @@ var tableTestCases = []tableTestCase{
 			},
 		},
 		Summary: &SyncSummary{
-			Resources: 1,	
+			Resources: 1,
 		},
 	},
 	{
-		Table: testTableResolverPanic(),
+		Table:     testTableResolverPanic(),
 		Resources: nil,
 		Summary: &SyncSummary{
 			Panics: 1,
 		},
 	},
 	{
-		Table: testPreResourceResolverPanic(),
+		Table:     testPreResourceResolverPanic(),
 		Resources: []*Resource{},
 		Summary: &SyncSummary{
 			Panics: 1,
 		},
 	},
 	{
-		Table: testColumnResolverPanic(),
+		Table:     testColumnResolverPanic(),
 		Resources: []*Resource{},
 		Summary: &SyncSummary{
 			Panics: 1,
@@ -197,7 +197,7 @@ var tableTestCases = []tableTestCase{
 			},
 		},
 		Summary: &SyncSummary{
-			Panics: 1,
+			Panics:    1,
 			Resources: 1,
 		},
 	},
@@ -214,7 +214,7 @@ func TestTableExecution(t *testing.T) {
 		t.Run(tc.Table.Name, func(t *testing.T) {
 			m := testClient{}
 			resources := make(chan *Resource)
-			summary := SyncSummary{}
+			var summary *SyncSummary
 			go func() {
 				defer close(resources)
 				summary = tc.Table.Resolve(ctx, m, nil, resources)
@@ -238,8 +238,6 @@ func TestTableExecution(t *testing.T) {
 			if tc.Summary.Panics != summary.Panics {
 				t.Errorf("expected %d panics, got %d", tc.Summary.Panics, summary.Panics)
 			}
-
 		})
 	}
 }
-
