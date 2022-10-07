@@ -37,12 +37,7 @@ func (s *Source) SetDefaults() {
 	if s.Registry.String() == "" {
 		s.Registry = RegistryGithub
 	}
-	if s.Path == "" {
-		s.Path = s.Name
-	}
-	if s.Registry == RegistryGithub && !strings.Contains(s.Path, "/") {
-		s.Path = "cloudquery/" + s.Path
-	}
+
 	if s.Tables == nil {
 		s.Tables = []string{"*"}
 	}
@@ -63,6 +58,10 @@ func (s *Source) UnmarshalSpec(out interface{}) error {
 func (s *Source) Validate() error {
 	if s.Name == "" {
 		return fmt.Errorf("name is required")
+	}
+
+	if s.Path == "" {
+		return fmt.Errorf("path is required")
 	}
 
 	if s.Registry == RegistryGithub {
