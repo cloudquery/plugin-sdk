@@ -214,7 +214,7 @@ func TestTableExecution(t *testing.T) {
 		t.Run(tc.Table.Name, func(t *testing.T) {
 			m := testClient{}
 			resources := make(chan *Resource)
-			var summary *SyncSummary
+			var summary SyncSummary
 			go func() {
 				defer close(resources)
 				summary = tc.Table.Resolve(ctx, m, nil, resources)

@@ -70,7 +70,7 @@ type Table struct {
 	columnsMap map[string]int
 }
 
-func (s *SyncSummary) Merge(other *SyncSummary) {
+func (s *SyncSummary) Merge(other SyncSummary) {
 	atomic.AddUint64(&s.Resources, other.Resources)
 	atomic.AddUint64(&s.Errors, other.Errors)
 	atomic.AddUint64(&s.Panics, other.Panics)
@@ -165,11 +165,9 @@ func (t Table) TableNames() []string {
 }
 
 // Call the table resolver with with all of it's relation for every reolved resource
-func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resolvedResources chan<- *Resource) (summary *SyncSummary) {
-	summary = &SyncSummary{}
+func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resolvedResources chan<- *Resource) (summary SyncSummary) {
 	tableStartTime := time.Now()
 	meta.Logger().Info().Str("table", t.Name).Msg("table resolver started")
-	summary = &SyncSummary{}
 
 	res := make(chan interface{})
 	startTime := time.Now()
@@ -209,8 +207,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 	return summary
 }
 
-func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resolvedResources chan<- *Resource) (summary *SyncSummary) {
-	summary = &SyncSummary{}
+func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resolvedResources chan<- *Resource) (summary SyncSummary) {
 	resource := NewResourceData(&t, parent, item)
 	objectStartTime := time.Now()
 	csr := caser.New()
