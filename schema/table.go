@@ -70,6 +70,12 @@ type Table struct {
 	columnsMap map[string]int
 }
 
+func (s *SyncSummary) Merge(other SyncSummary) {
+	atomic.AddUint64(&s.Resources, other.Resources)
+	atomic.AddUint64(&s.Errors, other.Errors)
+	atomic.AddUint64(&s.Panics, other.Panics)
+}
+
 func (tt Tables) TableNames() []string {
 	ret := []string{}
 	for _, t := range tt {
@@ -159,21 +165,20 @@ func (t Table) TableNames() []string {
 }
 
 // Call the table resolver with with all of it's relation for every reolved resource
-func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resolvedResources chan<- *Resource) SyncSummary {
+func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resolvedResources chan<- *Resource) (summary SyncSummary) {
 	tableStartTime := time.Now()
-	summary := SyncSummary{}
-	meta.Logger().Info().Str("table", t.Name).Msg("fetch start")
+	meta.Logger().Info().Str("table", t.Name).Msg("table resolver started")
 
 	res := make(chan interface{})
 	startTime := time.Now()
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
+				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 				sentry.WithScope(func(scope *sentry.Scope) {
 					scope.SetTag("table", t.Name)
-					sentry.CurrentHub().Recover(err)
+					sentry.CurrentHub().CaptureMessage(stack)
 				})
-				stack := string(debug.Stack())
 				meta.Logger().Error().Interface("error", err).Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Str("stack", stack).Msg("table resolver finished with panic")
 				atomic.AddUint64(&summary.Panics, 1)
 			}
@@ -194,37 +199,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 			continue
 		}
 		for i := range objects {
-			resource := NewResourceData(&t, parent, objects[i])
-			if t.PreResourceResolver != nil {
-				if err := t.PreResourceResolver(ctx, meta, resource); err != nil {
-					meta.Logger().Error().Str("table", t.Name).Err(err).Msg("pre resource resolver failed")
-					atomic.AddUint64(&summary.Errors, 1)
-					continue
-				}
-
-				meta.Logger().Trace().Str("table", t.Name).Msg("pre resource resolver finished successfully")
-			}
-			columnSummary := t.resolveColumns(ctx, meta, resource)
-			atomic.AddUint64(&summary.Errors, columnSummary.Errors)
-			summary.Errors += columnSummary.Errors
-			if t.PostResourceResolver != nil {
-				meta.Logger().Trace().Str("table", t.Name).Msg("post resource resolver started")
-				if err := t.PostResourceResolver(ctx, meta, resource); err != nil {
-					meta.Logger().Error().Str("table", t.Name).Stack().Err(err).Msg("post resource resolver finished with error")
-					atomic.AddUint64(&summary.Errors, 1)
-				} else {
-					meta.Logger().Trace().Str("table", t.Name).Msg("post resource resolver finished successfully")
-				}
-			}
-
-			atomic.AddUint64(&summary.Resources, 1)
-			resolvedResources <- resource
-			for _, rel := range t.Relations {
-				relationSummary := rel.Resolve(ctx, meta, resource, resolvedResources)
-				atomic.AddUint64(&summary.Errors, relationSummary.Errors)
-				atomic.AddUint64(&summary.Panics, relationSummary.Panics)
-				atomic.AddUint64(&summary.Resources, relationSummary.Resources)
-			}
+			summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
 		}
 	}
 	meta.Logger().Info().Str("table", t.Name).Int("total_resources", tableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
@@ -232,9 +207,32 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 	return summary
 }
 
-func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Resource) SyncSummary {
-	summary := SyncSummary{}
+func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resolvedResources chan<- *Resource) (summary SyncSummary) {
+	resource := NewResourceData(&t, parent, item)
+	objectStartTime := time.Now()
 	csr := caser.New()
+	meta.Logger().Info().Str("table", t.Name).Msg("object resolver started")
+	defer func() {
+		if err := recover(); err != nil {
+			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
+			sentry.WithScope(func(scope *sentry.Scope) {
+				scope.SetTag("table", t.Name)
+				sentry.CurrentHub().CaptureMessage(stack)
+			})
+			meta.Logger().Error().Interface("error", err).Str("table", t.Name).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("object resolver finished with panic")
+			summary.Panics += 1
+		}
+	}()
+	if t.PreResourceResolver != nil {
+		meta.Logger().Trace().Str("table", t.Name).Msg("pre resource resolver started")
+		if err := t.PreResourceResolver(ctx, meta, resource); err != nil {
+			meta.Logger().Error().Str("table", t.Name).Err(err).Msg("pre resource resolver failed")
+			summary.Errors++
+			return summary
+		}
+		meta.Logger().Trace().Str("table", t.Name).Msg("pre resource resolver finished successfully")
+	}
+
 	for _, c := range t.Columns {
 		if c.Resolver != nil {
 			meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver custom started")
@@ -258,5 +256,23 @@ func (t Table) resolveColumns(ctx context.Context, meta ClientMeta, resource *Re
 			}
 		}
 	}
+
+	if t.PostResourceResolver != nil {
+		meta.Logger().Trace().Str("table", t.Name).Msg("post resource resolver started")
+		if err := t.PostResourceResolver(ctx, meta, resource); err != nil {
+			meta.Logger().Error().Str("table", t.Name).Stack().Err(err).Msg("post resource resolver finished with error")
+			summary.Errors += 1
+		} else {
+			meta.Logger().Trace().Str("table", t.Name).Msg("post resource resolver finished successfully")
+		}
+	}
+	summary.Resources += 1
+	resolvedResources <- resource
+
+	for _, rel := range t.Relations {
+		relationSummary := rel.Resolve(ctx, meta, resource, resolvedResources)
+		summary.Merge(relationSummary)
+	}
+
 	return summary
 }
