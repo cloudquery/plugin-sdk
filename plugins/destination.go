@@ -80,16 +80,16 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *DestinationPlugin) Write(ctx context.Context, source string, syncTime time.Time, res <-chan *schema.Resource) *WriteSummary {
+func (p *DestinationPlugin) Write(ctx context.Context, sourceName string, syncTime time.Time, res <-chan *schema.Resource) *WriteSummary {
 	if p.client == nil {
 		return nil
 	}
 	summary := WriteSummary{}
 	for r := range res {
-		if _, ok := r.Data[schema.CqSourceName.Name]; ok {
-			r.Data[schema.CqSourceName.Name] = source
+		if _, ok := r.Data[schema.CqSourceName.Name]; !ok {
+			r.Data[schema.CqSourceName.Name] = sourceName
 		}
-		if _, ok := r.Data[schema.CqSyncTime.Name]; ok {
+		if _, ok := r.Data[schema.CqSyncTime.Name]; !ok {
 			r.Data[schema.CqSyncTime.Name] = syncTime
 		}
 		err := p.client.Write(ctx, r.TableName, r.Data)
@@ -101,7 +101,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, source string, syncTime t
 		}
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
-		failedDeletes := p.DeleteStale(ctx, p.tables.TableNames(), source, syncTime)
+		failedDeletes := p.DeleteStale(ctx, p.tables.TableNames(), sourceName, syncTime)
 		summary.FailedDeletes = failedDeletes
 	}
 	return &summary
