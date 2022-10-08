@@ -64,8 +64,6 @@ type Table struct {
 
 	// Parent is the parent table in case this table is called via parent table (i.e. relation)
 	Parent *Table `json:"-"`
-
-	columnsMap map[string]int
 }
 
 func (s *SyncSummary) Merge(other SyncSummary) {
@@ -135,22 +133,6 @@ func (t *Table) PrimaryKeys() []string {
 	}
 
 	return primaryKeys
-}
-
-func (t *Table) ColumnIndex(name string) int {
-	var once sync.Once
-	once.Do(func() {
-		if t.columnsMap == nil {
-			t.columnsMap = make(map[string]int)
-			for i, c := range t.Columns {
-				t.columnsMap[c.Name] = i
-			}
-		}
-	})
-	if index, ok := t.columnsMap[name]; ok {
-		return index
-	}
-	return -1
 }
 
 func (t *Table) TableNames() []string {
