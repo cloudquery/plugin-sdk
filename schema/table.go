@@ -124,6 +124,19 @@ func (t *Table) Column(name string) *Column {
 	}
 	return nil
 }
+
+// If the column with the same name exists, overwrites it.
+// Otherwise, adds the column to the beginning of the table.
+func (t *Table) OverwriteOrAddColumn(column *Column) {
+	for i, c := range t.Columns {
+		if c.Name == column.Name {
+			t.Columns[i] = *column
+			return
+		}
+	}
+	t.Columns = append([]Column{*column}, t.Columns...)
+}
+
 func (t *Table) PrimaryKeys() []string {
 	var primaryKeys []string
 	for _, c := range t.Columns {
