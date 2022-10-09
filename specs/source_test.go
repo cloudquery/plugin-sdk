@@ -120,6 +120,8 @@ spec:
 			Name:         "test",
 			Registry:     RegistryGithub,
 			Path:         "cloudquery/test",
+			TableConcurrency: defaultTableConcurrency,
+			ResourceConcurrency: defaultResourceConcurrency,
 			Version:      "v1.1.0",
 			Tables:       []string{"*"},
 			Destinations: []string{"test"},

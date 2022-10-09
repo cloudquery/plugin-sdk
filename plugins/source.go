@@ -31,9 +31,7 @@ type SourcePlugin struct {
 	tables schema.Tables
 }
 
-const (
-	defaultConcurrency = 500000
-)
+
 
 // Add internal columns
 func addInternalColumns(tables []*schema.Table) {
@@ -106,25 +104,25 @@ func (p *SourcePlugin) Version() string {
 
 // Sync is syncing data from the requested tables in spec to the given channel
 func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec specs.Source, res chan<- *schema.Resource) (*schema.SyncSummary, error) {
-	c, err := p.newExecutionClient(ctx, logger, spec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
+	spec.SetDefaults()
+	if err := spec.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid spec: %w", err)
 	}
-
-	// limiter used to limit the amount of resources fetched concurrently
-	concurrency := spec.Concurrency
-	if concurrency == 0 {
-		concurrency = defaultConcurrency
-	}
-	logger.Info().Uint64("concurrency", concurrency).Msg("starting source plugin sync")
-	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(concurrency))
-	wg := sync.WaitGroup{}
-	summary := schema.SyncSummary{}
-	startTime := time.Now()
 	tableNames, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
 	if err != nil {
 		return nil, err
 	}
+
+	c, err := p.newExecutionClient(ctx, logger, spec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
+	}
+	logger.Info().Interface("spec", spec).Msg("starting sync")
+	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.TableConcurrency))
+	wg := sync.WaitGroup{}
+	resourcesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.ResourceConcurrency))
+	summary := schema.SyncSummary{}
+	startTime := time.Now()
 
 	logger.Debug().Interface("tables", tableNames).Msg("got table names")
 
@@ -150,7 +148,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 				defer goroutinesSem.Release(1)
 				// TODO: prob introduce client.Identify() to be used in logs
 
-				tableSummary := table.Resolve(ctx, client, nil, res)
+				tableSummary := table.Resolve(ctx, client, nil, resourcesSem, res)
 				atomic.AddUint64(&summary.Resources, tableSummary.Resources)
 				atomic.AddUint64(&summary.Errors, tableSummary.Errors)
 				atomic.AddUint64(&summary.Panics, tableSummary.Panics)

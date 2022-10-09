@@ -12,6 +12,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/getsentry/sentry-go"
 	"github.com/thoas/go-funk"
+	"golang.org/x/sync/semaphore"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -63,9 +64,6 @@ type Table struct {
 
 	// Parent is the parent table in case this table is called via parent table (i.e. relation)
 	Parent *Table `json:"-"`
-
-	// Serial is used to force a signature change, which forces new table creation and cascading removal of old table and relations
-	Serial string `json:"-"`
 
 	columnsMap map[string]int
 }
@@ -165,13 +163,16 @@ func (t Table) TableNames() []string {
 }
 
 // Call the table resolver with with all of it's relation for every reolved resource
-func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resolvedResources chan<- *Resource) (summary SyncSummary) {
+func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resourcesSem *semaphore.Weighted, resolvedResources chan<- *Resource) (summary SyncSummary) {
 	tableStartTime := time.Now()
 	meta.Logger().Info().Str("table", t.Name).Msg("table resolver started")
 
 	res := make(chan interface{})
 	startTime := time.Now()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func(sum *SyncSummary) {
+		defer wg.Done()
 		defer func() {
 			if err := recover(); err != nil {
 				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
@@ -199,9 +200,25 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 			continue
 		}
 		for i := range objects {
-			summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
+			i := i
+			
+			// write now we support only concurrency 
+			if resourcesSem == nil {
+				summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
+			} else {
+				if err := resourcesSem.Acquire(ctx, 1); err != nil {
+					meta.Logger().Error().Err(err).Msg("failed to acquire semaphore")
+					return summary
+				}
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
+				}()
+			}
 		}
 	}
+	wg.Wait()
 	meta.Logger().Info().Str("table", t.Name).Int("total_resources", tableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
 
 	return summary
@@ -270,7 +287,7 @@ func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resou
 	resolvedResources <- resource
 
 	for _, rel := range t.Relations {
-		summary.Merge(rel.Resolve(ctx, meta, resource, resolvedResources))
+		summary.Merge(rel.Resolve(ctx, meta, resource, nil, resolvedResources))
 	}
 
 	return summary

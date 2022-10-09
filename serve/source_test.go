@@ -147,6 +147,7 @@ func TestServeSource(t *testing.T) {
 			Registry: specs.RegistryGithub,
 			Tables:   []string{"*"},
 			Spec:     TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
+			Destinations: []string{"test"},
 		},
 		resources); err != nil {
 		t.Fatal(err)
