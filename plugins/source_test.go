@@ -53,9 +53,9 @@ func TestSync(t *testing.T) {
 	)
 
 	spec := specs.Source{
-		Name:   "testSource",
-		Tables: []string{"*"},
-		Version: "v1.0.0",
+		Name:         "testSource",
+		Tables:       []string{"*"},
+		Version:      "v1.0.0",
 		Destinations: []string{"test"},
 	}
 

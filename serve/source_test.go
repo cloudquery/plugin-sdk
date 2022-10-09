@@ -142,11 +142,11 @@ func TestServeSource(t *testing.T) {
 	resources := make(chan []byte, 1)
 	if err := c.Sync(ctx,
 		specs.Source{
-			Name:     "testSourcePlugin",
-			Version:  "v1.0.0",
-			Registry: specs.RegistryGithub,
-			Tables:   []string{"*"},
-			Spec:     TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
+			Name:         "testSourcePlugin",
+			Version:      "v1.0.0",
+			Registry:     specs.RegistryGithub,
+			Tables:       []string{"*"},
+			Spec:         TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
 			Destinations: []string{"test"},
 		},
 		resources); err != nil {

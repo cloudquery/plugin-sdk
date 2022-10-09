@@ -201,8 +201,8 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 		}
 		for i := range objects {
 			i := i
-			
-			// write now we support only concurrency 
+
+			// write now we support only concurrency
 			if resourcesSem == nil {
 				summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
 			} else {
@@ -213,6 +213,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
+					//nolint:all
 					summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
 				}()
 			}

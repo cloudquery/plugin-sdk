@@ -31,8 +31,6 @@ type SourcePlugin struct {
 	tables schema.Tables
 }
 
-
-
 // Add internal columns
 func addInternalColumns(tables []*schema.Table) {
 	for _, table := range tables {

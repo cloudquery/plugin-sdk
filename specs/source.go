@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	defaultTableConcurrency = 500000
+	defaultTableConcurrency    = 500000
 	defaultResourceConcurrency = 500000
 )
 
@@ -25,9 +25,9 @@ type Source struct {
 	// For the gRPC registry the path will be the address of the gRPC server: host:port
 	Path string `json:"path,omitempty"`
 	// Registry can be github,local,grpc.
-	Registry    Registry `json:"registry,omitempty"`
-	TableConcurrency uint64   `json:"table_concurrency,omitempty"`
-	ResourceConcurrency uint64  `json:"resource_concurrency,omitempty"`
+	Registry            Registry `json:"registry,omitempty"`
+	TableConcurrency    uint64   `json:"table_concurrency,omitempty"`
+	ResourceConcurrency uint64   `json:"resource_concurrency,omitempty"`
 	// Tables to sync from the source plugin
 	Tables []string `json:"tables,omitempty"`
 	// SkipTables defines tables to skip when syncing data. Useful if a glob pattern is used in Tables
