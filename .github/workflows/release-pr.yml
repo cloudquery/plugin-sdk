@@ -31,3 +31,15 @@ jobs:
           TAG_NAME: ${{ steps.release.outputs.tag_name }}
         with:
           prerelease: true
+      - name: Trigger Renovate
+        uses: actions/github-script@v6
+        if: steps.release.outputs.release_created && steps.semver_parser.outputs.prerelease == ''
+        with:
+          github-token: ${{ secrets.GH_CQ_BOT }}
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: 'cloudquery',
+              repo: '.github',
+              workflow_id: 'renovate.yml',
+              ref: 'main',
+            })
