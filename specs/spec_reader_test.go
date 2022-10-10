@@ -12,7 +12,6 @@ func TestLoadSpecs(t *testing.T) {
 		expectSources      int
 		expectDestinations int
 		expectError        bool
-		expectWarning      bool
 	}{
 		{
 			files:              []string{"testdata/gcp.yml", "testdata/dir"},
@@ -21,7 +20,6 @@ func TestLoadSpecs(t *testing.T) {
 		},
 		{
 			files:              []string{"testdata/gcp_deprecated.yml"},
-			expectWarning:      true,
 			expectSources:      1,
 			expectDestinations: 1,
 		},
@@ -34,16 +32,6 @@ func TestLoadSpecs(t *testing.T) {
 		}
 
 		assert.NoError(t, err)
-		if !tc.expectWarning {
-			for _, w := range specReader.Warnings {
-				assert.Empty(t, w)
-			}
-		} else {
-			for _, w := range specReader.Warnings {
-				assert.NotEmpty(t, w)
-			}
-		}
-
 		assert.Equal(t, tc.expectSources, len(specReader.Sources))
 		assert.Equal(t, tc.expectDestinations, len(specReader.Destinations))
 	}

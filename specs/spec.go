@@ -13,8 +13,6 @@ type Kind int
 type Spec struct {
 	Kind   Kind        `json:"kind"`
 	Plugin interface{} `json:"plugin"`
-
-	Warnings []string `json:"-"`
 }
 
 const (
@@ -88,9 +86,8 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 		b   []byte
 		err error
 	)
-	if t.Spec != nil {
-		b, err = json.Marshal(t.Spec)
-		s.Warnings = append(s.Warnings, `"spec" keyword is deprecated at the outer level and will be removed in a future version. Use "plugin" instead`)
+	if t.Plugin == nil {
+		b, err = json.Marshal(t.Spec) // fallback to deprecated field if Plugin is not set
 	} else {
 		b, err = json.Marshal(t.Plugin)
 	}
