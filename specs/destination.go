@@ -51,6 +51,12 @@ func (d *Destination) UnmarshalSpec(out interface{}) error {
 	return dec.Decode(out)
 }
 
+// Warnings returns non-critical validation errors, such as deprecation notices.
+func (d *Destination) Warnings() (warnings []string) {
+	// add future deprecation notices here
+	return warnings
+}
+
 func (d *Destination) Validate() error {
 	if d.Name == "" {
 		return fmt.Errorf("name is required")

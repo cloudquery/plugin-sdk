@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"net"
 	"os"
@@ -191,6 +193,26 @@ func (c *DestinationClient) Initialize(ctx context.Context, spec specs.Destinati
 		return fmt.Errorf("destination configure: failed to call Configure: %w", err)
 	}
 	return nil
+}
+
+func (c *DestinationClient) Validate(ctx context.Context, spec specs.Destination) (warnings, errors []string, err error) {
+	b, err := json.Marshal(spec)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal destination spec: %w", err)
+	}
+	resp, err := c.pbClient.Validate(ctx, &pb.ValidateDestination_Request{
+		Spec: b,
+	})
+	if err != nil {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.Unimplemented {
+			// Backwards-compatibility with older plugin versions that don't support Validate().
+			// In this case, we only return one warning: that the plugin should be updated.
+			return []string{"the version of this plugin is outdated and should be updated"}, nil, nil
+		}
+		return nil, nil, fmt.Errorf("failed to call Validate: %w", err)
+	}
+	return resp.Warnings, resp.Errors, nil
 }
 
 func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table) error {

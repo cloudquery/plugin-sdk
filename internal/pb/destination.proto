@@ -11,6 +11,8 @@ service Destination {
   rpc GetVersion(GetVersion.Request) returns (GetVersion.Response);
   // Configure the plugin with the given credentials and mode
   rpc Configure(Configure.Request) returns (Configure.Response);
+  // Validate returns warnings and errors about the spec.
+  rpc Validate(ValidateDestination.Request) returns (ValidateDestination.Response);
   // Migrate tables to the given plugin version
   rpc Migrate(Migrate.Request) returns (Migrate.Response);
   // Write resources
@@ -22,6 +24,15 @@ service Destination {
   rpc DeleteStale(DeleteStale.Request) returns (DeleteStale.Response);
 }
 
+message ValidateDestination {
+  message Request {
+    bytes spec = 1;
+  }
+  message Response {
+    repeated string warnings = 1;
+    repeated string errors = 2;
+  }
+}
 
 message Migrate {
   message Request {

@@ -100,6 +100,20 @@ func (p *SourcePlugin) Version() string {
 	return p.version
 }
 
+// Validate checks a source spec for config issues.
+func (p *SourcePlugin) Validate(spec specs.Source) (warnings, errors []string) {
+	warnings = spec.Warnings()
+
+	if err := spec.Validate(); err != nil {
+		errors = append(errors, err.Error())
+	}
+	_, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
+	if err != nil {
+		errors = append(errors, err.Error())
+	}
+	return warnings, errors
+}
+
 // Sync is syncing data from the requested tables in spec to the given channel
 func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec specs.Source, res chan<- *schema.Resource) (*schema.SyncSummary, error) {
 	spec.SetDefaults()

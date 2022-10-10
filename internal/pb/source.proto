@@ -11,11 +11,23 @@ service Source {
   rpc GetVersion(GetVersion.Request) returns (GetVersion.Response);
   // Get all tables the source plugin supports
   rpc GetTables(GetTables.Request) returns (GetTables.Response);
+  // Validate returns warnings and errors about the spec.
+  rpc Validate(ValidateSource.Request) returns (ValidateSource.Response);
   // GetSyncSummary returns the latest sync summary of the source plugin. we don't want to send the summary on
   // every sync request.
   rpc GetSyncSummary(GetSyncSummary.Request) returns (GetSyncSummary.Response);
   // Fetch resources
   rpc Sync(Sync.Request) returns (stream Sync.Response);
+}
+
+message ValidateSource {
+  message Request {
+    bytes spec = 1;
+  }
+  message Response {
+    repeated string warnings = 1;
+    repeated string errors = 2;
+  }
 }
 
 message Sync {

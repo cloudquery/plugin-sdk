@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"net"
 	"os"
@@ -193,6 +195,26 @@ func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 		return nil, fmt.Errorf("failed to unmarshal tables: %w", err)
 	}
 	return tables, nil
+}
+
+func (c *SourceClient) Validate(ctx context.Context, spec specs.Source) (warnings, errors []string, err error) {
+	b, err := json.Marshal(spec)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal source spec: %w", err)
+	}
+	resp, err := c.pbClient.Validate(ctx, &pb.ValidateSource_Request{
+		Spec: b,
+	})
+	if err != nil {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.Unimplemented {
+			// Backwards-compatibility with older plugin versions that don't support Validate().
+			// In this case, we only return one warning: that the plugin should be updated.
+			return []string{"the version of this plugin is outdated and should be updated"}, nil, nil
+		}
+		return nil, nil, fmt.Errorf("failed to call Validate: %w", err)
+	}
+	return resp.Warnings, resp.Errors, nil
 }
 
 // Sync start syncing for the source client per the given spec and returning the results

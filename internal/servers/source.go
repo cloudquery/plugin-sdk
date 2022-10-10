@@ -54,17 +54,26 @@ func (s *SourceServer) GetSyncSummary(context.Context, *pb.GetSyncSummary_Reques
 	}, nil
 }
 
+func (s *SourceServer) Validate(ctx context.Context, req *pb.ValidateSource_Request) (*pb.ValidateSource_Response, error) {
+	spec, err := decodeSourceSpec(req.Spec)
+	if err != nil {
+		return nil, err
+	}
+	warns, errs := s.Plugin.Validate(spec)
+	return &pb.ValidateSource_Response{
+		Warnings: warns,
+		Errors:   errs,
+	}, nil
+}
+
 func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
+	spec, err := decodeSourceSpec(req.Spec)
+	if err != nil {
+		return err
+	}
+
 	resources := make(chan *schema.Resource)
 	var syncErr error
-
-	var spec specs.Source
-	dec := json.NewDecoder(bytes.NewReader(req.Spec))
-	dec.UseNumber()
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&spec); err != nil {
-		return status.Errorf(codes.InvalidArgument, "failed to decode spec: %v", err)
-	}
 
 	go func() {
 		defer close(resources)
@@ -91,4 +100,15 @@ func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) e
 	}
 
 	return nil
+}
+
+func decodeSourceSpec(b []byte) (specs.Source, error) {
+	var spec specs.Source
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&spec); err != nil {
+		return specs.Source{}, status.Errorf(codes.InvalidArgument, "failed to decode spec: %v", err)
+	}
+	return spec, nil
 }

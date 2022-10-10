@@ -1,6 +1,7 @@
 package servers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -39,6 +40,18 @@ func (s *DestinationServer) GetName(context.Context, *pb.GetName_Request) (*pb.G
 func (s *DestinationServer) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVersion_Response, error) {
 	return &pb.GetVersion_Response{
 		Version: s.Plugin.Version(),
+	}, nil
+}
+
+func (s *DestinationServer) Validate(ctx context.Context, req *pb.ValidateDestination_Request) (*pb.ValidateDestination_Response, error) {
+	spec, err := decodeDestinationSpec(req.Spec)
+	if err != nil {
+		return nil, err
+	}
+	warns, errs := s.Plugin.Validate(spec)
+	return &pb.ValidateDestination_Response{
+		Warnings: warns,
+		Errors:   errs,
 	}, nil
 }
 
@@ -129,4 +142,15 @@ func (s *DestinationServer) DeleteStale(ctx context.Context, req *pb.DeleteStale
 
 func (s *DestinationServer) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {
 	return &pb.Close_Response{}, s.Plugin.Close(ctx)
+}
+
+func decodeDestinationSpec(b []byte) (specs.Destination, error) {
+	var spec specs.Destination
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&spec); err != nil {
+		return specs.Destination{}, status.Errorf(codes.InvalidArgument, "failed to decode spec: %v", err)
+	}
+	return spec, nil
 }

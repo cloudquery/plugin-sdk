@@ -71,6 +71,13 @@ func (p *DestinationPlugin) Init(ctx context.Context, logger zerolog.Logger, spe
 	return nil
 }
 
+// Validate checks a destination spec for config issues. It is not currently used, but is
+// reserved for future use.
+func (p *DestinationPlugin) Validate(spec specs.Destination) (warnings, errors []string) {
+	spec.Validate()
+	return warnings, errors
+}
+
 // we implement all DestinationClient functions so we can hook into pre-post behavior
 func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) error {
 	SetDestinationManagedCqColumns(tables)

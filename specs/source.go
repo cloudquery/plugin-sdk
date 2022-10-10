@@ -73,6 +73,18 @@ func (s *Source) UnmarshalSpec(out interface{}) error {
 	return dec.Decode(out)
 }
 
+// Warnings returns non-critical validation errors, such as deprecation notices.
+func (s *Source) Warnings() (warnings []string) {
+	if s.Concurrency != 0 {
+		warnings = append(warnings, `"concurrency" is deprecated and will be removed in a future version: use "table_concurrency" and "resource_concurrency" instead.`)
+	}
+	if s.Path == "" {
+		warnings = append(warnings, `"path" will become a required parameter in a future version`)
+	}
+	return warnings
+}
+
+// Validate returns critical validation errors that will prevent syncs from running.
 func (s *Source) Validate() error {
 	if s.Name == "" {
 		return fmt.Errorf("name is required")
