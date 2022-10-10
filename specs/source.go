@@ -26,6 +26,7 @@ type Source struct {
 	Path string `json:"path,omitempty"`
 	// Registry can be github,local,grpc.
 	Registry            Registry `json:"registry,omitempty"`
+	Concurrency         uint64   `json:"concurrency,omitempty"` // deprecated: use TableConcurrency and ResourceConcurrency instead
 	TableConcurrency    uint64   `json:"table_concurrency,omitempty"`
 	ResourceConcurrency uint64   `json:"resource_concurrency,omitempty"`
 	// Tables to sync from the source plugin
@@ -53,6 +54,12 @@ func (s *Source) SetDefaults() {
 		s.Tables = []string{"*"}
 	}
 
+	if s.Concurrency != 0 {
+		// attempt to make a sensible backwards-compatible choice, but the CLI
+		// should raise a warning about this until concurrency is fully removed.
+		s.TableConcurrency = s.Concurrency
+		s.ResourceConcurrency = s.Concurrency
+	}
 	if s.TableConcurrency == 0 {
 		s.TableConcurrency = defaultTableConcurrency
 	}
