@@ -139,7 +139,7 @@ spec:
 		`kind: destination
 spec:
   name: test
-  path: cloudquery/tes
+  path: cloudquery/test
   version: 1.1.0
 `,
 		"version must start with v",
