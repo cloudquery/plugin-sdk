@@ -55,8 +55,8 @@ func KindFromString(s string) (Kind, error) {
 
 func (s *Spec) UnmarshalJSON(data []byte) error {
 	var t struct {
-		Kind Kind        `json:"kind"`
-		Spec interface{} `json:"spec,omitempty"`
+		Kind   Kind        `json:"kind"`
+		Spec   interface{} `json:"spec,omitempty"`
 		Plugin interface{} `json:"plugin,omitempty"`
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
@@ -76,6 +76,7 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 	}
 	var b []byte
 	var err error
+	// nolint:all
 	if t.Spec != nil {
 		b, err = json.Marshal(t.Spec)
 		if err != nil {
@@ -88,7 +89,7 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 		}
 	} else {
 		return fmt.Errorf("plugin is required and shouldn't be empty")
-	} 
+	}
 	dec = json.NewDecoder(bytes.NewReader(b))
 	dec.UseNumber()
 	dec.DisallowUnknownFields()
