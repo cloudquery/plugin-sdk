@@ -38,7 +38,7 @@ func addInternalColumns(tables []*schema.Table) {
 		if len(table.PrimaryKeys()) == 0 {
 			cqID.CreationOptions.PrimaryKey = true
 		}
-		table.Columns = append([]schema.Column{cqID, schema.CqParentIDColumn, schema.CqSourceName, schema.CqSyncTime}, table.Columns...)
+		table.Columns = append([]schema.Column{cqID, schema.CqParentIDColumn}, table.Columns...)
 		addInternalColumns(table.Relations)
 	}
 }

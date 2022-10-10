@@ -73,6 +73,8 @@ func (p *DestinationPlugin) Init(ctx context.Context, logger zerolog.Logger, spe
 
 // we implement all DestinationClient functions so we can hook into pre-post behavior
 func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) error {
+	SetDestinationManagedCqColumns(tables)
+
 	if p.client == nil {
 		return fmt.Errorf("destination client not initialized")
 	}
@@ -80,18 +82,14 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *DestinationPlugin) Write(ctx context.Context, source string, syncTime time.Time, res <-chan *schema.Resource) *WriteSummary {
+func (p *DestinationPlugin) Write(ctx context.Context, sourceName string, syncTime time.Time, res <-chan *schema.Resource) *WriteSummary {
 	if p.client == nil {
 		return nil
 	}
 	summary := WriteSummary{}
 	for r := range res {
-		if _, ok := r.Data[schema.CqSourceName.Name]; ok {
-			r.Data[schema.CqSourceName.Name] = source
-		}
-		if _, ok := r.Data[schema.CqSyncTime.Name]; ok {
-			r.Data[schema.CqSyncTime.Name] = syncTime
-		}
+		r.Data[schema.CqSourceNameColumn.Name] = sourceName
+		r.Data[schema.CqSyncTimeColumn.Name] = syncTime
 		err := p.client.Write(ctx, r.TableName, r.Data)
 		if err != nil {
 			summary.FailedWrites++
@@ -101,7 +99,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, source string, syncTime t
 		}
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
-		failedDeletes := p.DeleteStale(ctx, p.tables.TableNames(), source, syncTime)
+		failedDeletes := p.DeleteStale(ctx, p.tables.TableNames(), sourceName, syncTime)
 		summary.FailedDeletes = failedDeletes
 	}
 	return &summary
@@ -126,4 +124,14 @@ func (p *DestinationPlugin) Close(ctx context.Context) error {
 		return fmt.Errorf("destination client not initialized")
 	}
 	return p.client.Close(ctx)
+}
+
+// Overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
+func SetDestinationManagedCqColumns(tables []*schema.Table) {
+	for _, table := range tables {
+		table.OverwriteOrAddColumn(&schema.CqSyncTimeColumn)
+		table.OverwriteOrAddColumn(&schema.CqSourceNameColumn)
+
+		SetDestinationManagedCqColumns(table.Relations)
+	}
 }

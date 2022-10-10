@@ -19,6 +19,9 @@ func (p *SourcePlugin) GenerateSourcePluginDocs(dir string) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
+
+	SetDestinationManagedCqColumns(p.Tables())
+
 	for _, table := range p.Tables() {
 		if err := renderAllTables(table, dir); err != nil {
 			return err

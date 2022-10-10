@@ -64,8 +64,6 @@ type Table struct {
 
 	// Parent is the parent table in case this table is called via parent table (i.e. relation)
 	Parent *Table `json:"-"`
-
-	columnsMap map[string]int
 }
 
 func (s *SyncSummary) Merge(other SyncSummary) {
@@ -102,7 +100,7 @@ func (tt Tables) ValidateDuplicateTables() error {
 	return nil
 }
 
-func (t Table) ValidateDuplicateColumns() error {
+func (t *Table) ValidateDuplicateColumns() error {
 	columns := make(map[string]bool, len(t.Columns))
 	for _, c := range t.Columns {
 		if _, ok := columns[c.Name]; ok {
@@ -118,7 +116,7 @@ func (t Table) ValidateDuplicateColumns() error {
 	return nil
 }
 
-func (t Table) Column(name string) *Column {
+func (t *Table) Column(name string) *Column {
 	for _, c := range t.Columns {
 		if c.Name == name {
 			return &c
@@ -127,7 +125,19 @@ func (t Table) Column(name string) *Column {
 	return nil
 }
 
-func (t Table) PrimaryKeys() []string {
+// If the column with the same name exists, overwrites it.
+// Otherwise, adds the column to the beginning of the table.
+func (t *Table) OverwriteOrAddColumn(column *Column) {
+	for i, c := range t.Columns {
+		if c.Name == column.Name {
+			t.Columns[i] = *column
+			return
+		}
+	}
+	t.Columns = append([]Column{*column}, t.Columns...)
+}
+
+func (t *Table) PrimaryKeys() []string {
 	var primaryKeys []string
 	for _, c := range t.Columns {
 		if c.CreationOptions.PrimaryKey {
@@ -138,23 +148,7 @@ func (t Table) PrimaryKeys() []string {
 	return primaryKeys
 }
 
-func (t Table) ColumnIndex(name string) int {
-	var once sync.Once
-	once.Do(func() {
-		if t.columnsMap == nil {
-			t.columnsMap = make(map[string]int)
-			for i, c := range t.Columns {
-				t.columnsMap[c.Name] = i
-			}
-		}
-	})
-	if index, ok := t.columnsMap[name]; ok {
-		return index
-	}
-	return -1
-}
-
-func (t Table) TableNames() []string {
+func (t *Table) TableNames() []string {
 	ret := []string{t.Name}
 	for _, rel := range t.Relations {
 		ret = append(ret, rel.TableNames()...)
@@ -163,7 +157,7 @@ func (t Table) TableNames() []string {
 }
 
 // Call the table resolver with with all of it's relation for every reolved resource
-func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resourcesSem *semaphore.Weighted, resolvedResources chan<- *Resource) (summary SyncSummary) {
+func (t *Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resourcesSem *semaphore.Weighted, resolvedResources chan<- *Resource) (summary SyncSummary) {
 	tableStartTime := time.Now()
 	meta.Logger().Info().Str("table", t.Name).Msg("table resolver started")
 
@@ -225,8 +219,8 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 	return summary
 }
 
-func (t Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resolvedResources chan<- *Resource) (summary SyncSummary) {
-	resource := NewResourceData(&t, parent, item)
+func (t *Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resolvedResources chan<- *Resource) (summary SyncSummary) {
+	resource := NewResourceData(t, parent, item)
 	objectStartTime := time.Now()
 	csr := caser.New()
 	meta.Logger().Info().Str("table", t.Name).Msg("object resolver started")
