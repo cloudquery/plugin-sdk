@@ -56,6 +56,7 @@ func TestSync(t *testing.T) {
 		Name:         "testSource",
 		Tables:       []string{"*"},
 		Version:      "v1.0.0",
+		Path:         "cloudquery/test",
 		Destinations: []string{"test"},
 	}
 
