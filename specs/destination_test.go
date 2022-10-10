@@ -119,7 +119,7 @@ spec:
 		`kind: destination
 spec:
   name: test
-  path: cloudquery/tes
+  path: cloudquery/test
 `,
 		"version is required",
 		nil,
