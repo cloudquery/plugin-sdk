@@ -109,7 +109,8 @@ var destinationUnmarshalSpecValidateTestCases = []struct {
 	{
 		"required_name",
 		`kind: destination
-spec:`,
+spec:
+  version: v1.1.0`,
 		"name is required",
 		nil,
 	},

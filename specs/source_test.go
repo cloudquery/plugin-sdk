@@ -74,7 +74,8 @@ var sourceUnmarshalSpecValidateTestCases = []struct {
 	{
 		"required_name",
 		`kind: source
-spec:`,
+spec:
+  version: v1.1.0`,
 		"name is required",
 		nil,
 	},

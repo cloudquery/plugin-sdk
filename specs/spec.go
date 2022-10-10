@@ -56,7 +56,8 @@ func KindFromString(s string) (Kind, error) {
 func (s *Spec) UnmarshalJSON(data []byte) error {
 	var t struct {
 		Kind Kind        `json:"kind"`
-		Spec interface{} `json:"spec"`
+		Spec interface{} `json:"spec,omitempty"`
+		Plugin interface{} `json:"plugin,omitempty"`
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
@@ -73,10 +74,21 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("unknown kind %s", s.Kind)
 	}
-	b, err := json.Marshal(t.Spec)
-	if err != nil {
-		return err
-	}
+	var b []byte
+	var err error
+	if t.Spec != nil {
+		b, err = json.Marshal(t.Spec)
+		if err != nil {
+			return err
+		}
+	} else if t.Plugin != nil {
+		b, err = json.Marshal(t.Plugin)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("plugin is required and shouldn't be empty")
+	} 
 	dec = json.NewDecoder(bytes.NewReader(b))
 	dec.UseNumber()
 	dec.DisallowUnknownFields()
