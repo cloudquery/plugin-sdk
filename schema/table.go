@@ -202,7 +202,7 @@ func (t Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, r
 		for i := range objects {
 			i := i
 
-			// right now we support only concurrency
+			// right now we support concurrency only for objects/resources of parent tables
 			if resourcesSem == nil {
 				summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
 			} else {

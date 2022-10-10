@@ -116,9 +116,9 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 		return nil, fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
 	logger.Info().Interface("spec", spec).Msg("starting sync")
-	goroutinesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.TableConcurrency))
+	tableSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.TableConcurrency))
 	wg := sync.WaitGroup{}
-	resourcesSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.ResourceConcurrency))
+	resourceSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.ResourceConcurrency))
 	summary := schema.SyncSummary{}
 	startTime := time.Now()
 
@@ -137,16 +137,16 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 		for _, client := range clients {
 			client := client
 			wg.Add(1)
-			if err := goroutinesSem.Acquire(ctx, 1); err != nil {
+			if err := tableSem.Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				return nil, err
 			}
 			go func() {
 				defer wg.Done()
-				defer goroutinesSem.Release(1)
+				defer tableSem.Release(1)
 				// TODO: prob introduce client.Identify() to be used in logs
 
-				tableSummary := table.Resolve(ctx, client, nil, resourcesSem, res)
+				tableSummary := table.Resolve(ctx, client, nil, resourceSem, res)
 				atomic.AddUint64(&summary.Resources, tableSummary.Resources)
 				atomic.AddUint64(&summary.Errors, tableSummary.Errors)
 				atomic.AddUint64(&summary.Panics, tableSummary.Panics)
