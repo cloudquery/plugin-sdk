@@ -101,7 +101,7 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 			})
 			version := source.plugin.Version()
 
-			if source.sentryDSN != "" && version != "development" {
+			if source.sentryDSN != "" && strings.EqualFold(version, "development") {
 				err = sentry.Init(sentry.ClientOptions{
 					Dsn:              source.sentryDSN,
 					Debug:            false,
