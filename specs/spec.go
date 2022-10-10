@@ -11,8 +11,10 @@ import (
 type Kind int
 
 type Spec struct {
-	Kind Kind        `json:"kind"`
-	Spec interface{} `json:"spec"`
+	Kind   Kind        `json:"kind"`
+	Plugin interface{} `json:"plugin"`
+
+	Warnings []string `json:"-"`
 }
 
 const (
@@ -55,7 +57,10 @@ func KindFromString(s string) (Kind, error) {
 
 func (s *Spec) UnmarshalJSON(data []byte) error {
 	var t struct {
-		Kind Kind        `json:"kind"`
+		Kind   Kind        `json:"kind"`
+		Plugin interface{} `json:"plugin"`
+
+		// Deprecated
 		Spec interface{} `json:"spec"`
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
@@ -65,29 +70,38 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	s.Kind = t.Kind
+
+	if t.Plugin != nil && t.Spec != nil {
+		return fmt.Errorf("spec must have either plugin or spec, not both")
+	}
+
 	switch s.Kind {
 	case KindSource:
-		s.Spec = new(Source)
+		s.Plugin = new(Source)
 	case KindDestination:
-		s.Spec = new(Destination)
+		s.Plugin = new(Destination)
 	default:
 		return fmt.Errorf("unknown kind %s", s.Kind)
 	}
-	b, err := json.Marshal(t.Spec)
+
+	var (
+		b   []byte
+		err error
+	)
+	if t.Spec != nil {
+		b, err = json.Marshal(t.Spec)
+		s.Warnings = append(s.Warnings, `"spec" keyword is deprecated at this level and will be removed in a future version. Use "plugin" instead`)
+	} else {
+		b, err = json.Marshal(t.Plugin)
+	}
 	if err != nil {
 		return err
 	}
+
 	dec = json.NewDecoder(bytes.NewReader(b))
 	dec.UseNumber()
 	dec.DisallowUnknownFields()
-	return dec.Decode(s.Spec)
-}
-
-func UnmarshalJSONStrict(b []byte, out interface{}) error {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.DisallowUnknownFields()
-	dec.UseNumber()
-	return dec.Decode(out)
+	return dec.Decode(s.Plugin)
 }
 
 func SpecUnmarshalYamlStrict(b []byte, spec *Spec) error {

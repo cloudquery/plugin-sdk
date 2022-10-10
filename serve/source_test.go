@@ -29,7 +29,7 @@ var _ schema.ClientMeta = &testExecutionClient{}
 
 var expectedExampleSpecConfig = specs.Spec{
 	Kind: specs.KindSource,
-	Spec: &specs.Source{
+	Plugin: &specs.Source{
 		Name:    "testSourcePlugin",
 		Path:    "cloudquery/testSourcePlugin",
 		Version: "v1.0.0",

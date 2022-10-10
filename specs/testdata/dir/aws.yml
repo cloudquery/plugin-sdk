@@ -1,5 +1,5 @@
 kind: source
-spec:
+plugin:
   name: aws
   version: v1.0.0
   table_concurrency: 10

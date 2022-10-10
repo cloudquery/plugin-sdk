@@ -10,6 +10,8 @@ import (
 type SpecReader struct {
 	Sources      map[string]*Source
 	Destinations map[string]*Destination
+
+	Warnings map[string][]string
 }
 
 func (r *SpecReader) loadSpecsFromFile(path string) error {
@@ -27,7 +29,7 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 		}
 		switch s.Kind {
 		case KindSource:
-			source := s.Spec.(*Source)
+			source := s.Plugin.(*Source)
 			if r.Sources[source.Name] != nil {
 				return fmt.Errorf("duplicate source name %s", source.Name)
 			}
@@ -36,8 +38,9 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 				return fmt.Errorf("failed to validate source %s: %w", source.Name, err)
 			}
 			r.Sources[source.Name] = source
+			r.Warnings[source.Name] = s.Warnings
 		case KindDestination:
-			destination := s.Spec.(*Destination)
+			destination := s.Plugin.(*Destination)
 			if r.Destinations[destination.Name] != nil {
 				return fmt.Errorf("duplicate destination name %s", destination.Name)
 			}
@@ -46,6 +49,7 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 				return fmt.Errorf("failed to validate destination %s: %w", destination.Name, err)
 			}
 			r.Destinations[destination.Name] = destination
+			r.Warnings[destination.Name] = s.Warnings
 		default:
 			return fmt.Errorf("unknown kind %s", s.Kind)
 		}
@@ -72,6 +76,7 @@ func NewSpecReader(paths []string) (*SpecReader, error) {
 	reader := &SpecReader{
 		Sources:      make(map[string]*Source),
 		Destinations: make(map[string]*Destination),
+		Warnings:     make(map[string][]string),
 	}
 	for _, path := range paths {
 		file, err := os.Open(path)

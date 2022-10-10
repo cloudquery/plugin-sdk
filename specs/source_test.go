@@ -57,7 +57,7 @@ func TestSourceUnmarshalSpec(t *testing.T) {
 				return
 			}
 
-			source := spec.Spec.(*Source)
+			source := spec.Plugin.(*Source)
 			if cmp.Diff(source, tc.source) != "" {
 				t.Fatalf("expected:%v got:%v", tc.source, source)
 			}
@@ -138,7 +138,7 @@ func TestSourceUnmarshalSpecValidate(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			source := spec.Spec.(*Source)
+			source := spec.Plugin.(*Source)
 			source.SetDefaults()
 			err = source.Validate()
 			if err != nil {
