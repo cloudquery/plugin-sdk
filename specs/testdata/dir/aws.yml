@@ -4,5 +4,5 @@ spec:
   version: v1.0.0
   table_concurrency: 10
   registry: local
-  path: ~/cq/test
+  path: /home/cloudquery/cq/test
   destinations: [postgresql]
