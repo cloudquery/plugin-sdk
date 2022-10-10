@@ -90,7 +90,7 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 	)
 	if t.Spec != nil {
 		b, err = json.Marshal(t.Spec)
-		s.Warnings = append(s.Warnings, `"spec" keyword is deprecated at this level and will be removed in a future version. Use "plugin" instead`)
+		s.Warnings = append(s.Warnings, `"spec" keyword is deprecated at the outer level and will be removed in a future version. Use "plugin" instead`)
 	} else {
 		b, err = json.Marshal(t.Plugin)
 	}
