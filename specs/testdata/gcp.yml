@@ -2,7 +2,7 @@ kind: source
 spec:
   name: gcp
   version: v1.0.0
-  concurrency: 10
+  table_concurrency: 10
   registry: local
   path: /home/cloudquery/cq/test
   destinations: [postgresqlv2]

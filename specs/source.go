@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	defaultTableConcurrency    = 500000
+	defaultResourceConcurrency = 500000
+)
+
 // Source is the spec for a source plugin
 type Source struct {
 	// Name of the source plugin to use
@@ -20,8 +25,9 @@ type Source struct {
 	// For the gRPC registry the path will be the address of the gRPC server: host:port
 	Path string `json:"path,omitempty"`
 	// Registry can be github,local,grpc.
-	Registry    Registry `json:"registry,omitempty"`
-	Concurrency uint64   `json:"concurrency,omitempty"`
+	Registry            Registry `json:"registry,omitempty"`
+	TableConcurrency    uint64   `json:"table_concurrency,omitempty"`
+	ResourceConcurrency uint64   `json:"resource_concurrency,omitempty"`
 	// Tables to sync from the source plugin
 	Tables []string `json:"tables,omitempty"`
 	// SkipTables defines tables to skip when syncing data. Useful if a glob pattern is used in Tables
@@ -40,6 +46,13 @@ func (s *Source) SetDefaults() {
 
 	if s.Tables == nil {
 		s.Tables = []string{"*"}
+	}
+
+	if s.TableConcurrency == 0 {
+		s.TableConcurrency = defaultTableConcurrency
+	}
+	if s.ResourceConcurrency == 0 {
+		s.ResourceConcurrency = defaultResourceConcurrency
 	}
 }
 
