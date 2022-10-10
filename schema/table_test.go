@@ -217,7 +217,7 @@ func TestTableExecution(t *testing.T) {
 			var summary SyncSummary
 			go func() {
 				defer close(resources)
-				summary = tc.Table.Resolve(ctx, m, nil, resources)
+				summary = tc.Table.Resolve(ctx, m, nil, nil, resources)
 			}()
 			var i = uint64(0)
 			for resource := range resources {
