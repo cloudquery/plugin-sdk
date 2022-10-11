@@ -41,6 +41,16 @@ var testTables = []*schema.Table{
 					},
 				},
 			},
+			{
+				Name:        "relation_table2",
+				Description: "Description for second relational table",
+				Columns: []schema.Column{
+					{
+						Name: "string_col",
+						Type: schema.TypeString,
+					},
+				},
+			},
 		},
 	},
 }
