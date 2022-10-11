@@ -61,7 +61,7 @@ func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) e
 	var spec specs.Source
 	dec := json.NewDecoder(bytes.NewReader(req.Spec))
 	dec.UseNumber()
-	dec.DisallowUnknownFields()
+	// TODO: warn about unknown fields
 	if err := dec.Decode(&spec); err != nil {
 		return status.Errorf(codes.InvalidArgument, "failed to decode spec: %v", err)
 	}
