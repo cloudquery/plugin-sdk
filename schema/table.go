@@ -207,6 +207,7 @@ func (t *Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, 
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
+					defer resourcesSem.Release(1)
 					//nolint:all
 					summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
 				}()
