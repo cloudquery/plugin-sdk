@@ -8,15 +8,17 @@ import (
 )
 
 type faker struct {
-	maxDepth int
+	maxDepth    int
+	ignoreEFace bool
+	skipFields  map[string]struct{}
 }
 
-type Option func(*faker)
+var errEFaceNotAllowed = fmt.Errorf("interface{} not allowed")
 
 func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	t := reflect.TypeOf(a)
 	if t == nil {
-		return reflect.Value{}, fmt.Errorf("interface{} not allowed")
+		return reflect.Value{}, errEFaceNotAllowed
 	}
 	f.maxDepth--
 	if f.maxDepth < 0 {
@@ -50,8 +52,15 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 				if !v.Field(i).CanSet() {
 					continue // to avoid panic to set on unexported field in struct
 				}
+				if _, ok := f.skipFields[v.Type().Field(i).Name]; ok {
+					continue
+				}
 				val, err := f.getFakedValue(v.Field(i).Interface())
 				if err != nil {
+					if f.ignoreEFace && err == errEFaceNotAllowed {
+						continue
+					}
+
 					fmt.Println(err)
 					continue
 					// return reflect.Value{}, err
@@ -142,12 +151,6 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	}
 }
 
-func WithMaxDepth(depth int) Option {
-	return func(f *faker) {
-		f.maxDepth = depth
-	}
-}
-
 func FakeObject(obj interface{}, opts ...Option) error {
 	reflectType := reflect.TypeOf(obj)
 
@@ -159,7 +162,8 @@ func FakeObject(obj interface{}, opts ...Option) error {
 		return fmt.Errorf("object is nil %s", reflectType.Elem().String())
 	}
 	f := &faker{
-		maxDepth: 12,
+		maxDepth:   12,
+		skipFields: make(map[string]struct{}),
 	}
 	for _, o := range opts {
 		o(f)
