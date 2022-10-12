@@ -1,7 +1,9 @@
 package faker
 
 import (
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,11 +53,15 @@ func TestFakerWithSkipEFace(t *testing.T) {
 }
 
 func TestHelpers(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+
 	vals := []interface{}{
 		Name(),
 		Word(),
 		RandomUnixTime(),
 		Timestamp(),
+		UUIDHyphenated(),
+		UUIDDigit(),
 	}
 	for i, v := range vals {
 		assert.NotEmptyf(t, v, "Helper %d failed", i)

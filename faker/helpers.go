@@ -2,6 +2,7 @@ package faker
 
 import (
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -30,4 +31,14 @@ func RandomUnixTime() int64 {
 
 func Timestamp() string {
 	return time.Unix(RandomUnixTime(), 0).Format("2006-01-02 15:04:05")
+}
+
+func UUIDHyphenated() string {
+	return "12345678-0000-0000-0000-c1a0dbeef000"
+}
+
+func UUIDDigit() string {
+	v := strings.ReplaceAll(UUIDHyphenated(), "-", "")
+	idx := rand.Int63n(int64(len(v)))
+	return string(v[idx])
 }
