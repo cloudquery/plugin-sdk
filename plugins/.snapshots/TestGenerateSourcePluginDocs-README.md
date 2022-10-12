@@ -1,5 +1,5 @@
 # Source Plugin: test
 ## Tables
-| Name          | Description   |
-| ------------- | ------------- |
-|test_table|Description for test table|
+| Name          | Relations | Description   |
+| ------------- | --------- | ------------- |
+| [test_table](test_table.md)| [relation_table](relation_table.md)<br />[relation_table2](relation_table2.md)| Description for test table|
