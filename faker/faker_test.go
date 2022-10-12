@@ -49,3 +49,15 @@ func TestFakerWithSkipEFace(t *testing.T) {
 	assert.NotEmpty(t, a.C)
 	assert.Empty(t, a.E)
 }
+
+func TestHelpers(t *testing.T) {
+	vals := []interface{}{
+		Name(),
+		Word(),
+		RandomUnixTime(),
+		Timestamp(),
+	}
+	for i, v := range vals {
+		assert.NotEmptyf(t, v, "Helper %d failed", i)
+	}
+}
