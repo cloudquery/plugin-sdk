@@ -5,18 +5,21 @@ import (
 	"math/rand"
 	"reflect"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 type faker struct {
 	maxDepth int
+	logger   zerolog.Logger
 }
 
-type Option func(*faker)
+var errEFaceNotAllowed = fmt.Errorf("interface{} not allowed")
 
 func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	t := reflect.TypeOf(a)
 	if t == nil {
-		return reflect.Value{}, fmt.Errorf("interface{} not allowed")
+		return reflect.Value{}, errEFaceNotAllowed
 	}
 	f.maxDepth--
 	if f.maxDepth < 0 {
@@ -52,9 +55,12 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 				}
 				val, err := f.getFakedValue(v.Field(i).Interface())
 				if err != nil {
-					fmt.Println(err)
+					if err == errEFaceNotAllowed { // skip empty interfaces
+						continue
+					}
+
+					f.logger.Err(err).Str("field_name", v.Type().Field(i).Name).Msg("faker: error while faking struct")
 					continue
-					// return reflect.Value{}, err
 				}
 				val = val.Convert(v.Field(i).Type())
 				v.Field(i).Set(val)
@@ -126,6 +132,7 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 			if err != nil {
 				return reflect.Value{}, err
 			}
+			key = key.Convert(t.Key())
 
 			valueInstance := reflect.New(t.Elem()).Elem().Interface()
 			val, err := f.getFakedValue(valueInstance)
@@ -142,12 +149,6 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	}
 }
 
-func WithMaxDepth(depth int) Option {
-	return func(f *faker) {
-		f.maxDepth = depth
-	}
-}
-
 func FakeObject(obj interface{}, opts ...Option) error {
 	reflectType := reflect.TypeOf(obj)
 
@@ -160,6 +161,7 @@ func FakeObject(obj interface{}, opts ...Option) error {
 	}
 	f := &faker{
 		maxDepth: 12,
+		logger:   zerolog.Nop(),
 	}
 	for _, o := range opts {
 		o(f)
