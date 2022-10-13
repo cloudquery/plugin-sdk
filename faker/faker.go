@@ -10,6 +10,7 @@ import (
 type faker struct {
 	maxDepth   int
 	skipFields map[string]struct{}
+	silent     bool
 }
 
 var errEFaceNotAllowed = fmt.Errorf("interface{} not allowed")
@@ -60,7 +61,9 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 						continue
 					}
 
-					fmt.Println(err)
+					if !f.silent {
+						fmt.Println(err)
+					}
 					continue
 					// return reflect.Value{}, err
 				}

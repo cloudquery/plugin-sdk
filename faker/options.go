@@ -8,6 +8,12 @@ func WithMaxDepth(depth int) Option {
 	}
 }
 
+func WithSilent() Option {
+	return func(f *faker) {
+		f.silent = true
+	}
+}
+
 func WithSkipFields(fieldName ...string) Option {
 	return func(f *faker) {
 		for _, field := range fieldName {
