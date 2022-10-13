@@ -1,9 +1,7 @@
 package faker
 
 import (
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,20 +22,4 @@ func TestFaker(t *testing.T) {
 	assert.NotEmpty(t, a.B)
 	assert.NotEmpty(t, a.C)
 	assert.Empty(t, a.E) // empty interfaces are not faked
-}
-
-func TestHelpers(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
-
-	vals := []interface{}{
-		Name(),
-		Word(),
-		RandomUnixTime(),
-		Timestamp(),
-		UUIDHyphenated(),
-		UUIDDigit(),
-	}
-	for i, v := range vals {
-		assert.NotEmptyf(t, v, "Helper %d failed", i)
-	}
 }
