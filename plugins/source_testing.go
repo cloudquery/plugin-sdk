@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/cloudquery/faker/v3"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -21,13 +20,15 @@ type ResourceTestCase struct {
 	SkipIgnoreInTest bool
 }
 
-func init() {
-	_ = faker.SetRandomMapAndSliceMinSize(1)
-	_ = faker.SetRandomMapAndSliceMaxSize(1)
+type TestSourcePluginOptions struct {
+	NoParallel bool
 }
 
-func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source) {
+func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source, opts TestSourcePluginOptions) {
 	t.Helper()
+	if !opts.NoParallel {
+		t.Parallel()
+	}
 
 	resourcesChannel := make(chan *schema.Resource)
 	var fetchErr error
