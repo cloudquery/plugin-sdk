@@ -26,16 +26,6 @@ func TestFaker(t *testing.T) {
 	assert.Empty(t, a.E) // empty interfaces are not faked
 }
 
-func TestFakerWithSkipFields(t *testing.T) {
-	a := testFakerStruct{}
-	if err := FakeObject(&a, WithSkipFields("B", "C")); err != nil {
-		t.Fatal(err)
-	}
-	assert.NotEmpty(t, a.A)
-	assert.Empty(t, a.B)
-	assert.Empty(t, a.C)
-}
-
 func TestHelpers(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 

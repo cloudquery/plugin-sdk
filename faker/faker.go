@@ -8,9 +8,8 @@ import (
 )
 
 type faker struct {
-	maxDepth   int
-	skipFields map[string]struct{}
-	verbose    bool
+	maxDepth int
+	verbose  bool
 }
 
 var errEFaceNotAllowed = fmt.Errorf("interface{} not allowed")
@@ -51,9 +50,6 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 			for i := 0; i < v.NumField(); i++ {
 				if !v.Field(i).CanSet() {
 					continue // to avoid panic to set on unexported field in struct
-				}
-				if _, ok := f.skipFields[v.Type().Field(i).Name]; ok {
-					continue
 				}
 				val, err := f.getFakedValue(v.Field(i).Interface())
 				if err != nil {
@@ -164,8 +160,7 @@ func FakeObject(obj interface{}, opts ...Option) error {
 		return fmt.Errorf("object is nil %s", reflectType.Elem().String())
 	}
 	f := &faker{
-		maxDepth:   12,
-		skipFields: make(map[string]struct{}),
+		maxDepth: 12,
 	}
 	for _, o := range opts {
 		o(f)

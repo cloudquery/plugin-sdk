@@ -13,11 +13,3 @@ func WithVerbose() Option {
 		f.verbose = true
 	}
 }
-
-func WithSkipFields(fieldName ...string) Option {
-	return func(f *faker) {
-		for _, field := range fieldName {
-			f.skipFields[field] = struct{}{}
-		}
-	}
-}
