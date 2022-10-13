@@ -8,9 +8,9 @@ func WithMaxDepth(depth int) Option {
 	}
 }
 
-func WithSilent() Option {
+func WithVerbose() Option {
 	return func(f *faker) {
-		f.silent = true
+		f.verbose = true
 	}
 }
 
