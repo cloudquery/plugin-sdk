@@ -1,5 +1,7 @@
 package faker
 
+import "github.com/rs/zerolog"
+
 type Option func(*faker)
 
 func WithMaxDepth(depth int) Option {
@@ -8,8 +10,8 @@ func WithMaxDepth(depth int) Option {
 	}
 }
 
-func WithVerbose() Option {
+func WithLogger(logger zerolog.Logger) Option {
 	return func(f *faker) {
-		f.verbose = true
+		f.logger = logger
 	}
 }

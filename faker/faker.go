@@ -5,11 +5,13 @@ import (
 	"math/rand"
 	"reflect"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 type faker struct {
 	maxDepth int
-	verbose  bool
+	logger   zerolog.Logger
 }
 
 var errEFaceNotAllowed = fmt.Errorf("interface{} not allowed")
@@ -57,11 +59,8 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 						continue
 					}
 
-					if f.verbose {
-						fmt.Println(err)
-					}
+					f.logger.Err(err).Str("field_name", v.Type().Field(i).Name).Msg("faker: error while faking struct")
 					continue
-					// return reflect.Value{}, err
 				}
 				val = val.Convert(v.Field(i).Type())
 				v.Field(i).Set(val)
@@ -162,6 +161,7 @@ func FakeObject(obj interface{}, opts ...Option) error {
 	}
 	f := &faker{
 		maxDepth: 12,
+		logger:   zerolog.Nop(),
 	}
 	for _, o := range opts {
 		o(f)
