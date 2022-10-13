@@ -133,6 +133,7 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 			if err != nil {
 				return reflect.Value{}, err
 			}
+			key = key.Convert(t.Key())
 
 			valueInstance := reflect.New(t.Elem()).Elem().Interface()
 			val, err := f.getFakedValue(valueInstance)
