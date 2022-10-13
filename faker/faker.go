@@ -8,9 +8,8 @@ import (
 )
 
 type faker struct {
-	maxDepth    int
-	ignoreEFace bool
-	skipFields  map[string]struct{}
+	maxDepth   int
+	skipFields map[string]struct{}
 }
 
 var errEFaceNotAllowed = fmt.Errorf("interface{} not allowed")
@@ -57,7 +56,7 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 				}
 				val, err := f.getFakedValue(v.Field(i).Interface())
 				if err != nil {
-					if f.ignoreEFace && err == errEFaceNotAllowed {
+					if err == errEFaceNotAllowed { // skip empty interfaces
 						continue
 					}
 

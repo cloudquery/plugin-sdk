@@ -8,12 +8,6 @@ func WithMaxDepth(depth int) Option {
 	}
 }
 
-func WithSkipEFace() Option {
-	return func(f *faker) {
-		f.ignoreEFace = true
-	}
-}
-
 func WithSkipFields(fieldName ...string) Option {
 	return func(f *faker) {
 		for _, field := range fieldName {
