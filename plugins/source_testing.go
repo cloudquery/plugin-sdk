@@ -23,11 +23,13 @@ type ResourceTestCase struct {
 func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source, opts ...TestSourcePluginOption) {
 	t.Helper()
 
-	o := &testSourcePluginOptions{}
+	o := &testSourcePluginOptions{
+		parallel: true,
+	}
 	for _, opt := range opts {
 		opt(o)
 	}
-	if !o.NoParallel {
+	if o.parallel {
 		t.Parallel()
 	}
 
@@ -50,14 +52,14 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Log
 
 type TestSourcePluginOption func(*testSourcePluginOptions)
 
-func TestSourcePluginWithoutParallel() TestSourcePluginOption {
+func WithTestSourcePluginNoParallel() TestSourcePluginOption {
 	return func(f *testSourcePluginOptions) {
-		f.NoParallel = true
+		f.parallel = false
 	}
 }
 
 type testSourcePluginOptions struct {
-	NoParallel bool
+	parallel bool
 }
 
 func getTableResources(t *testing.T, table *schema.Table, resources []*schema.Resource) []*schema.Resource {
