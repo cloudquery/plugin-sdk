@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
+	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -78,7 +79,9 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 		}
 		return c, nil
 	case specs.RegistryLocal:
-		return c.newManagedClient(ctx, path)
+		if err := c.newManagedClient(ctx, path); err != nil {
+			return nil, err
+		}
 	case specs.RegistryGithub:
 		pathSplit := strings.Split(path, "/")
 		if len(pathSplit) != 2 {
@@ -90,26 +93,40 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 		if err := DownloadPluginFromGithub(ctx, localPath, org, name, version, PluginTypeDestination); err != nil {
 			return nil, err
 		}
-		return c.newManagedClient(ctx, localPath)
+		if err := c.newManagedClient(ctx, localPath); err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("unsupported registry %s", registry)
 	}
+	protocolVersion, err := c.GetProtocolVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if protocolVersion < versions.DestinationProtocolVersion {
+		return nil, fmt.Errorf("destination plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.DestinationProtocolVersion)
+	} else if protocolVersion > versions.DestinationProtocolVersion {
+		return nil, fmt.Errorf("destination plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.DestinationProtocolVersion)
+	}
+
+	return c, nil
 }
 
 // newManagedClient starts a new destination plugin process from local file, connects to it via gRPC server
 // and returns a new DestinationClient
-func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (*DestinationClient, error) {
+func (c *DestinationClient) newManagedClient(ctx context.Context, path string) error {
 	c.grpcSocketName = generateRandomUnixSocketName()
 	// spawn the plugin first and then connect
 	cmd := exec.CommandContext(ctx, path, "serve", "--network", "unix", "--address", c.grpcSocketName,
 		"--log-level", c.logger.GetLevel().String(), "--log-format", "json")
 	reader, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get stdout pipe: %w", err)
+		return fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start plugin %s: %w", path, err)
+		return fmt.Errorf("failed to start plugin %s: %w", path, err)
 	}
 
 	c.wg.Add(1)
@@ -157,10 +174,18 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) (
 		if err := cmd.Process.Kill(); err != nil {
 			c.logger.Error().Err(err).Msg("failed to kill plugin process")
 		}
-		return c, err
+		return err
 	}
 	c.pbClient = pb.NewDestinationClient(c.conn)
-	return c, nil
+	return nil
+}
+
+func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, error) {
+	res, err := c.pbClient.GetProtocolVersion(ctx, &pb.GetProtocolVersion_Request{})
+	if err != nil {
+		return 0, fmt.Errorf("failed to call GetProtocolVersion: %w", err)
+	}
+	return res.Version, nil
 }
 
 func (c *DestinationClient) Name(ctx context.Context) (string, error) {

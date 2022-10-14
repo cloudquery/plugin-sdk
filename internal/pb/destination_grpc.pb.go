@@ -22,6 +22,10 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DestinationClient interface {
+	// Get the current protocol version of the plugin. This helps
+	// get the right message about upgrade/downgrade of cli and/or plugin.
+	// Also, on the cli side it can try to upgrade/downgrade the protocol if cli supports it.
+	GetProtocolVersion(ctx context.Context, in *GetProtocolVersion_Request, opts ...grpc.CallOption) (*GetProtocolVersion_Response, error)
 	// Get the name of the plugin
 	GetName(ctx context.Context, in *GetName_Request, opts ...grpc.CallOption) (*GetName_Response, error)
 	// Get the current version of the plugin
@@ -45,6 +49,15 @@ type destinationClient struct {
 
 func NewDestinationClient(cc grpc.ClientConnInterface) DestinationClient {
 	return &destinationClient{cc}
+}
+
+func (c *destinationClient) GetProtocolVersion(ctx context.Context, in *GetProtocolVersion_Request, opts ...grpc.CallOption) (*GetProtocolVersion_Response, error) {
+	out := new(GetProtocolVersion_Response)
+	err := c.cc.Invoke(ctx, "/proto.Destination/GetProtocolVersion", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *destinationClient) GetName(ctx context.Context, in *GetName_Request, opts ...grpc.CallOption) (*GetName_Response, error) {
@@ -139,6 +152,10 @@ func (c *destinationClient) DeleteStale(ctx context.Context, in *DeleteStale_Req
 // All implementations must embed UnimplementedDestinationServer
 // for forward compatibility
 type DestinationServer interface {
+	// Get the current protocol version of the plugin. This helps
+	// get the right message about upgrade/downgrade of cli and/or plugin.
+	// Also, on the cli side it can try to upgrade/downgrade the protocol if cli supports it.
+	GetProtocolVersion(context.Context, *GetProtocolVersion_Request) (*GetProtocolVersion_Response, error)
 	// Get the name of the plugin
 	GetName(context.Context, *GetName_Request) (*GetName_Response, error)
 	// Get the current version of the plugin
@@ -161,6 +178,9 @@ type DestinationServer interface {
 type UnimplementedDestinationServer struct {
 }
 
+func (UnimplementedDestinationServer) GetProtocolVersion(context.Context, *GetProtocolVersion_Request) (*GetProtocolVersion_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetProtocolVersion not implemented")
+}
 func (UnimplementedDestinationServer) GetName(context.Context, *GetName_Request) (*GetName_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetName not implemented")
 }
@@ -193,6 +213,24 @@ type UnsafeDestinationServer interface {
 
 func RegisterDestinationServer(s grpc.ServiceRegistrar, srv DestinationServer) {
 	s.RegisterService(&Destination_ServiceDesc, srv)
+}
+
+func _Destination_GetProtocolVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProtocolVersion_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DestinationServer).GetProtocolVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Destination/GetProtocolVersion",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DestinationServer).GetProtocolVersion(ctx, req.(*GetProtocolVersion_Request))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Destination_GetName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -336,6 +374,10 @@ var Destination_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.Destination",
 	HandlerType: (*DestinationServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetProtocolVersion",
+			Handler:    _Destination_GetProtocolVersion_Handler,
+		},
 		{
 			MethodName: "GetName",
 			Handler:    _Destination_GetName_Handler,

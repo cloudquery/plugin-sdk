@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
+	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -20,6 +21,13 @@ type SourceServer struct {
 	Plugin  *plugins.SourcePlugin
 	Logger  zerolog.Logger
 	summary *schema.SyncSummary
+}
+
+
+func (s *SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
+	return &pb.GetProtocolVersion_Response{
+		Version: versions.SourceProtocolVersion,
+	}, nil
 }
 
 func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.GetTables_Response, error) {
