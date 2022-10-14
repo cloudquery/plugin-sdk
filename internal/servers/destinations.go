@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
+	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -20,6 +21,12 @@ type DestinationServer struct {
 	pb.UnimplementedDestinationServer
 	Plugin *plugins.DestinationPlugin
 	Logger zerolog.Logger
+}
+
+func (*DestinationServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
+	return &pb.GetProtocolVersion_Response{
+		Version: versions.DestinationProtocolVersion,
+	}, nil
 }
 
 func (s *DestinationServer) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.Configure_Response, error) {

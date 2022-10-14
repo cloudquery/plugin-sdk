@@ -16,6 +16,13 @@ message GetVersion {
   }
 }
 
+message GetProtocolVersion {
+  message Request {}
+  message Response {
+    uint64 version = 1;
+  }
+}
+
 message Configure {
   message Request {
     // Holds information such as credentials, regions, accounts, etc'

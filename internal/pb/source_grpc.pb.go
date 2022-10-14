@@ -22,6 +22,10 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SourceClient interface {
+	// Get the current protocol version of the plugin. This helps
+	// get the right message about upgrade/downgrade of cli and/or plugin.
+	// Also, on the cli side it can try to upgrade/downgrade the protocol if cli supports it.
+	GetProtocolVersion(ctx context.Context, in *GetProtocolVersion_Request, opts ...grpc.CallOption) (*GetProtocolVersion_Response, error)
 	// Get the name of the plugin
 	GetName(ctx context.Context, in *GetName_Request, opts ...grpc.CallOption) (*GetName_Response, error)
 	// Get the current version of the plugin
@@ -41,6 +45,15 @@ type sourceClient struct {
 
 func NewSourceClient(cc grpc.ClientConnInterface) SourceClient {
 	return &sourceClient{cc}
+}
+
+func (c *sourceClient) GetProtocolVersion(ctx context.Context, in *GetProtocolVersion_Request, opts ...grpc.CallOption) (*GetProtocolVersion_Response, error) {
+	out := new(GetProtocolVersion_Response)
+	err := c.cc.Invoke(ctx, "/proto.Source/GetProtocolVersion", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *sourceClient) GetName(ctx context.Context, in *GetName_Request, opts ...grpc.CallOption) (*GetName_Response, error) {
@@ -115,6 +128,10 @@ func (x *sourceSyncClient) Recv() (*Sync_Response, error) {
 // All implementations must embed UnimplementedSourceServer
 // for forward compatibility
 type SourceServer interface {
+	// Get the current protocol version of the plugin. This helps
+	// get the right message about upgrade/downgrade of cli and/or plugin.
+	// Also, on the cli side it can try to upgrade/downgrade the protocol if cli supports it.
+	GetProtocolVersion(context.Context, *GetProtocolVersion_Request) (*GetProtocolVersion_Response, error)
 	// Get the name of the plugin
 	GetName(context.Context, *GetName_Request) (*GetName_Response, error)
 	// Get the current version of the plugin
@@ -133,6 +150,9 @@ type SourceServer interface {
 type UnimplementedSourceServer struct {
 }
 
+func (UnimplementedSourceServer) GetProtocolVersion(context.Context, *GetProtocolVersion_Request) (*GetProtocolVersion_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetProtocolVersion not implemented")
+}
 func (UnimplementedSourceServer) GetName(context.Context, *GetName_Request) (*GetName_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetName not implemented")
 }
@@ -159,6 +179,24 @@ type UnsafeSourceServer interface {
 
 func RegisterSourceServer(s grpc.ServiceRegistrar, srv SourceServer) {
 	s.RegisterService(&Source_ServiceDesc, srv)
+}
+
+func _Source_GetProtocolVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProtocolVersion_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SourceServer).GetProtocolVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Source/GetProtocolVersion",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SourceServer).GetProtocolVersion(ctx, req.(*GetProtocolVersion_Request))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Source_GetName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -261,6 +299,10 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.Source",
 	HandlerType: (*SourceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetProtocolVersion",
+			Handler:    _Source_GetProtocolVersion_Handler,
+		},
 		{
 			MethodName: "GetName",
 			Handler:    _Source_GetName_Handler,
