@@ -192,7 +192,7 @@ func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, err
 		if s.Code() != codes.Unimplemented {
 			return 0, err
 		}
-		c.logger.Warn().Err(err).Msg("plugin does not support protocol version. assuming protocol verison 1")
+		c.logger.Warn().Err(err).Msg("plugin does not support protocol version. assuming protocol version 1")
 		return 1, nil
 	}
 	return res.Version, nil
@@ -242,7 +242,7 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 
 // Write writes rows as they are received from the channel to the destination plugin.
 // resources is marshaled schema.Resource. We are not marshalling this inside the function
-// because usually it is alreadun marshalled from the source plugin.
+// because usually it is alreadun marshalled from the destination plugin.
 func (c *DestinationClient) Write(ctx context.Context, source string, syncTime time.Time, resources <-chan []byte) (uint64, error) {
 	saveClient, err := c.pbClient.Write(ctx)
 	if err != nil {

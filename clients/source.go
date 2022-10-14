@@ -111,9 +111,9 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 		return nil, err
 	}
 	if protocolVersion < versions.SourceProtocolVersion {
-		return nil, fmt.Errorf("destination plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.SourceProtocolVersion)
+		return nil, fmt.Errorf("source plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.SourceProtocolVersion)
 	} else if protocolVersion > versions.SourceProtocolVersion {
-		return nil, fmt.Errorf("destination plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.SourceProtocolVersion)
+		return nil, fmt.Errorf("source plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.SourceProtocolVersion)
 	}
 
 	return c, nil
@@ -196,7 +196,7 @@ func (c *SourceClient) GetProtocolVersion(ctx context.Context) (uint64, error) {
 		if s.Code() != codes.Unimplemented {
 			return 0, err
 		}
-		c.logger.Warn().Err(err).Msg("plugin does not support protocol version. assuming protocol verison 1")
+		c.logger.Warn().Err(err).Msg("plugin does not support protocol version. assuming protocol version 1")
 		return 1, nil
 	}
 	return res.Version, nil
@@ -232,7 +232,7 @@ func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 
 // Sync start syncing for the source client per the given spec and returning the results
 // in the given channel. res is marshaled schema.Resource. We are not unmarshalling this for performance reasons
-// as usually this is sent over-the-wire anyway to a destination plugin
+// as usually this is sent over-the-wire anyway to a source plugin
 func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- []byte) error {
 	b, err := json.Marshal(spec)
 	if err != nil {
