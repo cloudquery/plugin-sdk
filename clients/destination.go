@@ -20,7 +20,9 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -183,7 +185,15 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, error) {
 	res, err := c.pbClient.GetProtocolVersion(ctx, &pb.GetProtocolVersion_Request{})
 	if err != nil {
-		return 0, fmt.Errorf("failed to call GetProtocolVersion: %w", err)
+		s, ok := status.FromError(err)
+		if !ok {
+			return 0, fmt.Errorf("failed to cal GetProtocolVersion: %w", err)
+		}
+		if s.Code() != codes.Unimplemented {
+			return 0, err
+		}
+		c.logger.Warn().Err(err).Msg("plugin does not support protocol version. assuming protocol verison 1")
+		return 1, nil
 	}
 	return res.Version, nil
 }
