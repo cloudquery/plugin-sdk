@@ -119,7 +119,7 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 
 // newManagedClient starts a new source plugin process from local path, connects to it via gRPC server
 // and returns a new SourceClient
-func (c *SourceClient) newManagedClient(ctx context.Context, path string)  error {
+func (c *SourceClient) newManagedClient(ctx context.Context, path string) error {
 	c.grpcSocketName = generateRandomUnixSocketName()
 	// spawn the plugin first and then connect
 	cmd := exec.CommandContext(ctx, path, "serve", "--network", "unix", "--address", c.grpcSocketName,

@@ -23,8 +23,7 @@ type SourceServer struct {
 	summary *schema.SyncSummary
 }
 
-
-func (s *SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
+func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
 	return &pb.GetProtocolVersion_Response{
 		Version: versions.SourceProtocolVersion,
 	}, nil

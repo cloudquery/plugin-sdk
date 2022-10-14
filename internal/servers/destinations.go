@@ -23,8 +23,7 @@ type DestinationServer struct {
 	Logger zerolog.Logger
 }
 
-
-func (s *DestinationServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
+func (*DestinationServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
 	return &pb.GetProtocolVersion_Response{
 		Version: versions.DestinationProtocolVersion,
 	}, nil
