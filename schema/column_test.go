@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/faker/v3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
@@ -109,26 +108,30 @@ var validateFixtures = []validateFixture{
 }
 
 func GenerateMac() net.HardwareAddr {
-	mac, _ := net.ParseMAC(faker.MacAddress())
-	return mac
+	hw, err := net.ParseMAC(`00:00:00:00:fe:80:00:00:00:00:00:00:02:00:5e:10:00:00:00:01`)
+	if err != nil {
+		panic(err)
+	}
+	return hw
 }
 func GenerateMacPtr() *net.HardwareAddr {
-	mac, _ := net.ParseMAC(faker.MacAddress())
-	return &mac
+	r := GenerateMac()
+	return &r
 }
 
 func GenerateIPv4Ptr() *net.IP {
-	ip := net.ParseIP(faker.IPv4())
-	return &ip
+	r := net.ParseIP("127.0.0.1")
+	return &r
 }
 
 func GenerateIPv6Ptr() *net.IP {
-	ip := net.ParseIP(faker.IPv6())
-	return &ip
+	r := net.ParseIP("2001:db8::68")
+	return &r
 }
 
 func GenerateCIDR() *net.IPNet {
-	_, mask, _ := net.ParseCIDR(fmt.Sprintf("%s/%d", faker.IPv4(), rand.Int31n(16)+16))
+	ip := GenerateIPv4Ptr()
+	_, mask, _ := net.ParseCIDR(fmt.Sprintf("%s/%d", ip.String(), rand.Int31n(16)+16))
 	return mask
 }
 

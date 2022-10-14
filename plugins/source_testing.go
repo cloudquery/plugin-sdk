@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/cloudquery/faker/v3"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -21,13 +20,18 @@ type ResourceTestCase struct {
 	SkipIgnoreInTest bool
 }
 
-func init() {
-	_ = faker.SetRandomMapAndSliceMinSize(1)
-	_ = faker.SetRandomMapAndSliceMaxSize(1)
-}
-
-func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source) {
+func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source, opts ...TestSourcePluginOption) {
 	t.Helper()
+
+	o := &testSourcePluginOptions{
+		parallel: true,
+	}
+	for _, opt := range opts {
+		opt(o)
+	}
+	if o.parallel {
+		t.Parallel()
+	}
 
 	resourcesChannel := make(chan *schema.Resource)
 	var fetchErr error
@@ -44,6 +48,18 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Log
 	require.NoError(t, fetchErr)
 
 	validateTables(t, plugin.Tables(), syncedResources)
+}
+
+type TestSourcePluginOption func(*testSourcePluginOptions)
+
+func WithTestSourcePluginNoParallel() TestSourcePluginOption {
+	return func(f *testSourcePluginOptions) {
+		f.parallel = false
+	}
+}
+
+type testSourcePluginOptions struct {
+	parallel bool
 }
 
 func getTableResources(t *testing.T, table *schema.Table, resources []*schema.Resource) []*schema.Resource {
