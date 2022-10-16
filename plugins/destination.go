@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"context"
-	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -43,13 +42,6 @@ type DestinationPlugin struct {
 	logger zerolog.Logger
 }
 
-func (s *DestinationStats) Add(other *DestinationStats) {
-	if other == nil {
-		return
-	}
-	atomic.AddUint64(&s.Errors, other.Errors)
-	atomic.AddUint64(&s.Writes, other.Writes)
-}
 
 const writeWorkers = 2
 
