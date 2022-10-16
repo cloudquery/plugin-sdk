@@ -44,12 +44,12 @@ var CqSourceNameColumn = Column{
 }
 
 var CqSyncTimeColumnD = Column{
-	Name:        "_cq_sync_time",
-	Type:        TypeTimestamp,
+	Name: "_cq_sync_time",
+	Type: TypeTimestamp,
 }
 var CqSourceNameColumnD = Column{
-	Name:        "_cq_source_name",
-	Type:        TypeString,
+	Name: "_cq_source_name",
+	Type: TypeString,
 }
 
 func cqUUIDResolver() ColumnResolver {

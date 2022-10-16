@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-
 func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source, opts ...TestSourcePluginOption) {
 	t.Helper()
 

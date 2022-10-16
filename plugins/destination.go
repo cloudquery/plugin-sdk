@@ -99,19 +99,16 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	eg, ctx := errgroup.WithContext(ctx)
 	// given most destination plugins writing in batch we are using a worker pool to write in parallel
 	// it might not generalize well and we might need to move it to each destination plugin implementation.
-	for i:= 0; i < writeWorkers; i++ {
+	for i := 0; i < writeWorkers; i++ {
 		eg.Go(func() error {
-			if err := p.client.Write(ctx, ch); err != nil {
-				return err
-			}
-			return nil
+			return p.client.Write(ctx, ch)
 		})
 	}
 	for {
 		select {
 		case <-ctx.Done():
 			res = nil
-		case r, ok := <- res:
+		case r, ok := <-res:
 			if ok {
 				r.Data = append([]interface{}{sourceName, syncTime}, r.Data...)
 				ch <- r

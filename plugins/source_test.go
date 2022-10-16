@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type testExecutionClient struct {}
+type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
@@ -33,7 +33,7 @@ func testTable() *schema.Table {
 	}
 }
 
-func (c *testExecutionClient) Name() string {
+func (*testExecutionClient) Name() string {
 	return "testExecutionClient"
 }
 

@@ -29,7 +29,6 @@ type SourceStats struct {
 	TableClient map[string]map[string]*TableClientStats
 }
 
-
 // SourcePlugin is the base structure required to pass to sdk.serve
 // We take a declarative approach to API here similar to Cobra
 type SourcePlugin struct {
@@ -99,7 +98,7 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 		version:            version,
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
-		stats: 						SourceStats{TableClient: make(map[string]map[string]*TableClientStats)},
+		stats:              SourceStats{TableClient: make(map[string]map[string]*TableClientStats)},
 	}
 	addInternalColumns(p.tables)
 	setParents(p.tables)

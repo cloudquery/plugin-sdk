@@ -144,7 +144,6 @@ func GenerateCIDR() *net.IPNet {
 // 	}
 // }
 
-
 // func TestColumnJsonMarshal(t *testing.T) {
 // 	// we are testing column json marshalling to make sure
 // 	// this can be easily sent over the wire

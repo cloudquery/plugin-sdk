@@ -16,7 +16,7 @@ type Resource struct {
 	// internal fields
 	Table *Table
 	// This is sorted result data by column name
-	data      []interface{}
+	data []interface{}
 }
 
 // This struct is what we send over the wire to destination.
@@ -27,13 +27,12 @@ type DestinationResource struct {
 	Data      []interface{} `json:"data"`
 }
 
-
 func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 	r := Resource{
-		item:      item,
-		Parent:    parent,
-		Table:     t,
-		data:      make([]interface{}, len(t.Columns)),
+		item:   item,
+		Parent: parent,
+		Table:  t,
+		data:   make([]interface{}, len(t.Columns)),
 	}
 	return &r
 }
@@ -45,7 +44,6 @@ func (r *Resource) ToDestinationResource() DestinationResource {
 	}
 	return dr
 }
-
 
 func (r *Resource) Get(columnName string) interface{} {
 	index := r.Table.Columns.Index(columnName)

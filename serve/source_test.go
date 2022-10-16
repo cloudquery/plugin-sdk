@@ -22,9 +22,7 @@ type TestSourcePluginSpec struct {
 	Accounts []string `json:"accounts,omitempty" yaml:"accounts,omitempty"`
 }
 
-type testExecutionClient struct {
-	logger zerolog.Logger
-}
+type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
@@ -57,7 +55,7 @@ func testTable() *schema.Table {
 	}
 }
 
-func (c *testExecutionClient) Name() string {
+func (*testExecutionClient) Name() string {
 	return "testExecutionClient"
 }
 
@@ -170,7 +168,7 @@ func TestServeSource(t *testing.T) {
 		}
 		if resource.TableName != "test_table" {
 			t.Fatalf("Expected resource with table name test: %s", resource.TableName)
-		}	
+		}
 		if int(resource.Data[2].(float64)) != 3 {
 			t.Fatalf("Expected resource {'test_column':3} got: %v", resource.Data[2].(float64))
 		}

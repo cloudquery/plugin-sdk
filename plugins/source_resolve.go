@@ -42,7 +42,7 @@ func (p *SourcePlugin) resolveTable(ctx context.Context, table *schema.Table, cl
 		}
 		logger.Debug().Msg("table resolver finished successfully")
 	}()
-	
+
 	resolvedObjects := make(chan *schema.Resource)
 	go func() {
 		defer close(resolvedObjects)
@@ -57,14 +57,14 @@ func (p *SourcePlugin) resolveTable(ctx context.Context, table *schema.Table, cl
 			if err := p.resolveTable(ctx, rel, client, resolvedObject, resolvedResources); err != nil {
 				break
 			}
-		} 
+		}
 	}
 	// we don't need any waitgroups here because we are waiting for the channel to close
 	logger.Info().Msg("fetch table finished")
 	return nil
 }
 
-func (p *SourcePlugin) resolveResources(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource)  { 
+func (p *SourcePlugin) resolveResources(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return

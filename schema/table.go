@@ -19,7 +19,6 @@ type Multiplexer func(meta ClientMeta) []ClientMeta
 
 type Tables []*Table
 
-
 type Table struct {
 	// Name of table
 	Name string `json:"name"`
@@ -162,4 +161,3 @@ func (t *Table) TableNames() []string {
 	}
 	return ret
 }
-

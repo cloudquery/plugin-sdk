@@ -34,14 +34,15 @@ func (*testDestinationClient) Initialize(context.Context, specs.Destination) err
 func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 	return nil
 }
-func (*testDestinationClient) Write(ctx context.Context, resources <- chan *schema.DestinationResource) error {
-	for range resources {}
+func (*testDestinationClient) Write(_ context.Context, resources <-chan *schema.DestinationResource) error {
+	for _ = range resources {
+	}
 	return nil
 }
 
 func (*testDestinationClient) Stats() plugins.DestinationStats {
 	return plugins.DestinationStats{}
-} 
+}
 
 func (*testDestinationClient) Close(context.Context) error {
 	return nil

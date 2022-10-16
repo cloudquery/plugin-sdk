@@ -277,10 +277,12 @@ func (c *SourceClient) Terminate() error {
 		if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
 			c.logger.Error().Err(err).Msg("failed to send interrupt signal to source plugin")
 		}
-		timer := time.AfterFunc(5 * time.Second, func() {
-			c.cmd.Process.Kill()
+		timer := time.AfterFunc(5*time.Second, func() {
+			if err := c.cmd.Process.Kill(); err != nil {
+				c.logger.Error().Err(err).Msg("failed to kill source plugin")
+			}
 		})
-		st, err := c.cmd.Process.Wait();
+		st, err := c.cmd.Process.Wait()
 		timer.Stop()
 		if err != nil {
 			return err

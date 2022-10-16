@@ -110,9 +110,8 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 		}
 		if protocolVersion < versions.DestinationProtocolVersion {
 			return nil, fmt.Errorf("destination plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.DestinationProtocolVersion)
-		} else {
-			return nil, fmt.Errorf("destination plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.DestinationProtocolVersion)
 		}
+		return nil, fmt.Errorf("destination plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.DestinationProtocolVersion)
 	}
 
 	return c, nil
@@ -238,13 +237,13 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 // Write writes rows as they are received from the channel to the destination plugin.
 // resources is marshaled schema.Resource. We are not marshalling this inside the function
 // because usually it is alreadun marshalled from the source plugin.
-func (c *DestinationClient) Write(ctx context.Context, tables[]string, source string, syncTime time.Time, resources <-chan []byte) error {
+func (c *DestinationClient) Write(ctx context.Context, tables []string, source string, syncTime time.Time, resources <-chan []byte) error {
 	saveClient, err := c.pbClient.Write(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to call Write: %w", err)
 	}
 	if err := saveClient.Send(&pb.Write_Request{
-		Tables: tables,
+		Tables:    tables,
 		Source:    source,
 		Timestamp: timestamppb.New(syncTime),
 	}); err != nil {
@@ -253,7 +252,7 @@ func (c *DestinationClient) Write(ctx context.Context, tables[]string, source st
 
 	for resource := range resources {
 		if err := saveClient.Send(&pb.Write_Request{
-			Resource:  resource,
+			Resource: resource,
 		}); err != nil {
 			return fmt.Errorf("failed to call Write.Send: %w", err)
 		}
@@ -312,10 +311,12 @@ func (c *DestinationClient) Terminate() error {
 		if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
 			c.logger.Error().Err(err).Msg("failed to send interrupt signal to destination plugin")
 		}
-		timer := time.AfterFunc(5 * time.Second, func() {
-			c.cmd.Process.Kill()
+		timer := time.AfterFunc(5*time.Second, func() {
+			if err := c.cmd.Process.Kill(); err != nil {
+				c.logger.Error().Err(err).Msg("failed to kill destination plugin")
+			}
 		})
-		st, err := c.cmd.Process.Wait();
+		st, err := c.cmd.Process.Wait()
 		timer.Stop()
 		if err != nil {
 			return err

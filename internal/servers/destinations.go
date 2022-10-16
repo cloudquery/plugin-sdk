@@ -97,7 +97,6 @@ func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 		}
 	}()
 
-
 	for {
 		r, err := msg.Recv()
 		if err != nil {
@@ -137,7 +136,9 @@ func (s *DestinationServer) DeleteStale(ctx context.Context, req *pb.DeleteStale
 	if err := json.Unmarshal(req.Tables, &tables); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
-	s.Plugin.DeleteStale(ctx, tables.TableNames(), req.Source, req.Timestamp.AsTime())
+	if err := s.Plugin.DeleteStale(ctx, tables.TableNames(), req.Source, req.Timestamp.AsTime()); err != nil {
+		return nil, err
+	}
 
 	return &pb.DeleteStale_Response{}, nil
 }

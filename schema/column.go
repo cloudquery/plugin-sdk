@@ -14,7 +14,6 @@ import (
 
 type ValueType int
 
-
 type ColumnList []Column
 
 // ColumnResolver is called for each row received in TableResolver's data fetch.
@@ -113,8 +112,6 @@ func (v ValueType) String() string {
 		return "TypeInvalid"
 	}
 }
-
-
 
 func (c Column) checkType(v interface{}) bool {
 	if reflect2.IsNil(v) {
@@ -224,7 +221,6 @@ func (c Column) checkType(v interface{}) bool {
 	return false
 }
 
-
 func (c ColumnList) Index(col string) int {
 	for i, c := range c {
 		if c.Name == col {
@@ -233,7 +229,6 @@ func (c ColumnList) Index(col string) int {
 	}
 	return -1
 }
-
 
 func (c ColumnList) Names() []string {
 	ret := make([]string, len(c))
@@ -251,4 +246,3 @@ func (c ColumnList) Get(name string) *Column {
 	}
 	return nil
 }
-

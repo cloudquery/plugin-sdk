@@ -18,8 +18,8 @@ import (
 
 type SourceServer struct {
 	pb.UnimplementedSourceServer
-	Plugin  *plugins.SourcePlugin
-	Logger  zerolog.Logger
+	Plugin *plugins.SourcePlugin
+	Logger zerolog.Logger
 }
 
 func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
