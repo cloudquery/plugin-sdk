@@ -24,8 +24,17 @@ service Destination {
   // DeleteStale deletes stale data that was inserted by a given source
   // and is older than the given timestamp
   rpc DeleteStale(DeleteStale.Request) returns (DeleteStale.Response);
+  // Get stats for the source plugin
+  rpc GetStats(GetDestinationStats.Request) returns (GetDestinationStats.Response);
 }
 
+message GetDestinationStats {
+  message Request {}
+  message Response {
+    // marshalled json of plugins.SourceStats
+    bytes stats = 1;
+  }
+}
 
 message Migrate {
   message Request {
@@ -33,8 +42,7 @@ message Migrate {
     string version = 2;
     bytes tables = 3;
   }
-  message Response {
-  }
+  message Response {}
 }
 
 message Write {
@@ -43,10 +51,9 @@ message Write {
     bytes resource = 1;
     string source = 2;
     google.protobuf.Timestamp timestamp = 3;
+    repeated string tables = 4;
   }
-  message Response {
-    uint64 failed_writes = 1;
-  }
+  message Response {}
 }
 
 
@@ -61,7 +68,5 @@ message DeleteStale {
     google.protobuf.Timestamp timestamp = 2;
     bytes tables = 3;
   }
-  message Response {
-    uint64 failed_deletes = 1;
-  }
+  message Response {}
 }

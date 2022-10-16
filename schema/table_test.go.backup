@@ -139,8 +139,8 @@ var tableTestCases = []tableTestCase{
 		Table: testTableSuccess(),
 		Resources: []*Resource{
 			{
-				Data: map[string]interface{}{
-					"test": 1,
+				data: []interface{}{
+					1,
 				},
 			},
 		},
@@ -173,13 +173,13 @@ var tableTestCases = []tableTestCase{
 		Table: testTableRelationSuccess(),
 		Resources: []*Resource{
 			{
-				Data: map[string]interface{}{
-					"test": 1,
+				data: []interface{}{
+					1,
 				},
 			},
 			{
-				Data: map[string]interface{}{
-					"test": 1,
+				data: []interface{}{
+					 1,
 				},
 			},
 		},
@@ -191,8 +191,8 @@ var tableTestCases = []tableTestCase{
 		Table: testTableRelationPanic(),
 		Resources: []*Resource{
 			{
-				Data: map[string]interface{}{
-					"test": 1,
+				data: []interface{}{
+					 1,
 				},
 			},
 		},
@@ -221,8 +221,8 @@ func TestTableExecution(t *testing.T) {
 			}()
 			var i = uint64(0)
 			for resource := range resources {
-				if reflect.DeepEqual(resource.Data, tc.Resources[i].Data) {
-					t.Errorf("expected %v, got %v", tc.Resources[i].Data, resource)
+				if reflect.DeepEqual(resource.data, tc.Resources[i].data) {
+					t.Errorf("expected %v, got %v", tc.Resources[i].data, resource)
 				}
 				i++
 			}

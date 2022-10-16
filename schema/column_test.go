@@ -1,16 +1,12 @@
 package schema
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
-	"reflect"
-	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
 )
 
@@ -135,76 +131,36 @@ func GenerateCIDR() *net.IPNet {
 	return mask
 }
 
-func TestValidateType(t *testing.T) {
-	for _, f := range validateFixtures {
-		t.Run(f.Column.Type.String(), func(t *testing.T) {
-			for _, v := range f.TestValues {
-				assert.Nil(t, f.Column.ValidateType(v))
-			}
-			for _, v := range f.BadValues {
-				assert.Error(t, f.Column.ValidateType(v))
-			}
-		})
-	}
-}
+// func TestValidateType(t *testing.T) {
+// 	for _, f := range validateFixtures {
+// 		t.Run(f.Column.Type.String(), func(t *testing.T) {
+// 			for _, v := range f.TestValues {
+// 				assert.Nil(t, f.Column.ValidateType(v))
+// 			}
+// 			for _, v := range f.BadValues {
+// 				assert.Error(t, f.Column.ValidateType(v))
+// 			}
+// 		})
+// 	}
+// }
 
-func TestValueTypeFromString(t *testing.T) {
-	assert.Equal(t, ValueTypeFromString("String"), TypeString)
-	// case insensitive
-	assert.Equal(t, ValueTypeFromString("Json"), TypeJSON)
-	assert.Equal(t, ValueTypeFromString("JSON"), TypeJSON)
-	assert.Equal(t, ValueTypeFromString("bigint"), TypeInt)
-	assert.Equal(t, ValueTypeFromString("Blabla"), TypeInvalid)
 
-	assert.Equal(t, ValueTypeFromString("TypeBigInt"), TypeInt)
-	assert.Equal(t, ValueTypeFromString("TypeString"), TypeString)
-}
-
-func BenchmarkColumn_ValidateTypeInt(b *testing.B) {
-	col := Column{Type: TypeInt}
-	for n := 0; n < b.N; n++ {
-		_ = col.ValidateType(555)
-	}
-}
-
-func BenchmarkColumn_ValidateTypeString(b *testing.B) {
-	col := Column{Type: TypeString}
-	for n := 0; n < b.N; n++ {
-		_ = col.ValidateType("Asdsad")
-	}
-}
-
-func BenchmarkColumn_ValidateTypeBadValue(b *testing.B) {
-	col := Column{Type: TypeInt}
-	for n := 0; n < b.N; n++ {
-		_ = col.ValidateType("Asdsad")
-	}
-}
-
-func BenchmarkColumn_ValidateTypeMap(b *testing.B) {
-	col := Column{Type: TypeInt}
-	m := make(map[string]interface{})
-	for n := 0; n < b.N; n++ {
-		_ = col.ValidateType(m)
-	}
-}
-
-func TestColumnJsonMarshal(t *testing.T) {
-	// we are testing column json marshalling to make sure
-	// this can be easily sent over the wire
-	expected := Column{
-		Name: "test",
-		Type: TypeJSON,
-	}
-	b, err := json.Marshal(expected)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := Column{}
-	if err := json.Unmarshal(b, &got); err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(expected, got) {
-		t.Fatalf("expected %v got %v", expected, got)
-	}
-}
+// func TestColumnJsonMarshal(t *testing.T) {
+// 	// we are testing column json marshalling to make sure
+// 	// this can be easily sent over the wire
+// 	expected := Column{
+// 		Name: "test",
+// 		Type: TypeJSON,
+// 	}
+// 	b, err := json.Marshal(expected)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	got := Column{}
+// 	if err := json.Unmarshal(b, &got); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if !reflect.DeepEqual(expected, got) {
+// 		t.Fatalf("expected %v got %v", expected, got)
+// 	}
+// }

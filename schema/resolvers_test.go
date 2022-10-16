@@ -25,14 +25,14 @@ var resolverTestCases = []struct {
 	Column               Column
 	ColumnResolver       ColumnResolver
 	Resource             *Resource
-	ExpectedResourceData map[string]interface{}
+	ExpectedResourceData []interface{}
 }{
 	{
 		Name:                 "PathResolver",
 		Column:               resolverTestTable.Columns[0],
 		ColumnResolver:       PathResolver("PathResolver"),
 		Resource:             NewResourceData(resolverTestTable, nil, resolverTestItem),
-		ExpectedResourceData: map[string]interface{}{"string_column": "test"},
+		ExpectedResourceData: []interface{}{"test"},
 	},
 }
 
@@ -45,9 +45,9 @@ func TestResolvers(t *testing.T) {
 				t.Errorf("unexpected error: %v", err)
 				return
 			}
-			delete(tc.Resource.Data, "_cq_fetch_time")
-			if !reflect.DeepEqual(tc.ExpectedResourceData, tc.Resource.Data) {
-				t.Errorf("Expected %v, got %v", tc.ExpectedResourceData, tc.Resource.Data)
+			// delete(tc.Resource.data, "_cq_fetch_time")
+			if !reflect.DeepEqual(tc.ExpectedResourceData, tc.Resource.data) {
+				t.Errorf("Expected %v, got %v", tc.ExpectedResourceData, tc.Resource.data)
 			}
 		})
 	}

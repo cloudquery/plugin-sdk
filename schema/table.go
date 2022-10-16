@@ -3,17 +3,6 @@ package schema
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"runtime/debug"
-	"sync"
-	"sync/atomic"
-	"time"
-
-	"github.com/cloudquery/plugin-sdk/caser"
-	"github.com/cloudquery/plugin-sdk/helpers"
-	"github.com/getsentry/sentry-go"
-	"github.com/thoas/go-funk"
-	"golang.org/x/sync/semaphore"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -30,11 +19,6 @@ type Multiplexer func(meta ClientMeta) []ClientMeta
 
 type Tables []*Table
 
-type SyncSummary struct {
-	Resources uint64
-	Errors    uint64
-	Panics    uint64
-}
 
 type Table struct {
 	// Name of table
@@ -67,15 +51,6 @@ type Table struct {
 	Parent *Table `json:"-"`
 }
 
-var reValidTableName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
-var reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
-
-func (s *SyncSummary) Merge(other SyncSummary) {
-	atomic.AddUint64(&s.Resources, other.Resources)
-	atomic.AddUint64(&s.Errors, other.Errors)
-	atomic.AddUint64(&s.Panics, other.Panics)
-}
-
 func (tt Tables) TableNames() []string {
 	ret := []string{}
 	for _, t := range tt {
@@ -84,19 +59,11 @@ func (tt Tables) TableNames() []string {
 	return ret
 }
 
-func (tt Tables) ValidateTableNames() error {
+// Get return table by name
+func (tt Tables) Get(name string) *Table {
 	for _, t := range tt {
-		if err := t.ValidateName(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (tt Tables) ValidateColumnNames() error {
-	for _, t := range tt {
-		if err := t.ValidateColumnNames(); err != nil {
-			return err
+		if t.Name == name {
+			return t
 		}
 	}
 	return nil
@@ -196,135 +163,3 @@ func (t *Table) TableNames() []string {
 	return ret
 }
 
-// Call the table resolver with with all of it's relation for every reolved resource
-func (t *Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resourcesSem *semaphore.Weighted, resolvedResources chan<- *Resource) (summary SyncSummary) {
-	tableStartTime := time.Now()
-	meta.Logger().Info().Str("table", t.Name).Msg("table resolver started")
-
-	res := make(chan interface{})
-	startTime := time.Now()
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func(sum *SyncSummary) {
-		defer wg.Done()
-		defer func() {
-			if err := recover(); err != nil {
-				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
-				sentry.WithScope(func(scope *sentry.Scope) {
-					scope.SetTag("table", t.Name)
-					sentry.CurrentHub().CaptureMessage(stack)
-				})
-				meta.Logger().Error().Interface("error", err).Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Str("stack", stack).Msg("table resolver finished with panic")
-				atomic.AddUint64(&sum.Panics, 1)
-			}
-			close(res)
-		}()
-		meta.Logger().Debug().Str("table", t.Name).Msg("table resolver started")
-		if err := t.Resolver(ctx, meta, parent, res); err != nil {
-			meta.Logger().Error().Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Err(err).Msg("table resolver finished with error")
-			atomic.AddUint64(&sum.Errors, 1)
-			return
-		}
-		meta.Logger().Debug().Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Msg("table resolver finished successfully")
-	}(&summary)
-	tableResources := 0
-	for elem := range res {
-		objects := helpers.InterfaceSlice(elem)
-		if len(objects) == 0 {
-			continue
-		}
-		for i := range objects {
-			i := i
-
-			// right now we support concurrency only for objects/resources of parent tables
-			if resourcesSem == nil {
-				summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
-			} else {
-				if err := resourcesSem.Acquire(ctx, 1); err != nil {
-					meta.Logger().Error().Err(err).Msg("failed to acquire semaphore")
-					return summary
-				}
-				wg.Add(1)
-				go func() {
-					defer resourcesSem.Release(1)
-					defer wg.Done()
-					//nolint:all
-					summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
-				}()
-			}
-		}
-	}
-	wg.Wait()
-	meta.Logger().Info().Str("table", t.Name).Int("total_resources", tableResources).TimeDiff("duration", time.Now(), tableStartTime).Msg("fetch table finished")
-
-	return summary
-}
-
-func (t *Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resolvedResources chan<- *Resource) (summary SyncSummary) {
-	resource := NewResourceData(t, parent, item)
-	objectStartTime := time.Now()
-	csr := caser.New()
-	meta.Logger().Info().Str("table", t.Name).Msg("object resolver started")
-	defer func() {
-		if err := recover(); err != nil {
-			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
-			sentry.WithScope(func(scope *sentry.Scope) {
-				scope.SetTag("table", t.Name)
-				sentry.CurrentHub().CaptureMessage(stack)
-			})
-			meta.Logger().Error().Interface("error", err).Str("table", t.Name).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("object resolver finished with panic")
-			summary.Panics++
-		}
-	}()
-	if t.PreResourceResolver != nil {
-		meta.Logger().Trace().Str("table", t.Name).Msg("pre resource resolver started")
-		if err := t.PreResourceResolver(ctx, meta, resource); err != nil {
-			meta.Logger().Error().Str("table", t.Name).Err(err).Msg("pre resource resolver failed")
-			summary.Errors++
-			return summary
-		}
-		meta.Logger().Trace().Str("table", t.Name).Msg("pre resource resolver finished successfully")
-	}
-
-	for _, c := range t.Columns {
-		if c.Resolver != nil {
-			meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver custom started")
-			if err := c.Resolver(ctx, meta, resource, c); err != nil {
-				meta.Logger().Error().Str("column_name", c.Name).Str("table", t.Name).Err(err).Msg("column resolver finished with error")
-				summary.Errors++
-			}
-			meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver finished successfully")
-		} else {
-			meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver default started")
-			// base use case: try to get column with CamelCase name
-			v := funk.Get(resource.Item, csr.ToPascal(c.Name), funk.WithAllowZero())
-			if v != nil {
-				if err := resource.Set(c.Name, v); err != nil {
-					meta.Logger().Error().Str("column_name", c.Name).Str("table", t.Name).Err(err).Msg("column resolver default finished with error")
-					summary.Errors++
-				}
-				meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver default finished successfully")
-			} else {
-				meta.Logger().Trace().Str("column_name", c.Name).Str("table", t.Name).Msg("column resolver default finished successfully with nil")
-			}
-		}
-	}
-
-	if t.PostResourceResolver != nil {
-		meta.Logger().Trace().Str("table", t.Name).Msg("post resource resolver started")
-		if err := t.PostResourceResolver(ctx, meta, resource); err != nil {
-			meta.Logger().Error().Str("table", t.Name).Stack().Err(err).Msg("post resource resolver finished with error")
-			summary.Errors++
-		} else {
-			meta.Logger().Trace().Str("table", t.Name).Msg("post resource resolver finished successfully")
-		}
-	}
-	summary.Resources = 1
-	resolvedResources <- resource
-
-	for _, rel := range t.Relations {
-		summary.Merge(rel.Resolve(ctx, meta, resource, nil, resolvedResources))
-	}
-
-	return summary
-}

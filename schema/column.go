@@ -2,11 +2,8 @@ package schema
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"reflect"
-	"runtime"
-	"strings"
 	"time"
 
 	gofrs "github.com/gofrs/uuid"
@@ -17,15 +14,6 @@ import (
 
 type ValueType int
 
-type ResolverMeta struct {
-	Name    string
-	Builtin bool
-}
-
-type ColumnMeta struct {
-	Resolver     *ResolverMeta
-	IgnoreExists bool
-}
 
 type ColumnList []Column
 
@@ -42,25 +30,21 @@ type ColumnCreationOptions struct {
 // Column definition for Table
 type Column struct {
 	// Name of column
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Value Type of column i.e String, UUID etc'
-	Type ValueType `json:"type,omitempty"`
+	Type ValueType `json:"type"`
 	// Description about column, this description is added as a comment in the database
-	Description string `json:"description,omitempty"`
+	Description string `json:"-"`
 	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
 	Resolver ColumnResolver `json:"-"`
 	// Creation options allow modifying how column is defined when table is created
-	CreationOptions ColumnCreationOptions `json:"creation_options,omitempty"`
+	CreationOptions ColumnCreationOptions
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
 	IgnoreInTests bool `json:"-"`
-	// internal is true if this column is managed by the SDK
-	internal bool
-	// meta holds serializable information about the column's resolvers and functions
-	meta *ColumnMeta
 }
 
 const (
@@ -130,62 +114,7 @@ func (v ValueType) String() string {
 	}
 }
 
-// ValueTypeFromString this function is mainly used by https://github.com/cloudquery/cq-gen
-func ValueTypeFromString(s string) ValueType {
-	switch strings.TrimPrefix(strings.ToLower(s), "type") {
-	case "bool":
-		return TypeBool
-	case "int", "bigint", "smallint":
-		return TypeInt
-	case "float":
-		return TypeFloat
-	case "uuid":
-		return TypeUUID
-	case "string":
-		return TypeString
-	case "json":
-		return TypeJSON
-	case "intarray":
-		return TypeIntArray
-	case "stringarray":
-		return TypeStringArray
-	case "bytearray":
-		return TypeByteArray
-	case "timestamp":
-		return TypeTimestamp
-	case "uuidarray":
-		return TypeUUIDArray
-	case "inet":
-		return TypeInet
-	case "inetarray":
-		return TypeInetArray
-	case "macaddr":
-		return TypeMacAddr
-	case "macaddrarray":
-		return TypeMacAddrArray
-	case "cidr":
-		return TypeCIDR
-	case "cidrarray":
-		return TypeCIDRArray
-	case "invalid":
-		return TypeInvalid
-	case "TypeTimeInterval":
-		return TypeTimeInterval
-	default:
-		return TypeInvalid
-	}
-}
 
-func (c Column) Internal() bool {
-	return c.internal
-}
-
-func (c Column) ValidateType(v interface{}) error {
-	if !c.checkType(v) {
-		return fmt.Errorf("column %s expected %s got %T", c.Name, c.Type.String(), v)
-	}
-	return nil
-}
 
 func (c Column) checkType(v interface{}) bool {
 	if reflect2.IsNil(v) {
@@ -295,62 +224,16 @@ func (c Column) checkType(v interface{}) bool {
 	return false
 }
 
-func (c Column) Meta() *ColumnMeta {
-	if c.meta != nil {
-		return c.meta
-	}
-	if c.Resolver == nil {
-		return &ColumnMeta{
-			Resolver:     nil,
-			IgnoreExists: false,
+
+func (c ColumnList) Index(col string) int {
+	for i, c := range c {
+		if c.Name == col {
+			return i
 		}
 	}
-	fnName := runtime.FuncForPC(reflect.ValueOf(c.Resolver).Pointer()).Name()
-	return &ColumnMeta{
-		Resolver: &ResolverMeta{
-			Name:    strings.TrimPrefix(fnName, "github.com/cloudquery/plugin-sdk/provider/"),
-			Builtin: strings.HasPrefix(fnName, "github.com/cloudquery/plugin-sdk/"),
-		},
-		IgnoreExists: false,
-	}
+	return -1
 }
 
-// func (c Column) signature() string {
-// 	return strings.Join([]string{
-// 		"c",
-// 		c.Name,
-// 		c.Type.String(),
-// 		fmt.Sprintf("%t;%t", c.CreationOptions.Unique, c.CreationOptions.NotNull),
-// 	}, "\n")
-// }
-
-func SetColumnMeta(c Column, m *ColumnMeta) Column {
-	c.meta = m
-	return c
-}
-
-// Sift gets a column list and returns a list of provider columns, and another list of internal columns, cqId column being the very last one
-// func (c ColumnList) Sift() (providerCols ColumnList, internalCols ColumnList) {
-// 	providerCols, internalCols = make(ColumnList, 0, len(c)), make(ColumnList, 0, len(c))
-// 	cqIdColIndex := -1
-// 	for i := range c {
-// 		if c[i].internal {
-// 			if c[i].Name == cqIdColumn.Name {
-// 				cqIdColIndex = len(internalCols)
-// 			}
-
-// 			internalCols = append(internalCols, c[i])
-// 		} else {
-// 			providerCols = append(providerCols, c[i])
-// 		}
-// 	}
-
-// 	// resolve cqId last, as it would need other PKs to be resolved, some might be internal (cq_fetch_date)
-// 	if lastIndex := len(internalCols) - 1; cqIdColIndex > -1 && cqIdColIndex != lastIndex {
-// 		internalCols[cqIdColIndex], internalCols[lastIndex] = internalCols[lastIndex], internalCols[cqIdColIndex]
-// 	}
-// 	return providerCols, internalCols
-// }
 
 func (c ColumnList) Names() []string {
 	ret := make([]string, len(c))
@@ -369,18 +252,3 @@ func (c ColumnList) Get(name string) *Column {
 	return nil
 }
 
-// func (c ColumnList) signature() string {
-// 	names := make([]string, len(c))
-// 	nameVsColumn := make(map[string]*Column, len(c))
-// 	for i := range c {
-// 		names[i] = c[i].Name
-// 		nameVsColumn[c[i].Name] = &c[i]
-// 	}
-// 	sort.Strings(names)
-
-// 	sigs := make([]string, len(c))
-// 	for i, colName := range names {
-// 		sigs[i] = nameVsColumn[colName].signature()
-// 	}
-// 	return strings.Join(sigs, "\n")
-// }

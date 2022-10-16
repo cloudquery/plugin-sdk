@@ -5,11 +5,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 )
 
 type ClientMeta interface {
-	Logger() *zerolog.Logger
+	Name() string
 }
 
 type Meta struct {
@@ -44,10 +43,20 @@ var CqSourceNameColumn = Column{
 	Description: "Internal CQ row that references the source plugin name data was retrieved",
 }
 
+var CqSyncTimeColumnD = Column{
+	Name:        "_cq_sync_time",
+	Type:        TypeTimestamp,
+}
+var CqSourceNameColumnD = Column{
+	Name:        "_cq_source_name",
+	Type:        TypeString,
+}
+
 func cqUUIDResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		uuidGen := uuid.New()
-		return r.Set(c.Name, uuidGen)
+		r.Set(c.Name, uuidGen)
+		return nil
 	}
 }
 
@@ -57,6 +66,7 @@ func parentCqUUIDResolver() ColumnResolver {
 			return nil
 		}
 		parentCqID := r.Parent.Get(CqIDColumn.Name)
-		return r.Set(c.Name, parentCqID)
+		r.Set(c.Name, parentCqID)
+		return nil
 	}
 }

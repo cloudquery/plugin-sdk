@@ -11,9 +11,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type testExecutionClient struct {
-	logger zerolog.Logger
-}
+type testExecutionClient struct {}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
@@ -35,8 +33,8 @@ func testTable() *schema.Table {
 	}
 }
 
-func (c *testExecutionClient) Logger() *zerolog.Logger {
-	return &c.logger
+func (c *testExecutionClient) Name() string {
+	return "testExecutionClient"
 }
 
 func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
@@ -63,11 +61,10 @@ func TestSync(t *testing.T) {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(resources)
-		_, err := plugin.Sync(ctx,
+		return plugin.Sync(ctx,
 			zerolog.New(zerolog.NewTestWriter(t)),
 			spec,
 			resources)
-		return err
 	})
 
 	for resource := range resources {

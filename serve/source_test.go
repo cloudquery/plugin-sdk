@@ -57,8 +57,8 @@ func testTable() *schema.Table {
 	}
 }
 
-func (c *testExecutionClient) Logger() *zerolog.Logger {
-	return &c.logger
+func (c *testExecutionClient) Name() string {
+	return "testExecutionClient"
 }
 
 func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
@@ -164,30 +164,33 @@ func TestServeSource(t *testing.T) {
 	close(resources)
 
 	for resourceB := range resources {
-		var resource schema.Resource
+		var resource schema.DestinationResource
 		if err := json.Unmarshal(resourceB, &resource); err != nil {
 			t.Fatalf("failed to unmarshal resource: %v", err)
 		}
 		if resource.TableName != "test_table" {
 			t.Fatalf("Expected resource with table name test: %s", resource.TableName)
-		}
-		if int(resource.Data["test_column"].(float64)) != 3 {
-			t.Fatalf("Expected resource {'test_column':3} got: %v", resource.Data)
+		}	
+		if int(resource.Data[2].(float64)) != 3 {
+			t.Fatalf("Expected resource {'test_column':3} got: %v", resource.Data[2].(float64))
 		}
 	}
 
-	summary, err := c.GetSyncSummary(ctx)
+	stats, err := c.GetStats(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Resources != 1 {
-		t.Fatalf("Got: %d Expected 1 resource", summary.Resources)
+	clientStats := stats.TableClient["test_table"]["testExecutionClient"]
+	if clientStats.Resources != 1 {
+		t.Fatalf("Expected 1 resource but got %d", clientStats.Resources)
 	}
-	if summary.Errors != 0 {
-		t.Fatalf("Got: %d Expected 0 error", summary.Errors)
+
+	if clientStats.Errors != 0 {
+		t.Fatalf("Expected 0 errors but got %d", clientStats.Errors)
 	}
-	if summary.Panics != 0 {
-		t.Fatalf("Got: %d Expected 0 panics", summary.Panics)
+
+	if clientStats.Panics != 0 {
+		t.Fatalf("Expected 0 panics but got %d", clientStats.Panics)
 	}
 
 	cancel()

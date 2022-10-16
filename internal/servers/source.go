@@ -20,12 +20,21 @@ type SourceServer struct {
 	pb.UnimplementedSourceServer
 	Plugin  *plugins.SourcePlugin
 	Logger  zerolog.Logger
-	summary *schema.SyncSummary
 }
 
 func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
 	return &pb.GetProtocolVersion_Response{
 		Version: versions.SourceProtocolVersion,
+	}, nil
+}
+
+func (s *SourceServer) GetStats(context.Context, *pb.GetSourceStats_Request) (*pb.GetSourceStats_Response, error) {
+	b, err := json.Marshal(s.Plugin.Stats())
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal source stats: %w", err)
+	}
+	return &pb.GetSourceStats_Response{
+		Stats: b,
 	}, nil
 }
 
@@ -51,16 +60,6 @@ func (s *SourceServer) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.
 	}, nil
 }
 
-func (s *SourceServer) GetSyncSummary(context.Context, *pb.GetSyncSummary_Request) (*pb.GetSyncSummary_Response, error) {
-	b, err := json.Marshal(s.summary)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal summary: %w", err)
-	}
-	return &pb.GetSyncSummary_Response{
-		Summary: b,
-	}, nil
-}
-
 func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
 	resources := make(chan *schema.Resource)
 	var syncErr error
@@ -75,15 +74,15 @@ func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) e
 
 	go func() {
 		defer close(resources)
-		var err error
-		s.summary, err = s.Plugin.Sync(stream.Context(), s.Logger, spec, resources)
+		err := s.Plugin.Sync(stream.Context(), s.Logger, spec, resources)
 		if err != nil {
 			syncErr = fmt.Errorf("failed to sync resources: %w", err)
 		}
 	}()
 
 	for resource := range resources {
-		b, err := json.Marshal(resource)
+		destResource := resource.ToDestinationResource()
+		b, err := json.Marshal(&destResource)
 		if err != nil {
 			return status.Errorf(codes.Internal, "failed to marshal resource: %v", err)
 		}

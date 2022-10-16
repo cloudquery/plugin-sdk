@@ -34,7 +34,6 @@ type DestinationClient struct {
 	userConn       *grpc.ClientConn
 	conn           *grpc.ClientConn
 	grpcSocketName string
-	cmdWaitErr     error
 	wg             *sync.WaitGroup
 }
 
@@ -105,11 +104,15 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 	if err != nil {
 		return nil, err
 	}
-
-	if protocolVersion < versions.DestinationProtocolVersion {
-		return nil, fmt.Errorf("destination plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.DestinationProtocolVersion)
-	} else if protocolVersion > versions.DestinationProtocolVersion {
-		return nil, fmt.Errorf("destination plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.DestinationProtocolVersion)
+	if protocolVersion != versions.DestinationProtocolVersion {
+		if err := c.Terminate(); err != nil {
+			c.logger.Err(err).Msg("failed to terminate source plugin")
+		}
+		if protocolVersion < versions.DestinationProtocolVersion {
+			return nil, fmt.Errorf("destination plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.DestinationProtocolVersion)
+		} else {
+			return nil, fmt.Errorf("destination plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.DestinationProtocolVersion)
+		}
 	}
 
 	return c, nil
@@ -128,17 +131,9 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 	}
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start plugin %s: %w", path, err)
+		return fmt.Errorf("failed to start destination plugin %s: %w", path, err)
 	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		if err := cmd.Wait(); err != nil {
-			c.cmdWaitErr = err
-			c.logger.Error().Err(err).Str("plugin", path).Msg("plugin exited")
-		}
-	}()
 	c.cmd = cmd
 
 	c.wg.Add(1)
@@ -242,27 +237,33 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 
 // Write writes rows as they are received from the channel to the destination plugin.
 // resources is marshaled schema.Resource. We are not marshalling this inside the function
-// because usually it is alreadun marshalled from the destination plugin.
-func (c *DestinationClient) Write(ctx context.Context, source string, syncTime time.Time, resources <-chan []byte) (uint64, error) {
+// because usually it is alreadun marshalled from the source plugin.
+func (c *DestinationClient) Write(ctx context.Context, tables[]string, source string, syncTime time.Time, resources <-chan []byte) error {
 	saveClient, err := c.pbClient.Write(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("failed to call Write: %w", err)
+		return fmt.Errorf("failed to call Write: %w", err)
 	}
+	if err := saveClient.Send(&pb.Write_Request{
+		Tables: tables,
+		Source:    source,
+		Timestamp: timestamppb.New(syncTime),
+	}); err != nil {
+		return fmt.Errorf("failed to call Write.Send: %w", err)
+	}
+
 	for resource := range resources {
 		if err := saveClient.Send(&pb.Write_Request{
 			Resource:  resource,
-			Source:    source,
-			Timestamp: timestamppb.New(syncTime),
 		}); err != nil {
-			return 0, fmt.Errorf("failed to call Write.Send: %w", err)
+			return fmt.Errorf("failed to call Write.Send: %w", err)
 		}
 	}
-	res, err := saveClient.CloseAndRecv()
+	_, err = saveClient.CloseAndRecv()
 	if err != nil {
-		return 0, fmt.Errorf("failed to CloseAndRecv client: %w", err)
+		return fmt.Errorf("failed to CloseAndRecv client: %w", err)
 	}
 
-	return res.FailedWrites, nil
+	return nil
 }
 
 func (c *DestinationClient) Close(ctx context.Context) error {
@@ -294,24 +295,35 @@ func (c *DestinationClient) Terminate() error {
 	defer c.wg.Wait()
 
 	if c.grpcSocketName != "" {
-		defer os.Remove(c.grpcSocketName)
+		defer func() {
+			if err := os.Remove(c.grpcSocketName); err != nil {
+				c.logger.Error().Err(err).Msg("failed to remove destination socket file")
+			}
+		}()
 	}
 
 	if c.conn != nil {
 		if err := c.conn.Close(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to close gRPC connection")
+			c.logger.Error().Err(err).Msg("failed to close gRPC connection to destination plugin")
 		}
+		c.conn = nil
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
-		if err := c.cmd.Process.Kill(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to kill process")
+		if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
+			c.logger.Error().Err(err).Msg("failed to send interrupt signal to destination plugin")
+		}
+		timer := time.AfterFunc(5 * time.Second, func() {
+			c.cmd.Process.Kill()
+		})
+		st, err := c.cmd.Process.Wait();
+		timer.Stop()
+		if err != nil {
 			return err
+		}
+		if !st.Success() {
+			return fmt.Errorf("destination plugin process exited with status %s", st.String())
 		}
 	}
 
 	return nil
-}
-
-func (c *DestinationClient) GetWaitError() error {
-	return c.cmdWaitErr
 }

@@ -2,20 +2,29 @@ package plugins
 
 import (
 	"context"
-	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 )
 
 type NewDestinationClientFunc func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error)
 
+type DestinationStats struct {
+	// Errors number of errors / failed writes
+	Errors uint64
+	// Writes number of successful writes
+	Writes uint64
+}
+
 type DestinationClient interface {
 	Migrate(ctx context.Context, tables schema.Tables) error
-	Write(ctx context.Context, table string, data map[string]interface{}) error
-	DeleteStale(ctx context.Context, tables string, sourceName string, syncTime time.Time) error
+	Write(ctx context.Context, res <-chan *schema.DestinationResource) error
+	Stats() DestinationStats
+	DeleteStale(ctx context.Context, tables []string, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
 }
 
@@ -30,17 +39,19 @@ type DestinationPlugin struct {
 	client DestinationClient
 	// spec the client was initialized with
 	spec specs.Destination
-	// tables destination was last migrated with
-	tables schema.Tables
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
 }
 
-type WriteSummary struct {
-	SuccessWrites uint64
-	FailedWrites  uint64
-	FailedDeletes uint64
+func (s *DestinationStats) Add(other *DestinationStats) {
+	if other == nil {
+		return
+	}
+	atomic.AddUint64(&s.Errors, other.Errors)
+	atomic.AddUint64(&s.Writes, other.Writes)
 }
+
+const writeWorkers = 2
 
 func NewDestinationPlugin(name string, version string, newDestinationClient NewDestinationClientFunc) *DestinationPlugin {
 	p := &DestinationPlugin{
@@ -59,6 +70,10 @@ func (p *DestinationPlugin) Version() string {
 	return p.version
 }
 
+func (p *DestinationPlugin) Stats() DestinationStats {
+	return p.client.Stats()
+}
+
 // we need lazy loading because we want to be able to initialize after
 func (p *DestinationPlugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Destination) error {
 	var err error
@@ -74,55 +89,58 @@ func (p *DestinationPlugin) Init(ctx context.Context, logger zerolog.Logger, spe
 // we implement all DestinationClient functions so we can hook into pre-post behavior
 func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) error {
 	SetDestinationManagedCqColumns(tables)
-
-	if p.client == nil {
-		return fmt.Errorf("destination client not initialized")
-	}
-	p.tables = tables
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *DestinationPlugin) Write(ctx context.Context, sourceName string, syncTime time.Time, res <-chan *schema.Resource) *WriteSummary {
-	if p.client == nil {
-		return nil
+func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan *schema.DestinationResource) error {
+	ch := make(chan *schema.DestinationResource)
+	SetDestinationManagedCqColumns(tables)
+
+	eg, ctx := errgroup.WithContext(ctx)
+	// given most destination plugins writing in batch we are using a worker pool to write in parallel
+	// it might not generalize well and we might need to move it to each destination plugin implementation.
+	for i:= 0; i < writeWorkers; i++ {
+		eg.Go(func() error {
+			if err := p.client.Write(ctx, ch); err != nil {
+				return err
+			}
+			return nil
+		})
 	}
-	summary := WriteSummary{}
-	for r := range res {
-		r.Data[schema.CqSourceNameColumn.Name] = sourceName
-		r.Data[schema.CqSyncTimeColumn.Name] = syncTime
-		err := p.client.Write(ctx, r.TableName, r.Data)
-		if err != nil {
-			summary.FailedWrites++
-			p.logger.Error().Str("table", r.TableName).Err(err).Msgf("failed to write to destination")
-		} else {
-			summary.SuccessWrites++
+	for {
+		select {
+		case <-ctx.Done():
+			res = nil
+		case r, ok := <- res:
+			if ok {
+				r.Data = append([]interface{}{sourceName, syncTime}, r.Data...)
+				ch <- r
+			} else {
+				res = nil
+			}
 		}
+		if res == nil {
+			break
+		}
+	}
+
+	close(ch)
+	if err := eg.Wait(); err != nil {
+		return err
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
-		failedDeletes := p.DeleteStale(ctx, p.tables.TableNames(), sourceName, syncTime)
-		summary.FailedDeletes = failedDeletes
-	}
-	return &summary
-}
-
-func (p *DestinationPlugin) DeleteStale(ctx context.Context, tables []string, sourceName string, syncTime time.Time) uint64 {
-	if p.client == nil {
-		return 0
-	}
-	failedDeletes := uint64(0)
-	for _, t := range tables {
-		if err := p.client.DeleteStale(ctx, t, sourceName, syncTime); err != nil {
-			p.logger.Error().Err(err).Msgf("failed to delete stale records")
-			failedDeletes++
+		if err := p.DeleteStale(ctx, tables.TableNames(), sourceName, syncTime); err != nil {
+			return err
 		}
 	}
-	return failedDeletes
+	return nil
+}
+
+func (p *DestinationPlugin) DeleteStale(ctx context.Context, tables []string, sourceName string, syncTime time.Time) error {
+	return p.client.DeleteStale(ctx, tables, sourceName, syncTime)
 }
 
 func (p *DestinationPlugin) Close(ctx context.Context) error {
-	if p.client == nil {
-		return fmt.Errorf("destination client not initialized")
-	}
 	return p.client.Close(ctx)
 }
 

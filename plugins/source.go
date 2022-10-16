@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/helpers"
@@ -18,6 +17,19 @@ import (
 
 type SourceNewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
 
+type TableClientStats struct {
+	Resources uint64
+	Errors    uint64
+	Panics    uint64
+	StartTime time.Time
+	EndTime   time.Time
+}
+
+type SourceStats struct {
+	TableClient map[string]map[string]*TableClientStats
+}
+
+
 // SourcePlugin is the base structure required to pass to sdk.serve
 // We take a declarative approach to API here similar to Cobra
 type SourcePlugin struct {
@@ -29,6 +41,33 @@ type SourcePlugin struct {
 	newExecutionClient SourceNewExecutionClientFunc
 	// Tables is all tables supported by this source plugin
 	tables schema.Tables
+	// status sync stats
+	stats SourceStats
+	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
+	logger zerolog.Logger
+	// resourceSem is a semaphore that limits the number of concurrent resources being fetched
+	resourceSem *semaphore.Weighted
+	// tableSem is a semaphore that limits the number of concurrent tables being fetched
+	tableSem *semaphore.Weighted
+}
+
+func (s *SourceStats) initWithTables(tables schema.Tables) {
+	for _, table := range tables {
+		if _, ok := s.TableClient[table.Name]; !ok {
+			s.TableClient[table.Name] = make(map[string]*TableClientStats)
+		}
+		s.initWithTables(table.Relations)
+	}
+}
+
+func (s *SourceStats) initWithClients(clients []schema.ClientMeta) {
+	for _, client := range clients {
+		for table := range s.TableClient {
+			if _, ok := s.TableClient[table][client.Name()]; !ok {
+				s.TableClient[table][client.Name()] = &TableClientStats{}
+			}
+		}
+	}
 }
 
 // Add internal columns
@@ -60,12 +99,14 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 		version:            version,
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
+		stats: 						SourceStats{TableClient: make(map[string]map[string]*TableClientStats)},
 	}
 	addInternalColumns(p.tables)
 	setParents(p.tables)
 	if err := p.validate(); err != nil {
 		panic(err)
 	}
+	p.stats.initWithTables(p.tables)
 	return &p
 }
 
@@ -108,30 +149,31 @@ func (p *SourcePlugin) Version() string {
 	return p.version
 }
 
+func (p *SourcePlugin) Stats() SourceStats {
+	return p.stats
+}
+
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec specs.Source, res chan<- *schema.Resource) (*schema.SyncSummary, error) {
+func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec specs.Source, res chan<- *schema.Resource) error {
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid spec: %w", err)
+		return fmt.Errorf("invalid spec: %w", err)
 	}
 	tableNames, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	c, err := p.newExecutionClient(ctx, logger, spec)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
+		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
-	logger.Info().Interface("spec", spec).Msg("starting sync")
-	tableSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.TableConcurrency))
+
+	p.tableSem = semaphore.NewWeighted(helpers.Uint64ToInt64(spec.TableConcurrency))
+	p.resourceSem = semaphore.NewWeighted(helpers.Uint64ToInt64(spec.ResourceConcurrency))
 	wg := sync.WaitGroup{}
-	resourceSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.ResourceConcurrency))
-	summary := schema.SyncSummary{}
 	startTime := time.Now()
-
-	logger.Debug().Interface("tables", tableNames).Msg("got table names")
-
+	logger.Info().Interface("spec", spec).Strs("tables", tableNames).Msg("starting sync")
 	for _, table := range p.tables {
 		table := table
 		if !funk.ContainsString(tableNames, table.Name) {
@@ -142,28 +184,28 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 		if table.Multiplex != nil {
 			clients = table.Multiplex(c)
 		}
+		p.stats.initWithClients(clients)
+
 		for _, client := range clients {
 			client := client
-			wg.Add(1)
-			if err := tableSem.Acquire(ctx, 1); err != nil {
+			if err := p.tableSem.Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
-				return nil, err
+				wg.Wait()
+				return err
 			}
+			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				defer tableSem.Release(1)
-				// TODO: prob introduce client.Identify() to be used in logs
-
-				tableSummary := table.Resolve(ctx, client, nil, resourceSem, res)
-				atomic.AddUint64(&summary.Resources, tableSummary.Resources)
-				atomic.AddUint64(&summary.Errors, tableSummary.Errors)
-				atomic.AddUint64(&summary.Panics, tableSummary.Panics)
+				defer p.tableSem.Release(1)
+				// not checking for error here as nothing much todo.
+				// the error is logged and this happens when context is cancelled
+				p.resolveTable(ctx, table, client, nil, res)
 			}()
 		}
 	}
 	wg.Wait()
-	logger.Info().Uint64("total_resources", summary.Resources).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
-	return &summary, nil
+	logger.Info().Interface("stats", p.stats).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
+	return nil
 }
 
 func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]string, error) {

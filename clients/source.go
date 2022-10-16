@@ -12,9 +12,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
+	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -33,7 +34,6 @@ type SourceClient struct {
 	userConn       *grpc.ClientConn
 	conn           *grpc.ClientConn
 	grpcSocketName string
-	cmdWaitErr     error
 	wg             *sync.WaitGroup
 }
 
@@ -106,16 +106,6 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 		return nil, fmt.Errorf("unsupported registry %s", registry)
 	}
 
-	protocolVersion, err := c.GetProtocolVersion(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if protocolVersion < versions.SourceProtocolVersion {
-		return nil, fmt.Errorf("source plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.SourceProtocolVersion)
-	} else if protocolVersion > versions.SourceProtocolVersion {
-		return nil, fmt.Errorf("source plugin protocol version %d is higher than client version %d. Try updating source plugin", protocolVersion, versions.SourceProtocolVersion)
-	}
-
 	return c, nil
 }
 
@@ -132,17 +122,8 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 	}
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start plugin %s: %w", path, err)
+		return fmt.Errorf("failed to start source plugin %s: %w", path, err)
 	}
-
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		if err := cmd.Wait(); err != nil {
-			c.cmdWaitErr = err
-			c.logger.Error().Err(err).Str("plugin", path).Msg("plugin exited")
-		}
-	}()
 	c.cmd = cmd
 
 	c.wg.Add(1)
@@ -218,6 +199,18 @@ func (c *SourceClient) Version(ctx context.Context) (string, error) {
 	return res.Version, nil
 }
 
+func (c *SourceClient) GetStats(ctx context.Context) (*plugins.SourceStats, error) {
+	res, err := c.pbClient.GetStats(ctx, &pb.GetSourceStats_Request{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to call GetStats: %w", err)
+	}
+	var stats plugins.SourceStats
+	if err := json.Unmarshal(res.Stats, &stats); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal source stats: %w", err)
+	}
+	return &stats, nil
+}
+
 func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 	res, err := c.pbClient.GetTables(ctx, &pb.GetTables_Request{})
 	if err != nil {
@@ -267,36 +260,35 @@ func (c *SourceClient) Terminate() error {
 	defer c.wg.Wait()
 
 	if c.grpcSocketName != "" {
-		defer os.Remove(c.grpcSocketName)
+		defer func() {
+			if err := os.Remove(c.grpcSocketName); err != nil {
+				c.logger.Error().Err(err).Msg("failed to remove source socket file")
+			}
+		}()
 	}
 
 	if c.conn != nil {
 		if err := c.conn.Close(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to close gRPC connection")
+			c.logger.Error().Err(err).Msg("failed to close gRPC connection to source plugin")
 		}
+		c.conn = nil
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
-		if err := c.cmd.Process.Kill(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to kill process")
+		if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
+			c.logger.Error().Err(err).Msg("failed to send interrupt signal to source plugin")
+		}
+		timer := time.AfterFunc(5 * time.Second, func() {
+			c.cmd.Process.Kill()
+		})
+		st, err := c.cmd.Process.Wait();
+		timer.Stop()
+		if err != nil {
 			return err
+		}
+		if !st.Success() {
+			return fmt.Errorf("source plugin process exited with status %s", st.String())
 		}
 	}
 
 	return nil
-}
-
-func (c *SourceClient) GetSyncSummary(ctx context.Context) (*schema.SyncSummary, error) {
-	res, err := c.pbClient.GetSyncSummary(ctx, &pb.GetSyncSummary_Request{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to call GetSyncSummary: %w", err)
-	}
-	var summary schema.SyncSummary
-	if err := json.Unmarshal(res.Summary, &summary); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal sync summary: %w", err)
-	}
-	return &summary, nil
-}
-
-func (c *SourceClient) GetWaitError() error {
-	return c.cmdWaitErr
 }
