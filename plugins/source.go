@@ -49,6 +49,42 @@ type SourcePlugin struct {
 	tableSem *semaphore.Weighted
 }
 
+func (*TableClientStats) Equal(other *TableClientStats) bool {
+	return other.Resources == other.Resources && other.Errors == other.Errors && other.Panics == other.Panics
+}
+
+// Equal compares to stats. Mostly useful in testing
+func (s *SourceStats) Equal(other *SourceStats) bool {
+	for table, clientStats := range s.TableClient {
+		for client, stats := range clientStats {
+			if _, ok := other.TableClient[table]; !ok {
+				return false
+			}
+			if _, ok := other.TableClient[table][client]; !ok {
+				return false
+			}
+			if !stats.Equal(other.TableClient[table][client]) {
+				return false
+			}
+		}
+	}
+	for table, clientStats := range other.TableClient {
+		for client, stats := range clientStats {
+			if _, ok := s.TableClient[table]; !ok {
+				return false
+			}
+			if _, ok := s.TableClient[table][client]; !ok {
+				return false
+			}
+			if !stats.Equal(s.TableClient[table][client]) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+
 func (s *SourceStats) initWithTables(tables schema.Tables) {
 	for _, table := range tables {
 		if _, ok := s.TableClient[table.Name]; !ok {
@@ -167,6 +203,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 			if err := p.tableSem.Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				wg.Wait()
+				logger.Info().Err(err).Interface("stats", p.stats).TimeDiff("duration", time.Now(), startTime).Msg("sync was interrupted")
 				return err
 			}
 			wg.Add(1)
@@ -175,7 +212,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 				defer p.tableSem.Release(1)
 				// not checking for error here as nothing much todo.
 				// the error is logged and this happens when context is cancelled
-				p.resolveTable(ctx, table, client, nil, res)
+				_ = p.resolveTable(ctx, table, client, nil, res)
 			}()
 		}
 	}

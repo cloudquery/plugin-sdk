@@ -74,6 +74,10 @@ func (r *Resource) GetItem() interface{} {
 	return r.item
 }
 
+func (r *Resource) GetValues() []interface{} {
+	return r.data
+}
+
 func (r *Resource) ID() uuid.UUID {
 	index := r.Table.Columns.Index(CqIDColumn.Name)
 	if index == -1 {
