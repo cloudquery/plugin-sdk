@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/cloudquery/faker/v3"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -21,13 +20,18 @@ type ResourceTestCase struct {
 	SkipIgnoreInTest bool
 }
 
-func init() {
-	_ = faker.SetRandomMapAndSliceMinSize(1)
-	_ = faker.SetRandomMapAndSliceMaxSize(1)
-}
-
-func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source) {
+func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source, opts ...TestSourcePluginOption) {
 	t.Helper()
+
+	o := &testSourcePluginOptions{
+		parallel: true,
+	}
+	for _, opt := range opts {
+		opt(o)
+	}
+	if o.parallel {
+		t.Parallel()
+	}
 
 	resourcesChannel := make(chan *schema.Resource)
 	var fetchErr error
@@ -46,25 +50,40 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Log
 	validateTables(t, plugin.Tables(), syncedResources)
 }
 
-func getTableResource(t *testing.T, table *schema.Table, resources []*schema.Resource) *schema.Resource {
+type TestSourcePluginOption func(*testSourcePluginOptions)
+
+func WithTestSourcePluginNoParallel() TestSourcePluginOption {
+	return func(f *testSourcePluginOptions) {
+		f.parallel = false
+	}
+}
+
+type testSourcePluginOptions struct {
+	parallel bool
+}
+
+func getTableResources(t *testing.T, table *schema.Table, resources []*schema.Resource) []*schema.Resource {
 	t.Helper()
+
+	tableResources := make([]*schema.Resource, 0)
+
 	for _, resource := range resources {
 		if resource.Table.Name == table.Name {
-			return resource
+			tableResources = append(tableResources, resource)
 		}
 	}
 
-	return nil
+	return tableResources
 }
 
 func validateTable(t *testing.T, table *schema.Table, resources []*schema.Resource) {
 	t.Helper()
-	resource := getTableResource(t, table, resources)
-	if resource == nil {
+	tableResources := getTableResources(t, table, resources)
+	if len(tableResources) == 0 {
 		t.Errorf("Expected table %s to be synced but it was not found", table.Name)
 		return
 	}
-	validateResource(t, resource)
+	validateResources(t, tableResources)
 }
 
 func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Resource) {
@@ -75,43 +94,61 @@ func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Reso
 	}
 }
 
-func validateResource(t *testing.T, resource *schema.Resource) {
+// Validates that every column has at least one non-nil value.
+// Also does some additional validations.
+func validateResources(t *testing.T, resources []*schema.Resource) {
 	t.Helper()
-	// we want to marshal and unmarshal to mimic over-the-wire behavior
-	b, err := json.Marshal(resource.Data)
-	if err != nil {
-		t.Fatalf("failed to marshal resource data: %v", err)
-	}
-	var data map[string]interface{}
-	if err := json.Unmarshal(b, &data); err != nil {
-		t.Fatalf("failed to unmarshal resource data: %v", err)
-	}
-	for _, columnName := range resource.Table.Columns.Names() {
-		if data[columnName] == nil && !resource.Table.Columns.Get(columnName).IgnoreInTests {
-			t.Errorf("table: %s with unset column %s", resource.Table.Name, columnName)
+
+	table := resources[0].Table
+
+	// A set of column-names that have values in at least one of the resources.
+	columnsWithValues := make(map[string]bool)
+
+	for _, resource := range resources {
+		// we want to marshal and unmarshal to mimic over-the-wire behavior
+		b, err := json.Marshal(resource.Data)
+		if err != nil {
+			t.Fatalf("failed to marshal resource data: %v", err)
 		}
-		val := data[columnName]
-		if val != nil {
+		var data map[string]interface{}
+		if err := json.Unmarshal(b, &data); err != nil {
+			t.Fatalf("failed to unmarshal resource data: %v", err)
+		}
+
+		for columnName, value := range data {
+			if value == nil {
+				continue
+			}
+
+			columnsWithValues[columnName] = true
+
 			switch resource.Table.Columns.Get(columnName).Type {
 			case schema.TypeJSON:
-				switch val.(type) {
+				switch value.(type) {
 				case string, []byte:
 					t.Errorf("table: %s JSON column %s is being set with a string or byte slice. Either the unmarhsalled object should be passed in, or the column type should be changed to string", resource.Table.Name, columnName)
 					continue
 				}
-				if _, err := json.Marshal(val); err != nil {
-					t.Errorf("table: %s with invalid json column %s", resource.Table.Name, columnName)
+				if _, err := json.Marshal(value); err != nil {
+					t.Errorf("table: %s with invalid json column %s", table.Name, columnName)
 				}
 			default:
 				// todo
 			}
 		}
+
+		// check that every key in the returned object exist as a column in the table
+		for key := range data {
+			if col := resource.Table.Columns.Get(key); col == nil {
+				t.Errorf("table: %s with unknown column %s", table.Name, key)
+			}
+		}
 	}
 
-	// check that every key in the returned object exist as a column in the table
-	for key := range data {
-		if col := resource.Table.Columns.Get(key); col == nil {
-			t.Errorf("table: %s with unknown column %s", resource.Table.Name, key)
+	// Make sure every column has at least one value.
+	for _, columnName := range table.Columns.Names() {
+		if _, ok := columnsWithValues[columnName]; !ok && !table.Columns.Get(columnName).IgnoreInTests {
+			t.Errorf("Expected column %s to have at least one non-nil value but it was not found", columnName)
 		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/clients"
+	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -114,6 +115,14 @@ func TestServeSource(t *testing.T) {
 			t.Fatal(err)
 		}
 	}()
+
+	protocolVersion, err := c.GetProtocolVersion(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if versions.SourceProtocolVersion != protocolVersion {
+		t.Fatalf("expected protocol version %d, got %d", versions.SourceProtocolVersion, protocolVersion)
+	}
 
 	name, err := c.Name(ctx)
 	if err != nil {
