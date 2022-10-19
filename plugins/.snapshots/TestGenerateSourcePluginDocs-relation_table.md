@@ -5,7 +5,7 @@ Description for relational table
 The primary key for this table is **_cq_id**.
 
 ## Relations
-This table depends on [`test_table`](test_table.md).
+This table depends on [test_table](test_table.md).
 
 ## Columns
 | Name          | Type          |

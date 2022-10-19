@@ -15,13 +15,13 @@ The composite primary key for this table is ({{ range $index, $pk := $.PrimaryKe
 ## Relations
 {{- end }}
 {{- if $.Parent }}
-This table depends on [`{{ $.Parent.Name }}`]({{ $.Parent.Name }}.md).
+This table depends on [{{ $.Parent.Name }}]({{ $.Parent.Name }}.md).
 {{- end}}
 
 {{- if $.Relations }}
-The following tables depend on `{{.Name}}`:
+The following tables depend on {{.Name}}:
 {{- range $rel := $.Relations }}
-  - [`{{ $rel.Name }}`]({{ $rel.Name }}.md)
+  - [{{ $rel.Name }}]({{ $rel.Name }}.md)
 {{- end }}
 {{- end }}
 

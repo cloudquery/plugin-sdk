@@ -5,9 +5,9 @@ Description for test table
 The composite primary key for this table is (**id_col**, **id_col2**).
 
 ## Relations
-The following tables depend on `test_table`:
-  - [`relation_table`](relation_table.md)
-  - [`relation_table2`](relation_table2.md)
+The following tables depend on test_table:
+  - [relation_table](relation_table.md)
+  - [relation_table2](relation_table2.md)
 
 ## Columns
 | Name          | Type          |
