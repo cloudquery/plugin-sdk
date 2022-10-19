@@ -17,6 +17,9 @@ service Source {
   rpc GetTables(GetTables.Request) returns (GetTables.Response);
   // Sync resources
   rpc Sync(Sync.Request) returns (stream Sync.Response);
+   // GetSyncSummary returns the latest sync summary of the source plugin. we don't want to send the summary on
+  // every sync request.
+  rpc GetSyncSummary(GetSyncSummary.Request) returns (GetSyncSummary.Response);
   // Get stats for the source plugin
   rpc GetStats(GetSourceStats.Request) returns (GetSourceStats.Response);
 }
@@ -38,6 +41,14 @@ message Sync {
   message Response {
     // marshalled *schema.Resources
     bytes resource = 1;
+  }
+}
+
+message GetSyncSummary {
+  message Request {}
+  message Response {
+    // marshalled *schema.SyncSummary
+    bytes summary = 1;
   }
 }
 

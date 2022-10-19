@@ -294,3 +294,20 @@ func (c *SourceClient) Terminate() error {
 
 	return nil
 }
+
+
+func (c *SourceClient) GetSyncSummary(ctx context.Context) (*schema.SyncSummary, error) {
+	res, err := c.pbClient.GetSyncSummary(ctx, &pb.GetSyncSummary_Request{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to call GetSyncSummary: %w", err)
+	}
+	var summary schema.SyncSummary
+	if err := json.Unmarshal(res.Summary, &summary); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal sync summary: %w", err)
+	}
+	return &summary, nil
+}
+
+func (c *SourceClient) GetWaitError() error {
+	return c.cmdWaitErr
+}

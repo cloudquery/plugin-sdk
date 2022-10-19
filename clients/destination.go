@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -99,19 +98,6 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 		}
 	default:
 		return nil, fmt.Errorf("unsupported registry %s", registry)
-	}
-	protocolVersion, err := c.GetProtocolVersion(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if protocolVersion != versions.DestinationProtocolVersion {
-		if err := c.Terminate(); err != nil {
-			c.logger.Err(err).Msg("failed to terminate source plugin")
-		}
-		if protocolVersion < versions.DestinationProtocolVersion {
-			return nil, fmt.Errorf("destination plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.DestinationProtocolVersion)
-		}
-		return nil, fmt.Errorf("destination plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.DestinationProtocolVersion)
 	}
 
 	return c, nil
@@ -234,35 +220,26 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 	return nil
 }
 
-// Write writes rows as they are received from the channel to the destination plugin.
-// resources is marshaled schema.Resource. We are not marshalling this inside the function
-// because usually it is alreadun marshalled from the source plugin.
-func (c *DestinationClient) Write(ctx context.Context, tables []string, source string, syncTime time.Time, resources <-chan []byte) error {
+func (c *DestinationClient) Write(ctx context.Context, source string, syncTime time.Time, resources <-chan []byte) (uint64, error) {
 	saveClient, err := c.pbClient.Write(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to call Write: %w", err)
+		return 0, fmt.Errorf("failed to call Write: %w", err)
 	}
-	if err := saveClient.Send(&pb.Write_Request{
-		Tables:    tables,
-		Source:    source,
-		Timestamp: timestamppb.New(syncTime),
-	}); err != nil {
-		return fmt.Errorf("failed to call Write.Send: %w", err)
-	}
-
 	for resource := range resources {
 		if err := saveClient.Send(&pb.Write_Request{
-			Resource: resource,
+			Resource:  resource,
+			Source:    source,
+			Timestamp: timestamppb.New(syncTime),
 		}); err != nil {
-			return fmt.Errorf("failed to call Write.Send: %w", err)
+			return 0, fmt.Errorf("failed to call Write.Send: %w", err)
 		}
 	}
-	_, err = saveClient.CloseAndRecv()
+	res, err := saveClient.CloseAndRecv()
 	if err != nil {
-		return fmt.Errorf("failed to CloseAndRecv client: %w", err)
+		return 0, fmt.Errorf("failed to CloseAndRecv client: %w", err)
 	}
 
-	return nil
+	return res.FailedWrites, nil
 }
 
 func (c *DestinationClient) Close(ctx context.Context) error {

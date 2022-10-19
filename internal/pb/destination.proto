@@ -53,7 +53,9 @@ message Write {
     google.protobuf.Timestamp timestamp = 3;
     repeated string tables = 4;
   }
-  message Response {}
+  message Response {
+    uint64 failed_writes = 1;
+  }
 }
 
 
@@ -68,5 +70,7 @@ message DeleteStale {
     google.protobuf.Timestamp timestamp = 2;
     bytes tables = 3;
   }
-  message Response {}
+  message Response {
+    uint64 failed_deletes = 1;
+  }
 }
