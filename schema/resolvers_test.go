@@ -32,7 +32,7 @@ var resolverTestCases = []struct {
 		Column:               resolverTestTable.Columns[0],
 		ColumnResolver:       PathResolver("PathResolver"),
 		Resource:             NewResourceData(resolverTestTable, nil, resolverTestItem),
-		ExpectedResourceData: []interface{}{"test"},
+		ExpectedResourceData: []interface{}{&String{String: "test", Valid: true}},
 	},
 }
 

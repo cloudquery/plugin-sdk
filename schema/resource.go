@@ -62,7 +62,33 @@ func (r *Resource) Set(columnName string, value interface{}) {
 		// this also saves additional checks in our testing code
 		panic(columnName + " column not found")
 	}
-	r.data[index] = value
+	var err error
+	switch r.Table.Columns[index].Type {
+	case TypeBool:
+		r.data[index] = &Bool{}
+		err = r.data[index].(*Bool).Scan(value)
+	case TypeInt:
+		r.data[index] = &Int64{}
+		err = r.data[index].(*Int64).Scan(value)
+	case TypeJSON:
+		r.data[index] = &Json{}
+		err = r.data[index].(*Json).Scan(value)
+	case TypeTimestamp:
+		r.data[index] = &Timestamptz{}
+		err = r.data[index].(*Timestamptz).Scan(value)
+	case TypeString:
+		r.data[index] = &String{}
+		err = r.data[index].(*String).Scan(value)
+	case TypeUUID:
+		r.data[index] = &UUID{}
+		err = r.data[index].(*UUID).Scan(value)
+	case TypeByteArray:
+		r.data[index] = &ByteArray{}
+		err = r.data[index].(*ByteArray).Scan(value)
+	}
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Override original item (this is useful for apis that follow list/details pattern)

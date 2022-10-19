@@ -21,7 +21,7 @@ type DestinationStats struct {
 
 type DestinationClient interface {
 	Migrate(ctx context.Context, tables schema.Tables) error
-	Write(ctx context.Context, res <-chan *schema.DestinationResource) error
+	Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error
 	Stats() DestinationStats
 	DeleteStale(ctx context.Context, tables []string, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
@@ -93,7 +93,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	// it might not generalize well and we might need to move it to each destination plugin implementation.
 	for i := 0; i < writeWorkers; i++ {
 		eg.Go(func() error {
-			return p.client.Write(ctx, ch)
+			return p.client.Write(ctx, tables, ch)
 		})
 	}
 	for {

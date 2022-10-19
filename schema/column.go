@@ -2,14 +2,6 @@ package schema
 
 import (
 	"context"
-	"net"
-	"reflect"
-	"time"
-
-	gofrs "github.com/gofrs/uuid"
-	"github.com/google/uuid"
-	"github.com/modern-go/reflect2"
-	"github.com/thoas/go-funk"
 )
 
 type ValueType int
@@ -113,113 +105,6 @@ func (v ValueType) String() string {
 	}
 }
 
-func (c Column) checkType(v interface{}) bool {
-	if reflect2.IsNil(v) {
-		return true
-	}
-
-	if reflect2.TypeOf(v).Kind() == reflect.Ptr {
-		return c.checkType(funk.GetOrElse(v, nil))
-	}
-
-	// Maps or slices are jsons
-	if reflect2.TypeOf(v).Kind() == reflect.Map {
-		return c.Type == TypeJSON
-	}
-
-	switch val := v.(type) {
-	case int8, *int8, uint8, *uint8, int16, *int16, uint16, *uint16, int32, *int32, int, *int, uint32, *uint32, int64, *int64:
-		return c.Type == TypeInt
-	case []byte:
-		if c.Type == TypeUUID {
-			if _, err := uuid.FromBytes(val); err != nil {
-				return false
-			}
-		}
-		return c.Type == TypeByteArray || c.Type == TypeJSON
-	case bool, *bool:
-		return c.Type == TypeBool
-	case string:
-		if c.Type == TypeUUID {
-			if _, err := uuid.Parse(val); err == nil {
-				return true
-			}
-		}
-		if c.Type == TypeJSON {
-			return true
-		}
-		return c.Type == TypeString
-	case *string:
-		if c.Type == TypeJSON {
-			return true
-		}
-		return c.Type == TypeString
-	case *float32, float32, *float64, float64:
-		return c.Type == TypeFloat
-	case []string, []*string, *[]string:
-		return c.Type == TypeStringArray || c.Type == TypeJSON
-	case []int, []*int, *[]int, []int32, []*int32, []int64, []*int64, *[]int64:
-		return c.Type == TypeIntArray || c.Type == TypeJSON
-	case []interface{}:
-		return c.Type == TypeJSON
-	case time.Time, *time.Time:
-		return c.Type == TypeTimestamp
-	case time.Duration, *time.Duration:
-		return c.Type == TypeTimeInterval
-	case uuid.UUID, *uuid.UUID:
-		return c.Type == TypeUUID
-	case gofrs.UUID, *gofrs.UUID:
-		return c.Type == TypeUUID
-	case [16]byte:
-		return c.Type == TypeUUID
-	case net.HardwareAddr, *net.HardwareAddr:
-		return c.Type == TypeMacAddr
-	case []net.HardwareAddr, []*net.HardwareAddr:
-		return c.Type == TypeMacAddrArray
-	case net.IPAddr, *net.IPAddr, *net.IP, net.IP:
-		return c.Type == TypeInet
-	case []net.IPAddr, []*net.IPAddr, []*net.IP, []net.IP:
-		return c.Type == TypeInetArray
-	case net.IPNet, *net.IPNet:
-		return c.Type == TypeCIDR
-	case []net.IPNet, []*net.IPNet:
-		return c.Type == TypeCIDRArray
-	case interface{}:
-		kindName := reflect2.TypeOf(v).Kind()
-		if kindName == reflect.String && c.Type == TypeString {
-			return true
-		}
-		switch kindName {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return c.Type == TypeInt
-		}
-		if kindName == reflect.Slice {
-			itemKind := reflect2.TypeOf(v).Type1().Elem().Kind()
-			if c.Type == TypeStringArray && reflect.String == itemKind {
-				return true
-			}
-			if c.Type == TypeIntArray {
-				switch itemKind {
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					return true
-				}
-			}
-			if c.Type == TypeJSON && (reflect.Struct == itemKind || reflect.Ptr == itemKind) {
-				return true
-			}
-			if c.Type == TypeUUIDArray && reflect2.TypeOf(v).String() == "uuid.UUID" || reflect2.TypeOf(v).String() == "*uuid.UUID" {
-				return c.Type == TypeUUIDArray
-			}
-		}
-		if kindName == reflect.Struct {
-			return c.Type == TypeJSON
-		}
-	}
-
-	return false
-}
 
 func (c ColumnList) Index(col string) int {
 	for i, c := range c {
