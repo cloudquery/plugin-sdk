@@ -68,6 +68,7 @@ type Table struct {
 }
 
 var reValidTableName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
+var reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 
 func (s *SyncSummary) Merge(other SyncSummary) {
 	atomic.AddUint64(&s.Resources, other.Resources)
@@ -83,9 +84,18 @@ func (tt Tables) TableNames() []string {
 	return ret
 }
 
-func (tt Tables) ValidateNames() error {
+func (tt Tables) ValidateTableNames() error {
 	for _, t := range tt {
 		if err := t.ValidateName(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (tt Tables) ValidateColumnNames() error {
+	for _, t := range tt {
+		if err := t.ValidateColumnNames(); err != nil {
 			return err
 		}
 	}
@@ -131,6 +141,16 @@ func (t *Table) ValidateDuplicateColumns() error {
 	for _, rel := range t.Relations {
 		if err := rel.ValidateDuplicateColumns(); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (t *Table) ValidateColumnNames() error {
+	for _, c := range t.Columns {
+		ok := reValidColumnName.MatchString(c.Name)
+		if !ok {
+			return fmt.Errorf("column name %q on table %q is not valid: column names must contain only lower-case letters, numbers and underscores, and must start with a lower-case letter or underscore", c.Name, t.Name)
 		}
 	}
 	return nil

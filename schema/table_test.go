@@ -258,7 +258,8 @@ func TestTable_ValidateName(t *testing.T) {
 		{Give: "table123", WantError: false},
 		{Give: "table123_v2", WantError: false},
 		{Give: "table_name", WantError: false},
-		{Give: "Table_name_with_underscore", WantError: true},
+		{Give: "table_name_with_underscore", WantError: false},
+		{Give: "TableNameWithUpperCase", WantError: true},
 		{Give: "table name with spaces", WantError: true},
 		{Give: "table-with-dashes", WantError: true},
 	}
@@ -269,6 +270,42 @@ func TestTable_ValidateName(t *testing.T) {
 		gotError := err != nil
 		if gotError != tc.WantError {
 			t.Errorf("ValidateName() for table %q returned error, but expected none", tc.Give)
+		}
+	}
+}
+
+func TestTable_ValidateColumnNames(t *testing.T) {
+	cases := []struct {
+		GiveColumns []string
+		WantError   bool
+	}{
+		{GiveColumns: []string{"ok", "a"}, WantError: false},
+		{GiveColumns: []string{"ok", "_"}, WantError: false},
+		{GiveColumns: []string{"ok", "_abc"}, WantError: false},
+		{GiveColumns: []string{"ok", "_123"}, WantError: false},
+		{GiveColumns: []string{"ok", "123"}, WantError: true},
+		{GiveColumns: []string{"ok", "123abc"}, WantError: true},
+		{GiveColumns: []string{"ok", "123_abc"}, WantError: true},
+		{GiveColumns: []string{"ok", "col_123"}, WantError: false},
+		{GiveColumns: []string{"ok", "col123"}, WantError: false},
+		{GiveColumns: []string{"ok", "col123_v2"}, WantError: false},
+		{GiveColumns: []string{"ok", "col_name"}, WantError: false},
+		{GiveColumns: []string{"ok", "column_name_with_underscore"}, WantError: false},
+		{GiveColumns: []string{"ok", "columnNameWithUpperCase"}, WantError: true},
+		{GiveColumns: []string{"ok", "table name with spaces"}, WantError: true},
+		{GiveColumns: []string{"ok", "table-with-dashes"}, WantError: true},
+	}
+
+	for _, tc := range cases {
+		cols := make([]Column, 0)
+		for _, name := range tc.GiveColumns {
+			cols = append(cols, Column{Name: name})
+		}
+		table := Table{Name: "table", Columns: cols}
+		err := table.ValidateColumnNames()
+		gotError := err != nil
+		if gotError != tc.WantError {
+			t.Errorf("ValidateColumnNames() for columns %q returned error, but expected none", tc.GiveColumns)
 		}
 	}
 }
