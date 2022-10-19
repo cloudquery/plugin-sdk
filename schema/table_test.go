@@ -241,3 +241,34 @@ func TestTableExecution(t *testing.T) {
 		})
 	}
 }
+
+func TestTable_ValidateName(t *testing.T) {
+	cases := []struct {
+		Give      string
+		WantError bool
+	}{
+		{Give: "a", WantError: false},
+		{Give: "_", WantError: false},
+		{Give: "_abc", WantError: false},
+		{Give: "_123", WantError: false},
+		{Give: "123", WantError: true},
+		{Give: "123abc", WantError: true},
+		{Give: "123_abc", WantError: true},
+		{Give: "table_123", WantError: false},
+		{Give: "table123", WantError: false},
+		{Give: "table123_v2", WantError: false},
+		{Give: "table_name", WantError: false},
+		{Give: "Table_name_with_underscore", WantError: true},
+		{Give: "table name with spaces", WantError: true},
+		{Give: "table-with-dashes", WantError: true},
+	}
+
+	for _, tc := range cases {
+		table := Table{Name: tc.Give}
+		err := table.ValidateName()
+		gotError := err != nil
+		if gotError != tc.WantError {
+			t.Errorf("ValidateName() for table %q returned error, but expected none", tc.Give)
+		}
+	}
+}

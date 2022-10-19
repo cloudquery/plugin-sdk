@@ -3,6 +3,7 @@ package schema
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -66,6 +67,8 @@ type Table struct {
 	Parent *Table `json:"-"`
 }
 
+var reValidTableName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
+
 func (s *SyncSummary) Merge(other SyncSummary) {
 	atomic.AddUint64(&s.Resources, other.Resources)
 	atomic.AddUint64(&s.Errors, other.Errors)
@@ -78,6 +81,15 @@ func (tt Tables) TableNames() []string {
 		ret = append(ret, t.TableNames()...)
 	}
 	return ret
+}
+
+func (tt Tables) ValidateNames() error {
+	for _, t := range tt {
+		if err := t.ValidateName(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (tt Tables) ValidateDuplicateColumns() error {
@@ -96,6 +108,14 @@ func (tt Tables) ValidateDuplicateTables() error {
 			return fmt.Errorf("duplicate table %s", t.Name)
 		}
 		tables[t.Name] = true
+	}
+	return nil
+}
+
+func (t *Table) ValidateName() error {
+	ok := reValidTableName.MatchString(t.Name)
+	if !ok {
+		return fmt.Errorf("table name %q is not valid: table names must contain only lower-case letters, numbers and underscores, and must start with a lower-case letter or underscore", t.Name)
 	}
 	return nil
 }

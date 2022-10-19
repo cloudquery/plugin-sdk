@@ -19,7 +19,7 @@ var _ schema.ClientMeta = &testExecutionClient{}
 
 func testTable() *schema.Table {
 	return &schema.Table{
-		Name: "testTable",
+		Name: "test_table",
 		Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
 			res <- map[string]interface{}{
 				"TestColumn": 3,
@@ -71,7 +71,7 @@ func TestSync(t *testing.T) {
 	})
 
 	for resource := range resources {
-		if resource.Table.Name != "testTable" {
+		if resource.Table.Name != "test_table" {
 			t.Fatalf("unexpected resource table name: %s", resource.Table.Name)
 		}
 		obj := resource.Get("test_column")

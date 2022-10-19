@@ -7,7 +7,7 @@ import (
 )
 
 var resolverTestTable = &Table{
-	Name: "testTable",
+	Name: "test_table",
 	Columns: []Column{
 		{
 			Name: "string_column",
