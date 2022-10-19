@@ -1,7 +1,10 @@
 # Source Plugin: {{.Name}}
 ## Tables
-| Name          | Relations | Description   |
-| ------------- | --------- | ------------- |
+| Name          |
+| ------------- |
 {{- range $table := $.Tables }}
-| [{{$table.Name}}]({{$table.Name}}.md)| {{range $index, $rel := $table.Relations}}{{if $index}}<br />{{end}}[{{$rel.Name}}]({{$rel.Name}}.md){{end}}| {{$table.Description }}|
+| [{{$table.Name}}]({{$table.Name}}.md) |
+{{- range $index, $rel := $table.Relations}}
+| ↳ [{{$rel.Name}}]({{$rel.Name}}.md) |
+{{- end}}
 {{- end }}
