@@ -91,6 +91,9 @@ func (dst *UUID) Scan(src any) error {
 		}
 		*dst = UUID{Bytes: [16]byte{}, Valid: true}
 		copy(dst.Bytes[:], src)
+	case [16]byte:
+		*dst = UUID{Bytes: [16]byte{}, Valid: true}
+		copy(dst.Bytes[:], src[:])
 	default:
 		return fmt.Errorf("cannot scan %T to UUID", src)
 	}

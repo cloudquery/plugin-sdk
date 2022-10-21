@@ -37,5 +37,5 @@ func (dst *ByteArray) Scan(src interface{}) error {
 		*dst = ByteArray{ByteArray: dstBuf, Valid: true}
 	}
 
-	return fmt.Errorf("cannot scan %T", src)
+	return fmt.Errorf("cannot scan %T into ByteArray", src)
 }

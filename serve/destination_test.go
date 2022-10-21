@@ -122,7 +122,7 @@ func TestDestination(t *testing.T) {
 	}
 
 	resource := schema.NewResourceData(testTable(), nil, nil)
-	resource.Set("test_column", "test")
+	resource.Set("test_column", 5)
 	destResource := resource.ToDestinationResource()
 	b, err := json.Marshal(destResource)
 	if err != nil {

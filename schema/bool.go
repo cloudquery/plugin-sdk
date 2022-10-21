@@ -2,7 +2,6 @@ package schema
 
 import (
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"strconv"
 )
@@ -29,10 +28,6 @@ func (b *Bool) Equal(other CQType) bool {
 		return b.Valid == other.Valid && b.Bool == other.Bool 
 	}
 	return false
-}
-
-func (b Bool) BoolValue() (Bool, error) {
-	return b, nil
 }
 
 // Scan implements the database/sql Scanner interface.
@@ -62,7 +57,7 @@ func (dst *Bool) Scan(src any) error {
 		return nil
 	}
 
-	return fmt.Errorf("cannot scan %T", src)
+	return fmt.Errorf("cannot scan %T into Bool", src)
 }
 
 // Value implements the database/sql/driver Valuer interface.
@@ -72,32 +67,4 @@ func (src Bool) Value() (driver.Value, error) {
 	}
 
 	return src.Bool, nil
-}
-
-func (src Bool) MarshalJSON() ([]byte, error) {
-	if !src.Valid {
-		return []byte("null"), nil
-	}
-
-	if src.Bool {
-		return []byte("true"), nil
-	} else {
-		return []byte("false"), nil
-	}
-}
-
-func (dst *Bool) UnmarshalJSON(b []byte) error {
-	var v *bool
-	err := json.Unmarshal(b, &v)
-	if err != nil {
-		return err
-	}
-
-	if v == nil {
-		*dst = Bool{}
-	} else {
-		*dst = Bool{Bool: *v, Valid: true}
-	}
-
-	return nil
 }

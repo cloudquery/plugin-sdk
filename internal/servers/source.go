@@ -88,7 +88,8 @@ func (s *SourceServer) Sync2(req *pb.Sync2_Request,stream pb.Source_Sync2Server)
 	}()
 
 	for resource := range resources {
-		b, err := json.Marshal(resource)
+		destResource := resource.ToDestinationResource()
+		b, err := json.Marshal(destResource)
 		if err != nil {
 			return status.Errorf(codes.Internal, "failed to marshal resource: %v", err)
 		}

@@ -3,6 +3,7 @@ package serve
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"sync"
 	"testing"
@@ -160,10 +161,14 @@ func TestServeSource(t *testing.T) {
 			t.Fatalf("failed to unmarshal resource: %v", err)
 		}
 		if resource.TableName != "test_table" {
-			t.Fatalf("Expected resource with table name test: %s", resource.TableName)
+			t.Fatalf("Expected resource with table name test_table. got: %s", resource.TableName)
 		}
 		if len(resource.Data) != 3 {
 			t.Fatalf("Expected resource with data length 3 but got %d", len(resource.Data))
+		}
+		fmt.Println(resource.Data)
+		if resource.Data[2] == nil {
+			t.Fatalf("Expected resource with data[2] to be not nil")
 		}
 		if resource.Data[2].Type() != schema.TypeInt {
 			t.Fatalf("Expected resource with data type int but got %s", resource.Data[2].Type())

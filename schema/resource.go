@@ -24,7 +24,7 @@ type Resource struct {
 // code wise
 type DestinationResource struct {
 	TableName string        `json:"table_name"`
-	Data      []CQType `json:"data"`
+	Data      CQTypes `json:"data"`
 }
 
 func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
@@ -32,7 +32,7 @@ func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 		item:   item,
 		Parent: parent,
 		Table:  t,
-		data:   make([]CQType, len(t.Columns)),
+		data:   make(CQTypes, len(t.Columns)),
 	}
 	return &r
 }

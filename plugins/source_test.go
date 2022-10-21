@@ -273,20 +273,8 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 			t.Fatalf("expected %d resources. got %d", len(tc.data), i)
 		}
 		if !tc.data[i].Equal(resource.GetValues()) {
-			t.Fatalf("expected %v. got %v", tc.data[i], resource.GetValues())
+			t.Fatalf("expected in item %d %v. got %v", i, tc.data[i], resource.GetValues())
 		}
-		// if resource.Table.Name != "testTable" {
-		// 	t.Fatalf("unexpected resource table name: %s", resource.Table.Name)
-		// }
-		// obj := resource.Get("test_column")
-		// val, ok := obj.(int)
-		// if !ok {
-		// 	t.Fatalf("unexpected resource column value (expected int): %v", obj)
-		// }
-
-		// if val != 3 {
-		// 	t.Fatalf("unexpected resource column value: %v", val)
-		// }
 		i++
 	}
 	if len(tc.data) != i{

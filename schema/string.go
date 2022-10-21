@@ -36,5 +36,5 @@ func (dst *String) Scan(src interface{}) error {
 		return nil
 	}
 
-	return fmt.Errorf("cannot scan %T", src)
+	return fmt.Errorf("cannot scan %T into String", src)
 }

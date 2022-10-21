@@ -40,7 +40,7 @@ func (tstz *Timestamptz) Scan(src any) error {
 		return nil
 	}
 
-	return fmt.Errorf("cannot scan %T", src)
+	return fmt.Errorf("cannot scan %T into Timestamptz", src)
 }
 
 // Value implements the database/sql/driver Valuer interface.

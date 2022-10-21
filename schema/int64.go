@@ -54,7 +54,7 @@ func (dst *Int64) Scan(src any) error {
 	case uint:
 		n = int64(src)
 	default:
-		return fmt.Errorf("cannot scan %T", src)
+		return fmt.Errorf("cannot scan %T into Int64", src)
 	}
 
 	*dst = Int64{Int64: n, Valid: true}
