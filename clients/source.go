@@ -141,7 +141,8 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 		defer c.wg.Done()
 		if err := cmd.Wait(); err != nil {
 			if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == -1 {
-				// process killed by our own signal, this is expected
+				// process interrupted by our own signal, this is expected
+				c.logger.Info().Str("plugin", path).Msg("plugin exited")
 				return
 			}
 			c.cmdWaitErr = err
