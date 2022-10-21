@@ -5,6 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -14,13 +22,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"io"
-	"net"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
-	"sync"
 )
 
 // SourceClient
@@ -139,7 +140,7 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 		defer c.wg.Done()
 		if err := cmd.Wait(); err != nil {
 			if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == -1 {
-				// process interrupted by our own signal, this is expected
+				// process interrupted by a signal, this is expected
 				c.logger.Info().Str("plugin", path).Msg("plugin exited")
 				return
 			}
@@ -280,7 +281,6 @@ func (c *SourceClient) Terminate() error {
 		}
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
-		// send sigterm signal to close plugin gracefully
 		if err := c.cmd.Process.Kill(); err != nil {
 			c.logger.Error().Err(err).Msg("failed to kill plugin process")
 			return err
