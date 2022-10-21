@@ -34,7 +34,7 @@ func (*testDestinationClient) Initialize(context.Context, specs.Destination) err
 func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 	return nil
 }
-func (*testDestinationClient) Write(_ context.Context, tables schema.Tables, resources <-chan *schema.DestinationResource) error {
+func (*testDestinationClient) Write(_ context.Context, _ schema.Tables, resources <-chan *schema.DestinationResource) error {
 	for _ = range resources {
 	}
 	return nil

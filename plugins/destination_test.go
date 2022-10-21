@@ -12,7 +12,6 @@ import (
 )
 
 type testDestinationClient struct {
-
 }
 
 func newTestDestinationClient(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error) {
@@ -23,11 +22,11 @@ func newErrorTestDestinationClient(context.Context, zerolog.Logger, specs.Destin
 	return nil, fmt.Errorf("failed to create test destination client")
 }
 
-func (c *testDestinationClient) Migrate(ctx context.Context, tables schema.Tables) error {
+func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 	return nil
 }
 
-func (c *testDestinationClient) Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error {
+func (*testDestinationClient) Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error {
 	for _ = range res {
 	}
 	return nil
@@ -37,14 +36,13 @@ func (c *testDestinationClient) Stats() DestinationStats {
 	return DestinationStats{}
 }
 
-func (c *testDestinationClient) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
-	return nil	
-}
-
-func (c *testDestinationClient) Close(ctx context.Context) error {
+func (c *testDestinationClient) DeleteStale(context.Context, schema.Tables, string, time.Time) error {
 	return nil
 }
 
+func (c *testDestinationClient) Close(context.Context) error {
+	return nil
+}
 
 func TestDestinationPlugin(t *testing.T) {
 	ctx := context.Background()
@@ -64,5 +62,5 @@ func TestDestinationPlugin(t *testing.T) {
 	if err := d.Init(ctx, zerolog.Nop(), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	
+
 }

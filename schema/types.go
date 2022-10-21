@@ -6,13 +6,11 @@ import (
 	"strings"
 )
 
-type CQType interface{
+type CQType interface {
 	Type() ValueType
 	Scan(v interface{}) error
 	Equal(CQType) bool
 }
-
-
 
 type CQTypes []CQType
 
@@ -24,7 +22,7 @@ func (c CQTypes) MarshalJSON() ([]byte, error) {
 			continue
 		}
 		res = append(res, map[string]interface{}{
-			"type": v.Type(),
+			"type":  v.Type(),
 			"value": v,
 		})
 	}
@@ -50,31 +48,31 @@ func (c *CQTypes) UnmarshalJSON(b []byte) error {
 		typ := ValueType(int(res[i]["type"].(float64)))
 
 		switch typ {
-			case TypeBool:
-				var r Bool
-				if err := json.Unmarshal(b, &r); err != nil {
-					return err
-				}
-				(*c)[i] = &r
-			case TypeInt:
-				var r Int64
-				if err := json.Unmarshal(b, &r); err != nil {
-					return err
-				}
-				(*c)[i] = &r
-			case TypeUUID:
-				var r UUID
-				if err := json.Unmarshal(b, &r); err != nil {
-					return err
-				}
-			case TypeString:
-				var r String
-				if err := json.Unmarshal(b, &r); err != nil {
-					return err
-				}
-			default:
-				return fmt.Errorf("unknown type %v", typ)
-		}	
+		case TypeBool:
+			var r Bool
+			if err := json.Unmarshal(b, &r); err != nil {
+				return err
+			}
+			(*c)[i] = &r
+		case TypeInt:
+			var r Int64
+			if err := json.Unmarshal(b, &r); err != nil {
+				return err
+			}
+			(*c)[i] = &r
+		case TypeUUID:
+			var r UUID
+			if err := json.Unmarshal(b, &r); err != nil {
+				return err
+			}
+		case TypeString:
+			var r String
+			if err := json.Unmarshal(b, &r); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unknown type %v", typ)
+		}
 	}
 	return nil
 }

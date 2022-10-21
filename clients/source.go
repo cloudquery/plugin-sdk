@@ -294,4 +294,3 @@ func (c *SourceClient) Terminate() error {
 
 	return nil
 }
-

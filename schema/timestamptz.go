@@ -8,35 +8,35 @@ import (
 
 // Timestamptz represents the PostgreSQL timestamptz type.
 type Timestamptz struct {
-	Time             time.Time
+	Time time.Time
 	// InfinityModifier InfinityModifier
-	Valid            bool
+	Valid bool
 }
 
 func (*Timestamptz) Type() ValueType {
 	return TypeTimestamp
 }
 
-func (t *Timestamptz) Equal(other CQType) bool {
+func (dst *Timestamptz) Equal(other CQType) bool {
 	if other == nil {
 		return false
 	}
 	if other, ok := other.(*Timestamptz); ok {
-		return t.Valid == other.Valid && t.Time.Equal(other.Time)
+		return dst.Valid == other.Valid && dst.Time.Equal(other.Time)
 	}
 	return false
 }
 
 // Scan implements the database/sql Scanner interface.
-func (tstz *Timestamptz) Scan(src any) error {
+func (dst *Timestamptz) Scan(src any) error {
 	if src == nil {
-		*tstz = Timestamptz{}
+		*dst = Timestamptz{}
 		return nil
 	}
 
 	switch src := src.(type) {
 	case time.Time:
-		*tstz = Timestamptz{Time: src, Valid: true}
+		*dst = Timestamptz{Time: src, Valid: true}
 		return nil
 	}
 
@@ -44,10 +44,10 @@ func (tstz *Timestamptz) Scan(src any) error {
 }
 
 // Value implements the database/sql/driver Valuer interface.
-func (tstz Timestamptz) Value() (driver.Value, error) {
-	if !tstz.Valid {
+func (dst Timestamptz) Value() (driver.Value, error) {
+	if !dst.Valid {
 		return nil, nil
 	}
 
-	return tstz.Time, nil
+	return dst.Time, nil
 }

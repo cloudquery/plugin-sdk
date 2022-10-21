@@ -220,7 +220,7 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 	return nil
 }
 
-func (c *DestinationClient) Write(ctx context.Context, tables schema.Tables, source string, syncTime time.Time,  resources <-chan []byte) error {
+func (c *DestinationClient) Write(ctx context.Context, tables schema.Tables, source string, syncTime time.Time, resources <-chan []byte) error {
 	saveClient, err := c.pbClient.Write2(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to call Write2: %w", err)
@@ -231,7 +231,7 @@ func (c *DestinationClient) Write(ctx context.Context, tables schema.Tables, sou
 	}
 	for resource := range resources {
 		if err := saveClient.Send(&pb.Write2_Request{
-			Tables: 	 b,
+			Tables:    b,
 			Resource:  resource,
 			Source:    source,
 			Timestamp: timestamppb.New(syncTime),

@@ -6,7 +6,6 @@ import (
 	"strconv"
 )
 
-
 type BoolValuer interface {
 	BoolValue() (Bool, error)
 }
@@ -20,12 +19,12 @@ func (*Bool) Type() ValueType {
 	return TypeBool
 }
 
-func (b *Bool) Equal(other CQType) bool {
+func (dst *Bool) Equal(other CQType) bool {
 	if other == nil {
 		return false
 	}
 	if other, ok := other.(*Bool); ok {
-		return b.Valid == other.Valid && b.Bool == other.Bool 
+		return dst.Valid == other.Valid && dst.Bool == other.Bool
 	}
 	return false
 }
@@ -61,10 +60,10 @@ func (dst *Bool) Scan(src any) error {
 }
 
 // Value implements the database/sql/driver Valuer interface.
-func (src Bool) Value() (driver.Value, error) {
-	if !src.Valid {
+func (dst Bool) Value() (driver.Value, error) {
+	if !dst.Valid {
 		return nil, nil
 	}
 
-	return src.Bool, nil
+	return dst.Bool, nil
 }

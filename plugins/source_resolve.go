@@ -109,7 +109,7 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 			p.logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("object resolver finished with panic")
 			atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Panics, 1)
 		}
-		
+
 	}()
 	if table.PreResourceResolver != nil {
 		logger.Trace().Msg("pre resource resolver started")

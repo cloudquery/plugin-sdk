@@ -8,5 +8,5 @@ func TestUUID(t *testing.T) {
 	if err := v.Scan("10000000-0000-0000-0000-000000000000"); err != nil {
 		t.Fatal(err)
 	}
-	
+
 }

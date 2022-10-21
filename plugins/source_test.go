@@ -37,7 +37,7 @@ func testColumnResolverPanic(ctx context.Context, meta schema.ClientMeta, resour
 
 func testTableSuccess() *schema.Table {
 	return &schema.Table{
-		Name: "testTableSuccess",
+		Name:     "testTableSuccess",
 		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
 			{
@@ -50,7 +50,7 @@ func testTableSuccess() *schema.Table {
 
 func testTableResolverPanic() *schema.Table {
 	return &schema.Table{
-		Name: "testTableResolverPanic",
+		Name:     "testTableResolverPanic",
 		Resolver: testResolverPanic,
 		Columns: []schema.Column{
 			{
@@ -63,9 +63,9 @@ func testTableResolverPanic() *schema.Table {
 
 func testTablePreResourceResolverPanic() *schema.Table {
 	return &schema.Table{
-		Name: "testTablePreResourceResolverPanic",
+		Name:                "testTablePreResourceResolverPanic",
 		PreResourceResolver: testPreResourceResolverPanic,
-		Resolver: testResolverSuccess,
+		Resolver:            testResolverSuccess,
 		Columns: []schema.Column{
 			{
 				Name: "test_column",
@@ -77,7 +77,7 @@ func testTablePreResourceResolverPanic() *schema.Table {
 
 func testTableColumnResolverPanic() *schema.Table {
 	return &schema.Table{
-		Name: "testTableColumnResolverPanic",
+		Name:     "testTableColumnResolverPanic",
 		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
 			{
@@ -85,18 +85,17 @@ func testTableColumnResolverPanic() *schema.Table {
 				Type: schema.TypeInt,
 			},
 			{
-				Name: "test_column1",
-				Type: schema.TypeInt,
+				Name:     "test_column1",
+				Type:     schema.TypeInt,
 				Resolver: testColumnResolverPanic,
 			},
 		},
 	}
 }
 
-
 func testTableRelationSuccess() *schema.Table {
 	return &schema.Table{
-		Name: "testTableRelationSuccess",
+		Name:     "testTableRelationSuccess",
 		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
 			{
@@ -121,7 +120,7 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 type syncTestCase struct {
 	table *schema.Table
 	stats SourceStats
-	data []schema.CQTypes
+	data  []schema.CQTypes
 }
 
 var testUUID = schema.NewMustUUID("00000000-0000-4000-8000-000000000000")
@@ -140,9 +139,9 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []schema.CQTypes{
 			{
-			testUUID,
-			nil,
-			&schema.Int64{Int64: 3, Valid: true},
+				testUUID,
+				nil,
+				&schema.Int64{Int64: 3, Valid: true},
 			},
 		},
 	},
@@ -216,8 +215,8 @@ var syncTestCases = []syncTestCase{
 	},
 }
 
+type testRand struct{}
 
-type testRand struct {}
 func (testRand) Read(p []byte) (n int, err error) {
 	for i := range p {
 		p[i] = byte(0)
@@ -232,16 +231,15 @@ func TestSync(t *testing.T) {
 			testSyncTable(t, tc)
 		})
 	}
-	
-}
 
+}
 
 func testSyncTable(t *testing.T, tc syncTestCase) {
 	ctx := context.Background()
 	tables := []*schema.Table{
 		tc.table,
 	}
-	
+
 	plugin := NewSourcePlugin(
 		"testSourcePlugin",
 		"1.0.0",
@@ -263,7 +261,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 			spec,
 			resources)
 	})
-	
+
 	var i int
 	for resource := range resources {
 		if tc.data == nil {
@@ -277,7 +275,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		}
 		i++
 	}
-	if len(tc.data) != i{
+	if len(tc.data) != i {
 		t.Fatalf("expected %d resources. got %d", len(tc.data), i)
 	}
 	stats := plugin.Stats()

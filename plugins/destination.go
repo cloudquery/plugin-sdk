@@ -42,7 +42,6 @@ type DestinationPlugin struct {
 	logger zerolog.Logger
 }
 
-
 const writeWorkers = 2
 
 func NewDestinationPlugin(name string, version string, newDestinationClient NewDestinationClientFunc) *DestinationPlugin {
@@ -99,7 +98,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	_ = sourceColumn.Scan(sourceName)
 	syncTimeColumn := &schema.Timestamptz{}
 	_ = syncTimeColumn.Scan(syncTime)
-	
+
 	for {
 		select {
 		case <-ctx.Done():

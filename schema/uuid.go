@@ -102,11 +102,10 @@ func (dst *UUID) Scan(src any) error {
 }
 
 // Value implements the database/sql/driver Valuer interface.
-func (src UUID) Value() (driver.Value, error) {
-	if !src.Valid {
+func (dst UUID) Value() (driver.Value, error) {
+	if !dst.Valid {
 		return nil, nil
 	}
 
-	return encodeUUID(src.Bytes), nil
+	return encodeUUID(dst.Bytes), nil
 }
-

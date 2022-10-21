@@ -7,7 +7,7 @@ import (
 
 type ByteArray struct {
 	ByteArray []byte
-	Valid  bool
+	Valid     bool
 }
 
 func (*ByteArray) Type() ValueType {
@@ -19,7 +19,7 @@ func (b *ByteArray) Equal(other CQType) bool {
 		return false
 	}
 	if other, ok := other.(*ByteArray); ok {
-		return  b.Valid == other.Valid && bytes.Compare(b.ByteArray, other.ByteArray) == 0
+		return b.Valid == other.Valid && bytes.Compare(b.ByteArray, other.ByteArray) == 0
 	}
 	return false
 }

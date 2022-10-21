@@ -69,7 +69,7 @@ func (s *DestinationServer) Migrate(ctx context.Context, req *pb.Migrate_Request
 
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
-func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
+func (*DestinationServer) Write(pb.Destination_WriteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Write is deprecated please upgrade client")
 }
 
@@ -96,7 +96,6 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 		defer wg.Done()
 		s.Plugin.Write(msg.Context(), tables, r.Source, r.Timestamp.AsTime(), resources)
 	}()
-
 
 	for {
 		r, err := msg.Recv()

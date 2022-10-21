@@ -6,7 +6,7 @@ import (
 )
 
 type Json struct {
-	Json []byte
+	Json  []byte
 	Valid bool
 }
 
@@ -17,23 +17,23 @@ func (*Json) Type() ValueType {
 func jsonBytesEqual(a, b []byte) (bool, error) {
 	var j, j2 interface{}
 	if err := json.Unmarshal(a, &j); err != nil {
-			return false, err
+		return false, err
 	}
 	if err := json.Unmarshal(b, &j2); err != nil {
-			return false, err
+		return false, err
 	}
 	return reflect.DeepEqual(j2, j), nil
 }
 
-func (j *Json) Equal(other CQType) bool {
+func (dst *Json) Equal(other CQType) bool {
 	if other == nil {
 		return false
 	}
 	if other, ok := other.(*Json); ok {
-		if j.Valid != other.Valid {
+		if dst.Valid != other.Valid {
 			return false
 		}
-		t, err := jsonBytesEqual(j.Json, other.Json)
+		t, err := jsonBytesEqual(dst.Json, other.Json)
 		// this should never happen because we validate on scan
 		if err != nil {
 			panic(err)
@@ -48,7 +48,7 @@ func (dst *Json) Scan(src interface{}) error {
 		*dst = Json{}
 		return nil
 	}
-	
+
 	switch src := src.(type) {
 	case []byte:
 		// doing validation

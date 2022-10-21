@@ -114,7 +114,6 @@ func TestServeSource(t *testing.T) {
 		}
 	}()
 
-
 	name, err := c.Name(ctx)
 	if err != nil {
 		t.Fatal(err)

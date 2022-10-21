@@ -105,7 +105,6 @@ func (v ValueType) String() string {
 	}
 }
 
-
 func (c ColumnList) Index(col string) int {
 	for i, c := range c {
 		if c.Name == col {

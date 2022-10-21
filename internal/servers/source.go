@@ -63,11 +63,11 @@ func (s *SourceServer) GetSyncSummary(context.Context, *pb.GetSyncSummary_Reques
 	return nil, status.Errorf(codes.Unimplemented, "method GetSyncSummary is deprecated please upgrade client")
 }
 
-func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
+func (*SourceServer) Sync(*pb.Sync_Request, pb.Source_SyncServer) error {
 	return status.Errorf(codes.Unimplemented, "method Sync is deprecated please upgrade client")
 }
 
-func (s *SourceServer) Sync2(req *pb.Sync2_Request,stream pb.Source_Sync2Server) error {
+func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server) error {
 	resources := make(chan *schema.Resource)
 	var syncErr error
 

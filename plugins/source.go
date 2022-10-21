@@ -49,8 +49,8 @@ type SourcePlugin struct {
 	tableSem *semaphore.Weighted
 }
 
-func (*TableClientStats) Equal(other *TableClientStats) bool {
-	return other.Resources == other.Resources && other.Errors == other.Errors && other.Panics == other.Panics
+func (s *TableClientStats) Equal(other *TableClientStats) bool {
+	return s.Resources == other.Resources && s.Errors == other.Errors && s.Panics == other.Panics
 }
 
 // Equal compares to stats. Mostly useful in testing
@@ -83,7 +83,6 @@ func (s *SourceStats) Equal(other *SourceStats) bool {
 	}
 	return true
 }
-
 
 func (s *SourceStats) initWithTables(tables schema.Tables) {
 	for _, table := range tables {
@@ -143,7 +142,6 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 	p.stats.initWithTables(p.tables)
 	return &p
 }
-
 
 func (p *SourcePlugin) SetLogger(logger zerolog.Logger) {
 	p.logger = logger
@@ -223,5 +221,3 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	p.logger.Info().Interface("stats", p.stats).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return nil
 }
-
-

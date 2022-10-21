@@ -13,12 +13,12 @@ func (*Int64) Type() ValueType {
 	return TypeInt
 }
 
-func (i *Int64) Equal(other CQType) bool {
+func (dst *Int64) Equal(other CQType) bool {
 	if other == nil {
 		return false
 	}
 	if other, ok := other.(*Int64); ok {
-		return i.Valid == other.Valid && i.Int64 == other.Int64
+		return dst.Valid == other.Valid && dst.Int64 == other.Int64
 	}
 	return false
 }
