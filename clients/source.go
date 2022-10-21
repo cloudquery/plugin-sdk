@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -105,15 +104,6 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 		}
 	default:
 		return nil, fmt.Errorf("unsupported registry %s", registry)
-	}
-	protocolVersion, err := c.GetProtocolVersion(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if protocolVersion < versions.SourceProtocolVersion {
-		return nil, fmt.Errorf("source plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.SourceProtocolVersion)
-	} else if protocolVersion > versions.SourceProtocolVersion {
-		return nil, fmt.Errorf("source plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.SourceProtocolVersion)
 	}
 
 	return c, nil
@@ -241,7 +231,7 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	if err != nil {
 		return fmt.Errorf("failed to marshal source spec: %w", err)
 	}
-	stream, err := c.pbClient.Sync(ctx, &pb.Sync_Request{
+	stream, err := c.pbClient.Sync2(ctx, &pb.Sync2_Request{
 		Spec: b,
 	})
 	if err != nil {
@@ -305,19 +295,3 @@ func (c *SourceClient) Terminate() error {
 	return nil
 }
 
-
-func (c *SourceClient) GetSyncSummary(ctx context.Context) (*schema.SyncSummary, error) {
-	res, err := c.pbClient.GetSyncSummary(ctx, &pb.GetSyncSummary_Request{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to call GetSyncSummary: %w", err)
-	}
-	var summary schema.SyncSummary
-	if err := json.Unmarshal(res.Summary, &summary); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal sync summary: %w", err)
-	}
-	return &summary, nil
-}
-
-func (c *SourceClient) GetWaitError() error {
-	return c.cmdWaitErr
-}

@@ -9,6 +9,20 @@ type Int64 struct {
 	Valid bool
 }
 
+func (*Int64) Type() ValueType {
+	return TypeInt
+}
+
+func (i *Int64) Equal(other CQType) bool {
+	if other == nil {
+		return false
+	}
+	if other, ok := other.(*Int64); ok {
+		return i.Valid == other.Valid && i.Int64 == other.Int64
+	}
+	return false
+}
+
 // ScanInt64 implements the Int64Scanner interface.
 func (dst *Int64) Scan(src any) error {
 	if src == nil {

@@ -16,7 +16,7 @@ type Resource struct {
 	// internal fields
 	Table *Table
 	// This is sorted result data by column name
-	data []interface{}
+	data []CQType
 }
 
 // This struct is what we send over the wire to destination.
@@ -24,7 +24,7 @@ type Resource struct {
 // code wise
 type DestinationResource struct {
 	TableName string        `json:"table_name"`
-	Data      []interface{} `json:"data"`
+	Data      []CQType `json:"data"`
 }
 
 func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
@@ -32,7 +32,7 @@ func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 		item:   item,
 		Parent: parent,
 		Table:  t,
-		data:   make([]interface{}, len(t.Columns)),
+		data:   make([]CQType, len(t.Columns)),
 	}
 	return &r
 }
@@ -45,7 +45,7 @@ func (r *Resource) ToDestinationResource() DestinationResource {
 	return dr
 }
 
-func (r *Resource) Get(columnName string) interface{} {
+func (r *Resource) Get(columnName string) CQType {
 	index := r.Table.Columns.Index(columnName)
 	if index == -1 {
 		// we panic because we want to distinguish between code error and api error
@@ -100,7 +100,7 @@ func (r *Resource) GetItem() interface{} {
 	return r.item
 }
 
-func (r *Resource) GetValues() []interface{} {
+func (r *Resource) GetValues() CQTypes {
 	return r.data
 }
 
@@ -109,7 +109,8 @@ func (r *Resource) ID() uuid.UUID {
 	if index == -1 {
 		return uuid.UUID{}
 	}
-	return r.data[index].(uuid.UUID)
+	return uuid.UUID{}
+	
 }
 
 func (r *Resource) Columns() []string {

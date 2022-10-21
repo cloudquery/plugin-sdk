@@ -13,6 +13,19 @@ type Timestamptz struct {
 	Valid            bool
 }
 
+func (*Timestamptz) Type() ValueType {
+	return TypeTimestamp
+}
+
+func (t *Timestamptz) Equal(other CQType) bool {
+	if other == nil {
+		return false
+	}
+	if other, ok := other.(*Timestamptz); ok {
+		return t.Valid == other.Valid && t.Time.Equal(other.Time)
+	}
+	return false
+}
 
 // Scan implements the database/sql Scanner interface.
 func (tstz *Timestamptz) Scan(src any) error {

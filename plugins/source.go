@@ -145,6 +145,9 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 }
 
 
+func (p *SourcePlugin) SetLogger(logger zerolog.Logger) {
+	p.logger = logger
+}
 
 // Tables returns all supported tables by this source plugin
 func (p *SourcePlugin) Tables() schema.Tables {
@@ -166,7 +169,7 @@ func (p *SourcePlugin) Stats() SourceStats {
 }
 
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec specs.Source, res chan<- *schema.Resource) error {
+func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
 		return fmt.Errorf("invalid spec: %w", err)
@@ -176,7 +179,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 		return err
 	}
 
-	c, err := p.newExecutionClient(ctx, logger, spec)
+	c, err := p.newExecutionClient(ctx, p.logger, spec)
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
@@ -185,11 +188,11 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 	p.resourceSem = semaphore.NewWeighted(helpers.Uint64ToInt64(spec.ResourceConcurrency))
 	wg := sync.WaitGroup{}
 	startTime := time.Now()
-	logger.Info().Interface("spec", spec).Strs("tables", tableNames).Msg("starting sync")
+	p.logger.Info().Interface("spec", spec).Strs("tables", tableNames).Msg("starting sync")
 	for _, table := range p.tables {
 		table := table
 		if !funk.ContainsString(tableNames, table.Name) {
-			logger.Debug().Str("table", table.Name).Msg("skipping table")
+			p.logger.Debug().Str("table", table.Name).Msg("skipping table")
 			continue
 		}
 		clients := []schema.ClientMeta{c}
@@ -203,7 +206,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 			if err := p.tableSem.Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				wg.Wait()
-				logger.Info().Err(err).Interface("stats", p.stats).TimeDiff("duration", time.Now(), startTime).Msg("sync was interrupted")
+				p.logger.Info().Err(err).Interface("stats", p.stats).TimeDiff("duration", time.Now(), startTime).Msg("sync was interrupted")
 				return err
 			}
 			wg.Add(1)
@@ -217,7 +220,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 		}
 	}
 	wg.Wait()
-	logger.Info().Interface("stats", p.stats).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
+	p.logger.Info().Interface("stats", p.stats).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return nil
 }
 

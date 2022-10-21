@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -99,16 +98,6 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 		}
 	default:
 		return nil, fmt.Errorf("unsupported registry %s", registry)
-	}
-	protocolVersion, err := c.GetProtocolVersion(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if protocolVersion < versions.DestinationProtocolVersion {
-		return nil, fmt.Errorf("destination plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.DestinationProtocolVersion)
-	} else if protocolVersion > versions.DestinationProtocolVersion {
-		return nil, fmt.Errorf("destination plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.DestinationProtocolVersion)
 	}
 
 	return c, nil
@@ -231,26 +220,31 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 	return nil
 }
 
-func (c *DestinationClient) Write(ctx context.Context, source string, syncTime time.Time, resources <-chan []byte) (uint64, error) {
-	saveClient, err := c.pbClient.Write(ctx)
+func (c *DestinationClient) Write(ctx context.Context, tables schema.Tables, source string, syncTime time.Time,  resources <-chan []byte) error {
+	saveClient, err := c.pbClient.Write2(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("failed to call Write: %w", err)
+		return fmt.Errorf("failed to call Write2: %w", err)
+	}
+	b, err := json.Marshal(tables)
+	if err != nil {
+		return fmt.Errorf("failed to marshal tables: %w", err)
 	}
 	for resource := range resources {
-		if err := saveClient.Send(&pb.Write_Request{
+		if err := saveClient.Send(&pb.Write2_Request{
+			Tables: 	 b,
 			Resource:  resource,
 			Source:    source,
 			Timestamp: timestamppb.New(syncTime),
 		}); err != nil {
-			return 0, fmt.Errorf("failed to call Write.Send: %w", err)
+			return fmt.Errorf("failed to call Write.Send: %w", err)
 		}
 	}
-	res, err := saveClient.CloseAndRecv()
+	_, err = saveClient.CloseAndRecv()
 	if err != nil {
-		return 0, fmt.Errorf("failed to CloseAndRecv client: %w", err)
+		return fmt.Errorf("failed to CloseAndRecv client: %w", err)
 	}
 
-	return res.FailedWrites, nil
+	return nil
 }
 
 func (c *DestinationClient) Close(ctx context.Context) error {

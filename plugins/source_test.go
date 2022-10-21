@@ -121,10 +121,10 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 type syncTestCase struct {
 	table *schema.Table
 	stats SourceStats
-	data [][]interface{}
+	data []schema.CQTypes
 }
 
-var testUUID = uuid.MustParse("00000000-0000-4000-8000-000000000000")
+var testUUID = schema.NewMustUUID("00000000-0000-4000-8000-000000000000")
 
 var syncTestCases = []syncTestCase{
 	{
@@ -138,11 +138,11 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: [][]interface{}{
+		data: []schema.CQTypes{
 			{
-				testUUID,
-				nil,
-				3,
+			testUUID,
+			nil,
+			&schema.Int64{Int64: 3, Valid: true},
 			},
 		},
 	},
@@ -201,16 +201,16 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: [][]interface{}{
+		data: []schema.CQTypes{
 			{
 				testUUID,
 				nil,
-				3,
+				&schema.Int64{Int64: 3, Valid: true},
 			},
 			{
 				testUUID,
 				testUUID,
-				3,
+				&schema.Int64{Int64: 3, Valid: true},
 			},
 		},
 	},
@@ -248,6 +248,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		tables,
 		newTestExecutionClient,
 	)
+	plugin.SetLogger(zerolog.New(zerolog.NewTestWriter(t)))
 	spec := specs.Source{
 		Name:         "testSource",
 		Tables:       []string{"*"},
@@ -259,7 +260,6 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 	g.Go(func() error {
 		defer close(resources)
 		return plugin.Sync(ctx,
-			zerolog.New(zerolog.NewTestWriter(t)),
 			spec,
 			resources)
 	})
@@ -272,8 +272,8 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		if i > len(tc.data) {
 			t.Fatalf("expected %d resources. got %d", len(tc.data), i)
 		}
-		if diff := cmp.Diff(tc.data[i], resource.GetValues()); diff != "" {
-			t.Fatalf("unexpected resource %s", diff)
+		if !tc.data[i].Equal(resource.GetValues()) {
+			t.Fatalf("expected %v. got %v", tc.data[i], resource.GetValues())
 		}
 		// if resource.Table.Name != "testTable" {
 		// 	t.Fatalf("unexpected resource table name: %s", resource.Table.Name)
@@ -288,6 +288,9 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		// 	t.Fatalf("unexpected resource column value: %v", val)
 		// }
 		i++
+	}
+	if len(tc.data) != i{
+		t.Fatalf("expected %d resources. got %d", len(tc.data), i)
 	}
 	stats := plugin.Stats()
 	if !tc.stats.Equal(&stats) {

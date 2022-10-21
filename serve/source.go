@@ -98,7 +98,7 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
 			)
-
+			source.plugin.SetLogger(logger)
 			pb.RegisterSourceServer(s, &servers.SourceServer{
 				Plugin: source.plugin,
 				Logger: logger,

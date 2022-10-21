@@ -34,7 +34,7 @@ func (*testDestinationClient) Initialize(context.Context, specs.Destination) err
 func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 	return nil
 }
-func (*testDestinationClient) Write(_ context.Context, resources <-chan *schema.DestinationResource) error {
+func (*testDestinationClient) Write(_ context.Context, tables schema.Tables, resources <-chan *schema.DestinationResource) error {
 	for _ = range resources {
 	}
 	return nil
@@ -47,7 +47,7 @@ func (*testDestinationClient) Stats() plugins.DestinationStats {
 func (*testDestinationClient) Close(context.Context) error {
 	return nil
 }
-func (*testDestinationClient) DeleteStale(context.Context, []string, string, time.Time) error {
+func (*testDestinationClient) DeleteStale(context.Context, schema.Tables, string, time.Time) error {
 	return nil
 }
 
@@ -131,7 +131,7 @@ func TestDestination(t *testing.T) {
 	resources := make(chan []byte, 1)
 	resources <- b
 	close(resources)
-	if err := c.Write(ctx, tables.TableNames(), "test", time.Now(), resources); err != nil {
+	if err := c.Write(ctx, tables, "test", time.Now(), resources); err != nil {
 		t.Fatal(err)
 	}
 

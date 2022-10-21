@@ -43,7 +43,7 @@ func TestSourceClient(t *testing.T) {
 			}
 			defer func() {
 				if err := c.Terminate(); err != nil {
-					t.Fatalf("failed to terminate source client: %v", err)
+					t.Logf("failed to terminate source client: %v", err)
 				}
 			}()
 			tables, err := c.GetTables(ctx)

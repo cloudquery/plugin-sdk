@@ -19,6 +19,8 @@ service Destination {
   rpc Migrate(Migrate.Request) returns (Migrate.Response);
   // Write resources
   rpc Write(stream Write.Request) returns (Write.Response);
+  // Write2 resources
+  rpc Write2(stream Write2.Request) returns (Write2.Response);
   // Send signal to flush and close open connections
   rpc Close(Close.Request) returns (Close.Response);
   // DeleteStale deletes stale data that was inserted by a given source
@@ -51,10 +53,22 @@ message Write {
     bytes resource = 1;
     string source = 2;
     google.protobuf.Timestamp timestamp = 3;
-    repeated string tables = 4;
   }
   message Response {
     uint64 failed_writes = 1;
+  }
+}
+
+message Write2 {
+  message Request {
+    string source = 1;
+    google.protobuf.Timestamp timestamp = 2;
+    // marshaled schema.Tables
+    bytes tables = 3;
+    // marshalled *schema.Resources
+    bytes resource = 4;
+  }
+  message Response {
   }
 }
 

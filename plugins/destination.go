@@ -23,7 +23,7 @@ type DestinationClient interface {
 	Migrate(ctx context.Context, tables schema.Tables) error
 	Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error
 	Stats() DestinationStats
-	DeleteStale(ctx context.Context, tables []string, sourceName string, syncTime time.Time) error
+	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
 }
 
@@ -86,7 +86,6 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 
 func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan *schema.DestinationResource) error {
 	ch := make(chan *schema.DestinationResource)
-	SetDestinationManagedCqColumns(tables)
 
 	eg, ctx := errgroup.WithContext(ctx)
 	// given most destination plugins writing in batch we are using a worker pool to write in parallel
@@ -96,13 +95,18 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 			return p.client.Write(ctx, tables, ch)
 		})
 	}
+	sourceColumn := &schema.String{}
+	_ = sourceColumn.Scan(sourceName)
+	syncTimeColumn := &schema.Timestamptz{}
+	_ = syncTimeColumn.Scan(syncTime)
+	
 	for {
 		select {
 		case <-ctx.Done():
 			res = nil
 		case r, ok := <-res:
 			if ok {
-				r.Data = append([]interface{}{sourceName, syncTime}, r.Data...)
+				r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
 				ch <- r
 			} else {
 				res = nil
@@ -118,14 +122,14 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 		return err
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
-		if err := p.DeleteStale(ctx, tables.TableNames(), sourceName, syncTime); err != nil {
+		if err := p.DeleteStale(ctx, tables, sourceName, syncTime); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (p *DestinationPlugin) DeleteStale(ctx context.Context, tables []string, sourceName string, syncTime time.Time) error {
+func (p *DestinationPlugin) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
 	return p.client.DeleteStale(ctx, tables, sourceName, syncTime)
 }
 

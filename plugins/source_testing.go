@@ -2,15 +2,13 @@ package plugins
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/rs/zerolog"
 )
 
-func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source, opts ...TestSourcePluginOption) {
+func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source, opts ...TestSourcePluginOption) {
 	t.Helper()
 
 	o := &testSourcePluginOptions{
@@ -28,7 +26,7 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Log
 
 	go func() {
 		defer close(resourcesChannel)
-		syncErr = plugin.Sync(context.Background(), logger, spec, resourcesChannel)
+		syncErr = plugin.Sync(context.Background(), spec, resourcesChannel)
 	}()
 
 	syncedResources := make([]*schema.Resource, 0)
@@ -105,19 +103,6 @@ func validateResources(t *testing.T, resources []*schema.Resource) {
 
 			columnsWithValues[i] = true
 
-			switch table.Columns[i].Type {
-			case schema.TypeJSON:
-				switch value.(type) {
-				case string, []byte:
-					t.Errorf("table: %s JSON column %s is being set with a string or byte slice. Either the unmarhsalled object should be passed in, or the column type should be changed to string", resource.Table.Name, table.Columns[i].Name)
-					continue
-				}
-				if _, err := json.Marshal(value); err != nil {
-					t.Errorf("table: %s with invalid json column %s", table.Name, table.Columns[i].Name)
-				}
-			default:
-				// todo
-			}
 		}
 	}
 

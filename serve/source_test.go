@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/clients"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -114,13 +113,6 @@ func TestServeSource(t *testing.T) {
 		}
 	}()
 
-	protocolVersion, err := c.GetProtocolVersion(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if versions.SourceProtocolVersion != protocolVersion {
-		t.Fatalf("expected protocol version %d, got %d", versions.SourceProtocolVersion, protocolVersion)
-	}
 
 	name, err := c.Name(ctx)
 	if err != nil {
@@ -161,6 +153,7 @@ func TestServeSource(t *testing.T) {
 	}
 	close(resources)
 
+	totalResources := 0
 	for resourceB := range resources {
 		var resource schema.DestinationResource
 		if err := json.Unmarshal(resourceB, &resource); err != nil {
@@ -169,9 +162,16 @@ func TestServeSource(t *testing.T) {
 		if resource.TableName != "test_table" {
 			t.Fatalf("Expected resource with table name test: %s", resource.TableName)
 		}
-		if int(resource.Data[2].(float64)) != 3 {
-			t.Fatalf("Expected resource {'test_column':3} got: %v", resource.Data[2].(float64))
+		if len(resource.Data) != 3 {
+			t.Fatalf("Expected resource with data length 3 but got %d", len(resource.Data))
 		}
+		if resource.Data[2].Type() != schema.TypeInt {
+			t.Fatalf("Expected resource with data type int but got %s", resource.Data[2].Type())
+		}
+		totalResources++
+	}
+	if totalResources != 1 {
+		t.Fatalf("Expected 1 resource on channel but got %d", totalResources)
 	}
 
 	stats, err := c.GetStats(ctx)

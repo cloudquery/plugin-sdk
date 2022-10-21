@@ -7,6 +7,20 @@ type String struct {
 	Valid  bool
 }
 
+func (*String) Type() ValueType {
+	return TypeString
+}
+
+func (s *String) Equal(other CQType) bool {
+	if other == nil {
+		return false
+	}
+	if other, ok := other.(*String); ok {
+		return s.Valid == other.Valid && s.String == other.String
+	}
+	return false
+}
+
 func (dst *String) Scan(src interface{}) error {
 	if src == nil {
 		*dst = String{}

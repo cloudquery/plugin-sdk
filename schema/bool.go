@@ -7,9 +7,6 @@ import (
 	"strconv"
 )
 
-type BoolScanner interface {
-	ScanBool(v Bool) error
-}
 
 type BoolValuer interface {
 	BoolValue() (Bool, error)
@@ -20,9 +17,18 @@ type Bool struct {
 	Valid bool
 }
 
-func (b *Bool) ScanBool(v Bool) error {
-	*b = v
-	return nil
+func (*Bool) Type() ValueType {
+	return TypeBool
+}
+
+func (b *Bool) Equal(other CQType) bool {
+	if other == nil {
+		return false
+	}
+	if other, ok := other.(*Bool); ok {
+		return b.Valid == other.Valid && b.Bool == other.Bool 
+	}
+	return false
 }
 
 func (b Bool) BoolValue() (Bool, error) {

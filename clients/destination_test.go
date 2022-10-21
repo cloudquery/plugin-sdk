@@ -43,7 +43,7 @@ func TestDestinationClient(t *testing.T) {
 			}
 			defer func() {
 				if err := c.Terminate(); err != nil {
-					t.Fatalf("failed to terminate destination client: %v", err)
+					t.Logf("failed to terminate destination client: %v", err)
 				}
 			}()
 			if err := c.Initialize(ctx, specs.Destination{}); err != nil {

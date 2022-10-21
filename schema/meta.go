@@ -55,18 +55,19 @@ var CqSourceNameColumnD = Column{
 func cqUUIDResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		uuidGen := uuid.New()
-		r.Set(c.Name, uuidGen)
+		b, _ := uuidGen.MarshalBinary()
+		r.Set(c.Name, b)
 		return nil
 	}
 }
 
 func parentCqUUIDResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
-		if r.Parent == nil {
-			return nil
-		}
-		parentCqID := r.Parent.Get(CqIDColumn.Name)
-		r.Set(c.Name, parentCqID)
+		// if r.Parent == nil {
+		// 	return nil
+		// }
+		// parentCqID := r.Parent.Get(CqIDColumn.Name)
+		// r.Set(c.Name, parentCqID)
 		return nil
 	}
 }

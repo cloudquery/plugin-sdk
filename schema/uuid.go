@@ -19,9 +19,26 @@ type UUID struct {
 	Valid bool
 }
 
-func (b *UUID) ScanUUID(v UUID) error {
-	*b = v
-	return nil
+func NewMustUUID(src any) *UUID {
+	r := &UUID{}
+	if err := r.Scan(src); err != nil {
+		panic(err)
+	}
+	return r
+}
+
+func (*UUID) Type() ValueType {
+	return TypeUUID
+}
+
+func (b *UUID) Equal(other CQType) bool {
+	if other == nil {
+		return false
+	}
+	if other, ok := other.(*UUID); ok {
+		return b.Valid == other.Valid && b.Bytes == other.Bytes
+	}
+	return false
 }
 
 func (b UUID) UUIDValue() (UUID, error) {
@@ -68,10 +85,17 @@ func (dst *UUID) Scan(src any) error {
 			return err
 		}
 		*dst = UUID{Bytes: buf, Valid: true}
-		return nil
+	case []byte:
+		if len(src) != 16 {
+			return fmt.Errorf("cannot scan %T to UUID. incorrect length %d", src, len(src))
+		}
+		*dst = UUID{Bytes: [16]byte{}, Valid: true}
+		copy(dst.Bytes[:], src)
+	default:
+		return fmt.Errorf("cannot scan %T to UUID", src)
 	}
 
-	return fmt.Errorf("cannot scan %T", src)
+	return nil
 }
 
 // Value implements the database/sql/driver Valuer interface.

@@ -29,18 +29,18 @@ func (p *SourcePlugin) resolveTable(ctx context.Context, table *schema.Table, cl
 					scope.SetTag("table", table.Name)
 					sentry.CurrentHub().CaptureMessage(stack)
 				})
-				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
+				p.logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
 				atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Panics, 1)
 			}
 			close(res)
 		}()
-		logger.Debug().Msg("table resolver started")
+		p.logger.Debug().Msg("table resolver started")
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
-			logger.Error().Err(err).Msg("table resolver finished with error")
+			p.logger.Error().Err(err).Msg("table resolver finished with error")
 			atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Errors, 1)
 			return
 		}
-		logger.Debug().Msg("table resolver finished successfully")
+		p.logger.Debug().Msg("table resolver finished successfully")
 	}()
 
 	resolvedObjects := make(chan *schema.Resource)
@@ -60,7 +60,7 @@ func (p *SourcePlugin) resolveTable(ctx context.Context, table *schema.Table, cl
 		}
 	}
 	// we don't need any waitgroups here because we are waiting for the channel to close
-	logger.Info().Msg("fetch table finished")
+	p.logger.Info().Msg("fetch table finished")
 	return nil
 }
 
@@ -102,13 +102,14 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	defer func() {
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
-			sentry.WithScope(func(scope *sentry.Scope) {
-				scope.SetTag("table", table.Name)
-				sentry.CurrentHub().CaptureMessage(stack)
-			})
-			logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("object resolver finished with panic")
+			// sentry.WithScope(func(scope *sentry.Scope) {
+			// 	scope.SetTag("table", table.Name)
+			// 	sentry.CurrentHub().CaptureMessage(stack)
+			// })
+			p.logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("object resolver finished with panic")
 			atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Panics, 1)
 		}
+		
 	}()
 	if table.PreResourceResolver != nil {
 		logger.Trace().Msg("pre resource resolver started")

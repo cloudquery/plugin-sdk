@@ -27,7 +27,7 @@ func (c *testDestinationClient) Migrate(ctx context.Context, tables schema.Table
 	return nil
 }
 
-func (c *testDestinationClient) Write(ctx context.Context, res <-chan *schema.DestinationResource) error {
+func (c *testDestinationClient) Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error {
 	for _ = range res {
 	}
 	return nil
@@ -37,7 +37,7 @@ func (c *testDestinationClient) Stats() DestinationStats {
 	return DestinationStats{}
 }
 
-func (c *testDestinationClient) DeleteStale(ctx context.Context, tables []string, sourceName string, syncTime time.Time) error {
+func (c *testDestinationClient) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
 	return nil	
 }
 
