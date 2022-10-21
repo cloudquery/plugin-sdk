@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/versions"
@@ -139,6 +140,10 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 	go func() {
 		defer c.wg.Done()
 		if err := cmd.Wait(); err != nil {
+			if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == -1 {
+				// process killed by our own signal, this is expected
+				return
+			}
 			c.cmdWaitErr = err
 			c.logger.Error().Err(err).Str("plugin", path).Msg("plugin exited")
 		}
@@ -177,8 +182,8 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 	}
 	c.conn, err = grpc.DialContext(ctx, c.grpcSocketName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock(), grpc.WithContextDialer(dialer))
 	if err != nil {
-		if err := cmd.Process.Kill(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to kill plugin process")
+		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+			c.logger.Error().Err(err).Msg("failed to stop plugin process")
 		}
 		return err
 	}
@@ -276,8 +281,8 @@ func (c *SourceClient) Terminate() error {
 		}
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
-		if err := c.cmd.Process.Kill(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to kill process")
+		if err := c.cmd.Process.Signal(syscall.SIGTERM); err != nil {
+			c.logger.Error().Err(err).Msg("failed to stop process")
 			return err
 		}
 	}
