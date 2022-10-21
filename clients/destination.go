@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
@@ -31,7 +30,6 @@ type DestinationClient struct {
 	pbClient       pb.DestinationClient
 	directory      string
 	cmd            *exec.Cmd
-	commandExited  chan bool
 	logger         zerolog.Logger
 	userConn       *grpc.ClientConn
 	conn           *grpc.ClientConn
@@ -134,11 +132,9 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 	}
 
 	c.wg.Add(1)
-	c.commandExited = make(chan bool)
 	go func() {
 		defer c.wg.Done()
 		if err := cmd.Wait(); err != nil {
-			c.commandExited <- true
 			if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == -1 {
 				// process interrupted by our own signal, this is expected
 				c.logger.Info().Str("plugin", path).Msg("plugin exited")
@@ -312,21 +308,9 @@ func (c *DestinationClient) Terminate() error {
 		}
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
-		if err := c.cmd.Process.Signal(syscall.SIGTERM); err != nil {
-			c.logger.Error().Err(err).Msg("failed to stop plugin process")
+		if err := c.cmd.Process.Kill(); err != nil {
+			c.logger.Error().Err(err).Msg("failed to kill plugin process")
 			return err
-		}
-
-		// check that plugin has exited after 5 seconds, otherwise kill it
-		timeout := time.After(5 * time.Second)
-		select {
-		case <-c.commandExited:
-			break
-		case <-timeout:
-			c.logger.Error().Msg("killing plugin process after timeout")
-			if err := c.cmd.Process.Kill(); err != nil {
-				c.logger.Error().Err(err).Msg("failed to kill plugin process")
-			}
 		}
 	}
 
