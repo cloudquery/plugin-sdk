@@ -43,7 +43,7 @@ type DestinationPlugin struct {
 	logger zerolog.Logger
 }
 
-const writeWorkers = 2
+const writeWorkers = 1
 
 func NewDestinationPlugin(name string, version string, newDestinationClient NewDestinationClientFunc) *DestinationPlugin {
 	p := &DestinationPlugin{
@@ -85,8 +85,8 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 }
 
 func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan *schema.DestinationResource) error {
+	SetDestinationManagedCqColumns(tables)
 	ch := make(chan *schema.DestinationResource)
-
 	eg, ctx := errgroup.WithContext(ctx)
 	// given most destination plugins writing in batch we are using a worker pool to write in parallel
 	// it might not generalize well and we might need to move it to each destination plugin implementation.
@@ -99,6 +99,8 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	_ = sourceColumn.Set(sourceName)
 	syncTimeColumn := &cqtypes.Timestamptz{}
 	_ = syncTimeColumn.Set(syncTime)
+	
+
 
 	for {
 		select {
@@ -106,7 +108,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 			res = nil
 		case r, ok := <-res:
 			if ok {
-				r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
+				r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)		
 				ch <- r
 			} else {
 				res = nil

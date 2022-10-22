@@ -65,14 +65,17 @@ func cqUUIDResolver() ColumnResolver {
 func parentCqUUIDResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		if r.Parent == nil {
+			r.Set(c.Name, nil)
 			return nil
 		}
 		parentCqID := r.Parent.Get(CqIDColumn.Name)
 		if parentCqID == nil {
+			r.Set(c.Name, nil)
 			return nil
 		}
 		pUUID, ok := parentCqID.(*cqtypes.UUID)
 		if !ok {
+			r.Set(c.Name, nil)
 			return nil
 		}
 		r.Set(c.Name, pUUID.Bytes)

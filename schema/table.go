@@ -64,6 +64,10 @@ func (tt Tables) Get(name string) *Table {
 		if t.Name == name {
 			return t
 		}
+		table := t.Relations.Get(name)
+		if table != nil {
+			return table
+		}
 	}
 	return nil
 }

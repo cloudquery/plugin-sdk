@@ -37,6 +37,80 @@ func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 		Table:  t,
 		data:   make(CQTypes, len(t.Columns)),
 	}
+	for i := range r.data {
+		switch r.Table.Columns[i].Type {
+		case TypeBool:
+			r.data[i] = &cqtypes.Bool{
+				Status: cqtypes.Null,
+			}
+		case TypeInt:
+			r.data[i] = &cqtypes.Int8{
+				Status: cqtypes.Null,
+			}
+		case TypeFloat:
+			r.data[i] = &cqtypes.Float8{
+				Status: cqtypes.Null,
+			}
+		case TypeUUID:
+			r.data[i] = &cqtypes.UUID{
+				Status: cqtypes.Null,
+			}
+		case TypeString:
+			r.data[i] = &cqtypes.Text{
+				Status: cqtypes.Null,
+			}
+		case TypeByteArray:
+			r.data[i] = &cqtypes.Bytea{
+				Status: cqtypes.Null,
+			}
+		case TypeStringArray:
+			r.data[i] = &cqtypes.TextArray{
+				Status: cqtypes.Null,
+			}
+		case TypeIntArray:
+			r.data[i] = &cqtypes.Int8Array{
+				Status: cqtypes.Null,
+			}
+		case TypeTimestamp:
+			r.data[i] = &cqtypes.Timestamptz{
+				Status: cqtypes.Null,
+			}
+		case TypeJSON:
+			r.data[i] = &cqtypes.JSON{
+				Status: cqtypes.Null,
+			}
+		case TypeUUIDArray:
+			r.data[i] = &cqtypes.UUIDArray{
+				Status: cqtypes.Null,
+			}
+		case TypeInet:
+			r.data[i] = &cqtypes.Inet{
+				Status: cqtypes.Null,
+			}
+		case TypeInetArray:
+			r.data[i] = &cqtypes.InetArray{
+				Status: cqtypes.Null,
+			}
+		case TypeCIDR:
+			r.data[i] = &cqtypes.CIDR{
+				Status: cqtypes.Null,
+			}
+		case TypeCIDRArray:
+			r.data[i] = &cqtypes.CIDRArray{
+				Status: cqtypes.Null,
+			}
+		case TypeMacAddr:
+			r.data[i] = &cqtypes.Macaddr{
+				Status: cqtypes.Null,
+			}
+		case TypeMacAddrArray:
+			r.data[i] = &cqtypes.MacaddrArray{
+				Status: cqtypes.Null,
+			}
+		default:
+			panic(fmt.Errorf("unsupported type %s", r.Table.Columns[i].Type.String()))
+		}
+	}
 	return &r
 }
 
@@ -68,47 +142,7 @@ func (r *Resource) Set(columnName string, value interface{}) error {
 		// this also saves additional checks in our testing code
 		panic(columnName + " column not found")
 	}
-	var err error
-	switch r.Table.Columns[index].Type {
-	case TypeBool:
-		r.data[index] = &cqtypes.Bool{}
-	case TypeInt:
-		r.data[index] = &cqtypes.Int8{}
-	case TypeFloat:
-		r.data[index] = &cqtypes.Float8{}
-	case TypeUUID:
-		r.data[index] = &cqtypes.UUID{}
-	case TypeString:
-		r.data[index] = &cqtypes.Text{}
-	case TypeByteArray:
-		r.data[index] = &cqtypes.Bytea{}
-	case TypeStringArray:
-		r.data[index] = &cqtypes.TextArray{}
-	case TypeIntArray:
-		r.data[index] = &cqtypes.Int8Array{}
-	case TypeTimestamp:
-		r.data[index] = &cqtypes.Timestamptz{}
-	case TypeJSON:
-		r.data[index] = &cqtypes.JSON{}
-	case TypeUUIDArray:
-		r.data[index] = &cqtypes.UUIDArray{}
-	case TypeInet:
-		r.data[index] = &cqtypes.Inet{}
-	case TypeInetArray:
-		r.data[index] = &cqtypes.InetArray{}
-	case TypeCIDR:
-		r.data[index] = &cqtypes.CIDR{}
-	case TypeCIDRArray:
-		r.data[index] = &cqtypes.CIDRArray{}
-	case TypeMacAddr:
-		r.data[index] = &cqtypes.Macaddr{}
-	case TypeMacAddrArray:
-		r.data[index] = &cqtypes.MacaddrArray{}
-	default:
-		panic(fmt.Errorf("unsupported type %s", r.Table.Columns[index].Type.String()))
-	}
-	err = r.data[index].Set(value)
-	if err != nil {
+	if err := r.data[index].Set(value); err != nil {
 		panic(err)
 	}
 	return nil

@@ -14,6 +14,8 @@ type NameTransformer func(reflect.StructField) (string, error)
 
 var defaultCaser = caser.New()
 
+var typeOfBytes = reflect.TypeOf([]byte(nil))
+
 func DefaultNameTransformer(field reflect.StructField) (string, error) {
 	name := field.Name
 	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
@@ -34,6 +36,9 @@ func DefaultTypeTransformer(v reflect.StructField) (schema.ValueType, error) {
 
 func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	k := v.Kind()
+	if v == typeOfBytes {
+		return schema.TypeByteArray, nil
+	}
 	switch k {
 	case reflect.Pointer:
 		return defaultGoTypeToSchemaType(v.Elem())
