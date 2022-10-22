@@ -4,6 +4,8 @@ import (
 	"context"
 	"reflect"
 	"testing"
+
+	"github.com/cloudquery/plugin-sdk/cqtypes"
 )
 
 var resolverTestTable = &Table{
@@ -32,7 +34,7 @@ var resolverTestCases = []struct {
 		Column:               resolverTestTable.Columns[0],
 		ColumnResolver:       PathResolver("PathResolver"),
 		Resource:             NewResourceData(resolverTestTable, nil, resolverTestItem),
-		ExpectedResourceData: []interface{}{&String{String: "test", Valid: true}},
+		ExpectedResourceData: []interface{}{&cqtypes.Text{String: "test", Status: cqtypes.Present}},
 	},
 }
 

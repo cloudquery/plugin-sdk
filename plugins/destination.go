@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -94,10 +95,10 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 			return p.client.Write(ctx, tables, ch)
 		})
 	}
-	sourceColumn := &schema.String{}
-	_ = sourceColumn.Scan(sourceName)
-	syncTimeColumn := &schema.Timestamptz{}
-	_ = syncTimeColumn.Scan(syncTime)
+	sourceColumn := &cqtypes.Text{}
+	_ = sourceColumn.Set(sourceName)
+	syncTimeColumn := &cqtypes.Timestamptz{}
+	_ = syncTimeColumn.Set(syncTime)
 
 	for {
 		select {

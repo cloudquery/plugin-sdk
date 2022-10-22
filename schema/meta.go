@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/google/uuid"
 )
 
@@ -70,7 +71,7 @@ func parentCqUUIDResolver() ColumnResolver {
 		if parentCqID == nil {
 			return nil
 		}
-		pUUID, ok := parentCqID.(*UUID)
+		pUUID, ok := parentCqID.(*cqtypes.UUID)
 		if !ok {
 			return nil
 		}

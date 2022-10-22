@@ -229,12 +229,16 @@ func (c *DestinationClient) Write(ctx context.Context, tables schema.Tables, sou
 	if err != nil {
 		return fmt.Errorf("failed to marshal tables: %w", err)
 	}
+	if err := saveClient.Send(&pb.Write2_Request{
+		Tables:    b,
+		Source:    source,
+		Timestamp: timestamppb.New(syncTime),
+	}); err != nil {
+		return fmt.Errorf("failed to send tables: %w", err)
+	}
 	for resource := range resources {
 		if err := saveClient.Send(&pb.Write2_Request{
-			Tables:    b,
 			Resource:  resource,
-			Source:    source,
-			Timestamp: timestamppb.New(syncTime),
 		}); err != nil {
 			return fmt.Errorf("failed to call Write.Send: %w", err)
 		}

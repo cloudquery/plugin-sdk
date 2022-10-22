@@ -53,8 +53,8 @@ message Sync2 {
     bytes spec = 1;
   }
   message Response {
-        // marshalled *schema.Resources
-        bytes resource = 1;
+    // marshalled *schema.Resources
+    bytes resource = 1;
   }
 }
 

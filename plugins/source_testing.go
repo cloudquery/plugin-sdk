@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 )
@@ -95,20 +96,20 @@ func validateResources(t *testing.T, resources []*schema.Resource) {
 	columnsWithValues := make([]bool, len(table.Columns))
 
 	for _, resource := range resources {
-		destResource := resource.ToDestinationResource()
-		for i, value := range destResource.Data {
+		for i, value := range resource.GetValues() {
 			if value == nil {
 				continue
 			}
-
-			columnsWithValues[i] = true
+			if value.Get() != nil && value.Get() != cqtypes.Undefined{
+				columnsWithValues[i] = true
+			}
 
 		}
 	}
 
 	// Make sure every column has at least one value.
 	for i, hasValue := range columnsWithValues {
-		if !hasValue {
+		if !hasValue && !(table.Columns[i].Name == "_cq_parent_id" && table.Parent == nil) {
 			t.Errorf("table: %s column %s has no values", table.Name, table.Columns[i].Name)
 		}
 	}

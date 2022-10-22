@@ -1,6 +1,9 @@
 package schema
 
 import (
+	"fmt"
+
+	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/google/uuid"
 )
 
@@ -10,7 +13,7 @@ type Resources []*Resource
 // generates an Id based on Table's Columns. Resource data can be accessed by the Get and Set methods
 type Resource struct {
 	// Original resource item that wa from prior resolve
-	item interface{}
+	Item interface{}
 	// Set if this is an embedded table
 	Parent *Resource
 	// internal fields
@@ -29,7 +32,7 @@ type DestinationResource struct {
 
 func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 	r := Resource{
-		item:   item,
+		Item:   item,
 		Parent: parent,
 		Table:  t,
 		data:   make(CQTypes, len(t.Columns)),
@@ -55,7 +58,10 @@ func (r *Resource) Get(columnName string) CQType {
 	return r.data[index]
 }
 
-func (r *Resource) Set(columnName string, value interface{}) {
+// Set sets a column with value. This does validation and conversion to
+// one of concrete CQTypes. it returns an error just for backward compatability
+// and panics in case it fails
+func (r *Resource) Set(columnName string, value interface{}) error {
 	index := r.Table.Columns.Index(columnName)
 	if index == -1 {
 		// we panic because we want to distinguish between code error and api error
@@ -65,39 +71,56 @@ func (r *Resource) Set(columnName string, value interface{}) {
 	var err error
 	switch r.Table.Columns[index].Type {
 	case TypeBool:
-		r.data[index] = &Bool{}
-		err = r.data[index].(*Bool).Scan(value)
+		r.data[index] = &cqtypes.Bool{}
 	case TypeInt:
-		r.data[index] = &Int64{}
-		err = r.data[index].(*Int64).Scan(value)
-	case TypeJSON:
-		r.data[index] = &Json{}
-		err = r.data[index].(*Json).Scan(value)
-	case TypeTimestamp:
-		r.data[index] = &Timestamptz{}
-		err = r.data[index].(*Timestamptz).Scan(value)
-	case TypeString:
-		r.data[index] = &String{}
-		err = r.data[index].(*String).Scan(value)
+		r.data[index] = &cqtypes.Int8{}
+	case TypeFloat:
+		r.data[index] = &cqtypes.Float8{}
 	case TypeUUID:
-		r.data[index] = &UUID{}
-		err = r.data[index].(*UUID).Scan(value)
+		r.data[index] = &cqtypes.UUID{}
+	case TypeString:
+		r.data[index] = &cqtypes.Text{}
 	case TypeByteArray:
-		r.data[index] = &ByteArray{}
-		err = r.data[index].(*ByteArray).Scan(value)
+		r.data[index] = &cqtypes.Bytea{}
+	case TypeStringArray:
+		r.data[index] = &cqtypes.TextArray{}
+	case TypeIntArray:
+		r.data[index] = &cqtypes.Int8Array{}
+	case TypeTimestamp:
+		r.data[index] = &cqtypes.Timestamptz{}
+	case TypeJSON:
+		r.data[index] = &cqtypes.JSON{}
+	case TypeUUIDArray:
+		r.data[index] = &cqtypes.UUIDArray{}
+	case TypeInet:
+		r.data[index] = &cqtypes.Inet{}
+	case TypeInetArray:
+		r.data[index] = &cqtypes.InetArray{}
+	case TypeCIDR:
+		r.data[index] = &cqtypes.CIDR{}
+	case TypeCIDRArray:
+		r.data[index] = &cqtypes.CIDRArray{}
+	case TypeMacAddr:
+		r.data[index] = &cqtypes.Macaddr{}
+	case TypeMacAddrArray:
+		r.data[index] = &cqtypes.MacaddrArray{}
+	default:
+		panic(fmt.Errorf("unsupported type %s", r.Table.Columns[index].Type.String()))
 	}
+	err = r.data[index].Set(value)
 	if err != nil {
 		panic(err)
 	}
+	return nil
 }
 
 // Override original item (this is useful for apis that follow list/details pattern)
 func (r *Resource) SetItem(item interface{}) {
-	r.item = item
+	r.Item = item
 }
 
 func (r *Resource) GetItem() interface{} {
-	return r.item
+	return r.Item
 }
 
 func (r *Resource) GetValues() CQTypes {
