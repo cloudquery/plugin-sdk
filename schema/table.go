@@ -196,8 +196,8 @@ func (t *Table) TableNames() []string {
 	return ret
 }
 
-// Call the table resolver with with all of it's relation for every reolved resource
-func (t *Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resourcesSem *semaphore.Weighted, resolvedResources chan<- *Resource) (summary SyncSummary) {
+// Resolve calls the table resolver with all of its relations for every resolved resource
+func (t *Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, resourcesSemaphores []*semaphore.Weighted, depth int, resolvedResources chan<- *Resource) (summary SyncSummary) {
 	tableStartTime := time.Now()
 	meta.Logger().Info().Str("table", t.Name).Msg("table resolver started")
 
@@ -228,6 +228,10 @@ func (t *Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, 
 		meta.Logger().Debug().Str("table", t.Name).TimeDiff("duration", time.Now(), startTime).Msg("table resolver finished successfully")
 	}(&summary)
 	tableResources := 0
+	var resourcesSem *semaphore.Weighted
+	if depth < len(resourcesSemaphores) {
+		resourcesSem = resourcesSemaphores[depth]
+	}
 	for elem := range res {
 		objects := helpers.InterfaceSlice(elem)
 		if len(objects) == 0 {
@@ -235,10 +239,10 @@ func (t *Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, 
 		}
 		for i := range objects {
 			i := i
-
-			// right now we support concurrency only for objects/resources of parent tables
+			// if this function is called without semaphores reserved for it, we call further
+			// resolvers without concurrency
 			if resourcesSem == nil {
-				summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
+				summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resourcesSemaphores, depth, resolvedResources))
 			} else {
 				if err := resourcesSem.Acquire(ctx, 1); err != nil {
 					meta.Logger().Error().Err(err).Msg("failed to acquire semaphore")
@@ -249,7 +253,7 @@ func (t *Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, 
 					defer resourcesSem.Release(1)
 					defer wg.Done()
 					//nolint:all
-					summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resolvedResources))
+					summary.Merge(t.resolveObject(ctx, meta, parent, objects[i], resourcesSemaphores, depth, resolvedResources))
 				}()
 			}
 		}
@@ -260,7 +264,7 @@ func (t *Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, 
 	return summary
 }
 
-func (t *Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resolvedResources chan<- *Resource) (summary SyncSummary) {
+func (t *Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Resource, item interface{}, resourcesSemaphores []*semaphore.Weighted, depth int, resolvedResources chan<- *Resource) (summary SyncSummary) {
 	resource := NewResourceData(t, parent, item)
 	objectStartTime := time.Now()
 	csr := caser.New()
@@ -323,7 +327,7 @@ func (t *Table) resolveObject(ctx context.Context, meta ClientMeta, parent *Reso
 	resolvedResources <- resource
 
 	for _, rel := range t.Relations {
-		summary.Merge(rel.Resolve(ctx, meta, resource, nil, resolvedResources))
+		summary.Merge(rel.Resolve(ctx, meta, resource, resourcesSemaphores, depth+1, resolvedResources))
 	}
 
 	return summary

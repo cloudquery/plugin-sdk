@@ -118,26 +118,35 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 	if err != nil {
 		return nil, err
 	}
+	logger.Debug().Interface("tables", tableNames).Msg("got table names")
+
+	logger.Info().Interface("spec", spec).Msg("starting sync")
 
 	c, err := p.newExecutionClient(ctx, logger, spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
-	logger.Info().Interface("spec", spec).Msg("starting sync")
-	tableSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.TableConcurrency))
+
+	tables, maxDepth := p.filterTables(logger, tableNames)
+	if len(tables) == 0 {
+		return nil, fmt.Errorf("no valid tables selected")
+	}
+
+	// create semaphores to control concurrency: one semaphore per level in the table dependency tree
+	tableSemaphores := make([]*semaphore.Weighted, maxDepth)
+	for i := 0; i < maxDepth; i++ {
+		tableSemaphores[i] = semaphore.NewWeighted(helpers.Uint64ToInt64(spec.TableConcurrency))
+	}
+	resourceSemaphores := make([]*semaphore.Weighted, maxDepth)
+	for i := 0; i < maxDepth; i++ {
+		resourceSemaphores[i] = semaphore.NewWeighted(helpers.Uint64ToInt64(spec.ResourceConcurrency))
+	}
 	wg := sync.WaitGroup{}
-	resourceSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.ResourceConcurrency))
 	summary := schema.SyncSummary{}
 	startTime := time.Now()
 
-	logger.Debug().Interface("tables", tableNames).Msg("got table names")
-
-	for _, table := range p.tables {
+	for _, table := range tables {
 		table := table
-		if !funk.ContainsString(tableNames, table.Name) {
-			logger.Debug().Str("table", table.Name).Msg("skipping table")
-			continue
-		}
 		clients := []schema.ClientMeta{c}
 		if table.Multiplex != nil {
 			clients = table.Multiplex(c)
@@ -145,16 +154,16 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 		for _, client := range clients {
 			client := client
 			wg.Add(1)
-			if err := tableSem.Acquire(ctx, 1); err != nil {
+			if err := tableSemaphores[0].Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				return nil, err
 			}
 			go func() {
 				defer wg.Done()
-				defer tableSem.Release(1)
+				defer tableSemaphores[0].Release(1)
 				// TODO: prob introduce client.Identify() to be used in logs
 
-				tableSummary := table.Resolve(ctx, client, nil, resourceSem, res)
+				tableSummary := table.Resolve(ctx, client, nil, resourceSemaphores, 1, res)
 				atomic.AddUint64(&summary.Resources, tableSummary.Resources)
 				atomic.AddUint64(&summary.Errors, tableSummary.Errors)
 				atomic.AddUint64(&summary.Panics, tableSummary.Panics)
@@ -164,6 +173,38 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 	wg.Wait()
 	logger.Info().Uint64("total_resources", summary.Resources).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return &summary, nil
+}
+
+func (p *SourcePlugin) filterTables(logger zerolog.Logger, tableNames []string) (tables schema.Tables, maxTableDepth int) {
+	for _, table := range p.tables {
+		if !funk.ContainsString(tableNames, table.Name) {
+			logger.Debug().Str("table", table.Name).Msg("skipping table")
+			continue
+		}
+		tables = append(tables, table)
+		seen := map[string]bool{}
+		maxDepth := p.maxDepth(table, seen)
+		if maxDepth > maxTableDepth {
+			maxTableDepth = maxDepth
+		}
+	}
+	return tables, maxTableDepth
+}
+
+// calculate max depth of a table recursively
+func (p *SourcePlugin) maxDepth(table *schema.Table, seen map[string]bool) int {
+	if _, found := seen[table.Name]; found {
+		panic("circular dependency detected for table " + table.Name)
+	}
+	seen[table.Name] = true
+	mx := 0
+	for _, rel := range table.Relations {
+		relMax := p.maxDepth(rel, seen)
+		if relMax > mx {
+			mx = relMax
+		}
+	}
+	return 1 + mx
 }
 
 func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]string, error) {
