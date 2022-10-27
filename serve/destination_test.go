@@ -131,7 +131,7 @@ func TestDestination(t *testing.T) {
 	resources := make(chan []byte, 1)
 	resources <- b
 	close(resources)
-	if err := c.Write(ctx, tables, "test", time.Now(), resources); err != nil {
+	if err := c.Write2(ctx, tables, "test", time.Now(), resources); err != nil {
 		t.Fatal(err)
 	}
 

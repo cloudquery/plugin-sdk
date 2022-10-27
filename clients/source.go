@@ -20,9 +20,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
 )
 
 // SourceClient
@@ -167,21 +165,6 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 	return nil
 }
 
-func (c *SourceClient) GetProtocolVersion(ctx context.Context) (uint64, error) {
-	res, err := c.pbClient.GetProtocolVersion(ctx, &pb.GetProtocolVersion_Request{})
-	if err != nil {
-		s, ok := status.FromError(err)
-		if !ok {
-			return 0, fmt.Errorf("failed to cal GetProtocolVersion: %w", err)
-		}
-		if s.Code() != codes.Unimplemented {
-			return 0, err
-		}
-		c.logger.Warn().Err(err).Msg("plugin does not support protocol version. assuming protocol version 1")
-		return 1, nil
-	}
-	return res.Version, nil
-}
 
 func (c *SourceClient) Name(ctx context.Context) (string, error) {
 	res, err := c.pbClient.GetName(ctx, &pb.GetName_Request{})
@@ -227,6 +210,36 @@ func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 // in the given channel. res is marshaled schema.Resource. We are not unmarshalling this for performance reasons
 // as usually this is sent over-the-wire anyway to a source plugin
 func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- []byte) error {
+	b, err := json.Marshal(spec)
+	if err != nil {
+		return fmt.Errorf("failed to marshal source spec: %w", err)
+	}
+	stream, err := c.pbClient.Sync(ctx, &pb.Sync_Request{
+		Spec: b,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to call Sync: %w", err)
+	}
+	for {
+		r, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return fmt.Errorf("failed to fetch resources from stream: %w", err)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case res <- r.Resource:
+		}
+	}
+}
+
+// Sync start syncing for the source client per the given spec and returning the results
+// in the given channel. res is marshaled schema.Resource. We are not unmarshalling this for performance reasons
+// as usually this is sent over-the-wire anyway to a source plugin
+func (c *SourceClient) Sync2(ctx context.Context, spec specs.Source, res chan<- []byte) error {
 	b, err := json.Marshal(spec)
 	if err != nil {
 		return fmt.Errorf("failed to marshal source spec: %w", err)
@@ -293,4 +306,16 @@ func (c *SourceClient) Terminate() error {
 	}
 
 	return nil
+}
+
+func (c *SourceClient) GetSyncSummary(ctx context.Context) (*schema.SyncSummary, error) {
+	res, err := c.pbClient.GetSyncSummary(ctx, &pb.GetSyncSummary_Request{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to call GetSyncSummary: %w", err)
+	}
+	var summary schema.SyncSummary
+	if err := json.Unmarshal(res.Summary, &summary); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal sync summary: %w", err)
+	}
+	return &summary, nil
 }

@@ -19,9 +19,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -162,21 +160,6 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 	return nil
 }
 
-func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, error) {
-	res, err := c.pbClient.GetProtocolVersion(ctx, &pb.GetProtocolVersion_Request{})
-	if err != nil {
-		s, ok := status.FromError(err)
-		if !ok {
-			return 0, fmt.Errorf("failed to cal GetProtocolVersion: %w", err)
-		}
-		if s.Code() != codes.Unimplemented {
-			return 0, err
-		}
-		c.logger.Warn().Err(err).Msg("plugin does not support protocol version. assuming protocol version 1")
-		return 1, nil
-	}
-	return res.Version, nil
-}
 
 func (c *DestinationClient) Name(ctx context.Context) (string, error) {
 	res, err := c.pbClient.GetName(ctx, &pb.GetName_Request{})
@@ -220,7 +203,32 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 	return nil
 }
 
-func (c *DestinationClient) Write(ctx context.Context, tables schema.Tables, source string, syncTime time.Time, resources <-chan []byte) error {
+// Write writes rows as they are received from the channel to the destination plugin.
+// resources is marshaled schema.Resource. We are not marshalling this inside the function
+// because usually it is alreadun marshalled from the destination plugin.
+func (c *DestinationClient) Write(ctx context.Context, source string, syncTime time.Time, resources <-chan []byte) (uint64, error) {
+	saveClient, err := c.pbClient.Write(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to call Write: %w", err)
+	}
+	for resource := range resources {
+		if err := saveClient.Send(&pb.Write_Request{
+			Resource:  resource,
+			Source:    source,
+			Timestamp: timestamppb.New(syncTime),
+		}); err != nil {
+			return 0, fmt.Errorf("failed to call Write.Send: %w", err)
+		}
+	}
+	res, err := saveClient.CloseAndRecv()
+	if err != nil {
+		return 0, fmt.Errorf("failed to CloseAndRecv client: %w", err)
+	}
+
+	return res.FailedWrites, nil
+}
+
+func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, source string, syncTime time.Time, resources <-chan []byte) error {
 	saveClient, err := c.pbClient.Write2(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to call Write2: %w", err)
