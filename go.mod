@@ -17,7 +17,7 @@ require (
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
-	github.com/thoas/go-funk v0.9.3-0.20221027085339-5573bc209e28
+	github.com/thoas/go-funk v0.9.2
 	github.com/xeipuuv/gojsonschema v1.2.0
 	golang.org/x/exp v0.0.0-20221002003631-540bb7301a08
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
