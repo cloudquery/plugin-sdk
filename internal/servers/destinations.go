@@ -104,24 +104,32 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 		if err != nil {
 			if err == io.EOF {
 				close(resources)
-				eg.Wait()
+				if err := eg.Wait(); err != nil {
+					return fmt.Errorf("failed to wait: %w", err)
+				}
 				return msg.SendAndClose(&pb.Write2_Response{})
 			}
 			close(resources)
-			eg.Wait()
-			return fmt.Errorf("write: failed to receive msg: %w", err)
+			if err := eg.Wait(); err != nil {
+				s.Logger.Error().Err(err).Msg("failed to wait")
+			}
+			return fmt.Errorf("failed to receive msg: %w", err)
 		}
 		var resource *schema.DestinationResource
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
-			eg.Wait()
+			if err := eg.Wait(); err != nil {
+				s.Logger.Error().Err(err).Msg("failed to wait")
+			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
 		select {
 		case resources <- resource:
 		case <-ctx.Done():
 			close(resources)
-			eg.Wait()
+			if err := eg.Wait(); err != nil {
+				s.Logger.Error().Err(err).Msg("failed to wait")
+			}
 			return ctx.Err()
 		}
 	}

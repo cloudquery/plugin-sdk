@@ -22,7 +22,6 @@ func PathResolver(path string) ColumnResolver {
 // ParentColumnResolver resolves a column from the parent's table data, if name isn't set the column will be set to null
 func ParentColumnResolver(name string) ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
-		r.Set(c.Name, r.Parent.Get(name))
-		return nil
+		return r.Set(c.Name, r.Parent.Get(name))
 	}
 }

@@ -35,7 +35,8 @@ func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 	return nil
 }
 func (*testDestinationClient) Write(_ context.Context, _ schema.Tables, resources <-chan *schema.DestinationResource) error {
-	for _ = range resources {
+	//nolint:revive
+	for range resources {
 	}
 	return nil
 }
@@ -122,7 +123,9 @@ func TestDestination(t *testing.T) {
 	}
 
 	resource := schema.NewResourceData(testTable(), nil, nil)
-	resource.Set("test_column", 5)
+	if err := resource.Set("test_column", 5); err != nil {
+		t.Fatal(err)
+	}
 	destResource := resource.ToDestinationResource()
 	b, err := json.Marshal(destResource)
 	if err != nil {
