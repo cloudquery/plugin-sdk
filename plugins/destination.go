@@ -99,22 +99,18 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	_ = sourceColumn.Set(sourceName)
 	syncTimeColumn := &cqtypes.Timestamptz{}
 	_ = syncTimeColumn.Set(syncTime)
-	
-
-
-	for {
+	stop := false
+	for r := range res {
+		r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)		
 		select {
 		case <-ctx.Done():
-			res = nil
-		case r, ok := <-res:
-			if ok {
-				r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)		
-				ch <- r
-			} else {
-				res = nil
-			}
+			stop = true
+		case ch <- r:
+		case <-time.After(5 * time.Second):
+			p.logger.Warn().Msg("destination write channel is blocked for 10 seconds, stopping write")
+			stop = true
 		}
-		if res == nil {
+		if stop {
 			break
 		}
 	}

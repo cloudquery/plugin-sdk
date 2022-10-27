@@ -3,14 +3,11 @@ package plugins
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
-	"github.com/thoas/go-funk"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -47,7 +44,13 @@ type SourcePlugin struct {
 	resourceSem *semaphore.Weighted
 	// tableSem is a semaphore that limits the number of concurrent tables being fetched
 	tableSem *semaphore.Weighted
+	// maxDepth is the max depth of tables
+	maxDepth uint64
 }
+
+const (
+	maxAllowedDepth = 3
+)
 
 func (s *TableClientStats) Equal(other *TableClientStats) bool {
 	return s.Resources == other.Resources && s.Errors == other.Errors && s.Panics == other.Panics
@@ -93,12 +96,13 @@ func (s *SourceStats) initWithTables(tables schema.Tables) {
 	}
 }
 
-func (s *SourceStats) initWithClients(clients []schema.ClientMeta) {
+func (s *SourceStats) initWithClients(table *schema.Table, clients []schema.ClientMeta) {
 	for _, client := range clients {
-		for table := range s.TableClient {
-			if _, ok := s.TableClient[table][client.Name()]; !ok {
-				s.TableClient[table][client.Name()] = &TableClientStats{}
-			}
+		if _, ok := s.TableClient[table.Name][client.Name()]; !ok {
+			s.TableClient[table.Name][client.Name()] = &TableClientStats{}
+		}
+		for _, relation := range table.Relations {
+			s.initWithClients(relation, clients)
 		}
 	}
 }
@@ -116,12 +120,25 @@ func addInternalColumns(tables []*schema.Table) {
 }
 
 // Set parent links on relational tables
-func setParents(tables []*schema.Table) {
+func setParents(tables schema.Tables, parent *schema.Table) {
 	for _, table := range tables {
-		for i := range table.Relations {
-			table.Relations[i].Parent = table
+		table.Parent = parent
+		setParents(table.Relations, table)
+	}
+}
+
+func maxDepth(tables schema.Tables) uint64 {
+	var depth uint64
+	if len(tables) == 0 {
+		return 0
+	}
+	for _, table := range tables {
+		newDepth := 1 + maxDepth(table.Relations)
+		if newDepth > depth {
+			depth = newDepth
 		}
 	}
+	return depth
 }
 
 // NewSourcePlugin returns a new plugin with a given name, version, tables, newExecutionClient
@@ -135,11 +152,16 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 		stats:              SourceStats{TableClient: make(map[string]map[string]*TableClientStats)},
 	}
 	addInternalColumns(p.tables)
-	setParents(p.tables)
+	setParents(p.tables, nil)
 	if err := p.validate(); err != nil {
 		panic(err)
 	}
 	p.stats.initWithTables(p.tables)
+	p.maxDepth = maxDepth(p.tables)
+	if p.maxDepth > maxAllowedDepth {
+		panic(fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth))
+	}
+
 	return &p
 }
 
@@ -151,6 +173,7 @@ func (p *SourcePlugin) SetLogger(logger zerolog.Logger) {
 func (p *SourcePlugin) Tables() schema.Tables {
 	return p.tables
 }
+
 
 // Name return the name of this plugin
 func (p *SourcePlugin) Name() string {
@@ -166,6 +189,22 @@ func (p *SourcePlugin) Stats() SourceStats {
 	return p.stats
 }
 
+func filterParentTables(tables schema.Tables, filter []string) schema.Tables {
+	var res schema.Tables
+	if tables == nil {
+		return nil
+	}
+	if len(filter) == 0 {
+		return tables
+	}
+	for _, name := range filter {
+		if tables.Get(name) != nil {
+			res = append(res, tables.Get(name))
+		}
+	}
+	return res
+}
+
 // Sync is syncing data from the requested tables in spec to the given channel
 func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
 	spec.SetDefaults()
@@ -176,48 +215,15 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	if err != nil {
 		return err
 	}
+	tables := filterParentTables(p.tables, tableNames)
 
 	c, err := p.newExecutionClient(ctx, p.logger, spec)
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
-
-	p.tableSem = semaphore.NewWeighted(helpers.Uint64ToInt64(spec.TableConcurrency))
-	p.resourceSem = semaphore.NewWeighted(helpers.Uint64ToInt64(spec.ResourceConcurrency))
-	wg := sync.WaitGroup{}
 	startTime := time.Now()
-	p.logger.Info().Interface("spec", spec).Strs("tables", tableNames).Msg("starting sync")
-	for _, table := range p.tables {
-		table := table
-		if !funk.ContainsString(tableNames, table.Name) {
-			p.logger.Debug().Str("table", table.Name).Msg("skipping table")
-			continue
-		}
-		clients := []schema.ClientMeta{c}
-		if table.Multiplex != nil {
-			clients = table.Multiplex(c)
-		}
-		p.stats.initWithClients(clients)
+	p.syncDfs(ctx, spec, c, tables, res)
 
-		for _, client := range clients {
-			client := client
-			if err := p.tableSem.Acquire(ctx, 1); err != nil {
-				// This means context was cancelled
-				wg.Wait()
-				p.logger.Info().Err(err).Interface("stats", p.stats).TimeDiff("duration", time.Now(), startTime).Msg("sync was interrupted")
-				return err
-			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				defer p.tableSem.Release(1)
-				// not checking for error here as nothing much todo.
-				// the error is logged and this happens when context is cancelled
-				_ = p.resolveTable(ctx, table, client, nil, res)
-			}()
-		}
-	}
-	wg.Wait()
 	p.logger.Info().Interface("stats", p.stats).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return nil
 }

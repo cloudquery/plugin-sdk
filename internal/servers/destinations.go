@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -89,38 +89,38 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 	if err := json.Unmarshal(r.Tables, &tables); err != nil {
 		return fmt.Errorf("write: failed to unmarshal tables: %w", err)
 	}
+	sourceName := r.Source
+	syncTime := r.Timestamp.AsTime()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		s.Plugin.Write(msg.Context(), tables, r.Source, r.Timestamp.AsTime(), resources)
-	}()
+	eg, ctx := errgroup.WithContext(msg.Context())
+	eg.Go(func() error {
+		return s.Plugin.Write(msg.Context(), tables, sourceName, syncTime, resources)
+	})
 
 	for {
 		r, err := msg.Recv()
 		if err != nil {
 			if err == io.EOF {
 				close(resources)
-				wg.Wait()
+				eg.Wait()
 				return msg.SendAndClose(&pb.Write2_Response{})
 			}
 			close(resources)
-			wg.Wait()
+			eg.Wait()
 			return fmt.Errorf("write: failed to receive msg: %w", err)
 		}
 		var resource *schema.DestinationResource
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
-			wg.Wait()
+			eg.Wait()
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
 		select {
 		case resources <- resource:
-		case <-msg.Context().Done():
+		case <-ctx.Done():
 			close(resources)
-			wg.Wait()
-			return msg.Context().Err()
+			eg.Wait()
+			return ctx.Err()
 		}
 	}
 }
