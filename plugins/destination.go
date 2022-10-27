@@ -101,7 +101,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	_ = syncTimeColumn.Set(syncTime)
 	stop := false
 	for r := range res {
-		r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)		
+		r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
 		select {
 		case <-ctx.Done():
 			stop = true

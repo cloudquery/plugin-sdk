@@ -18,10 +18,9 @@ import (
 )
 
 const (
-	minTableConcurrency = 1
+	minTableConcurrency    = 1
 	minResourceConcurrency = 100
 )
-
 
 func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
 	// current DFS supports only parallization for top level tables and resources.
@@ -34,12 +33,13 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 		tableConcurrency = minTableConcurrency
 	}
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
-	
+
 	p.tableSem = semaphore.NewWeighted(int64(tableConcurrency))
 	p.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
 
 	var wg sync.WaitGroup
 	for _, table := range tables {
+		table := table
 		clients := []schema.ClientMeta{client}
 		if table.Multiplex != nil {
 			clients = table.Multiplex(client)
@@ -64,7 +64,6 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 	}
 	wg.Wait()
 }
-
 
 func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource) {
 	clientName := client.Name()
@@ -103,7 +102,6 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table,
 }
 
 func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource) {
-	
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
@@ -135,7 +133,6 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Ta
 		wg.Wait()
 	}()
 
-	
 	for resource := range resourcesChan {
 		resolvedResources <- resource
 		if resource.Table.Relations == nil {
@@ -148,7 +145,7 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Ta
 }
 
 func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item interface{}) *schema.Resource {
-	ctx, cancel := context.WithTimeout(ctx, 1 * time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 	resource := schema.NewResourceData(table, parent, item)
 	objectStartTime := time.Now()

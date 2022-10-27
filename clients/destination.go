@@ -160,7 +160,6 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 	return nil
 }
 
-
 func (c *DestinationClient) Name(ctx context.Context) (string, error) {
 	res, err := c.pbClient.GetName(ctx, &pb.GetName_Request{})
 	if err != nil {
@@ -246,7 +245,7 @@ func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, so
 	}
 	for resource := range resources {
 		if err := saveClient.Send(&pb.Write2_Request{
-			Resource:  resource,
+			Resource: resource,
 		}); err != nil {
 			return fmt.Errorf("failed to call Write.Send: %w", err)
 		}

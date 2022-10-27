@@ -28,7 +28,6 @@ func (dst *InetArray) Set(src interface{}) error {
 
 	// Attempt to match to select common types:
 	switch value := src.(type) {
-
 	case []*net.IPNet:
 		if value == nil {
 			*dst = InetArray{Status: Null}
@@ -202,4 +201,3 @@ func (dst InetArray) Get() interface{} {
 		return dst.Status
 	}
 }
-

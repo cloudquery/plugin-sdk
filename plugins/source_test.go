@@ -17,22 +17,22 @@ type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
-func testResolverSuccess(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
+func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- interface{}) error {
 	res <- map[string]interface{}{
 		"TestColumn": 3,
 	}
 	return nil
 }
 
-func testResolverPanic(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
+func testResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, chan<- interface{}) error {
 	panic("Resolver")
 }
 
-func testPreResourceResolverPanic(ctx context.Context, meta schema.ClientMeta, resource *schema.Resource) error {
+func testPreResourceResolverPanic(context.Context, schema.ClientMeta, *schema.Resource) error {
 	panic("PreResourceResolver")
 }
 
-func testColumnResolverPanic(ctx context.Context, meta schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
+func testColumnResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, schema.Column) error {
 	panic("ColumnResolver")
 }
 
@@ -123,7 +123,6 @@ type syncTestCase struct {
 	stats SourceStats
 	data  []schema.CQTypes
 }
-
 
 var syncTestCases = []syncTestCase{
 	{
@@ -231,7 +230,6 @@ func TestSync(t *testing.T) {
 			testSyncTable(t, tc)
 		})
 	}
-
 }
 
 func testSyncTable(t *testing.T, tc syncTestCase) {
@@ -285,5 +283,4 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 	if err := g.Wait(); err != nil {
 		t.Fatal(err)
 	}
-
 }

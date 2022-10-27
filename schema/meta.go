@@ -57,28 +57,23 @@ func cqUUIDResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		uuidGen := uuid.New()
 		b, _ := uuidGen.MarshalBinary()
-		r.Set(c.Name, b)
-		return nil
+		return r.Set(c.Name, b)
 	}
 }
 
 func parentCqUUIDResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		if r.Parent == nil {
-			r.Set(c.Name, nil)
-			return nil
+			return r.Set(c.Name, nil)
 		}
 		parentCqID := r.Parent.Get(CqIDColumn.Name)
 		if parentCqID == nil {
-			r.Set(c.Name, nil)
-			return nil
+			return r.Set(c.Name, nil)
 		}
 		pUUID, ok := parentCqID.(*cqtypes.UUID)
 		if !ok {
-			r.Set(c.Name, nil)
-			return nil
+			return r.Set(c.Name, nil)
 		}
-		r.Set(c.Name, pUUID.Bytes)
-		return nil
+		return r.Set(c.Name, pUUID.Bytes)
 	}
 }

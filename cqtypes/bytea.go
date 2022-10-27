@@ -2,7 +2,6 @@ package cqtypes
 
 import "fmt"
 
-
 type Bytea struct {
 	Bytes  []byte
 	Status Status

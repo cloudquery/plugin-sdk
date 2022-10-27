@@ -27,7 +27,6 @@ func (dst *UUIDArray) Set(src interface{}) error {
 
 	// Attempt to match to select common types:
 	switch value := src.(type) {
-
 	case [][16]byte:
 		if value == nil {
 			*dst = UUIDArray{Status: Null}
@@ -220,5 +219,3 @@ func (dst UUIDArray) Get() interface{} {
 		return dst.Status
 	}
 }
-
-

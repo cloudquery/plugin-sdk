@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-
 func TestMacaddrSet(t *testing.T) {
 	successfulTests := []struct {
 		source interface{}

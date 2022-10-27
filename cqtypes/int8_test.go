@@ -6,7 +6,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-
 func TestInt8Set(t *testing.T) {
 	successfulTests := []struct {
 		source interface{}
@@ -42,4 +41,3 @@ func TestInt8Set(t *testing.T) {
 		}
 	}
 }
-

@@ -39,4 +39,3 @@ func TestFloat8Set(t *testing.T) {
 		}
 	}
 }
-

@@ -22,9 +22,7 @@ type SourceServer struct {
 }
 
 func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
-	return &pb.GetProtocolVersion_Response{
-		Version: 1,
-	}, nil
+	return nil, status.Errorf(codes.Unimplemented, "method GetProtocolVersion is deprecated please upgrade client")
 }
 
 func (s *SourceServer) GetStats(context.Context, *pb.GetSourceStats_Request) (*pb.GetSourceStats_Response, error) {
@@ -59,7 +57,7 @@ func (s *SourceServer) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.
 	}, nil
 }
 
-func (s *SourceServer) GetSyncSummary(context.Context, *pb.GetSyncSummary_Request) (*pb.GetSyncSummary_Response, error) {
+func (*SourceServer) GetSyncSummary(context.Context, *pb.GetSyncSummary_Request) (*pb.GetSyncSummary_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSyncSummary is deprecated please upgrade client")
 }
 

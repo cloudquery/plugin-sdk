@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-
 const pgTimestamptzHourFormat = "2006-01-02 15:04:05.999999999Z07"
 const pgTimestamptzMinuteFormat = "2006-01-02 15:04:05.999999999Z07:00"
 const pgTimestamptzSecondFormat = "2006-01-02 15:04:05.999999999Z07:00:00"
@@ -77,7 +76,6 @@ func (dst Timestamptz) Get() interface{} {
 		return dst.Status
 	}
 }
-
 
 func (dst *Timestamptz) DecodeText(src []byte) error {
 	if src == nil {

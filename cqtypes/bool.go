@@ -10,7 +10,6 @@ type Bool struct {
 	Status Status
 }
 
-
 func (dst *Bool) Set(src interface{}) error {
 	if src == nil {
 		*dst = Bool{Status: Null}

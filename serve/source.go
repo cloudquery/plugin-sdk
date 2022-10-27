@@ -22,6 +22,11 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
+// lis used for unit testing grpc server and client
+var testSourceListener *bufconn.Listener
+
+const serveSourceShort = `Start source plugin server`
+
 type sourceServe struct {
 	plugin    *plugins.SourcePlugin
 	sentryDSN string
@@ -60,8 +65,8 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 	logFormat := newEnum([]string{"text", "json"}, "text")
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: serveShort,
-		Long:  serveShort,
+		Short: serveSourceShort,
+		Long:  serveSourceShort,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			zerologLevel, err := zerolog.ParseLevel(logLevel.String())

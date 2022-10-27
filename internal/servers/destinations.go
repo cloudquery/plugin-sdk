@@ -23,9 +23,7 @@ type DestinationServer struct {
 }
 
 func (*DestinationServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
-	return &pb.GetProtocolVersion_Response{
-		Version: 1,
-	}, nil
+	return nil, status.Errorf(codes.Unimplemented, "method GetProtocolVersion is deprecated please upgrade client")
 }
 
 func (s *DestinationServer) GetStats(context.Context, *pb.GetDestinationStats_Request) (*pb.GetDestinationStats_Response, error) {

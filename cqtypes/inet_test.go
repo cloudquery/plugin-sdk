@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
-
 type textMarshaler struct {
 	Text string
 }
@@ -66,5 +64,3 @@ func TestInetSet(t *testing.T) {
 		}
 	}
 }
-
-

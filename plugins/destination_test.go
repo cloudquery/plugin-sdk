@@ -26,21 +26,21 @@ func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 	return nil
 }
 
-func (*testDestinationClient) Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error {
+func (*testDestinationClient) Write(_ context.Context, _ schema.Tables, res <-chan *schema.DestinationResource) error {
 	for _ = range res {
 	}
 	return nil
 }
 
-func (c *testDestinationClient) Stats() DestinationStats {
+func (*testDestinationClient) Stats() DestinationStats {
 	return DestinationStats{}
 }
 
-func (c *testDestinationClient) DeleteStale(context.Context, schema.Tables, string, time.Time) error {
+func (*testDestinationClient) DeleteStale(context.Context, schema.Tables, string, time.Time) error {
 	return nil
 }
 
-func (c *testDestinationClient) Close(context.Context) error {
+func (*testDestinationClient) Close(context.Context) error {
 	return nil
 }
 
@@ -62,5 +62,4 @@ func TestDestinationPlugin(t *testing.T) {
 	if err := d.Init(ctx, zerolog.Nop(), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-
 }

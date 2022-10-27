@@ -6,7 +6,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-
 func TestBoolSet(t *testing.T) {
 	successfulTests := []struct {
 		source interface{}

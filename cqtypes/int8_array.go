@@ -27,7 +27,6 @@ func (dst *Int8Array) Set(src interface{}) error {
 
 	// Attempt to match to select common types:
 	switch value := src.(type) {
-
 	case []int16:
 		if value == nil {
 			*dst = Int8Array{Status: Null}
@@ -448,6 +447,3 @@ func (dst Int8Array) Get() interface{} {
 		return dst.Status
 	}
 }
-
-
-

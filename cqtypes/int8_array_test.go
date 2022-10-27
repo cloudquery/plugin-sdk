@@ -5,8 +5,6 @@ import (
 	"testing"
 )
 
-
-
 func TestInt8ArraySet(t *testing.T) {
 	successfulTests := []struct {
 		source interface{}

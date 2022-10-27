@@ -136,5 +136,3 @@ func (dst Inet) Get() interface{} {
 		return dst.Status
 	}
 }
-
-

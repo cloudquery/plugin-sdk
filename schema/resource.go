@@ -133,7 +133,7 @@ func (r *Resource) Get(columnName string) CQType {
 }
 
 // Set sets a column with value. This does validation and conversion to
-// one of concrete CQTypes. it returns an error just for backward compatability
+// one of concrete CQTypes. it returns an error just for backward compatibility
 // and panics in case it fails
 func (r *Resource) Set(columnName string, value interface{}) error {
 	index := r.Table.Columns.Index(columnName)

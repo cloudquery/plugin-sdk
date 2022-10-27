@@ -28,7 +28,6 @@ func (dst *MacaddrArray) Set(src interface{}) error {
 
 	// Attempt to match to select common types:
 	switch value := src.(type) {
-
 	case []net.HardwareAddr:
 		if value == nil {
 			*dst = MacaddrArray{Status: Null}

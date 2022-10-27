@@ -115,4 +115,3 @@ func TestCIDRArraySet(t *testing.T) {
 		}
 	}
 }
-

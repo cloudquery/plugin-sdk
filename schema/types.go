@@ -27,10 +27,10 @@ type CQType interface {
 type CQTypes []CQType
 
 func (c CQTypes) MarshalJSON() ([]byte, error) {
-	var res []map[string]interface{}
-	for _, v := range c {
+	res := make([]map[string]interface{}, len(c))
+	for i, v := range c {
 		if v == nil {
-			res = append(res, nil)
+			res[i] = nil
 			continue
 		}
 		var typ string
@@ -72,11 +72,10 @@ func (c CQTypes) MarshalJSON() ([]byte, error) {
 		default:
 			return nil, fmt.Errorf("unknown type %T", v)
 		}
-
-		res = append(res, map[string]interface{}{
+		res[i] = map[string]interface{}{
 			"type":  typ,
 			"value": v,
-		})
+		}
 	}
 	return json.Marshal(res)
 }

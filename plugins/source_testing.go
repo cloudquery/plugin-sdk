@@ -100,10 +100,9 @@ func validateResources(t *testing.T, resources []*schema.Resource) {
 			if value == nil {
 				continue
 			}
-			if value.Get() != nil && value.Get() != cqtypes.Undefined{
+			if value.Get() != nil && value.Get() != cqtypes.Undefined {
 				columnsWithValues[i] = true
 			}
-
 		}
 	}
 

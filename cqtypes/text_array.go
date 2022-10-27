@@ -182,7 +182,3 @@ func (dst TextArray) Get() interface{} {
 		return dst.Status
 	}
 }
-
-
-
-

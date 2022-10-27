@@ -11,7 +11,6 @@ type Int8 struct {
 	Status Status
 }
 
-
 func (dst *Int8) Set(src interface{}) error {
 	if src == nil {
 		*dst = Int8{Status: Null}

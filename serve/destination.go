@@ -34,6 +34,10 @@ func WithDestinationSentryDSN(dsn string) DestinationOption {
 	}
 }
 
+var testDestinationListener *bufconn.Listener
+
+const serveDestinationShort = `Start destination plugin server`
+
 func Destination(plugin *plugins.DestinationPlugin, opts ...DestinationOption) {
 	s := &destinationServe{
 		plugin: plugin,
@@ -59,8 +63,8 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 	logFormat := newEnum([]string{"text", "json"}, "text")
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: serveShort,
-		Long:  serveShort,
+		Short: serveDestinationShort,
+		Long:  serveDestinationShort,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			zerologLevel, err := zerolog.ParseLevel(logLevel.String())

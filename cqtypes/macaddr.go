@@ -66,5 +66,3 @@ func (dst Macaddr) Get() interface{} {
 		return dst.Status
 	}
 }
-
-

@@ -202,4 +202,3 @@ func (dst CIDRArray) Get() interface{} {
 		return dst.Status
 	}
 }
-

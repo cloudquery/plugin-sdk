@@ -9,5 +9,3 @@ func (dst *CIDR) Set(src interface{}) error {
 func (dst CIDR) Get() interface{} {
 	return (Inet)(dst).Get()
 }
-
-

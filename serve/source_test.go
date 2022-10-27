@@ -139,7 +139,7 @@ func TestServeSource(t *testing.T) {
 	}
 
 	resources := make(chan []byte, 1)
-	if err := c.Sync(ctx,
+	if err := c.Sync2(ctx,
 		specs.Source{
 			Name:         "testSourcePlugin",
 			Version:      "v1.0.0",

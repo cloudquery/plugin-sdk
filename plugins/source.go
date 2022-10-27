@@ -174,7 +174,6 @@ func (p *SourcePlugin) Tables() schema.Tables {
 	return p.tables
 }
 
-
 // Name return the name of this plugin
 func (p *SourcePlugin) Name() string {
 	return p.name

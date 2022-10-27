@@ -17,7 +17,6 @@ type ArrayDimension struct {
 	LowerBound int32
 }
 
-
 func findDimensionsFromValue(value reflect.Value, dimensions []ArrayDimension, elementsLength int) ([]ArrayDimension, int, bool) {
 	switch value.Kind() {
 	case reflect.Array:

@@ -165,7 +165,6 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 	return nil
 }
 
-
 func (c *SourceClient) Name(ctx context.Context) (string, error) {
 	res, err := c.pbClient.GetName(ctx, &pb.GetName_Request{})
 	if err != nil {

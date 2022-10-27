@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-
 func TestTextArraySet(t *testing.T) {
 	successfulTests := []struct {
 		source interface{}
@@ -84,4 +83,3 @@ func TestTextArraySet(t *testing.T) {
 		}
 	}
 }
-

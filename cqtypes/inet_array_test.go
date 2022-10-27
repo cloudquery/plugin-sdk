@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-
 func TestInetArraySet(t *testing.T) {
 	successfulTests := []struct {
 		source interface{}
@@ -116,4 +115,3 @@ func TestInetArraySet(t *testing.T) {
 		}
 	}
 }
-
