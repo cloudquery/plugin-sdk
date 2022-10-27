@@ -21,8 +21,12 @@ type SourceServer struct {
 	Logger zerolog.Logger
 }
 
+const sourceServerVersion = 2
+
 func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetProtocolVersion is deprecated please upgrade client")
+	return &pb.GetProtocolVersion_Response{
+		Version: sourceServerVersion,
+	}, nil
 }
 
 func (s *SourceServer) GetStats(context.Context, *pb.GetSourceStats_Request) (*pb.GetSourceStats_Response, error) {

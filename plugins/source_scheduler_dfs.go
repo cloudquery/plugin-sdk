@@ -84,13 +84,13 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table,
 			}
 			close(res)
 		}()
-		p.logger.Debug().Msg("table resolver started")
+		logger.Debug().Msg("table resolver started")
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
-			p.logger.Error().Err(err).Msg("table resolver finished with error")
+			logger.Error().Err(err).Msg("table resolver finished with error")
 			atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Errors, 1)
 			return
 		}
-		p.logger.Debug().Msg("table resolver finished successfully")
+		logger.Debug().Msg("table resolver finished successfully")
 	}()
 
 	for r := range res {
@@ -98,7 +98,7 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table,
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
-	p.logger.Info().Msg("fetch table finished")
+	logger.Info().Msg("fetch table finished")
 }
 
 func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource) {
