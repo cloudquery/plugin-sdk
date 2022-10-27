@@ -15,8 +15,6 @@ jobs:
           package-name: plugin-sdk
           token: ${{ secrets.GH_CQ_BOT }}
           pull-request-title-pattern: "chore${scope}: Release${component} v${version}"
-          bump-minor-pre-major: true
-          bump-patch-for-minor-pre-major: true
       - name: Parse semver string
         if: steps.release.outputs.release_created
         id: semver_parser
