@@ -234,6 +234,7 @@ func (t *Table) Resolve(ctx context.Context, meta ClientMeta, parent *Resource, 
 			continue
 		}
 		for i := range objects {
+			tableResources++
 			i := i
 
 			// right now we support concurrency only for objects/resources of parent tables
