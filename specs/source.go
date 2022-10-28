@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	defaultTableConcurrency    = 500000
-	defaultResourceConcurrency = 500000
+	defaultConcurrency = 1000000
 )
 
 // Source is the spec for a source plugin
@@ -26,9 +25,9 @@ type Source struct {
 	Path string `json:"path,omitempty"`
 	// Registry can be github,local,grpc.
 	Registry            Registry `json:"registry,omitempty"`
-	Concurrency         uint64   `json:"concurrency,omitempty"` // deprecated: use TableConcurrency and ResourceConcurrency instead
-	TableConcurrency    uint64   `json:"table_concurrency,omitempty"`
-	ResourceConcurrency uint64   `json:"resource_concurrency,omitempty"`
+	Concurrency         uint64   `json:"concurrency,omitempty"`
+	TableConcurrency    uint64   `json:"table_concurrency,omitempty"`    // deprecated: use Concurrency instead
+	ResourceConcurrency uint64   `json:"resource_concurrency,omitempty"` // deprecated: use Concurrency instead
 	// Tables to sync from the source plugin
 	Tables []string `json:"tables,omitempty"`
 	// SkipTables defines tables to skip when syncing data. Useful if a glob pattern is used in Tables
@@ -54,17 +53,12 @@ func (s *Source) SetDefaults() {
 		s.Tables = []string{"*"}
 	}
 
-	if s.Concurrency != 0 && s.TableConcurrency == 0 && s.ResourceConcurrency == 0 {
+	if s.TableConcurrency != 0 || s.ResourceConcurrency != 0 {
 		// attempt to make a sensible backwards-compatible choice, but the CLI
 		// should raise a warning about this until the `concurrency` option is fully removed.
-		s.TableConcurrency = s.Concurrency
-		s.ResourceConcurrency = s.Concurrency
-	}
-	if s.TableConcurrency == 0 {
-		s.TableConcurrency = defaultTableConcurrency
-	}
-	if s.ResourceConcurrency == 0 {
-		s.ResourceConcurrency = defaultResourceConcurrency
+		s.Concurrency = s.TableConcurrency + s.ResourceConcurrency
+	} else if s.Concurrency == 0 {
+		s.Concurrency = defaultConcurrency
 	}
 }
 

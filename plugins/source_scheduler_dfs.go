@@ -28,7 +28,7 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 	// gorourtines for each level efficiently.
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree/subchilds.
-	tableConcurrency := spec.TableConcurrency / minResourceConcurrency
+	tableConcurrency := spec.Concurrency / minResourceConcurrency
 	if tableConcurrency < minTableConcurrency {
 		tableConcurrency = minTableConcurrency
 	}
