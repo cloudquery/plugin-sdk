@@ -39,8 +39,8 @@ type SourceClient interface {
 	Sync(ctx context.Context, in *Sync_Request, opts ...grpc.CallOption) (Source_SyncClient, error)
 	// Sync2 is a new sync API that supports CQ Types. It is not backward compatible with Sync.
 	Sync2(ctx context.Context, in *Sync2_Request, opts ...grpc.CallOption) (Source_Sync2Client, error)
-	// Get stats for the source plugin
-	GetStats(ctx context.Context, in *GetSourceStats_Request, opts ...grpc.CallOption) (*GetSourceStats_Response, error)
+	// Get metrics for the source plugin
+	GetMetrics(ctx context.Context, in *GetSourceMetrics_Request, opts ...grpc.CallOption) (*GetSourceMetrics_Response, error)
 }
 
 type sourceClient struct {
@@ -160,9 +160,9 @@ func (x *sourceSync2Client) Recv() (*Sync2_Response, error) {
 	return m, nil
 }
 
-func (c *sourceClient) GetStats(ctx context.Context, in *GetSourceStats_Request, opts ...grpc.CallOption) (*GetSourceStats_Response, error) {
-	out := new(GetSourceStats_Response)
-	err := c.cc.Invoke(ctx, "/proto.Source/GetStats", in, out, opts...)
+func (c *sourceClient) GetMetrics(ctx context.Context, in *GetSourceMetrics_Request, opts ...grpc.CallOption) (*GetSourceMetrics_Response, error) {
+	out := new(GetSourceMetrics_Response)
+	err := c.cc.Invoke(ctx, "/proto.Source/GetMetrics", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -190,8 +190,8 @@ type SourceServer interface {
 	Sync(*Sync_Request, Source_SyncServer) error
 	// Sync2 is a new sync API that supports CQ Types. It is not backward compatible with Sync.
 	Sync2(*Sync2_Request, Source_Sync2Server) error
-	// Get stats for the source plugin
-	GetStats(context.Context, *GetSourceStats_Request) (*GetSourceStats_Response, error)
+	// Get metrics for the source plugin
+	GetMetrics(context.Context, *GetSourceMetrics_Request) (*GetSourceMetrics_Response, error)
 	mustEmbedUnimplementedSourceServer()
 }
 
@@ -220,8 +220,8 @@ func (UnimplementedSourceServer) Sync(*Sync_Request, Source_SyncServer) error {
 func (UnimplementedSourceServer) Sync2(*Sync2_Request, Source_Sync2Server) error {
 	return status.Errorf(codes.Unimplemented, "method Sync2 not implemented")
 }
-func (UnimplementedSourceServer) GetStats(context.Context, *GetSourceStats_Request) (*GetSourceStats_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetStats not implemented")
+func (UnimplementedSourceServer) GetMetrics(context.Context, *GetSourceMetrics_Request) (*GetSourceMetrics_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetrics not implemented")
 }
 func (UnimplementedSourceServer) mustEmbedUnimplementedSourceServer() {}
 
@@ -368,20 +368,20 @@ func (x *sourceSync2Server) Send(m *Sync2_Response) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Source_GetStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSourceStats_Request)
+func _Source_GetMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSourceMetrics_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SourceServer).GetStats(ctx, in)
+		return srv.(SourceServer).GetMetrics(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Source/GetStats",
+		FullMethod: "/proto.Source/GetMetrics",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SourceServer).GetStats(ctx, req.(*GetSourceStats_Request))
+		return srv.(SourceServer).GetMetrics(ctx, req.(*GetSourceMetrics_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -414,8 +414,8 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Source_GetSyncSummary_Handler,
 		},
 		{
-			MethodName: "GetStats",
-			Handler:    _Source_GetStats_Handler,
+			MethodName: "GetMetrics",
+			Handler:    _Source_GetMetrics_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

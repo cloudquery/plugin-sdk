@@ -120,15 +120,15 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 
 type syncTestCase struct {
 	table *schema.Table
-	stats SourceStats
+	stats SourceMetrics
 	data  []schema.CQTypes
 }
 
 var syncTestCases = []syncTestCase{
 	{
 		table: testTableSuccess(),
-		stats: SourceStats{
-			TableClient: map[string]map[string]*TableClientStats{
+		stats: SourceMetrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_success": {
 					"testExecutionClient": {
 						Resources: 1,
@@ -146,8 +146,8 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTableResolverPanic(),
-		stats: SourceStats{
-			TableClient: map[string]map[string]*TableClientStats{
+		stats: SourceMetrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_resolver_panic": {
 					"testExecutionClient": {
 						Panics: 1,
@@ -159,8 +159,8 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTablePreResourceResolverPanic(),
-		stats: SourceStats{
-			TableClient: map[string]map[string]*TableClientStats{
+		stats: SourceMetrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_pre_resource_resolver_panic": {
 					"testExecutionClient": {
 						Panics: 1,
@@ -172,8 +172,8 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTableColumnResolverPanic(),
-		stats: SourceStats{
-			TableClient: map[string]map[string]*TableClientStats{
+		stats: SourceMetrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_column_resolver_panic": {
 					"testExecutionClient": {
 						Panics: 1,
@@ -185,8 +185,8 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTableRelationSuccess(),
-		stats: SourceStats{
-			TableClient: map[string]map[string]*TableClientStats{
+		stats: SourceMetrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_relation_success": {
 					"testExecutionClient": {
 						Resources: 1,
@@ -276,7 +276,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 	if len(tc.data) != i {
 		t.Fatalf("expected %d resources. got %d", len(tc.data), i)
 	}
-	stats := plugin.Stats()
+	stats := plugin.Metrics()
 	if !tc.stats.Equal(&stats) {
 		t.Fatalf("unexpected stats: %v", cmp.Diff(tc.stats, stats))
 	}

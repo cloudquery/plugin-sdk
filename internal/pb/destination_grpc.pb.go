@@ -43,8 +43,8 @@ type DestinationClient interface {
 	// DeleteStale deletes stale data that was inserted by a given source
 	// and is older than the given timestamp
 	DeleteStale(ctx context.Context, in *DeleteStale_Request, opts ...grpc.CallOption) (*DeleteStale_Response, error)
-	// Get stats for the source plugin
-	GetStats(ctx context.Context, in *GetDestinationStats_Request, opts ...grpc.CallOption) (*GetDestinationStats_Response, error)
+	// Get metrics for the source plugin
+	GetMetrics(ctx context.Context, in *GetDestinationMetrics_Request, opts ...grpc.CallOption) (*GetDestinationMetrics_Response, error)
 }
 
 type destinationClient struct {
@@ -186,9 +186,9 @@ func (c *destinationClient) DeleteStale(ctx context.Context, in *DeleteStale_Req
 	return out, nil
 }
 
-func (c *destinationClient) GetStats(ctx context.Context, in *GetDestinationStats_Request, opts ...grpc.CallOption) (*GetDestinationStats_Response, error) {
-	out := new(GetDestinationStats_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/GetStats", in, out, opts...)
+func (c *destinationClient) GetMetrics(ctx context.Context, in *GetDestinationMetrics_Request, opts ...grpc.CallOption) (*GetDestinationMetrics_Response, error) {
+	out := new(GetDestinationMetrics_Response)
+	err := c.cc.Invoke(ctx, "/proto.Destination/GetMetrics", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -220,8 +220,8 @@ type DestinationServer interface {
 	// DeleteStale deletes stale data that was inserted by a given source
 	// and is older than the given timestamp
 	DeleteStale(context.Context, *DeleteStale_Request) (*DeleteStale_Response, error)
-	// Get stats for the source plugin
-	GetStats(context.Context, *GetDestinationStats_Request) (*GetDestinationStats_Response, error)
+	// Get metrics for the source plugin
+	GetMetrics(context.Context, *GetDestinationMetrics_Request) (*GetDestinationMetrics_Response, error)
 	mustEmbedUnimplementedDestinationServer()
 }
 
@@ -256,8 +256,8 @@ func (UnimplementedDestinationServer) Close(context.Context, *Close_Request) (*C
 func (UnimplementedDestinationServer) DeleteStale(context.Context, *DeleteStale_Request) (*DeleteStale_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteStale not implemented")
 }
-func (UnimplementedDestinationServer) GetStats(context.Context, *GetDestinationStats_Request) (*GetDestinationStats_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetStats not implemented")
+func (UnimplementedDestinationServer) GetMetrics(context.Context, *GetDestinationMetrics_Request) (*GetDestinationMetrics_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetrics not implemented")
 }
 func (UnimplementedDestinationServer) mustEmbedUnimplementedDestinationServer() {}
 
@@ -450,20 +450,20 @@ func _Destination_DeleteStale_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Destination_GetStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetDestinationStats_Request)
+func _Destination_GetMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDestinationMetrics_Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DestinationServer).GetStats(ctx, in)
+		return srv.(DestinationServer).GetMetrics(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Destination/GetStats",
+		FullMethod: "/proto.Destination/GetMetrics",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DestinationServer).GetStats(ctx, req.(*GetDestinationStats_Request))
+		return srv.(DestinationServer).GetMetrics(ctx, req.(*GetDestinationMetrics_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -504,8 +504,8 @@ var Destination_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Destination_DeleteStale_Handler,
 		},
 		{
-			MethodName: "GetStats",
-			Handler:    _Destination_GetStats_Handler,
+			MethodName: "GetMetrics",
+			Handler:    _Destination_GetMetrics_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

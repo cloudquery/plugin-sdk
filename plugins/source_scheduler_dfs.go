@@ -44,7 +44,7 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 		if table.Multiplex != nil {
 			clients = table.Multiplex(client)
 		}
-		p.stats.initWithClients(table, clients)
+		p.metrics.initWithClients(table, clients)
 		for _, client := range clients {
 			client := client
 			if err := p.tableSem.Acquire(ctx, 1); err != nil {
@@ -69,7 +69,7 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table,
 	clientName := client.Name()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 	logger.Info().Msg("table resolver started")
-
+	tableMetrics := p.metrics.TableClient[table.Name][clientName]
 	res := make(chan interface{})
 	go func() {
 		defer func() {
@@ -80,17 +80,15 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table,
 					sentry.CurrentHub().CaptureMessage(stack)
 				})
 				p.logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
-				atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Panics, 1)
+				atomic.AddUint64(&tableMetrics.Panics, 1)
 			}
 			close(res)
 		}()
-		logger.Debug().Msg("table resolver started")
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
-			atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Errors, 1)
+			atomic.AddUint64(&tableMetrics.Errors, 1)
 			return
 		}
-		logger.Debug().Msg("table resolver finished successfully")
 	}()
 
 	for r := range res {
@@ -98,7 +96,7 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table,
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
-	logger.Info().Msg("fetch table finished")
+	logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("fetch table finished")
 }
 
 func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource) {
@@ -151,18 +149,19 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	objectStartTime := time.Now()
 	csr := caser.New()
 	clientName := client.Name()
+	tableMetrics := p.metrics.TableClient[table.Name][clientName]
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 	defer func() {
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 			logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("object resolver finished with panic")
-			atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Panics, 1)
+			atomic.AddUint64(&tableMetrics.Panics, 1)
 		}
 	}()
 	if table.PreResourceResolver != nil {
 		if err := table.PreResourceResolver(ctx, client, resource); err != nil {
 			logger.Error().Err(err).Msg("pre resource resolver failed")
-			atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Errors, 1)
+			atomic.AddUint64(&tableMetrics.Errors, 1)
 			return nil
 		}
 	}
@@ -171,7 +170,7 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 		if c.Resolver != nil {
 			if err := c.Resolver(ctx, client, resource, c); err != nil {
 				logger.Error().Err(err).Msg("column resolver finished with error")
-				atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Errors, 1)
+				atomic.AddUint64(&tableMetrics.Errors, 1)
 			}
 		} else {
 			// base use case: try to get column with CamelCase name
@@ -185,9 +184,9 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	if table.PostResourceResolver != nil {
 		if err := table.PostResourceResolver(ctx, client, resource); err != nil {
 			logger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
-			atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Errors, 1)
+			atomic.AddUint64(&tableMetrics.Errors, 1)
 		}
 	}
-	atomic.AddUint64(&p.stats.TableClient[table.Name][clientName].Resources, 1)
+	atomic.AddUint64(&tableMetrics.Resources, 1)
 	return resource
 }

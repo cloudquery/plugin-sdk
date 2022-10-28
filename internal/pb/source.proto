@@ -24,15 +24,15 @@ service Source {
   // Sync2 is a new sync API that supports CQ Types. It is not backward compatible with Sync.
   rpc Sync2(Sync2.Request) returns (stream Sync2.Response);
 
-  // Get stats for the source plugin
-  rpc GetStats(GetSourceStats.Request) returns (GetSourceStats.Response);
+  // Get metrics for the source plugin
+  rpc GetMetrics(GetSourceMetrics.Request) returns (GetSourceMetrics.Response);
 }
 
-message GetSourceStats {
+message GetSourceMetrics {
   message Request {}
   message Response {
-    // marshalled json of plugins.SourceStats
-    bytes stats = 1;
+    // marshalled json of plugins.SourceMetrics
+    bytes metrics = 1;
   }
 }
 

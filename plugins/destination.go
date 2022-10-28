@@ -13,17 +13,10 @@ import (
 
 type NewDestinationClientFunc func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error)
 
-type DestinationStats struct {
-	// Errors number of errors / failed writes
-	Errors uint64
-	// Writes number of successful writes
-	Writes uint64
-}
-
 type DestinationClient interface {
 	Migrate(ctx context.Context, tables schema.Tables) error
 	Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error
-	Stats() DestinationStats
+	Metrics() DestinationMetrics
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
 }
@@ -62,8 +55,8 @@ func (p *DestinationPlugin) Version() string {
 	return p.version
 }
 
-func (p *DestinationPlugin) Stats() DestinationStats {
-	return p.client.Stats()
+func (p *DestinationPlugin) Metrics() DestinationMetrics {
+	return p.client.Metrics()
 }
 
 // we need lazy loading because we want to be able to initialize after
@@ -87,7 +80,7 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan *schema.DestinationResource) error {
 	SetDestinationManagedCqColumns(tables)
 	ch := make(chan *schema.DestinationResource)
-	eg, ctx := errgroup.WithContext(ctx)
+	eg := &errgroup.Group{}
 	// given most destination plugins writing in batch we are using a worker pool to write in parallel
 	// it might not generalize well and we might need to move it to each destination plugin implementation.
 	for i := 0; i < writeWorkers; i++ {
@@ -99,20 +92,9 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	_ = sourceColumn.Set(sourceName)
 	syncTimeColumn := &cqtypes.Timestamptz{}
 	_ = syncTimeColumn.Set(syncTime)
-	stop := false
 	for r := range res {
 		r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
-		select {
-		case <-ctx.Done():
-			stop = true
-		case ch <- r:
-		case <-time.After(5 * time.Second):
-			p.logger.Warn().Msg("destination write channel is blocked for 10 seconds, stopping write")
-			stop = true
-		}
-		if stop {
-			break
-		}
+		ch <- r
 	}
 
 	close(ch)

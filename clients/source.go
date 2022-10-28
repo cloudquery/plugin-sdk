@@ -199,13 +199,13 @@ func (c *SourceClient) Version(ctx context.Context) (string, error) {
 	return res.Version, nil
 }
 
-func (c *SourceClient) GetStats(ctx context.Context) (*plugins.SourceStats, error) {
-	res, err := c.pbClient.GetStats(ctx, &pb.GetSourceStats_Request{})
+func (c *SourceClient) GetStats(ctx context.Context) (*plugins.SourceMetrics, error) {
+	res, err := c.pbClient.GetMetrics(ctx, &pb.GetSourceMetrics_Request{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call GetStats: %w", err)
 	}
-	var stats plugins.SourceStats
-	if err := json.Unmarshal(res.Stats, &stats); err != nil {
+	var stats plugins.SourceMetrics
+	if err := json.Unmarshal(res.Metrics, &stats); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal source stats: %w", err)
 	}
 	return &stats, nil

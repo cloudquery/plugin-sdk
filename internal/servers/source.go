@@ -29,13 +29,13 @@ func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_
 	}, nil
 }
 
-func (s *SourceServer) GetStats(context.Context, *pb.GetSourceStats_Request) (*pb.GetSourceStats_Response, error) {
-	b, err := json.Marshal(s.Plugin.Stats())
+func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request) (*pb.GetSourceMetrics_Response, error) {
+	b, err := json.Marshal(s.Plugin.Metrics())
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal source stats: %w", err)
+		return nil, fmt.Errorf("failed to marshal source metrics: %w", err)
 	}
-	return &pb.GetSourceStats_Response{
-		Stats: b,
+	return &pb.GetSourceMetrics_Response{
+		Metrics: b,
 	}, nil
 }
 

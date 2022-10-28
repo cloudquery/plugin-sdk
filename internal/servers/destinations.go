@@ -30,14 +30,14 @@ func (*DestinationServer) GetProtocolVersion(context.Context, *pb.GetProtocolVer
 	}, nil
 }
 
-func (s *DestinationServer) GetStats(context.Context, *pb.GetDestinationStats_Request) (*pb.GetDestinationStats_Response, error) {
-	stats := s.Plugin.Stats()
+func (s *DestinationServer) GetStats(context.Context, *pb.GetDestinationMetrics_Request) (*pb.GetDestinationMetrics_Response, error) {
+	stats := s.Plugin.Metrics()
 	b, err := json.Marshal(stats)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal stats: %w", err)
 	}
-	return &pb.GetDestinationStats_Response{
-		Stats: b,
+	return &pb.GetDestinationMetrics_Response{
+		Metrics: b,
 	}, nil
 }
 
@@ -94,24 +94,25 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 	sourceName := r.Source
 	syncTime := r.Timestamp.AsTime()
 
-	eg, ctx := errgroup.WithContext(msg.Context())
+	eg := errgroup.Group{}
 	eg.Go(func() error {
-		return s.Plugin.Write(msg.Context(), tables, sourceName, syncTime, resources)
+		return s.Plugin.Write(context.Background(), tables, sourceName, syncTime, resources)
 	})
 
+	ctx := msg.Context()
 	for {
 		r, err := msg.Recv()
 		if err != nil {
 			if err == io.EOF {
 				close(resources)
 				if err := eg.Wait(); err != nil {
-					return fmt.Errorf("failed to wait: %w", err)
+					return fmt.Errorf("failed to wait 1: %w", err)
 				}
 				return msg.SendAndClose(&pb.Write2_Response{})
 			}
 			close(resources)
 			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("failed to wait")
+				s.Logger.Error().Err(err).Msg("failed to wait 2")
 			}
 			return fmt.Errorf("failed to receive msg: %w", err)
 		}
@@ -119,7 +120,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
 			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("failed to wait")
+				s.Logger.Error().Err(err).Msg("failed to wait 2")
 			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}

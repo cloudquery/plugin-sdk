@@ -41,8 +41,8 @@ func (*testDestinationClient) Write(_ context.Context, _ schema.Tables, resource
 	return nil
 }
 
-func (*testDestinationClient) Stats() plugins.DestinationStats {
-	return plugins.DestinationStats{}
+func (*testDestinationClient) Metrics() plugins.DestinationMetrics {
+	return plugins.DestinationMetrics{}
 }
 
 func (*testDestinationClient) Close(context.Context) error {

@@ -33,8 +33,8 @@ func (*testDestinationClient) Write(_ context.Context, _ schema.Tables, res <-ch
 	return nil
 }
 
-func (*testDestinationClient) Stats() DestinationStats {
-	return DestinationStats{}
+func (*testDestinationClient) Metrics() DestinationMetrics {
+	return DestinationMetrics{}
 }
 
 func (*testDestinationClient) DeleteStale(context.Context, schema.Tables, string, time.Time) error {

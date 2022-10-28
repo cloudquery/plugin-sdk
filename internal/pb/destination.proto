@@ -26,15 +26,15 @@ service Destination {
   // DeleteStale deletes stale data that was inserted by a given source
   // and is older than the given timestamp
   rpc DeleteStale(DeleteStale.Request) returns (DeleteStale.Response);
-  // Get stats for the source plugin
-  rpc GetStats(GetDestinationStats.Request) returns (GetDestinationStats.Response);
+  // Get metrics for the source plugin
+  rpc GetMetrics(GetDestinationMetrics.Request) returns (GetDestinationMetrics.Response);
 }
 
-message GetDestinationStats {
+message GetDestinationMetrics {
   message Request {}
   message Response {
-    // marshalled json of plugins.SourceStats
-    bytes stats = 1;
+    // marshalled json of plugins.DestinationMetrics
+    bytes metrics = 1;
   }
 }
 
