@@ -1,3 +1,4 @@
+//nolint:revive
 package cqtypes
 
 import (
@@ -11,8 +12,8 @@ import (
 // In practice, all platforms appear to have the same value. See
 // src/include/utils/inet.h for more information.
 const (
-	defaultAFInet  = 2
-	defaultAFInet6 = 3
+// defaultAFInet  = 2
+// defaultAFInet6 = 3
 )
 
 // Inet represents both inet and cidr PostgreSQL types.

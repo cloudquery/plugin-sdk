@@ -17,6 +17,7 @@ type ArrayDimension struct {
 	LowerBound int32
 }
 
+//nolint:unparam
 func findDimensionsFromValue(value reflect.Value, dimensions []ArrayDimension, elementsLength int) ([]ArrayDimension, int, bool) {
 	switch value.Kind() {
 	case reflect.Array:

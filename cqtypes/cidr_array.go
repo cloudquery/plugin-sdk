@@ -1,4 +1,4 @@
-//nolint:dupl
+//nolint:dupl,revive,gocritic
 package cqtypes
 
 import (

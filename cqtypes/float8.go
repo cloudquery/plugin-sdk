@@ -1,3 +1,4 @@
+//nolint:revive
 package cqtypes
 
 import (
@@ -73,7 +74,7 @@ func (dst *Float8) Set(src interface{}) error {
 		if err != nil {
 			return err
 		}
-		*dst = Float8{Float: float64(num), Status: Present}
+		*dst = Float8{Float: num, Status: Present}
 	case *float64:
 		if value == nil {
 			*dst = Float8{Status: Null}

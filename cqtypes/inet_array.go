@@ -1,4 +1,4 @@
-//nolint:dupl
+//nolint:dupl,revive
 package cqtypes
 
 import (
@@ -30,6 +30,7 @@ func (dst *InetArray) Set(src interface{}) error {
 	// Attempt to match to select common types:
 	switch value := src.(type) {
 	case []*net.IPNet:
+		//nolint:gocritic
 		if value == nil {
 			*dst = InetArray{Status: Null}
 		} else if len(value) == 0 {
@@ -48,6 +49,7 @@ func (dst *InetArray) Set(src interface{}) error {
 			}
 		}
 
+	//nolint:gocritic
 	case []net.IP:
 		if value == nil {
 			*dst = InetArray{Status: Null}
@@ -68,6 +70,7 @@ func (dst *InetArray) Set(src interface{}) error {
 		}
 
 	case []*net.IP:
+		//nolint:gocritic
 		if value == nil {
 			*dst = InetArray{Status: Null}
 		} else if len(value) == 0 {
@@ -87,6 +90,7 @@ func (dst *InetArray) Set(src interface{}) error {
 		}
 
 	case []Inet:
+		//nolint:gocritic
 		if value == nil {
 			*dst = InetArray{Status: Null}
 		} else if len(value) == 0 {

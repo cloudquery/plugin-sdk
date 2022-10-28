@@ -1,3 +1,4 @@
+//nolint:revive,gocritic
 package cqtypes
 
 import (
@@ -28,6 +29,7 @@ func (dst *Int8Array) Set(src interface{}) error {
 	// Attempt to match to select common types:
 	switch value := src.(type) {
 	case []int16:
+		//nolint:gocritic
 		if value == nil {
 			*dst = Int8Array{Status: Null}
 		} else if len(value) == 0 {
@@ -47,6 +49,7 @@ func (dst *Int8Array) Set(src interface{}) error {
 		}
 
 	case []*int16:
+		//nolint:gocritic
 		if value == nil {
 			*dst = Int8Array{Status: Null}
 		} else if len(value) == 0 {
@@ -66,6 +69,7 @@ func (dst *Int8Array) Set(src interface{}) error {
 		}
 
 	case []uint16:
+		//nolint:gocritic
 		if value == nil {
 			*dst = Int8Array{Status: Null}
 		} else if len(value) == 0 {
@@ -85,6 +89,7 @@ func (dst *Int8Array) Set(src interface{}) error {
 		}
 
 	case []*uint16:
+		//nolint:gocritic
 		if value == nil {
 			*dst = Int8Array{Status: Null}
 		} else if len(value) == 0 {
@@ -104,6 +109,7 @@ func (dst *Int8Array) Set(src interface{}) error {
 		}
 
 	case []int32:
+		//nolint:gocritic
 		if value == nil {
 			*dst = Int8Array{Status: Null}
 		} else if len(value) == 0 {
@@ -123,6 +129,7 @@ func (dst *Int8Array) Set(src interface{}) error {
 		}
 
 	case []*int32:
+		//nolint:gocritic
 		if value == nil {
 			*dst = Int8Array{Status: Null}
 		} else if len(value) == 0 {

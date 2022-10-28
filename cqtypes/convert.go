@@ -1,3 +1,4 @@
+//nolint:revive,gocritic
 package cqtypes
 
 import (
@@ -37,7 +38,7 @@ func underlyingNumberType(val interface{}) (interface{}, bool) {
 		convVal := int32(refVal.Int())
 		return convVal, reflect.TypeOf(convVal) != refVal.Type()
 	case reflect.Int64:
-		convVal := int64(refVal.Int())
+		convVal := refVal.Int()
 		return convVal, reflect.TypeOf(convVal) != refVal.Type()
 	case reflect.Uint:
 		convVal := uint(refVal.Uint())
@@ -52,7 +53,7 @@ func underlyingNumberType(val interface{}) (interface{}, bool) {
 		convVal := uint32(refVal.Uint())
 		return convVal, reflect.TypeOf(convVal) != refVal.Type()
 	case reflect.Uint64:
-		convVal := uint64(refVal.Uint())
+		convVal := refVal.Uint()
 		return convVal, reflect.TypeOf(convVal) != refVal.Type()
 	case reflect.Float32:
 		convVal := float32(refVal.Float())

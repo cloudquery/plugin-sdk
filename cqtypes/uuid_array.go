@@ -1,3 +1,4 @@
+//nolint:gocritic,revive
 package cqtypes
 
 import (

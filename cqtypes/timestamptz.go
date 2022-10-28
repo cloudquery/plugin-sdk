@@ -1,3 +1,4 @@
+//nolint:revive,gocritic
 package cqtypes
 
 import (
@@ -8,11 +9,12 @@ import (
 const pgTimestamptzHourFormat = "2006-01-02 15:04:05.999999999Z07"
 const pgTimestamptzMinuteFormat = "2006-01-02 15:04:05.999999999Z07:00"
 const pgTimestamptzSecondFormat = "2006-01-02 15:04:05.999999999Z07:00:00"
-const microsecFromUnixEpochToY2K = 946684800 * 1000000
+
+// const microsecFromUnixEpochToY2K = 946684800 * 1000000
 
 const (
-	negativeInfinityMicrosecondOffset = -9223372036854775808
-	infinityMicrosecondOffset         = 9223372036854775807
+// negativeInfinityMicrosecondOffset = -9223372036854775808
+// infinityMicrosecondOffset         = 9223372036854775807
 )
 
 type Timestamptz struct {
