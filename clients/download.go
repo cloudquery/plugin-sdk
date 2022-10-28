@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"context"
 	"fmt"
+	"github.com/avast/retry-go/v4"
 	"io"
 	"net/http"
 	"os"
@@ -21,7 +22,7 @@ const (
 	PluginTypeDestination PluginType = "destination"
 	DefaultDownloadDir               = ".cq"
 	RetryAttempts                    = 5
-	SleepTime                        = 1 * time.Second
+	RetryWaitTime                    = 1 * time.Second
 )
 
 func DownloadPluginFromGithub(ctx context.Context, localPath string, org string, name string, version string, typ PluginType) error {
@@ -77,21 +78,6 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	return nil
 }
 
-func retryDo(req *http.Request) (resp *http.Response, err error) {
-	for i := 0; i < RetryAttempts; i++ {
-		resp, err = http.DefaultClient.Do(req)
-		if resp.StatusCode != http.StatusOK {
-			// Close body before retry
-			resp.Body.Close()
-			time.Sleep(SleepTime)
-			continue
-		} else {
-			return resp, nil
-		}
-	}
-	return resp, fmt.Errorf("failed to download attempt %d times", RetryAttempts)
-}
-
 func downloadFile(ctx context.Context, localPath string, url string) (err error) {
 	// Create the file
 	out, err := os.Create(localPath)
@@ -105,29 +91,34 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 	if err != nil {
 		return fmt.Errorf("failed create request %s: %w", url, err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+
+	err = retry.Do(
+		func() error {
+			// Do http request
+			resp, err := http.DefaultClient.Do(req)
+
+			// Check server response
+			if resp.StatusCode == http.StatusOK && err == nil {
+				// Request successfully
+				defer resp.Body.Close()
+
+				fmt.Printf("Downloading %s\n", url)
+				bar := downloadProgressBar(resp.ContentLength, "Downloading")
+
+				// Writer the body to file
+				_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
+				if err != nil {
+					return fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
+				}
+			}
+			return err
+		},
+		retry.Attempts(RetryAttempts),
+		retry.Delay(RetryWaitTime),
+	)
+
 	if err != nil {
-		return fmt.Errorf("failed to get url %s: %w", url, err)
-	}
-
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		// Close existed resp body before entering retry function
-		resp.Body.Close()
-		resp, err = retryDo(req)
-		if err != nil {
-			return fmt.Errorf("bad status: %s. downloading %s", resp.Status, url)
-		}
-	}
-	defer resp.Body.Close()
-
-	fmt.Printf("Downloading %s\n", url)
-	bar := downloadProgressBar(resp.ContentLength, "Downloading")
-
-	// Writer the body to file
-	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
+		return fmt.Errorf("failed downloading: %s: %w", url, err)
 	}
 
 	return nil
