@@ -96,6 +96,9 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 		func() error {
 			// Do http request
 			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return fmt.Errorf("failed to get url %s: %w", url, err)
+			}
 
 			// Check server response
 			if resp.StatusCode != http.StatusOK {
@@ -115,10 +118,7 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 			return nil
 		},
 		retry.RetryIf(func(err error) bool {
-			if err.Error() == "statusCode != 200" {
-				return true
-			}
-			return false
+			return err.Error() == "statusCode != 200"
 		}),
 		retry.Attempts(RetryAttempts),
 		retry.Delay(RetryWaitTime),
