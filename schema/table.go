@@ -3,6 +3,7 @@ package schema
 import (
 	"context"
 	"fmt"
+	"regexp"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -57,6 +58,11 @@ type Table struct {
 	Parent *Table `json:"-"`
 }
 
+var (
+ reValidTableName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
+ reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
+)
+
 func (tt Tables) TableNames() []string {
 	ret := []string{}
 	for _, t := range tt {
@@ -95,6 +101,30 @@ func (tt Tables) ValidateDuplicateTables() error {
 			return fmt.Errorf("duplicate table %s", t.Name)
 		}
 		tables[t.Name] = true
+	}
+	return nil
+}
+
+func (tt Tables) ValidateTableNames() error {
+	for _, t := range tt {
+		if err := t.ValidateName(); err != nil {
+			return err
+		}
+		if err := t.Relations.ValidateTableNames(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (tt Tables) ValidateColumnNames() error {
+	for _, t := range tt {
+		if err := t.ValidateColumnNames(); err != nil {
+			return err
+		}
+		if err := t.Relations.ValidateColumnNames(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
