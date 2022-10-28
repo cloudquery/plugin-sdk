@@ -27,7 +27,9 @@ func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 }
 
 func (*testDestinationClient) Write(_ context.Context, _ schema.Tables, res <-chan *schema.DestinationResource) error {
-	for range res {}
+	//nolint:revive
+	for range res {
+	}
 	return nil
 }
 

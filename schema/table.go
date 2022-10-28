@@ -59,8 +59,8 @@ type Table struct {
 }
 
 var (
- reValidTableName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
- reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
+	reValidTableName  = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
+	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
 func (tt Tables) TableNames() []string {

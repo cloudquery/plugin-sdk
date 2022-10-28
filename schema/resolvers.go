@@ -14,8 +14,7 @@ import (
 // PathResolver("InnerStruct.InnerInnerStruct.Field")
 func PathResolver(path string) ColumnResolver {
 	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
-		r.Set(c.Name, funk.Get(r.Item, path, funk.WithAllowZero()))
-		return nil
+		return r.Set(c.Name, funk.Get(r.Item, path, funk.WithAllowZero()))
 	}
 }
 

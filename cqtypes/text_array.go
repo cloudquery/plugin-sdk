@@ -27,7 +27,6 @@ func (dst *TextArray) Set(src interface{}) error {
 
 	// Attempt to match to select common types:
 	switch value := src.(type) {
-
 	case []string:
 		if value == nil {
 			*dst = TextArray{Status: Null}
@@ -111,6 +110,7 @@ func (dst *TextArray) Set(src interface{}) error {
 		elementCount, err := dst.setRecursive(reflectedValue, 0, 0)
 		if err != nil {
 			// Maybe the target was one dimension too far, try again:
+			//nolint:revive
 			if len(dst.Dimensions) > 1 {
 				dst.Dimensions = dst.Dimensions[:len(dst.Dimensions)-1]
 				elementsLength = 0

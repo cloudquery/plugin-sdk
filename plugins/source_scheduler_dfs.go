@@ -177,7 +177,7 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 			// base use case: try to get column with CamelCase name
 			v := funk.Get(resource.GetItem(), csr.ToPascal(c.Name), funk.WithAllowZero())
 			if v != nil {
-				resource.Set(c.Name, v)
+				_ = resource.Set(c.Name, v)
 			}
 		}
 	}
