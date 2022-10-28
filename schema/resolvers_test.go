@@ -27,14 +27,14 @@ var resolverTestCases = []struct {
 	Column               Column
 	ColumnResolver       ColumnResolver
 	Resource             *Resource
-	ExpectedResourceData []interface{}
+	ExpectedResourceData CQTypes
 }{
 	{
 		Name:                 "PathResolver",
 		Column:               resolverTestTable.Columns[0],
 		ColumnResolver:       PathResolver("PathResolver"),
 		Resource:             NewResourceData(resolverTestTable, nil, resolverTestItem),
-		ExpectedResourceData: []interface{}{&cqtypes.Text{String: "test", Status: cqtypes.Present}},
+		ExpectedResourceData: CQTypes{&cqtypes.Text{String: "test", Status: cqtypes.Present}},
 	},
 }
 
@@ -47,10 +47,17 @@ func TestResolvers(t *testing.T) {
 				t.Errorf("unexpected error: %v", err)
 				return
 			}
-			// delete(tc.Resource.data, "_cq_fetch_time")
-			if !reflect.DeepEqual(tc.ExpectedResourceData, tc.Resource.data) {
-				t.Errorf("Expected %v, got %v", tc.ExpectedResourceData, tc.Resource.data)
+
+			if len(tc.ExpectedResourceData) != len(tc.Resource.data) {
+				t.Errorf("expected %d columns, got %d", len(tc.ExpectedResourceData), len(tc.Resource.data))
+				return
+			}
+			for i, expected := range tc.ExpectedResourceData {
+				if !reflect.DeepEqual(expected, tc.Resource.data[i]) {
+					t.Errorf("expected %v, got %v", expected, tc.Resource.data[i])
+				}
 			}
 		})
 	}
 }
+

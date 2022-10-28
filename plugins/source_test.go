@@ -38,7 +38,7 @@ func testColumnResolverPanic(context.Context, schema.ClientMeta, *schema.Resourc
 
 func testTableSuccess() *schema.Table {
 	return &schema.Table{
-		Name:     "testTableSuccess",
+		Name:     "test_table_success",
 		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
 			{
@@ -51,7 +51,7 @@ func testTableSuccess() *schema.Table {
 
 func testTableResolverPanic() *schema.Table {
 	return &schema.Table{
-		Name:     "testTableResolverPanic",
+		Name:     "test_table_resolver_panic",
 		Resolver: testResolverPanic,
 		Columns: []schema.Column{
 			{
@@ -64,7 +64,7 @@ func testTableResolverPanic() *schema.Table {
 
 func testTablePreResourceResolverPanic() *schema.Table {
 	return &schema.Table{
-		Name:                "testTablePreResourceResolverPanic",
+		Name:                "test_table_pre_resource_resolver_panic",
 		PreResourceResolver: testPreResourceResolverPanic,
 		Resolver:            testResolverSuccess,
 		Columns: []schema.Column{
@@ -78,7 +78,7 @@ func testTablePreResourceResolverPanic() *schema.Table {
 
 func testTableColumnResolverPanic() *schema.Table {
 	return &schema.Table{
-		Name:     "testTableColumnResolverPanic",
+		Name:     "test_table_column_resolver_panic",
 		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
 			{
@@ -96,7 +96,7 @@ func testTableColumnResolverPanic() *schema.Table {
 
 func testTableRelationSuccess() *schema.Table {
 	return &schema.Table{
-		Name:     "testTableRelationSuccess",
+		Name:     "test_table_relation_success",
 		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
 			{
@@ -129,7 +129,7 @@ var syncTestCases = []syncTestCase{
 		table: testTableSuccess(),
 		stats: SourceStats{
 			TableClient: map[string]map[string]*TableClientStats{
-				"testTableSuccess": {
+				"test_table_success": {
 					"testExecutionClient": {
 						Resources: 1,
 					},
@@ -148,7 +148,7 @@ var syncTestCases = []syncTestCase{
 		table: testTableResolverPanic(),
 		stats: SourceStats{
 			TableClient: map[string]map[string]*TableClientStats{
-				"testTableResolverPanic": {
+				"test_table_resolver_panic": {
 					"testExecutionClient": {
 						Panics: 1,
 					},
@@ -161,7 +161,7 @@ var syncTestCases = []syncTestCase{
 		table: testTablePreResourceResolverPanic(),
 		stats: SourceStats{
 			TableClient: map[string]map[string]*TableClientStats{
-				"testTablePreResourceResolverPanic": {
+				"test_table_pre_resource_resolver_panic": {
 					"testExecutionClient": {
 						Panics: 1,
 					},
@@ -174,7 +174,7 @@ var syncTestCases = []syncTestCase{
 		table: testTableColumnResolverPanic(),
 		stats: SourceStats{
 			TableClient: map[string]map[string]*TableClientStats{
-				"testTableColumnResolverPanic": {
+				"test_table_column_resolver_panic": {
 					"testExecutionClient": {
 						Panics: 1,
 					},
@@ -187,12 +187,12 @@ var syncTestCases = []syncTestCase{
 		table: testTableRelationSuccess(),
 		stats: SourceStats{
 			TableClient: map[string]map[string]*TableClientStats{
-				"testTableRelationSuccess": {
+				"test_table_relation_success": {
 					"testExecutionClient": {
 						Resources: 1,
 					},
 				},
-				"testTableSuccess": {
+				"test_table_success": {
 					"testExecutionClient": {
 						Resources: 1,
 					},
