@@ -98,21 +98,28 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 			resp, err := http.DefaultClient.Do(req)
 
 			// Check server response
-			if resp.StatusCode == http.StatusOK && err == nil {
-				// Request successfully
-				defer resp.Body.Close()
-
-				fmt.Printf("Downloading %s\n", url)
-				bar := downloadProgressBar(resp.ContentLength, "Downloading")
-
-				// Writer the body to file
-				_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
-				if err != nil {
-					return fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
-				}
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("statusCode != 200")
 			}
-			return err
+			defer resp.Body.Close()
+
+			fmt.Printf("Downloading %s\n", url)
+			bar := downloadProgressBar(resp.ContentLength, "Downloading")
+
+			// Writer the body to file
+			_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
+			}
+
+			return nil
 		},
+		retry.RetryIf(func(err error) bool {
+			if err.Error() == "statusCode != 200" {
+				return true
+			}
+			return false
+		}),
 		retry.Attempts(RetryAttempts),
 		retry.Delay(RetryWaitTime),
 	)
