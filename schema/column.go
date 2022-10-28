@@ -29,7 +29,7 @@ type Column struct {
 	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
 	Resolver ColumnResolver `json:"-"`
 	// Creation options allow modifying how column is defined when table is created
-	CreationOptions ColumnCreationOptions
+	CreationOptions ColumnCreationOptions `json:"creation_options,omitempty"`
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.
