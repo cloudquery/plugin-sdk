@@ -1,7 +1,6 @@
 package cqtypes
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -27,8 +26,8 @@ func TestMacaddrSet(t *testing.T) {
 			t.Errorf("%d: %v", i, err)
 		}
 
-		if !reflect.DeepEqual(r, tt.result) {
-			t.Errorf("%d: expected %v to convert to %v, but it was %v", i, tt.source, tt.result, r)
+		if !r.Equal(&tt.result) {
+			t.Errorf("%d: %v != %v", i, r, tt.result)
 		}
 	}
 }

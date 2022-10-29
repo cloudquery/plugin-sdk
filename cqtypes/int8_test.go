@@ -2,8 +2,6 @@ package cqtypes
 
 import (
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestInt8Set(t *testing.T) {
@@ -36,8 +34,8 @@ func TestInt8Set(t *testing.T) {
 			t.Errorf("%d: %v", i, err)
 		}
 
-		if diff := cmp.Diff(r, tt.result); diff != "" {
-			t.Errorf("%d: got diff:\n%s", i, diff)
+		if !r.Equal(&tt.result) {
+			t.Errorf("%d: %v != %v", i, r, tt.result)
 		}
 	}
 }

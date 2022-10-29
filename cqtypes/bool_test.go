@@ -2,8 +2,6 @@ package cqtypes
 
 import (
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestBoolSet(t *testing.T) {
@@ -28,9 +26,8 @@ func TestBoolSet(t *testing.T) {
 		if err != nil {
 			t.Errorf("%d: %v", i, err)
 		}
-
-		if diff := cmp.Diff(r, tt.result); diff != "" {
-			t.Errorf("%d: got diff:\n%s", i, diff)
+		if !r.Equal(&tt.result) {
+			t.Errorf("%d: %v != %v", i, r, tt.result)
 		}
 	}
 }

@@ -5,8 +5,6 @@ import (
 	"net"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type textMarshaler struct {
@@ -56,11 +54,8 @@ func TestInetSet(t *testing.T) {
 			continue
 		}
 
-		assert.Equalf(t, tt.result.Status, r.Status, "%d: Status", i)
-		if tt.result.Status == Present {
-			assert.Equalf(t, tt.result.IPNet.Mask, r.IPNet.Mask, "%d: Mask", i)
-			assert.Truef(t, tt.result.IPNet.IP.Equal(r.IPNet.IP), "%d: IP", i)
-			assert.Equalf(t, len(tt.result.IPNet.IP), len(r.IPNet.IP), "%d: IP length", i)
+		if !r.Equal(&tt.result) {
+			t.Errorf("%d: %v != %v", i, r, tt.result)
 		}
 	}
 }
