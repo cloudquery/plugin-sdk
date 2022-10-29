@@ -13,7 +13,7 @@ func TestTextArraySet(t *testing.T) {
 		{
 			source: []string{"foo"},
 			result: TextArray{
-				Elements:   []Text{{String: "foo", Status: Present}},
+				Elements:   []Text{{Str: "foo", Status: Present}},
 				Dimensions: []ArrayDimension{{LowerBound: 1, Length: 1}},
 				Status:     Present},
 		},
@@ -24,7 +24,7 @@ func TestTextArraySet(t *testing.T) {
 		{
 			source: [][]string{{"foo"}, {"bar"}},
 			result: TextArray{
-				Elements:   []Text{{String: "foo", Status: Present}, {String: "bar", Status: Present}},
+				Elements:   []Text{{Str: "foo", Status: Present}, {Str: "bar", Status: Present}},
 				Dimensions: []ArrayDimension{{LowerBound: 1, Length: 2}, {LowerBound: 1, Length: 1}},
 				Status:     Present},
 		},
@@ -32,12 +32,12 @@ func TestTextArraySet(t *testing.T) {
 			source: [][][][]string{{{{"foo", "bar", "baz"}}}, {{{"wibble", "wobble", "wubble"}}}},
 			result: TextArray{
 				Elements: []Text{
-					{String: "foo", Status: Present},
-					{String: "bar", Status: Present},
-					{String: "baz", Status: Present},
-					{String: "wibble", Status: Present},
-					{String: "wobble", Status: Present},
-					{String: "wubble", Status: Present}},
+					{Str: "foo", Status: Present},
+					{Str: "bar", Status: Present},
+					{Str: "baz", Status: Present},
+					{Str: "wibble", Status: Present},
+					{Str: "wobble", Status: Present},
+					{Str: "wubble", Status: Present}},
 				Dimensions: []ArrayDimension{
 					{LowerBound: 1, Length: 2},
 					{LowerBound: 1, Length: 1},
@@ -48,7 +48,7 @@ func TestTextArraySet(t *testing.T) {
 		{
 			source: [2][1]string{{"foo"}, {"bar"}},
 			result: TextArray{
-				Elements:   []Text{{String: "foo", Status: Present}, {String: "bar", Status: Present}},
+				Elements:   []Text{{Str: "foo", Status: Present}, {Str: "bar", Status: Present}},
 				Dimensions: []ArrayDimension{{LowerBound: 1, Length: 2}, {LowerBound: 1, Length: 1}},
 				Status:     Present},
 		},
@@ -56,12 +56,12 @@ func TestTextArraySet(t *testing.T) {
 			source: [2][1][1][3]string{{{{"foo", "bar", "baz"}}}, {{{"wibble", "wobble", "wubble"}}}},
 			result: TextArray{
 				Elements: []Text{
-					{String: "foo", Status: Present},
-					{String: "bar", Status: Present},
-					{String: "baz", Status: Present},
-					{String: "wibble", Status: Present},
-					{String: "wobble", Status: Present},
-					{String: "wubble", Status: Present}},
+					{Str: "foo", Status: Present},
+					{Str: "bar", Status: Present},
+					{Str: "baz", Status: Present},
+					{Str: "wibble", Status: Present},
+					{Str: "wobble", Status: Present},
+					{Str: "wubble", Status: Present}},
 				Dimensions: []ArrayDimension{
 					{LowerBound: 1, Length: 2},
 					{LowerBound: 1, Length: 1},

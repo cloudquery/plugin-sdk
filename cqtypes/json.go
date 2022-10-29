@@ -1,6 +1,7 @@
 package cqtypes
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 )
@@ -8,6 +9,22 @@ import (
 type JSON struct {
 	Bytes  []byte
 	Status Status
+}
+
+func (dst *JSON) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*JSON)
+	if !ok {
+		return false
+	}
+
+	return dst.Status == s.Status && bytes.Equal(dst.Bytes, s.Bytes)
+}
+
+func (dst *JSON) String() string {
+	return string(dst.Bytes)
 }
 
 func (dst *JSON) Set(src interface{}) error {

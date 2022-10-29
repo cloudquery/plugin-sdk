@@ -37,7 +37,7 @@ type SourcePlugin struct {
 }
 
 const (
-	maxAllowedDepth = 3
+	maxAllowedDepth = 4
 )
 
 // Add internal columns

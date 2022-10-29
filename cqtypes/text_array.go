@@ -4,12 +4,53 @@ package cqtypes
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type TextArray struct {
 	Elements   []Text
 	Dimensions []ArrayDimension
 	Status     Status
+}
+
+func (dst *TextArray) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*TextArray)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return false
+	}
+	if len(dst.Elements) != len(s.Elements) || len(dst.Dimensions) != len(s.Dimensions) {
+		return false
+	}
+
+	for i := range dst.Elements {
+		if !(dst.Elements[i]).Equal(&s.Elements[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (dst *TextArray) String() string {
+	var sb strings.Builder
+	if dst.Status == Present {
+		sb.WriteString("{")
+		for i, element := range dst.Elements {
+			if i != 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString(element.String())
+		}
+	} else {
+		return ""
+	}
+	return sb.String()
 }
 
 func (dst *TextArray) Set(src interface{}) error {

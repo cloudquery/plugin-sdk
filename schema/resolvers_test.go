@@ -27,14 +27,14 @@ var resolverTestCases = []struct {
 	Column               Column
 	ColumnResolver       ColumnResolver
 	Resource             *Resource
-	ExpectedResourceData CQTypes
+	ExpectedResourceData cqtypes.CQTypes
 }{
 	{
 		Name:                 "PathResolver",
 		Column:               resolverTestTable.Columns[0],
 		ColumnResolver:       PathResolver("PathResolver"),
 		Resource:             NewResourceData(resolverTestTable, nil, resolverTestItem),
-		ExpectedResourceData: CQTypes{&cqtypes.Text{String: "test", Status: cqtypes.Present}},
+		ExpectedResourceData: cqtypes.CQTypes{&cqtypes.Text{Str: "test", Status: cqtypes.Present}},
 	},
 }
 

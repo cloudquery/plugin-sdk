@@ -7,8 +7,27 @@ import (
 )
 
 type Text struct {
-	String string
+	Str    string
 	Status Status
+}
+
+func (dst *Text) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Text)
+	if !ok {
+		return false
+	}
+	return dst.Status == s.Status && dst.Str == s.Str
+}
+
+func (dst *Text) String() string {
+	if dst.Status == Present {
+		return dst.Str
+	} else {
+		return ""
+	}
 }
 
 func (dst *Text) Set(src interface{}) error {
@@ -26,24 +45,24 @@ func (dst *Text) Set(src interface{}) error {
 
 	switch value := src.(type) {
 	case string:
-		*dst = Text{String: value, Status: Present}
+		*dst = Text{Str: value, Status: Present}
 	case *string:
 		if value == nil {
 			*dst = Text{Status: Null}
 		} else {
-			*dst = Text{String: *value, Status: Present}
+			*dst = Text{Str: *value, Status: Present}
 		}
 	case []byte:
 		if value == nil {
 			*dst = Text{Status: Null}
 		} else {
-			*dst = Text{String: string(value), Status: Present}
+			*dst = Text{Str: string(value), Status: Present}
 		}
 	case fmt.Stringer:
 		if value == fmt.Stringer(nil) {
 			*dst = Text{Status: Null}
 		} else {
-			*dst = Text{String: value.String(), Status: Present}
+			*dst = Text{Str: value.String(), Status: Present}
 		}
 	default:
 		// Cannot be part of the switch: If Value() returns nil on
@@ -64,7 +83,7 @@ func (dst *Text) Set(src interface{}) error {
 
 				// Handles also v == nil case.
 				if s, ok := v.(string); ok {
-					*dst = Text{String: s, Status: Present}
+					*dst = Text{Str: s, Status: Present}
 					return nil
 				}
 			}

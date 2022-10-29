@@ -3,12 +3,37 @@ package cqtypes
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 )
 
 type Float8 struct {
 	Float  float64
 	Status Status
+}
+
+const float64EqualityThreshold = 1e-9
+
+func (dst *Float8) String() string {
+	if dst.Status == Present {
+		return strconv.FormatFloat(dst.Float, 'f', -1, 64)
+	} else {
+		return ""
+	}
+}
+
+func (dst *Float8) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Float8)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return false
+	}
+	return math.Abs(dst.Float-s.Float) <= float64EqualityThreshold
 }
 
 func (dst *Float8) Set(src interface{}) error {

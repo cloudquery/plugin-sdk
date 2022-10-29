@@ -19,15 +19,15 @@ type Resource struct {
 	// internal fields
 	Table *Table
 	// This is sorted result data by column name
-	data []CQType
+	data []cqtypes.CQType
 }
 
 // This struct is what we send over the wire to destination.
 // We dont want to reuse the same struct as otherwise we will have to comment on fields which don't get sent over the wire but still accessible
 // code wise
 type DestinationResource struct {
-	TableName string  `json:"table_name"`
-	Data      CQTypes `json:"data"`
+	TableName string          `json:"table_name"`
+	Data      cqtypes.CQTypes `json:"data"`
 }
 
 func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
@@ -35,7 +35,7 @@ func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 		Item:   item,
 		Parent: parent,
 		Table:  t,
-		data:   make(CQTypes, len(t.Columns)),
+		data:   make(cqtypes.CQTypes, len(t.Columns)),
 	}
 	for i := range r.data {
 		switch r.Table.Columns[i].Type {
@@ -122,7 +122,7 @@ func (r *Resource) ToDestinationResource() DestinationResource {
 	return dr
 }
 
-func (r *Resource) Get(columnName string) CQType {
+func (r *Resource) Get(columnName string) cqtypes.CQType {
 	index := r.Table.Columns.Index(columnName)
 	if index == -1 {
 		// we panic because we want to distinguish between code error and api error
@@ -143,7 +143,7 @@ func (r *Resource) Set(columnName string, value interface{}) error {
 		panic(columnName + " column not found")
 	}
 	if err := r.data[index].Set(value); err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to set column %s: %w", columnName, err))
 	}
 	return nil
 }
@@ -157,7 +157,7 @@ func (r *Resource) GetItem() interface{} {
 	return r.Item
 }
 
-func (r *Resource) GetValues() CQTypes {
+func (r *Resource) GetValues() cqtypes.CQTypes {
 	return r.data
 }
 

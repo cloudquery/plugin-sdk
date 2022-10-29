@@ -22,6 +22,25 @@ type Inet struct {
 	Status Status
 }
 
+func (dst *Inet) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Inet)
+	if !ok {
+		return false
+	}
+	return dst.Status == s.Status && dst.IPNet.String() == s.IPNet.String()
+}
+
+func (dst *Inet) String() string {
+	if dst.Status == Present {
+		return dst.IPNet.String()
+	} else {
+		return ""
+	}
+}
+
 func (dst *Inet) Set(src interface{}) error {
 	if src == nil {
 		*dst = Inet{Status: Null}

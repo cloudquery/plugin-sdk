@@ -11,6 +11,29 @@ type Bool struct {
 	Status Status
 }
 
+func (dst *Bool) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Bool)
+	if !ok {
+		return false
+	}
+	return dst.Status == s.Status && dst.Bool == s.Bool
+}
+
+func (dst *Bool) String() string {
+	if dst.Status == Present {
+		if dst.Bool {
+			return "true"
+		} else {
+			return "false"
+		}
+	} else {
+		return ""
+	}
+}
+
 func (dst *Bool) Set(src interface{}) error {
 	if src == nil {
 		*dst = Bool{Status: Null}

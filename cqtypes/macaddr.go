@@ -11,6 +11,25 @@ type Macaddr struct {
 	Status Status
 }
 
+func (dst *Macaddr) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Macaddr)
+	if !ok {
+		return false
+	}
+	return dst.Status == s.Status && dst.Addr.String() == s.Addr.String()
+}
+
+func (dst *Macaddr) String() string {
+	if dst.Status == Present {
+		return dst.Addr.String()
+	} else {
+		return ""
+	}
+}
+
 func (dst *Macaddr) Set(src interface{}) error {
 	if src == nil {
 		*dst = Macaddr{Status: Null}

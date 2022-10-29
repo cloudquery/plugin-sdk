@@ -7,8 +7,8 @@ func TestTextSet(t *testing.T) {
 		source interface{}
 		result Text
 	}{
-		{source: "foo", result: Text{String: "foo", Status: Present}},
-		{source: _string("bar"), result: Text{String: "bar", Status: Present}},
+		{source: "foo", result: Text{Str: "foo", Status: Present}},
+		{source: _string("bar"), result: Text{Str: "bar", Status: Present}},
 		{source: (*string)(nil), result: Text{Status: Null}},
 	}
 

@@ -5,12 +5,53 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strings"
 )
 
 type CIDRArray struct {
 	Elements   []CIDR
 	Dimensions []ArrayDimension
 	Status     Status
+}
+
+func (dst *CIDRArray) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*CIDRArray)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return false
+	}
+	if len(dst.Elements) != len(s.Elements) || len(dst.Dimensions) != len(s.Dimensions) {
+		return false
+	}
+
+	for i := range dst.Elements {
+		if !(dst.Elements[i]).Equal(&s.Elements[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (dst *CIDRArray) String() string {
+	var sb strings.Builder
+	if dst.Status == Present {
+		sb.WriteString("{")
+		for i, element := range dst.Elements {
+			if i != 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString(element.String())
+		}
+	} else {
+		return ""
+	}
+	return sb.String()
 }
 
 func (dst *CIDRArray) Set(src interface{}) error {

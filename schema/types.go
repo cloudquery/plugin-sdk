@@ -1,9 +1,7 @@
 package schema
 
 import (
-	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/cloudquery/plugin-sdk/cqtypes"
 )
@@ -16,134 +14,78 @@ const (
 	Present
 )
 
-type CQType interface {
-	// Type() ValueType
-	Set(v interface{}) error
-	Get() interface{}
-	// Equal(CQType) bool
-	// IsValid() bool
-}
+// CQTypesFromValues tries best effort to convert a slice of values to CQTypes
+// based on the provided table columns.
+func CQTypesFromValues(table *Table, values []interface{}) (cqtypes.CQTypes, error) {
+	res := make(cqtypes.CQTypes, len(values))
 
-type CQTypes []CQType
-
-func (c CQTypes) MarshalJSON() ([]byte, error) {
-	res := make([]map[string]interface{}, len(c))
-	for i, v := range c {
+	for i, v := range values {
 		if v == nil {
-			res[i] = nil
-			continue
+			values[i] = nil
 		}
-		var typ string
-		switch v.(type) {
-		case *cqtypes.Bool:
-			typ = "Bool"
-		case *cqtypes.Int8:
-			typ = "Int8"
-		case *cqtypes.Float8:
-			typ = "Float8"
-		case *cqtypes.UUID:
-			typ = "UUID"
-		case *cqtypes.Text:
-			typ = "Text"
-		case *cqtypes.Bytea:
-			typ = "Bytea"
-		case *cqtypes.TextArray:
-			typ = "TextArray"
-		case *cqtypes.Int8Array:
-			typ = "Int8Array"
-		case *cqtypes.Timestamptz:
-			typ = "Timestamptz"
-		case *cqtypes.JSON:
-			typ = "JSON"
-		case *cqtypes.UUIDArray:
-			typ = "UUIDArray"
-		case *cqtypes.Inet:
-			typ = "Inet"
-		case *cqtypes.InetArray:
-			typ = "InetArray"
-		case *cqtypes.CIDR:
-			typ = "CIDR"
-		case *cqtypes.CIDRArray:
-			typ = "CIDRArray"
-		case *cqtypes.Macaddr:
-			typ = "Macaddr"
-		case *cqtypes.MacaddrArray:
-			typ = "MacaddrArray"
+		var t cqtypes.CQType
+		var err error
+		switch table.Columns[i].Type {
+		case TypeBool:
+			t := &cqtypes.Bool{}
+			err = t.Set(v)
+		case TypeInt:
+			t := &cqtypes.Int8{}
+			err = t.Set(v)
+		case TypeFloat:
+			t := &cqtypes.Float8{}
+			err = t.Set(v)
+		case TypeUUID:
+			t := &cqtypes.UUID{}
+			err = t.Set(v)
+		case TypeString:
+			t := &cqtypes.Text{}
+			err = t.Set(v)
+		case TypeByteArray:
+			t := &cqtypes.Bytea{}
+			err = t.Set(v)
+		case TypeStringArray:
+			t := &cqtypes.TextArray{}
+			err = t.Set(v)
+		case TypeIntArray:
+			t := &cqtypes.Int8Array{}
+			err = t.Set(v)
+		case TypeTimestamp:
+			t := &cqtypes.Timestamptz{}
+			err = t.Set(v)
+		case TypeJSON:
+			t := &cqtypes.JSON{}
+			err = t.Set(v)
+		case TypeUUIDArray:
+			t := &cqtypes.UUIDArray{}
+			err = t.Set(v)
+		case TypeInet:
+			t := &cqtypes.Inet{}
+			err = t.Set(v)
+		case TypeInetArray:
+			t := &cqtypes.InetArray{}
+			err = t.Set(v)
+		case TypeCIDR:
+			t := &cqtypes.CIDR{}
+			err = t.Set(v)
+		case TypeCIDRArray:
+			t := &cqtypes.CIDRArray{}
+			err = t.Set(v)
+		case TypeMacAddr:
+			t := &cqtypes.Macaddr{}
+			err = t.Set(v)
+		case TypeMacAddrArray:
+			t := &cqtypes.MacaddrArray{}
+			err = t.Set(v)
 		default:
-			return nil, fmt.Errorf("unknown type %T", v)
+			return nil, fmt.Errorf("unsupported type %s", table.Columns[i].Type)
 		}
-		res[i] = map[string]interface{}{
-			"type":  typ,
-			"value": v,
-		}
-	}
-	return json.Marshal(res)
-}
-
-func (c *CQTypes) UnmarshalJSON(b []byte) error {
-	var res []map[string]interface{}
-	err := json.Unmarshal(b, &res)
-	if err != nil {
-		return err
-	}
-	*c = make(CQTypes, len(res))
-	for i := range res {
-		if res[i] == nil {
-			(*c)[i] = nil
-			continue
-		}
-		b, err := json.Marshal(res[i]["value"])
 		if err != nil {
-			return err
+			return nil, err
 		}
-		typ := res[i]["type"].(string)
-		switch typ {
-		case "Bool":
-			(*c)[i] = &cqtypes.Bool{}
-		case "Int8":
-			(*c)[i] = &cqtypes.Int8{}
-		case "Float8":
-			(*c)[i] = &cqtypes.Float8{}
-		case "UUID":
-			(*c)[i] = &cqtypes.UUID{}
-		case "Text":
-			(*c)[i] = &cqtypes.Text{}
-		case "Bytea":
-			(*c)[i] = &cqtypes.Bytea{}
-		case "TextArray":
-			(*c)[i] = &cqtypes.TextArray{}
-		case "Int8Array":
-			(*c)[i] = &cqtypes.Int8Array{}
-		case "Timestamptz":
-			(*c)[i] = &cqtypes.Timestamptz{}
-		case "JSON":
-			(*c)[i] = &cqtypes.JSON{}
-		case "UUIDArray":
-			(*c)[i] = &cqtypes.UUIDArray{}
-		case "Inet":
-			(*c)[i] = &cqtypes.Inet{}
-		case "InetArray":
-			(*c)[i] = &cqtypes.InetArray{}
-		case "CIDR":
-			(*c)[i] = &cqtypes.CIDR{}
-		case "CIDRArray":
-			(*c)[i] = &cqtypes.CIDRArray{}
-		case "Macaddr":
-			(*c)[i] = &cqtypes.Macaddr{}
-		case "MacaddrArray":
-			(*c)[i] = &cqtypes.MacaddrArray{}
-		default:
-			return fmt.Errorf("unknown type %v", typ)
-		}
-		if err := json.Unmarshal(b, (*c)[i]); err != nil {
-			return err
-		}
+		res[i] = t
 	}
-	return nil
-}
-
-func (c CQTypes) Len() int {
-	return len(c)
+	return res, nil
 }
 
 // func (c CQTypes) Equal(other CQTypes) bool {
@@ -167,16 +109,3 @@ func (c CQTypes) Len() int {
 // 	}
 // 	return true
 // }
-
-func (c CQTypes) String() string {
-	var sb strings.Builder
-	sb.WriteString("[")
-	for i, v := range c {
-		if i > 0 {
-			sb.WriteString(", ")
-		}
-		sb.WriteString(fmt.Sprintf("%v", v))
-	}
-	sb.WriteString("]")
-	return sb.String()
-}

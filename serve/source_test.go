@@ -178,7 +178,7 @@ func TestServeSource(t *testing.T) {
 		t.Fatalf("Expected 1 resource on channel but got %d", totalResources)
 	}
 
-	stats, err := c.GetStats(ctx)
+	stats, err := c.GetMetrics(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

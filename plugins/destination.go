@@ -15,6 +15,7 @@ type NewDestinationClientFunc func(context.Context, zerolog.Logger, specs.Destin
 
 type DestinationClient interface {
 	Migrate(ctx context.Context, tables schema.Tables) error
+	Read(ctx context.Context, tables schema.Tables, res chan<- *schema.DestinationResource) error
 	Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error
 	Metrics() DestinationMetrics
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
@@ -77,6 +78,10 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 	return p.client.Migrate(ctx, tables)
 }
 
+func (p *DestinationPlugin) Read(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res chan<- *schema.DestinationResource) error {
+	return p.client.Read(ctx, tables, res)
+}
+
 func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan *schema.DestinationResource) error {
 	SetDestinationManagedCqColumns(tables)
 	ch := make(chan *schema.DestinationResource)
@@ -93,7 +98,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	syncTimeColumn := &cqtypes.Timestamptz{}
 	_ = syncTimeColumn.Set(syncTime)
 	for r := range res {
-		r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
+		r.Data = append([]cqtypes.CQType{sourceColumn, syncTimeColumn}, r.Data...)
 		ch <- r
 	}
 

@@ -23,6 +23,26 @@ type Timestamptz struct {
 	InfinityModifier InfinityModifier
 }
 
+func (dst *Timestamptz) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+
+	if value, ok := src.(*Timestamptz); ok {
+		return dst.Status == value.Status && dst.Time.Equal(value.Time) && dst.InfinityModifier == value.InfinityModifier
+	}
+
+	return false
+}
+
+func (dst *Timestamptz) String() string {
+	if dst.Status == Present {
+		return dst.Time.String()
+	} else {
+		return ""
+	}
+}
+
 func (dst *Timestamptz) Set(src interface{}) error {
 	if src == nil {
 		*dst = Timestamptz{Status: Null}

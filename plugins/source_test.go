@@ -121,7 +121,7 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 type syncTestCase struct {
 	table *schema.Table
 	stats SourceMetrics
-	data  []schema.CQTypes
+	data  []cqtypes.CQTypes
 }
 
 var syncTestCases = []syncTestCase{
@@ -136,7 +136,7 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: []schema.CQTypes{
+		data: []cqtypes.CQTypes{
 			{
 				&cqtypes.UUID{Bytes: [16]byte{1}, Status: cqtypes.Present},
 				nil,
@@ -199,7 +199,7 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: []schema.CQTypes{
+		data: []cqtypes.CQTypes{
 			{
 				&cqtypes.UUID{Bytes: [16]byte{1}, Status: cqtypes.Present},
 				nil,

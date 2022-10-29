@@ -1,11 +1,35 @@
 //nolint:revive
 package cqtypes
 
-import "fmt"
+import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
+)
 
 type Bytea struct {
 	Bytes  []byte
 	Status Status
+}
+
+func (dst *Bytea) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Bytea)
+	if !ok {
+		return false
+	}
+
+	return dst.Status == s.Status && bytes.Equal(dst.Bytes, s.Bytes)
+}
+
+func (dst *Bytea) String() string {
+	if dst.Status == Present {
+		return hex.EncodeToString(dst.Bytes)
+	} else {
+		return ""
+	}
 }
 
 func (dst *Bytea) Set(src interface{}) error {

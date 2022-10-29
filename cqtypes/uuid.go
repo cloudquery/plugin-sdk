@@ -11,6 +11,26 @@ type UUID struct {
 	Status Status
 }
 
+func (dst *UUID) Equal(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*UUID)
+	if !ok {
+		return false
+	}
+
+	return dst.Status == s.Status && dst.Bytes == s.Bytes
+}
+
+func (dst *UUID) String() string {
+	if dst.Status == Present {
+		return hex.EncodeToString(dst.Bytes[:])
+	} else {
+		return ""
+	}
+}
+
 func (dst *UUID) Set(src interface{}) error {
 	if src == nil {
 		*dst = UUID{Status: Null}
