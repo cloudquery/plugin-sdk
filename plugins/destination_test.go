@@ -26,7 +26,7 @@ func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 	return nil
 }
 
-func (*testDestinationClient) Read(context.Context, schema.Tables, chan<- *schema.DestinationResource) error {
+func (*testDestinationClient) Read(context.Context, *schema.Table, string, chan<- *schema.DestinationResource) error {
 	//nolint:revive
 	return nil
 }

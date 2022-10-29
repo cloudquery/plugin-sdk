@@ -38,17 +38,16 @@ func (dst *TextArray) Equal(src CQType) bool {
 }
 
 func (dst *TextArray) String() string {
-	var sb strings.Builder
-	if dst.Status == Present {
-		sb.WriteString("{")
-		for i, element := range dst.Elements {
-			if i != 0 {
-				sb.WriteString(",")
-			}
-			sb.WriteString(element.String())
-		}
-	} else {
+	if dst.Status != Present {
 		return ""
+	}
+	var sb strings.Builder
+	sb.WriteString("{")
+	for i, element := range dst.Elements {
+		if i != 0 {
+			sb.WriteString(",")
+		}
+		sb.WriteString(element.String())
 	}
 	return sb.String()
 }
@@ -60,7 +59,7 @@ func (dst *TextArray) Set(src interface{}) error {
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(CQType); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)

@@ -61,7 +61,7 @@ func (dst *MacaddrArray) Set(src interface{}) error {
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(CQType); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)

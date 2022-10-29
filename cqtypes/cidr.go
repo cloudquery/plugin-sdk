@@ -6,7 +6,7 @@ func (dst *CIDR) String() string {
 	if dst.Status == Present {
 		return dst.IPNet.String()
 	}
-	
+
 	return ""
 }
 

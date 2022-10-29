@@ -15,7 +15,7 @@ type NewDestinationClientFunc func(context.Context, zerolog.Logger, specs.Destin
 
 type DestinationClient interface {
 	Migrate(ctx context.Context, tables schema.Tables) error
-	Read(ctx context.Context, tables schema.Tables, res chan<- *schema.DestinationResource) error
+	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- *schema.DestinationResource) error
 	Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error
 	Metrics() DestinationMetrics
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
@@ -78,8 +78,9 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *DestinationPlugin) Read(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res chan<- *schema.DestinationResource) error {
-	return p.client.Read(ctx, tables, res)
+func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- *schema.DestinationResource) error {
+	SetDestinationManagedCqColumns(schema.Tables{table})
+	return p.client.Read(ctx, table, sourceName, res)
 }
 
 func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan *schema.DestinationResource) error {
