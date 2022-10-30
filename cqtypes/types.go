@@ -22,6 +22,10 @@ const (
 	NegativeInfinity InfinityModifier = -Infinity
 )
 
+// type MarshalableJson interface {
+// 	MarshalJSON() ([]byte, error)
+// }
+
 type CQType interface {
 	// Type() ValueType
 	Set(v interface{}) error

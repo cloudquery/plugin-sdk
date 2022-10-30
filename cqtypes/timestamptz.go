@@ -79,7 +79,11 @@ func (dst *Timestamptz) Set(src interface{}) error {
 		if originalSrc, ok := underlyingTimeType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return fmt.Errorf("cannot convert %v to Timestamptz", value)
+		if value, ok := value.(fmt.Stringer); ok {
+			s := value.String()
+			return dst.Set(s)
+		}
+		return fmt.Errorf("cannot convert %v of type %T to Timestamptz", value, value)
 	}
 
 	return nil
@@ -113,7 +117,11 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 		*dst = Timestamptz{Status: Present, InfinityModifier: -Infinity}
 	default:
 		var format string
-		if len(sbuf) >= 9 && (sbuf[len(sbuf)-9] == '-' || sbuf[len(sbuf)-9] == '+') {
+		if len(sbuf) >= len(time.RFC3339) && sbuf[19] == 'Z' {
+			format = time.RFC3339
+		} else if len(sbuf) >= len(time.RFC3339) && sbuf[19] == '.' {
+			format = time.RFC3339Nano
+		} else if len(sbuf) >= 9 && (sbuf[len(sbuf)-9] == '-' || sbuf[len(sbuf)-9] == '+') {
 			format = pgTimestamptzSecondFormat
 		} else if len(sbuf) >= 6 && (sbuf[len(sbuf)-6] == '-' || sbuf[len(sbuf)-6] == '+') {
 			format = pgTimestamptzMinuteFormat
