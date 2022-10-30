@@ -28,7 +28,7 @@ type SourcePlugin struct {
 	tables schema.Tables
 	// status sync metrics
 	metrics SourceMetrics
-	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
+	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
 	logger zerolog.Logger
 	// resourceSem is a semaphore that limits the number of concurrent resources being fetched
 	resourceSem *semaphore.Weighted
