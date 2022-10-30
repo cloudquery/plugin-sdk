@@ -239,9 +239,6 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 
 	var i uint64
 	for range resources {
-		// if !tc.data[i].Equal(resource.GetValues()) {
-		// 	t.Fatalf("expected in item %d %v. got %v", i, tc.data[i], resource.GetValues())
-		// }
 		i++
 	}
 
