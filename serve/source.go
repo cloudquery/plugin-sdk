@@ -94,7 +94,7 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
 			)
-
+			source.plugin.SetLogger(logger)
 			pb.RegisterSourceServer(s, &servers.SourceServer{
 				Plugin: source.plugin,
 				Logger: logger,
@@ -105,7 +105,7 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 				err = sentry.Init(sentry.ClientOptions{
 					Dsn:              source.sentryDSN,
 					Debug:            false,
-					AttachStacktrace: true,
+					AttachStacktrace: false,
 					Release:          version,
 					ServerName:       "oss", // set to "oss" on purpose to avoid sending any identifying information
 					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations

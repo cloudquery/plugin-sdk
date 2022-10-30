@@ -31,6 +31,11 @@ func newDestinationClient(context.Context, zerolog.Logger, specs.Destination) (p
 func (*testDestinationClient) Initialize(context.Context, specs.Destination) error {
 	return nil
 }
+
+func (*testDestinationClient) Metrics() plugins.DestinationMetrics {
+	return plugins.DestinationMetrics{}
+}
+
 func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 	return nil
 }
@@ -134,6 +139,14 @@ func TestDestination(t *testing.T) {
 
 	if err := c.DeleteStale(ctx, nil, "testSource", time.Now()); err != nil {
 		t.Fatalf("failed to call DeleteStale: %v", err)
+	}
+
+	metrics, err := c.GetMetrics(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metrics.Errors != 0 {
+		t.Fatalf("expected errors to be 0 but got %d", metrics.Errors)
 	}
 
 	if err := c.Close(ctx); err != nil {

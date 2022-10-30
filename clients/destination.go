@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
+	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -100,16 +100,6 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 		}
 	default:
 		return nil, fmt.Errorf("unsupported registry %s", registry)
-	}
-	protocolVersion, err := c.GetProtocolVersion(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if protocolVersion < versions.DestinationProtocolVersion {
-		return nil, fmt.Errorf("destination plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.DestinationProtocolVersion)
-	} else if protocolVersion > versions.DestinationProtocolVersion {
-		return nil, fmt.Errorf("destination plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.DestinationProtocolVersion)
 	}
 
 	return c, nil
@@ -196,6 +186,18 @@ func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, err
 		return 1, nil
 	}
 	return res.Version, nil
+}
+
+func (c *DestinationClient) GetMetrics(ctx context.Context) (*plugins.DestinationMetrics, error) {
+	res, err := c.pbClient.GetMetrics(ctx, &pb.GetDestinationMetrics_Request{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to call GetMetrics: %w", err)
+	}
+	var stats plugins.DestinationMetrics
+	if err := json.Unmarshal(res.Metrics, &stats); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal destination metrics: %w", err)
+	}
+	return &stats, nil
 }
 
 func (c *DestinationClient) Name(ctx context.Context) (string, error) {

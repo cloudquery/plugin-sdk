@@ -103,7 +103,7 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 				err = sentry.Init(sentry.ClientOptions{
 					Dsn:              destination.sentryDSN,
 					Debug:            false,
-					AttachStacktrace: true,
+					AttachStacktrace: false,
 					Release:          version,
 					ServerName:       "oss", // set to "oss" on purpose to avoid sending any identifying information
 					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations

@@ -41,6 +41,8 @@ type DestinationClient interface {
 	// DeleteStale deletes stale data that was inserted by a given source
 	// and is older than the given timestamp
 	DeleteStale(ctx context.Context, in *DeleteStale_Request, opts ...grpc.CallOption) (*DeleteStale_Response, error)
+	// Get metrics for the source plugin
+	GetMetrics(ctx context.Context, in *GetDestinationMetrics_Request, opts ...grpc.CallOption) (*GetDestinationMetrics_Response, error)
 }
 
 type destinationClient struct {
@@ -148,6 +150,15 @@ func (c *destinationClient) DeleteStale(ctx context.Context, in *DeleteStale_Req
 	return out, nil
 }
 
+func (c *destinationClient) GetMetrics(ctx context.Context, in *GetDestinationMetrics_Request, opts ...grpc.CallOption) (*GetDestinationMetrics_Response, error) {
+	out := new(GetDestinationMetrics_Response)
+	err := c.cc.Invoke(ctx, "/proto.Destination/GetMetrics", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DestinationServer is the server API for Destination service.
 // All implementations must embed UnimplementedDestinationServer
 // for forward compatibility
@@ -171,6 +182,8 @@ type DestinationServer interface {
 	// DeleteStale deletes stale data that was inserted by a given source
 	// and is older than the given timestamp
 	DeleteStale(context.Context, *DeleteStale_Request) (*DeleteStale_Response, error)
+	// Get metrics for the source plugin
+	GetMetrics(context.Context, *GetDestinationMetrics_Request) (*GetDestinationMetrics_Response, error)
 	mustEmbedUnimplementedDestinationServer()
 }
 
@@ -201,6 +214,9 @@ func (UnimplementedDestinationServer) Close(context.Context, *Close_Request) (*C
 }
 func (UnimplementedDestinationServer) DeleteStale(context.Context, *DeleteStale_Request) (*DeleteStale_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteStale not implemented")
+}
+func (UnimplementedDestinationServer) GetMetrics(context.Context, *GetDestinationMetrics_Request) (*GetDestinationMetrics_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetrics not implemented")
 }
 func (UnimplementedDestinationServer) mustEmbedUnimplementedDestinationServer() {}
 
@@ -367,6 +383,24 @@ func _Destination_DeleteStale_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Destination_GetMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDestinationMetrics_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DestinationServer).GetMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Destination/GetMetrics",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DestinationServer).GetMetrics(ctx, req.(*GetDestinationMetrics_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Destination_ServiceDesc is the grpc.ServiceDesc for Destination service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -401,6 +435,10 @@ var Destination_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteStale",
 			Handler:    _Destination_DeleteStale_Handler,
+		},
+		{
+			MethodName: "GetMetrics",
+			Handler:    _Destination_GetMetrics_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
