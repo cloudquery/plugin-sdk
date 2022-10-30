@@ -23,7 +23,7 @@ const (
 )
 
 func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
-	// current DFS supports only parallization for top level tables and resources.
+	// current DFS supports only parallelization for top level tables and resources.
 	// it is possible to extend support for multiple levels but this require benchmarking to find a good fit on how to split
 	// gorourtines for each level efficiently.
 	// This is very similar to the concurrent web crawler problem with some minor changes.
