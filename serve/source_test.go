@@ -187,6 +187,20 @@ func TestServeSource(t *testing.T) {
 		t.Fatalf("Got: %d Expected 0 panics", summary.Panics)
 	}
 
+	metrics, err := c.GetMetrics(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metrics.TotalResources() != 1 {
+		t.Fatalf("Got: %d Expected 1 resource", metrics.TotalResources())
+	}
+	if metrics.TotalErrors() != 0 {
+		t.Fatalf("Got: %d Expected 0 error", metrics.TotalErrors())
+	}
+	if metrics.TotalPanics() != 0 {
+		t.Fatalf("Got: %d Expected 0 panic", metrics.TotalPanics())
+	}
+
 	cancel()
 	wg.Wait()
 	if serverErr != nil {
