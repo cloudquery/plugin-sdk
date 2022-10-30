@@ -180,7 +180,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	p.syncDfs(ctx, spec, c, tables, res)
 
 	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
-	// this for backward compatibility and will be removed in syncv2 so the way to get the metrics would be seperate
+	// this for backward compatibility and will be removed in syncv2 so the way to get the metrics would be separate
 	summary := schema.SyncSummary{
 		Resources: p.metrics.TotalResources(),
 		Errors:    p.metrics.TotalErrors(),
