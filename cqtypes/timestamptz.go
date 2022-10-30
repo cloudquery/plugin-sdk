@@ -37,7 +37,7 @@ func (dst *Timestamptz) Equal(src CQType) bool {
 
 func (dst *Timestamptz) String() string {
 	if dst.Status == Present {
-		return dst.Time.String()
+		return dst.Time.Format(pgTimestamptzSecondFormat)
 	} else {
 		return ""
 	}

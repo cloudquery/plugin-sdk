@@ -52,6 +52,17 @@ func (dst *Bytea) Set(src interface{}) error {
 		} else {
 			*dst = Bytea{Status: Null}
 		}
+	case string:
+		if value != "" {
+			b := make([]byte, hex.DecodedLen(len(value)))
+			_, err := hex.Decode(b, []byte(value))
+			if err != nil {
+				return fmt.Errorf("cannot decode hex string to bytea: %w", err)
+			}
+			*dst = Bytea{Status: Present, Bytes: b}
+		} else {
+			*dst = Bytea{Status: Null}
+		}
 	default:
 		if originalSrc, ok := underlyingBytesType(src); ok {
 			return dst.Set(originalSrc)

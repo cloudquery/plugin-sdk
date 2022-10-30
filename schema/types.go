@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/cloudquery/plugin-sdk/cqtypes"
+	"github.com/cloudquery/plugin-sdk/helpers"
 )
 
 type Status byte
@@ -16,12 +17,13 @@ const (
 
 // CQTypesFromValues tries best effort to convert a slice of values to CQTypes
 // based on the provided table columns.
-func CQTypesFromValues(table *Table, values []interface{}) (cqtypes.CQTypes, error) {
-	res := make(cqtypes.CQTypes, len(values))
+func CQTypesFromValues(table *Table, values interface{}) (cqtypes.CQTypes, error) {
+	valuesSlice := helpers.InterfaceSlice(values)
+	res := make(cqtypes.CQTypes, len(valuesSlice))
 
-	for i, v := range values {
+	for i, v := range valuesSlice {
 		if v == nil {
-			values[i] = nil
+			valuesSlice[i] = nil
 		}
 		var t cqtypes.CQType
 		var err error
@@ -81,31 +83,9 @@ func CQTypesFromValues(table *Table, values []interface{}) (cqtypes.CQTypes, err
 			return nil, fmt.Errorf("unsupported type %s", table.Columns[i].Type)
 		}
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to convert value %v to type %s: %w", v, table.Columns[i].Type, err)
 		}
 		res[i] = t
 	}
 	return res, nil
 }
-
-// func (c CQTypes) Equal(other CQTypes) bool {
-// 	if other == nil {
-// 		return false
-// 	}
-// 	if len(c) != len(other) {
-// 		return false
-// 	}
-// 	for i := range c {
-// 		if c[i] == nil {
-// 			if other[i] != nil {
-// 				return false
-// 			}
-// 		} else {
-// 			if !c[i].Equal(other[i]) {
-// 				return false
-// 			}
-// 		}
-
-// 	}
-// 	return true
-// }
