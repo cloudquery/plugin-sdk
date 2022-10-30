@@ -37,7 +37,7 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source,
 
 	go func() {
 		defer close(resourcesChannel)
-		_, fetchErr = plugin.Sync(context.Background(), spec, resourcesChannel)
+		fetchErr = plugin.Sync(context.Background(), spec, resourcesChannel)
 	}()
 
 	syncedResources := make([]*schema.Resource, 0)

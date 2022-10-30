@@ -232,10 +232,9 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(resources)
-		_, err := plugin.Sync(ctx,
+		return plugin.Sync(ctx,
 			spec,
 			resources)
-		return err
 	})
 
 	var i uint64

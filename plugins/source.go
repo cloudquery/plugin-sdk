@@ -160,20 +160,20 @@ func filterParentTables(tables schema.Tables, filter []string) schema.Tables {
 }
 
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) (*schema.SyncSummary, error) {
+func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid spec: %w", err)
+		return fmt.Errorf("invalid spec: %w", err)
 	}
 	tableNames, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	tables := filterParentTables(p.tables, tableNames)
 
 	c, err := p.newExecutionClient(ctx, p.logger, spec)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
+		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
 
 	startTime := time.Now()
@@ -181,12 +181,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 
 	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	// this for backward compatibility and will be removed in syncv2 so the way to get the metrics would be separate
-	summary := schema.SyncSummary{
-		Resources: p.metrics.TotalResources(),
-		Errors:    p.metrics.TotalErrors(),
-		Panics:    p.metrics.TotalPanics(),
-	}
-	return &summary, nil
+	return nil
 }
 
 func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]string, error) {
