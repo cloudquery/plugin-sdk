@@ -8,7 +8,7 @@ import (
 )
 
 type ClientMeta interface {
-	Name() string
+	ID() string
 }
 
 type Meta struct {

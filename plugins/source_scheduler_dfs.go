@@ -66,7 +66,7 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 }
 
 func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource) {
-	clientName := client.Name()
+	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 	logger.Info().Msg("table resolver started")
 	tableMetrics := p.metrics.TableClient[table.Name][clientName]
@@ -148,9 +148,9 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	resource := schema.NewResourceData(table, parent, item)
 	objectStartTime := time.Now()
 	csr := caser.New()
-	clientName := client.Name()
-	tableMetrics := p.metrics.TableClient[table.Name][clientName]
-	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
+	clientID := client.ID()
+	tableMetrics := p.metrics.TableClient[table.Name][clientID]
+	logger := p.logger.With().Str("table", table.Name).Str("client", clientID).Logger()
 	defer func() {
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))

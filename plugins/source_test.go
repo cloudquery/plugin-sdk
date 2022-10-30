@@ -109,7 +109,7 @@ func testTableRelationSuccess() *schema.Table {
 	}
 }
 
-func (*testExecutionClient) Name() string {
+func (*testExecutionClient) ID() string {
 	return "testExecutionClient"
 }
 
