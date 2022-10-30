@@ -36,7 +36,7 @@ func (dst *Text) Set(src interface{}) error {
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(CQType); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -101,7 +101,7 @@ func (dst *Text) Set(src interface{}) error {
 func (dst Text) Get() interface{} {
 	switch dst.Status {
 	case Present:
-		return dst.String
+		return dst.Str
 	case Null:
 		return nil
 	default:
