@@ -2,30 +2,9 @@ package schema
 
 import (
 	"context"
-	"fmt"
-	"net"
-	"reflect"
-	"runtime"
-	"strings"
-	"time"
-
-	gofrs "github.com/gofrs/uuid"
-	"github.com/google/uuid"
-	"github.com/modern-go/reflect2"
-	"github.com/thoas/go-funk"
 )
 
 type ValueType int
-
-type ResolverMeta struct {
-	Name    string
-	Builtin bool
-}
-
-type ColumnMeta struct {
-	Resolver     *ResolverMeta
-	IgnoreExists bool
-}
 
 type ColumnList []Column
 
@@ -46,7 +25,7 @@ type Column struct {
 	// Value Type of column i.e String, UUID etc'
 	Type ValueType `json:"type,omitempty"`
 	// Description about column, this description is added as a comment in the database
-	Description string `json:"description,omitempty"`
+	Description string `json:"-"`
 	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
 	Resolver ColumnResolver `json:"-"`
 	// Creation options allow modifying how column is defined when table is created
@@ -57,10 +36,6 @@ type Column struct {
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
 	IgnoreInTests bool `json:"-"`
-	// internal is true if this column is managed by the SDK
-	internal bool
-	// meta holds serializable information about the column's resolvers and functions
-	meta *ColumnMeta
 }
 
 const (
@@ -130,227 +105,14 @@ func (v ValueType) String() string {
 	}
 }
 
-// ValueTypeFromString this function is mainly used by https://github.com/cloudquery/cq-gen
-func ValueTypeFromString(s string) ValueType {
-	switch strings.TrimPrefix(strings.ToLower(s), "type") {
-	case "bool":
-		return TypeBool
-	case "int", "bigint", "smallint":
-		return TypeInt
-	case "float":
-		return TypeFloat
-	case "uuid":
-		return TypeUUID
-	case "string":
-		return TypeString
-	case "json":
-		return TypeJSON
-	case "intarray":
-		return TypeIntArray
-	case "stringarray":
-		return TypeStringArray
-	case "bytearray":
-		return TypeByteArray
-	case "timestamp":
-		return TypeTimestamp
-	case "uuidarray":
-		return TypeUUIDArray
-	case "inet":
-		return TypeInet
-	case "inetarray":
-		return TypeInetArray
-	case "macaddr":
-		return TypeMacAddr
-	case "macaddrarray":
-		return TypeMacAddrArray
-	case "cidr":
-		return TypeCIDR
-	case "cidrarray":
-		return TypeCIDRArray
-	case "invalid":
-		return TypeInvalid
-	case "TypeTimeInterval":
-		return TypeTimeInterval
-	default:
-		return TypeInvalid
+func (c ColumnList) Index(col string) int {
+	for i, c := range c {
+		if c.Name == col {
+			return i
+		}
 	}
+	return -1
 }
-
-func (c Column) Internal() bool {
-	return c.internal
-}
-
-func (c Column) ValidateType(v interface{}) error {
-	if !c.checkType(v) {
-		return fmt.Errorf("column %s expected %s got %T", c.Name, c.Type.String(), v)
-	}
-	return nil
-}
-
-func (c Column) checkType(v interface{}) bool {
-	if reflect2.IsNil(v) {
-		return true
-	}
-
-	if reflect2.TypeOf(v).Kind() == reflect.Ptr {
-		return c.checkType(funk.GetOrElse(v, nil))
-	}
-
-	// Maps or slices are jsons
-	if reflect2.TypeOf(v).Kind() == reflect.Map {
-		return c.Type == TypeJSON
-	}
-
-	switch val := v.(type) {
-	case int8, *int8, uint8, *uint8, int16, *int16, uint16, *uint16, int32, *int32, int, *int, uint32, *uint32, int64, *int64:
-		return c.Type == TypeInt
-	case []byte:
-		if c.Type == TypeUUID {
-			if _, err := uuid.FromBytes(val); err != nil {
-				return false
-			}
-		}
-		return c.Type == TypeByteArray || c.Type == TypeJSON
-	case bool, *bool:
-		return c.Type == TypeBool
-	case string:
-		if c.Type == TypeUUID {
-			if _, err := uuid.Parse(val); err == nil {
-				return true
-			}
-		}
-		if c.Type == TypeJSON {
-			return true
-		}
-		return c.Type == TypeString
-	case *string:
-		if c.Type == TypeJSON {
-			return true
-		}
-		return c.Type == TypeString
-	case *float32, float32, *float64, float64:
-		return c.Type == TypeFloat
-	case []string, []*string, *[]string:
-		return c.Type == TypeStringArray || c.Type == TypeJSON
-	case []int, []*int, *[]int, []int32, []*int32, []int64, []*int64, *[]int64:
-		return c.Type == TypeIntArray || c.Type == TypeJSON
-	case []interface{}:
-		return c.Type == TypeJSON
-	case time.Time, *time.Time:
-		return c.Type == TypeTimestamp
-	case time.Duration, *time.Duration:
-		return c.Type == TypeTimeInterval
-	case uuid.UUID, *uuid.UUID:
-		return c.Type == TypeUUID
-	case gofrs.UUID, *gofrs.UUID:
-		return c.Type == TypeUUID
-	case [16]byte:
-		return c.Type == TypeUUID
-	case net.HardwareAddr, *net.HardwareAddr:
-		return c.Type == TypeMacAddr
-	case []net.HardwareAddr, []*net.HardwareAddr:
-		return c.Type == TypeMacAddrArray
-	case net.IPAddr, *net.IPAddr, *net.IP, net.IP:
-		return c.Type == TypeInet
-	case []net.IPAddr, []*net.IPAddr, []*net.IP, []net.IP:
-		return c.Type == TypeInetArray
-	case net.IPNet, *net.IPNet:
-		return c.Type == TypeCIDR
-	case []net.IPNet, []*net.IPNet:
-		return c.Type == TypeCIDRArray
-	case interface{}:
-		kindName := reflect2.TypeOf(v).Kind()
-		if kindName == reflect.String && c.Type == TypeString {
-			return true
-		}
-		switch kindName {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return c.Type == TypeInt
-		}
-		if kindName == reflect.Slice {
-			itemKind := reflect2.TypeOf(v).Type1().Elem().Kind()
-			if c.Type == TypeStringArray && reflect.String == itemKind {
-				return true
-			}
-			if c.Type == TypeIntArray {
-				switch itemKind {
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					return true
-				}
-			}
-			if c.Type == TypeJSON && (reflect.Struct == itemKind || reflect.Ptr == itemKind) {
-				return true
-			}
-			if c.Type == TypeUUIDArray && reflect2.TypeOf(v).String() == "uuid.UUID" || reflect2.TypeOf(v).String() == "*uuid.UUID" {
-				return c.Type == TypeUUIDArray
-			}
-		}
-		if kindName == reflect.Struct {
-			return c.Type == TypeJSON
-		}
-	}
-
-	return false
-}
-
-func (c Column) Meta() *ColumnMeta {
-	if c.meta != nil {
-		return c.meta
-	}
-	if c.Resolver == nil {
-		return &ColumnMeta{
-			Resolver:     nil,
-			IgnoreExists: false,
-		}
-	}
-	fnName := runtime.FuncForPC(reflect.ValueOf(c.Resolver).Pointer()).Name()
-	return &ColumnMeta{
-		Resolver: &ResolverMeta{
-			Name:    strings.TrimPrefix(fnName, "github.com/cloudquery/plugin-sdk/provider/"),
-			Builtin: strings.HasPrefix(fnName, "github.com/cloudquery/plugin-sdk/"),
-		},
-		IgnoreExists: false,
-	}
-}
-
-// func (c Column) signature() string {
-// 	return strings.Join([]string{
-// 		"c",
-// 		c.Name,
-// 		c.Type.String(),
-// 		fmt.Sprintf("%t;%t", c.CreationOptions.Unique, c.CreationOptions.NotNull),
-// 	}, "\n")
-// }
-
-func SetColumnMeta(c Column, m *ColumnMeta) Column {
-	c.meta = m
-	return c
-}
-
-// Sift gets a column list and returns a list of provider columns, and another list of internal columns, cqId column being the very last one
-// func (c ColumnList) Sift() (providerCols ColumnList, internalCols ColumnList) {
-// 	providerCols, internalCols = make(ColumnList, 0, len(c)), make(ColumnList, 0, len(c))
-// 	cqIdColIndex := -1
-// 	for i := range c {
-// 		if c[i].internal {
-// 			if c[i].Name == cqIdColumn.Name {
-// 				cqIdColIndex = len(internalCols)
-// 			}
-
-// 			internalCols = append(internalCols, c[i])
-// 		} else {
-// 			providerCols = append(providerCols, c[i])
-// 		}
-// 	}
-
-// 	// resolve cqId last, as it would need other PKs to be resolved, some might be internal (cq_fetch_date)
-// 	if lastIndex := len(internalCols) - 1; cqIdColIndex > -1 && cqIdColIndex != lastIndex {
-// 		internalCols[cqIdColIndex], internalCols[lastIndex] = internalCols[lastIndex], internalCols[cqIdColIndex]
-// 	}
-// 	return providerCols, internalCols
-// }
 
 func (c ColumnList) Names() []string {
 	ret := make([]string, len(c))
@@ -368,19 +130,3 @@ func (c ColumnList) Get(name string) *Column {
 	}
 	return nil
 }
-
-// func (c ColumnList) signature() string {
-// 	names := make([]string, len(c))
-// 	nameVsColumn := make(map[string]*Column, len(c))
-// 	for i := range c {
-// 		names[i] = c[i].Name
-// 		nameVsColumn[c[i].Name] = &c[i]
-// 	}
-// 	sort.Strings(names)
-
-// 	sigs := make([]string, len(c))
-// 	for i, colName := range names {
-// 		sigs[i] = nameVsColumn[colName].signature()
-// 	}
-// 	return strings.Join(sigs, "\n")
-// }

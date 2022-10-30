@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/go-cmp/cmp"
@@ -120,7 +121,7 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 type syncTestCase struct {
 	table *schema.Table
 	stats SourceMetrics
-	// data  []cqtypes.CQTypes
+	data  []cqtypes.CQTypes
 }
 
 var syncTestCases = []syncTestCase{
@@ -135,6 +136,13 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
+		data: []cqtypes.CQTypes{
+			{
+				&cqtypes.UUID{Bytes: [16]byte{1}, Status: cqtypes.Present},
+				nil,
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+			},
+		},
 	},
 	{
 		table: testTableResolverPanic(),
@@ -147,6 +155,7 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
+		data: nil,
 	},
 	{
 		table: testTablePreResourceResolverPanic(),
@@ -159,6 +168,7 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
+		data: nil,
 	},
 	{
 		table: testTableColumnResolverPanic(),
@@ -171,6 +181,7 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
+		data: nil,
 	},
 	{
 		table: testTableRelationSuccess(),
@@ -186,6 +197,18 @@ var syncTestCases = []syncTestCase{
 						Resources: 1,
 					},
 				},
+			},
+		},
+		data: []cqtypes.CQTypes{
+			{
+				&cqtypes.UUID{Bytes: [16]byte{1}, Status: cqtypes.Present},
+				nil,
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+			},
+			{
+				&cqtypes.UUID{Bytes: [16]byte{1}, Status: cqtypes.Present},
+				&cqtypes.UUID{Bytes: [16]byte{1}, Status: cqtypes.Present},
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
 			},
 		},
 	},
@@ -237,18 +260,25 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 			resources)
 	})
 
-	var i uint64
-	for range resources {
+	var i int
+	for resource := range resources {
+		if tc.data == nil {
+			t.Fatalf("Unexpected resource %v", resource)
+		}
+		if i > len(tc.data) {
+			t.Fatalf("expected %d resources. got %d", len(tc.data), i)
+		}
+		// if !tc.data[i].Equal(resource.GetValues()) {
+		// 	t.Fatalf("expected in item %d %v. got %v", i, tc.data[i], resource.GetValues())
+		// }
 		i++
 	}
-
+	if len(tc.data) != i {
+		t.Fatalf("expected %d resources. got %d", len(tc.data), i)
+	}
 	stats := plugin.Metrics()
 	if !tc.stats.Equal(&stats) {
 		t.Fatalf("unexpected stats: %v", cmp.Diff(tc.stats, stats))
-	}
-	totalResources := stats.TotalResources()
-	if totalResources != i {
-		t.Fatalf("expected %d resources. got %d", totalResources, i)
 	}
 	if err := g.Wait(); err != nil {
 		t.Fatal(err)

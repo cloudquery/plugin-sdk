@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"sync/atomic"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -21,6 +20,7 @@ type Multiplexer func(meta ClientMeta) []ClientMeta
 
 type Tables []*Table
 
+// This is deprecated
 type SyncSummary struct {
 	Resources uint64
 	Errors    uint64
@@ -58,14 +58,10 @@ type Table struct {
 	Parent *Table `json:"-"`
 }
 
-var reValidTableName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
-var reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
-
-func (s *SyncSummary) Merge(other SyncSummary) {
-	atomic.AddUint64(&s.Resources, other.Resources)
-	atomic.AddUint64(&s.Errors, other.Errors)
-	atomic.AddUint64(&s.Panics, other.Panics)
-}
+var (
+	reValidTableName  = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
+	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
+)
 
 func (tt Tables) TableNames() []string {
 	ret := []string{}
@@ -75,19 +71,15 @@ func (tt Tables) TableNames() []string {
 	return ret
 }
 
-func (tt Tables) ValidateTableNames() error {
+// Get return table by name
+func (tt Tables) Get(name string) *Table {
 	for _, t := range tt {
-		if err := t.ValidateName(); err != nil {
-			return err
+		if t.Name == name {
+			return t
 		}
-	}
-	return nil
-}
-
-func (tt Tables) ValidateColumnNames() error {
-	for _, t := range tt {
-		if err := t.ValidateColumnNames(); err != nil {
-			return err
+		table := t.Relations.Get(name)
+		if table != nil {
+			return table
 		}
 	}
 	return nil
@@ -109,6 +101,30 @@ func (tt Tables) ValidateDuplicateTables() error {
 			return fmt.Errorf("duplicate table %s", t.Name)
 		}
 		tables[t.Name] = true
+	}
+	return nil
+}
+
+func (tt Tables) ValidateTableNames() error {
+	for _, t := range tt {
+		if err := t.ValidateName(); err != nil {
+			return err
+		}
+		if err := t.Relations.ValidateTableNames(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (tt Tables) ValidateColumnNames() error {
+	for _, t := range tt {
+		if err := t.ValidateColumnNames(); err != nil {
+			return err
+		}
+		if err := t.Relations.ValidateColumnNames(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -185,18 +201,4 @@ func (t *Table) TableNames() []string {
 		ret = append(ret, rel.TableNames()...)
 	}
 	return ret
-}
-
-// Get return table by name
-func (tt Tables) Get(name string) *Table {
-	for _, t := range tt {
-		if t.Name == name {
-			return t
-		}
-		table := t.Relations.Get(name)
-		if table != nil {
-			return table
-		}
-	}
-	return nil
 }

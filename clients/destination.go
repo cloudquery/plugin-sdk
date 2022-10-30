@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -34,7 +33,6 @@ type DestinationClient struct {
 	userConn       *grpc.ClientConn
 	conn           *grpc.ClientConn
 	grpcSocketName string
-	cmdWaitErr     error
 	wg             *sync.WaitGroup
 }
 
@@ -118,17 +116,9 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 	}
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start plugin %s: %w", path, err)
+		return fmt.Errorf("failed to start destination plugin %s: %w", path, err)
 	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		if err := cmd.Wait(); err != nil {
-			c.cmdWaitErr = err
-			c.logger.Error().Err(err).Str("plugin", path).Msg("plugin exited")
-		}
-	}()
 	c.cmd = cmd
 
 	c.wg.Add(1)
@@ -177,7 +167,7 @@ func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, err
 	if err != nil {
 		s, ok := status.FromError(err)
 		if !ok {
-			return 0, fmt.Errorf("failed to cal GetProtocolVersion: %w", err)
+			return 0, fmt.Errorf("failed to call GetProtocolVersion: %w", err)
 		}
 		if s.Code() != codes.Unimplemented {
 			return 0, err
@@ -186,18 +176,6 @@ func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, err
 		return 1, nil
 	}
 	return res.Version, nil
-}
-
-func (c *DestinationClient) GetMetrics(ctx context.Context) (*plugins.DestinationMetrics, error) {
-	res, err := c.pbClient.GetMetrics(ctx, &pb.GetDestinationMetrics_Request{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to call GetMetrics: %w", err)
-	}
-	var stats plugins.DestinationMetrics
-	if err := json.Unmarshal(res.Metrics, &stats); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal destination metrics: %w", err)
-	}
-	return &stats, nil
 }
 
 func (c *DestinationClient) Name(ctx context.Context) (string, error) {
@@ -267,6 +245,37 @@ func (c *DestinationClient) Write(ctx context.Context, source string, syncTime t
 	return res.FailedWrites, nil
 }
 
+func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, source string, syncTime time.Time, resources <-chan []byte) error {
+	saveClient, err := c.pbClient.Write2(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to call Write2: %w", err)
+	}
+	b, err := json.Marshal(tables)
+	if err != nil {
+		return fmt.Errorf("failed to marshal tables: %w", err)
+	}
+	if err := saveClient.Send(&pb.Write2_Request{
+		Tables:    b,
+		Source:    source,
+		Timestamp: timestamppb.New(syncTime),
+	}); err != nil {
+		return fmt.Errorf("failed to send tables: %w", err)
+	}
+	for resource := range resources {
+		if err := saveClient.Send(&pb.Write2_Request{
+			Resource: resource,
+		}); err != nil {
+			return fmt.Errorf("failed to call Write.Send: %w", err)
+		}
+	}
+	_, err = saveClient.CloseAndRecv()
+	if err != nil {
+		return fmt.Errorf("failed to CloseAndRecv client: %w", err)
+	}
+
+	return nil
+}
+
 func (c *DestinationClient) Close(ctx context.Context) error {
 	if _, err := c.pbClient.Close(ctx, &pb.Close_Request{}); err != nil {
 		return fmt.Errorf("failed to close destination: %w", err)
@@ -296,24 +305,37 @@ func (c *DestinationClient) Terminate() error {
 	defer c.wg.Wait()
 
 	if c.grpcSocketName != "" {
-		defer os.Remove(c.grpcSocketName)
+		defer func() {
+			if err := os.Remove(c.grpcSocketName); err != nil {
+				c.logger.Error().Err(err).Msg("failed to remove destination socket file")
+			}
+		}()
 	}
 
 	if c.conn != nil {
 		if err := c.conn.Close(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to close gRPC connection")
+			c.logger.Error().Err(err).Msg("failed to close gRPC connection to destination plugin")
 		}
+		c.conn = nil
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
-		if err := c.cmd.Process.Kill(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to kill process")
+		if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
+			c.logger.Error().Err(err).Msg("failed to send interrupt signal to destination plugin")
+		}
+		timer := time.AfterFunc(5*time.Second, func() {
+			if err := c.cmd.Process.Kill(); err != nil {
+				c.logger.Error().Err(err).Msg("failed to kill destination plugin")
+			}
+		})
+		st, err := c.cmd.Process.Wait()
+		timer.Stop()
+		if err != nil {
 			return err
+		}
+		if !st.Success() {
+			return fmt.Errorf("destination plugin process exited with status %s", st.String())
 		}
 	}
 
 	return nil
-}
-
-func (c *DestinationClient) GetWaitError() error {
-	return c.cmdWaitErr
 }
