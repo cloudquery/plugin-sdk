@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -100,16 +99,6 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 		}
 	default:
 		return nil, fmt.Errorf("unsupported registry %s", registry)
-	}
-	protocolVersion, err := c.GetProtocolVersion(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if protocolVersion < versions.DestinationProtocolVersion {
-		return nil, fmt.Errorf("destination plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.DestinationProtocolVersion)
-	} else if protocolVersion > versions.DestinationProtocolVersion {
-		return nil, fmt.Errorf("destination plugin protocol version %d is higher than client version %d. Try updating destination plugin", protocolVersion, versions.DestinationProtocolVersion)
 	}
 
 	return c, nil

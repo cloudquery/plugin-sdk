@@ -20,6 +20,8 @@ service Source {
   rpc GetSyncSummary(GetSyncSummary.Request) returns (GetSyncSummary.Response);
   // Fetch resources
   rpc Sync(Sync.Request) returns (stream Sync.Response);
+  // Get metrics for the source plugin
+  rpc GetMetrics(GetSourceMetrics.Request) returns (GetSourceMetrics.Response);
 }
 
 message Sync {
@@ -53,3 +55,10 @@ message GetTables {
   }
 }
 
+message GetSourceMetrics {
+  message Request {}
+  message Response {
+    // marshalled json of plugins.SourceMetrics
+    bytes metrics = 1;
+  }
+}

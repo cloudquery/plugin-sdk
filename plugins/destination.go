@@ -15,6 +15,7 @@ type NewDestinationClientFunc func(context.Context, zerolog.Logger, specs.Destin
 type DestinationClient interface {
 	Migrate(ctx context.Context, tables schema.Tables) error
 	Write(ctx context.Context, table string, data map[string]interface{}) error
+	Metrics() DestinationMetrics
 	DeleteStale(ctx context.Context, tables string, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
 }
@@ -57,6 +58,10 @@ func (p *DestinationPlugin) Name() string {
 
 func (p *DestinationPlugin) Version() string {
 	return p.version
+}
+
+func (p *DestinationPlugin) Metrics() DestinationMetrics {
+	return p.client.Metrics()
 }
 
 // we need lazy loading because we want to be able to initialize after

@@ -4,11 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -29,7 +26,21 @@ type SourcePlugin struct {
 	newExecutionClient SourceNewExecutionClientFunc
 	// Tables is all tables supported by this source plugin
 	tables schema.Tables
+	// status sync metrics
+	metrics SourceMetrics
+	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
+	logger zerolog.Logger
+	// resourceSem is a semaphore that limits the number of concurrent resources being fetched
+	resourceSem *semaphore.Weighted
+	// tableSem is a semaphore that limits the number of concurrent tables being fetched
+	tableSem *semaphore.Weighted
+	// maxDepth is the max depth of tables
+	maxDepth uint64
 }
+
+const (
+	maxAllowedDepth = 4
+)
 
 // Add internal columns
 func addInternalColumns(tables []*schema.Table) {
@@ -52,6 +63,20 @@ func setParents(tables []*schema.Table) {
 	}
 }
 
+func maxDepth(tables schema.Tables) uint64 {
+	var depth uint64
+	if len(tables) == 0 {
+		return 0
+	}
+	for _, table := range tables {
+		newDepth := 1 + maxDepth(table.Relations)
+		if newDepth > depth {
+			depth = newDepth
+		}
+	}
+	return depth
+}
+
 // NewSourcePlugin returns a new plugin with a given name, version, tables, newExecutionClient
 // and additional options.
 func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc) *SourcePlugin {
@@ -60,11 +85,17 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 		version:            version,
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
+		metrics:            SourceMetrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 	}
 	addInternalColumns(p.tables)
 	setParents(p.tables)
 	if err := p.validate(); err != nil {
 		panic(err)
+	}
+	p.metrics.initWithTables(p.tables)
+	p.maxDepth = maxDepth(p.tables)
+	if p.maxDepth > maxAllowedDepth {
+		panic(fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth))
 	}
 	return &p
 }
@@ -93,6 +124,10 @@ func (p *SourcePlugin) validate() error {
 	return nil
 }
 
+func (p *SourcePlugin) SetLogger(logger zerolog.Logger) {
+	p.logger = logger
+}
+
 // Tables returns all supported tables by this source plugin
 func (p *SourcePlugin) Tables() schema.Tables {
 	return p.tables
@@ -108,8 +143,24 @@ func (p *SourcePlugin) Version() string {
 	return p.version
 }
 
+func filterParentTables(tables schema.Tables, filter []string) schema.Tables {
+	var res schema.Tables
+	if tables == nil {
+		return nil
+	}
+	if len(filter) == 0 {
+		return tables
+	}
+	for _, name := range filter {
+		if tables.Get(name) != nil {
+			res = append(res, tables.Get(name))
+		}
+	}
+	return res
+}
+
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec specs.Source, res chan<- *schema.Resource) (*schema.SyncSummary, error) {
+func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) (*schema.SyncSummary, error) {
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid spec: %w", err)
@@ -118,51 +169,23 @@ func (p *SourcePlugin) Sync(ctx context.Context, logger zerolog.Logger, spec spe
 	if err != nil {
 		return nil, err
 	}
+	tables := filterParentTables(p.tables, tableNames)
 
-	c, err := p.newExecutionClient(ctx, logger, spec)
+	c, err := p.newExecutionClient(ctx, p.logger, spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
-	logger.Info().Interface("spec", spec).Msg("starting sync")
-	tableSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.TableConcurrency))
-	wg := sync.WaitGroup{}
-	resourceSem := semaphore.NewWeighted(helpers.Uint64ToInt64(spec.ResourceConcurrency))
-	summary := schema.SyncSummary{}
+
 	startTime := time.Now()
+	p.syncDfs(ctx, spec, c, tables, res)
 
-	logger.Debug().Interface("tables", tableNames).Msg("got table names")
-
-	for _, table := range p.tables {
-		table := table
-		if !funk.ContainsString(tableNames, table.Name) {
-			logger.Debug().Str("table", table.Name).Msg("skipping table")
-			continue
-		}
-		clients := []schema.ClientMeta{c}
-		if table.Multiplex != nil {
-			clients = table.Multiplex(c)
-		}
-		for _, client := range clients {
-			client := client
-			wg.Add(1)
-			if err := tableSem.Acquire(ctx, 1); err != nil {
-				// This means context was cancelled
-				return nil, err
-			}
-			go func() {
-				defer wg.Done()
-				defer tableSem.Release(1)
-				// TODO: prob introduce client.Identify() to be used in logs
-
-				tableSummary := table.Resolve(ctx, client, nil, resourceSem, res)
-				atomic.AddUint64(&summary.Resources, tableSummary.Resources)
-				atomic.AddUint64(&summary.Errors, tableSummary.Errors)
-				atomic.AddUint64(&summary.Panics, tableSummary.Panics)
-			}()
-		}
+	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
+	// this for backward compatibility and will be removed in syncv2 so the way to get the metrics would be seperate
+	summary := schema.SyncSummary{
+		Resources: p.metrics.TotalResources(),
+		Errors:    p.metrics.TotalErrors(),
+		Panics:    p.metrics.TotalPanics(),
 	}
-	wg.Wait()
-	logger.Info().Uint64("total_resources", summary.Resources).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return &summary, nil
 }
 
@@ -233,4 +256,8 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]str
 	}
 
 	return tables, nil
+}
+
+func (p *SourcePlugin) Metrics() SourceMetrics {
+	return p.metrics
 }

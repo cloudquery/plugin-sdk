@@ -5,11 +5,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 )
 
 type ClientMeta interface {
-	Logger() *zerolog.Logger
+	Name() string
 }
 
 type Meta struct {

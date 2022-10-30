@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/clients"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -22,9 +21,7 @@ type TestSourcePluginSpec struct {
 	Accounts []string `json:"accounts,omitempty" yaml:"accounts,omitempty"`
 }
 
-type testExecutionClient struct {
-	logger zerolog.Logger
-}
+type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
@@ -57,8 +54,8 @@ func testTable() *schema.Table {
 	}
 }
 
-func (c *testExecutionClient) Logger() *zerolog.Logger {
-	return &c.logger
+func (*testExecutionClient) Name() string {
+	return "testExecutionClient"
 }
 
 func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
@@ -120,8 +117,8 @@ func TestServeSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if versions.SourceProtocolVersion != protocolVersion {
-		t.Fatalf("expected protocol version %d, got %d", versions.SourceProtocolVersion, protocolVersion)
+	if protocolVersion != 1 {
+		t.Fatalf("expected protocol version 1, got %d", protocolVersion)
 	}
 
 	name, err := c.Name(ctx)

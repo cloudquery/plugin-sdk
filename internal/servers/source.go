@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -25,7 +24,7 @@ type SourceServer struct {
 
 func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
 	return &pb.GetProtocolVersion_Response{
-		Version: versions.SourceProtocolVersion,
+		Version: 1,
 	}, nil
 }
 
@@ -76,7 +75,7 @@ func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) e
 	go func() {
 		defer close(resources)
 		var err error
-		s.summary, err = s.Plugin.Sync(stream.Context(), s.Logger, spec, resources)
+		s.summary, err = s.Plugin.Sync(stream.Context(), spec, resources)
 		if err != nil {
 			syncErr = fmt.Errorf("failed to sync resources: %w", err)
 		}
@@ -98,4 +97,14 @@ func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) e
 	}
 
 	return nil
+}
+
+func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request) (*pb.GetSourceMetrics_Response, error) {
+	b, err := json.Marshal(s.Plugin.Metrics())
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal source metrics: %w", err)
+	}
+	return &pb.GetSourceMetrics_Response{
+		Metrics: b,
+	}, nil
 }

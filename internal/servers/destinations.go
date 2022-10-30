@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -25,7 +24,7 @@ type DestinationServer struct {
 
 func (*DestinationServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
 	return &pb.GetProtocolVersion_Response{
-		Version: versions.DestinationProtocolVersion,
+		Version: 1,
 	}, nil
 }
 
@@ -122,6 +121,17 @@ func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 			return msg.Context().Err()
 		}
 	}
+}
+
+func (s *DestinationServer) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) (*pb.GetDestinationMetrics_Response, error) {
+	stats := s.Plugin.Metrics()
+	b, err := json.Marshal(stats)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal stats: %w", err)
+	}
+	return &pb.GetDestinationMetrics_Response{
+		Metrics: b,
+	}, nil
 }
 
 func (s *DestinationServer) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (*pb.DeleteStale_Response, error) {

@@ -31,6 +31,11 @@ func newDestinationClient(context.Context, zerolog.Logger, specs.Destination) (p
 func (*testDestinationClient) Initialize(context.Context, specs.Destination) error {
 	return nil
 }
+
+func (*testDestinationClient) Metrics() plugins.DestinationMetrics {
+	return plugins.DestinationMetrics{}
+}
+
 func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 	return nil
 }
