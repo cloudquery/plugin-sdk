@@ -14,7 +14,7 @@ import (
 	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
+	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -104,16 +104,6 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 		}
 	default:
 		return nil, fmt.Errorf("unsupported registry %s", registry)
-	}
-
-	protocolVersion, err := c.GetProtocolVersion(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if protocolVersion < versions.SourceProtocolVersion {
-		return nil, fmt.Errorf("source plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.SourceProtocolVersion)
-	} else if protocolVersion > versions.SourceProtocolVersion {
-		return nil, fmt.Errorf("source plugin protocol version %d is higher than client version %d. Try updating source plugin", protocolVersion, versions.SourceProtocolVersion)
 	}
 
 	return c, nil
@@ -228,6 +218,18 @@ func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 		return nil, fmt.Errorf("failed to unmarshal tables: %w", err)
 	}
 	return tables, nil
+}
+
+func (c *SourceClient) GetMetrics(ctx context.Context) (*plugins.SourceMetrics, error) {
+	res, err := c.pbClient.GetMetrics(ctx, &pb.GetSourceMetrics_Request{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to call GetMetrics: %w", err)
+	}
+	var metrics plugins.SourceMetrics
+	if err := json.Unmarshal(res.Metrics, &metrics); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal source metrics: %w", err)
+	}
+	return &metrics, nil
 }
 
 // Sync start syncing for the source client per the given spec and returning the results

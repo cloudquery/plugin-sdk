@@ -7,7 +7,6 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +19,7 @@ type ResourceTestCase struct {
 	SkipIgnoreInTest bool
 }
 
-func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Logger, spec specs.Source, opts ...TestSourcePluginOption) {
+func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source, opts ...TestSourcePluginOption) {
 	t.Helper()
 
 	o := &testSourcePluginOptions{
@@ -38,7 +37,7 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, logger zerolog.Log
 
 	go func() {
 		defer close(resourcesChannel)
-		_, fetchErr = plugin.Sync(context.Background(), logger, spec, resourcesChannel)
+		fetchErr = plugin.Sync(context.Background(), spec, resourcesChannel)
 	}()
 
 	syncedResources := make([]*schema.Resource, 0)

@@ -37,6 +37,8 @@ type SourceClient interface {
 	GetSyncSummary(ctx context.Context, in *GetSyncSummary_Request, opts ...grpc.CallOption) (*GetSyncSummary_Response, error)
 	// Fetch resources
 	Sync(ctx context.Context, in *Sync_Request, opts ...grpc.CallOption) (Source_SyncClient, error)
+	// Get metrics for the source plugin
+	GetMetrics(ctx context.Context, in *GetSourceMetrics_Request, opts ...grpc.CallOption) (*GetSourceMetrics_Response, error)
 }
 
 type sourceClient struct {
@@ -124,6 +126,15 @@ func (x *sourceSyncClient) Recv() (*Sync_Response, error) {
 	return m, nil
 }
 
+func (c *sourceClient) GetMetrics(ctx context.Context, in *GetSourceMetrics_Request, opts ...grpc.CallOption) (*GetSourceMetrics_Response, error) {
+	out := new(GetSourceMetrics_Response)
+	err := c.cc.Invoke(ctx, "/proto.Source/GetMetrics", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SourceServer is the server API for Source service.
 // All implementations must embed UnimplementedSourceServer
 // for forward compatibility
@@ -143,6 +154,8 @@ type SourceServer interface {
 	GetSyncSummary(context.Context, *GetSyncSummary_Request) (*GetSyncSummary_Response, error)
 	// Fetch resources
 	Sync(*Sync_Request, Source_SyncServer) error
+	// Get metrics for the source plugin
+	GetMetrics(context.Context, *GetSourceMetrics_Request) (*GetSourceMetrics_Response, error)
 	mustEmbedUnimplementedSourceServer()
 }
 
@@ -167,6 +180,9 @@ func (UnimplementedSourceServer) GetSyncSummary(context.Context, *GetSyncSummary
 }
 func (UnimplementedSourceServer) Sync(*Sync_Request, Source_SyncServer) error {
 	return status.Errorf(codes.Unimplemented, "method Sync not implemented")
+}
+func (UnimplementedSourceServer) GetMetrics(context.Context, *GetSourceMetrics_Request) (*GetSourceMetrics_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetrics not implemented")
 }
 func (UnimplementedSourceServer) mustEmbedUnimplementedSourceServer() {}
 
@@ -292,6 +308,24 @@ func (x *sourceSyncServer) Send(m *Sync_Response) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Source_GetMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSourceMetrics_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SourceServer).GetMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Source/GetMetrics",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SourceServer).GetMetrics(ctx, req.(*GetSourceMetrics_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Source_ServiceDesc is the grpc.ServiceDesc for Source service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -318,6 +352,10 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSyncSummary",
 			Handler:    _Source_GetSyncSummary_Handler,
+		},
+		{
+			MethodName: "GetMetrics",
+			Handler:    _Source_GetMetrics_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

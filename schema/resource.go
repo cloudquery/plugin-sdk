@@ -65,6 +65,10 @@ func (r *Resource) Get(key string) interface{} {
 	return r.Data[key]
 }
 
+func (r *Resource) GetItem() interface{} {
+	return r.Item
+}
+
 func (r *Resource) Set(key string, value interface{}) error {
 	r.Data[key] = value
 	return nil
