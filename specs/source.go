@@ -55,7 +55,7 @@ func (s *Source) SetDefaults() {
 
 	if s.TableConcurrency != 0 || s.ResourceConcurrency != 0 {
 		// attempt to make a sensible backwards-compatible choice, but the CLI
-		// should raise a warning about this until the `table_concurrency` and `resource_concurrency` option is fully removed.
+		// should raise a warning about this until the `table_concurrency` and `resource_concurrency` options are fully removed.
 		s.Concurrency = s.TableConcurrency + s.ResourceConcurrency
 	}
 	if s.Concurrency == 0 {
