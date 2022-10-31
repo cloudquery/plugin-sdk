@@ -90,13 +90,13 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 			if err == io.EOF {
 				close(resources)
 				if err := eg.Wait(); err != nil {
-					return fmt.Errorf("failed to wait 1: %w", err)
+					return fmt.Errorf("got EOF. failed to wait for plugin: %w", err)
 				}
 				return msg.SendAndClose(&pb.Write2_Response{})
 			}
 			close(resources)
 			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("failed to wait 2")
+				s.Logger.Error().Err(err).Msg("got error. failed to wait for plugin")
 			}
 			return fmt.Errorf("failed to receive msg: %w", err)
 		}
@@ -104,7 +104,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
 			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("failed to wait 2")
+				s.Logger.Error().Err(err).Msg("failed to unmarshal resource. failed to wait for plugin")
 			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
