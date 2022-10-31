@@ -79,12 +79,11 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 	sourceName := r.Source
 	syncTime := r.Timestamp.AsTime()
 
-	eg := errgroup.Group{}
+	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
-		return s.Plugin.Write(context.Background(), tables, sourceName, syncTime, resources)
+		return s.Plugin.Write(ctx, tables, sourceName, syncTime, resources)
 	})
 
-	ctx := msg.Context()
 	for {
 		r, err := msg.Recv()
 		if err != nil {
