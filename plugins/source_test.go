@@ -176,7 +176,7 @@ var syncTestCases = []syncTestCase{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_column_resolver_panic": {
 					"testExecutionClient": {
-						Panics: 1,
+						Panics:    1,
 						Resources: 1,
 					},
 				},
