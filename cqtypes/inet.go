@@ -8,14 +8,6 @@ import (
 	"strings"
 )
 
-// Network address family is dependent on server socket.h value for AF_INET.
-// In practice, all platforms appear to have the same value. See
-// src/include/utils/inet.h for more information.
-const (
-// defaultAFInet  = 2
-// defaultAFInet6 = 3
-)
-
 // Inet represents both inet and cidr PostgreSQL types.
 type Inet struct {
 	IPNet  *net.IPNet
