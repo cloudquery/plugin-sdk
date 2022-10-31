@@ -64,22 +64,22 @@ func TestTable() *schema.Table {
 				Name: "uuid_array",
 				Type: schema.TypeUUIDArray,
 			},
-			// {
-			// 	Name: "inet",
-			// 	Type: schema.TypeInet,
-			// },
-			// {
-			// 	Name: "inet_array",
-			// 	Type: schema.TypeInetArray,
-			// },
-			// {
-			// 	Name: "cidr",
-			// 	Type: schema.TypeCIDR,
-			// },
-			// {
-			// 	Name: "cidr_array",
-			// 	Type: schema.TypeCIDRArray,
-			// },
+			{
+				Name: "inet",
+				Type: schema.TypeInet,
+			},
+			{
+				Name: "inet_array",
+				Type: schema.TypeInetArray,
+			},
+			{
+				Name: "cidr",
+				Type: schema.TypeCIDR,
+			},
+			{
+				Name: "cidr_array",
+				Type: schema.TypeCIDRArray,
+			},
 			{
 				Name: "macaddr",
 				Type: schema.TypeMacAddr,
@@ -145,22 +145,22 @@ func TestData() cqtypes.CQTypes {
 	if err := uuidArrayColumn.Set([]string{"00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002"}); err != nil {
 		panic(err)
 	}
-	// inetColumn := &cqtypes.Inet{}
-	// if err := inetColumn.Set("192.0.2.1/24"); err != nil {
-	// 	panic(err)
-	// }
-	// inetArrayColumn := &cqtypes.InetArray{}
-	// if err := inetArrayColumn.Set([]string{"192.0.2.1/24", "192.0.2.1/24"}); err != nil {
-	// 	panic(err)
-	// }
-	// cidrColumn := &cqtypes.CIDR{}
-	// if err := cidrColumn.Set("192.0.2.1/24"); err != nil {
-	// 	panic(err)
-	// }
-	// cidrArrayColumn := &cqtypes.CIDRArray{}
-	// if err := cidrArrayColumn.Set([]string{"192.0.2.1/24", "192.0.2.1/24"}); err != nil {
-	// 	panic(err)
-	// }
+	inetColumn := &cqtypes.Inet{}
+	if err := inetColumn.Set("192.0.2.1/24"); err != nil {
+		panic(err)
+	}
+	inetArrayColumn := &cqtypes.InetArray{}
+	if err := inetArrayColumn.Set([]string{"192.0.2.1/24", "192.0.2.1/24"}); err != nil {
+		panic(err)
+	}
+	cidrColumn := &cqtypes.CIDR{}
+	if err := cidrColumn.Set("192.0.2.1"); err != nil {
+		panic(err)
+	}
+	cidrArrayColumn := &cqtypes.CIDRArray{}
+	if err := cidrArrayColumn.Set([]string{"192.0.2.1", "192.0.2.1"}); err != nil {
+		panic(err)
+	}
 	macaddrColumn := &cqtypes.Macaddr{}
 	if err := macaddrColumn.Set("aa:bb:cc:dd:ee:ff"); err != nil {
 		panic(err)
@@ -184,10 +184,10 @@ func TestData() cqtypes.CQTypes {
 		timestampColumn,
 		jsonColumn,
 		uuidArrayColumn,
-		// inetColumn,
-		// inetArrayColumn,
-		// cidrColumn,
-		// cidrArrayColumn,
+		inetColumn,
+		inetArrayColumn,
+		cidrColumn,
+		cidrArrayColumn,
 		macaddrColumn,
 		macaddrArrayColumn,
 	}
