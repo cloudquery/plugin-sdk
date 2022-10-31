@@ -146,6 +146,11 @@ func TestDestination(t *testing.T) {
 		t.Fatalf("failed to call DeleteStale: %v", err)
 	}
 
+	_, err = c.GetMetrics(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if err := c.Close(ctx); err != nil {
 		t.Fatalf("failed to call Close: %v", err)
 	}
