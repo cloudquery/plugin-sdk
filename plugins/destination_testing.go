@@ -195,7 +195,7 @@ func TestData() cqtypes.CQTypes {
 	return data
 }
 
-func DestiantionPluginTestHelper(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+func DestinationPluginTestHelper(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return err
 	}
