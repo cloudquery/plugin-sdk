@@ -20,6 +20,8 @@ service Source {
   rpc GetSyncSummary(GetSyncSummary.Request) returns (GetSyncSummary.Response);
   // Fetch resources
   rpc Sync(Sync.Request) returns (stream Sync.Response);
+  // Sync2 is a new sync API that supports CQ Types. It is not backward compatible with Sync.
+  rpc Sync2(Sync2.Request) returns (stream Sync2.Response);
   // Get metrics for the source plugin
   rpc GetMetrics(GetSourceMetrics.Request) returns (GetSourceMetrics.Response);
 }
@@ -29,6 +31,16 @@ message Sync {
     bytes spec = 1;
     // sync timestamp
     google.protobuf.Timestamp timestamp = 2;
+  }
+  message Response {
+    // marshalled *schema.Resources
+    bytes resource = 1;
+  }
+}
+
+message Sync2 {
+  message Request {
+    bytes spec = 1;
   }
   message Response {
     // marshalled *schema.Resources
