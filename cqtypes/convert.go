@@ -12,7 +12,6 @@ const (
 	minInt  = -maxInt - 1
 )
 
-
 // underlyingNumberType gets the underlying type that can be converted to Int2, Int4, Int8, Float4, or Float8
 func underlyingNumberType(val interface{}) (interface{}, bool) {
 	refVal := reflect.ValueOf(val)
