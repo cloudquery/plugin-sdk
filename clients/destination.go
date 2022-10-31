@@ -186,7 +186,7 @@ func (c *DestinationClient) GetMetrics(ctx context.Context) (*plugins.Destinatio
 	}
 	var stats plugins.DestinationMetrics
 	if err := json.Unmarshal(res.Metrics, &stats); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal source stats: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal destination metrics: %w", err)
 	}
 	return &stats, nil
 }
