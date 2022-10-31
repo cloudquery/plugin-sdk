@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -34,6 +35,8 @@ type SourcePlugin struct {
 	tableSem *semaphore.Weighted
 	// maxDepth is the max depth of tables
 	maxDepth uint64
+	// caser
+	caser *caser.Caser
 }
 
 const (
@@ -83,6 +86,7 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
 		metrics:            SourceMetrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
+		caser:              caser.New(),
 	}
 	addInternalColumns(p.tables)
 	setParents(p.tables, nil)

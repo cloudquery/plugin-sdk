@@ -177,11 +177,18 @@ var syncTestCases = []syncTestCase{
 				"test_table_column_resolver_panic": {
 					"testExecutionClient": {
 						Panics: 1,
+						Resources: 1,
 					},
 				},
 			},
 		},
-		data: nil,
+		data: []cqtypes.CQTypes{
+			{
+				&cqtypes.UUID{Bytes: [16]byte{1}, Status: cqtypes.Present},
+				nil,
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+			},
+		},
 	},
 	{
 		table: testTableRelationSuccess(),

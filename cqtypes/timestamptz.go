@@ -6,9 +6,12 @@ import (
 	"time"
 )
 
-const pgTimestamptzHourFormat = "2006-01-02 15:04:05.999999999Z07"
-const pgTimestamptzMinuteFormat = "2006-01-02 15:04:05.999999999Z07:00"
+// const pgTimestamptzHourFormat = "2006-01-02 15:04:05.999999999Z07"
+// const pgTimestamptzMinuteFormat = "2006-01-02 15:04:05.999999999Z07:00"
 const pgTimestamptzSecondFormat = "2006-01-02 15:04:05.999999999Z07:00:00"
+
+// this is the default format used by time.Time.String()
+const defaultStringFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
 
 // const microsecFromUnixEpochToY2K = 946684800 * 1000000
 
@@ -117,16 +120,16 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 		*dst = Timestamptz{Status: Present, InfinityModifier: -Infinity}
 	default:
 		var format string
-		if len(sbuf) >= len(time.RFC3339) && sbuf[19] == 'Z' {
+		sbufLen := len(sbuf)
+		if sbufLen >= 19 && sbuf[10] == 'T' && sbuf[19] == 'Z' {
 			format = time.RFC3339
-		} else if len(sbuf) >= len(time.RFC3339) && sbuf[19] == '.' {
+		} else if sbufLen >= 19 && sbuf[10] == 'T' && sbuf[19] == '.' {
 			format = time.RFC3339Nano
-		} else if len(sbuf) >= 9 && (sbuf[len(sbuf)-9] == '-' || sbuf[len(sbuf)-9] == '+') {
-			format = pgTimestamptzSecondFormat
-		} else if len(sbuf) >= 6 && (sbuf[len(sbuf)-6] == '-' || sbuf[len(sbuf)-6] == '+') {
-			format = pgTimestamptzMinuteFormat
 		} else {
-			format = pgTimestamptzHourFormat
+			if sbufLen >= len(defaultStringFormat) {
+				sbuf = sbuf[:len(defaultStringFormat)]
+			}
+			format = defaultStringFormat
 		}
 
 		tim, err := time.Parse(format, sbuf)
