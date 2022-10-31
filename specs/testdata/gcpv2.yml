@@ -1,0 +1,7 @@
+kind: source
+spec:
+  name: gcpv2
+  path: cloudquery/gcp
+  version: v1.0.1
+  table_concurrency: 10
+  destinations: [postgresqlv2]
