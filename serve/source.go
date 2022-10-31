@@ -92,7 +92,7 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 				}
 			}
 			// source plugins can only accept one connection at a time
-			// unlike destinatino plugin that can accept multiple connections
+			// unlike destination plugins that can accept multiple connections
 			limitListener := netutil.LimitListener(listener, 1)
 			// See logging pattern https://github.com/grpc-ecosystem/go-grpc-middleware/blob/v2/providers/zerolog/examples_test.go
 			s := grpc.NewServer(
