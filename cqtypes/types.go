@@ -179,7 +179,11 @@ func (c CQTypes) String() string {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		sb.WriteString(v.String())
+		if v == nil {
+			sb.WriteString("nil")
+		} else {
+			sb.WriteString(v.String())
+		}
 	}
 	sb.WriteString("]")
 	return sb.String()
