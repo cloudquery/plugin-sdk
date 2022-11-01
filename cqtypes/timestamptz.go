@@ -12,7 +12,6 @@ import (
 
 // this is the default format used by time.Time.String()
 const defaultStringFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
-
 // const microsecFromUnixEpochToY2K = 946684800 * 1000000
 
 const (
@@ -121,6 +120,11 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 	default:
 		var tim time.Time
 		var err error
+
+		if len(sbuf) > len(defaultStringFormat) + 1 && sbuf[len(defaultStringFormat) + 1] == 'm' {
+			sbuf = sbuf[:len(defaultStringFormat)]
+		}
+
 		// there is no good way of detecting format so we just try few of them
 		tim, err = time.Parse(time.RFC3339, sbuf)
 		if err == nil {
@@ -130,6 +134,7 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 		tim, err = time.Parse(defaultStringFormat, sbuf)
 		if err == nil {
 			*dst = Timestamptz{Time: normalizePotentialUTC(tim), Status: Present}
+			return nil
 		}
 		return fmt.Errorf("cannot parse %s as Timestamptz", sbuf)
 
