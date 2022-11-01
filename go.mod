@@ -14,7 +14,7 @@ require (
 	github.com/schollz/progressbar/v3 v3.11.0
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/cobra v1.5.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/thoas/go-funk v0.9.2
 	golang.org/x/exp v0.0.0-20221002003631-540bb7301a08
 	golang.org/x/net v0.0.0-20220920203100-d0c6ba3f52d9
