@@ -12,6 +12,7 @@ import (
 
 // this is the default format used by time.Time.String()
 const defaultStringFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
+
 // const microsecFromUnixEpochToY2K = 946684800 * 1000000
 
 const (
@@ -121,7 +122,7 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 		var tim time.Time
 		var err error
 
-		if len(sbuf) > len(defaultStringFormat) + 1 && sbuf[len(defaultStringFormat) + 1] == 'm' {
+		if len(sbuf) > len(defaultStringFormat)+1 && sbuf[len(defaultStringFormat)+1] == 'm' {
 			sbuf = sbuf[:len(defaultStringFormat)]
 		}
 
