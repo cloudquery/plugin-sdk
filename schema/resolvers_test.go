@@ -4,10 +4,12 @@ import (
 	"context"
 	"reflect"
 	"testing"
+
+	"github.com/cloudquery/plugin-sdk/cqtypes"
 )
 
 var resolverTestTable = &Table{
-	Name: "testTable",
+	Name: "test_table",
 	Columns: []Column{
 		{
 			Name: "string_column",
@@ -25,14 +27,14 @@ var resolverTestCases = []struct {
 	Column               Column
 	ColumnResolver       ColumnResolver
 	Resource             *Resource
-	ExpectedResourceData map[string]interface{}
+	ExpectedResourceData cqtypes.CQTypes
 }{
 	{
 		Name:                 "PathResolver",
 		Column:               resolverTestTable.Columns[0],
 		ColumnResolver:       PathResolver("PathResolver"),
 		Resource:             NewResourceData(resolverTestTable, nil, resolverTestItem),
-		ExpectedResourceData: map[string]interface{}{"string_column": "test"},
+		ExpectedResourceData: cqtypes.CQTypes{&cqtypes.Text{Str: "test", Status: cqtypes.Present}},
 	},
 }
 
@@ -45,9 +47,15 @@ func TestResolvers(t *testing.T) {
 				t.Errorf("unexpected error: %v", err)
 				return
 			}
-			delete(tc.Resource.Data, "_cq_fetch_time")
-			if !reflect.DeepEqual(tc.ExpectedResourceData, tc.Resource.Data) {
-				t.Errorf("Expected %v, got %v", tc.ExpectedResourceData, tc.Resource.Data)
+
+			if len(tc.ExpectedResourceData) != len(tc.Resource.data) {
+				t.Errorf("expected %d columns, got %d", len(tc.ExpectedResourceData), len(tc.Resource.data))
+				return
+			}
+			for i, expected := range tc.ExpectedResourceData {
+				if !reflect.DeepEqual(expected, tc.Resource.data[i]) {
+					t.Errorf("expected %v, got %v", expected, tc.Resource.data[i])
+				}
 			}
 		})
 	}

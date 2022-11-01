@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -18,14 +17,13 @@ import (
 
 type SourceServer struct {
 	pb.UnimplementedSourceServer
-	Plugin  *plugins.SourcePlugin
-	Logger  zerolog.Logger
-	summary *schema.SyncSummary
+	Plugin *plugins.SourcePlugin
+	Logger zerolog.Logger
 }
 
 func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
 	return &pb.GetProtocolVersion_Response{
-		Version: versions.SourceProtocolVersion,
+		Version: 2,
 	}, nil
 }
 
@@ -51,17 +49,15 @@ func (s *SourceServer) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.
 	}, nil
 }
 
-func (s *SourceServer) GetSyncSummary(context.Context, *pb.GetSyncSummary_Request) (*pb.GetSyncSummary_Response, error) {
-	b, err := json.Marshal(s.summary)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal summary: %w", err)
-	}
-	return &pb.GetSyncSummary_Response{
-		Summary: b,
-	}, nil
+func (*SourceServer) GetSyncSummary(context.Context, *pb.GetSyncSummary_Request) (*pb.GetSyncSummary_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSyncSummary is deprecated please upgrade client")
 }
 
-func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
+func (*SourceServer) Sync(*pb.Sync_Request, pb.Source_SyncServer) error {
+	return status.Errorf(codes.Unimplemented, "method Sync is deprecated please upgrade client")
+}
+
+func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server) error {
 	resources := make(chan *schema.Resource)
 	var syncErr error
 
@@ -75,27 +71,35 @@ func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) e
 
 	go func() {
 		defer close(resources)
-		var err error
-		s.summary, err = s.Plugin.Sync(stream.Context(), s.Logger, spec, resources)
+		err := s.Plugin.Sync(stream.Context(), spec, resources)
 		if err != nil {
 			syncErr = fmt.Errorf("failed to sync resources: %w", err)
 		}
 	}()
 
 	for resource := range resources {
-		b, err := json.Marshal(resource)
+		destResource := resource.ToDestinationResource()
+		b, err := json.Marshal(destResource)
 		if err != nil {
 			return status.Errorf(codes.Internal, "failed to marshal resource: %v", err)
 		}
-		if err := stream.Send(&pb.Sync_Response{
+
+		if err := stream.Send(&pb.Sync2_Response{
 			Resource: b,
 		}); err != nil {
 			return status.Errorf(codes.Internal, "failed to send resource: %v", err)
 		}
 	}
-	if syncErr != nil {
-		return syncErr
-	}
 
-	return nil
+	return syncErr
+}
+
+func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request) (*pb.GetSourceMetrics_Response, error) {
+	b, err := json.Marshal(s.Plugin.Metrics())
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal source metrics: %w", err)
+	}
+	return &pb.GetSourceMetrics_Response{
+		Metrics: b,
+	}, nil
 }

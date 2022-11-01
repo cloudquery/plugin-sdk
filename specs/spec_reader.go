@@ -69,6 +69,32 @@ func (r *SpecReader) loadSpecsFromDir(path string) error {
 	return nil
 }
 
+func (r *SpecReader) validate() error {
+	if len(r.Sources) == 0 {
+		return fmt.Errorf("expecting at least one source")
+	}
+	if len(r.Destinations) == 0 {
+		return fmt.Errorf("expecting at least one destination")
+	}
+
+	// here we check if source with different versions use the same destination and error out if yes
+	var destinationSourceMap = make(map[string]string)
+	for _, source := range r.Sources {
+		for _, destination := range source.Destinations {
+			if r.Destinations[destination] == nil {
+				return fmt.Errorf("source %s references unknown destination %s", source.Name, destination)
+			}
+			if destinationSourceMap[destination] == "" {
+				destinationSourceMap[destination] = source.Path + "@" + source.Version
+			} else if destinationSourceMap[destination] != source.Path+"@"+source.Version {
+				return fmt.Errorf("destination %s is used by multiple sources %s with different versions", destination, source.Path)
+			}
+		}
+	}
+
+	return nil
+}
+
 func NewSpecReader(paths []string) (*SpecReader, error) {
 	reader := &SpecReader{
 		Sources:      make(map[string]*Source),
@@ -77,12 +103,12 @@ func NewSpecReader(paths []string) (*SpecReader, error) {
 	for _, path := range paths {
 		file, err := os.Open(path)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open path %s: %w", path, err)
+			return nil, err
 		}
 		fileInfo, err := file.Stat()
 		if err != nil {
 			file.Close()
-			return nil, fmt.Errorf("failed to stat path %s: %w", path, err)
+			return nil, err
 		}
 		file.Close()
 		if fileInfo.IsDir() {
@@ -96,11 +122,9 @@ func NewSpecReader(paths []string) (*SpecReader, error) {
 		}
 	}
 
-	if len(reader.Sources) == 0 {
-		return nil, fmt.Errorf("expecting at least one source in: %v", paths)
+	if err := reader.validate(); err != nil {
+		return nil, err
 	}
-	if len(reader.Destinations) == 0 {
-		return nil, fmt.Errorf("expecting at least one destination in: %v", paths)
-	}
+
 	return reader, nil
 }

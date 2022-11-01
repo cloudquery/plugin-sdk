@@ -1,6 +1,7 @@
 kind: destination
 spec:
   name: postgresql
+  path: cloudquery/postgresql
   version: v1.0.0
   registry: grpc
   path: locahost:7775

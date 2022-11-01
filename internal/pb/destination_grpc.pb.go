@@ -36,11 +36,15 @@ type DestinationClient interface {
 	Migrate(ctx context.Context, in *Migrate_Request, opts ...grpc.CallOption) (*Migrate_Response, error)
 	// Write resources
 	Write(ctx context.Context, opts ...grpc.CallOption) (Destination_WriteClient, error)
+	// Write2 resources
+	Write2(ctx context.Context, opts ...grpc.CallOption) (Destination_Write2Client, error)
 	// Send signal to flush and close open connections
 	Close(ctx context.Context, in *Close_Request, opts ...grpc.CallOption) (*Close_Response, error)
 	// DeleteStale deletes stale data that was inserted by a given source
 	// and is older than the given timestamp
 	DeleteStale(ctx context.Context, in *DeleteStale_Request, opts ...grpc.CallOption) (*DeleteStale_Response, error)
+	// Get metrics for the source plugin
+	GetMetrics(ctx context.Context, in *GetDestinationMetrics_Request, opts ...grpc.CallOption) (*GetDestinationMetrics_Response, error)
 }
 
 type destinationClient struct {
@@ -130,6 +134,40 @@ func (x *destinationWriteClient) CloseAndRecv() (*Write_Response, error) {
 	return m, nil
 }
 
+func (c *destinationClient) Write2(ctx context.Context, opts ...grpc.CallOption) (Destination_Write2Client, error) {
+	stream, err := c.cc.NewStream(ctx, &Destination_ServiceDesc.Streams[1], "/proto.Destination/Write2", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &destinationWrite2Client{stream}
+	return x, nil
+}
+
+type Destination_Write2Client interface {
+	Send(*Write2_Request) error
+	CloseAndRecv() (*Write2_Response, error)
+	grpc.ClientStream
+}
+
+type destinationWrite2Client struct {
+	grpc.ClientStream
+}
+
+func (x *destinationWrite2Client) Send(m *Write2_Request) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *destinationWrite2Client) CloseAndRecv() (*Write2_Response, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(Write2_Response)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *destinationClient) Close(ctx context.Context, in *Close_Request, opts ...grpc.CallOption) (*Close_Response, error) {
 	out := new(Close_Response)
 	err := c.cc.Invoke(ctx, "/proto.Destination/Close", in, out, opts...)
@@ -142,6 +180,15 @@ func (c *destinationClient) Close(ctx context.Context, in *Close_Request, opts .
 func (c *destinationClient) DeleteStale(ctx context.Context, in *DeleteStale_Request, opts ...grpc.CallOption) (*DeleteStale_Response, error) {
 	out := new(DeleteStale_Response)
 	err := c.cc.Invoke(ctx, "/proto.Destination/DeleteStale", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *destinationClient) GetMetrics(ctx context.Context, in *GetDestinationMetrics_Request, opts ...grpc.CallOption) (*GetDestinationMetrics_Response, error) {
+	out := new(GetDestinationMetrics_Response)
+	err := c.cc.Invoke(ctx, "/proto.Destination/GetMetrics", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -166,11 +213,15 @@ type DestinationServer interface {
 	Migrate(context.Context, *Migrate_Request) (*Migrate_Response, error)
 	// Write resources
 	Write(Destination_WriteServer) error
+	// Write2 resources
+	Write2(Destination_Write2Server) error
 	// Send signal to flush and close open connections
 	Close(context.Context, *Close_Request) (*Close_Response, error)
 	// DeleteStale deletes stale data that was inserted by a given source
 	// and is older than the given timestamp
 	DeleteStale(context.Context, *DeleteStale_Request) (*DeleteStale_Response, error)
+	// Get metrics for the source plugin
+	GetMetrics(context.Context, *GetDestinationMetrics_Request) (*GetDestinationMetrics_Response, error)
 	mustEmbedUnimplementedDestinationServer()
 }
 
@@ -196,11 +247,17 @@ func (UnimplementedDestinationServer) Migrate(context.Context, *Migrate_Request)
 func (UnimplementedDestinationServer) Write(Destination_WriteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Write not implemented")
 }
+func (UnimplementedDestinationServer) Write2(Destination_Write2Server) error {
+	return status.Errorf(codes.Unimplemented, "method Write2 not implemented")
+}
 func (UnimplementedDestinationServer) Close(context.Context, *Close_Request) (*Close_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
 }
 func (UnimplementedDestinationServer) DeleteStale(context.Context, *DeleteStale_Request) (*DeleteStale_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteStale not implemented")
+}
+func (UnimplementedDestinationServer) GetMetrics(context.Context, *GetDestinationMetrics_Request) (*GetDestinationMetrics_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetrics not implemented")
 }
 func (UnimplementedDestinationServer) mustEmbedUnimplementedDestinationServer() {}
 
@@ -331,6 +388,32 @@ func (x *destinationWriteServer) Recv() (*Write_Request, error) {
 	return m, nil
 }
 
+func _Destination_Write2_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DestinationServer).Write2(&destinationWrite2Server{stream})
+}
+
+type Destination_Write2Server interface {
+	SendAndClose(*Write2_Response) error
+	Recv() (*Write2_Request, error)
+	grpc.ServerStream
+}
+
+type destinationWrite2Server struct {
+	grpc.ServerStream
+}
+
+func (x *destinationWrite2Server) SendAndClose(m *Write2_Response) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *destinationWrite2Server) Recv() (*Write2_Request, error) {
+	m := new(Write2_Request)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func _Destination_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Close_Request)
 	if err := dec(in); err != nil {
@@ -363,6 +446,24 @@ func _Destination_DeleteStale_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DestinationServer).DeleteStale(ctx, req.(*DeleteStale_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Destination_GetMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDestinationMetrics_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DestinationServer).GetMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Destination/GetMetrics",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DestinationServer).GetMetrics(ctx, req.(*GetDestinationMetrics_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -402,11 +503,20 @@ var Destination_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "DeleteStale",
 			Handler:    _Destination_DeleteStale_Handler,
 		},
+		{
+			MethodName: "GetMetrics",
+			Handler:    _Destination_GetMetrics_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Write",
 			Handler:       _Destination_Write_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Write2",
+			Handler:       _Destination_Write2_Handler,
 			ClientStreams: true,
 		},
 	},

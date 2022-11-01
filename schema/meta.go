@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 )
 
 type ClientMeta interface {
-	Logger() *zerolog.Logger
+	ID() string
 }
 
 type Meta struct {
@@ -47,16 +47,24 @@ var CqSourceNameColumn = Column{
 func cqUUIDResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		uuidGen := uuid.New()
-		return r.Set(c.Name, uuidGen)
+		b, _ := uuidGen.MarshalBinary()
+		return r.Set(c.Name, b)
 	}
 }
 
 func parentCqUUIDResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		if r.Parent == nil {
-			return nil
+			return r.Set(c.Name, nil)
 		}
 		parentCqID := r.Parent.Get(CqIDColumn.Name)
-		return r.Set(c.Name, parentCqID)
+		if parentCqID == nil {
+			return r.Set(c.Name, nil)
+		}
+		pUUID, ok := parentCqID.(*cqtypes.UUID)
+		if !ok {
+			return r.Set(c.Name, nil)
+		}
+		return r.Set(c.Name, pUUID.Bytes)
 	}
 }

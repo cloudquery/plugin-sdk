@@ -34,6 +34,10 @@ func WithDestinationSentryDSN(dsn string) DestinationOption {
 	}
 }
 
+var testDestinationListener *bufconn.Listener
+
+const serveDestinationShort = `Start destination plugin server`
+
 func Destination(plugin *plugins.DestinationPlugin, opts ...DestinationOption) {
 	s := &destinationServe{
 		plugin: plugin,
@@ -59,8 +63,8 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 	logFormat := newEnum([]string{"text", "json"}, "text")
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: serveShort,
-		Long:  serveShort,
+		Short: serveDestinationShort,
+		Long:  serveDestinationShort,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			zerologLevel, err := zerolog.ParseLevel(logLevel.String())
@@ -103,8 +107,9 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 				err = sentry.Init(sentry.ClientOptions{
 					Dsn:              destination.sentryDSN,
 					Debug:            false,
-					AttachStacktrace: true,
+					AttachStacktrace: false,
 					Release:          version,
+					ServerName:       "oss", // set to "oss" on purpose to avoid sending any identifying information
 					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations
 					Integrations: func(integrations []sentry.Integration) []sentry.Integration {
 						var filteredIntegrations []sentry.Integration
