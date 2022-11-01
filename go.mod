@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/getsentry/sentry-go v0.13.0
+	github.com/getsentry/sentry-go v0.14.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
@@ -13,11 +13,11 @@ require (
 	github.com/rs/zerolog v1.28.0
 	github.com/schollz/progressbar/v3 v3.11.0
 	github.com/spf13/cast v1.5.0
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.1
 	github.com/thoas/go-funk v0.9.2
 	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326
-	golang.org/x/net v0.0.0-20220920203100-d0c6ba3f52d9
+	golang.org/x/net v0.0.0-20221002022538-bcab6841153b
 	golang.org/x/sync v0.1.0
 	golang.org/x/text v0.4.0
 	google.golang.org/grpc v1.49.0
