@@ -121,6 +121,11 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 	default:
 		var tim time.Time
 		var err error
+
+		if len(sbuf) > len(defaultStringFormat)+1 && sbuf[len(defaultStringFormat)+1] == 'm' {
+			sbuf = sbuf[:len(defaultStringFormat)]
+		}
+
 		// there is no good way of detecting format so we just try few of them
 		tim, err = time.Parse(time.RFC3339, sbuf)
 		if err == nil {
@@ -130,6 +135,7 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 		tim, err = time.Parse(defaultStringFormat, sbuf)
 		if err == nil {
 			*dst = Timestamptz{Time: normalizePotentialUTC(tim), Status: Present}
+			return nil
 		}
 		return fmt.Errorf("cannot parse %s as Timestamptz", sbuf)
 
