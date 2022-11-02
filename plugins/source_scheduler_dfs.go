@@ -8,11 +8,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/getsentry/sentry-go"
+	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
 	"golang.org/x/sync/semaphore"
 )
@@ -147,14 +147,13 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	defer cancel()
 	resource := schema.NewResourceData(table, parent, item)
 	objectStartTime := time.Now()
-	csr := caser.New()
 	clientID := client.ID()
 	tableMetrics := p.metrics.TableClient[table.Name][clientID]
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientID).Logger()
 	defer func() {
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
-			logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("object resolver finished with panic")
+			logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("resource resolver finished with panic")
 			atomic.AddUint64(&tableMetrics.Panics, 1)
 		}
 	}()
@@ -167,18 +166,7 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	}
 
 	for _, c := range table.Columns {
-		if c.Resolver != nil {
-			if err := c.Resolver(ctx, client, resource, c); err != nil {
-				logger.Error().Err(err).Msg("column resolver finished with error")
-				atomic.AddUint64(&tableMetrics.Errors, 1)
-			}
-		} else {
-			// base use case: try to get column with CamelCase name
-			v := funk.Get(resource.GetItem(), csr.ToPascal(c.Name), funk.WithAllowZero())
-			if v != nil {
-				_ = resource.Set(c.Name, v)
-			}
-		}
+		p.resolveColumn(ctx, logger, tableMetrics, client, resource, c)
 	}
 
 	if table.PostResourceResolver != nil {
@@ -189,4 +177,28 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	}
 	atomic.AddUint64(&tableMetrics.Resources, 1)
 	return resource
+}
+
+func (p *SourcePlugin) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
+	columnStartTime := time.Now()
+	defer func() {
+		if err := recover(); err != nil {
+			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
+			logger.Error().Str("column", c.Name).Interface("error", err).TimeDiff("duration", time.Now(), columnStartTime).Str("stack", stack).Msg("column resolver finished with panic")
+			atomic.AddUint64(&tableMetrics.Panics, 1)
+		}
+	}()
+
+	if c.Resolver != nil {
+		if err := c.Resolver(ctx, client, resource, c); err != nil {
+			logger.Error().Err(err).Msg("column resolver finished with error")
+			atomic.AddUint64(&tableMetrics.Errors, 1)
+		}
+	} else {
+		// base use case: try to get column with CamelCase name
+		v := funk.Get(resource.GetItem(), p.caser.ToPascal(c.Name), funk.WithAllowZero())
+		if v != nil {
+			_ = resource.Set(c.Name, v)
+		}
+	}
 }

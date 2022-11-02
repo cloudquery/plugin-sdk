@@ -3,6 +3,7 @@ package serve
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"sync"
 	"testing"
@@ -113,14 +114,6 @@ func TestServeSource(t *testing.T) {
 		}
 	}()
 
-	protocolVersion, err := c.GetProtocolVersion(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if protocolVersion != 1 {
-		t.Fatalf("expected protocol version 1, got %d", protocolVersion)
-	}
-
 	name, err := c.Name(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -146,7 +139,7 @@ func TestServeSource(t *testing.T) {
 	}
 
 	resources := make(chan []byte, 1)
-	if err := c.Sync(ctx,
+	if err := c.Sync2(ctx,
 		specs.Source{
 			Name:         "testSourcePlugin",
 			Version:      "v1.0.0",
@@ -160,45 +153,46 @@ func TestServeSource(t *testing.T) {
 	}
 	close(resources)
 
+	totalResources := 0
 	for resourceB := range resources {
-		var resource schema.Resource
+		var resource schema.DestinationResource
 		if err := json.Unmarshal(resourceB, &resource); err != nil {
 			t.Fatalf("failed to unmarshal resource: %v", err)
 		}
 		if resource.TableName != "test_table" {
-			t.Fatalf("Expected resource with table name test: %s", resource.TableName)
+			t.Fatalf("Expected resource with table name test_table. got: %s", resource.TableName)
 		}
-		if int(resource.Data["test_column"].(float64)) != 3 {
-			t.Fatalf("Expected resource {'test_column':3} got: %v", resource.Data)
+		if len(resource.Data) != 3 {
+			t.Fatalf("Expected resource with data length 3 but got %d", len(resource.Data))
 		}
+		fmt.Println(resource.Data)
+		if resource.Data[2] == nil {
+			t.Fatalf("Expected resource with data[2] to be not nil")
+		}
+		// if resource.Data[2].Type() != schema.TypeInt {
+		// 	t.Fatalf("Expected resource with data type int but got %s", resource.Data[2].Type())
+		// }
+		totalResources++
+	}
+	if totalResources != 1 {
+		t.Fatalf("Expected 1 resource on channel but got %d", totalResources)
 	}
 
-	summary, err := c.GetSyncSummary(ctx)
+	stats, err := c.GetMetrics(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Resources != 1 {
-		t.Fatalf("Got: %d Expected 1 resource", summary.Resources)
-	}
-	if summary.Errors != 0 {
-		t.Fatalf("Got: %d Expected 0 error", summary.Errors)
-	}
-	if summary.Panics != 0 {
-		t.Fatalf("Got: %d Expected 0 panics", summary.Panics)
+	clientStats := stats.TableClient["test_table"]["testExecutionClient"]
+	if clientStats.Resources != 1 {
+		t.Fatalf("Expected 1 resource but got %d", clientStats.Resources)
 	}
 
-	metrics, err := c.GetMetrics(ctx)
-	if err != nil {
-		t.Fatal(err)
+	if clientStats.Errors != 0 {
+		t.Fatalf("Expected 0 errors but got %d", clientStats.Errors)
 	}
-	if metrics.TotalResources() != 1 {
-		t.Fatalf("Got: %d Expected 1 resource", metrics.TotalResources())
-	}
-	if metrics.TotalErrors() != 0 {
-		t.Fatalf("Got: %d Expected 0 error", metrics.TotalErrors())
-	}
-	if metrics.TotalPanics() != 0 {
-		t.Fatalf("Got: %d Expected 0 panic", metrics.TotalPanics())
+
+	if clientStats.Panics != 0 {
+		t.Fatalf("Expected 0 panics but got %d", clientStats.Panics)
 	}
 
 	cancel()

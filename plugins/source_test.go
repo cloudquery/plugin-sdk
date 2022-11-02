@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/go-cmp/cmp"
@@ -15,6 +16,8 @@ import (
 type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
+
+var stableUUID = uuid.MustParse("00000000000040008000000000000000")
 
 func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- interface{}) error {
 	res <- map[string]interface{}{
@@ -120,7 +123,7 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 type syncTestCase struct {
 	table *schema.Table
 	stats SourceMetrics
-	// data  []cqtypes.CQTypes
+	data  []cqtypes.CQTypes
 }
 
 var syncTestCases = []syncTestCase{
@@ -135,6 +138,13 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
+		data: []cqtypes.CQTypes{
+			{
+				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
+				&cqtypes.UUID{Status: cqtypes.Null},
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+			},
+		},
 	},
 	{
 		table: testTableResolverPanic(),
@@ -147,6 +157,7 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
+		data: nil,
 	},
 	{
 		table: testTablePreResourceResolverPanic(),
@@ -159,6 +170,7 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
+		data: nil,
 	},
 	{
 		table: testTableColumnResolverPanic(),
@@ -166,9 +178,18 @@ var syncTestCases = []syncTestCase{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_column_resolver_panic": {
 					"testExecutionClient": {
-						Panics: 1,
+						Panics:    1,
+						Resources: 1,
 					},
 				},
+			},
+		},
+		data: []cqtypes.CQTypes{
+			{
+				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
+				&cqtypes.UUID{Status: cqtypes.Null},
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+				&cqtypes.Int8{Status: cqtypes.Null},
 			},
 		},
 	},
@@ -188,6 +209,18 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
+		data: []cqtypes.CQTypes{
+			{
+				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
+				&cqtypes.UUID{Status: cqtypes.Null},
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+			},
+			{
+				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
+				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+			},
+		},
 	},
 }
 
@@ -203,6 +236,7 @@ func (testRand) Read(p []byte) (n int, err error) {
 func TestSync(t *testing.T) {
 	uuid.SetRand(testRand{})
 	for _, tc := range syncTestCases {
+		tc := tc
 		t.Run(tc.table.Name, func(t *testing.T) {
 			testSyncTable(t, tc)
 		})
@@ -237,18 +271,32 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 			resources)
 	})
 
-	var i uint64
-	for range resources {
+	var i int
+	for resource := range resources {
+		if tc.data == nil {
+			t.Fatalf("Unexpected resource %v", resource)
+		}
+		if i >= len(tc.data) {
+			t.Fatalf("expected %d resources. got %d", len(tc.data), i)
+		}
+		// if !resource.GetValues().Equal(tc.data[i]) {
+		// 	t.Log(tc.data)
+		// }
+		if !resource.GetValues().Equal(tc.data[i]) {
+			t.Fatalf("expected at i=%d: %v. got %v", i, tc.data[i], resource.GetValues())
+		}
+		// if !tc.data[i].Equal(resource.GetValues()) {
+		// 	t.Fatalf("expected %v. got %v", tc.data[i], resource.GetValues())
+		// }
 		i++
+	}
+	if len(tc.data) != i {
+		t.Fatalf("expected %d resources. got %d", len(tc.data), i)
 	}
 
 	stats := plugin.Metrics()
 	if !tc.stats.Equal(&stats) {
 		t.Fatalf("unexpected stats: %v", cmp.Diff(tc.stats, stats))
-	}
-	totalResources := stats.TotalResources()
-	if totalResources != i {
-		t.Fatalf("expected %d resources. got %d", totalResources, i)
 	}
 	if err := g.Wait(); err != nil {
 		t.Fatal(err)

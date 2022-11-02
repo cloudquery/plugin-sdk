@@ -17,6 +17,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"golang.org/x/net/netutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -33,6 +34,11 @@ func WithSourceSentryDSN(dsn string) SourceOption {
 		s.sentryDSN = dsn
 	}
 }
+
+// lis used for unit testing grpc server and client
+var testSourceListener *bufconn.Listener
+
+const serveSourceShort = `Start source plugin server`
 
 func Source(plugin *plugins.SourcePlugin, opts ...SourceOption) {
 	s := &sourceServe{
@@ -59,8 +65,8 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 	logFormat := newEnum([]string{"text", "json"}, "text")
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: serveShort,
-		Long:  serveShort,
+		Short: serveSourceShort,
+		Long:  serveSourceShort,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			zerologLevel, err := zerolog.ParseLevel(logLevel.String())
@@ -85,6 +91,9 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 					return fmt.Errorf("failed to listen %s:%s: %w", network, address, err)
 				}
 			}
+			// source plugins can only accept one connection at a time
+			// unlike destination plugins that can accept multiple connections
+			limitListener := netutil.LimitListener(listener, 1)
 			// See logging pattern https://github.com/grpc-ecosystem/go-grpc-middleware/blob/v2/providers/zerolog/examples_test.go
 			s := grpc.NewServer(
 				middleware.WithUnaryServerChain(
@@ -144,7 +153,7 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 			}()
 
 			logger.Info().Str("address", listener.Addr().String()).Msg("Source plugin server listening")
-			if err := s.Serve(listener); err != nil {
+			if err := s.Serve(limitListener); err != nil {
 				return fmt.Errorf("failed to serve: %w", err)
 			}
 			return nil
