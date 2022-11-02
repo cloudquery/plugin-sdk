@@ -8,7 +8,7 @@ import (
 
 // const pgTimestamptzHourFormat = "2006-01-02 15:04:05.999999999Z07"
 // const pgTimestamptzMinuteFormat = "2006-01-02 15:04:05.999999999Z07:00"
-const pgTimestamptzSecondFormat = "2006-01-02 15:04:05.999999999Z07:00:00"
+// const pgTimestamptzSecondFormat = "2006-01-02 15:04:05.999999999Z07:00:00"
 
 // this is the default format used by time.Time.String()
 const defaultStringFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
@@ -40,7 +40,7 @@ func (dst *Timestamptz) Equal(src CQType) bool {
 
 func (dst *Timestamptz) String() string {
 	if dst.Status == Present {
-		return dst.Time.Format(pgTimestamptzSecondFormat)
+		return dst.Time.Format(time.RFC3339)
 	} else {
 		return ""
 	}
@@ -119,25 +119,26 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 	case "-infinity":
 		*dst = Timestamptz{Status: Present, InfinityModifier: -Infinity}
 	default:
-		var format string
-		sbufLen := len(sbuf)
-		if sbufLen >= 19 && sbuf[10] == 'T' && sbuf[19] == 'Z' {
-			format = time.RFC3339
-		} else if sbufLen >= 19 && sbuf[10] == 'T' && sbuf[19] == '.' {
-			format = time.RFC3339Nano
-		} else {
-			if sbufLen >= len(defaultStringFormat) {
-				sbuf = sbuf[:len(defaultStringFormat)]
-			}
-			format = defaultStringFormat
+		var tim time.Time
+		var err error
+
+		if len(sbuf) > len(defaultStringFormat)+1 && sbuf[len(defaultStringFormat)+1] == 'm' {
+			sbuf = sbuf[:len(defaultStringFormat)]
 		}
 
-		tim, err := time.Parse(format, sbuf)
-		if err != nil {
-			return err
+		// there is no good way of detecting format so we just try few of them
+		tim, err = time.Parse(time.RFC3339, sbuf)
+		if err == nil {
+			*dst = Timestamptz{Time: normalizePotentialUTC(tim), Status: Present}
+			return nil
 		}
+		tim, err = time.Parse(defaultStringFormat, sbuf)
+		if err == nil {
+			*dst = Timestamptz{Time: normalizePotentialUTC(tim), Status: Present}
+			return nil
+		}
+		return fmt.Errorf("cannot parse %s as Timestamptz", sbuf)
 
-		*dst = Timestamptz{Time: normalizePotentialUTC(tim), Status: Present}
 	}
 
 	return nil
