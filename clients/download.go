@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/avast/retry-go/v4"
+
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -20,6 +22,8 @@ const (
 	PluginTypeSource      PluginType = "source"
 	PluginTypeDestination PluginType = "destination"
 	DefaultDownloadDir               = ".cq"
+	RetryAttempts                    = 5
+	RetryWaitTime                    = 1 * time.Second
 )
 
 func DownloadPluginFromGithub(ctx context.Context, localPath string, org string, name string, version string, typ PluginType) error {
@@ -88,23 +92,42 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 	if err != nil {
 		return fmt.Errorf("failed create request %s: %w", url, err)
 	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to get url %s: %w", url, err)
-	}
-	defer resp.Body.Close()
 
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s. downloading %s", resp.Status, url)
-	}
-	fmt.Printf("Downloading %s\n", url)
-	bar := downloadProgressBar(resp.ContentLength, "Downloading")
+	err = retry.Do(
+		func() error {
+			// Do http request
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return fmt.Errorf("failed to get url %s: %w", url, err)
+			}
 
-	// Writer the body to file
-	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
+			// Check server response
+			if resp.StatusCode != http.StatusOK {
+				fmt.Printf("Failed downloading %s with status code %d. Retrying\n", url, resp.StatusCode)
+				return fmt.Errorf("statusCode != 200")
+			}
+			defer resp.Body.Close()
+
+			fmt.Printf("Downloading %s\n", url)
+			bar := downloadProgressBar(resp.ContentLength, "Downloading")
+
+			// Writer the body to file
+			_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
+			}
+
+			return nil
+		},
+		retry.RetryIf(func(err error) bool {
+			return err.Error() == "statusCode != 200"
+		}),
+		retry.Attempts(RetryAttempts),
+		retry.Delay(RetryWaitTime),
+	)
+
 	if err != nil {
-		return fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
+		return fmt.Errorf("failed downloading: %s", url)
 	}
 
 	return nil
