@@ -83,12 +83,6 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 			configurationTables: []string{"sub_table"},
 			wantErr:             true,
 		},
-		{
-			name:                "should return both tables if both child and parent are specified",
-			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
-			configurationTables: []string{"main_table", "sub_table"},
-			want:                []string{"main_table", "sub_table"},
-		},
 	}
 
 	for _, tt := range tests {
