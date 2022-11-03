@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -25,7 +24,7 @@ type DestinationServer struct {
 
 func (*DestinationServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_Request) (*pb.GetProtocolVersion_Response, error) {
 	return &pb.GetProtocolVersion_Response{
-		Version: versions.DestinationProtocolVersion,
+		Version: 2,
 	}, nil
 }
 
@@ -57,71 +56,79 @@ func (s *DestinationServer) Migrate(ctx context.Context, req *pb.Migrate_Request
 	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
 }
 
+func (*DestinationServer) Write(pb.Destination_WriteServer) error {
+	return status.Errorf(codes.Unimplemented, "method Write is deprecated please upgrade client")
+}
+
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
-func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
-	resources := make(chan *schema.Resource)
-	var writeSummary *plugins.WriteSummary
+func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
+	resources := make(chan *schema.DestinationResource)
 
 	r, err := msg.Recv()
 	if err != nil {
 		if err == io.EOF {
-			return msg.SendAndClose(&pb.Write_Response{
-				FailedWrites: 0,
-			})
+			return msg.SendAndClose(&pb.Write2_Response{})
 		}
 		return fmt.Errorf("write: failed to receive msg: %w", err)
 	}
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		writeSummary = s.Plugin.Write(msg.Context(), r.Source, r.Timestamp.AsTime(), resources)
-	}()
-
-	var resource *schema.Resource
-	if err := json.Unmarshal(r.Resource, &resource); err != nil {
-		close(resources)
-		wg.Wait()
-		return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
+	var tables schema.Tables
+	if err := json.Unmarshal(r.Tables, &tables); err != nil {
+		return fmt.Errorf("write: failed to unmarshal tables: %w", err)
 	}
-	select {
-	case resources <- resource:
-	case <-msg.Context().Done():
-		close(resources)
-		wg.Wait()
-		return msg.Context().Err()
-	}
+	sourceName := r.Source
+	syncTime := r.Timestamp.AsTime()
+
+	eg, ctx := errgroup.WithContext(msg.Context())
+	eg.Go(func() error {
+		return s.Plugin.Write(ctx, tables, sourceName, syncTime, resources)
+	})
 
 	for {
 		r, err := msg.Recv()
 		if err != nil {
 			if err == io.EOF {
 				close(resources)
-				wg.Wait()
-				return msg.SendAndClose(&pb.Write_Response{
-					FailedWrites: writeSummary.FailedWrites,
-				})
+				if err := eg.Wait(); err != nil {
+					return fmt.Errorf("got EOF. failed to wait for plugin: %w", err)
+				}
+				return msg.SendAndClose(&pb.Write2_Response{})
 			}
 			close(resources)
-			wg.Wait()
-			return fmt.Errorf("write: failed to receive msg: %w", err)
+			if err := eg.Wait(); err != nil {
+				s.Logger.Error().Err(err).Msg("got error. failed to wait for plugin")
+			}
+			return fmt.Errorf("failed to receive msg: %w", err)
 		}
-		var resource *schema.Resource
+		var resource *schema.DestinationResource
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
-			wg.Wait()
+			if err := eg.Wait(); err != nil {
+				s.Logger.Error().Err(err).Msg("failed to unmarshal resource. failed to wait for plugin")
+			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
 		select {
 		case resources <- resource:
-		case <-msg.Context().Done():
+		case <-ctx.Done():
 			close(resources)
-			wg.Wait()
-			return msg.Context().Err()
+			if err := eg.Wait(); err != nil {
+				s.Logger.Error().Err(err).Msg("failed to wait")
+			}
+			return ctx.Err()
 		}
 	}
+}
+
+func (s *DestinationServer) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) (*pb.GetDestinationMetrics_Response, error) {
+	stats := s.Plugin.Metrics()
+	b, err := json.Marshal(stats)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal stats: %w", err)
+	}
+	return &pb.GetDestinationMetrics_Response{
+		Metrics: b,
+	}, nil
 }
 
 func (s *DestinationServer) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (*pb.DeleteStale_Response, error) {
@@ -129,9 +136,11 @@ func (s *DestinationServer) DeleteStale(ctx context.Context, req *pb.DeleteStale
 	if err := json.Unmarshal(req.Tables, &tables); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
-	failedDeletes := s.Plugin.DeleteStale(ctx, tables.TableNames(), req.Source, req.Timestamp.AsTime())
+	if err := s.Plugin.DeleteStale(ctx, tables, req.Source, req.Timestamp.AsTime()); err != nil {
+		return nil, err
+	}
 
-	return &pb.DeleteStale_Response{FailedDeletes: failedDeletes}, nil
+	return &pb.DeleteStale_Response{}, nil
 }
 
 func (s *DestinationServer) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {

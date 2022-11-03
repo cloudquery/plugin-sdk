@@ -2,30 +2,46 @@ package plugins
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
+	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 )
 
-type testExecutionClient struct {
-	logger zerolog.Logger
-}
+type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
-func testTable() *schema.Table {
+var stableUUID = uuid.MustParse("00000000000040008000000000000000")
+
+func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- interface{}) error {
+	res <- map[string]interface{}{
+		"TestColumn": 3,
+	}
+	return nil
+}
+
+func testResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, chan<- interface{}) error {
+	panic("Resolver")
+}
+
+func testPreResourceResolverPanic(context.Context, schema.ClientMeta, *schema.Resource) error {
+	panic("PreResourceResolver")
+}
+
+func testColumnResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, schema.Column) error {
+	panic("ColumnResolver")
+}
+
+func testTableSuccess() *schema.Table {
 	return &schema.Table{
-		Name: "test_table",
-		Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
-			res <- map[string]interface{}{
-				"TestColumn": 3,
-			}
-			return nil
-		},
+		Name:     "test_table_success",
+		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
 			{
 				Name: "test_column",
@@ -35,148 +51,254 @@ func testTable() *schema.Table {
 	}
 }
 
-func (c *testExecutionClient) Logger() *zerolog.Logger {
-	return &c.logger
+func testTableResolverPanic() *schema.Table {
+	return &schema.Table{
+		Name:     "test_table_resolver_panic",
+		Resolver: testResolverPanic,
+		Columns: []schema.Column{
+			{
+				Name: "test_column",
+				Type: schema.TypeInt,
+			},
+		},
+	}
+}
+
+func testTablePreResourceResolverPanic() *schema.Table {
+	return &schema.Table{
+		Name:                "test_table_pre_resource_resolver_panic",
+		PreResourceResolver: testPreResourceResolverPanic,
+		Resolver:            testResolverSuccess,
+		Columns: []schema.Column{
+			{
+				Name: "test_column",
+				Type: schema.TypeInt,
+			},
+		},
+	}
+}
+
+func testTableColumnResolverPanic() *schema.Table {
+	return &schema.Table{
+		Name:     "test_table_column_resolver_panic",
+		Resolver: testResolverSuccess,
+		Columns: []schema.Column{
+			{
+				Name: "test_column",
+				Type: schema.TypeInt,
+			},
+			{
+				Name:     "test_column1",
+				Type:     schema.TypeInt,
+				Resolver: testColumnResolverPanic,
+			},
+		},
+	}
+}
+
+func testTableRelationSuccess() *schema.Table {
+	return &schema.Table{
+		Name:     "test_table_relation_success",
+		Resolver: testResolverSuccess,
+		Columns: []schema.Column{
+			{
+				Name: "test_column",
+				Type: schema.TypeInt,
+			},
+		},
+		Relations: []*schema.Table{
+			testTableSuccess(),
+		},
+	}
+}
+
+func (*testExecutionClient) ID() string {
+	return "testExecutionClient"
 }
 
 func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
 	return &testExecutionClient{}, nil
 }
 
+type syncTestCase struct {
+	table *schema.Table
+	stats SourceMetrics
+	data  []cqtypes.CQTypes
+}
+
+var syncTestCases = []syncTestCase{
+	{
+		table: testTableSuccess(),
+		stats: SourceMetrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
+				"test_table_success": {
+					"testExecutionClient": {
+						Resources: 1,
+					},
+				},
+			},
+		},
+		data: []cqtypes.CQTypes{
+			{
+				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
+				&cqtypes.UUID{Status: cqtypes.Null},
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+			},
+		},
+	},
+	{
+		table: testTableResolverPanic(),
+		stats: SourceMetrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
+				"test_table_resolver_panic": {
+					"testExecutionClient": {
+						Panics: 1,
+					},
+				},
+			},
+		},
+		data: nil,
+	},
+	{
+		table: testTablePreResourceResolverPanic(),
+		stats: SourceMetrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
+				"test_table_pre_resource_resolver_panic": {
+					"testExecutionClient": {
+						Panics: 1,
+					},
+				},
+			},
+		},
+		data: nil,
+	},
+	{
+		table: testTableColumnResolverPanic(),
+		stats: SourceMetrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
+				"test_table_column_resolver_panic": {
+					"testExecutionClient": {
+						Panics:    1,
+						Resources: 1,
+					},
+				},
+			},
+		},
+		data: []cqtypes.CQTypes{
+			{
+				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
+				&cqtypes.UUID{Status: cqtypes.Null},
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+				&cqtypes.Int8{Status: cqtypes.Null},
+			},
+		},
+	},
+	{
+		table: testTableRelationSuccess(),
+		stats: SourceMetrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
+				"test_table_relation_success": {
+					"testExecutionClient": {
+						Resources: 1,
+					},
+				},
+				"test_table_success": {
+					"testExecutionClient": {
+						Resources: 1,
+					},
+				},
+			},
+		},
+		data: []cqtypes.CQTypes{
+			{
+				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
+				&cqtypes.UUID{Status: cqtypes.Null},
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+			},
+			{
+				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
+				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
+				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+			},
+		},
+	},
+}
+
+type testRand struct{}
+
+func (testRand) Read(p []byte) (n int, err error) {
+	for i := range p {
+		p[i] = byte(0)
+	}
+	return len(p), nil
+}
+
 func TestSync(t *testing.T) {
+	uuid.SetRand(testRand{})
+	for _, tc := range syncTestCases {
+		tc := tc
+		t.Run(tc.table.Name, func(t *testing.T) {
+			testSyncTable(t, tc)
+		})
+	}
+}
+
+func testSyncTable(t *testing.T, tc syncTestCase) {
 	ctx := context.Background()
+	tables := []*schema.Table{
+		tc.table,
+	}
+
 	plugin := NewSourcePlugin(
 		"testSourcePlugin",
 		"1.0.0",
-		[]*schema.Table{testTable()},
+		tables,
 		newTestExecutionClient,
 	)
-
+	plugin.SetLogger(zerolog.New(zerolog.NewTestWriter(t)))
 	spec := specs.Source{
 		Name:         "testSource",
 		Tables:       []string{"*"},
 		Version:      "v1.0.0",
 		Destinations: []string{"test"},
 	}
-
 	resources := make(chan *schema.Resource)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(resources)
-		_, err := plugin.Sync(ctx,
-			zerolog.New(zerolog.NewTestWriter(t)),
+		return plugin.Sync(ctx,
 			spec,
 			resources)
-		return err
 	})
 
+	var i int
 	for resource := range resources {
-		if resource.Table.Name != "test_table" {
-			t.Fatalf("unexpected resource table name: %s", resource.Table.Name)
+		if tc.data == nil {
+			t.Fatalf("Unexpected resource %v", resource)
 		}
-		obj := resource.Get("test_column")
-		val, ok := obj.(int)
-		if !ok {
-			t.Fatalf("unexpected resource column value (expected int): %v", obj)
+		if i >= len(tc.data) {
+			t.Fatalf("expected %d resources. got %d", len(tc.data), i)
 		}
+		// if !resource.GetValues().Equal(tc.data[i]) {
+		// 	t.Log(tc.data)
+		// }
+		if !resource.GetValues().Equal(tc.data[i]) {
+			t.Fatalf("expected at i=%d: %v. got %v", i, tc.data[i], resource.GetValues())
+		}
+		// if !tc.data[i].Equal(resource.GetValues()) {
+		// 	t.Fatalf("expected %v. got %v", tc.data[i], resource.GetValues())
+		// }
+		i++
+	}
+	if len(tc.data) != i {
+		t.Fatalf("expected %d resources. got %d", len(tc.data), i)
+	}
 
-		if val != 3 {
-			t.Fatalf("unexpected resource column value: %v", val)
-		}
+	stats := plugin.Metrics()
+	if !tc.stats.Equal(&stats) {
+		t.Fatalf("unexpected stats: %v", cmp.Diff(tc.stats, stats))
 	}
 	if err := g.Wait(); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
-	tests := []struct {
-		name                    string
-		plugin                  SourcePlugin
-		configurationTables     []string
-		configurationSkipTables []string
-		want                    []string
-		wantErr                 bool
-	}{
-		{
-			name:                "should return all tables when '*' is provided",
-			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "table 1"}, {Name: "table 2"}, {Name: "table 3"}}},
-			configurationTables: []string{"*"},
-			want:                []string{"table 1", "table 2", "table 3"},
-			wantErr:             false,
-		},
-		{
-			name:                    "should return all tables when '*' is provided, excluding skipped tables",
-			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table 1"}, {Name: "table 2"}, {Name: "table 3"}}},
-			configurationTables:     []string{"*"},
-			configurationSkipTables: []string{"table 1", "table 3"},
-			want:                    []string{"table 2"},
-			wantErr:                 false,
-		},
-		{
-			name:                "should return specific tables when they are provided",
-			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "table 1"}, {Name: "table 2"}, {Name: "table 3"}}},
-			configurationTables: []string{"table 1"},
-			want:                []string{"table 1"},
-			wantErr:             false,
-		},
-		{
-			name:                "should return error when '*' is provided with other tables",
-			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "table 1"}, {Name: "table 2"}, {Name: "table 3"}}},
-			configurationTables: []string{"table 1", "*"},
-			wantErr:             true,
-		},
-		{
-			name:    "should return an error when nil is provided",
-			plugin:  SourcePlugin{tables: []*schema.Table{{Name: "table 1"}}},
-			wantErr: true,
-		},
-		{
-			name:                    "should return an error if glob-matching is attempted in tables",
-			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table 1"}, {Name: "table 2"}}},
-			configurationTables:     []string{"table*"},
-			configurationSkipTables: []string{""},
-			wantErr:                 true,
-		},
-		{
-			name:                    "should return an error if glob-matching is attempted in skipped tables",
-			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table 1"}, {Name: "table 2"}}},
-			configurationTables:     []string{"table 1"},
-			configurationSkipTables: []string{"table *"},
-			wantErr:                 true,
-		},
-		{
-			name:                    "should return an error when included table is skipped",
-			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table 1"}, {Name: "table 2"}}},
-			configurationTables:     []string{"table 2", "table 1"},
-			configurationSkipTables: []string{"table 1"},
-			wantErr:                 true,
-		},
-		{
-			name:                    "should return an error if table is unmatched",
-			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table 1"}}},
-			configurationTables:     []string{"table 2"},
-			configurationSkipTables: []string{"table 1"},
-			wantErr:                 true,
-		},
-		{
-			name:                "should return an error if child table is without its parent",
-			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "table 1", Parent: &schema.Table{Name: "table 2"}}, {Name: "table 2"}}},
-			configurationTables: []string{"table 1"},
-			wantErr:             true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.plugin.listAndValidateTables(tt.configurationTables, tt.configurationSkipTables)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("SourcePlugin.interpolateAllResources() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("SourcePlugin.interpolateAllResources() = %v, want %v", got, tt.want)
-			}
-		})
 	}
 }

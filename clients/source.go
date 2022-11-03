@@ -14,7 +14,7 @@ import (
 	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/versions"
+	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -33,7 +33,6 @@ type SourceClient struct {
 	userConn       *grpc.ClientConn
 	conn           *grpc.ClientConn
 	grpcSocketName string
-	cmdWaitErr     error
 	wg             *sync.WaitGroup
 }
 
@@ -106,16 +105,6 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 		return nil, fmt.Errorf("unsupported registry %s", registry)
 	}
 
-	protocolVersion, err := c.GetProtocolVersion(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if protocolVersion < versions.SourceProtocolVersion {
-		return nil, fmt.Errorf("source plugin protocol version %d is lower than client version %d. Try updating client", protocolVersion, versions.SourceProtocolVersion)
-	} else if protocolVersion > versions.SourceProtocolVersion {
-		return nil, fmt.Errorf("source plugin protocol version %d is higher than client version %d. Try updating source plugin", protocolVersion, versions.SourceProtocolVersion)
-	}
-
 	return c, nil
 }
 
@@ -132,17 +121,8 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 	}
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start plugin %s: %w", path, err)
+		return fmt.Errorf("failed to start source plugin %s: %w", path, err)
 	}
-
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		if err := cmd.Wait(); err != nil {
-			c.cmdWaitErr = err
-			c.logger.Error().Err(err).Str("plugin", path).Msg("plugin exited")
-		}
-	}()
 	c.cmd = cmd
 
 	c.wg.Add(1)
@@ -218,6 +198,18 @@ func (c *SourceClient) Version(ctx context.Context) (string, error) {
 	return res.Version, nil
 }
 
+func (c *SourceClient) GetMetrics(ctx context.Context) (*plugins.SourceMetrics, error) {
+	res, err := c.pbClient.GetMetrics(ctx, &pb.GetSourceMetrics_Request{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to call GetMetrics: %w", err)
+	}
+	var stats plugins.SourceMetrics
+	if err := json.Unmarshal(res.Metrics, &stats); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal source stats: %w", err)
+	}
+	return &stats, nil
+}
+
 func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 	res, err := c.pbClient.GetTables(ctx, &pb.GetTables_Request{})
 	if err != nil {
@@ -260,6 +252,36 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	}
 }
 
+// Sync start syncing for the source client per the given spec and returning the results
+// in the given channel. res is marshaled schema.Resource. We are not unmarshalling this for performance reasons
+// as usually this is sent over-the-wire anyway to a source plugin
+func (c *SourceClient) Sync2(ctx context.Context, spec specs.Source, res chan<- []byte) error {
+	b, err := json.Marshal(spec)
+	if err != nil {
+		return fmt.Errorf("failed to marshal source spec: %w", err)
+	}
+	stream, err := c.pbClient.Sync2(ctx, &pb.Sync2_Request{
+		Spec: b,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to call Sync: %w", err)
+	}
+	for {
+		r, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return fmt.Errorf("failed to fetch resources from stream: %w", err)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case res <- r.Resource:
+		}
+	}
+}
+
 // Terminate is used only in conjunction with NewManagedSourceClient.
 // It closes the connection it created, kills the spawned process and removes the socket file.
 func (c *SourceClient) Terminate() error {
@@ -267,17 +289,21 @@ func (c *SourceClient) Terminate() error {
 	defer c.wg.Wait()
 
 	if c.grpcSocketName != "" {
-		defer os.Remove(c.grpcSocketName)
+		defer func() {
+			if err := os.Remove(c.grpcSocketName); err != nil {
+				c.logger.Error().Err(err).Msg("failed to remove source socket file")
+			}
+		}()
 	}
 
 	if c.conn != nil {
 		if err := c.conn.Close(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to close gRPC connection")
+			c.logger.Error().Err(err).Msg("failed to close gRPC connection to source plugin")
 		}
+		c.conn = nil
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
-		if err := c.cmd.Process.Kill(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to kill process")
+		if err := c.terminateProcess(); err != nil {
 			return err
 		}
 	}
@@ -295,8 +321,4 @@ func (c *SourceClient) GetSyncSummary(ctx context.Context) (*schema.SyncSummary,
 		return nil, fmt.Errorf("failed to unmarshal sync summary: %w", err)
 	}
 	return &summary, nil
-}
-
-func (c *SourceClient) GetWaitError() error {
-	return c.cmdWaitErr
 }
