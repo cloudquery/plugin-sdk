@@ -79,9 +79,15 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 		},
 		{
 			name:                "should return an error if child table is without its parent",
-			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "table 1", Parent: &schema.Table{Name: "table 2"}}, {Name: "table 2"}}},
-			configurationTables: []string{"table 1"},
+			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
+			configurationTables: []string{"sub_table"},
 			wantErr:             true,
+		},
+		{
+			name:                "should return both tables if both child and parent are specified",
+			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
+			configurationTables: []string{"main_table", "sub_table"},
+			want:                []string{"main_table", "sub_table"},
 		},
 	}
 
@@ -89,11 +95,11 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.plugin.listAndValidateTables(tt.configurationTables, tt.configurationSkipTables)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("SourcePlugin.interpolateAllResources() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("SourcePlugin.listAndValidateTables() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("SourcePlugin.interpolateAllResources() = %v, want %v", got, tt.want)
+				t.Errorf("SourcePlugin.listAndValidateTables() = %v, want %v", got, tt.want)
 			}
 		})
 	}
