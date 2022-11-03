@@ -78,9 +78,15 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 			wantErr:                 true,
 		},
 		{
-			name:                "should return an error if child table is without its parent",
+			name:                "should return an error if child table is specified",
 			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
 			configurationTables: []string{"sub_table"},
+			wantErr:             true,
+		},
+		{
+			name:                "should return an error if both child and parent tables are specified",
+			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
+			configurationTables: []string{"main_table", "sub_table"},
 			wantErr:             true,
 		},
 	}

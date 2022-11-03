@@ -77,15 +77,16 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]str
 		}
 	}
 
-	// return an error if child table is included, but not its parent table
-	selectedTables := map[string]bool{}
-	for _, t := range tables {
-		selectedTables[t] = true
-	}
+	// return an error if child table is included
 	for _, t := range tables {
 		tt := p.tables.Get(t)
-		if tt.Parent != nil && !selectedTables[tt.Parent.Name] {
-			return nil, fmt.Errorf("table %s is a child table, and requires its parent table %s to also be synced", t, tt.Parent.Name)
+		if tt.Parent != nil {
+			pt := tt.Parent
+			for pt.Parent != nil {
+				pt = pt.Parent
+			}
+
+			return nil, fmt.Errorf("table %s is a child table and cannot be included. The top-level parent table to include is %s", t, pt.Name)
 		}
 	}
 
