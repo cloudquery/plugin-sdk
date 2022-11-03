@@ -134,8 +134,8 @@ func filterParentTables(tables schema.Tables, filter []string) schema.Tables {
 		return tables
 	}
 	for _, name := range filter {
-		if tables.Get(name) != nil {
-			res = append(res, tables.Get(name))
+		if t := tables.Get(name); t != nil {
+			res = append(res, t)
 		}
 	}
 	return res
