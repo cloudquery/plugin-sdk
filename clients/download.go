@@ -4,13 +4,14 @@ import (
 	"archive/zip"
 	"context"
 	"fmt"
-	"github.com/avast/retry-go/v4"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"github.com/avast/retry-go/v4"
 
 	"github.com/schollz/progressbar/v3"
 )
@@ -102,6 +103,7 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 
 			// Check server response
 			if resp.StatusCode != http.StatusOK {
+				fmt.Printf("Failed downloading %s with status code %d. Retrying\n", url, resp.StatusCode)
 				return fmt.Errorf("statusCode != 200")
 			}
 			defer resp.Body.Close()
@@ -125,7 +127,7 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 	)
 
 	if err != nil {
-		return fmt.Errorf("failed downloading: %s: %w", url, err)
+		return fmt.Errorf("failed downloading: %s", url)
 	}
 
 	return nil
