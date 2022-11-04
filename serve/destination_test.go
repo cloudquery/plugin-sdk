@@ -35,10 +35,10 @@ func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
 	return nil
 }
 
-func (*testDestinationClient) Read(context.Context, *schema.Table, string, chan<- *schema.DestinationResource) error {
+func (*testDestinationClient) Read(context.Context, *schema.Table, string, chan<- []interface{}) error {
 	return nil
 }
-func (*testDestinationClient) Write(_ context.Context, _ schema.Tables, resources <-chan *schema.DestinationResource) error {
+func (*testDestinationClient) Write(_ context.Context, _ schema.Tables, resources <-chan *plugins.ClientResource) error {
 	//nolint:revive
 	for range resources {
 	}

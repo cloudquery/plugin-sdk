@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+type Int8ArrayTransformer interface {
+	TransformInt8Array(*Int8Array) interface{}
+}
+
 type Int8Array struct {
 	Elements   []Int8
 	Dimensions []ArrayDimension

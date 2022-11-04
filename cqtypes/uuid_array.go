@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+type UUIDArrayTransformer interface {
+	TransformUUIDArray(*UUIDArray) interface{}
+}
+
 type UUIDArray struct {
 	Elements   []UUID
 	Dimensions []ArrayDimension

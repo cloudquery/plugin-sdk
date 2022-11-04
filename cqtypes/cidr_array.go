@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+type CIDRArrayTransformer interface {
+	TransformCIDRArray(*CIDRArray) interface{}
+}
+
 type CIDRArray struct {
 	Elements   []CIDR
 	Dimensions []ArrayDimension

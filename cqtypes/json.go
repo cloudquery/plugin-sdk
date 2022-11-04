@@ -6,6 +6,10 @@ import (
 	"errors"
 )
 
+type JSONTransformer interface {
+	TransformJSON(*JSON) interface{}
+}
+
 type JSON struct {
 	Bytes  []byte
 	Status Status

@@ -6,6 +6,10 @@ import (
 	"net"
 )
 
+type MacaddrTransformer interface {
+	TransformMacaddr(*Macaddr) interface{}
+}
+
 type Macaddr struct {
 	Addr   net.HardwareAddr
 	Status Status

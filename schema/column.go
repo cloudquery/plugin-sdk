@@ -1,7 +1,9 @@
 package schema
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 )
 
 type ValueType int
@@ -60,6 +62,69 @@ const (
 	TypeTimeInterval
 )
 
+func (r ValueType) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	buffer.WriteString(r.String())
+	buffer.WriteString(`"`)
+	return buffer.Bytes(), nil
+}
+
+func (r *ValueType) UnmarshalJSON(data []byte) (err error) {
+	var valueType string
+	if err := json.Unmarshal(data, &valueType); err != nil {
+		return err
+	}
+	*r = ValueTypeFromString(valueType);
+	return nil
+}
+
+func ValueTypeFromString(s string) ValueType {
+	switch s {
+	case "TypeBool":
+		return TypeBool
+	case "TypeInt":
+		return TypeInt
+	case "TypeFloat":
+		return TypeFloat
+	case "TypeUUID":
+		return TypeUUID
+	case "TypeString":
+		return TypeString
+	case "TypeJSON":
+		return TypeJSON
+	case "TypeIntArray":
+		return TypeIntArray
+	case "TypeStringArray":
+		return TypeStringArray
+	case "TypeTimestamp":
+		return TypeTimestamp
+	case "TypeTimeInterval":
+		return TypeTimeInterval
+	case "TypeByteArray":
+		return TypeByteArray
+	case "TypeUUIDArray":
+		return TypeUUIDArray
+	case "TypeInetArray":
+		return TypeInetArray
+	case "TypeInet":
+		return TypeInet
+	case "TypeMacAddrArray":
+		return TypeMacAddrArray
+	case "TypeMacAddr":
+		return TypeMacAddr
+	case "TypeCIDRArray":
+		return TypeCIDRArray
+	case "TypeCIDR":
+		return TypeCIDR
+	case "TypeInvalid":
+		fallthrough
+	default:
+		// this means that the desitnation plugin is using an older SDK
+		// and we just skip this column
+		return TypeInvalid
+	}
+}
+
 func (v ValueType) String() string {
 	switch v {
 	case TypeBool:
@@ -103,6 +168,21 @@ func (v ValueType) String() string {
 	default:
 		return "TypeInvalid"
 	}
+}
+
+func (r *ColumnList) UnmarshalJSON(data []byte) (err error) {
+	var tmp []Column
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return err
+	}
+	res := make(ColumnList, 0, len(tmp))
+	for _, column := range tmp {
+		if column.Type != TypeInvalid {
+			res = append(res, column)
+		}
+	}
+	*r = res
+	return nil
 }
 
 func (c ColumnList) Index(col string) int {

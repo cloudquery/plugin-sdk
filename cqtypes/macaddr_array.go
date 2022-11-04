@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+type MacaddrArrayTransformer interface {
+	TransformMacaddrArray(*MacaddrArray) interface{}
+}
+
 type MacaddrArray struct {
 	Elements   []Macaddr
 	Dimensions []ArrayDimension

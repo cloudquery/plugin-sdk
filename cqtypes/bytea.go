@@ -7,6 +7,10 @@ import (
 	"fmt"
 )
 
+type ByteaTransformer interface {
+	TransformBytea(*Bytea) interface{}
+}
+
 type Bytea struct {
 	Bytes  []byte
 	Status Status

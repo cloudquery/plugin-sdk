@@ -20,6 +20,10 @@ const (
 // infinityMicrosecondOffset         = 9223372036854775807
 )
 
+type TimestamptzTransformer interface {
+	TransformTimestamptz(*Timestamptz) interface{}
+}
+
 type Timestamptz struct {
 	Time             time.Time
 	Status           Status

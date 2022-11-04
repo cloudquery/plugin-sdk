@@ -2,6 +2,10 @@ package cqtypes
 
 type CIDR Inet
 
+type CIDRTransformer interface {
+	TransformCIDR(*CIDR) interface{}
+}
+
 func (dst *CIDR) String() string {
 	if dst.Status == Present {
 		return dst.IPNet.String()

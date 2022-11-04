@@ -6,6 +6,10 @@ import (
 	"fmt"
 )
 
+type UUIDTransformer interface {
+	TransformUUID(*UUID) interface{}
+}
+
 type UUID struct {
 	Bytes  [16]byte
 	Status Status

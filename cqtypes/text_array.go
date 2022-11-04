@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+type TextArrayTransformer interface {
+	TransformTextArray(*TextArray) interface{}
+}
+
 type TextArray struct {
 	Elements   []Text
 	Dimensions []ArrayDimension

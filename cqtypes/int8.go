@@ -7,6 +7,10 @@ import (
 	"strconv"
 )
 
+type Int8Transformer interface {
+	TransformInt8(*Int8) interface{}
+}
+
 type Int8 struct {
 	Int    int64
 	Status Status

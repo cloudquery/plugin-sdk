@@ -195,6 +195,7 @@ func TestData() cqtypes.CQTypes {
 	return data
 }
 
+
 func DestinationPluginTestHelper(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return err
@@ -202,8 +203,30 @@ func DestinationPluginTestHelper(ctx context.Context, p *DestinationPlugin, logg
 	tables := []*schema.Table{
 		TestTable(),
 	}
+	// test migrate
+	tables[0].Columns = tables[0].Columns[:len(tables[0].Columns)-1]
 	if err := p.Migrate(ctx, tables); err != nil {
 		return err
+	}
+	// test migrate add column
+	tables = []*schema.Table{
+		TestTable(),
+	}
+	if err := p.Migrate(ctx, tables); err != nil {
+		return err
+	}
+	// test migrate remove column
+	tables = []*schema.Table{
+		TestTable(),
+	}
+	tables[0].Columns = tables[0].Columns[:len(tables[0].Columns)-1]
+	if err := p.Migrate(ctx, tables); err != nil {
+		return err
+	}
+
+	// test write
+	tables = []*schema.Table{
+		TestTable(),
 	}
 	syncTime := time.Now()
 	sourceName := "test_helper_" + syncTime.String()
@@ -219,16 +242,14 @@ func DestinationPluginTestHelper(ctx context.Context, p *DestinationPlugin, logg
 		return err
 	}
 
-	resources = make(chan *schema.DestinationResource)
+	readResource := make(chan cqtypes.CQTypes)
 	var readErr error
 	go func() {
-		defer close(resources)
-		readErr = p.Read(ctx, tables[0], sourceName, resources)
+		defer close(readResource)
+		readErr = p.Read(ctx, tables[0], sourceName, readResource)
 	}()
 	totalResources := 0
-	var receivedResource *schema.DestinationResource
-	for r := range resources {
-		receivedResource = r
+	for  range readResource {
 		totalResources++
 	}
 	if readErr != nil {
@@ -238,9 +259,6 @@ func DestinationPluginTestHelper(ctx context.Context, p *DestinationPlugin, logg
 		return fmt.Errorf("expected 1 resource, got %d", totalResources)
 	}
 
-	if receivedResource.TableName != expectedResource.TableName {
-		return fmt.Errorf("expected table name %s, got %s", expectedResource.TableName, receivedResource.TableName)
-	}
 
 	return readErr
 }

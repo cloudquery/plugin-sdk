@@ -91,10 +91,10 @@ func (c *CQTypes) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	*c = make(CQTypes, len(res))
+	cqTypes := make(CQTypes, 0, len(res))
 	for i := range res {
 		if res[i] == nil {
-			(*c)[i] = nil
+			cqTypes = append(cqTypes, nil)
 			continue
 		}
 		b, err := json.Marshal(res[i]["value"])
@@ -104,46 +104,49 @@ func (c *CQTypes) UnmarshalJSON(b []byte) error {
 		typ := res[i]["type"].(string)
 		switch typ {
 		case "Bool":
-			(*c)[i] = &Bool{}
+			cqTypes = append(cqTypes, &Bool{})
 		case "Int8":
-			(*c)[i] = &Int8{}
+			cqTypes = append(cqTypes, &Int8{})
 		case "Float8":
-			(*c)[i] = &Float8{}
+			cqTypes = append(cqTypes, &Float8{})
 		case "UUID":
-			(*c)[i] = &UUID{}
+			cqTypes = append(cqTypes, &UUID{})
 		case "Text":
-			(*c)[i] = &Text{}
+			cqTypes = append(cqTypes, &Text{})
 		case "Bytea":
-			(*c)[i] = &Bytea{}
+			cqTypes = append(cqTypes, &Bytea{})
 		case "TextArray":
-			(*c)[i] = &TextArray{}
+			cqTypes = append(cqTypes, &TextArray{})
 		case "Int8Array":
-			(*c)[i] = &Int8Array{}
+			cqTypes = append(cqTypes, &Int8Array{})
 		case "Timestamptz":
-			(*c)[i] = &Timestamptz{}
+			cqTypes = append(cqTypes, &Timestamptz{})
 		case "JSON":
-			(*c)[i] = &JSON{}
+			cqTypes = append(cqTypes, &JSON{})
 		case "UUIDArray":
-			(*c)[i] = &UUIDArray{}
+			cqTypes = append(cqTypes, &UUIDArray{})
 		case "Inet":
-			(*c)[i] = &Inet{}
+			cqTypes = append(cqTypes, &Inet{})
 		case "InetArray":
-			(*c)[i] = &InetArray{}
+			cqTypes = append(cqTypes, &InetArray{})
 		case "CIDR":
-			(*c)[i] = &CIDR{}
+			cqTypes = append(cqTypes, &CIDR{})
 		case "CIDRArray":
-			(*c)[i] = &CIDRArray{}
+			cqTypes = append(cqTypes, &CIDRArray{})
 		case "Macaddr":
-			(*c)[i] = &Macaddr{}
+			cqTypes = append(cqTypes, &Macaddr{})
 		case "MacaddrArray":
-			(*c)[i] = &MacaddrArray{}
+			cqTypes = append(cqTypes, &MacaddrArray{})
 		default:
-			return fmt.Errorf("unknown type %v", typ)
+			// This means a new type was added at the SDK but not yet available
+			// add the destination
+			continue
 		}
-		if err := json.Unmarshal(b, (*c)[i]); err != nil {
+		if err := json.Unmarshal(b, cqTypes[i]); err != nil {
 			return err
 		}
 	}
+	*c = cqTypes
 	return nil
 }
 

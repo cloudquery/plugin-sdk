@@ -15,8 +15,8 @@ type NewDestinationClientFunc func(context.Context, zerolog.Logger, specs.Destin
 
 type DestinationClient interface {
 	Migrate(ctx context.Context, tables schema.Tables) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- *schema.DestinationResource) error
-	Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error
+	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []interface{}) error
+	Write(ctx context.Context, tables schema.Tables, res <-chan *ClientResource) error
 	Metrics() DestinationMetrics
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
@@ -35,15 +35,36 @@ type DestinationPlugin struct {
 	spec specs.Destination
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
+	// transformer used to transform all available CQTypes to client types
+	transformer cqtypes.CQTypeTransformer
+	// reverseTransformed does the opposite of transformer
+	reverseTransformer func([]interface{}) cqtypes.CQTypes
 }
+
+type ClientResource struct {
+	TableName string
+	Data []interface{}
+}
+
+type DestinationOption func(*DestinationPlugin)
 
 const writeWorkers = 1
 
-func NewDestinationPlugin(name string, version string, newDestinationClient NewDestinationClientFunc) *DestinationPlugin {
+func WithDestinationTypeTransformer(transformer cqtypes.CQTypeTransformer) DestinationOption {
+	return func(s *DestinationPlugin) {
+		s.transformer = transformer
+	}
+}
+
+func NewDestinationPlugin(name string, version string, newDestinationClient NewDestinationClientFunc, options ...DestinationOption) *DestinationPlugin {
 	p := &DestinationPlugin{
 		name:                 name,
 		version:              version,
 		newDestinationClient: newDestinationClient,
+	}
+	p.transformer = &defaultTransformer{}
+	for _, option := range options {
+		option(p)
 	}
 	return p
 }
@@ -78,14 +99,23 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- *schema.DestinationResource) error {
+func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- cqtypes.CQTypes) error {
 	SetDestinationManagedCqColumns(schema.Tables{table})
-	return p.client.Read(ctx, table, sourceName, res)
+	ch := make(chan []interface{})
+	var err error
+	go func() {
+		defer close(ch)
+		err = p.client.Read(ctx, table, sourceName, ch)
+	}()
+	for resource := range ch {
+		res <- p.reverseTransformer(resource)
+	}
+	return err
 }
 
 func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan *schema.DestinationResource) error {
 	SetDestinationManagedCqColumns(tables)
-	ch := make(chan *schema.DestinationResource)
+	ch := make(chan *ClientResource)
 	eg := &errgroup.Group{}
 	// given most destination plugins writing in batch we are using a worker pool to write in parallel
 	// it might not generalize well and we might need to move it to each destination plugin implementation.
@@ -100,7 +130,11 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	_ = syncTimeColumn.Set(syncTime)
 	for r := range res {
 		r.Data = append([]cqtypes.CQType{sourceColumn, syncTimeColumn}, r.Data...)
-		ch <- r
+		clientResource := &ClientResource{
+			TableName: r.TableName,
+			Data:      p.transformerCqTypes(r.Data),
+		}
+		ch <- clientResource
 	}
 
 	close(ch)
@@ -122,6 +156,50 @@ func (p *DestinationPlugin) DeleteStale(ctx context.Context, tables schema.Table
 func (p *DestinationPlugin) Close(ctx context.Context) error {
 	return p.client.Close(ctx)
 }
+
+func (p *DestinationPlugin) transformerCqTypes(data cqtypes.CQTypes) []interface{} {
+	values := make([]interface{}, 0, len(data))
+	for _, v := range data {
+		switch v := v.(type) {
+		case *cqtypes.Bool:
+			values = append(values, p.transformer.TransformBool(v))
+		case *cqtypes.Bytea:
+			values = append(values, p.transformer.TransformBytea(v))
+		case *cqtypes.CIDRArray:
+			values = append(values, p.transformer.TransformCIDRArray(v))
+		case *cqtypes.CIDR:
+			values = append(values, p.transformer.TransformCIDR(v))
+		case *cqtypes.Float8:
+			values = append(values, p.transformer.TransformFloat8(v))
+		case *cqtypes.InetArray:
+			values = append(values, p.transformer.TransformInetArray(v))
+		case *cqtypes.Inet:
+			values = append(values, p.transformer.TransformInet(v))
+		case *cqtypes.Int8:
+			values = append(values, p.transformer.TransformInt8(v))
+		case *cqtypes.JSON:
+			values = append(values, p.transformer.TransformJSON(v))
+		case *cqtypes.MacaddrArray:
+			values = append(values, p.transformer.TransformMacaddrArray(v))
+		case *cqtypes.Macaddr:
+			values = append(values, p.transformer.TransformMacaddr(v))
+		case *cqtypes.TextArray:
+			values = append(values, p.transformer.TransformTextArray(v))
+		case *cqtypes.Text:
+			values = append(values, p.transformer.TransformText(v))
+		case *cqtypes.Timestamptz:
+			values = append(values, p.transformer.TransformTimestamptz(v))
+		case *cqtypes.UUIDArray:
+			values = append(values, p.transformer.TransformUUIDArray(v))
+		case *cqtypes.UUID:
+			values = append(values, p.transformer.TransformUUID(v))
+		default:
+			p.logger.Trace().Msgf("unknown type %T. skipping", v)
+		}
+	}
+	return values
+}
+
 
 // Overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
 func SetDestinationManagedCqColumns(tables []*schema.Table) {

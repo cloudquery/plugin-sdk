@@ -19,7 +19,7 @@ type Resource struct {
 	// internal fields
 	Table *Table
 	// This is sorted result data by column name
-	data []cqtypes.CQType
+	data cqtypes.CQTypes
 }
 
 // This struct is what we send over the wire to destination.

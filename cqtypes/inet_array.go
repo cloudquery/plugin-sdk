@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+type InetArrayTransformer interface {
+	TransformInetArray(*InetArray) interface{}
+}
+
 type InetArray struct {
 	Elements   []Inet
 	Dimensions []ArrayDimension

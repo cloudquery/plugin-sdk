@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+type InetTransformer interface {
+	TransformInet(*Inet) interface{}
+}
+
 // Inet represents both inet and cidr PostgreSQL types.
 type Inet struct {
 	IPNet  *net.IPNet

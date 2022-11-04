@@ -7,6 +7,10 @@ import (
 	"strconv"
 )
 
+type Float8Transformer interface {
+	TransformFloat8(*Float8) interface{}
+}
+
 type Float8 struct {
 	Float  float64
 	Status Status

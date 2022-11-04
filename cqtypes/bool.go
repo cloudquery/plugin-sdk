@@ -6,6 +6,10 @@ import (
 	"strconv"
 )
 
+type BoolTransformer interface {
+	TransformBool(*Bool) interface{}
+}
+
 type Bool struct {
 	Bool   bool
 	Status Status

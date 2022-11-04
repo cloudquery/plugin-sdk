@@ -6,6 +6,10 @@ import (
 	"fmt"
 )
 
+type TextTransformer interface {
+	TransformText(*Text) interface{}
+}
+
 type Text struct {
 	Str    string
 	Status Status
