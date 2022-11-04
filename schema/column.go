@@ -74,7 +74,7 @@ func (r *ValueType) UnmarshalJSON(data []byte) (err error) {
 	if err := json.Unmarshal(data, &valueType); err != nil {
 		return err
 	}
-	*r = ValueTypeFromString(valueType);
+	*r = ValueTypeFromString(valueType)
 	return nil
 }
 
@@ -119,14 +119,14 @@ func ValueTypeFromString(s string) ValueType {
 	case "TypeInvalid":
 		fallthrough
 	default:
-		// this means that the desitnation plugin is using an older SDK
+		// this means that the destination plugin is using an older SDK
 		// and we just skip this column
 		return TypeInvalid
 	}
 }
 
-func (v ValueType) String() string {
-	switch v {
+func (r ValueType) String() string {
+	switch r {
 	case TypeBool:
 		return "TypeBool"
 	case TypeInt:
@@ -170,7 +170,7 @@ func (v ValueType) String() string {
 	}
 }
 
-func (r *ColumnList) UnmarshalJSON(data []byte) (err error) {
+func (c *ColumnList) UnmarshalJSON(data []byte) (err error) {
 	var tmp []Column
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
@@ -181,7 +181,7 @@ func (r *ColumnList) UnmarshalJSON(data []byte) (err error) {
 			res = append(res, column)
 		}
 	}
-	*r = res
+	*c = res
 	return nil
 }
 

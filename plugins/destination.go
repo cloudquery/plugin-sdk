@@ -43,7 +43,7 @@ type DestinationPlugin struct {
 
 type ClientResource struct {
 	TableName string
-	Data []interface{}
+	Data      []interface{}
 }
 
 type DestinationOption func(*DestinationPlugin)
@@ -199,7 +199,6 @@ func (p *DestinationPlugin) transformerCqTypes(data cqtypes.CQTypes) []interface
 	}
 	return values
 }
-
 
 // Overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
 func SetDestinationManagedCqColumns(tables []*schema.Table) {

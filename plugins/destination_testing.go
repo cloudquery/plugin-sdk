@@ -195,7 +195,6 @@ func TestData() cqtypes.CQTypes {
 	return data
 }
 
-
 func DestinationPluginTestHelper(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return err
@@ -249,7 +248,7 @@ func DestinationPluginTestHelper(ctx context.Context, p *DestinationPlugin, logg
 		readErr = p.Read(ctx, tables[0], sourceName, readResource)
 	}()
 	totalResources := 0
-	for  range readResource {
+	for range readResource {
 		totalResources++
 	}
 	if readErr != nil {
@@ -258,7 +257,6 @@ func DestinationPluginTestHelper(ctx context.Context, p *DestinationPlugin, logg
 	if totalResources != 1 {
 		return fmt.Errorf("expected 1 resource, got %d", totalResources)
 	}
-
 
 	return readErr
 }

@@ -3,74 +3,72 @@ package plugins
 import "github.com/cloudquery/plugin-sdk/cqtypes"
 
 type defaultTransformer struct {
-
 }
 
-func (p *defaultTransformer) TransformBool(v *cqtypes.Bool) interface{} {
+func (*defaultTransformer) TransformBool(v *cqtypes.Bool) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformBytea(v *cqtypes.Bytea) interface{} {
+func (*defaultTransformer) TransformBytea(v *cqtypes.Bytea) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformFloat8(v *cqtypes.Float8) interface{} {
+func (*defaultTransformer) TransformFloat8(v *cqtypes.Float8) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformInt8(v *cqtypes.Int8) interface{} {
+func (*defaultTransformer) TransformInt8(v *cqtypes.Int8) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformInt8Array(v *cqtypes.Int8Array) interface{} {
+func (*defaultTransformer) TransformInt8Array(v *cqtypes.Int8Array) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformJSON(v *cqtypes.JSON) interface{} {
+func (*defaultTransformer) TransformJSON(v *cqtypes.JSON) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformText(v *cqtypes.Text) interface{} {
+func (*defaultTransformer) TransformText(v *cqtypes.Text) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformTextArray(v *cqtypes.TextArray) interface{} {
+func (*defaultTransformer) TransformTextArray(v *cqtypes.TextArray) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformTimestamptz(v *cqtypes.Timestamptz) interface{} {
+func (*defaultTransformer) TransformTimestamptz(v *cqtypes.Timestamptz) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformUUID(v *cqtypes.UUID) interface{} {
+func (*defaultTransformer) TransformUUID(v *cqtypes.UUID) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformUUIDArray(v *cqtypes.UUIDArray) interface{} {
+func (*defaultTransformer) TransformUUIDArray(v *cqtypes.UUIDArray) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformCIDR(v *cqtypes.CIDR) interface{} {
+func (*defaultTransformer) TransformCIDR(v *cqtypes.CIDR) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformCIDRArray(v *cqtypes.CIDRArray) interface{} {
+func (*defaultTransformer) TransformCIDRArray(v *cqtypes.CIDRArray) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformInet(v *cqtypes.Inet) interface{} {
+func (*defaultTransformer) TransformInet(v *cqtypes.Inet) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformInetArray(v *cqtypes.InetArray) interface{} {
+func (*defaultTransformer) TransformInetArray(v *cqtypes.InetArray) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformMacaddr(v *cqtypes.Macaddr) interface{} {
+func (*defaultTransformer) TransformMacaddr(v *cqtypes.Macaddr) interface{} {
 	return v
 }
 
-func (p *defaultTransformer)  TransformMacaddrArray(v *cqtypes.MacaddrArray) interface{} {
+func (*defaultTransformer) TransformMacaddrArray(v *cqtypes.MacaddrArray) interface{} {
 	return v
 }
-
