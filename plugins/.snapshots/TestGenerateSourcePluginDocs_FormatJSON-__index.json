@@ -1,0 +1,109 @@
+[
+  {
+    "name": "test_table",
+    "description": "Description for test table",
+    "columns": [
+      {
+        "name": "_cq_source_name",
+        "type": "TypeString",
+        "description": "Internal CQ row that references the source plugin name data was retrieved"
+      },
+      {
+        "name": "_cq_sync_time",
+        "type": "TypeTimestamp",
+        "description": "Internal CQ row of when sync was started (this will be the same for all rows in a single fetch)"
+      },
+      {
+        "name": "_cq_id",
+        "type": "TypeUUID",
+        "description": "Internal CQ ID of the row"
+      },
+      {
+        "name": "_cq_parent_id",
+        "type": "TypeUUID",
+        "description": "Internal CQ ID of the parent row"
+      },
+      {
+        "name": "int_col",
+        "type": "TypeInt",
+        "description": ""
+      },
+      {
+        "name": "id_col",
+        "type": "TypeInt",
+        "description": ""
+      },
+      {
+        "name": "id_col2",
+        "type": "TypeInt",
+        "description": ""
+      }
+    ],
+    "relations": [
+      {
+        "name": "relation_table",
+        "description": "Description for relational table",
+        "columns": [
+          {
+            "name": "_cq_source_name",
+            "type": "TypeString",
+            "description": "Internal CQ row that references the source plugin name data was retrieved"
+          },
+          {
+            "name": "_cq_sync_time",
+            "type": "TypeTimestamp",
+            "description": "Internal CQ row of when sync was started (this will be the same for all rows in a single fetch)"
+          },
+          {
+            "name": "_cq_id",
+            "type": "TypeUUID",
+            "description": "Internal CQ ID of the row"
+          },
+          {
+            "name": "_cq_parent_id",
+            "type": "TypeUUID",
+            "description": "Internal CQ ID of the parent row"
+          },
+          {
+            "name": "string_col",
+            "type": "TypeString",
+            "description": ""
+          }
+        ],
+        "relations": []
+      },
+      {
+        "name": "relation_table2",
+        "description": "Description for second relational table",
+        "columns": [
+          {
+            "name": "_cq_source_name",
+            "type": "TypeString",
+            "description": "Internal CQ row that references the source plugin name data was retrieved"
+          },
+          {
+            "name": "_cq_sync_time",
+            "type": "TypeTimestamp",
+            "description": "Internal CQ row of when sync was started (this will be the same for all rows in a single fetch)"
+          },
+          {
+            "name": "_cq_id",
+            "type": "TypeUUID",
+            "description": "Internal CQ ID of the row"
+          },
+          {
+            "name": "_cq_parent_id",
+            "type": "TypeUUID",
+            "description": "Internal CQ ID of the parent row"
+          },
+          {
+            "name": "string_col",
+            "type": "TypeString",
+            "description": ""
+          }
+        ],
+        "relations": []
+      }
+    ]
+  }
+]
