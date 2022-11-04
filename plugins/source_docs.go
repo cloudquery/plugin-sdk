@@ -56,7 +56,6 @@ func (p *SourcePlugin) GenerateSourcePluginDocs(dir string, format SourceDocsFor
 	default:
 		return fmt.Errorf("unsupported format: %v", format.String())
 	}
-	return nil
 }
 
 type jsonTable struct {
