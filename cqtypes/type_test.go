@@ -1,6 +1,7 @@
 package cqtypes
 
 import (
+	"encoding/json"
 	"errors"
 	"net"
 	"testing"
@@ -49,4 +50,28 @@ func mustParseMacaddr(t testing.TB, s string) net.HardwareAddr {
 	}
 
 	return addr
+}
+
+func TestCQTypesMarshal(t *testing.T) {
+	cqTypes := CQTypes{
+		&Bool{Bool: true, Status: Present},
+	}
+	b, err := json.Marshal(cqTypes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res CQTypes
+	if err := json.Unmarshal(b, &res); err != nil {
+		t.Fatal(err)
+	}
+	if len(res) != 1 {
+		t.Fatalf("expected 1, got %d", len(res))
+	}
+
+	if err := json.Unmarshal([]byte(`[{"type": "Bool", "value": {"Bool":true,"Status":1}}, {"type": "Unknown"}]`), &res); err != nil {
+		t.Fatal(err)
+	}
+	if len(res) != 1 {
+		t.Fatalf("expected 1, got %d", len(res))
+	}
 }
