@@ -5,38 +5,31 @@
     "columns": [
       {
         "name": "_cq_source_name",
-        "type": "TypeString",
-        "description": "Internal CQ row that references the source plugin name data was retrieved"
+        "type": "TypeString"
       },
       {
         "name": "_cq_sync_time",
-        "type": "TypeTimestamp",
-        "description": "Internal CQ row of when sync was started (this will be the same for all rows in a single fetch)"
+        "type": "TypeTimestamp"
       },
       {
         "name": "_cq_id",
-        "type": "TypeUUID",
-        "description": "Internal CQ ID of the row"
+        "type": "TypeUUID"
       },
       {
         "name": "_cq_parent_id",
-        "type": "TypeUUID",
-        "description": "Internal CQ ID of the parent row"
+        "type": "TypeUUID"
       },
       {
         "name": "int_col",
-        "type": "TypeInt",
-        "description": ""
+        "type": "TypeInt"
       },
       {
         "name": "id_col",
-        "type": "TypeInt",
-        "description": ""
+        "type": "TypeInt"
       },
       {
         "name": "id_col2",
-        "type": "TypeInt",
-        "description": ""
+        "type": "TypeInt"
       }
     ],
     "relations": [
@@ -46,28 +39,23 @@
         "columns": [
           {
             "name": "_cq_source_name",
-            "type": "TypeString",
-            "description": "Internal CQ row that references the source plugin name data was retrieved"
+            "type": "TypeString"
           },
           {
             "name": "_cq_sync_time",
-            "type": "TypeTimestamp",
-            "description": "Internal CQ row of when sync was started (this will be the same for all rows in a single fetch)"
+            "type": "TypeTimestamp"
           },
           {
             "name": "_cq_id",
-            "type": "TypeUUID",
-            "description": "Internal CQ ID of the row"
+            "type": "TypeUUID"
           },
           {
             "name": "_cq_parent_id",
-            "type": "TypeUUID",
-            "description": "Internal CQ ID of the parent row"
+            "type": "TypeUUID"
           },
           {
             "name": "string_col",
-            "type": "TypeString",
-            "description": ""
+            "type": "TypeString"
           }
         ],
         "relations": []
@@ -78,28 +66,23 @@
         "columns": [
           {
             "name": "_cq_source_name",
-            "type": "TypeString",
-            "description": "Internal CQ row that references the source plugin name data was retrieved"
+            "type": "TypeString"
           },
           {
             "name": "_cq_sync_time",
-            "type": "TypeTimestamp",
-            "description": "Internal CQ row of when sync was started (this will be the same for all rows in a single fetch)"
+            "type": "TypeTimestamp"
           },
           {
             "name": "_cq_id",
-            "type": "TypeUUID",
-            "description": "Internal CQ ID of the row"
+            "type": "TypeUUID"
           },
           {
             "name": "_cq_parent_id",
-            "type": "TypeUUID",
-            "description": "Internal CQ ID of the parent row"
+            "type": "TypeUUID"
           },
           {
             "name": "string_col",
-            "type": "TypeString",
-            "description": ""
+            "type": "TypeString"
           }
         ],
         "relations": []

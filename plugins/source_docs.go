@@ -67,9 +67,8 @@ type jsonTable struct {
 }
 
 type jsonColumn struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Description string `json:"description"`
+	Name string `json:"name"`
+	Type string `json:"type"`
 }
 
 func (p *SourcePlugin) renderTablesAsJSON(dir string) error {
@@ -88,9 +87,8 @@ func (p *SourcePlugin) jsonifyTables(tables schema.Tables) []jsonTable {
 		jsonColumns := make([]jsonColumn, len(table.Columns))
 		for c, col := range table.Columns {
 			jsonColumns[c] = jsonColumn{
-				Name:        col.Name,
-				Type:        col.Type.String(),
-				Description: col.Description,
+				Name: col.Name,
+				Type: col.Type.String(),
 			}
 		}
 		jsonTables[i] = jsonTable{
