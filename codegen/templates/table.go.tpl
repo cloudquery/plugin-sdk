@@ -1,7 +1,7 @@
 {
 		Name:         "{{.Name}}",
 		{{- if .Description}}
-        Description:     "{{.Description}}",
+        Description:     `{{.Description}}`,
     {{- end}}
 		{{- if .Resolver}}
     Resolver:     {{.Resolver}},
