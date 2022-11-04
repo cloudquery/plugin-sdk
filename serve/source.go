@@ -176,7 +176,7 @@ If format is markdown, a destination directory will be created (if necessary) co
 Example:
 doc ./output 
 
-If format is JSON, a destination directory will be created (if necessary) with a single json file called __index.json.
+If format is JSON, a destination directory will be created (if necessary) with a single json file called __tables.json.
 Example:
 doc --format json .
 `

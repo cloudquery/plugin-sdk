@@ -78,7 +78,7 @@ func (p *SourcePlugin) renderTablesAsJSON(dir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal tables as json: %v", err)
 	}
-	outputPath := filepath.Join(dir, "__index.json")
+	outputPath := filepath.Join(dir, "__tables.json")
 	return os.WriteFile(outputPath, b, 0644)
 }
 
