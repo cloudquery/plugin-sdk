@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/cqtypes"
@@ -14,6 +15,8 @@ import (
 type NewDestinationClientFunc func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error)
 
 type DestinationClient interface {
+	cqtypes.CQTypeTransformer
+	ReverseTransformValues(table *schema.Table, values []interface{}) (cqtypes.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Tables) error
 	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []interface{}) error
 	Write(ctx context.Context, tables schema.Tables, res <-chan *ClientResource) error
@@ -35,8 +38,6 @@ type DestinationPlugin struct {
 	spec specs.Destination
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
-	// transformer used to transform all available CQTypes to client types
-	transformer cqtypes.CQTypeTransformer
 	// reverseTransformed does the opposite of transformer
 	reverseTransformer ReverseTransformer
 }
@@ -52,11 +53,11 @@ type DestinationOption func(*DestinationPlugin)
 
 const writeWorkers = 1
 
-func WithDestinationTypeTransformer(transformer cqtypes.CQTypeTransformer) DestinationOption {
-	return func(s *DestinationPlugin) {
-		s.transformer = transformer
-	}
-}
+// func WithDestinationTypeTransformer(transformer cqtypes.CQTypeTransformer) DestinationOption {
+// 	return func(s *DestinationPlugin) {
+// 		s.transformer = transformer
+// 	}
+// }
 
 func WithDestinationReverseTransformer(transformer ReverseTransformer) DestinationOption {
 	return func(s *DestinationPlugin) {
@@ -70,7 +71,6 @@ func NewDestinationPlugin(name string, version string, newDestinationClient NewD
 		version:              version,
 		newDestinationClient: newDestinationClient,
 	}
-	p.transformer = &defaultTransformer{}
 	p.reverseTransformer = schema.DefaultReverseTransformer
 	for _, option := range options {
 		option(p)
@@ -175,39 +175,39 @@ func (p *DestinationPlugin) transformerCqTypes(data cqtypes.CQTypes) []interface
 	for _, v := range data {
 		switch v := v.(type) {
 		case *cqtypes.Bool:
-			values = append(values, p.transformer.TransformBool(v))
+			values = append(values, p.client.TransformBool(v))
 		case *cqtypes.Bytea:
-			values = append(values, p.transformer.TransformBytea(v))
+			values = append(values, p.client.TransformBytea(v))
 		case *cqtypes.CIDRArray:
-			values = append(values, p.transformer.TransformCIDRArray(v))
+			values = append(values, p.client.TransformCIDRArray(v))
 		case *cqtypes.CIDR:
-			values = append(values, p.transformer.TransformCIDR(v))
+			values = append(values, p.client.TransformCIDR(v))
 		case *cqtypes.Float8:
-			values = append(values, p.transformer.TransformFloat8(v))
+			values = append(values, p.client.TransformFloat8(v))
 		case *cqtypes.InetArray:
-			values = append(values, p.transformer.TransformInetArray(v))
+			values = append(values, p.client.TransformInetArray(v))
 		case *cqtypes.Inet:
-			values = append(values, p.transformer.TransformInet(v))
+			values = append(values, p.client.TransformInet(v))
 		case *cqtypes.Int8:
-			values = append(values, p.transformer.TransformInt8(v))
+			values = append(values, p.client.TransformInt8(v))
 		case *cqtypes.JSON:
-			values = append(values, p.transformer.TransformJSON(v))
+			values = append(values, p.client.TransformJSON(v))
 		case *cqtypes.MacaddrArray:
-			values = append(values, p.transformer.TransformMacaddrArray(v))
+			values = append(values, p.client.TransformMacaddrArray(v))
 		case *cqtypes.Macaddr:
-			values = append(values, p.transformer.TransformMacaddr(v))
+			values = append(values, p.client.TransformMacaddr(v))
 		case *cqtypes.TextArray:
-			values = append(values, p.transformer.TransformTextArray(v))
+			values = append(values, p.client.TransformTextArray(v))
 		case *cqtypes.Text:
-			values = append(values, p.transformer.TransformText(v))
+			values = append(values, p.client.TransformText(v))
 		case *cqtypes.Timestamptz:
-			values = append(values, p.transformer.TransformTimestamptz(v))
+			values = append(values, p.client.TransformTimestamptz(v))
 		case *cqtypes.UUIDArray:
-			values = append(values, p.transformer.TransformUUIDArray(v))
+			values = append(values, p.client.TransformUUIDArray(v))
 		case *cqtypes.UUID:
-			values = append(values, p.transformer.TransformUUID(v))
+			values = append(values, p.client.TransformUUID(v))
 		default:
-			p.logger.Trace().Msgf("unknown type %T. skipping", v)
+			panic(fmt.Sprintf("unknown type %T", v))
 		}
 	}
 	return values

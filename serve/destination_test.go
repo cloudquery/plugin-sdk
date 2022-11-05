@@ -22,6 +22,8 @@ func bufDestinationDialer(context.Context, string) (net.Conn, error) {
 }
 
 type testDestinationClient struct {
+	plugins.DefaultTransformer
+	plugins.DefaultReverseTransformer
 }
 
 func newDestinationClient(context.Context, zerolog.Logger, specs.Destination) (plugins.DestinationClient, error) {

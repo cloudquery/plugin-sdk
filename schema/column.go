@@ -59,6 +59,7 @@ const (
 	TypeCIDRArray
 	TypeMacAddr
 	TypeMacAddrArray
+	TypeTimeIntervalDeprecated
 	TypeEnd
 )
 
@@ -114,7 +115,7 @@ func (r ValueType) String() string {
 	case TypeInvalid:
 		fallthrough
 	default:
-		return "TypeInvalid"
+		return fmt.Sprintf("Unknown(%d)", r)
 	}
 }
 

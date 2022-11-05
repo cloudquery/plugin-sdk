@@ -44,7 +44,7 @@ func CQTypeFromSchema(value ValueType) cqtypes.CQType {
 	case TypeUUID:
 		return &cqtypes.UUID{}
 	default:
-		panic(fmt.Sprintf("unsupported type %s", value))
+		panic(fmt.Sprintf("unsupported type %d", value))
 	}
 }
 
