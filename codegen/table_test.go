@@ -126,16 +126,6 @@ var (
 			Resolver: `schema.PathResolver("TimePointerCol")`,
 		},
 		{
-			Name:     "dur_col",
-			Type:     schema.TypeTimeInterval,
-			Resolver: `schema.PathResolver("DurCol")`,
-		},
-		{
-			Name:     "dur_pointer_col",
-			Type:     schema.TypeTimeInterval,
-			Resolver: `schema.PathResolver("DurPointerCol")`,
-		},
-		{
 			Name:     "json_tag",
 			Type:     schema.TypeString,
 			Resolver: `schema.PathResolver("JSONTag")`,

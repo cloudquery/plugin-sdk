@@ -191,27 +191,3 @@ func (c CQTypes) String() string {
 	sb.WriteString("]")
 	return sb.String()
 }
-
-// var namedValues map[string]CQType
-
-// func init() {
-// 	namedValues = map[string]CQType{
-// 		"Bool":       &Bool{},
-// 		"Bytea": 			&Bytea{},
-// 		"CIDRArray": &CIDRArray{},
-// 		"CIDR": 			&CIDR{},
-// 		"Float8": 		&Float8{},
-// 		"InetArray": 	&InetArray{},
-// 		"Inet": 			&Inet{},
-// 		"Int8Array": 	&Int8Array{},
-// 		"Int8": 			&Int8{},
-// 		"JSON": 			&JSON{},
-// 		"MacaddrArray": &MacaddrArray{},
-// 		"Macaddr": 		&Macaddr{},
-// 		"TextArray": 	&TextArray{},
-// 		"Text": 			&Text{},
-// 		"Timestamptz": &Timestamptz{},
-// 		"UUIDArray": 	&UUIDArray{},
-// 		"UUID": 			&UUID{},
-// 	}
-// }

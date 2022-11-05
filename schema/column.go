@@ -59,7 +59,7 @@ const (
 	TypeCIDRArray
 	TypeMacAddr
 	TypeMacAddrArray
-	TypeTimeInterval
+	TypeEnd
 )
 
 func (r *ValueType) UnmarshalJSON(data []byte) (err error) {
@@ -67,7 +67,7 @@ func (r *ValueType) UnmarshalJSON(data []byte) (err error) {
 	if err := json.Unmarshal(data, &valueType); err != nil {
 		return err
 	}
-	if ValueType(valueType) < TypeInvalid || ValueType(valueType) > TypeTimeInterval {
+	if ValueType(valueType) <= TypeInvalid || ValueType(valueType) >= TypeEnd {
 		*r = TypeInvalid
 	} else {
 		*r = ValueType(valueType)
@@ -95,8 +95,6 @@ func (r ValueType) String() string {
 		return "TypeStringArray"
 	case TypeTimestamp:
 		return "TypeTimestamp"
-	case TypeTimeInterval:
-		return "TypeTimeInterval"
 	case TypeByteArray:
 		return "TypeByteArray"
 	case TypeUUIDArray:

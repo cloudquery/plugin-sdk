@@ -58,6 +58,12 @@ func WithDestinationTypeTransformer(transformer cqtypes.CQTypeTransformer) Desti
 	}
 }
 
+func WithDestinationReverseTransformer(transformer ReverseTransformer) DestinationOption {
+	return func(s *DestinationPlugin) {
+		s.reverseTransformer = transformer
+	}
+}
+
 func NewDestinationPlugin(name string, version string, newDestinationClient NewDestinationClientFunc, options ...DestinationOption) *DestinationPlugin {
 	p := &DestinationPlugin{
 		name:                 name,
@@ -65,7 +71,7 @@ func NewDestinationPlugin(name string, version string, newDestinationClient NewD
 		newDestinationClient: newDestinationClient,
 	}
 	p.transformer = &defaultTransformer{}
-	p.reverseTransformer = schema.CQTypesFromValues
+	p.reverseTransformer = schema.DefaultReverseTransformer
 	for _, option := range options {
 		option(p)
 	}
