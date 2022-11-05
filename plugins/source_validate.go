@@ -32,10 +32,22 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]str
 		return nil, fmt.Errorf("list of tables is empty")
 	}
 
-	// return an error if skip tables contains a wildcard or glob pattern
+	// return an error if skip tables contains a wildcard or glob pattern, or non-existent or child table
 	for _, t := range skipTables {
 		if strings.Contains(t, "*") {
 			return nil, fmt.Errorf("glob matching in skipped table name %q is not supported", t)
+		}
+		tt := p.tables.Get(t)
+		if tt == nil {
+			return nil, fmt.Errorf("invalid entry in skip_tables: %q", t)
+		}
+		if tt.Parent != nil {
+			pt := tt.Parent
+			for pt.Parent != nil {
+				pt = pt.Parent
+			}
+
+			return nil, fmt.Errorf("table %s is a child table and cannot be skipped. The top-level parent table to skip is %s", t, pt.Name)
 		}
 	}
 
