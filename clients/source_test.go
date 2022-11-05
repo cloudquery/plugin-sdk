@@ -15,14 +15,14 @@ var newSourceClientTestCases = []specs.Source{
 		Name:     "test",
 		Registry: specs.RegistryGithub,
 		Path:     "cloudquery/test",
-		Version:  "v1.1.5",
+		Version:  "v1.3.2",
 	},
-	{
-		Name:     "test",
-		Registry: specs.RegistryGithub,
-		Path:     "yevgenypats/test",
-		Version:  "v1.0.1",
-	},
+	// {
+	// 	Name:     "test",
+	// 	Registry: specs.RegistryGithub,
+	// 	Path:     "yevgenypats/test",
+	// 	Version:  "v1.0.1",
+	// },
 }
 
 // TestSourceClient mostly checks the download and spawn logic. it doesn't call all methods as those are

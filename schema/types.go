@@ -17,7 +17,7 @@ const (
 
 // CQTypesFromValues tries best effort to convert a slice of values to CQTypes
 // based on the provided table columns.
-func CQTypesFromValues(table *Table, values interface{}) (cqtypes.CQTypes, error) {
+func CQTypesFromValues(table *Table, values []interface{}) (cqtypes.CQTypes, error) {
 	valuesSlice := helpers.InterfaceSlice(values)
 	res := make(cqtypes.CQTypes, len(valuesSlice))
 

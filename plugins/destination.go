@@ -38,13 +38,15 @@ type DestinationPlugin struct {
 	// transformer used to transform all available CQTypes to client types
 	transformer cqtypes.CQTypeTransformer
 	// reverseTransformed does the opposite of transformer
-	reverseTransformer func([]interface{}) cqtypes.CQTypes
+	reverseTransformer ReverseTransformer
 }
 
 type ClientResource struct {
 	TableName string
 	Data      []interface{}
 }
+
+type ReverseTransformer func(*schema.Table, []interface{}) (cqtypes.CQTypes, error)
 
 type DestinationOption func(*DestinationPlugin)
 
@@ -63,6 +65,7 @@ func NewDestinationPlugin(name string, version string, newDestinationClient NewD
 		newDestinationClient: newDestinationClient,
 	}
 	p.transformer = &defaultTransformer{}
+	p.reverseTransformer = schema.CQTypesFromValues
 	for _, option := range options {
 		option(p)
 	}
@@ -108,7 +111,11 @@ func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourc
 		err = p.client.Read(ctx, table, sourceName, ch)
 	}()
 	for resource := range ch {
-		res <- p.reverseTransformer(resource)
+		r, err := p.reverseTransformer(table, resource)
+		if err != nil {
+			return err
+		}
+		res <- r
 	}
 	return err
 }

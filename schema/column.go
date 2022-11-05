@@ -1,9 +1,9 @@
 package schema
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 )
 
 type ValueType int
@@ -62,67 +62,17 @@ const (
 	TypeTimeInterval
 )
 
-func (r ValueType) MarshalJSON() ([]byte, error) {
-	buffer := bytes.NewBufferString(`"`)
-	buffer.WriteString(r.String())
-	buffer.WriteString(`"`)
-	return buffer.Bytes(), nil
-}
-
 func (r *ValueType) UnmarshalJSON(data []byte) (err error) {
-	var valueType string
+	var valueType int
 	if err := json.Unmarshal(data, &valueType); err != nil {
 		return err
 	}
-	*r = ValueTypeFromString(valueType)
-	return nil
-}
-
-func ValueTypeFromString(s string) ValueType {
-	switch s {
-	case "TypeBool":
-		return TypeBool
-	case "TypeInt":
-		return TypeInt
-	case "TypeFloat":
-		return TypeFloat
-	case "TypeUUID":
-		return TypeUUID
-	case "TypeString":
-		return TypeString
-	case "TypeJSON":
-		return TypeJSON
-	case "TypeIntArray":
-		return TypeIntArray
-	case "TypeStringArray":
-		return TypeStringArray
-	case "TypeTimestamp":
-		return TypeTimestamp
-	case "TypeTimeInterval":
-		return TypeTimeInterval
-	case "TypeByteArray":
-		return TypeByteArray
-	case "TypeUUIDArray":
-		return TypeUUIDArray
-	case "TypeInetArray":
-		return TypeInetArray
-	case "TypeInet":
-		return TypeInet
-	case "TypeMacAddrArray":
-		return TypeMacAddrArray
-	case "TypeMacAddr":
-		return TypeMacAddr
-	case "TypeCIDRArray":
-		return TypeCIDRArray
-	case "TypeCIDR":
-		return TypeCIDR
-	case "TypeInvalid":
-		fallthrough
-	default:
-		// this means that the destination plugin is using an older SDK
-		// and we just skip this column
-		return TypeInvalid
+	if ValueType(valueType) < TypeInvalid || ValueType(valueType) > TypeTimeInterval {
+		*r = TypeInvalid
+	} else {
+		*r = ValueType(valueType)
 	}
+	return nil
 }
 
 func (r ValueType) String() string {
@@ -173,7 +123,7 @@ func (r ValueType) String() string {
 func (c *ColumnList) UnmarshalJSON(data []byte) (err error) {
 	var tmp []Column
 	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal column list: %w, %s", err, data)
 	}
 	res := make(ColumnList, 0, len(tmp))
 	for _, column := range tmp {
