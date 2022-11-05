@@ -2,7 +2,6 @@ package schema
 
 import (
 	"context"
-	"time"
 
 	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/google/uuid"
@@ -10,11 +9,6 @@ import (
 
 type ClientMeta interface {
 	ID() string
-}
-
-type Meta struct {
-	LastUpdate time.Time `json:"last_updated"`
-	FetchID    string    `json:"fetch_id,omitempty"`
 }
 
 // These columns are managed and populated by the source plugins
