@@ -59,7 +59,7 @@ func (s *DestinationServer) Migrate(ctx context.Context, req *pb.Migrate_Request
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
-	resources := make(chan *schema.DestinationResource)
+	resources := make(chan schema.DestinationResource)
 
 	r, err := msg.Recv()
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 			}
 			return fmt.Errorf("failed to receive msg: %w", err)
 		}
-		var resource *schema.DestinationResource
+		var resource schema.DestinationResource
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
 			if err := eg.Wait(); err != nil {

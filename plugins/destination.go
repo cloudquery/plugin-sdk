@@ -86,6 +86,21 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 	return p.client.Migrate(ctx, tables)
 }
 
+func (p *DestinationPlugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]schema.CQTypes, error) {
+	var readErr error
+	ch := make(chan schema.CQTypes)
+	go func() {
+		defer close(ch)
+		readErr = p.Read(ctx, table, sourceName, ch)
+	}()
+	//nolint:prealloc
+	var resources []schema.CQTypes
+	for resource := range ch {
+		resources = append(resources, resource)
+	}
+	return resources, readErr
+}
+
 func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes) error {
 	SetDestinationManagedCqColumns(schema.Tables{table})
 	ch := make(chan []interface{})
@@ -104,7 +119,23 @@ func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourc
 	return err
 }
 
-func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan *schema.DestinationResource) error {
+// this function is currently used mostly for testing so it's not a public api
+func (p *DestinationPlugin) writeOne(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, resource schema.DestinationResource) error {
+	resources := []schema.DestinationResource{resource}
+	return p.writeAll(ctx, tables, sourceName, syncTime, resources)
+}
+
+// this function is currently used mostly for testing so it's not a public api
+func (p *DestinationPlugin) writeAll(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, resources []schema.DestinationResource) error {
+	ch := make(chan schema.DestinationResource, len(resources))
+	for _, resource := range resources {
+		ch <- resource
+	}
+	close(ch)
+	return p.Write(ctx, tables, sourceName, syncTime, ch)
+}
+
+func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan schema.DestinationResource) error {
 	SetDestinationManagedCqColumns(tables)
 	ch := make(chan *ClientResource)
 	eg := &errgroup.Group{}
