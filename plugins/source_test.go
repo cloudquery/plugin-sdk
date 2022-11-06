@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/go-cmp/cmp"
@@ -123,7 +122,7 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 type syncTestCase struct {
 	table *schema.Table
 	stats SourceMetrics
-	data  []cqtypes.CQTypes
+	data  []schema.CQTypes
 }
 
 var syncTestCases = []syncTestCase{
@@ -138,11 +137,11 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: []cqtypes.CQTypes{
+		data: []schema.CQTypes{
 			{
-				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
-				&cqtypes.UUID{Status: cqtypes.Null},
-				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+				&schema.UUID{Bytes: stableUUID, Status: schema.Present},
+				&schema.UUID{Status: schema.Null},
+				&schema.Int8{Int: 3, Status: schema.Present},
 			},
 		},
 	},
@@ -184,12 +183,12 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: []cqtypes.CQTypes{
+		data: []schema.CQTypes{
 			{
-				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
-				&cqtypes.UUID{Status: cqtypes.Null},
-				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
-				&cqtypes.Int8{Status: cqtypes.Undefined},
+				&schema.UUID{Bytes: stableUUID, Status: schema.Present},
+				&schema.UUID{Status: schema.Null},
+				&schema.Int8{Int: 3, Status: schema.Present},
+				&schema.Int8{Status: schema.Undefined},
 			},
 		},
 	},
@@ -209,16 +208,16 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: []cqtypes.CQTypes{
+		data: []schema.CQTypes{
 			{
-				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
-				&cqtypes.UUID{Status: cqtypes.Null},
-				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+				&schema.UUID{Bytes: stableUUID, Status: schema.Present},
+				&schema.UUID{Status: schema.Null},
+				&schema.Int8{Int: 3, Status: schema.Present},
 			},
 			{
-				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
-				&cqtypes.UUID{Bytes: stableUUID, Status: cqtypes.Present},
-				&cqtypes.Int8{Int: 3, Status: cqtypes.Present},
+				&schema.UUID{Bytes: stableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: stableUUID, Status: schema.Present},
+				&schema.Int8{Int: 3, Status: schema.Present},
 			},
 		},
 	},

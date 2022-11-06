@@ -3,7 +3,6 @@ package schema
 import (
 	"context"
 
-	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/google/uuid"
 )
 
@@ -55,7 +54,7 @@ func parentCqUUIDResolver() ColumnResolver {
 		if parentCqID == nil {
 			return r.Set(c.Name, nil)
 		}
-		pUUID, ok := parentCqID.(*cqtypes.UUID)
+		pUUID, ok := parentCqID.(*UUID)
 		if !ok {
 			return r.Set(c.Name, nil)
 		}

@@ -49,10 +49,3 @@ func TestColumnListMarshalUnknown(t *testing.T) {
 	}
 }
 
-func TestValueTypeString(t *testing.T) {
-	for i := TypeInvalid + 1; i < TypeEnd; i++ {
-		if i.String() == "" {
-			t.Fatalf("expected non-empty string for %d", i)
-		}
-	}
-}

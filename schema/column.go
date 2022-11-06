@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-type ValueType int
 
 type ColumnList []Column
 
@@ -38,85 +37,6 @@ type Column struct {
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
 	IgnoreInTests bool `json:"-"`
-}
-
-const (
-	TypeInvalid ValueType = iota
-	TypeBool
-	TypeInt
-	TypeFloat
-	TypeUUID
-	TypeString
-	TypeByteArray
-	TypeStringArray
-	TypeIntArray
-	TypeTimestamp
-	TypeJSON
-	TypeUUIDArray
-	TypeInet
-	TypeInetArray
-	TypeCIDR
-	TypeCIDRArray
-	TypeMacAddr
-	TypeMacAddrArray
-	TypeTimeIntervalDeprecated
-	TypeEnd
-)
-
-func (r *ValueType) UnmarshalJSON(data []byte) (err error) {
-	var valueType int
-	if err := json.Unmarshal(data, &valueType); err != nil {
-		return err
-	}
-	if ValueType(valueType) <= TypeInvalid || ValueType(valueType) >= TypeEnd {
-		*r = TypeInvalid
-	} else {
-		*r = ValueType(valueType)
-	}
-	return nil
-}
-
-func (r ValueType) String() string {
-	switch r {
-	case TypeBool:
-		return "TypeBool"
-	case TypeInt:
-		return "TypeInt"
-	case TypeFloat:
-		return "TypeFloat"
-	case TypeUUID:
-		return "TypeUUID"
-	case TypeString:
-		return "TypeString"
-	case TypeJSON:
-		return "TypeJSON"
-	case TypeIntArray:
-		return "TypeIntArray"
-	case TypeStringArray:
-		return "TypeStringArray"
-	case TypeTimestamp:
-		return "TypeTimestamp"
-	case TypeByteArray:
-		return "TypeByteArray"
-	case TypeUUIDArray:
-		return "TypeUUIDArray"
-	case TypeInetArray:
-		return "TypeInetArray"
-	case TypeInet:
-		return "TypeInet"
-	case TypeMacAddrArray:
-		return "TypeMacAddrArray"
-	case TypeMacAddr:
-		return "TypeMacAddr"
-	case TypeCIDRArray:
-		return "TypeCIDRArray"
-	case TypeCIDR:
-		return "TypeCIDR"
-	case TypeInvalid:
-		fallthrough
-	default:
-		return fmt.Sprintf("Unknown(%d)", r)
-	}
 }
 
 func (c *ColumnList) UnmarshalJSON(data []byte) (err error) {

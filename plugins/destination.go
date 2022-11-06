@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -15,8 +14,8 @@ import (
 type NewDestinationClientFunc func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error)
 
 type DestinationClient interface {
-	cqtypes.CQTypeTransformer
-	ReverseTransformValues(table *schema.Table, values []interface{}) (cqtypes.CQTypes, error)
+	schema.CQTypeTransformer
+	ReverseTransformValues(table *schema.Table, values []interface{}) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Tables) error
 	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []interface{}) error
 	Write(ctx context.Context, tables schema.Tables, res <-chan *ClientResource) error
@@ -38,8 +37,6 @@ type DestinationPlugin struct {
 	spec specs.Destination
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
-	// reverseTransformed does the opposite of transformer
-	reverseTransformer ReverseTransformer
 }
 
 type ClientResource struct {
@@ -47,33 +44,15 @@ type ClientResource struct {
 	Data      []interface{}
 }
 
-type ReverseTransformer func(*schema.Table, []interface{}) (cqtypes.CQTypes, error)
-
-type DestinationOption func(*DestinationPlugin)
+type ReverseTransformer func(*schema.Table, []interface{}) (schema.CQTypes, error)
 
 const writeWorkers = 1
 
-// func WithDestinationTypeTransformer(transformer cqtypes.CQTypeTransformer) DestinationOption {
-// 	return func(s *DestinationPlugin) {
-// 		s.transformer = transformer
-// 	}
-// }
-
-func WithDestinationReverseTransformer(transformer ReverseTransformer) DestinationOption {
-	return func(s *DestinationPlugin) {
-		s.reverseTransformer = transformer
-	}
-}
-
-func NewDestinationPlugin(name string, version string, newDestinationClient NewDestinationClientFunc, options ...DestinationOption) *DestinationPlugin {
+func NewDestinationPlugin(name string, version string, newDestinationClient NewDestinationClientFunc) *DestinationPlugin {
 	p := &DestinationPlugin{
 		name:                 name,
 		version:              version,
 		newDestinationClient: newDestinationClient,
-	}
-	p.reverseTransformer = schema.DefaultReverseTransformer
-	for _, option := range options {
-		option(p)
 	}
 	return p
 }
@@ -108,7 +87,7 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- cqtypes.CQTypes) error {
+func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes) error {
 	SetDestinationManagedCqColumns(schema.Tables{table})
 	ch := make(chan []interface{})
 	var err error
@@ -117,7 +96,7 @@ func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourc
 		err = p.client.Read(ctx, table, sourceName, ch)
 	}()
 	for resource := range ch {
-		r, err := p.reverseTransformer(table, resource)
+		r, err := p.client.ReverseTransformValues(table, resource)
 		if err != nil {
 			return err
 		}
@@ -137,12 +116,12 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 			return p.client.Write(ctx, tables, ch)
 		})
 	}
-	sourceColumn := &cqtypes.Text{}
+	sourceColumn := &schema.Text{}
 	_ = sourceColumn.Set(sourceName)
-	syncTimeColumn := &cqtypes.Timestamptz{}
+	syncTimeColumn := &schema.Timestamptz{}
 	_ = syncTimeColumn.Set(syncTime)
 	for r := range res {
-		r.Data = append([]cqtypes.CQType{sourceColumn, syncTimeColumn}, r.Data...)
+		r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
 		clientResource := &ClientResource{
 			TableName: r.TableName,
 			Data:      p.transformerCqTypes(r.Data),
@@ -170,41 +149,41 @@ func (p *DestinationPlugin) Close(ctx context.Context) error {
 	return p.client.Close(ctx)
 }
 
-func (p *DestinationPlugin) transformerCqTypes(data cqtypes.CQTypes) []interface{} {
+func (p *DestinationPlugin) transformerCqTypes(data schema.CQTypes) []interface{} {
 	values := make([]interface{}, 0, len(data))
 	for _, v := range data {
 		switch v := v.(type) {
-		case *cqtypes.Bool:
+		case *schema.Bool:
 			values = append(values, p.client.TransformBool(v))
-		case *cqtypes.Bytea:
+		case *schema.Bytea:
 			values = append(values, p.client.TransformBytea(v))
-		case *cqtypes.CIDRArray:
+		case *schema.CIDRArray:
 			values = append(values, p.client.TransformCIDRArray(v))
-		case *cqtypes.CIDR:
+		case *schema.CIDR:
 			values = append(values, p.client.TransformCIDR(v))
-		case *cqtypes.Float8:
+		case *schema.Float8:
 			values = append(values, p.client.TransformFloat8(v))
-		case *cqtypes.InetArray:
+		case *schema.InetArray:
 			values = append(values, p.client.TransformInetArray(v))
-		case *cqtypes.Inet:
+		case *schema.Inet:
 			values = append(values, p.client.TransformInet(v))
-		case *cqtypes.Int8:
+		case *schema.Int8:
 			values = append(values, p.client.TransformInt8(v))
-		case *cqtypes.JSON:
+		case *schema.JSON:
 			values = append(values, p.client.TransformJSON(v))
-		case *cqtypes.MacaddrArray:
+		case *schema.MacaddrArray:
 			values = append(values, p.client.TransformMacaddrArray(v))
-		case *cqtypes.Macaddr:
+		case *schema.Macaddr:
 			values = append(values, p.client.TransformMacaddr(v))
-		case *cqtypes.TextArray:
+		case *schema.TextArray:
 			values = append(values, p.client.TransformTextArray(v))
-		case *cqtypes.Text:
+		case *schema.Text:
 			values = append(values, p.client.TransformText(v))
-		case *cqtypes.Timestamptz:
+		case *schema.Timestamptz:
 			values = append(values, p.client.TransformTimestamptz(v))
-		case *cqtypes.UUIDArray:
+		case *schema.UUIDArray:
 			values = append(values, p.client.TransformUUIDArray(v))
-		case *cqtypes.UUID:
+		case *schema.UUID:
 			values = append(values, p.client.TransformUUID(v))
 		default:
 			panic(fmt.Sprintf("unknown type %T", v))

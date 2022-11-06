@@ -3,7 +3,6 @@ package schema
 import (
 	"fmt"
 
-	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/google/uuid"
 )
 
@@ -19,7 +18,7 @@ type Resource struct {
 	// internal fields
 	Table *Table
 	// This is sorted result data by column name
-	data cqtypes.CQTypes
+	data CQTypes
 }
 
 // This struct is what we send over the wire to destination.
@@ -27,7 +26,7 @@ type Resource struct {
 // code wise
 type DestinationResource struct {
 	TableName string          `json:"table_name"`
-	Data      cqtypes.CQTypes `json:"data"`
+	Data      CQTypes `json:"data"`
 }
 
 func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
@@ -35,10 +34,10 @@ func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 		Item:   item,
 		Parent: parent,
 		Table:  t,
-		data:   make(cqtypes.CQTypes, len(t.Columns)),
+		data:   make(CQTypes, len(t.Columns)),
 	}
 	for i := range r.data {
-		r.data[i] = CQTypeFromSchema(r.Table.Columns[i].Type)
+		r.data[i] = NewCqTypeFromValueType(t.Columns[i].Type)
 	}
 	return &r
 }
@@ -51,7 +50,7 @@ func (r *Resource) ToDestinationResource() DestinationResource {
 	return dr
 }
 
-func (r *Resource) Get(columnName string) cqtypes.CQType {
+func (r *Resource) Get(columnName string) CQType {
 	index := r.Table.Columns.Index(columnName)
 	if index == -1 {
 		// we panic because we want to distinguish between code error and api error
@@ -62,7 +61,7 @@ func (r *Resource) Get(columnName string) cqtypes.CQType {
 }
 
 // Set sets a column with value. This does validation and conversion to
-// one of concrete CQTypes. it returns an error just for backward compatibility
+// one of concrete  it returns an error just for backward compatibility
 // and panics in case it fails
 func (r *Resource) Set(columnName string, value interface{}) error {
 	index := r.Table.Columns.Index(columnName)
@@ -86,7 +85,7 @@ func (r *Resource) GetItem() interface{} {
 	return r.Item
 }
 
-func (r *Resource) GetValues() cqtypes.CQTypes {
+func (r *Resource) GetValues() CQTypes {
 	return r.data
 }
 
