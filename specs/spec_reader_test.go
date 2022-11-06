@@ -60,8 +60,8 @@ var specLoaderTestCases = []specLoaderTestCase{
 		},
 	},
 	{
-		name:         "multiple sources success",
-		path:         []string{getPath("multiple_sources.yml")},
+		name: "multiple sources success",
+		path: []string{getPath("multiple_sources.yml")},
 		err: func() string {
 			return ""
 		},
