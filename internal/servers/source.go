@@ -49,10 +49,6 @@ func (s *SourceServer) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.
 	}, nil
 }
 
-func (*SourceServer) GetSyncSummary(context.Context, *pb.GetSyncSummary_Request) (*pb.GetSyncSummary_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetSyncSummary is deprecated please upgrade client")
-}
-
 func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
 	resources := make(chan *schema.Resource)
 	var syncErr error

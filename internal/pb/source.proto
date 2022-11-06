@@ -14,9 +14,6 @@ service Source {
   rpc GetVersion(GetVersion.Request) returns (GetVersion.Response);
   // Get all tables the source plugin supports
   rpc GetTables(GetTables.Request) returns (GetTables.Response);
-  // GetSyncSummary returns the latest sync summary of the source plugin. we don't want to send the summary on
-  // every sync request.
-  rpc GetSyncSummary(GetSyncSummary.Request) returns (GetSyncSummary.Response);
   // Sync2 is a new sync API that supports CQ Types. It is not backward compatible with Sync.
   rpc Sync(Sync.Request) returns (stream Sync.Response);
   // Get metrics for the source plugin
@@ -32,15 +29,6 @@ message Sync {
     bytes resource = 1;
   }
 }
-
-message GetSyncSummary {
-  message Request {}
-  message Response {
-    // marshalled *schema.SyncSummary
-    bytes summary = 1;
-  }
-}
-
 
 message GetTables {
   message Request {}

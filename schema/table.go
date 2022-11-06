@@ -20,13 +20,6 @@ type Multiplexer func(meta ClientMeta) []ClientMeta
 
 type Tables []*Table
 
-// This is deprecated
-type SyncSummary struct {
-	Resources uint64
-	Errors    uint64
-	Panics    uint64
-}
-
 type Table struct {
 	// Name of table
 	Name string `json:"name"`
