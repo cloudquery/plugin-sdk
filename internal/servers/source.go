@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cloudquery/plugin-sdk/v1/internal/pb"
-	"github.com/cloudquery/plugin-sdk/v1/plugins"
-	"github.com/cloudquery/plugin-sdk/v1/schema"
-	"github.com/cloudquery/plugin-sdk/v1/specs"
+	"github.com/cloudquery/plugin-sdk/v2/internal/pb"
+	"github.com/cloudquery/plugin-sdk/v2/plugins"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -53,11 +53,7 @@ func (*SourceServer) GetSyncSummary(context.Context, *pb.GetSyncSummary_Request)
 	return nil, status.Errorf(codes.Unimplemented, "method GetSyncSummary is deprecated please upgrade client")
 }
 
-func (*SourceServer) Sync(*pb.Sync_Request, pb.Source_SyncServer) error {
-	return status.Errorf(codes.Unimplemented, "method Sync is deprecated please upgrade client")
-}
-
-func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server) error {
+func (s *SourceServer) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
 	resources := make(chan *schema.Resource)
 	var syncErr error
 
@@ -84,7 +80,7 @@ func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server
 			return status.Errorf(codes.Internal, "failed to marshal resource: %v", err)
 		}
 
-		if err := stream.Send(&pb.Sync2_Response{
+		if err := stream.Send(&pb.Sync_Response{
 			Resource: b,
 		}); err != nil {
 			return status.Errorf(codes.Internal, "failed to send resource: %v", err)

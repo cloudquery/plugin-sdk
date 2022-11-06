@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/v1/caser"
-	"github.com/cloudquery/plugin-sdk/v1/schema"
+	"github.com/cloudquery/plugin-sdk/v2/caser"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )

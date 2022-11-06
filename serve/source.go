@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"strings"
 
-	"github.com/cloudquery/plugin-sdk/v1/internal/pb"
-	"github.com/cloudquery/plugin-sdk/v1/internal/servers"
-	"github.com/cloudquery/plugin-sdk/v1/plugins"
+	"github.com/cloudquery/plugin-sdk/v2/internal/pb"
+	"github.com/cloudquery/plugin-sdk/v2/internal/servers"
+	"github.com/cloudquery/plugin-sdk/v2/plugins"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"

@@ -1,5 +1,5 @@
 syntax = "proto3";
-package cloudquery.pluginsdk.v1;
+package cloudquery.pluginsdk.v2;
 option go_package = "/pb";
 
 message GetName {

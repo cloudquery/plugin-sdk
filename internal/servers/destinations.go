@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/cloudquery/plugin-sdk/v1/internal/pb"
-	"github.com/cloudquery/plugin-sdk/v1/plugins"
-	"github.com/cloudquery/plugin-sdk/v1/schema"
-	"github.com/cloudquery/plugin-sdk/v1/specs"
+	"github.com/cloudquery/plugin-sdk/v2/internal/pb"
+	"github.com/cloudquery/plugin-sdk/v2/plugins"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
@@ -56,19 +56,15 @@ func (s *DestinationServer) Migrate(ctx context.Context, req *pb.Migrate_Request
 	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
 }
 
-func (*DestinationServer) Write(pb.Destination_WriteServer) error {
-	return status.Errorf(codes.Unimplemented, "method Write is deprecated please upgrade client")
-}
-
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
-func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
+func (s *DestinationServer) Write(msg pb.Destination_WriteServer) error {
 	resources := make(chan *schema.DestinationResource)
 
 	r, err := msg.Recv()
 	if err != nil {
 		if err == io.EOF {
-			return msg.SendAndClose(&pb.Write2_Response{})
+			return msg.SendAndClose(&pb.Write_Response{})
 		}
 		return fmt.Errorf("write: failed to receive msg: %w", err)
 	}
@@ -92,7 +88,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 				if err := eg.Wait(); err != nil {
 					return fmt.Errorf("got EOF. failed to wait for plugin: %w", err)
 				}
-				return msg.SendAndClose(&pb.Write2_Response{})
+				return msg.SendAndClose(&pb.Write_Response{})
 			}
 			close(resources)
 			if err := eg.Wait(); err != nil {

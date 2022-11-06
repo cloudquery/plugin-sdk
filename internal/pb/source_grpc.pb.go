@@ -35,10 +35,8 @@ type SourceClient interface {
 	// GetSyncSummary returns the latest sync summary of the source plugin. we don't want to send the summary on
 	// every sync request.
 	GetSyncSummary(ctx context.Context, in *GetSyncSummary_Request, opts ...grpc.CallOption) (*GetSyncSummary_Response, error)
-	// Fetch resources
-	Sync(ctx context.Context, in *Sync_Request, opts ...grpc.CallOption) (Source_SyncClient, error)
 	// Sync2 is a new sync API that supports CQ Types. It is not backward compatible with Sync.
-	Sync2(ctx context.Context, in *Sync2_Request, opts ...grpc.CallOption) (Source_Sync2Client, error)
+	Sync(ctx context.Context, in *Sync_Request, opts ...grpc.CallOption) (Source_SyncClient, error)
 	// Get metrics for the source plugin
 	GetMetrics(ctx context.Context, in *GetSourceMetrics_Request, opts ...grpc.CallOption) (*GetSourceMetrics_Response, error)
 }
@@ -53,7 +51,7 @@ func NewSourceClient(cc grpc.ClientConnInterface) SourceClient {
 
 func (c *sourceClient) GetProtocolVersion(ctx context.Context, in *GetProtocolVersion_Request, opts ...grpc.CallOption) (*GetProtocolVersion_Response, error) {
 	out := new(GetProtocolVersion_Response)
-	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Source/GetProtocolVersion", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v2.Source/GetProtocolVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +60,7 @@ func (c *sourceClient) GetProtocolVersion(ctx context.Context, in *GetProtocolVe
 
 func (c *sourceClient) GetName(ctx context.Context, in *GetName_Request, opts ...grpc.CallOption) (*GetName_Response, error) {
 	out := new(GetName_Response)
-	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Source/GetName", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v2.Source/GetName", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +69,7 @@ func (c *sourceClient) GetName(ctx context.Context, in *GetName_Request, opts ..
 
 func (c *sourceClient) GetVersion(ctx context.Context, in *GetVersion_Request, opts ...grpc.CallOption) (*GetVersion_Response, error) {
 	out := new(GetVersion_Response)
-	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Source/GetVersion", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v2.Source/GetVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +78,7 @@ func (c *sourceClient) GetVersion(ctx context.Context, in *GetVersion_Request, o
 
 func (c *sourceClient) GetTables(ctx context.Context, in *GetTables_Request, opts ...grpc.CallOption) (*GetTables_Response, error) {
 	out := new(GetTables_Response)
-	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Source/GetTables", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v2.Source/GetTables", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +87,7 @@ func (c *sourceClient) GetTables(ctx context.Context, in *GetTables_Request, opt
 
 func (c *sourceClient) GetSyncSummary(ctx context.Context, in *GetSyncSummary_Request, opts ...grpc.CallOption) (*GetSyncSummary_Response, error) {
 	out := new(GetSyncSummary_Response)
-	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Source/GetSyncSummary", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v2.Source/GetSyncSummary", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +95,7 @@ func (c *sourceClient) GetSyncSummary(ctx context.Context, in *GetSyncSummary_Re
 }
 
 func (c *sourceClient) Sync(ctx context.Context, in *Sync_Request, opts ...grpc.CallOption) (Source_SyncClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Source_ServiceDesc.Streams[0], "/cloudquery.pluginsdk.v1.Source/Sync", opts...)
+	stream, err := c.cc.NewStream(ctx, &Source_ServiceDesc.Streams[0], "/cloudquery.pluginsdk.v2.Source/Sync", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,41 +126,9 @@ func (x *sourceSyncClient) Recv() (*Sync_Response, error) {
 	return m, nil
 }
 
-func (c *sourceClient) Sync2(ctx context.Context, in *Sync2_Request, opts ...grpc.CallOption) (Source_Sync2Client, error) {
-	stream, err := c.cc.NewStream(ctx, &Source_ServiceDesc.Streams[1], "/cloudquery.pluginsdk.v1.Source/Sync2", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &sourceSync2Client{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Source_Sync2Client interface {
-	Recv() (*Sync2_Response, error)
-	grpc.ClientStream
-}
-
-type sourceSync2Client struct {
-	grpc.ClientStream
-}
-
-func (x *sourceSync2Client) Recv() (*Sync2_Response, error) {
-	m := new(Sync2_Response)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 func (c *sourceClient) GetMetrics(ctx context.Context, in *GetSourceMetrics_Request, opts ...grpc.CallOption) (*GetSourceMetrics_Response, error) {
 	out := new(GetSourceMetrics_Response)
-	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Source/GetMetrics", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v2.Source/GetMetrics", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -186,10 +152,8 @@ type SourceServer interface {
 	// GetSyncSummary returns the latest sync summary of the source plugin. we don't want to send the summary on
 	// every sync request.
 	GetSyncSummary(context.Context, *GetSyncSummary_Request) (*GetSyncSummary_Response, error)
-	// Fetch resources
-	Sync(*Sync_Request, Source_SyncServer) error
 	// Sync2 is a new sync API that supports CQ Types. It is not backward compatible with Sync.
-	Sync2(*Sync2_Request, Source_Sync2Server) error
+	Sync(*Sync_Request, Source_SyncServer) error
 	// Get metrics for the source plugin
 	GetMetrics(context.Context, *GetSourceMetrics_Request) (*GetSourceMetrics_Response, error)
 	mustEmbedUnimplementedSourceServer()
@@ -217,9 +181,6 @@ func (UnimplementedSourceServer) GetSyncSummary(context.Context, *GetSyncSummary
 func (UnimplementedSourceServer) Sync(*Sync_Request, Source_SyncServer) error {
 	return status.Errorf(codes.Unimplemented, "method Sync not implemented")
 }
-func (UnimplementedSourceServer) Sync2(*Sync2_Request, Source_Sync2Server) error {
-	return status.Errorf(codes.Unimplemented, "method Sync2 not implemented")
-}
 func (UnimplementedSourceServer) GetMetrics(context.Context, *GetSourceMetrics_Request) (*GetSourceMetrics_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMetrics not implemented")
 }
@@ -246,7 +207,7 @@ func _Source_GetProtocolVersion_Handler(srv interface{}, ctx context.Context, de
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cloudquery.pluginsdk.v1.Source/GetProtocolVersion",
+		FullMethod: "/cloudquery.pluginsdk.v2.Source/GetProtocolVersion",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetProtocolVersion(ctx, req.(*GetProtocolVersion_Request))
@@ -264,7 +225,7 @@ func _Source_GetName_Handler(srv interface{}, ctx context.Context, dec func(inte
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cloudquery.pluginsdk.v1.Source/GetName",
+		FullMethod: "/cloudquery.pluginsdk.v2.Source/GetName",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetName(ctx, req.(*GetName_Request))
@@ -282,7 +243,7 @@ func _Source_GetVersion_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cloudquery.pluginsdk.v1.Source/GetVersion",
+		FullMethod: "/cloudquery.pluginsdk.v2.Source/GetVersion",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetVersion(ctx, req.(*GetVersion_Request))
@@ -300,7 +261,7 @@ func _Source_GetTables_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cloudquery.pluginsdk.v1.Source/GetTables",
+		FullMethod: "/cloudquery.pluginsdk.v2.Source/GetTables",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetTables(ctx, req.(*GetTables_Request))
@@ -318,7 +279,7 @@ func _Source_GetSyncSummary_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cloudquery.pluginsdk.v1.Source/GetSyncSummary",
+		FullMethod: "/cloudquery.pluginsdk.v2.Source/GetSyncSummary",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetSyncSummary(ctx, req.(*GetSyncSummary_Request))
@@ -347,27 +308,6 @@ func (x *sourceSyncServer) Send(m *Sync_Response) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Source_Sync2_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(Sync2_Request)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(SourceServer).Sync2(m, &sourceSync2Server{stream})
-}
-
-type Source_Sync2Server interface {
-	Send(*Sync2_Response) error
-	grpc.ServerStream
-}
-
-type sourceSync2Server struct {
-	grpc.ServerStream
-}
-
-func (x *sourceSync2Server) Send(m *Sync2_Response) error {
-	return x.ServerStream.SendMsg(m)
-}
-
 func _Source_GetMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetSourceMetrics_Request)
 	if err := dec(in); err != nil {
@@ -378,7 +318,7 @@ func _Source_GetMetrics_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cloudquery.pluginsdk.v1.Source/GetMetrics",
+		FullMethod: "/cloudquery.pluginsdk.v2.Source/GetMetrics",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetMetrics(ctx, req.(*GetSourceMetrics_Request))
@@ -390,7 +330,7 @@ func _Source_GetMetrics_Handler(srv interface{}, ctx context.Context, dec func(i
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Source_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "cloudquery.pluginsdk.v1.Source",
+	ServiceName: "cloudquery.pluginsdk.v2.Source",
 	HandlerType: (*SourceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -422,11 +362,6 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Sync",
 			Handler:       _Source_Sync_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "Sync2",
-			Handler:       _Source_Sync2_Handler,
 			ServerStreams: true,
 		},
 	},

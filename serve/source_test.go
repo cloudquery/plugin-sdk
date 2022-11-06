@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/v1/clients"
-	"github.com/cloudquery/plugin-sdk/v1/plugins"
-	"github.com/cloudquery/plugin-sdk/v1/schema"
-	"github.com/cloudquery/plugin-sdk/v1/specs"
+	"github.com/cloudquery/plugin-sdk/v2/clients"
+	"github.com/cloudquery/plugin-sdk/v2/plugins"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -139,7 +139,7 @@ func TestServeSource(t *testing.T) {
 	}
 
 	resources := make(chan []byte, 1)
-	if err := c.Sync2(ctx,
+	if err := c.Sync(ctx,
 		specs.Source{
 			Name:         "testSourcePlugin",
 			Version:      "v1.0.0",

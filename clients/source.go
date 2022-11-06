@@ -13,10 +13,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cloudquery/plugin-sdk/v1/internal/pb"
-	"github.com/cloudquery/plugin-sdk/v1/plugins"
-	"github.com/cloudquery/plugin-sdk/v1/schema"
-	"github.com/cloudquery/plugin-sdk/v1/specs"
+	"github.com/cloudquery/plugin-sdk/v2/internal/pb"
+	"github.com/cloudquery/plugin-sdk/v2/plugins"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -231,36 +231,6 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 		return fmt.Errorf("failed to marshal source spec: %w", err)
 	}
 	stream, err := c.pbClient.Sync(ctx, &pb.Sync_Request{
-		Spec: b,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to call Sync: %w", err)
-	}
-	for {
-		r, err := stream.Recv()
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return fmt.Errorf("failed to fetch resources from stream: %w", err)
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case res <- r.Resource:
-		}
-	}
-}
-
-// Sync start syncing for the source client per the given spec and returning the results
-// in the given channel. res is marshaled schema.Resource. We are not unmarshalling this for performance reasons
-// as usually this is sent over-the-wire anyway to a source plugin
-func (c *SourceClient) Sync2(ctx context.Context, spec specs.Source, res chan<- []byte) error {
-	b, err := json.Marshal(spec)
-	if err != nil {
-		return fmt.Errorf("failed to marshal source spec: %w", err)
-	}
-	stream, err := c.pbClient.Sync2(ctx, &pb.Sync2_Request{
 		Spec: b,
 	})
 	if err != nil {

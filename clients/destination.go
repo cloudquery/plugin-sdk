@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/v1/internal/pb"
-	"github.com/cloudquery/plugin-sdk/v1/plugins"
-	"github.com/cloudquery/plugin-sdk/v1/schema"
-	"github.com/cloudquery/plugin-sdk/v1/specs"
+	"github.com/cloudquery/plugin-sdk/v2/internal/pb"
+	"github.com/cloudquery/plugin-sdk/v2/plugins"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -233,33 +233,8 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 	return nil
 }
 
-// Write writes rows as they are received from the channel to the destination plugin.
-// resources is marshaled schema.Resource. We are not marshalling this inside the function
-// because usually it is alreadun marshalled from the destination plugin.
-func (c *DestinationClient) Write(ctx context.Context, source string, syncTime time.Time, resources <-chan []byte) (uint64, error) {
+func (c *DestinationClient) Write(ctx context.Context, tables schema.Tables, source string, syncTime time.Time, resources <-chan []byte) error {
 	saveClient, err := c.pbClient.Write(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("failed to call Write: %w", err)
-	}
-	for resource := range resources {
-		if err := saveClient.Send(&pb.Write_Request{
-			Resource:  resource,
-			Source:    source,
-			Timestamp: timestamppb.New(syncTime),
-		}); err != nil {
-			return 0, fmt.Errorf("failed to call Write.Send: %w", err)
-		}
-	}
-	res, err := saveClient.CloseAndRecv()
-	if err != nil {
-		return 0, fmt.Errorf("failed to CloseAndRecv client: %w", err)
-	}
-
-	return res.FailedWrites, nil
-}
-
-func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, source string, syncTime time.Time, resources <-chan []byte) error {
-	saveClient, err := c.pbClient.Write2(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to call Write2: %w", err)
 	}
@@ -267,7 +242,7 @@ func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, so
 	if err != nil {
 		return fmt.Errorf("failed to marshal tables: %w", err)
 	}
-	if err := saveClient.Send(&pb.Write2_Request{
+	if err := saveClient.Send(&pb.Write_Request{
 		Tables:    b,
 		Source:    source,
 		Timestamp: timestamppb.New(syncTime),
@@ -275,7 +250,7 @@ func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, so
 		return fmt.Errorf("failed to send tables: %w", err)
 	}
 	for resource := range resources {
-		if err := saveClient.Send(&pb.Write2_Request{
+		if err := saveClient.Send(&pb.Write_Request{
 			Resource: resource,
 		}); err != nil {
 			return fmt.Errorf("failed to call Write.Send: %w", err)

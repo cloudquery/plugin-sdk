@@ -1,8 +1,7 @@
 syntax = "proto3";
-package cloudquery.pluginsdk.v1;
+package cloudquery.pluginsdk.v2;
 option go_package = "/pb";
 import "internal/pb/base.proto";
-import "google/protobuf/timestamp.proto";
 
 service Source {
   // Get the current protocol version of the plugin. This helps
@@ -18,27 +17,13 @@ service Source {
   // GetSyncSummary returns the latest sync summary of the source plugin. we don't want to send the summary on
   // every sync request.
   rpc GetSyncSummary(GetSyncSummary.Request) returns (GetSyncSummary.Response);
-  // Fetch resources
-  rpc Sync(Sync.Request) returns (stream Sync.Response);
   // Sync2 is a new sync API that supports CQ Types. It is not backward compatible with Sync.
-  rpc Sync2(Sync2.Request) returns (stream Sync2.Response);
+  rpc Sync(Sync.Request) returns (stream Sync.Response);
   // Get metrics for the source plugin
   rpc GetMetrics(GetSourceMetrics.Request) returns (GetSourceMetrics.Response);
 }
 
 message Sync {
-  message Request {
-    bytes spec = 1;
-    // sync timestamp
-    google.protobuf.Timestamp timestamp = 2;
-  }
-  message Response {
-    // marshalled *schema.Resources
-    bytes resource = 1;
-  }
-}
-
-message Sync2 {
   message Request {
     bytes spec = 1;
   }

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/v1/schema"
-	"github.com/cloudquery/plugin-sdk/v1/specs"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )

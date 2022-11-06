@@ -3,8 +3,8 @@ package plugins
 import (
 	"fmt"
 
-	"github.com/cloudquery/plugin-sdk/v1/helpers"
-	"github.com/cloudquery/plugin-sdk/v1/schema"
+	"github.com/cloudquery/plugin-sdk/v2/helpers"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
 )
 
 type DefaultReverseTransformer struct {
