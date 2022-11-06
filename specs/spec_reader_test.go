@@ -1,6 +1,7 @@
 package specs
 
 import (
+	"path"
 	"testing"
 )
 
@@ -12,32 +13,36 @@ type specLoaderTestCase struct {
 	destinations int
 }
 
+func getPath(pathParts ...string) string {
+	return path.Join("testdata", path.Join(pathParts...))
+}
+
 var specLoaderTestCases = []specLoaderTestCase{
 	{
 		name:         "success",
-		path:         []string{"testdata/gcp.yml", "testdata/dir"},
+		path:         []string{getPath("gcp.yml"), getPath("dir")},
 		err:          "",
 		sources:      2,
 		destinations: 2,
 	},
 	{
 		name: "duplicate_source",
-		path: []string{"testdata/gcp.yml", "testdata/gcp.yml"},
+		path: []string{getPath("gcp.yml"), getPath("gcp.yml")},
 		err:  "duplicate source name gcp",
 	},
 	{
 		name: "no_such_file",
-		path: []string{"testdata/dir/no_such_file.yml", "testdata/dir/postgresql.yml"},
+		path: []string{getPath("dir", "no_such_file.yml"), getPath("dir", "postgresql.yml")},
 		err:  "open testdata/dir/no_such_file.yml: no such file or directory",
 	},
 	{
 		name: "duplicate_destination",
-		path: []string{"testdata/dir/postgresql.yml", "testdata/dir/postgresql.yml"},
+		path: []string{getPath("dir", "postgresql.yml"), getPath("dir", "postgresql.yml")},
 		err:  "duplicate destination name postgresql",
 	},
 	{
 		name: "different_versions_for_destinations",
-		path: []string{"testdata/gcp.yml", "testdata/gcpv2.yml"},
+		path: []string{getPath("gcp.yml"), getPath("gcpv2.yml")},
 		err:  "destination postgresqlv2 is used by multiple sources cloudquery/gcp with different versions",
 	},
 }
