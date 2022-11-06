@@ -40,6 +40,13 @@ var specLoaderTestCases = []specLoaderTestCase{
 		path: []string{"testdata/gcp.yml", "testdata/gcpv2.yml"},
 		err:  "destination postgresqlv2 is used by multiple sources cloudquery/gcp with different versions",
 	},
+	{
+		name:         "multiple sources success",
+		path:         []string{"testdata/multiple_sources.yml"},
+		err:          "",
+		sources:      2,
+		destinations: 1,
+	},
 }
 
 func TestLoadSpecs(t *testing.T) {
