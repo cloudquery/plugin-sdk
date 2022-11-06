@@ -2,7 +2,6 @@ package schema
 
 import "testing"
 
-
 func TestTransformWithTransformer(t *testing.T) {
 	cqTypes := make(CQTypes, 0, TypeEnd-TypeInvalid)
 	for i := TypeInvalid + 1; i < TypeEnd; i++ {
@@ -11,5 +10,8 @@ func TestTransformWithTransformer(t *testing.T) {
 		}
 		cqTypes = append(cqTypes, NewCqTypeFromValueType(i))
 	}
-	TransformWithTransformer(&DefaultTransformer{}, cqTypes)
+	transformedVal := TransformWithTransformer(&DefaultTransformer{}, cqTypes)
+	if transformedVal == nil {
+		t.Fatal("expected not nil")
+	}
 }

@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v2/schema"
@@ -124,7 +123,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 		r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
 		clientResource := &ClientResource{
 			TableName: r.TableName,
-			Data:      p.transformerCqTypes(r.Data),
+			Data:      schema.TransformWithTransformer(p.client, r.Data),
 		}
 		ch <- clientResource
 	}
@@ -147,49 +146,6 @@ func (p *DestinationPlugin) DeleteStale(ctx context.Context, tables schema.Table
 
 func (p *DestinationPlugin) Close(ctx context.Context) error {
 	return p.client.Close(ctx)
-}
-
-func (p *DestinationPlugin) transformerCqTypes(data schema.CQTypes) []interface{} {
-	values := make([]interface{}, 0, len(data))
-	for _, v := range data {
-		switch v := v.(type) {
-		case *schema.Bool:
-			values = append(values, p.client.TransformBool(v))
-		case *schema.Bytea:
-			values = append(values, p.client.TransformBytea(v))
-		case *schema.CIDRArray:
-			values = append(values, p.client.TransformCIDRArray(v))
-		case *schema.CIDR:
-			values = append(values, p.client.TransformCIDR(v))
-		case *schema.Float8:
-			values = append(values, p.client.TransformFloat8(v))
-		case *schema.InetArray:
-			values = append(values, p.client.TransformInetArray(v))
-		case *schema.Inet:
-			values = append(values, p.client.TransformInet(v))
-		case *schema.Int8:
-			values = append(values, p.client.TransformInt8(v))
-		case *schema.JSON:
-			values = append(values, p.client.TransformJSON(v))
-		case *schema.MacaddrArray:
-			values = append(values, p.client.TransformMacaddrArray(v))
-		case *schema.Macaddr:
-			values = append(values, p.client.TransformMacaddr(v))
-		case *schema.TextArray:
-			values = append(values, p.client.TransformTextArray(v))
-		case *schema.Text:
-			values = append(values, p.client.TransformText(v))
-		case *schema.Timestamptz:
-			values = append(values, p.client.TransformTimestamptz(v))
-		case *schema.UUIDArray:
-			values = append(values, p.client.TransformUUIDArray(v))
-		case *schema.UUID:
-			values = append(values, p.client.TransformUUID(v))
-		default:
-			panic(fmt.Sprintf("unknown type %T", v))
-		}
-	}
-	return values
 }
 
 // Overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).

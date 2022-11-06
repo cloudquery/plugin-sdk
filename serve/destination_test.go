@@ -22,7 +22,7 @@ func bufDestinationDialer(context.Context, string) (net.Conn, error) {
 }
 
 type testDestinationClient struct {
-	plugins.DefaultTransformer
+	schema.DefaultTransformer
 	plugins.DefaultReverseTransformer
 }
 
