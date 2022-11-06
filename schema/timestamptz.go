@@ -30,7 +30,7 @@ type Timestamptz struct {
 	InfinityModifier InfinityModifier
 }
 
-func (dst *Timestamptz) Type() ValueType {
+func (*Timestamptz) Type() ValueType {
 	return TypeTimestamp
 }
 

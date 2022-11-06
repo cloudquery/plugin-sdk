@@ -39,7 +39,6 @@ func (v deprecatedTypes) isDeprecated(t ValueType) bool {
 	return false
 }
 
-
 const (
 	TypeInvalid ValueType = iota
 	TypeBool
@@ -130,15 +129,15 @@ type CQType interface {
 type CQTypes []CQType
 
 type cqTypeWrapper struct {
-	Type ValueType `json:"type"`
-	Value CQType `json:"value"`
+	Type  ValueType `json:"type"`
+	Value CQType    `json:"value"`
 }
 
 func (c CQTypes) MarshalJSON() ([]byte, error) {
 	res := make([]*cqTypeWrapper, len(c))
 	for i, v := range c {
 		res[i] = &cqTypeWrapper{
-			Type: v.Type(),
+			Type:  v.Type(),
 			Value: v,
 		}
 	}
@@ -164,7 +163,7 @@ func (c *CQTypes) UnmarshalJSON(b []byte) error {
 		if err := json.Unmarshal(res[i]["value"], v); err != nil {
 			return err
 		}
-		
+
 		cqTypes = append(cqTypes, v)
 	}
 	*c = cqTypes

@@ -15,7 +15,7 @@ type JSON struct {
 	Status Status
 }
 
-func (dst *JSON) Type() ValueType {
+func (*JSON) Type() ValueType {
 	return TypeJSON
 }
 

@@ -18,7 +18,7 @@ type Inet struct {
 	Status Status
 }
 
-func (dst *Inet) Type() ValueType {
+func (*Inet) Type() ValueType {
 	return TypeInet
 }
 

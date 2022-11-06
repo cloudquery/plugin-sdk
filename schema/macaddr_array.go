@@ -18,7 +18,7 @@ type MacaddrArray struct {
 	Status     Status
 }
 
-func (dst *MacaddrArray) Type() ValueType {
+func (*MacaddrArray) Type() ValueType {
 	return TypeMacAddrArray
 }
 

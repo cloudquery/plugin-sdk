@@ -3,13 +3,12 @@ package plugins
 import (
 	"fmt"
 
-	"github.com/cloudquery/plugin-sdk/helpers"
-	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/v1/helpers"
+	"github.com/cloudquery/plugin-sdk/v1/schema"
 )
 
 type DefaultReverseTransformer struct {
 }
-
 
 // DefaultReverseTransformer tries best effort to convert a slice of values to CQTypes
 // based on the provided table columns.

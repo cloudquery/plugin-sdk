@@ -6,7 +6,7 @@ type CIDRTransformer interface {
 	TransformCIDR(*CIDR) interface{}
 }
 
-func (dst *CIDR) Type() ValueType {
+func (*CIDR) Type() ValueType {
 	return TypeCIDR
 }
 

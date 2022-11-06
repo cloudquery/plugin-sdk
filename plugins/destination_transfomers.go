@@ -1,6 +1,6 @@
 package plugins
 
-import "github.com/cloudquery/plugin-sdk/schema"
+import "github.com/cloudquery/plugin-sdk/v1/schema"
 
 type DefaultTransformer struct {
 }

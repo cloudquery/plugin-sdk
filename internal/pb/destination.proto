@@ -1,5 +1,5 @@
 syntax = "proto3";
-package proto;
+package cloudquery.pluginsdk.v1;
 option go_package = "/pb";
 import "internal/pb/base.proto";
 import "google/protobuf/timestamp.proto";

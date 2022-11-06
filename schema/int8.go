@@ -16,7 +16,7 @@ type Int8 struct {
 	Status Status
 }
 
-func (dst *Int8) Type() ValueType {
+func (*Int8) Type() ValueType {
 	return TypeInt
 }
 

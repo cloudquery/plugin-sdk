@@ -6,7 +6,6 @@ import (
 	"strconv"
 )
 
-
 type BoolTransformer interface {
 	TransformBool(*Bool) interface{}
 }
@@ -16,7 +15,7 @@ type Bool struct {
 	Status Status
 }
 
-func (dst *Bool) Type() ValueType {
+func (*Bool) Type() ValueType {
 	return TypeBool
 }
 

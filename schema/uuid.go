@@ -15,7 +15,7 @@ type UUID struct {
 	Status Status
 }
 
-func (dst *UUID) Type() ValueType {
+func (*UUID) Type() ValueType {
 	return TypeUUID
 }
 

@@ -80,7 +80,7 @@ func TestCQTypesMarshal(t *testing.T) {
 }
 
 func TestValueTypeString(t *testing.T) {
-	for i := TypeInvalid + 1; i < TypeEnd; i ++ {
+	for i := TypeInvalid + 1; i < TypeEnd; i++ {
 		if deprecatedTypesValues.isDeprecated(i) {
 			continue
 		}
@@ -91,7 +91,7 @@ func TestValueTypeString(t *testing.T) {
 }
 
 func TestAllTypesRegistered(t *testing.T) {
-	for i := TypeInvalid + 1; i < TypeEnd; i ++ {
+	for i := TypeInvalid + 1; i < TypeEnd; i++ {
 		if deprecatedTypesValues.isDeprecated(i) {
 			continue
 		}

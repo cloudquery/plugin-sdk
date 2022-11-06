@@ -25,7 +25,7 @@ type Resource struct {
 // We dont want to reuse the same struct as otherwise we will have to comment on fields which don't get sent over the wire but still accessible
 // code wise
 type DestinationResource struct {
-	TableName string          `json:"table_name"`
+	TableName string  `json:"table_name"`
 	Data      CQTypes `json:"data"`
 }
 

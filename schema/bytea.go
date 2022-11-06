@@ -16,8 +16,7 @@ type Bytea struct {
 	Status Status
 }
 
-
-func (dst *Bytea) Type() ValueType {
+func (*Bytea) Type() ValueType {
 	return TypeByteArray
 }
 

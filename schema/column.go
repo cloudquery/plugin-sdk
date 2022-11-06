@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-
 type ColumnList []Column
 
 // ColumnResolver is called for each row received in TableResolver's data fetch.

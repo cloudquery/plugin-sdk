@@ -15,7 +15,7 @@ type Macaddr struct {
 	Status Status
 }
 
-func (dst *Macaddr) Type() ValueType {
+func (*Macaddr) Type() ValueType {
 	return TypeMacAddr
 }
 

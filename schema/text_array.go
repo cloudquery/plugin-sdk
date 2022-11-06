@@ -17,7 +17,7 @@ type TextArray struct {
 	Status     Status
 }
 
-func (dst *TextArray) Type() ValueType {
+func (*TextArray) Type() ValueType {
 	return TypeStringArray
 }
 

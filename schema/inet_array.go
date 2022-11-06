@@ -18,7 +18,7 @@ type InetArray struct {
 	Status     Status
 }
 
-func (dst *InetArray) Type() ValueType {
+func (*InetArray) Type() ValueType {
 	return TypeInetArray
 }
 

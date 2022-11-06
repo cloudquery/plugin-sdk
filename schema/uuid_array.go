@@ -17,7 +17,7 @@ type UUIDArray struct {
 	Status     Status
 }
 
-func (dst *UUIDArray) Type() ValueType {
+func (*UUIDArray) Type() ValueType {
 	return TypeUUIDArray
 }
 

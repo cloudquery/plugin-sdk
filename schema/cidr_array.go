@@ -18,8 +18,7 @@ type CIDRArray struct {
 	Status     Status
 }
 
-
-func (dst *CIDRArray) Type() ValueType {
+func (*CIDRArray) Type() ValueType {
 	return TypeCIDRArray
 }
 

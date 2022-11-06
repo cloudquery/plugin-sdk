@@ -57,7 +57,7 @@ func NewDestinationClient(cc grpc.ClientConnInterface) DestinationClient {
 
 func (c *destinationClient) GetProtocolVersion(ctx context.Context, in *GetProtocolVersion_Request, opts ...grpc.CallOption) (*GetProtocolVersion_Response, error) {
 	out := new(GetProtocolVersion_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/GetProtocolVersion", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Destination/GetProtocolVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (c *destinationClient) GetProtocolVersion(ctx context.Context, in *GetProto
 
 func (c *destinationClient) GetName(ctx context.Context, in *GetName_Request, opts ...grpc.CallOption) (*GetName_Response, error) {
 	out := new(GetName_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/GetName", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Destination/GetName", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (c *destinationClient) GetName(ctx context.Context, in *GetName_Request, op
 
 func (c *destinationClient) GetVersion(ctx context.Context, in *GetVersion_Request, opts ...grpc.CallOption) (*GetVersion_Response, error) {
 	out := new(GetVersion_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/GetVersion", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Destination/GetVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (c *destinationClient) GetVersion(ctx context.Context, in *GetVersion_Reque
 
 func (c *destinationClient) Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error) {
 	out := new(Configure_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/Configure", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Destination/Configure", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (c *destinationClient) Configure(ctx context.Context, in *Configure_Request
 
 func (c *destinationClient) Migrate(ctx context.Context, in *Migrate_Request, opts ...grpc.CallOption) (*Migrate_Response, error) {
 	out := new(Migrate_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/Migrate", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Destination/Migrate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (c *destinationClient) Migrate(ctx context.Context, in *Migrate_Request, op
 }
 
 func (c *destinationClient) Write(ctx context.Context, opts ...grpc.CallOption) (Destination_WriteClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Destination_ServiceDesc.Streams[0], "/proto.Destination/Write", opts...)
+	stream, err := c.cc.NewStream(ctx, &Destination_ServiceDesc.Streams[0], "/cloudquery.pluginsdk.v1.Destination/Write", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (x *destinationWriteClient) CloseAndRecv() (*Write_Response, error) {
 }
 
 func (c *destinationClient) Write2(ctx context.Context, opts ...grpc.CallOption) (Destination_Write2Client, error) {
-	stream, err := c.cc.NewStream(ctx, &Destination_ServiceDesc.Streams[1], "/proto.Destination/Write2", opts...)
+	stream, err := c.cc.NewStream(ctx, &Destination_ServiceDesc.Streams[1], "/cloudquery.pluginsdk.v1.Destination/Write2", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (x *destinationWrite2Client) CloseAndRecv() (*Write2_Response, error) {
 
 func (c *destinationClient) Close(ctx context.Context, in *Close_Request, opts ...grpc.CallOption) (*Close_Response, error) {
 	out := new(Close_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/Close", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Destination/Close", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (c *destinationClient) Close(ctx context.Context, in *Close_Request, opts .
 
 func (c *destinationClient) DeleteStale(ctx context.Context, in *DeleteStale_Request, opts ...grpc.CallOption) (*DeleteStale_Response, error) {
 	out := new(DeleteStale_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/DeleteStale", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Destination/DeleteStale", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func (c *destinationClient) DeleteStale(ctx context.Context, in *DeleteStale_Req
 
 func (c *destinationClient) GetMetrics(ctx context.Context, in *GetDestinationMetrics_Request, opts ...grpc.CallOption) (*GetDestinationMetrics_Response, error) {
 	out := new(GetDestinationMetrics_Response)
-	err := c.cc.Invoke(ctx, "/proto.Destination/GetMetrics", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.pluginsdk.v1.Destination/GetMetrics", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +282,7 @@ func _Destination_GetProtocolVersion_Handler(srv interface{}, ctx context.Contex
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Destination/GetProtocolVersion",
+		FullMethod: "/cloudquery.pluginsdk.v1.Destination/GetProtocolVersion",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DestinationServer).GetProtocolVersion(ctx, req.(*GetProtocolVersion_Request))
@@ -300,7 +300,7 @@ func _Destination_GetName_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Destination/GetName",
+		FullMethod: "/cloudquery.pluginsdk.v1.Destination/GetName",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DestinationServer).GetName(ctx, req.(*GetName_Request))
@@ -318,7 +318,7 @@ func _Destination_GetVersion_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Destination/GetVersion",
+		FullMethod: "/cloudquery.pluginsdk.v1.Destination/GetVersion",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DestinationServer).GetVersion(ctx, req.(*GetVersion_Request))
@@ -336,7 +336,7 @@ func _Destination_Configure_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Destination/Configure",
+		FullMethod: "/cloudquery.pluginsdk.v1.Destination/Configure",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DestinationServer).Configure(ctx, req.(*Configure_Request))
@@ -354,7 +354,7 @@ func _Destination_Migrate_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Destination/Migrate",
+		FullMethod: "/cloudquery.pluginsdk.v1.Destination/Migrate",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DestinationServer).Migrate(ctx, req.(*Migrate_Request))
@@ -424,7 +424,7 @@ func _Destination_Close_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Destination/Close",
+		FullMethod: "/cloudquery.pluginsdk.v1.Destination/Close",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DestinationServer).Close(ctx, req.(*Close_Request))
@@ -442,7 +442,7 @@ func _Destination_DeleteStale_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Destination/DeleteStale",
+		FullMethod: "/cloudquery.pluginsdk.v1.Destination/DeleteStale",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DestinationServer).DeleteStale(ctx, req.(*DeleteStale_Request))
@@ -460,7 +460,7 @@ func _Destination_GetMetrics_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Destination/GetMetrics",
+		FullMethod: "/cloudquery.pluginsdk.v1.Destination/GetMetrics",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DestinationServer).GetMetrics(ctx, req.(*GetDestinationMetrics_Request))
@@ -472,7 +472,7 @@ func _Destination_GetMetrics_Handler(srv interface{}, ctx context.Context, dec f
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Destination_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "proto.Destination",
+	ServiceName: "cloudquery.pluginsdk.v1.Destination",
 	HandlerType: (*DestinationServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

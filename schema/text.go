@@ -15,7 +15,7 @@ type Text struct {
 	Status Status
 }
 
-func (dst *Text) Type() ValueType {
+func (*Text) Type() ValueType {
 	return TypeString
 }
 

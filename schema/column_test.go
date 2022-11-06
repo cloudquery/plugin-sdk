@@ -48,4 +48,3 @@ func TestColumnListMarshalUnknown(t *testing.T) {
 		t.Fatalf("expected 1 columns but got %d", len(res))
 	}
 }
-
