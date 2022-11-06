@@ -2,13 +2,14 @@ package specs
 
 import (
 	"path"
+	"runtime"
 	"testing"
 )
 
 type specLoaderTestCase struct {
 	name         string
 	path         []string
-	err          string
+	err          func() string
 	sources      int
 	destinations int
 }
@@ -21,29 +22,36 @@ var specLoaderTestCases = []specLoaderTestCase{
 	{
 		name:         "success",
 		path:         []string{getPath("gcp.yml"), getPath("dir")},
-		err:          "",
+		err:          func() string { return "" },
 		sources:      2,
 		destinations: 2,
 	},
 	{
 		name: "duplicate_source",
 		path: []string{getPath("gcp.yml"), getPath("gcp.yml")},
-		err:  "duplicate source name gcp",
+		err:  func() string { return "duplicate source name gcp" },
 	},
 	{
 		name: "no_such_file",
 		path: []string{getPath("dir", "no_such_file.yml"), getPath("dir", "postgresql.yml")},
-		err:  "open testdata/dir/no_such_file.yml: no such file or directory",
+		err: func() string {
+			if runtime.GOOS == "windows" {
+				return "open testdata/dir/no_such_file.yml: The system cannot find the file specified."
+			}
+			return "open testdata/dir/no_such_file.yml: no such file or directory"
+		},
 	},
 	{
 		name: "duplicate_destination",
 		path: []string{getPath("dir", "postgresql.yml"), getPath("dir", "postgresql.yml")},
-		err:  "duplicate destination name postgresql",
+		err:  func() string { return "duplicate destination name postgresql" },
 	},
 	{
 		name: "different_versions_for_destinations",
 		path: []string{getPath("gcp.yml"), getPath("gcpv2.yml")},
-		err:  "destination postgresqlv2 is used by multiple sources cloudquery/gcp with different versions",
+		err: func() string {
+			return "destination postgresqlv2 is used by multiple sources cloudquery/gcp with different versions"
+		},
 	},
 }
 
@@ -51,14 +59,15 @@ func TestLoadSpecs(t *testing.T) {
 	for _, tc := range specLoaderTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			specReader, err := NewSpecReader(tc.path)
+			expectedErr := tc.err()
 			if err != nil {
-				if err.Error() != tc.err {
-					t.Fatalf("expected error: '%s', got: '%s'", tc.err, err)
+				if err.Error() != expectedErr {
+					t.Fatalf("expected error: '%s', got: '%s'", expectedErr, err)
 				}
 				return
 			}
-			if tc.err != "" {
-				t.Fatalf("expected error: %s, got nil", tc.err)
+			if expectedErr != "" {
+				t.Fatalf("expected error: %s, got nil", expectedErr)
 			}
 			if len(specReader.Sources) != tc.sources {
 				t.Fatalf("got: %d expected: %d", len(specReader.Sources), tc.sources)
