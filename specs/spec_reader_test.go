@@ -20,16 +20,20 @@ func getPath(pathParts ...string) string {
 
 var specLoaderTestCases = []specLoaderTestCase{
 	{
-		name:         "success",
-		path:         []string{getPath("gcp.yml"), getPath("dir")},
-		err:          func() string { return "" },
+		name: "success",
+		path: []string{getPath("gcp.yml"), getPath("dir")},
+		err: func() string {
+			return ""
+		},
 		sources:      2,
 		destinations: 2,
 	},
 	{
 		name: "duplicate_source",
 		path: []string{getPath("gcp.yml"), getPath("gcp.yml")},
-		err:  func() string { return "duplicate source name gcp" },
+		err: func() string {
+			return "duplicate source name gcp"
+		},
 	},
 	{
 		name: "no_such_file",
@@ -44,7 +48,9 @@ var specLoaderTestCases = []specLoaderTestCase{
 	{
 		name: "duplicate_destination",
 		path: []string{getPath("dir", "postgresql.yml"), getPath("dir", "postgresql.yml")},
-		err:  func() string { return "duplicate destination name postgresql" },
+		err: func() string {
+			return "duplicate destination name postgresql"
+		},
 	},
 	{
 		name: "different_versions_for_destinations",
