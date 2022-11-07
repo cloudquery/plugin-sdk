@@ -220,7 +220,7 @@ func (c CQTypes) MarshalJSON() ([]byte, error) {
 	res := make([]map[string]interface{}, len(c))
 	for i, v := range c {
 		res[i] = map[string]interface{}{
-			"typ":   v.Type().overTheWireString(),
+			"type":  v.Type().overTheWireString(),
 			"value": v,
 		}
 	}
@@ -235,7 +235,7 @@ func (c *CQTypes) UnmarshalJSON(b []byte) error {
 	cqTypes := make(CQTypes, 0, len(res))
 	for i := range res {
 		var s string
-		if err := json.Unmarshal(res[i]["typ"], &s); err != nil {
+		if err := json.Unmarshal(res[i]["type"], &s); err != nil {
 			return fmt.Errorf("failed to unmarshal CQType type: %w", err)
 		}
 		t := valueTypeFromOverTheWireString(s)
