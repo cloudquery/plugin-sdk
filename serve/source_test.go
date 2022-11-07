@@ -143,6 +143,7 @@ func TestServeSource(t *testing.T) {
 		specs.Source{
 			Name:         "testSourcePlugin",
 			Version:      "v1.0.0",
+			Path:         "cloudquery/testSourcePlugin",
 			Registry:     specs.RegistryGithub,
 			Tables:       []string{"*"},
 			Spec:         TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
