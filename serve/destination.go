@@ -2,6 +2,7 @@ package serve
 
 import (
 	"fmt"
+	"github.com/thoas/go-funk"
 	"net"
 	"os"
 	"os/signal"
@@ -61,6 +62,13 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 	var noSentry bool
 	logLevel := newEnum([]string{"trace", "debug", "info", "warn", "error"}, "info")
 	logFormat := newEnum([]string{"text", "json"}, "text")
+	telemetryLevel := newEnum([]string{"none", "errors", "stats", "all"}, "all")
+	err := telemetryLevel.Set(getEnvOrDefault("CQ_TELEMETRY_LEVEL", telemetryLevel.Value))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to set telemetry level: "+err.Error())
+		os.Exit(1)
+	}
+
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: serveDestinationShort,
@@ -103,7 +111,7 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 			})
 			version := destination.plugin.Version()
 
-			if destination.sentryDSN != "" && !strings.EqualFold(version, "development") {
+			if destination.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {
 				err = sentry.Init(sentry.ClientOptions{
 					Dsn:              destination.sentryDSN,
 					Debug:            false,
@@ -156,7 +164,10 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 	cmd.Flags().Var(logLevel, "log-level", fmt.Sprintf("log level. one of: %s", strings.Join(logLevel.Allowed, ",")))
 	cmd.Flags().Var(logFormat, "log-format", fmt.Sprintf("log format. one of: %s", strings.Join(logFormat.Allowed, ",")))
 	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
-
+	sendErrors := funk.ContainsString([]string{"all", "errors"}, telemetryLevel.String())
+	if !sendErrors {
+		noSentry = true
+	}
 	return cmd
 }
 

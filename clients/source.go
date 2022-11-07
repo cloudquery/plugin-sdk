@@ -33,6 +33,7 @@ type SourceClient struct {
 	userConn       *grpc.ClientConn
 	conn           *grpc.ClientConn
 	grpcSocketName string
+	noSentry       bool
 	wg             *sync.WaitGroup
 }
 
@@ -58,6 +59,13 @@ func WithSourceGRPCConnection(userConn *grpc.ClientConn) func(*SourceClient) {
 	return func(c *SourceClient) {
 		// we use a different variable here because we don't want to close a connection that wasn't created by us.
 		c.userConn = userConn
+	}
+}
+
+func WithSourceNoSentry() func(*SourceClient) {
+	return func(c *SourceClient) {
+		// we use a different variable here because we don't want to close a connection that wasn't created by us.
+		c.noSentry = true
 	}
 }
 
@@ -113,8 +121,12 @@ func NewSourceClient(ctx context.Context, registry specs.Registry, path string, 
 func (c *SourceClient) newManagedClient(ctx context.Context, path string) error {
 	c.grpcSocketName = generateRandomUnixSocketName()
 	// spawn the plugin first and then connect
-	cmd := exec.CommandContext(ctx, path, "serve", "--network", "unix", "--address", c.grpcSocketName,
-		"--log-level", c.logger.GetLevel().String(), "--log-format", "json")
+	args := []string{"serve", "--network", "unix", "--address", c.grpcSocketName,
+		"--log-level", c.logger.GetLevel().String(), "--log-format", "json"}
+	if c.noSentry {
+		args = append(args, "--no-sentry")
+	}
+	cmd := exec.CommandContext(ctx, path, args...)
 	reader, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("failed to get stdout pipe: %w", err)

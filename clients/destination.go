@@ -35,6 +35,7 @@ type DestinationClient struct {
 	conn           *grpc.ClientConn
 	grpcSocketName string
 	wg             *sync.WaitGroup
+	noSentry       bool
 }
 
 type DestinationClientOption func(*DestinationClient)
@@ -55,6 +56,12 @@ func WithDestinationGrpcConn(userConn *grpc.ClientConn) func(*DestinationClient)
 	return func(c *DestinationClient) {
 		// we use a different variable here because we don't want to close a connection that wasn't created by us.
 		c.userConn = userConn
+	}
+}
+
+func WithDestinationNoSentry() func(*DestinationClient) {
+	return func(c *DestinationClient) {
+		c.noSentry = true
 	}
 }
 
@@ -109,8 +116,12 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 func (c *DestinationClient) newManagedClient(ctx context.Context, path string) error {
 	c.grpcSocketName = generateRandomUnixSocketName()
 	// spawn the plugin first and then connect
-	cmd := exec.CommandContext(ctx, path, "serve", "--network", "unix", "--address", c.grpcSocketName,
-		"--log-level", c.logger.GetLevel().String(), "--log-format", "json")
+	args := []string{"serve", "--network", "unix", "--address", c.grpcSocketName,
+		"--log-level", c.logger.GetLevel().String(), "--log-format", "json"}
+	if c.noSentry {
+		args = append(args, "--no-sentry")
+	}
+	cmd := exec.CommandContext(ctx, path, args...)
 	reader, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("failed to get stdout pipe: %w", err)
