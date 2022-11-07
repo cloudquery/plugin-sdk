@@ -2,7 +2,6 @@ package serve
 
 import (
 	"fmt"
-	"github.com/thoas/go-funk"
 	"net"
 	"os"
 	"os/signal"
@@ -18,6 +17,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/thoas/go-funk"
 	"golang.org/x/net/netutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
