@@ -13,13 +13,21 @@ import (
 type NewDestinationClientFunc func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error)
 
 type DestinationClient interface {
+	schema.CQTypeTransformer
+	ReverseTransformValues(table *schema.Table, values []interface{}) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Tables) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- *schema.DestinationResource) error
-	Write(ctx context.Context, tables schema.Tables, res <-chan *schema.DestinationResource) error
+	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []interface{}) error
+	Write(ctx context.Context, tables schema.Tables, res <-chan *ClientResource) error
 	Metrics() DestinationMetrics
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
 }
+
+type ClientResource struct {
+	TableName string
+	Data      []interface{}
+}
+
 
 type DestinationPlugin struct {
 	// Name of destination plugin i.e postgresql,snowflake
@@ -77,14 +85,59 @@ func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) e
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- *schema.DestinationResource) error {
-	SetDestinationManagedCqColumns(schema.Tables{table})
-	return p.client.Read(ctx, table, sourceName, res)
+func (p *DestinationPlugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]schema.CQTypes, error) {
+	var readErr error
+	ch := make(chan schema.CQTypes)
+	go func() {
+		defer close(ch)
+		readErr = p.Read(ctx, table, sourceName, ch)
+	}()
+	//nolint:prealloc
+	var resources []schema.CQTypes
+	for resource := range ch {
+		resources = append(resources, resource)
+	}
+	return resources, readErr
 }
 
-func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan *schema.DestinationResource) error {
+func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes) error {
+	SetDestinationManagedCqColumns(schema.Tables{table})
+	ch := make(chan []interface{})
+	var err error
+	go func() {
+		defer close(ch)
+		err = p.client.Read(ctx, table, sourceName, ch)
+	}()
+	for resource := range ch {
+		r, err := p.client.ReverseTransformValues(table, resource)
+		if err != nil {
+			return err
+		}
+		res <- r
+	}
+	return err
+}
+
+// this function is currently used mostly for testing so it's not a public api
+func (p *DestinationPlugin) writeOne(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, resource schema.DestinationResource) error {
+	resources := []schema.DestinationResource{resource}
+	return p.writeAll(ctx, tables, sourceName, syncTime, resources)
+}
+
+// this function is currently used mostly for testing so it's not a public api
+func (p *DestinationPlugin) writeAll(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, resources []schema.DestinationResource) error {
+	ch := make(chan schema.DestinationResource, len(resources))
+	for _, resource := range resources {
+		ch <- resource
+	}
+	close(ch)
+	return p.Write(ctx, tables, sourceName, syncTime, ch)
+}
+
+func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan schema.DestinationResource) error {
+	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
-	ch := make(chan *schema.DestinationResource)
+	ch := make(chan *ClientResource)
 	eg := &errgroup.Group{}
 	// given most destination plugins writing in batch we are using a worker pool to write in parallel
 	// it might not generalize well and we might need to move it to each destination plugin implementation.
@@ -99,7 +152,11 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	_ = syncTimeColumn.Set(syncTime)
 	for r := range res {
 		r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
-		ch <- r
+		clientResource := &ClientResource{
+			TableName: r.TableName,
+			Data:      schema.TransformWithTransformer(p.client, r.Data),
+		}
+		ch <- clientResource
 	}
 
 	close(ch)
@@ -115,6 +172,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 }
 
 func (p *DestinationPlugin) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
+	syncTime = syncTime.UTC()
 	return p.client.DeleteStale(ctx, tables, sourceName, syncTime)
 }
 
