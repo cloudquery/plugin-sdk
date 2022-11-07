@@ -58,6 +58,7 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 	tableName := "cq_test_write_overwrite"
 	table := testdata.TestTable(tableName)
 	syncTime := time.Now().UTC()
+	fmt.Println("syncTime", syncTime)
 	tables := []*schema.Table{
 		table,
 	}
@@ -106,8 +107,9 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 	if resource2.Data.Equal(resourcesRead[1]) {
 		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
 	}
-
+	
 	secondSyncTime := time.Now().UTC()
+	fmt.Println("secondSyncTime", secondSyncTime)
 	// write second time
 	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
@@ -159,6 +161,7 @@ func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.
 	tableName := "cq_test_write_append"
 	table := testdata.TestTable(tableName)
 	syncTime := time.Now().UTC()
+	fmt.Println("syncTime", syncTime)
 	tables := []*schema.Table{
 		table,
 	}
@@ -181,6 +184,7 @@ func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.
 		Data:      testdata.TestData(),
 	}
 	secondSyncTime := time.Now().UTC()
+	fmt.Println("secondSyncTime", secondSyncTime)
 	// write second time
 	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
