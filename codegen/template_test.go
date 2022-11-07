@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/bradleyjkemp/cupaloy/v2"
-	"github.com/cloudquery/plugin-sdk/v1/schema"
+	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/stretchr/testify/require"
 )
 
