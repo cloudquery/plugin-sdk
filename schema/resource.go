@@ -3,7 +3,6 @@ package schema
 import (
 	"fmt"
 
-	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/google/uuid"
 )
 
@@ -19,15 +18,15 @@ type Resource struct {
 	// internal fields
 	Table *Table
 	// This is sorted result data by column name
-	data []cqtypes.CQType
+	data CQTypes
 }
 
 // This struct is what we send over the wire to destination.
 // We dont want to reuse the same struct as otherwise we will have to comment on fields which don't get sent over the wire but still accessible
 // code wise
 type DestinationResource struct {
-	TableName string          `json:"table_name"`
-	Data      cqtypes.CQTypes `json:"data"`
+	TableName string  `json:"table_name"`
+	Data      CQTypes `json:"data"`
 }
 
 func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
@@ -35,81 +34,10 @@ func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
 		Item:   item,
 		Parent: parent,
 		Table:  t,
-		data:   make(cqtypes.CQTypes, len(t.Columns)),
+		data:   make(CQTypes, len(t.Columns)),
 	}
 	for i := range r.data {
-		switch r.Table.Columns[i].Type {
-		case TypeBool:
-			r.data[i] = &cqtypes.Bool{
-				Status: cqtypes.Null,
-			}
-		case TypeInt:
-			r.data[i] = &cqtypes.Int8{
-				Status: cqtypes.Null,
-			}
-		case TypeFloat:
-			r.data[i] = &cqtypes.Float8{
-				Status: cqtypes.Null,
-			}
-		case TypeUUID:
-			r.data[i] = &cqtypes.UUID{
-				Status: cqtypes.Null,
-			}
-		case TypeString:
-			r.data[i] = &cqtypes.Text{
-				Status: cqtypes.Null,
-			}
-		case TypeByteArray:
-			r.data[i] = &cqtypes.Bytea{
-				Status: cqtypes.Null,
-			}
-		case TypeStringArray:
-			r.data[i] = &cqtypes.TextArray{
-				Status: cqtypes.Null,
-			}
-		case TypeIntArray:
-			r.data[i] = &cqtypes.Int8Array{
-				Status: cqtypes.Null,
-			}
-		case TypeTimestamp:
-			r.data[i] = &cqtypes.Timestamptz{
-				Status: cqtypes.Null,
-			}
-		case TypeJSON:
-			r.data[i] = &cqtypes.JSON{
-				Status: cqtypes.Null,
-			}
-		case TypeUUIDArray:
-			r.data[i] = &cqtypes.UUIDArray{
-				Status: cqtypes.Null,
-			}
-		case TypeInet:
-			r.data[i] = &cqtypes.Inet{
-				Status: cqtypes.Null,
-			}
-		case TypeInetArray:
-			r.data[i] = &cqtypes.InetArray{
-				Status: cqtypes.Null,
-			}
-		case TypeCIDR:
-			r.data[i] = &cqtypes.CIDR{
-				Status: cqtypes.Null,
-			}
-		case TypeCIDRArray:
-			r.data[i] = &cqtypes.CIDRArray{
-				Status: cqtypes.Null,
-			}
-		case TypeMacAddr:
-			r.data[i] = &cqtypes.Macaddr{
-				Status: cqtypes.Null,
-			}
-		case TypeMacAddrArray:
-			r.data[i] = &cqtypes.MacaddrArray{
-				Status: cqtypes.Null,
-			}
-		default:
-			panic(fmt.Errorf("unsupported type %s", r.Table.Columns[i].Type.String()))
-		}
+		r.data[i] = NewCqTypeFromValueType(t.Columns[i].Type)
 	}
 	return &r
 }
@@ -122,7 +50,7 @@ func (r *Resource) ToDestinationResource() DestinationResource {
 	return dr
 }
 
-func (r *Resource) Get(columnName string) cqtypes.CQType {
+func (r *Resource) Get(columnName string) CQType {
 	index := r.Table.Columns.Index(columnName)
 	if index == -1 {
 		// we panic because we want to distinguish between code error and api error
@@ -133,7 +61,7 @@ func (r *Resource) Get(columnName string) cqtypes.CQType {
 }
 
 // Set sets a column with value. This does validation and conversion to
-// one of concrete CQTypes. it returns an error just for backward compatibility
+// one of concrete  it returns an error just for backward compatibility
 // and panics in case it fails
 func (r *Resource) Set(columnName string, value interface{}) error {
 	index := r.Table.Columns.Index(columnName)
@@ -157,7 +85,7 @@ func (r *Resource) GetItem() interface{} {
 	return r.Item
 }
 
-func (r *Resource) GetValues() cqtypes.CQTypes {
+func (r *Resource) GetValues() CQTypes {
 	return r.data
 }
 

@@ -2,19 +2,12 @@ package schema
 
 import (
 	"context"
-	"time"
 
-	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/google/uuid"
 )
 
 type ClientMeta interface {
 	ID() string
-}
-
-type Meta struct {
-	LastUpdate time.Time `json:"last_updated"`
-	FetchID    string    `json:"fetch_id,omitempty"`
 }
 
 // These columns are managed and populated by the source plugins
@@ -61,7 +54,7 @@ func parentCqUUIDResolver() ColumnResolver {
 		if parentCqID == nil {
 			return r.Set(c.Name, nil)
 		}
-		pUUID, ok := parentCqID.(*cqtypes.UUID)
+		pUUID, ok := parentCqID.(*UUID)
 		if !ok {
 			return r.Set(c.Name, nil)
 		}
