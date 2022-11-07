@@ -103,7 +103,7 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 }
 
 func (p *SourcePlugin) SetLogger(logger zerolog.Logger) {
-	p.logger = logger
+	p.logger = logger.With().Str("module", p.name+"-src").Logger()
 }
 
 // Tables returns all supported tables by this source plugin
