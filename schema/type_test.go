@@ -71,7 +71,7 @@ func TestCQTypesMarshal(t *testing.T) {
 		t.Fatalf("expected 1, got %d", len(res))
 	}
 
-	if err := json.Unmarshal([]byte(`[{"typ": "Bool", "value": {"Bool":true,"Status":1}}, {"typ": "UnknownType"}]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`[{"type": "Bool", "value": {"Bool":true,"Status":1}}, {"type": "UnknownType"}]`), &res); err != nil {
 		t.Fatal(err)
 	}
 	if len(res) != 1 {
