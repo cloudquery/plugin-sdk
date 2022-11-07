@@ -17,6 +17,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/thoas/go-funk"
 	"golang.org/x/net/netutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
@@ -63,6 +64,13 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 	var noSentry bool
 	logLevel := newEnum([]string{"trace", "debug", "info", "warn", "error"}, "info")
 	logFormat := newEnum([]string{"text", "json"}, "text")
+	telemetryLevel := newEnum([]string{"none", "errors", "stats", "all"}, "all")
+	err := telemetryLevel.Set(getEnvOrDefault("CQ_TELEMETRY_LEVEL", telemetryLevel.Value))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to set telemetry level: "+err.Error())
+		os.Exit(1)
+	}
+
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: serveSourceShort,
@@ -110,7 +118,7 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 			})
 			version := source.plugin.Version()
 
-			if source.sentryDSN != "" && !strings.EqualFold(version, "development") {
+			if source.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {
 				err = sentry.Init(sentry.ClientOptions{
 					Dsn:              source.sentryDSN,
 					Debug:            false,
@@ -164,6 +172,10 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 	cmd.Flags().Var(logLevel, "log-level", fmt.Sprintf("log level. one of: %s", strings.Join(logLevel.Allowed, ",")))
 	cmd.Flags().Var(logFormat, "log-format", fmt.Sprintf("log format. one of: %s", strings.Join(logFormat.Allowed, ",")))
 	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
+	sendErrors := funk.ContainsString([]string{"all", "errors"}, telemetryLevel.String())
+	if !sendErrors {
+		noSentry = true
+	}
 
 	return cmd
 }

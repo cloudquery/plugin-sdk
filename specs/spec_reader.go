@@ -20,7 +20,9 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 	data = []byte(os.ExpandEnv(string(data)))
 
 	// support multiple yamls in one file
-	for _, doc := range strings.Split(string(data), "\n---\n") {
+	// this should work both on Windows and Unix
+	normalizedConfig := strings.ReplaceAll(string(data), "\r\n", "\n")
+	for _, doc := range strings.Split(normalizedConfig, "\n---\n") {
 		var s Spec
 		if err := SpecUnmarshalYamlStrict([]byte(doc), &s); err != nil {
 			return fmt.Errorf("failed to unmarshal file %s: %w", path, err)
@@ -83,9 +85,10 @@ func (r *SpecReader) validate() error {
 			if r.Destinations[destination] == nil {
 				return fmt.Errorf("source %s references unknown destination %s", source.Name, destination)
 			}
-			if destinationSourceMap[destination] == "" {
-				destinationSourceMap[destination] = source.Path + "@" + source.Version
-			} else if destinationSourceMap[destination] != source.Path+"@"+source.Version {
+			destinationToSourceKey := fmt.Sprintf("%s-%s", destination, source.Path)
+			if destinationSourceMap[destinationToSourceKey] == "" {
+				destinationSourceMap[destinationToSourceKey] = source.Path + "@" + source.Version
+			} else if destinationSourceMap[destinationToSourceKey] != source.Path+"@"+source.Version {
 				return fmt.Errorf("destination %s is used by multiple sources %s with different versions", destination, source.Path)
 			}
 		}
