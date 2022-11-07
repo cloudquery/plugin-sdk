@@ -12,7 +12,6 @@ import (
 // TestDestinationMemDBClient is mostly used for testing.
 type TestDestinationMemDBClient struct {
 	schema.DefaultTransformer
-	DefaultReverseTransformer
 	spec     specs.Destination
 	memoryDB map[string][][]interface{}
 }
@@ -23,6 +22,13 @@ func NewTestDestinationMemDBClient(context.Context, zerolog.Logger, specs.Destin
 	}, nil
 }
 
+func (*TestDestinationMemDBClient) ReverseTransformValues(_ *schema.Table, values []interface{}) (schema.CQTypes, error) {
+	res := make(schema.CQTypes, len(values))
+	for i, v := range values {
+		res[i] = v.(schema.CQType)
+	}
+	return res, nil
+}
 func (c *TestDestinationMemDBClient) overwrite(table *schema.Table, data []interface{}) {
 	pks := table.PrimaryKeys()
 	//nolint:prealloc

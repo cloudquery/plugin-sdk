@@ -56,6 +56,7 @@ func (dst *CIDRArray) String() string {
 			}
 			sb.WriteString(element.String())
 		}
+		sb.WriteString("}")
 	} else {
 		return ""
 	}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/clients"
+	"github.com/cloudquery/plugin-sdk/internal/testdata"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -87,25 +88,41 @@ func TestDestination(t *testing.T) {
 		t.Fatalf("expected version to be development but got %s", version)
 	}
 
-	tables := schema.Tables{testTable()}
+	tableName := "test_destination_serve"
+	sourceName := "test_destination_serve_source"
+	tables := schema.Tables{testdata.TestTable(tableName)}
 	if err := c.Migrate(ctx, tables); err != nil {
 		t.Fatal(err)
 	}
 
-	resource := schema.NewResourceData(testTable(), nil, nil)
-	if err := resource.Set("test_column", 5); err != nil {
-		t.Fatal(err)
+	destResource := schema.DestinationResource{
+		TableName: tableName,
+		Data:      testdata.TestData(),
 	}
-	destResource := resource.ToDestinationResource()
 	b, err := json.Marshal(destResource)
 	if err != nil {
 		t.Fatal(err)
 	}
+	testdata.TestData()
 	resources := make(chan []byte, 1)
 	resources <- b
 	close(resources)
-	if err := c.Write2(ctx, tables, "test", time.Now(), resources); err != nil {
+	if err := c.Write2(ctx, tables, sourceName, time.Now(), resources); err != nil {
 		t.Fatal(err)
+	}
+
+	readCh := make(chan schema.CQTypes, 1)
+	plugin.Read(ctx, tables[0], sourceName, readCh)
+	close(readCh)
+	totalResources := 0
+	for resource := range readCh {
+		totalResources++
+		if !destResource.Data.Equal(resource[2:]) {
+			t.Fatalf("expected %v but got %v", destResource.Data, resource[2:])
+		}
+	}
+	if totalResources != 1 {
+		t.Fatalf("expected 1 resource but got %d", totalResources)
 	}
 
 	if err := c.DeleteStale(ctx, nil, "testSource", time.Now()); err != nil {
