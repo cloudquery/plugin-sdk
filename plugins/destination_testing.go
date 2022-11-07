@@ -10,6 +10,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/internal/testdata"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -65,7 +66,7 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
-	sourceName := "cq_test_write_overwrite_source"
+	sourceName := uuid.NewString()
 	resource := schema.DestinationResource{
 		TableName: table.Name,
 		Data:      testdata.TestData(),
@@ -166,7 +167,7 @@ func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
-	sourceName := "cq_test_write_overwrite_append"
+	sourceName := uuid.NewString()
 	resource := schema.DestinationResource{
 		TableName: table.Name,
 		Data:      testdata.TestData(),
@@ -187,10 +188,6 @@ func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.
 	// write second time
 	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
-	}
-
-	if err := p.DeleteStale(ctx, tables, sourceName, syncTime); err != nil {
-		return fmt.Errorf("failed to delete stale data: %w", err)
 	}
 
 	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
