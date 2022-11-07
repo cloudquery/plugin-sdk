@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/caser"
-	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/v1/caser"
+	"github.com/cloudquery/plugin-sdk/v1/schema"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
@@ -30,14 +30,12 @@ type (
 			IntCol    int    `json:"int_col,omitempty"`
 			StringCol string `json:"string_col,omitempty"`
 		}
-		IntArrayCol    []int          `json:"int_array_col,omitempty"`
-		StringArrayCol []string       `json:"string_array_col,omitempty"`
-		TimeCol        time.Time      `json:"time_col,omitempty"`
-		TimePointerCol *time.Time     `json:"time_pointer_col,omitempty"`
-		DurCol         time.Duration  `json:"dur_col,omitempty"`
-		DurPointerCol  *time.Duration `json:"dur_pointer_col"`
-		JSONTag        *string        `json:"json_tag"`
-		SkipJSONTag    *string        `json:"-"`
+		IntArrayCol    []int      `json:"int_array_col,omitempty"`
+		StringArrayCol []string   `json:"string_array_col,omitempty"`
+		TimeCol        time.Time  `json:"time_col,omitempty"`
+		TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
+		JSONTag        *string    `json:"json_tag"`
+		SkipJSONTag    *string    `json:"-"`
 		NoJSONTag      *string
 		*embeddedStruct
 	}
@@ -124,16 +122,6 @@ var (
 			Name:     "time_pointer_col",
 			Type:     schema.TypeTimestamp,
 			Resolver: `schema.PathResolver("TimePointerCol")`,
-		},
-		{
-			Name:     "dur_col",
-			Type:     schema.TypeTimeInterval,
-			Resolver: `schema.PathResolver("DurCol")`,
-		},
-		{
-			Name:     "dur_pointer_col",
-			Type:     schema.TypeTimeInterval,
-			Resolver: `schema.PathResolver("DurPointerCol")`,
 		},
 		{
 			Name:     "json_tag",

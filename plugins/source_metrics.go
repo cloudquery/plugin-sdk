@@ -3,7 +3,7 @@ package plugins
 import (
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/v1/schema"
 )
 
 type SourceMetrics struct {

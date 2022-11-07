@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/v1/schema"
 )
 
 //go:embed templates/*.go.tpl
