@@ -30,12 +30,12 @@ type (
 			IntCol    int    `json:"int_col,omitempty"`
 			StringCol string `json:"string_col,omitempty"`
 		}
-		IntArrayCol    []int          `json:"int_array_col,omitempty"`
-		StringArrayCol []string       `json:"string_array_col,omitempty"`
-		TimeCol        time.Time      `json:"time_col,omitempty"`
-		TimePointerCol *time.Time     `json:"time_pointer_col,omitempty"`
-		JSONTag        *string        `json:"json_tag"`
-		SkipJSONTag    *string        `json:"-"`
+		IntArrayCol    []int      `json:"int_array_col,omitempty"`
+		StringArrayCol []string   `json:"string_array_col,omitempty"`
+		TimeCol        time.Time  `json:"time_col,omitempty"`
+		TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
+		JSONTag        *string    `json:"json_tag"`
+		SkipJSONTag    *string    `json:"-"`
 		NoJSONTag      *string
 		*embeddedStruct
 	}
