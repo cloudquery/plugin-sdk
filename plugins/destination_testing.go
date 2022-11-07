@@ -271,7 +271,7 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 	}
 
 	if err := p.writeAll(ctx, tables, sourceName, syncTime, resources); err != nil {
-		return fmt.Errorf("failed to write one: %w", err)
+		return fmt.Errorf("failed to write all: %w", err)
 	}
 
 	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
