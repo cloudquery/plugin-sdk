@@ -380,7 +380,7 @@ func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.
 	}
 
 	if len(resourcesRead) != 2 {
-		return fmt.Errorf("expected 2 resource, got %d", len(resourcesRead))
+		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
 	}
 
 	if resource.Data.Equal(resourcesRead[0]) {
