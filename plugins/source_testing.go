@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 )
@@ -100,7 +99,7 @@ func validateResources(t *testing.T, resources []*schema.Resource) {
 			if value == nil {
 				continue
 			}
-			if value.Get() != nil && value.Get() != cqtypes.Undefined {
+			if value.Get() != nil && value.Get() != schema.Undefined {
 				columnsWithValues[i] = true
 			}
 		}

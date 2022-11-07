@@ -34,8 +34,6 @@ type (
 		StringArrayCol []string       `json:"string_array_col,omitempty"`
 		TimeCol        time.Time      `json:"time_col,omitempty"`
 		TimePointerCol *time.Time     `json:"time_pointer_col,omitempty"`
-		DurCol         time.Duration  `json:"dur_col,omitempty"`
-		DurPointerCol  *time.Duration `json:"dur_pointer_col"`
 		JSONTag        *string        `json:"json_tag"`
 		SkipJSONTag    *string        `json:"-"`
 		NoJSONTag      *string
@@ -124,16 +122,6 @@ var (
 			Name:     "time_pointer_col",
 			Type:     schema.TypeTimestamp,
 			Resolver: `schema.PathResolver("TimePointerCol")`,
-		},
-		{
-			Name:     "dur_col",
-			Type:     schema.TypeTimeInterval,
-			Resolver: `schema.PathResolver("DurCol")`,
-		},
-		{
-			Name:     "dur_pointer_col",
-			Type:     schema.TypeTimeInterval,
-			Resolver: `schema.PathResolver("DurPointerCol")`,
 		},
 		{
 			Name:     "json_tag",
