@@ -107,7 +107,7 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 	if resource2.Data.Equal(resourcesRead[1]) {
 		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
 	}
-	
+
 	secondSyncTime := time.Now().UTC()
 	fmt.Println("secondSyncTime", secondSyncTime)
 	// write second time
