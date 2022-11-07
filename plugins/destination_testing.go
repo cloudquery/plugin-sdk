@@ -414,7 +414,7 @@ func DestinationPluginTestSuiteRunner(t *testing.T, p *DestinationPlugin, spec s
 		}
 	})
 
-	t.Run("TestWriteApeend", func(t *testing.T) {
+	t.Run("TestWriteAppend", func(t *testing.T) {
 		t.Helper()
 		if suite.skipTestAppend {
 			t.Skip("skipping TestWriteApeend")
