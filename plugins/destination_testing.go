@@ -388,7 +388,7 @@ func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.
 	}
 
 	if resource.Data.Equal(resourcesRead[1]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
 	}
 
 	return nil
