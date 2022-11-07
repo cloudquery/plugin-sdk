@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2](https://github.com/cloudquery/plugin-sdk/compare/v1.0.1...v1.0.2) (2022-11-07)
+
+
+### Bug Fixes
+
+* Revert "chore: Start SDK semantic versioning from v1" ([#366](https://github.com/cloudquery/plugin-sdk/issues/366)) ([c66be4b](https://github.com/cloudquery/plugin-sdk/commit/c66be4bb440990327c6e1aa82e5ffdd76659bd07))
+
+## [1.0.1](https://github.com/cloudquery/plugin-sdk/compare/v1.0.0...v1.0.1) (2022-11-07)
+
+
+### Bug Fixes
+
+* Module parameter in logs of source-plugins ([#364](https://github.com/cloudquery/plugin-sdk/issues/364)) ([379d3e6](https://github.com/cloudquery/plugin-sdk/commit/379d3e639599e14fe112ef301e59f22a27923f00))
+
 ## [1.0.0](https://github.com/cloudquery/plugin-sdk/compare/v0.13.23...v1.0.0) (2022-11-07)
 
 

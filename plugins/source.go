@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/v1/caser"
-	"github.com/cloudquery/plugin-sdk/v1/schema"
-	"github.com/cloudquery/plugin-sdk/v1/specs"
+	"github.com/cloudquery/plugin-sdk/caser"
+	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/semaphore"
 )
@@ -103,7 +103,7 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 }
 
 func (p *SourcePlugin) SetLogger(logger zerolog.Logger) {
-	p.logger = logger
+	p.logger = logger.With().Str("module", p.name+"-src").Logger()
 }
 
 // Tables returns all supported tables by this source plugin
