@@ -34,8 +34,8 @@ type DestinationClient struct {
 	userConn       *grpc.ClientConn
 	conn           *grpc.ClientConn
 	grpcSocketName string
-	wg             *sync.WaitGroup
 	noSentry       bool
+	wg             *sync.WaitGroup
 }
 
 type DestinationClientOption func(*DestinationClient)
