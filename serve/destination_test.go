@@ -12,7 +12,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -21,46 +20,8 @@ func bufDestinationDialer(context.Context, string) (net.Conn, error) {
 	return testDestinationListener.Dial()
 }
 
-type testDestinationClient struct {
-	schema.DefaultTransformer
-	plugins.DefaultReverseTransformer
-}
-
-func newDestinationClient(context.Context, zerolog.Logger, specs.Destination) (plugins.DestinationClient, error) {
-	return &testDestinationClient{}, nil
-}
-
-func (*testDestinationClient) Initialize(context.Context, specs.Destination) error {
-	return nil
-}
-func (*testDestinationClient) Migrate(context.Context, schema.Tables) error {
-	return nil
-}
-
-func (*testDestinationClient) Read(context.Context, *schema.Table, string, chan<- []interface{}) error {
-	return nil
-}
-
-func (*testDestinationClient) Write(_ context.Context, _ schema.Tables, resources <-chan *plugins.ClientResource) error {
-	//nolint:revive
-	for range resources {
-	}
-	return nil
-}
-
-func (*testDestinationClient) Metrics() plugins.DestinationMetrics {
-	return plugins.DestinationMetrics{}
-}
-
-func (*testDestinationClient) Close(context.Context) error {
-	return nil
-}
-func (*testDestinationClient) DeleteStale(context.Context, schema.Tables, string, time.Time) error {
-	return nil
-}
-
 func TestDestination(t *testing.T) {
-	plugin := plugins.NewDestinationPlugin("testDestinationPlugin", "development", newDestinationClient)
+	plugin := plugins.NewDestinationPlugin("testDestinationPlugin", "development", plugins.NewTestDestinationMemDBClient)
 	s := &destinationServe{
 		plugin: plugin,
 	}
@@ -104,7 +65,9 @@ func TestDestination(t *testing.T) {
 		}
 	}()
 
-	if err := c.Initialize(ctx, specs.Destination{}); err != nil {
+	if err := c.Initialize(ctx, specs.Destination{
+		WriteMode: specs.WriteModeAppend,
+	}); err != nil {
 		t.Fatal(err)
 	}
 
