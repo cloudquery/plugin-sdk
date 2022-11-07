@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/v1/schema"
 )
 
 func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
