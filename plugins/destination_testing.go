@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/cqtypes"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/uuid"
@@ -92,85 +91,85 @@ func TestTable() *schema.Table {
 	}
 }
 
-func TestData() cqtypes.CQTypes {
-	cqID := &cqtypes.UUID{}
+func TestData() schema.CQTypes {
+	cqID := &schema.UUID{}
 	if err := cqID.Set(uuid.New()); err != nil {
 		panic(err)
 	}
-	cqParentID := &cqtypes.UUID{}
+	cqParentID := &schema.UUID{}
 	if err := cqParentID.Set("00000000-0000-0000-0000-000000000003"); err != nil {
 		panic(err)
 	}
-	boolColumn := &cqtypes.Bool{
+	boolColumn := &schema.Bool{
 		Bool:   true,
-		Status: cqtypes.Present,
+		Status: schema.Present,
 	}
-	intColumn := &cqtypes.Int8{
+	intColumn := &schema.Int8{
 		Int:    1,
-		Status: cqtypes.Present,
+		Status: schema.Present,
 	}
-	floatColumn := &cqtypes.Float8{
+	floatColumn := &schema.Float8{
 		Float:  1.1,
-		Status: cqtypes.Present,
+		Status: schema.Present,
 	}
-	uuidColumn := &cqtypes.UUID{}
+	uuidColumn := &schema.UUID{}
 	if err := uuidColumn.Set("00000000-0000-0000-0000-000000000001"); err != nil {
 		panic(err)
 	}
-	textColumn := &cqtypes.Text{
+	textColumn := &schema.Text{
 		Str:    "test",
-		Status: cqtypes.Present,
+		Status: schema.Present,
 	}
-	byteaColumn := &cqtypes.Bytea{
+	byteaColumn := &schema.Bytea{
 		Bytes:  []byte{1, 2, 3},
-		Status: cqtypes.Present,
+		Status: schema.Present,
 	}
-	textArrayColumn := &cqtypes.TextArray{}
+	textArrayColumn := &schema.TextArray{}
 	if err := textArrayColumn.Set([]string{"test1", "test2"}); err != nil {
 		panic(err)
 	}
-	intArrayColumn := &cqtypes.Int8Array{}
+	intArrayColumn := &schema.Int8Array{}
 	if err := intArrayColumn.Set([]int8{1, 2}); err != nil {
 		panic(err)
 	}
-	timestampColumn := &cqtypes.Timestamptz{
+	timestampColumn := &schema.Timestamptz{
 		Time:   time.Now(),
-		Status: cqtypes.Present,
+		Status: schema.Present,
 	}
-	jsonColumn := &cqtypes.JSON{
+	jsonColumn := &schema.JSON{
 		Bytes:  []byte(`{"test": "test"}`),
-		Status: cqtypes.Present,
+		Status: schema.Present,
 	}
-	uuidArrayColumn := &cqtypes.UUIDArray{}
+	uuidArrayColumn := &schema.UUIDArray{}
 	if err := uuidArrayColumn.Set([]string{"00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002"}); err != nil {
 		panic(err)
 	}
-	inetColumn := &cqtypes.Inet{}
+	inetColumn := &schema.Inet{}
 	if err := inetColumn.Set("192.0.2.1/24"); err != nil {
 		panic(err)
 	}
-	inetArrayColumn := &cqtypes.InetArray{}
+	inetArrayColumn := &schema.InetArray{}
 	if err := inetArrayColumn.Set([]string{"192.0.2.1/24", "192.0.2.1/24"}); err != nil {
 		panic(err)
 	}
-	cidrColumn := &cqtypes.CIDR{}
+	cidrColumn := &schema.CIDR{}
 	if err := cidrColumn.Set("192.0.2.1"); err != nil {
 		panic(err)
 	}
-	cidrArrayColumn := &cqtypes.CIDRArray{}
+	cidrArrayColumn := &schema.CIDRArray{}
 	if err := cidrArrayColumn.Set([]string{"192.0.2.1", "192.0.2.1"}); err != nil {
 		panic(err)
 	}
-	macaddrColumn := &cqtypes.Macaddr{}
+	macaddrColumn := &schema.Macaddr{}
 	if err := macaddrColumn.Set("aa:bb:cc:dd:ee:ff"); err != nil {
 		panic(err)
 	}
-	macaddrArrayColumn := &cqtypes.MacaddrArray{}
+	macaddrArrayColumn := &schema.MacaddrArray{}
 	if err := macaddrArrayColumn.Set([]string{"aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"}); err != nil {
 		panic(err)
 	}
 
-	data := cqtypes.CQTypes{
+	data := schema.CQTypes{
 		cqID,
 		cqParentID,
 		boolColumn,

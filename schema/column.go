@@ -2,9 +2,9 @@ package schema
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 )
-
-type ValueType int
 
 type ColumnList []Column
 
@@ -38,71 +38,19 @@ type Column struct {
 	IgnoreInTests bool `json:"-"`
 }
 
-const (
-	TypeInvalid ValueType = iota
-	TypeBool
-	TypeInt
-	TypeFloat
-	TypeUUID
-	TypeString
-	TypeByteArray
-	TypeStringArray
-	TypeIntArray
-	TypeTimestamp
-	TypeJSON
-	TypeUUIDArray
-	TypeInet
-	TypeInetArray
-	TypeCIDR
-	TypeCIDRArray
-	TypeMacAddr
-	TypeMacAddrArray
-	TypeTimeInterval
-)
-
-func (v ValueType) String() string {
-	switch v {
-	case TypeBool:
-		return "TypeBool"
-	case TypeInt:
-		return "TypeInt"
-	case TypeFloat:
-		return "TypeFloat"
-	case TypeUUID:
-		return "TypeUUID"
-	case TypeString:
-		return "TypeString"
-	case TypeJSON:
-		return "TypeJSON"
-	case TypeIntArray:
-		return "TypeIntArray"
-	case TypeStringArray:
-		return "TypeStringArray"
-	case TypeTimestamp:
-		return "TypeTimestamp"
-	case TypeTimeInterval:
-		return "TypeTimeInterval"
-	case TypeByteArray:
-		return "TypeByteArray"
-	case TypeUUIDArray:
-		return "TypeUUIDArray"
-	case TypeInetArray:
-		return "TypeInetArray"
-	case TypeInet:
-		return "TypeInet"
-	case TypeMacAddrArray:
-		return "TypeMacAddrArray"
-	case TypeMacAddr:
-		return "TypeMacAddr"
-	case TypeCIDRArray:
-		return "TypeCIDRArray"
-	case TypeCIDR:
-		return "TypeCIDR"
-	case TypeInvalid:
-		fallthrough
-	default:
-		return "TypeInvalid"
+func (c *ColumnList) UnmarshalJSON(data []byte) (err error) {
+	var tmp []Column
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return fmt.Errorf("failed to unmarshal column list: %w, %s", err, data)
 	}
+	res := make(ColumnList, 0, len(tmp))
+	for _, column := range tmp {
+		if column.Type != TypeInvalid {
+			res = append(res, column)
+		}
+	}
+	*c = res
+	return nil
 }
 
 func (c ColumnList) Index(col string) int {
