@@ -75,6 +75,94 @@ func (r *ValueType) UnmarshalJSON(data []byte) (err error) {
 	return nil
 }
 
+// This is needed only for backward compatibility.
+// can be removed in sdk v2
+func valueTypeFromOverTheWireString(s string) ValueType {
+	switch s {
+	case "Bool":
+		return TypeBool
+	case "Int8":
+		return TypeInt
+	case "Float8":
+		return TypeFloat
+	case "UUID":
+		return TypeUUID
+	case "Text":
+		return TypeString
+	case "JSON":
+		return TypeJSON
+	case "Int8Array":
+		return TypeIntArray
+	case "TextArray":
+		return TypeStringArray
+	case "Timestamptz":
+		return TypeTimestamp
+	case "Bytea":
+		return TypeByteArray
+	case "UUIDArray":
+		return TypeUUIDArray
+	case "InetArray":
+		return TypeInetArray
+	case "Inet":
+		return TypeInet
+	case "MacaddrArray":
+		return TypeMacAddrArray
+	case "Macaddr":
+		return TypeMacAddr
+	case "CIDRArray":
+		return TypeCIDRArray
+	case "CIDR":
+		return TypeCIDR
+	default:
+		return TypeInvalid
+	}
+}
+
+// this is for backward compatibility
+// can be removed in sdk v2
+func (r ValueType) overTheWireString() string {
+	switch r {
+	case TypeBool:
+		return "Bool"
+	case TypeInt:
+		return "Int8"
+	case TypeFloat:
+		return "Float8"
+	case TypeUUID:
+		return "UUID"
+	case TypeString:
+		return "Text"
+	case TypeJSON:
+		return "JSON"
+	case TypeIntArray:
+		return "Int8Array"
+	case TypeStringArray:
+		return "TextArray"
+	case TypeTimestamp:
+		return "Timestamptz"
+	case TypeByteArray:
+		return "Bytea"
+	case TypeUUIDArray:
+		return "UUIDArray"
+	case TypeInetArray:
+		return "InetArray"
+	case TypeInet:
+		return "Inet"
+	case TypeMacAddrArray:
+		return "MacaddrArray"
+	case TypeMacAddr:
+		return "Macaddr"
+	case TypeCIDRArray:
+		return "CIDRArray"
+	case TypeCIDR:
+		return "CIDR"
+	case TypeInvalid:
+		return "TypeInvalid"
+	default:
+		return fmt.Sprintf("Unknown(%d)", r)
+	}
+}
+
 func (r ValueType) String() string {
 	switch r {
 	case TypeBool:
@@ -128,17 +216,12 @@ type CQType interface {
 
 type CQTypes []CQType
 
-type cqTypeWrapper struct {
-	Type  ValueType `json:"type"`
-	Value CQType    `json:"value"`
-}
-
 func (c CQTypes) MarshalJSON() ([]byte, error) {
-	res := make([]*cqTypeWrapper, len(c))
+	res := make([]map[string]interface{}, len(c))
 	for i, v := range c {
-		res[i] = &cqTypeWrapper{
-			Type:  v.Type(),
-			Value: v,
+		res[i] = map[string]interface{}{
+			"typ":   v.Type().overTheWireString(),
+			"value": v,
 		}
 	}
 	return json.Marshal(res)
@@ -151,17 +234,18 @@ func (c *CQTypes) UnmarshalJSON(b []byte) error {
 	}
 	cqTypes := make(CQTypes, 0, len(res))
 	for i := range res {
-		var t ValueType
-		if err := json.Unmarshal(res[i]["type"], &t); err != nil {
-			return err
+		var s string
+		if err := json.Unmarshal(res[i]["typ"], &s); err != nil {
+			return fmt.Errorf("failed to unmarshal CQType type: %w", err)
 		}
+		t := valueTypeFromOverTheWireString(s)
 		if t <= TypeInvalid || t >= TypeEnd {
 			// this means we dont support it yet on the destination side so we skip this CQType
 			continue
 		}
 		v := NewCqTypeFromValueType(t)
 		if err := json.Unmarshal(res[i]["value"], v); err != nil {
-			return err
+			return fmt.Errorf("failed to unmarshal CQType value: %w", err)
 		}
 
 		cqTypes = append(cqTypes, v)

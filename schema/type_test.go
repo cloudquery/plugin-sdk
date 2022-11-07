@@ -71,11 +71,23 @@ func TestCQTypesMarshal(t *testing.T) {
 		t.Fatalf("expected 1, got %d", len(res))
 	}
 
-	if err := json.Unmarshal([]byte(`[{"type": 1, "value": {"Bool":true,"Status":1}}, {"type": 200}]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`[{"typ": "Bool", "value": {"Bool":true,"Status":1}}, {"typ": "UnknownType"}]`), &res); err != nil {
 		t.Fatal(err)
 	}
 	if len(res) != 1 {
 		t.Fatalf("expected 1, got %d", len(res))
+	}
+}
+
+func TestValueTypeFromOverTheWireString(t *testing.T) {
+	for i := TypeInvalid + 1; i < TypeEnd; i++ {
+		if deprecatedTypesValues.isDeprecated(i) {
+			continue
+		}
+		v := valueTypeFromOverTheWireString(i.overTheWireString())
+		if v != i {
+			t.Fatalf("expected %d, got %d", i, v)
+		}
 	}
 }
 
