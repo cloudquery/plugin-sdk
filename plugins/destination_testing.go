@@ -58,7 +58,6 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 	tableName := "cq_test_write_overwrite"
 	table := testdata.TestTable(tableName)
 	syncTime := time.Now().UTC()
-	fmt.Println("syncTime", syncTime)
 	tables := []*schema.Table{
 		table,
 	}
@@ -108,8 +107,7 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
 	}
 
-	secondSyncTime := time.Now().UTC()
-	fmt.Println("secondSyncTime", secondSyncTime)
+	secondSyncTime := syncTime.Add(time.Second).UTC()
 	// write second time
 	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
@@ -161,7 +159,6 @@ func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.
 	tableName := "cq_test_write_append"
 	table := testdata.TestTable(tableName)
 	syncTime := time.Now().UTC()
-	fmt.Println("syncTime", syncTime)
 	tables := []*schema.Table{
 		table,
 	}
@@ -183,8 +180,10 @@ func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.
 		TableName: table.Name,
 		Data:      testdata.TestData(),
 	}
-	secondSyncTime := time.Now().UTC()
-	fmt.Println("secondSyncTime", secondSyncTime)
+	// we dont use time.now because looks like there is some strange
+	// issue on windows machine on github actions where it returns the same thing
+	// for all calls.
+	secondSyncTime := syncTime.Add(time.Second).UTC()
 	// write second time
 	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
