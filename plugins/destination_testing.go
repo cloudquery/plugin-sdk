@@ -311,7 +311,7 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 	}
 
 	if resource2.Data.Equal(resourcesRead[1]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
 	}
 
 	if !s.skipTestOverWriteDeleteStale {
