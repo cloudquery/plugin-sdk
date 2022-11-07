@@ -13,28 +13,28 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type destinationPluginTestSuite struct {
-	skipTestOverwrite bool
+type DestinationPluginTestSuite struct {
+	skipTestOverwrite            bool
 	skipTestOverWriteDeleteStale bool
-	skipTestAppend bool
+	skipTestAppend               bool
 }
 
-type destinationPluginTestSuiteOption func(suite *destinationPluginTestSuite)
+type DestinationPluginTestSuiteOption func(suite *DestinationPluginTestSuite)
 
-func DestinationPluginTestWithSuiteSkipTestOverwrite() destinationPluginTestSuiteOption {
-	return func(suite *destinationPluginTestSuite) {
+func DestinationPluginTestWithSuiteSkipTestOverwrite() DestinationPluginTestSuiteOption {
+	return func(suite *DestinationPluginTestSuite) {
 		suite.skipTestOverwrite = true
 	}
 }
 
-func DestinationPluginTestWithSuiteSkipTestOverWriteDeleteStale() destinationPluginTestSuiteOption {
-	return func(suite *destinationPluginTestSuite) {
+func DestinationPluginTestWithSuiteSkipTestOverWriteDeleteStale() DestinationPluginTestSuiteOption {
+	return func(suite *DestinationPluginTestSuite) {
 		suite.skipTestOverWriteDeleteStale = true
 	}
 }
 
-func DestinationPluginTestWithSuiteSkipTestAppend() destinationPluginTestSuiteOption {
-	return func(suite *destinationPluginTestSuite) {
+func DestinationPluginTestWithSuiteSkipTestAppend() DestinationPluginTestSuiteOption {
+	return func(suite *DestinationPluginTestSuite) {
 		suite.skipTestAppend = true
 	}
 }
@@ -231,7 +231,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
 }
 
-func (s *destinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	if s.skipTestOverwrite {
 		return nil
 	}
@@ -335,7 +335,7 @@ func (s *destinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 	return nil
 }
 
-func (s *destinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -394,9 +394,9 @@ func (s *destinationPluginTestSuite) destinationPluginTestWriteAppend(ctx contex
 	return nil
 }
 
-func DestinationPluginTestSuite(t *testing.T, p *DestinationPlugin, spec specs.Destination, options ...destinationPluginTestSuiteOption) {
+func DestinationPluginTestSuiteRunner(t *testing.T, p *DestinationPlugin, spec specs.Destination, options ...DestinationPluginTestSuiteOption) {
 	t.Helper()
-	suite := &destinationPluginTestSuite{}
+	suite := &DestinationPluginTestSuite{}
 	for _, option := range options {
 		option(suite)
 	}

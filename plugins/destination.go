@@ -28,7 +28,6 @@ type ClientResource struct {
 	Data      []interface{}
 }
 
-
 type DestinationPlugin struct {
 	// Name of destination plugin i.e postgresql,snowflake
 	name string
