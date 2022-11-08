@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4](https://github.com/cloudquery/plugin-sdk/compare/v1.0.3...v1.0.4) (2022-11-08)
+
+
+### Bug Fixes
+
+* Make path a required config parameter ([#368](https://github.com/cloudquery/plugin-sdk/issues/368)) ([77fdaf8](https://github.com/cloudquery/plugin-sdk/commit/77fdaf85c1f580b760694ed7fb0563be71d06726))
+
+## [1.0.3](https://github.com/cloudquery/plugin-sdk/compare/v1.0.2...v1.0.3) (2022-11-07)
+
+
+### Bug Fixes
+
+* Allow managed clients to disable sentry logging ([#363](https://github.com/cloudquery/plugin-sdk/issues/363)) ([dc20388](https://github.com/cloudquery/plugin-sdk/commit/dc203886a6b077afa4e1b1138c3c1c60b0fcd2f2))
+* Normalize Windows line breaks before parsing configuration files ([#352](https://github.com/cloudquery/plugin-sdk/issues/352)) ([979e207](https://github.com/cloudquery/plugin-sdk/commit/979e207831a2835943a420791fc9598ada2efbf7))
+
 ## [1.0.2](https://github.com/cloudquery/plugin-sdk/compare/v1.0.1...v1.0.2) (2022-11-07)
 
 
