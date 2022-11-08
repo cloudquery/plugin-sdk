@@ -55,6 +55,7 @@ func (dst *Int8Array) String() string {
 			}
 			sb.WriteString(element.String())
 		}
+		sb.WriteString("}")
 	} else {
 		return ""
 	}
