@@ -137,7 +137,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
 	ch := make(chan *ClientResource)
-	eg := &errgroup.Group{}
+	eg, ctx := errgroup.WithContext(ctx)
 	// given most destination plugins writing in batch we are using a worker pool to write in parallel
 	// it might not generalize well and we might need to move it to each destination plugin implementation.
 	for i := 0; i < writeWorkers; i++ {
@@ -155,7 +155,12 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 			TableName: r.TableName,
 			Data:      schema.TransformWithTransformer(p.client, r.Data),
 		}
-		ch <- clientResource
+		select {
+		case <-ctx.Done():
+			close(ch)
+			return eg.Wait()
+		case ch <- clientResource:
+		}
 	}
 
 	close(ch)
