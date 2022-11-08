@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTimestamptzSet(t *testing.T) {
@@ -35,8 +35,8 @@ func TestTimestamptzSet(t *testing.T) {
 	for _, tt := range successfulTests {
 		var r Timestamptz
 		err := r.Set(tt.source)
-		assert.NoError(t, err)
-		assert.Equal(t, tt.result, r)
+		require.NoError(t, err)
+		require.Equal(t, tt.result, r)
 	}
 }
 
@@ -44,6 +44,6 @@ func TestTimestamptzSetString(t *testing.T) {
 	for i := 0; i < 100000; i++ {
 		timeString := time.Now().Add(time.Duration(rand.Int63())).String()
 		_, err := time.Parse(defaultStringFormat, timeString)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 }
