@@ -62,12 +62,6 @@ func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.C
 		resource2,
 	}
 
-	if s.tests.DeleteStale {
-		if err := p.DeleteStale(ctx, tables, sourceName, syncTime); err != nil {
-			return fmt.Errorf("failed to delete stale data: %w", err)
-		}
-	}
-
 	if err := p.writeAll(ctx, tables, sourceName, syncTime, resources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
