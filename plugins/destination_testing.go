@@ -14,30 +14,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type DestinationPluginTestSuite struct {
-	skipTestOverwrite            bool
-	skipTestOverWriteDeleteStale bool
-	skipTestAppend               bool
+type destinationTestSuite struct {
+	tests DestinationTestSuiteTests
 }
 
-type DestinationPluginTestSuiteOption func(suite *DestinationPluginTestSuite)
-
-func DestinationPluginTestWithSuiteSkipTestOverwrite() DestinationPluginTestSuiteOption {
-	return func(suite *DestinationPluginTestSuite) {
-		suite.skipTestOverwrite = true
-	}
-}
-
-func DestinationPluginTestWithSuiteSkipTestOverWriteDeleteStale() DestinationPluginTestSuiteOption {
-	return func(suite *DestinationPluginTestSuite) {
-		suite.skipTestOverWriteDeleteStale = true
-	}
-}
-
-func DestinationPluginTestWithSuiteSkipTestAppend() DestinationPluginTestSuiteOption {
-	return func(suite *DestinationPluginTestSuite) {
-		suite.skipTestAppend = true
-	}
+type DestinationTestSuiteTests struct {
+	Overwrite   bool
+	DeleteStale bool
+	Append      bool
 }
 
 func getTestLogger(t *testing.T) zerolog.Logger {
@@ -48,10 +32,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
 }
 
-func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
-	if s.skipTestOverwrite {
-		return nil
-	}
+func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -81,7 +62,7 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 		resource2,
 	}
 
-	if !s.skipTestOverWriteDeleteStale {
+	if s.tests.DeleteStale {
 		if err := p.DeleteStale(ctx, tables, sourceName, syncTime); err != nil {
 			return fmt.Errorf("failed to delete stale data: %w", err)
 		}
@@ -131,7 +112,7 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
 	}
 
-	if !s.skipTestOverWriteDeleteStale {
+	if s.tests.DeleteStale {
 		if err := p.DeleteStale(ctx, tables, sourceName, secondSyncTime); err != nil {
 			return fmt.Errorf("failed to delete stale data second time: %w", err)
 		}
@@ -152,7 +133,7 @@ func (s *DestinationPluginTestSuite) destinationPluginTestWriteOverwrite(ctx con
 	return nil
 }
 
-func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -210,33 +191,36 @@ func (*DestinationPluginTestSuite) destinationPluginTestWriteAppend(ctx context.
 	return nil
 }
 
-func DestinationPluginTestSuiteRunner(t *testing.T, p *DestinationPlugin, spec specs.Destination, options ...DestinationPluginTestSuiteOption) {
+func DestinationPluginTestSuiteRunner(t *testing.T, p *DestinationPlugin, spec interface{}, tests DestinationTestSuiteTests) {
 	t.Helper()
-	suite := &DestinationPluginTestSuite{}
-	for _, option := range options {
-		option(suite)
+	destSpec := specs.Destination{
+		Name: "testsuite",
+		Spec: spec,
+	}
+	suite := &destinationTestSuite{
+		tests: tests,
 	}
 	ctx := context.Background()
 	logger := getTestLogger(t)
 
 	t.Run("TestWriteOverwrite", func(t *testing.T) {
 		t.Helper()
-		if suite.skipTestOverwrite {
+		if suite.tests.Overwrite {
 			t.Skip("skipping TestWriteOverwrite")
 			return
 		}
-		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, spec); err != nil {
+		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
 		}
 	})
 
 	t.Run("TestWriteAppend", func(t *testing.T) {
 		t.Helper()
-		if suite.skipTestAppend {
+		if suite.tests.Append {
 			t.Skip("skipping TestWriteAppend")
 			return
 		}
-		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, spec); err != nil {
+		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
 		}
 	})
