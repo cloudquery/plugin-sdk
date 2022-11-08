@@ -122,10 +122,9 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Ta
 				defer wg.Done()
 				//nolint:all
 				resolvedResource := p.resolveResource(ctx, table, client, parent, resourcesSlice[i])
-				if resolvedResource == nil {
-					return
+				if resolvedResource != nil {
+					resourcesChan <- resolvedResource
 				}
-				resourcesChan <- resolvedResource
 			}()
 		}
 		wg.Wait()
