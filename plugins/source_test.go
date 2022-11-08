@@ -257,6 +257,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 	plugin.SetLogger(zerolog.New(zerolog.NewTestWriter(t)))
 	spec := specs.Source{
 		Name:         "testSource",
+		Path:         "cloudquery/testSource",
 		Tables:       []string{"*"},
 		Version:      "v1.0.0",
 		Destinations: []string{"test"},
