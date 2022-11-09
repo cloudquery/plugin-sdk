@@ -12,6 +12,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/require"
 )
 
 type (
@@ -314,6 +315,53 @@ func TestTableFromGoStruct(t *testing.T) {
 				t.Fatal(err)
 			}
 			fmt.Println(buf.String())
+		})
+	}
+}
+
+func TestTableDefinition_Check(t *testing.T) {
+	tests := []struct {
+		name       string
+		definition *TableDefinition
+		err        error
+	}{
+		{
+			name: "nil",
+			err:  fmt.Errorf("nil table definition"),
+		},
+		{
+			name:       "no table name",
+			definition: new(TableDefinition),
+			err:        fmt.Errorf("empty table name"),
+		},
+		{
+			name:       "no columns",
+			definition: &TableDefinition{Name: "no_columns"},
+			err:        fmt.Errorf("no columns for table no_columns"),
+		},
+		{
+			name: "invalid type",
+			definition: &TableDefinition{
+				Name:    "invalid_type",
+				Columns: ColumnDefinitions{{Name: "col1"}},
+			},
+			err: fmt.Errorf("invalid_type->col1: invalid column type"),
+		},
+		{
+			name: "duplicate name",
+			definition: &TableDefinition{
+				Name: "duplicate_name",
+				Columns: ColumnDefinitions{
+					{Name: "col1", Type: schema.TypeInt},
+					{Name: "col1", Type: schema.TypeInt},
+				},
+			},
+			err: fmt.Errorf("duplicate_name->col1: duplicate column name"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.EqualValues(t, tt.err, tt.definition.Check())
 		})
 	}
 }
