@@ -24,6 +24,10 @@ type TimestamptzTransformer interface {
 	TransformTimestamptz(*Timestamptz) interface{}
 }
 
+type TextMarshaler interface {
+	MarshalText() ([]byte, error)
+}
+
 type Timestamptz struct {
 	Time             time.Time
 	Status           Status
@@ -89,6 +93,12 @@ func (dst *Timestamptz) Set(src interface{}) error {
 	default:
 		if originalSrc, ok := underlyingTimeType(src); ok {
 			return dst.Set(originalSrc)
+		}
+		if value, ok := value.(TextMarshaler); ok {
+			s, err := value.MarshalText()
+			if err == nil {
+				return dst.Set(string(s))
+			}
 		}
 		if value, ok := value.(fmt.Stringer); ok {
 			s := value.String()
