@@ -143,7 +143,7 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Ta
 }
 
 func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item interface{}) *schema.Resource {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	resource := schema.NewResourceData(table, parent, item)
 	objectStartTime := time.Now()
