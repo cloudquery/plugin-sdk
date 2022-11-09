@@ -96,6 +96,7 @@ func (dst *Timestamptz) Set(src interface{}) error {
 			if err == nil {
 				return dst.Set(string(s))
 			}
+			// fall through to String() method
 		}
 		if value, ok := value.(fmt.Stringer); ok {
 			s := value.String()
