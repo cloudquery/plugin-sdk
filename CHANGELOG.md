@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0](https://github.com/cloudquery/plugin-sdk/compare/v1.2.0...v1.3.0) (2022-11-09)
+
+
+### Features
+
+* **codegen:** Add `WithPKColumns` option ([#379](https://github.com/cloudquery/plugin-sdk/issues/379)) ([0e3457d](https://github.com/cloudquery/plugin-sdk/commit/0e3457de7b3c8de1e1f21330d98a1a7a1806ccc3))
+
 ## [1.2.0](https://github.com/cloudquery/plugin-sdk/compare/v1.1.2...v1.2.0) (2022-11-09)
 
 
