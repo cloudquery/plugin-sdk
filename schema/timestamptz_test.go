@@ -44,6 +44,10 @@ func TestTimestamptzSetString(t *testing.T) {
 	for i := 0; i < 100000; i++ {
 		timeString := time.Now().Add(time.Duration(rand.Int63())).String()
 		_, err := time.Parse(defaultStringFormat, timeString)
-		require.NoError(t, err)
+		if err == nil {
+			t.Errorf("time.Parse(%q) should return error", timeString)
+		} else {
+			t.Errorf("time.Parse(%q) should not return error", timeString)
+		}
 	}
 }
