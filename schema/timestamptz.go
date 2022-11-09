@@ -2,6 +2,7 @@
 package schema
 
 import (
+	"encoding"
 	"fmt"
 	"time"
 )
@@ -22,10 +23,6 @@ const (
 
 type TimestamptzTransformer interface {
 	TransformTimestamptz(*Timestamptz) interface{}
-}
-
-type TextMarshaler interface {
-	MarshalText() ([]byte, error)
 }
 
 type Timestamptz struct {
@@ -94,7 +91,7 @@ func (dst *Timestamptz) Set(src interface{}) error {
 		if originalSrc, ok := underlyingTimeType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		if value, ok := value.(TextMarshaler); ok {
+		if value, ok := value.(encoding.TextMarshaler); ok {
 			s, err := value.MarshalText()
 			if err == nil {
 				return dst.Set(string(s))
