@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"math/rand"
 	"testing"
 	"time"
 
@@ -37,17 +36,5 @@ func TestTimestamptzSet(t *testing.T) {
 		err := r.Set(tt.source)
 		require.NoError(t, err)
 		require.Equal(t, tt.result, r)
-	}
-}
-
-func TestTimestamptzSetString(t *testing.T) {
-	for i := 0; i < 100000; i++ {
-		timeString := time.Now().Add(time.Duration(rand.Int63())).String()
-		_, err := time.Parse(defaultStringFormat, timeString)
-		if err == nil {
-			t.Errorf("time.Parse(%q) should return error", timeString)
-		} else {
-			t.Errorf("time.Parse(%q) should not return error", timeString)
-		}
 	}
 }
