@@ -301,7 +301,7 @@ func (c *SourceClient) Terminate() error {
 
 	if c.grpcSocketName != "" {
 		defer func() {
-			if err := os.Remove(c.grpcSocketName); err != nil {
+			if err := os.RemoveAll(c.grpcSocketName); err != nil {
 				c.logger.Error().Err(err).Msg("failed to remove source socket file")
 			}
 		}()
