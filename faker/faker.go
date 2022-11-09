@@ -46,8 +46,7 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 		switch t.String() {
 		case "time.Time":
 			ft := time.Now().Add(time.Duration(rand.Int63()))
-			ftBytes, _ := ft.MarshalText()
-			return reflect.ValueOf(string(ftBytes)), nil
+			return reflect.ValueOf(ft), nil
 		default:
 			v := reflect.New(t).Elem()
 			for i := 0; i < v.NumField(); i++ {
