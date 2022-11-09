@@ -2,6 +2,7 @@
 package schema
 
 import (
+	"encoding"
 	"fmt"
 	"time"
 )
@@ -89,6 +90,13 @@ func (dst *Timestamptz) Set(src interface{}) error {
 	default:
 		if originalSrc, ok := underlyingTimeType(src); ok {
 			return dst.Set(originalSrc)
+		}
+		if value, ok := value.(encoding.TextMarshaler); ok {
+			s, err := value.MarshalText()
+			if err == nil {
+				return dst.Set(string(s))
+			}
+			// fall through to String() method
 		}
 		if value, ok := value.(fmt.Stringer); ok {
 			s := value.String()
