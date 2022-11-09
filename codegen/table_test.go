@@ -78,6 +78,7 @@ var (
 			Name:     "int_col",
 			Type:     schema.TypeInt,
 			Resolver: `schema.PathResolver("IntCol")`,
+			Options:  schema.ColumnCreationOptions{PrimaryKey: true},
 		},
 		{
 			Name:     "int64_col",
@@ -155,7 +156,12 @@ var (
 			// Should not be unwrapped
 			ColumnDefinition{Name: "test_struct", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TestStruct")`},
 			// Should be unwrapped
-			ColumnDefinition{Name: "non_embedded_embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`},
+			ColumnDefinition{
+				Name:     "non_embedded_embedded_string",
+				Type:     schema.TypeString,
+				Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`,
+				Options:  schema.ColumnCreationOptions{PrimaryKey: true},
+			},
 		},
 		nameTransformer:     DefaultNameTransformer,
 		typeTransformer:     DefaultTypeTransformer,
@@ -168,6 +174,7 @@ var (
 				Name:     "time_col",
 				Type:     schema.TypeTimestamp,
 				Resolver: `schema.PathResolver("TimeCol")`,
+				Options:  schema.ColumnCreationOptions{PrimaryKey: true},
 			},
 			{
 				Name:     "custom",
@@ -228,6 +235,7 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should generate table from struct with default options",
 			args: args{
 				testStruct: testStruct{},
+				options:    []TableOption{WithPKColumns("int_col")},
 			},
 			want: expectedTestTable,
 		},
@@ -235,7 +243,10 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should unwrap all embedded structs when option is set",
 			args: args{
 				testStruct: testStructWithEmbeddedStruct{},
-				options:    []TableOption{WithUnwrapAllEmbeddedStructs()},
+				options: []TableOption{
+					WithPKColumns("int_col"),
+					WithUnwrapAllEmbeddedStructs(),
+				},
 			},
 			want: expectedTestTableEmbeddedStruct,
 		},
@@ -243,7 +254,10 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should unwrap specific structs when option is set",
 			args: args{
 				testStruct: testStructWithNonEmbeddedStruct{},
-				options:    []TableOption{WithUnwrapStructFields([]string{"NonEmbedded"})},
+				options: []TableOption{
+					WithPKColumns("non_embedded_embedded_string"),
+					WithUnwrapStructFields([]string{"NonEmbedded"}),
+				},
 			},
 			want: expectedTestTableNonEmbeddedStruct,
 		},
@@ -251,30 +265,46 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should override schema type when option is set",
 			args: args{
 				testStruct: testStructWithCustomType{},
-				options: []TableOption{WithTypeTransformer(func(t reflect.StructField) (schema.ValueType, error) {
-					switch t.Type {
-					case reflect.TypeOf(time.Time{}), reflect.TypeOf(&time.Time{}):
-						return schema.TypeJSON, nil
-					default:
-						return schema.TypeInvalid, nil
-					}
-				})},
+				options: []TableOption{
+					WithPKColumns("time_col"),
+					WithTypeTransformer(func(t reflect.StructField) (schema.ValueType, error) {
+						switch t.Type {
+						case reflect.TypeOf(time.Time{}), reflect.TypeOf(&time.Time{}):
+							return schema.TypeJSON, nil
+						default:
+							return schema.TypeInvalid, nil
+						}
+					}),
+				},
 			},
 			want: TableDefinition{Name: "test_struct",
 				// We expect the time column to be of type JSON, since we override the type of `time.Time` to be JSON
-				Columns:         ColumnDefinitions{{Name: "time_col", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TimeCol")`}},
+				Columns: ColumnDefinitions{{
+					Name:     "time_col",
+					Type:     schema.TypeJSON,
+					Resolver: `schema.PathResolver("TimeCol")`,
+					Options:  schema.ColumnCreationOptions{PrimaryKey: true},
+				}},
 				nameTransformer: DefaultNameTransformer},
 		},
 		{
 			name: "should handle default and custom acronyms correctly",
 			args: args{
 				testStruct: testStructCaseCheck{},
-				options:    []TableOption{WithNameTransformer(customNameTransformer)},
+				options: []TableOption{
+					WithPKColumns("ip_address"),
+					WithNameTransformer(customNameTransformer),
+				},
 			},
 			want: TableDefinition{Name: "test_struct",
 				// We expect the time column to be of type JSON, since we override the type of `time.Time` to be JSON
 				Columns: ColumnDefinitions{
-					{Name: "ip_address", Type: schema.TypeString, Resolver: `schema.PathResolver("IPAddress")`},
+					{
+						Name:     "ip_address",
+						Type:     schema.TypeString,
+						Resolver: `schema.PathResolver("IPAddress")`,
+						Options:  schema.ColumnCreationOptions{PrimaryKey: true},
+					},
 					{Name: "cdns", Type: schema.TypeString, Resolver: `schema.PathResolver("CDNs")`},
 					{Name: "my_cdn", Type: schema.TypeString, Resolver: `schema.PathResolver("MyCDN")`},
 					{Name: "cidr", Type: schema.TypeInt, Resolver: `schema.PathResolver("CIDR")`},
@@ -292,6 +322,7 @@ func TestTableFromGoStruct(t *testing.T) {
 			args: args{
 				testStruct: testStructForCustomResolvers{},
 				options: []TableOption{
+					WithPKColumns("time_col"),
 					WithTypeTransformer(customTypeTransformer),
 					WithResolverTransformer(customResolverTransformer),
 				},
@@ -306,7 +337,7 @@ func TestTableFromGoStruct(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if diff := cmp.Diff(table, &tt.want,
+			if diff := cmp.Diff(&tt.want, table,
 				cmpopts.IgnoreUnexported(TableDefinition{})); diff != "" {
 				t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
 			}
