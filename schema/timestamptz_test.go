@@ -3,8 +3,6 @@ package schema
 import (
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/require"
 )
 
 type Timestamp struct {
@@ -36,10 +34,15 @@ func TestTimestamptzSet(t *testing.T) {
 		{source: Timestamp{timeInstance}, result: Timestamptz{Time: time.Date(2105, 7, 23, 22, 23, 37, 750076110, time.UTC), Status: Present}},
 	}
 
-	for _, tt := range successfulTests {
+	for i, tt := range successfulTests {
 		var r Timestamptz
 		err := r.Set(tt.source)
-		require.NoError(t, err)
-		require.Equal(t, tt.result, r)
+		if err != nil {
+			t.Errorf("%d: %v", i, err)
+		}
+
+		if !r.Equal(&tt.result) {
+			t.Errorf("%d: %v != %v", i, r, tt.result)
+		}
 	}
 }
