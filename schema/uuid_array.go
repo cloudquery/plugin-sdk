@@ -55,6 +55,7 @@ func (dst *UUIDArray) String() string {
 			}
 			sb.WriteString(element.String())
 		}
+		sb.WriteString("}")
 	} else {
 		return ""
 	}
