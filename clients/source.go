@@ -182,7 +182,7 @@ func (c *SourceClient) GetProtocolVersion(ctx context.Context) (uint64, error) {
 	if err != nil {
 		s, ok := status.FromError(err)
 		if !ok {
-			return 0, fmt.Errorf("failed to cal GetProtocolVersion: %w", err)
+			return 0, fmt.Errorf("failed to call GetProtocolVersion: %w", err)
 		}
 		if s.Code() != codes.Unimplemented {
 			return 0, err
@@ -219,6 +219,33 @@ func (c *SourceClient) GetMetrics(ctx context.Context) (*plugins.SourceMetrics, 
 		return nil, fmt.Errorf("failed to unmarshal source stats: %w", err)
 	}
 	return &stats, nil
+}
+
+func (c *SourceClient) GetMetrics2(ctx context.Context, res chan<- plugins.TableClientMetrics) error {
+	stream, err := c.pbClient.GetMetrics2(ctx, &pb.GetSourceMetrics2_Request{})
+	if err != nil {
+		return fmt.Errorf("failed to call GetMetrics2: %w", err)
+	}
+	for {
+		r, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return fmt.Errorf("failed to fetch metrics from stream: %w", err)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case res <- plugins.TableClientMetrics{
+			Resources: r.Resources,
+			Errors:    r.Errors,
+			Panics:    r.Panics,
+			StartTime: r.StartTime.AsTime(),
+			EndTime:   r.EndTime.AsTime(),
+		}:
+		}
+	}
 }
 
 func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
@@ -263,7 +290,7 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	}
 }
 
-// Sync start syncing for the source client per the given spec and returning the results
+// Sync2 starts syncing for the source client per the given spec and returning the results
 // in the given channel. res is marshaled schema.Resource. We are not unmarshalling this for performance reasons
 // as usually this is sent over-the-wire anyway to a source plugin
 func (c *SourceClient) Sync2(ctx context.Context, spec specs.Source, res chan<- []byte) error {

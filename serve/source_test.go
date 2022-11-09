@@ -3,7 +3,6 @@ package serve
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
 	"sync"
 	"testing"
@@ -166,7 +165,6 @@ func TestServeSource(t *testing.T) {
 		if len(resource.Data) != 3 {
 			t.Fatalf("Expected resource with data length 3 but got %d", len(resource.Data))
 		}
-		fmt.Println(resource.Data)
 		if resource.Data[2] == nil {
 			t.Fatalf("Expected resource with data[2] to be not nil")
 		}
@@ -194,6 +192,26 @@ func TestServeSource(t *testing.T) {
 
 	if clientStats.Panics != 0 {
 		t.Fatalf("Expected 0 panics but got %d", clientStats.Panics)
+	}
+
+	metricsChan := make(chan plugins.TableClientMetrics, 1)
+	err = c.GetMetrics2(ctx, metricsChan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	close(metricsChan)
+	streamedStats := make([]plugins.TableClientMetrics, 0)
+	for m := range metricsChan {
+		streamedStats = append(streamedStats, m)
+	}
+	if len(streamedStats) != 1 {
+		t.Fatalf("Expected 1 streamed resource but got %d", len(streamedStats))
+	}
+	if streamedStats[0].Errors != 0 {
+		t.Errorf("Expected 0 streamed metric errors but got %d", streamedStats[0].Errors)
+	}
+	if streamedStats[0].Panics != 0 {
+		t.Errorf("Expected 0 streamed metric panics but got %d", streamedStats[0].Panics)
 	}
 
 	cancel()

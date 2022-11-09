@@ -24,6 +24,8 @@ service Source {
   rpc Sync2(Sync2.Request) returns (stream Sync2.Response);
   // Get metrics for the source plugin
   rpc GetMetrics(GetSourceMetrics.Request) returns (GetSourceMetrics.Response);
+  // Get metrics for the source plugin. This is a streaming version of the original GetMetrics.
+  rpc GetMetrics2(GetSourceMetrics2.Request) returns (stream GetSourceMetrics2.Response);
 }
 
 message Sync {
@@ -72,5 +74,18 @@ message GetSourceMetrics {
   message Response {
     // marshalled json of plugins.SourceMetrics
     bytes metrics = 1;
+  }
+}
+
+message GetSourceMetrics2 {
+  message Request {}
+  message Response {
+    string table = 1;
+    string client = 2;
+    uint64 resources = 3;
+    uint64 errors = 4;
+    uint64 panics = 5;
+    google.protobuf.Timestamp start_time = 6;
+    google.protobuf.Timestamp end_time = 7;
   }
 }

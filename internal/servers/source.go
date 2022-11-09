@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type SourceServer struct {
@@ -102,4 +103,26 @@ func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request)
 	return &pb.GetSourceMetrics_Response{
 		Metrics: b,
 	}, nil
+}
+
+func (s *SourceServer) GetMetrics2(_ *pb.GetSourceMetrics2_Request, stream pb.Source_GetMetrics2Server) error {
+	m := s.Plugin.Metrics()
+	for t, table := range m.TableClient {
+		for c, value := range table {
+			err := stream.Send(&pb.GetSourceMetrics2_Response{
+				Table:     t,
+				Client:    c,
+				Resources: value.Resources,
+				Errors:    value.Errors,
+				Panics:    value.Panics,
+				StartTime: timestamppb.New(value.StartTime),
+				EndTime:   timestamppb.New(value.EndTime),
+			})
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to send metric: %v", err)
+			}
+		}
+	}
+
+	return nil
 }
