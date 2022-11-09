@@ -3,243 +3,219 @@ package plugins
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/internal/testdata"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
-// TestTable returns a table with columns of all type. useful for destination testing purposes
-func TestTable() *schema.Table {
-	return &schema.Table{
-		Name:        "cq_test_table",
-		Description: "Test table",
-		Columns: schema.ColumnList{
-			schema.CqIDColumn,
-			schema.CqParentIDColumn,
-			{
-				Name: "bool",
-				Type: schema.TypeBool,
-			},
-			{
-				Name: "int",
-				Type: schema.TypeInt,
-			},
-			{
-				Name: "float",
-				Type: schema.TypeFloat,
-			},
-			{
-				Name: "uuid",
-				Type: schema.TypeUUID,
-			},
-			{
-				Name: "text",
-				Type: schema.TypeString,
-			},
-			{
-				Name: "bytea",
-				Type: schema.TypeByteArray,
-			},
-			{
-				Name: "text_array",
-				Type: schema.TypeStringArray,
-			},
-			{
-				Name: "int_array",
-				Type: schema.TypeIntArray,
-			},
-			{
-				Name: "timestamp",
-				Type: schema.TypeTimestamp,
-			},
-			{
-				Name: "json",
-				Type: schema.TypeJSON,
-			},
-			{
-				Name: "uuid_array",
-				Type: schema.TypeUUIDArray,
-			},
-			{
-				Name: "inet",
-				Type: schema.TypeInet,
-			},
-			{
-				Name: "inet_array",
-				Type: schema.TypeInetArray,
-			},
-			{
-				Name: "cidr",
-				Type: schema.TypeCIDR,
-			},
-			{
-				Name: "cidr_array",
-				Type: schema.TypeCIDRArray,
-			},
-			{
-				Name: "macaddr",
-				Type: schema.TypeMacAddr,
-			},
-			{
-				Name: "macaddr_array",
-				Type: schema.TypeMacAddrArray,
-			},
-		},
-	}
+type destinationTestSuite struct {
+	tests DestinationTestSuiteTests
 }
 
-func TestData() schema.CQTypes {
-	cqID := &schema.UUID{}
-	if err := cqID.Set(uuid.New()); err != nil {
-		panic(err)
-	}
-	cqParentID := &schema.UUID{}
-	if err := cqParentID.Set("00000000-0000-0000-0000-000000000003"); err != nil {
-		panic(err)
-	}
-	boolColumn := &schema.Bool{
-		Bool:   true,
-		Status: schema.Present,
-	}
-	intColumn := &schema.Int8{
-		Int:    1,
-		Status: schema.Present,
-	}
-	floatColumn := &schema.Float8{
-		Float:  1.1,
-		Status: schema.Present,
-	}
-	uuidColumn := &schema.UUID{}
-	if err := uuidColumn.Set("00000000-0000-0000-0000-000000000001"); err != nil {
-		panic(err)
-	}
-	textColumn := &schema.Text{
-		Str:    "test",
-		Status: schema.Present,
-	}
-	byteaColumn := &schema.Bytea{
-		Bytes:  []byte{1, 2, 3},
-		Status: schema.Present,
-	}
-	textArrayColumn := &schema.TextArray{}
-	if err := textArrayColumn.Set([]string{"test1", "test2"}); err != nil {
-		panic(err)
-	}
-	intArrayColumn := &schema.Int8Array{}
-	if err := intArrayColumn.Set([]int8{1, 2}); err != nil {
-		panic(err)
-	}
-	timestampColumn := &schema.Timestamptz{
-		Time:   time.Now(),
-		Status: schema.Present,
-	}
-	jsonColumn := &schema.JSON{
-		Bytes:  []byte(`{"test": "test"}`),
-		Status: schema.Present,
-	}
-	uuidArrayColumn := &schema.UUIDArray{}
-	if err := uuidArrayColumn.Set([]string{"00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002"}); err != nil {
-		panic(err)
-	}
-	inetColumn := &schema.Inet{}
-	if err := inetColumn.Set("192.0.2.1/24"); err != nil {
-		panic(err)
-	}
-	inetArrayColumn := &schema.InetArray{}
-	if err := inetArrayColumn.Set([]string{"192.0.2.1/24", "192.0.2.1/24"}); err != nil {
-		panic(err)
-	}
-	cidrColumn := &schema.CIDR{}
-	if err := cidrColumn.Set("192.0.2.1"); err != nil {
-		panic(err)
-	}
-	cidrArrayColumn := &schema.CIDRArray{}
-	if err := cidrArrayColumn.Set([]string{"192.0.2.1", "192.0.2.1"}); err != nil {
-		panic(err)
-	}
-	macaddrColumn := &schema.Macaddr{}
-	if err := macaddrColumn.Set("aa:bb:cc:dd:ee:ff"); err != nil {
-		panic(err)
-	}
-	macaddrArrayColumn := &schema.MacaddrArray{}
-	if err := macaddrArrayColumn.Set([]string{"aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"}); err != nil {
-		panic(err)
-	}
-
-	data := schema.CQTypes{
-		cqID,
-		cqParentID,
-		boolColumn,
-		intColumn,
-		floatColumn,
-		uuidColumn,
-		textColumn,
-		byteaColumn,
-		textArrayColumn,
-		intArrayColumn,
-		timestampColumn,
-		jsonColumn,
-		uuidArrayColumn,
-		inetColumn,
-		inetArrayColumn,
-		cidrColumn,
-		cidrArrayColumn,
-		macaddrColumn,
-		macaddrArrayColumn,
-	}
-
-	return data
+type DestinationTestSuiteTests struct {
+	Overwrite   bool
+	DeleteStale bool
+	Append      bool
 }
 
-func DestinationPluginTestHelper(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+func getTestLogger(t *testing.T) zerolog.Logger {
+	t.Helper()
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
+	return zerolog.New(zerolog.NewTestWriter(t)).Output(
+		zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.StampMicro},
+	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
+}
+
+func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
-		return err
+		return fmt.Errorf("failed to init plugin: %w", err)
 	}
+	tableName := "cq_test_write_overwrite"
+	table := testdata.TestTable(tableName)
+	syncTime := time.Now().UTC()
 	tables := []*schema.Table{
-		TestTable(),
+		table,
 	}
 	if err := p.Migrate(ctx, tables); err != nil {
-		return err
-	}
-	syncTime := time.Now()
-	sourceName := "test_helper_" + syncTime.String()
-
-	resources := make(chan *schema.DestinationResource, 1)
-	expectedResource := &schema.DestinationResource{
-		TableName: tables[0].Name,
-		Data:      TestData(),
-	}
-	resources <- expectedResource
-	close(resources)
-	if err := p.Write(ctx, tables, sourceName, syncTime, resources); err != nil {
-		return err
+		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
-	resources = make(chan *schema.DestinationResource)
-	var readErr error
-	go func() {
-		defer close(resources)
-		readErr = p.Read(ctx, tables[0], sourceName, resources)
-	}()
-	totalResources := 0
-	var receivedResource *schema.DestinationResource
-	for r := range resources {
-		receivedResource = r
-		totalResources++
+	sourceName := uuid.NewString()
+	resource := schema.DestinationResource{
+		TableName: table.Name,
+		Data:      testdata.TestData(),
 	}
-	if readErr != nil {
-		return readErr
+	resource2 := schema.DestinationResource{
+		TableName: table.Name,
+		Data:      testdata.TestData(),
 	}
-	if totalResources != 1 {
-		return fmt.Errorf("expected 1 resource, got %d", totalResources)
+	_ = resource2.Data[5].Set("00000000-0000-0000-0000-000000000007")
+	resources := []schema.DestinationResource{
+		resource,
+		resource2,
 	}
 
-	if receivedResource.TableName != expectedResource.TableName {
-		return fmt.Errorf("expected table name %s, got %s", expectedResource.TableName, receivedResource.TableName)
+	if err := p.writeAll(ctx, tables, sourceName, syncTime, resources); err != nil {
+		return fmt.Errorf("failed to write all: %w", err)
 	}
 
-	return readErr
+	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
+	if err != nil {
+		return fmt.Errorf("failed to read all: %w", err)
+	}
+
+	if len(resourcesRead) != 2 {
+		return fmt.Errorf("expected 2 resource, got %d", len(resourcesRead))
+	}
+
+	if resource.Data.Equal(resourcesRead[0]) {
+		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+	}
+
+	if resource2.Data.Equal(resourcesRead[1]) {
+		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
+	}
+
+	secondSyncTime := syncTime.Add(time.Second).UTC()
+	// write second time
+	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
+		return fmt.Errorf("failed to write one second time: %w", err)
+	}
+
+	resourcesRead, err = p.readAll(ctx, tables[0], sourceName)
+	if err != nil {
+		return fmt.Errorf("failed to read all second time: %w", err)
+	}
+
+	if len(resourcesRead) != 2 {
+		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
+	}
+
+	if resource.Data.Equal(resourcesRead[0]) {
+		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+	}
+
+	if resource2.Data.Equal(resourcesRead[1]) {
+		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
+	}
+
+	if s.tests.DeleteStale {
+		if err := p.DeleteStale(ctx, tables, sourceName, secondSyncTime); err != nil {
+			return fmt.Errorf("failed to delete stale data second time: %w", err)
+		}
+	}
+
+	resourcesRead, err = p.readAll(ctx, tables[0], sourceName)
+	if err != nil {
+		return fmt.Errorf("failed to read all second time: %w", err)
+	}
+	if len(resourcesRead) != 1 {
+		return fmt.Errorf("expected 1 resource, got %d", len(resourcesRead))
+	}
+
+	if resource2.Data.Equal(resourcesRead[0]) {
+		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+	}
+
+	return nil
+}
+
+func (*destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+	spec.WriteMode = specs.WriteModeAppend
+	if err := p.Init(ctx, logger, spec); err != nil {
+		return fmt.Errorf("failed to init plugin: %w", err)
+	}
+	tableName := "cq_test_write_append"
+	table := testdata.TestTable(tableName)
+	syncTime := time.Now().UTC()
+	tables := []*schema.Table{
+		table,
+	}
+	if err := p.Migrate(ctx, tables); err != nil {
+		return fmt.Errorf("failed to migrate tables: %w", err)
+	}
+
+	sourceName := uuid.NewString()
+	resource := schema.DestinationResource{
+		TableName: table.Name,
+		Data:      testdata.TestData(),
+	}
+
+	if err := p.writeOne(ctx, tables, sourceName, syncTime, resource); err != nil {
+		return fmt.Errorf("failed to write one second time: %w", err)
+	}
+
+	resource = schema.DestinationResource{
+		TableName: table.Name,
+		Data:      testdata.TestData(),
+	}
+	// we dont use time.now because looks like there is some strange
+	// issue on windows machine on github actions where it returns the same thing
+	// for all calls.
+	secondSyncTime := syncTime.Add(time.Second).UTC()
+	// write second time
+	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
+		return fmt.Errorf("failed to write one second time: %w", err)
+	}
+
+	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
+	if err != nil {
+		return fmt.Errorf("failed to read all second time: %w", err)
+	}
+
+	if len(resourcesRead) != 2 {
+		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
+	}
+
+	if resource.Data.Equal(resourcesRead[0]) {
+		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+	}
+
+	if resource.Data.Equal(resourcesRead[1]) {
+		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
+	}
+
+	return nil
+}
+
+func DestinationPluginTestSuiteRunner(t *testing.T, p *DestinationPlugin, spec interface{}, tests DestinationTestSuiteTests) {
+	t.Helper()
+	destSpec := specs.Destination{
+		Name: "testsuite",
+		Spec: spec,
+	}
+	suite := &destinationTestSuite{
+		tests: tests,
+	}
+	ctx := context.Background()
+	logger := getTestLogger(t)
+
+	t.Run("TestWriteOverwrite", func(t *testing.T) {
+		t.Helper()
+		if suite.tests.Overwrite {
+			t.Skip("skipping TestWriteOverwrite")
+			return
+		}
+		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("TestWriteAppend", func(t *testing.T) {
+		t.Helper()
+		if suite.tests.Append {
+			t.Skip("skipping TestWriteAppend")
+			return
+		}
+		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+	})
 }

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/thoas/go-funk"
 )
 
 type WriteMode int
@@ -32,12 +34,6 @@ func (d *Destination) SetDefaults() {
 	if d.Registry.String() == "" {
 		d.Registry = RegistryGithub
 	}
-	if d.Path == "" {
-		d.Path = d.Name
-	}
-	if d.Registry == RegistryGithub && !strings.Contains(d.Path, "/") {
-		d.Path = "cloudquery/" + d.Path
-	}
 }
 
 func (d *Destination) UnmarshalSpec(out interface{}) error {
@@ -54,6 +50,15 @@ func (d *Destination) UnmarshalSpec(out interface{}) error {
 func (d *Destination) Validate() error {
 	if d.Name == "" {
 		return fmt.Errorf("name is required")
+	}
+	if d.Path == "" {
+		msg := "path is required"
+		// give a small hint to help users transition from the old config format that didn't require path
+		officialPlugins := []string{"postgresql", "csv"}
+		if funk.ContainsString(officialPlugins, d.Name) {
+			msg += fmt.Sprintf(". Hint: try setting path to cloudquery/%s in your config", d.Name)
+		}
+		return fmt.Errorf(msg)
 	}
 
 	if d.Registry == RegistryGithub {
