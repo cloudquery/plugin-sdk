@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0](https://github.com/cloudquery/plugin-sdk/compare/v1.3.2...v1.4.0) (2022-11-10)
+
+
+### Features
+
+* **codegen:** Allow passing slices ([#386](https://github.com/cloudquery/plugin-sdk/issues/386)) ([dbc28d8](https://github.com/cloudquery/plugin-sdk/commit/dbc28d8419e3e3fa5682a537d11b80787ad2d036))
+
+
+### Bug Fixes
+
+* Clear skip tables error on invalid or child table skippage ([#349](https://github.com/cloudquery/plugin-sdk/issues/349)) ([bb0c60b](https://github.com/cloudquery/plugin-sdk/commit/bb0c60bd9d86f2dab5853ff6377bfb789a0dbf7d))
+
 ## [1.3.2](https://github.com/cloudquery/plugin-sdk/compare/v1.3.1...v1.3.2) (2022-11-10)
 
 
