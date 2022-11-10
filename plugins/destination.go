@@ -171,6 +171,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 			// all workers exited and therefore won't be consuming from the
 			// ch channel anymore. In this case we should stop iterating to avoid
 			// deadlock, and return the error returned by eg.Wait() lower down.
+			p.logger.Error().Msg("All DestinationPlugin Write workers have stopped")
 			break
 		}
 	}
