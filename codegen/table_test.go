@@ -394,7 +394,15 @@ func TestTableDefinition_Check(t *testing.T) {
 		{
 			name:       "no columns",
 			definition: &TableDefinition{Name: "no_columns"},
-			err:        fmt.Errorf("no columns for table no_columns"),
+			err:        fmt.Errorf("no_columns: no columns"),
+		},
+		{
+			name: "no column name",
+			definition: &TableDefinition{
+				Name:    "no_column_name",
+				Columns: ColumnDefinitions{{}},
+			},
+			err: fmt.Errorf("no_column_name: empty column name"),
 		},
 		{
 			name: "invalid type",
