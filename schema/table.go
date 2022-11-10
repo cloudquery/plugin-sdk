@@ -89,7 +89,7 @@ func (tt Tables) Get(name string) *Table {
 
 // GlobMatch returns a list of tables that match a given glob
 func (tt Tables) GlobMatch(pattern string) []*Table {
-	var tables []*Table
+	tables := make([]*Table, 0, 10)
 	for _, t := range tt {
 		if !glob.Glob(pattern, t.Name) {
 			continue

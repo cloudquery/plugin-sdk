@@ -128,22 +128,6 @@ func (p *SourcePlugin) Metrics() SourceMetrics {
 	return p.metrics
 }
 
-func filterParentTables(tables schema.Tables, filter []string) schema.Tables {
-	var res schema.Tables
-	if tables == nil {
-		return nil
-	}
-	if len(filter) == 0 {
-		return tables
-	}
-	for _, name := range filter {
-		if t := tables.Get(name); t != nil {
-			res = append(res, t)
-		}
-	}
-	return res
-}
-
 // Sync is syncing data from the requested tables in spec to the given channel
 func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
 	spec.SetDefaults()
