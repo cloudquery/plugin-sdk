@@ -188,7 +188,7 @@ func TestServeSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clientStats := stats.TableClient["test_table"]["testExecutionClient"]
+	clientStats := stats.TableClient[""][""]
 	if clientStats.Resources != 1 {
 		t.Fatalf("Expected 1 resource but got %d", clientStats.Resources)
 	}

@@ -95,7 +95,20 @@ func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server
 }
 
 func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request) (*pb.GetSourceMetrics_Response, error) {
-	b, err := json.Marshal(s.Plugin.Metrics())
+	// Aggregate metrics before sending to keep response size small.
+	// Temporary fix for https://github.com/cloudquery/cloudquery/issues/3962
+	m := s.Plugin.Metrics()
+	agg := &plugins.TableClientMetrics{}
+	for _, table := range m.TableClient {
+		for _, tableClient := range table {
+			agg.Resources += tableClient.Resources
+			agg.Errors += tableClient.Errors
+			agg.Panics += tableClient.Panics
+		}
+	}
+	b, err := json.Marshal(&plugins.SourceMetrics{
+		TableClient: map[string]map[string]*plugins.TableClientMetrics{"": {"": agg}},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal source metrics: %w", err)
 	}
