@@ -70,6 +70,9 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOption) (*Tab
 	if e.Kind() == reflect.Pointer {
 		e = e.Elem()
 	}
+	if e.Kind() == reflect.Slice {
+		e = reflect.MakeSlice(e.Type(), 1, 1).Index(0)
+	}
 	if e.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("expected struct, got %s", e.Kind())
 	}
