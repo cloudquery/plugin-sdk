@@ -58,14 +58,14 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 				defer p.tableSem.Release(1)
 				// not checking for error here as nothing much todo.
 				// the error is logged and this happens when context is cancelled
-				p.resolveTableDfs(ctx, table, client, nil, resolvedResources)
+				p.resolveTableDfs(ctx, tables, table, client, nil, resolvedResources)
 			}()
 		}
 	}
 	wg.Wait()
 }
 
-func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource) {
+func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables schema.Tables, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource) {
 	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 	logger.Info().Msg("table resolver started")
@@ -92,14 +92,14 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table,
 	}()
 
 	for r := range res {
-		p.resolveResourcesDfs(ctx, table, client, parent, r, resolvedResources)
+		p.resolveResourcesDfs(ctx, allIncludedTables, table, client, parent, r, resolvedResources)
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
 	logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("fetch table finished")
 }
 
-func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource) {
+func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, allIncludedTables schema.Tables, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
@@ -133,11 +133,12 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Ta
 
 	for resource := range resourcesChan {
 		resolvedResources <- resource
-		if resource.Table.Relations == nil {
-			continue
-		}
 		for _, relation := range resource.Table.Relations {
-			p.resolveTableDfs(ctx, relation, client, resource, resolvedResources)
+			if allIncludedTables.Get(relation.Name) == nil {
+				// child table is skipped by config
+				continue
+			}
+			p.resolveTableDfs(ctx, allIncludedTables, relation, client, resource, resolvedResources)
 		}
 	}
 }

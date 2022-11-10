@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+
+	"github.com/ryanuber/go-glob"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -83,6 +85,18 @@ func (tt Tables) Get(name string) *Table {
 		}
 	}
 	return nil
+}
+
+// GlobMatch returns a list of tables that match a given glob
+func (tt Tables) GlobMatch(pattern string) []*Table {
+	var tables []*Table
+	for _, t := range tt {
+		if !glob.Glob(pattern, t.Name) {
+			continue
+		}
+		tables = append(tables, t)
+	}
+	return tables
 }
 
 func (tt Tables) ValidateDuplicateColumns() error {
