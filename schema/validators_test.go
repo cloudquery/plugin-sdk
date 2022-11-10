@@ -6,25 +6,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testTableValidators = Table{
-	Name: "test_table_validator",
-	Columns: []Column{
-		{
-			Name: "zero_bool",
-			Type: TypeBool,
-		},
-		{
-			Name: "zero_int",
-			Type: TypeInt,
-		},
-		{
-			Name: "not_zero_bool",
-			Type: TypeBool,
-		},
-	},
-}
-
 func TestTableValidators(t *testing.T) {
+	var testTableValidators = Table{
+		Name: "test_table_validator",
+		Columns: []Column{
+			{
+				Name: "zero_bool",
+				Type: TypeBool,
+			},
+			{
+				Name: "zero_int",
+				Type: TypeInt,
+			},
+			{
+				Name: "not_zero_bool",
+				Type: TypeBool,
+			},
+		},
+	}
+
 	// table has passed all validators
 	err := ValidateTable(&testTableValidators)
 	assert.Nil(t, err)
