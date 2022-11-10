@@ -46,8 +46,7 @@ const (
 // Add internal columns
 func addInternalColumns(tables []*schema.Table) {
 	for _, table := range tables {
-		c := table.Column("_cq_id")
-		if c != nil {
+		if c := table.Column("_cq_id"); c != nil {
 			continue
 		}
 		cqID := schema.CqIDColumn
