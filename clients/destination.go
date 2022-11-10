@@ -289,7 +289,7 @@ func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, so
 		if err := saveClient.Send(&pb.Write2_Request{
 			Resource: resource,
 		}); err != nil {
-			return fmt.Errorf("failed to call Write.Send: %w", err)
+			return fmt.Errorf("failed to call Write2.Send: %w", err)
 		}
 	}
 	_, err = saveClient.CloseAndRecv()
@@ -330,7 +330,7 @@ func (c *DestinationClient) Terminate() error {
 
 	if c.grpcSocketName != "" {
 		defer func() {
-			if err := os.Remove(c.grpcSocketName); err != nil {
+			if err := os.RemoveAll(c.grpcSocketName); err != nil {
 				c.logger.Error().Err(err).Msg("failed to remove destination socket file")
 			}
 		}()

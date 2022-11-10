@@ -64,6 +64,8 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 }
 
 func bufSourceDialer(context.Context, string) (net.Conn, error) {
+	testSourceListenerLock.Lock()
+	defer testSourceListenerLock.Unlock()
 	return testSourceListener.Dial()
 }
 
@@ -92,9 +94,12 @@ func TestServeSource(t *testing.T) {
 		wg.Wait()
 	}()
 	for {
+		testSourceListenerLock.Lock()
 		if testSourceListener != nil {
+			testSourceListenerLock.Unlock()
 			break
 		}
+		testSourceListenerLock.Unlock()
 		t.Log("waiting for grpc server to start")
 		time.Sleep(time.Millisecond * 200)
 	}

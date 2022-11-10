@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/servers"
@@ -36,6 +37,7 @@ func WithDestinationSentryDSN(dsn string) DestinationOption {
 }
 
 var testDestinationListener *bufconn.Listener
+var testDestinationListenerLock sync.Mutex
 
 const serveDestinationShort = `Start destination plugin server`
 
@@ -88,8 +90,10 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 
 			var listener net.Listener
 			if network == "test" {
+				testDestinationListenerLock.Lock()
 				listener = bufconn.Listen(testBufSize)
 				testDestinationListener = listener.(*bufconn.Listener)
+				testDestinationListenerLock.Unlock()
 			} else {
 				listener, err = net.Listen(network, address)
 				if err != nil {

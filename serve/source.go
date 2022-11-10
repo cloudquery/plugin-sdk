@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/servers"
@@ -38,6 +39,7 @@ func WithSourceSentryDSN(dsn string) SourceOption {
 
 // lis used for unit testing grpc server and client
 var testSourceListener *bufconn.Listener
+var testSourceListenerLock sync.Mutex
 
 const serveSourceShort = `Start source plugin server`
 
@@ -91,8 +93,10 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 			// opts.Plugin.Logger = logger
 			var listener net.Listener
 			if network == "test" {
+				testSourceListenerLock.Lock()
 				listener = bufconn.Listen(testBufSize)
 				testSourceListener = listener.(*bufconn.Listener)
+				testSourceListenerLock.Unlock()
 			} else {
 				listener, err = net.Listen(network, address)
 				if err != nil {

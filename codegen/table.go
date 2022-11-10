@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/rs/zerolog"
 	"golang.org/x/exp/slices"
 )
@@ -29,7 +30,8 @@ type (
 		typeTransformer     TypeTransformer
 		resolverTransformer ResolverTransformer
 
-		extraColumns ColumnDefinitions
+		extraColumns   ColumnDefinitions
+		extraPKColumns map[string]struct{}
 
 		skipFields           []string
 		structFieldsToUnwrap []string
@@ -90,5 +92,48 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOption) (*Tab
 		}
 	}
 
-	return t, nil
+	// add PK options
+	columns := make(ColumnDefinitions, 0, len(t.Columns))
+	for _, column := range t.Columns {
+		if _, ok := t.extraPKColumns[column.Name]; ok {
+			column.Options.PrimaryKey = true
+			delete(t.extraPKColumns, column.Name)
+		}
+		columns = append(columns, column)
+	}
+	if len(t.extraPKColumns) > 0 {
+		return nil, fmt.Errorf("%s table definition has %d extra PK keys", t.Name, len(t.extraPKColumns))
+	}
+	t.Columns = columns
+
+	return t, t.Check()
+}
+
+// Check that the resulting TableDefinition is correct (e.g., no overlapping column names).
+func (t *TableDefinition) Check() error {
+	if t == nil {
+		return fmt.Errorf("nil table definition")
+	}
+
+	if len(t.Name) == 0 {
+		return fmt.Errorf("empty table name")
+	}
+
+	if len(t.Columns) == 0 {
+		return fmt.Errorf("no columns for table %s", t.Name)
+	}
+
+	columns := make(map[string]bool, len(t.Columns))
+	for _, column := range t.Columns {
+		switch {
+		case column.Type == schema.TypeInvalid:
+			return fmt.Errorf("%s->%s: invalid column type", t.Name, column.Name)
+		case columns[column.Name]:
+			return fmt.Errorf("%s->%s: duplicate column name", t.Name, column.Name)
+		default:
+			columns[column.Name] = true
+		}
+	}
+
+	return nil
 }
