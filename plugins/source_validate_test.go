@@ -100,6 +100,14 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 			configurationTables: []string{"main_table", "sub_table"},
 			wantErr:             true,
 		},
+		{
+			name:                    "should return table only once, even if it is matched by multiple rules",
+			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table1"}, {Name: "table2"}}},
+			configurationTables:     []string{"*", "table2", "table1", "table*"},
+			configurationSkipTables: []string{"table2"},
+			want:                    []string{"table1"},
+			wantErr:                 false,
+		},
 	}
 
 	for _, tt := range tests {

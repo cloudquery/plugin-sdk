@@ -38,7 +38,12 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 		if len(tt) == 0 {
 			return nil, fmt.Errorf("tables entry matches no known tables: %q", t)
 		}
-		includedTables = append(includedTables, tt...)
+		for _, ttt := range tt {
+			if includedTables.Get(ttt.Name) != nil {
+				continue
+			}
+			includedTables = append(includedTables, ttt)
+		}
 	}
 
 	// return an error if skip tables doesn't match any known tables
@@ -49,7 +54,12 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 		if len(tt) == 0 {
 			return nil, fmt.Errorf("skip_tables entry matches no known tables: %q", t)
 		}
-		skippedTables = append(skippedTables, tt...)
+		for _, ttt := range tt {
+			if skippedTables.Get(ttt.Name) != nil {
+				continue
+			}
+			skippedTables = append(skippedTables, ttt)
+		}
 		for _, st := range tt {
 			skippedTableMap[st.Name] = true
 		}
