@@ -70,6 +70,10 @@ type (
 		PostgreSQL  string
 		IDs         string
 	}
+
+	testSliceStruct []struct {
+		IntCol int
+	}
 )
 
 var (
@@ -180,6 +184,20 @@ var (
 				Name:     "custom",
 				Type:     schema.TypeTimestamp,
 				Resolver: `customResolver("Custom")`,
+			},
+		},
+		nameTransformer:     DefaultNameTransformer,
+		typeTransformer:     customTypeTransformer,
+		resolverTransformer: customResolverTransformer,
+	}
+	expectedTestSliceStruct = TableDefinition{
+		Name: "test_struct",
+		Columns: ColumnDefinitions{
+			{
+				Name:     "int_col",
+				Type:     schema.TypeInt,
+				Resolver: `schema.PathResolver("IntCol")`,
+				Options:  schema.ColumnCreationOptions{PrimaryKey: true},
 			},
 		},
 		nameTransformer:     DefaultNameTransformer,
@@ -328,6 +346,14 @@ func TestTableFromGoStruct(t *testing.T) {
 				},
 			},
 			want: expectedTestTableStructForCustomResolvers,
+		},
+		{
+			name: "should generate table from slice struct",
+			args: args{
+				testStruct: testSliceStruct{},
+				options:    []TableOption{WithPKColumns("int_col")},
+			},
+			want: expectedTestSliceStruct,
 		},
 	}
 
