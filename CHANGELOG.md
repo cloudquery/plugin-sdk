@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2](https://github.com/cloudquery/plugin-sdk/compare/v1.3.1...v1.3.2) (2022-11-10)
+
+
+### Bug Fixes
+
+* Add -race when running tests ([#388](https://github.com/cloudquery/plugin-sdk/issues/388)) ([3da08bb](https://github.com/cloudquery/plugin-sdk/commit/3da08bb89c3c381cbc87b5dc8b53408bef5b4a9d))
+* Close zip archive when we're done with it ([#391](https://github.com/cloudquery/plugin-sdk/issues/391)) ([1c4a877](https://github.com/cloudquery/plugin-sdk/commit/1c4a877662b3a84f99b8a942d918f0d39d90e869))
+
 ## [1.3.1](https://github.com/cloudquery/plugin-sdk/compare/v1.3.0...v1.3.1) (2022-11-10)
 
 
