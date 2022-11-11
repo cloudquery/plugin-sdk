@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0](https://github.com/cloudquery/plugin-sdk/compare/v1.4.1...v1.5.0) (2022-11-11)
+
+
+### Features
+
+* Add support for glob matching in config ([#398](https://github.com/cloudquery/plugin-sdk/issues/398)) ([c866573](https://github.com/cloudquery/plugin-sdk/commit/c866573ba656e4a23ed0c0bc9576c1beb708a4c6))
+
+
+### Bug Fixes
+
+* Change globbing behavior to include descendants by default ([#403](https://github.com/cloudquery/plugin-sdk/issues/403)) ([de15d26](https://github.com/cloudquery/plugin-sdk/commit/de15d2610388eb8572baa23cb0fc5df86aea1950))
+* Exit early if all Write workers have stopped ([#395](https://github.com/cloudquery/plugin-sdk/issues/395)) ([5707e7a](https://github.com/cloudquery/plugin-sdk/commit/5707e7a132d44cea712753590081724edf26725d))
+
 ## [1.4.1](https://github.com/cloudquery/plugin-sdk/compare/v1.4.0...v1.4.1) (2022-11-10)
 
 
