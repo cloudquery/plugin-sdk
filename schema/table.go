@@ -91,10 +91,11 @@ func (tt Tables) Get(name string) *Table {
 func (tt Tables) GlobMatch(pattern string) []*Table {
 	tables := make([]*Table, 0, 10)
 	for _, t := range tt {
-		if !glob.Glob(pattern, t.Name) {
-			continue
+		if glob.Glob(pattern, t.Name) {
+			tables = append(tables, t)
 		}
-		tables = append(tables, t)
+		// recurse down to also match against child tables
+		tables = append(tables, t.Relations.GlobMatch(pattern)...)
 	}
 	return tables
 }

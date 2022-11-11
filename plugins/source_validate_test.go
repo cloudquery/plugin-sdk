@@ -108,6 +108,54 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 			want:                    []string{"table1"},
 			wantErr:                 false,
 		},
+		{
+			name:                    "should match prefix globs",
+			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table1"}, {Name: "table2"}}},
+			configurationTables:     []string{"*2"},
+			configurationSkipTables: []string{},
+			want:                    []string{"table2"},
+			wantErr:                 false,
+		},
+		{
+			name:                    "should match suffix globs",
+			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table1"}, {Name: "table2"}}},
+			configurationTables:     []string{"table*"},
+			configurationSkipTables: []string{},
+			want:                    []string{"table1", "table2"},
+			wantErr:                 false,
+		},
+		{
+			name:                    "should match middle globs",
+			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table1"}, {Name: "table2"}}},
+			configurationTables:     []string{"t*b*1"},
+			configurationSkipTables: []string{},
+			want:                    []string{"table1"},
+			wantErr:                 false,
+		},
+		{
+			name:                    "should skip globs",
+			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table1"}, {Name: "table2"}}},
+			configurationTables:     []string{"*"},
+			configurationSkipTables: []string{"t*1"},
+			want:                    []string{"table2"},
+			wantErr:                 false,
+		},
+		{
+			name:                    "should skip multiple globs",
+			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "table1"}, {Name: "table2"}, {Name: "table3"}}},
+			configurationTables:     []string{"*"},
+			configurationSkipTables: []string{"t*1", "t*2"},
+			want:                    []string{"table3"},
+			wantErr:                 false,
+		},
+		{
+			name:                    "should glob match against child tables",
+			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
+			configurationTables:     []string{"*"},
+			configurationSkipTables: []string{},
+			want:                    []string{"main_table", "sub_table"},
+			wantErr:                 false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -125,7 +173,7 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 				gotNames[i] = gotTables[i].Name
 			}
 			if diff := cmp.Diff(gotNames, tt.want); diff != "" {
-				t.Errorf("SourcePlugin.listAndValidateTables() diff: %v", diff)
+				t.Errorf("SourcePlugin.listAndValidateTables() diff (+got, -want): %v", diff)
 			}
 		})
 	}
