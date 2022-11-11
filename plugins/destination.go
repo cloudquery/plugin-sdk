@@ -142,8 +142,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	// it might not generalize well and we might need to move it to each destination plugin implementation.
 	for i := 0; i < writeWorkers; i++ {
 		eg.Go(func() error {
-			err := p.client.Write(gctx, tables, ch)
-			return err
+			return p.client.Write(gctx, tables, ch)
 		})
 	}
 	sourceColumn := &schema.Text{}
