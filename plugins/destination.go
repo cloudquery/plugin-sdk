@@ -140,12 +140,9 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	eg, gctx := errgroup.WithContext(ctx)
 	// given most destination plugins writing in batch we are using a worker pool to write in parallel
 	// it might not generalize well and we might need to move it to each destination plugin implementation.
-	workerResults := make(chan error, writeWorkers)
-	remainingWorkers := writeWorkers
 	for i := 0; i < writeWorkers; i++ {
 		eg.Go(func() error {
 			err := p.client.Write(gctx, tables, ch)
-			workerResults <- err
 			return err
 		})
 	}
@@ -160,20 +157,13 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 			Data:      schema.TransformWithTransformer(p.client, r.Data),
 		}
 		select {
+		case <-gctx.Done():
+			close(ch)
+			return eg.Wait()
 		case <-ctx.Done():
 			close(ch)
 			return eg.Wait()
 		case ch <- clientResource:
-		case <-workerResults:
-			remainingWorkers--
-			if remainingWorkers <= 0 {
-				// all workers exited and therefore won't be consuming from the
-				// ch channel anymore. In this case we should stop iterating to avoid
-				// deadlock, and return the error returned by eg.Wait()
-				p.logger.Error().Msg("All DestinationPlugin Write workers have stopped")
-				close(ch)
-				return eg.Wait()
-			}
 		}
 	}
 
