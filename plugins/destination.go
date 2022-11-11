@@ -159,9 +159,6 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 		case <-gctx.Done():
 			close(ch)
 			return eg.Wait()
-		case <-ctx.Done():
-			close(ch)
-			return eg.Wait()
 		case ch <- clientResource:
 		}
 	}
