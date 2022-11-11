@@ -92,6 +92,7 @@ func (tt Tables) GlobMatch(pattern string) Tables {
 			tables = append(tables, t)
 			// recurse down to get all child tables
 			tables = append(tables, t.Relations.GlobMatch("*")...)
+			continue
 		}
 		// also try to match against child tables, even if the parent didn't match
 		tables = append(tables, t.Relations.GlobMatch(pattern)...)
