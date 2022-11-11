@@ -35,10 +35,11 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 		return nil, fmt.Errorf("list of tables is empty")
 	}
 
-	// return an error if a table pattern doesn't match any known tables
 	var includedTables schema.Tables
 	for _, t := range tables {
 		tt := p.tables.GlobMatch(t)
+
+		// return an error if a table pattern doesn't match any known tables
 		if len(tt) == 0 {
 			return nil, fmt.Errorf("tables entry matches no known tables: %q", t)
 		}
