@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"runtime/debug"
 	"strings"
 
 	"github.com/thoas/go-funk"
@@ -27,6 +28,7 @@ type Source struct {
 	Path string `json:"path,omitempty"`
 	// Registry can be github,local,grpc.
 	Registry            Registry `json:"registry,omitempty"`
+	MaxThreads          int      `json:"max_threads,omitempty"`
 	Concurrency         uint64   `json:"concurrency,omitempty"`
 	TableConcurrency    uint64   `json:"table_concurrency,omitempty"`    // deprecated: use Concurrency instead
 	ResourceConcurrency uint64   `json:"resource_concurrency,omitempty"` // deprecated: use Concurrency instead
@@ -56,6 +58,11 @@ func (s *Source) SetDefaults() {
 	}
 	if s.Concurrency == 0 {
 		s.Concurrency = defaultConcurrency
+	}
+
+	// For power-users to increase system utilization
+	if s.MaxThreads > 0 {
+		debug.SetMaxThreads(s.MaxThreads)
 	}
 }
 

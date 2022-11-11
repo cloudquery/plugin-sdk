@@ -127,6 +127,7 @@ spec:
   path: cloudquery/test
   version: v1.1.0
   destinations: ["test"]
+  max_threads: 1000
 `,
 		"",
 		&Source{
@@ -134,6 +135,7 @@ spec:
 			Registry:     RegistryGithub,
 			Path:         "cloudquery/test",
 			Concurrency:  defaultConcurrency,
+			MaxThreads:   1000,
 			Version:      "v1.1.0",
 			Tables:       []string{"*"},
 			Destinations: []string{"test"},
