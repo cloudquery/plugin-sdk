@@ -156,7 +156,7 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 			Data:      schema.TransformWithTransformer(p.client, r.Data),
 		}
 		select {
-		case <-ctx.Done():
+		case <-gctx.Done():
 			close(ch)
 			return eg.Wait()
 		case ch <- clientResource:
