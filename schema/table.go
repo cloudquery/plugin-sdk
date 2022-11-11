@@ -90,9 +90,11 @@ func (tt Tables) GlobMatch(pattern string) Tables {
 	for _, t := range tt {
 		if glob.Glob(pattern, t.Name) {
 			tables = append(tables, t)
+			// recurse down to get all child tables
+			tables = append(tables, t.Relations.GlobMatch("*")...)
 		}
-		// recurse down to get all child tables
-		tables = append(tables, t.Relations.GlobMatch("*")...)
+		// also try to match against child tables, even if the parent didn't match
+		tables = append(tables, t.Relations.GlobMatch(pattern)...)
 	}
 	return tables
 }

@@ -40,10 +40,14 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 		},
 		{
 			name: "should return the parent and all its descendents",
-			plugin: SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{
-				{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}, Relations: []*schema.Table{
-					{Name: "sub_sub_table", Parent: &schema.Table{Name: "sub_table"}},
-				}}}},
+			plugin: SourcePlugin{tables: []*schema.Table{
+				{Name: "other_table", Relations: []*schema.Table{
+					{Name: "other_sub_table", Parent: &schema.Table{Name: "main_table"}}},
+				},
+				{Name: "main_table", Relations: []*schema.Table{
+					{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}, Relations: []*schema.Table{
+						{Name: "sub_sub_table", Parent: &schema.Table{Name: "sub_table"}},
+					}}}},
 			},
 			},
 			configurationTables:     []string{"main_table"},
