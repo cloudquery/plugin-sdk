@@ -1,0 +1,1 @@
+This glob-matching library was copied from https://github.com/ryanuber/go-glob and therefore falls under its [license](LICENSE.md). 

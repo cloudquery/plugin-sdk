@@ -39,13 +39,21 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 			wantErr:                 true,
 		},
 		{
-			name:                    "should return an error if child table is skipped",
+			name:                    "should return only the exact set of tables specified",
+			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
+			configurationTables:     []string{"main_table"},
+			configurationSkipTables: []string{},
+			want:                    []string{"main_table"},
+			wantErr:                 false,
+		},
+		{
+			name:                    "should return only parent table if child table is skipped",
 			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
 			configurationTables:     []string{"*"},
 			configurationSkipTables: []string{"sub_table"},
-			wantErr:                 true,
+			want:                    []string{"main_table"},
+			wantErr:                 false,
 		},
-
 		{
 			name:                "should return specific tables when they are provided",
 			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "table1"}, {Name: "table2"}, {Name: "table3"}}},
@@ -89,16 +97,17 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 			wantErr:                 true,
 		},
 		{
-			name:                "should return an error if child table is specified",
+			name:                "should return an error if child table is specified without its ancestors",
 			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
 			configurationTables: []string{"sub_table"},
 			wantErr:             true,
 		},
 		{
-			name:                "should return an error if both child and parent tables are specified",
+			name:                "should return both tables if child and parent tables are specified",
 			plugin:              SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
 			configurationTables: []string{"main_table", "sub_table"},
-			wantErr:             true,
+			want:                []string{"main_table", "sub_table"},
+			wantErr:             false,
 		},
 		{
 			name:                    "should return table only once, even if it is matched by multiple rules",

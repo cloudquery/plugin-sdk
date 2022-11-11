@@ -39,6 +39,11 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 
 	var wg sync.WaitGroup
 	for _, table := range tables {
+		if table.Parent != nil {
+			// skip descendent tables here - they will be handled by the recursive
+			// depth-first-search later.
+			continue
+		}
 		table := table
 		clients := []schema.ClientMeta{client}
 		if table.Multiplex != nil {
@@ -135,7 +140,8 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, allIncludedTable
 		resolvedResources <- resource
 		for _, relation := range resource.Table.Relations {
 			if allIncludedTables.Get(relation.Name) == nil {
-				// child table is skipped by config
+				// this indicates that child table is skipped by user config,
+				// so we should not sync it
 				continue
 			}
 			p.resolveTableDfs(ctx, allIncludedTables, relation, client, resource, resolvedResources)

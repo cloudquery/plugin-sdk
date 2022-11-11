@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 )
@@ -26,6 +27,9 @@ func (p *SourcePlugin) validate() error {
 	return nil
 }
 
+// listAndValidateTables returns all the tables matched by the `tables` and `skip_tables` config settings.
+// It will return ALL tables, including descendent tables. Callers should take care to only use the top-level
+// tables if that is what they need.
 func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schema.Tables, error) {
 	if len(tables) == 0 {
 		return nil, fmt.Errorf("list of tables is empty")
@@ -40,6 +44,7 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 		}
 		for _, ttt := range tt {
 			if includedTables.Get(ttt.Name) != nil {
+				// prevent duplicates
 				continue
 			}
 			includedTables = append(includedTables, ttt)
@@ -56,6 +61,7 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 		}
 		for _, ttt := range tt {
 			if skippedTables.Get(ttt.Name) != nil {
+				// prevent duplicates
 				continue
 			}
 			skippedTables = append(skippedTables, ttt)
@@ -76,13 +82,16 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 
 	// return an error if child table is included without its parent
 	for _, t := range remainingTables {
-		if t.Parent != nil {
-			pt := t.Parent
-			for pt.Parent != nil {
-				pt = pt.Parent
+		missingParents := make([]string, 0)
+		pt := t
+		for pt.Parent != nil {
+			if includedTables.Get(pt.Parent.Name) == nil {
+				missingParents = append(missingParents, pt.Parent.Name)
 			}
-
-			return nil, fmt.Errorf("table %s is a descendant table and cannot be included without its top-level parent table %s", t.Name, pt.Name)
+			pt = pt.Parent
+		}
+		if len(missingParents) > 0 {
+			return nil, fmt.Errorf("table %s is a descendant table and cannot be included without %s", t.Name, strings.Join(missingParents, ", "))
 		}
 	}
 
