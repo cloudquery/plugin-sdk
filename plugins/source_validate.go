@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/thoas/go-funk"
+	"github.com/cloudquery/plugin-sdk/schema"
 )
 
 func (p *SourcePlugin) validate() error {
@@ -27,80 +27,73 @@ func (p *SourcePlugin) validate() error {
 	return nil
 }
 
-func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) ([]string, error) {
+// listAndValidateTables returns all the tables matched by the `tables` and `skip_tables` config settings.
+// It will return ALL tables, including descendent tables. Callers should take care to only use the top-level
+// tables if that is what they need.
+func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schema.Tables, error) {
 	if len(tables) == 0 {
 		return nil, fmt.Errorf("list of tables is empty")
 	}
 
-	// return an error if skip tables contains a wildcard or glob pattern, or non-existent or child table
-	for _, t := range skipTables {
-		if strings.Contains(t, "*") {
-			return nil, fmt.Errorf("glob matching in skipped table name %q is not supported", t)
+	// return an error if a table pattern doesn't match any known tables
+	var includedTables schema.Tables
+	for _, t := range tables {
+		tt := p.tables.GlobMatch(t)
+		if len(tt) == 0 {
+			return nil, fmt.Errorf("tables entry matches no known tables: %q", t)
 		}
-		tt := p.tables.Get(t)
-		if tt == nil {
-			return nil, fmt.Errorf("invalid entry in skip_tables: %q", t)
-		}
-		if tt.Parent != nil {
-			pt := tt.Parent
-			for pt.Parent != nil {
-				pt = pt.Parent
-			}
-
-			return nil, fmt.Errorf("table %s is a child table and cannot be skipped. The top-level parent table to skip is %s", t, pt.Name)
-		}
-	}
-
-	// handle wildcard entry
-	if funk.Equal(tables, []string{"*"}) {
-		allResources := make([]string, 0, len(p.tables))
-		for _, k := range p.tables {
-			if funk.ContainsString(skipTables, k.Name) {
+		for _, ttt := range tt {
+			if includedTables.Get(ttt.Name) != nil {
+				// prevent duplicates
 				continue
 			}
-			allResources = append(allResources, k.Name)
+			includedTables = append(includedTables, ttt)
 		}
-		return allResources, nil
 	}
 
-	// wildcard should not be combined with other tables
-	if funk.ContainsString(tables, "*") {
-		return nil, fmt.Errorf("wildcard \"*\" table not allowed with explicit tables")
-	}
-
-	// return an error if other kinds of glob-matching is detected
-	for _, t := range tables {
-		if strings.Contains(t, "*") {
-			return nil, fmt.Errorf("glob matching in table name %q is not supported", t)
+	// return an error if skip tables doesn't match any known tables
+	var skippedTables schema.Tables
+	skippedTableMap := map[string]bool{}
+	for _, t := range skipTables {
+		tt := p.tables.GlobMatch(t)
+		if len(tt) == 0 {
+			return nil, fmt.Errorf("skip_tables entry matches no known tables: %q", t)
+		}
+		for _, ttt := range tt {
+			if skippedTables.Get(ttt.Name) != nil {
+				// prevent duplicates
+				continue
+			}
+			skippedTables = append(skippedTables, ttt)
+		}
+		for _, st := range tt {
+			skippedTableMap[st.Name] = true
 		}
 	}
 
 	// return an error if a table is both explicitly included and skipped
-	for _, t := range tables {
-		if funk.ContainsString(skipTables, t) {
-			return nil, fmt.Errorf("table %s cannot be both included and skipped", t)
+	var remainingTables schema.Tables
+	for _, included := range includedTables {
+		if skippedTableMap[included.Name] {
+			continue
 		}
+		remainingTables = append(remainingTables, included)
 	}
 
-	// return an error if a given table name doesn't match any known tables
-	for _, t := range tables {
-		if !funk.ContainsString(p.tables.TableNames(), t) {
-			return nil, fmt.Errorf("name %s does not match any known table names", t)
-		}
-	}
-
-	// return an error if child table is included
-	for _, t := range tables {
-		tt := p.tables.Get(t)
-		if tt.Parent != nil {
-			pt := tt.Parent
-			for pt.Parent != nil {
-				pt = pt.Parent
+	// return an error if child table is included without its parent
+	for _, t := range remainingTables {
+		var missingParents []string
+		pt := t
+		for pt.Parent != nil {
+			if includedTables.Get(pt.Parent.Name) == nil {
+				missingParents = append(missingParents, pt.Parent.Name)
 			}
-
-			return nil, fmt.Errorf("table %s is a child table and cannot be included. The top-level parent table to include is %s", t, pt.Name)
+			pt = pt.Parent
+		}
+		if len(missingParents) > 0 {
+			return nil, fmt.Errorf("table %s is a descendant table and cannot be included without %s", t.Name, strings.Join(missingParents, ", "))
 		}
 	}
 
-	return tables, nil
+	return remainingTables, nil
 }
