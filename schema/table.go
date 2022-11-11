@@ -84,7 +84,7 @@ func (tt Tables) Get(name string) *Table {
 }
 
 // GlobMatch returns a list of tables that match a given glob. If a parent table is matched,
-// it will also return all its children as part of the list.
+// it will also return all its descendants as part of the list.
 func (tt Tables) GlobMatch(pattern string) Tables {
 	tables := make([]*Table, 0, 10)
 	for _, t := range tt {
