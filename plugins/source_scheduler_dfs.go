@@ -163,6 +163,9 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 			atomic.AddUint64(&tableMetrics.Errors, 1)
 			return nil
 		}
+		if resource.Item == nil {
+			return nil
+		}
 	}
 
 	for _, c := range table.Columns {
