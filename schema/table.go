@@ -83,15 +83,16 @@ func (tt Tables) Get(name string) *Table {
 	return nil
 }
 
-// GlobMatch returns a list of tables that match a given glob
+// GlobMatch returns a list of tables that match a given glob. If a parent table is matched,
+// it will also return all its children as part of the list.
 func (tt Tables) GlobMatch(pattern string) Tables {
 	tables := make([]*Table, 0, 10)
 	for _, t := range tt {
 		if glob.Glob(pattern, t.Name) {
 			tables = append(tables, t)
 		}
-		// recurse down to also match against child tables
-		tables = append(tables, t.Relations.GlobMatch(pattern)...)
+		// recurse down to get all child tables
+		tables = append(tables, t.Relations.GlobMatch("*")...)
 	}
 	return tables
 }

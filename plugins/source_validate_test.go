@@ -39,10 +39,28 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 			wantErr:                 true,
 		},
 		{
-			name:                    "should return only the exact set of tables specified",
-			plugin:                  SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}}}}}},
+			name: "should return the parent and all its descendents",
+			plugin: SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{
+				{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}, Relations: []*schema.Table{
+					{Name: "sub_sub_table", Parent: &schema.Table{Name: "sub_table"}},
+				}}}},
+			},
+			},
 			configurationTables:     []string{"main_table"},
 			configurationSkipTables: []string{},
+			want:                    []string{"main_table", "sub_table", "sub_sub_table"},
+			wantErr:                 false,
+		},
+		{
+			name: "should return the parent and all its descendents, but skip children and their descendents if they are skipped",
+			plugin: SourcePlugin{tables: []*schema.Table{{Name: "main_table", Relations: []*schema.Table{
+				{Name: "sub_table", Parent: &schema.Table{Name: "main_table"}, Relations: []*schema.Table{
+					{Name: "sub_sub_table", Parent: &schema.Table{Name: "sub_table"}},
+				}}}},
+			},
+			},
+			configurationTables:     []string{"main_table"},
+			configurationSkipTables: []string{"sub_table"},
 			want:                    []string{"main_table"},
 			wantErr:                 false,
 		},
