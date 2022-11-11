@@ -82,7 +82,7 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 
 	// return an error if child table is included without its parent
 	for _, t := range remainingTables {
-		missingParents := make([]string, 0)
+		var missingParents []string
 		pt := t
 		for pt.Parent != nil {
 			if includedTables.Get(pt.Parent.Name) == nil {
