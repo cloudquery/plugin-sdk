@@ -18,6 +18,8 @@ import (
 )
 
 func bufDestinationDialer(context.Context, string) (net.Conn, error) {
+	testDestinationListenerLock.Lock()
+	defer testDestinationListenerLock.Unlock()
 	return testDestinationListener.Dial()
 }
 
@@ -44,9 +46,12 @@ func TestDestination(t *testing.T) {
 
 	// wait for the server to start
 	for {
+		testDestinationListenerLock.Lock()
 		if testDestinationListener != nil {
+			testDestinationListenerLock.Unlock()
 			break
 		}
+		testDestinationListenerLock.Unlock()
 		t.Log("waiting for grpc server to start")
 		time.Sleep(time.Millisecond * 200)
 	}

@@ -70,6 +70,9 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOption) (*Tab
 	if e.Kind() == reflect.Pointer {
 		e = e.Elem()
 	}
+	if e.Kind() == reflect.Slice {
+		e = reflect.MakeSlice(e.Type(), 1, 1).Index(0)
+	}
 	if e.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("expected struct, got %s", e.Kind())
 	}
@@ -120,12 +123,14 @@ func (t *TableDefinition) Check() error {
 	}
 
 	if len(t.Columns) == 0 {
-		return fmt.Errorf("no columns for table %s", t.Name)
+		return fmt.Errorf("%s: no columns", t.Name)
 	}
 
 	columns := make(map[string]bool, len(t.Columns))
 	for _, column := range t.Columns {
 		switch {
+		case len(column.Name) == 0:
+			return fmt.Errorf("%s: empty column name", t.Name)
 		case column.Type == schema.TypeInvalid:
 			return fmt.Errorf("%s->%s: invalid column type", t.Name, column.Name)
 		case columns[column.Name]:

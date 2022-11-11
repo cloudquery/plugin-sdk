@@ -53,6 +53,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	if err != nil {
 		return fmt.Errorf("failed to open plugin archive: %w", err)
 	}
+	defer archive.Close()
 
 	pathInArchive := fmt.Sprintf("plugins/%s/%s", typ, name)
 	if org != "cloudquery" {

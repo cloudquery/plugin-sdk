@@ -70,6 +70,10 @@ type (
 		PostgreSQL  string
 		IDs         string
 	}
+
+	testSliceStruct []struct {
+		IntCol int
+	}
 )
 
 var (
@@ -180,6 +184,20 @@ var (
 				Name:     "custom",
 				Type:     schema.TypeTimestamp,
 				Resolver: `customResolver("Custom")`,
+			},
+		},
+		nameTransformer:     DefaultNameTransformer,
+		typeTransformer:     customTypeTransformer,
+		resolverTransformer: customResolverTransformer,
+	}
+	expectedTestSliceStruct = TableDefinition{
+		Name: "test_struct",
+		Columns: ColumnDefinitions{
+			{
+				Name:     "int_col",
+				Type:     schema.TypeInt,
+				Resolver: `schema.PathResolver("IntCol")`,
+				Options:  schema.ColumnCreationOptions{PrimaryKey: true},
 			},
 		},
 		nameTransformer:     DefaultNameTransformer,
@@ -329,6 +347,14 @@ func TestTableFromGoStruct(t *testing.T) {
 			},
 			want: expectedTestTableStructForCustomResolvers,
 		},
+		{
+			name: "should generate table from slice struct",
+			args: args{
+				testStruct: testSliceStruct{},
+				options:    []TableOption{WithPKColumns("int_col")},
+			},
+			want: expectedTestSliceStruct,
+		},
 	}
 
 	for _, tt := range tests {
@@ -368,7 +394,15 @@ func TestTableDefinition_Check(t *testing.T) {
 		{
 			name:       "no columns",
 			definition: &TableDefinition{Name: "no_columns"},
-			err:        fmt.Errorf("no columns for table no_columns"),
+			err:        fmt.Errorf("no_columns: no columns"),
+		},
+		{
+			name: "no column name",
+			definition: &TableDefinition{
+				Name:    "no_column_name",
+				Columns: ColumnDefinitions{{}},
+			},
+			err: fmt.Errorf("no_column_name: empty column name"),
 		},
 		{
 			name: "invalid type",
