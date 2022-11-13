@@ -73,7 +73,7 @@ func (tt Tables) TableNames() []string {
 	return ret
 }
 
-// Get return table by name. Only returns the table if it is in top-level list.
+// Get returns a table by name. Only returns the table if it is in top-level list.
 func (tt Tables) Get(name string) *Table {
 	for _, t := range tt {
 		if t.Name == name {
@@ -83,7 +83,7 @@ func (tt Tables) Get(name string) *Table {
 	return nil
 }
 
-// GetAll return table by name. Returns top-level table and relations.
+// GetAll returns a table by name. Returns top-level tables and relations.
 func (tt Tables) GetAll(name string) *Table {
 	for _, t := range tt {
 		if t.Name == name {
