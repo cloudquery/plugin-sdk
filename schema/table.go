@@ -83,6 +83,20 @@ func (tt Tables) Get(name string) *Table {
 	return nil
 }
 
+// GetAll return table by name. Returns top-level table and relations.
+func (tt Tables) GetAll(name string) *Table {
+	for _, t := range tt {
+		if t.Name == name {
+			return t
+		}
+		table := t.Relations.GetAll(name)
+		if table != nil {
+			return table
+		}
+	}
+	return nil
+}
+
 // GlobMatch returns a list of tables that match a given glob. If a parent table is matched,
 // it will also return all its descendants as part of the list.
 func (tt Tables) GlobMatch(pattern string) Tables {

@@ -83,7 +83,7 @@ func (c *TestDestinationMemDBClient) Write(_ context.Context, tables schema.Tabl
 		if c.spec.WriteMode == specs.WriteModeAppend {
 			c.memoryDB[resource.TableName] = append(c.memoryDB[resource.TableName], resource.Data)
 		} else {
-			c.overwrite(tables.Get(resource.TableName), resource.Data)
+			c.overwrite(tables.GetAll(resource.TableName), resource.Data)
 		}
 	}
 	return nil
