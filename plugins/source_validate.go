@@ -44,7 +44,7 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 			return nil, fmt.Errorf("tables entry matches no known tables: %q", t)
 		}
 		for _, ttt := range tt {
-			if includedTables.Get(ttt.Name) != nil {
+			if includedTables.GetTopLevel(ttt.Name) != nil {
 				// prevent duplicates
 				continue
 			}
@@ -61,7 +61,7 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 			return nil, fmt.Errorf("skip_tables entry matches no known tables: %q", t)
 		}
 		for _, ttt := range tt {
-			if skippedTables.Get(ttt.Name) != nil {
+			if skippedTables.GetTopLevel(ttt.Name) != nil {
 				// prevent duplicates
 				continue
 			}
@@ -86,7 +86,7 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 		var missingParents []string
 		pt := t
 		for pt.Parent != nil {
-			if includedTables.Get(pt.Parent.Name) == nil {
+			if includedTables.GetTopLevel(pt.Parent.Name) == nil {
 				missingParents = append(missingParents, pt.Parent.Name)
 			}
 			pt = pt.Parent

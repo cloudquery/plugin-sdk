@@ -139,7 +139,7 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, allIncludedTable
 	for resource := range resourcesChan {
 		resolvedResources <- resource
 		for _, relation := range resource.Table.Relations {
-			if allIncludedTables.Get(relation.Name) == nil {
+			if allIncludedTables.GetTopLevel(relation.Name) == nil {
 				// this indicates that child table is skipped by user config,
 				// so we should not sync it
 				continue
