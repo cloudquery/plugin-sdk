@@ -13,7 +13,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
-	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -108,10 +107,10 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 			limitListener := netutil.LimitListener(listener, 1)
 			// See logging pattern https://github.com/grpc-ecosystem/go-grpc-middleware/blob/v2/providers/zerolog/examples_test.go
 			s := grpc.NewServer(
-				middleware.WithUnaryServerChain(
+				grpc.ChainUnaryInterceptor(
 					logging.UnaryServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
-				middleware.WithStreamServerChain(
+				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
 			)
