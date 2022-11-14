@@ -73,11 +73,25 @@ func (tt Tables) TableNames() []string {
 	return ret
 }
 
-// Get return table by name. Only returns the table if it is in top-level list.
+// GetTopLevel returns a table by name. Only returns the table if it is in top-level list.
+func (tt Tables) GetTopLevel(name string) *Table {
+	for _, t := range tt {
+		if t.Name == name {
+			return t
+		}
+	}
+	return nil
+}
+
+// Get returns a table by name. Returns top-level tables and relations.
 func (tt Tables) Get(name string) *Table {
 	for _, t := range tt {
 		if t.Name == name {
 			return t
+		}
+		table := t.Relations.Get(name)
+		if table != nil {
+			return table
 		}
 	}
 	return nil
