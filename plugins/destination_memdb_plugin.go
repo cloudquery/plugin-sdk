@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -12,14 +13,46 @@ import (
 // TestDestinationMemDBClient is mostly used for testing.
 type TestDestinationMemDBClient struct {
 	schema.DefaultTransformer
-	spec     specs.Destination
-	memoryDB map[string][][]interface{}
+	spec          specs.Destination
+	memoryDB      map[string][][]interface{}
+	errOnWrite    bool
+	blockingWrite bool
+}
+
+type TestDestinationOption func(*TestDestinationMemDBClient)
+
+func withErrOnWrite() TestDestinationOption {
+	return func(c *TestDestinationMemDBClient) {
+		c.errOnWrite = true
+	}
+}
+
+func withBlockingWrite() TestDestinationOption {
+	return func(c *TestDestinationMemDBClient) {
+		c.blockingWrite = true
+	}
+}
+
+func getNewTestDestinationMemDBClient(options ...TestDestinationOption) NewDestinationClientFunc {
+	c := &TestDestinationMemDBClient{
+		memoryDB: make(map[string][][]interface{}),
+	}
+	for _, opt := range options {
+		opt(c)
+	}
+	return func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error) {
+		return c, nil
+	}
 }
 
 func NewTestDestinationMemDBClient(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error) {
 	return &TestDestinationMemDBClient{
 		memoryDB: make(map[string][][]interface{}),
 	}, nil
+}
+
+func newTestDestinationMemDBClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error) {
+	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
 func (*TestDestinationMemDBClient) ReverseTransformValues(_ *schema.Table, values []interface{}) (schema.CQTypes, error) {
@@ -78,7 +111,17 @@ func (c *TestDestinationMemDBClient) Read(_ context.Context, table *schema.Table
 	return nil
 }
 
-func (c *TestDestinationMemDBClient) Write(_ context.Context, tables schema.Tables, resources <-chan *ClientResource) error {
+func (c *TestDestinationMemDBClient) Write(ctx context.Context, tables schema.Tables, resources <-chan *ClientResource) error {
+	if c.errOnWrite {
+		return fmt.Errorf("errOnWrite")
+	}
+	if c.blockingWrite {
+		<-ctx.Done()
+		if c.errOnWrite {
+			return fmt.Errorf("errOnWrite")
+		}
+		return nil
+	}
 	for resource := range resources {
 		if c.spec.WriteMode == specs.WriteModeAppend {
 			c.memoryDB[resource.TableName] = append(c.memoryDB[resource.TableName], resource.Data)
