@@ -40,8 +40,5 @@ func (dst CIDR) Get() interface{} {
 }
 
 func (dst *CIDR) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, (*Inet)(dst)); err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(b, (*Inet)(dst))
 }
