@@ -2,6 +2,7 @@ package faker
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -10,6 +11,7 @@ type testFakerStruct struct {
 	A int
 	B string
 	C *string
+	D time.Time
 	E interface{}
 }
 
@@ -21,6 +23,7 @@ func TestFaker(t *testing.T) {
 	assert.NotEmpty(t, a.A)
 	assert.NotEmpty(t, a.B)
 	assert.NotEmpty(t, a.C)
+	assert.NotEmpty(t, a.D)
 	assert.Empty(t, a.E) // empty interfaces are not faked
 }
 

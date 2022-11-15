@@ -6,13 +6,13 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/servers"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
-	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -38,6 +38,7 @@ func WithSourceSentryDSN(dsn string) SourceOption {
 
 // lis used for unit testing grpc server and client
 var testSourceListener *bufconn.Listener
+var testSourceListenerLock sync.Mutex
 
 const serveSourceShort = `Start source plugin server`
 
@@ -91,8 +92,10 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 			// opts.Plugin.Logger = logger
 			var listener net.Listener
 			if network == "test" {
+				testSourceListenerLock.Lock()
 				listener = bufconn.Listen(testBufSize)
 				testSourceListener = listener.(*bufconn.Listener)
+				testSourceListenerLock.Unlock()
 			} else {
 				listener, err = net.Listen(network, address)
 				if err != nil {
@@ -104,10 +107,10 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 			limitListener := netutil.LimitListener(listener, 1)
 			// See logging pattern https://github.com/grpc-ecosystem/go-grpc-middleware/blob/v2/providers/zerolog/examples_test.go
 			s := grpc.NewServer(
-				middleware.WithUnaryServerChain(
+				grpc.ChainUnaryInterceptor(
 					logging.UnaryServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
-				middleware.WithStreamServerChain(
+				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
 			)

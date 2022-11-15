@@ -118,6 +118,7 @@ spec:`,
 		`kind: destination
 spec:
   name: test
+  path: cloudquery/test
 `,
 		"version is required",
 		nil,
@@ -127,6 +128,7 @@ spec:
 		`kind: destination
 spec:
   name: test
+  path: cloudquery/test
   version: 1.1.0
 `,
 		"version must start with v",
@@ -167,6 +169,7 @@ spec:
 		`kind: destination
 spec:
   name: test
+  path: cloudquery/test
   version: v1.1.0
 `,
 		"",

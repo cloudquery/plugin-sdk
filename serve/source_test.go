@@ -26,6 +26,8 @@ type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
+var errTestExecutionClientErr = fmt.Errorf("error in newTestExecutionClientErr")
+
 var expectedExampleSpecConfig = specs.Spec{
 	Kind: specs.KindSource,
 	Spec: &specs.Source{
@@ -63,11 +65,17 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 	return &testExecutionClient{}, nil
 }
 
+func newTestExecutionClientErr(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
+	return nil, errTestExecutionClientErr
+}
+
 func bufSourceDialer(context.Context, string) (net.Conn, error) {
+	testSourceListenerLock.Lock()
+	defer testSourceListenerLock.Unlock()
 	return testSourceListener.Dial()
 }
 
-func TestServeSource(t *testing.T) {
+func TestSourceSuccess(t *testing.T) {
 	plugin := plugins.NewSourcePlugin(
 		"testSourcePlugin",
 		"v1.0.0",
@@ -92,9 +100,12 @@ func TestServeSource(t *testing.T) {
 		wg.Wait()
 	}()
 	for {
+		testSourceListenerLock.Lock()
 		if testSourceListener != nil {
+			testSourceListenerLock.Unlock()
 			break
 		}
+		testSourceListenerLock.Unlock()
 		t.Log("waiting for grpc server to start")
 		time.Sleep(time.Millisecond * 200)
 	}
@@ -143,6 +154,7 @@ func TestServeSource(t *testing.T) {
 		specs.Source{
 			Name:         "testSourcePlugin",
 			Version:      "v1.0.0",
+			Path:         "cloudquery/testSourcePlugin",
 			Registry:     specs.RegistryGithub,
 			Tables:       []string{"*"},
 			Spec:         TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
@@ -182,7 +194,7 @@ func TestServeSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clientStats := stats.TableClient["test_table"]["testExecutionClient"]
+	clientStats := stats.TableClient[""][""]
 	if clientStats.Resources != 1 {
 		t.Fatalf("Expected 1 resource but got %d", clientStats.Resources)
 	}
@@ -195,6 +207,85 @@ func TestServeSource(t *testing.T) {
 		t.Fatalf("Expected 0 panics but got %d", clientStats.Panics)
 	}
 
+	cancel()
+	wg.Wait()
+	if serverErr != nil {
+		t.Fatal(serverErr)
+	}
+}
+
+const testSourceFailExpectedErr = "failed to fetch resources from stream: rpc error: code = Unknown desc = failed to sync resources: failed to create execution client for source plugin testSourcePlugin: error in newTestExecutionClientErr"
+
+func TestSourceFail(t *testing.T) {
+	plugin := plugins.NewSourcePlugin(
+		"testSourcePlugin",
+		"v1.0.0",
+		[]*schema.Table{testTable()},
+		newTestExecutionClientErr)
+
+	cmd := newCmdSourceRoot(&sourceServe{
+		plugin: plugin,
+	})
+	cmd.SetArgs([]string{"serve", "--network", "test"})
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	var serverErr error
+	go func() {
+		defer wg.Done()
+		serverErr = cmd.ExecuteContext(ctx)
+	}()
+	defer func() {
+		cancel()
+		wg.Wait()
+	}()
+	for {
+		testSourceListenerLock.Lock()
+		if testSourceListener != nil {
+			testSourceListenerLock.Unlock()
+			break
+		}
+		testSourceListenerLock.Unlock()
+		t.Log("waiting for grpc server to start")
+		time.Sleep(time.Millisecond * 200)
+	}
+
+	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufSourceDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	if err != nil {
+		t.Fatalf("Failed to dial bufnet: %v", err)
+	}
+	c, err := clients.NewSourceClient(ctx, specs.RegistryGrpc, "", "", clients.WithSourceGRPCConnection(conn), clients.WithSourceNoSentry())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := c.Terminate(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	resources := make(chan []byte, 1)
+	err = c.Sync2(ctx,
+		specs.Source{
+			Name:         "testSourcePlugin",
+			Version:      "v1.0.0",
+			Path:         "cloudquery/testSourcePlugin",
+			Registry:     specs.RegistryGithub,
+			Tables:       []string{"*"},
+			Spec:         TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
+			Destinations: []string{"test"},
+		},
+		resources)
+	close(resources)
+	if err == nil {
+		t.Fatal("expected error but got nil")
+	}
+
+	if err.Error() != testSourceFailExpectedErr {
+		t.Fatalf("expected error %s but got %v", testSourceFailExpectedErr, err)
+	}
 	cancel()
 	wg.Wait()
 	if serverErr != nil {

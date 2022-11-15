@@ -5,6 +5,124 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2](https://github.com/cloudquery/plugin-sdk/compare/v1.5.1...v1.5.2) (2022-11-14)
+
+
+### Bug Fixes
+
+* Update libs ([#406](https://github.com/cloudquery/plugin-sdk/issues/406)) ([04d6ca8](https://github.com/cloudquery/plugin-sdk/commit/04d6ca88783817a51157b99f52005bf86d395d50))
+
+## [1.5.1](https://github.com/cloudquery/plugin-sdk/compare/v1.5.0...v1.5.1) (2022-11-14)
+
+
+### Bug Fixes
+
+* Allow searching relations by name ([#404](https://github.com/cloudquery/plugin-sdk/issues/404)) ([45da719](https://github.com/cloudquery/plugin-sdk/commit/45da719a8368de20d80b6837a916fada9443d130))
+
+## [1.5.0](https://github.com/cloudquery/plugin-sdk/compare/v1.4.1...v1.5.0) (2022-11-11)
+
+
+### Features
+
+* Add support for glob matching in config ([#398](https://github.com/cloudquery/plugin-sdk/issues/398)) ([c866573](https://github.com/cloudquery/plugin-sdk/commit/c866573ba656e4a23ed0c0bc9576c1beb708a4c6))
+
+
+### Bug Fixes
+
+* Change globbing behavior to include descendants by default ([#403](https://github.com/cloudquery/plugin-sdk/issues/403)) ([de15d26](https://github.com/cloudquery/plugin-sdk/commit/de15d2610388eb8572baa23cb0fc5df86aea1950))
+* Exit early if all Write workers have stopped ([#395](https://github.com/cloudquery/plugin-sdk/issues/395)) ([5707e7a](https://github.com/cloudquery/plugin-sdk/commit/5707e7a132d44cea712753590081724edf26725d))
+
+## [1.4.1](https://github.com/cloudquery/plugin-sdk/compare/v1.4.0...v1.4.1) (2022-11-10)
+
+
+### Bug Fixes
+
+* Pre-aggregate metrics before sending ([#396](https://github.com/cloudquery/plugin-sdk/issues/396)) ([b6b5f7f](https://github.com/cloudquery/plugin-sdk/commit/b6b5f7fb57d89e0d50deaf27467f75bb014d3616))
+
+## [1.4.0](https://github.com/cloudquery/plugin-sdk/compare/v1.3.2...v1.4.0) (2022-11-10)
+
+
+### Features
+
+* **codegen:** Allow passing slices ([#386](https://github.com/cloudquery/plugin-sdk/issues/386)) ([dbc28d8](https://github.com/cloudquery/plugin-sdk/commit/dbc28d8419e3e3fa5682a537d11b80787ad2d036))
+
+
+### Bug Fixes
+
+* Clear skip tables error on invalid or child table skippage ([#349](https://github.com/cloudquery/plugin-sdk/issues/349)) ([bb0c60b](https://github.com/cloudquery/plugin-sdk/commit/bb0c60bd9d86f2dab5853ff6377bfb789a0dbf7d))
+
+## [1.3.2](https://github.com/cloudquery/plugin-sdk/compare/v1.3.1...v1.3.2) (2022-11-10)
+
+
+### Bug Fixes
+
+* Add -race when running tests ([#388](https://github.com/cloudquery/plugin-sdk/issues/388)) ([3da08bb](https://github.com/cloudquery/plugin-sdk/commit/3da08bb89c3c381cbc87b5dc8b53408bef5b4a9d))
+* Close zip archive when we're done with it ([#391](https://github.com/cloudquery/plugin-sdk/issues/391)) ([1c4a877](https://github.com/cloudquery/plugin-sdk/commit/1c4a877662b3a84f99b8a942d918f0d39d90e869))
+
+## [1.3.1](https://github.com/cloudquery/plugin-sdk/compare/v1.3.0...v1.3.1) (2022-11-10)
+
+
+### Bug Fixes
+
+* **deps:** Revert dependencies updates ([#389](https://github.com/cloudquery/plugin-sdk/issues/389)) ([3bc5314](https://github.com/cloudquery/plugin-sdk/commit/3bc5314907de511ad15eeea2257588eecf68a35a))
+
+## [1.3.0](https://github.com/cloudquery/plugin-sdk/compare/v1.2.0...v1.3.0) (2022-11-09)
+
+
+### Features
+
+* **codegen:** Add `WithPKColumns` option ([#379](https://github.com/cloudquery/plugin-sdk/issues/379)) ([0e3457d](https://github.com/cloudquery/plugin-sdk/commit/0e3457de7b3c8de1e1f21330d98a1a7a1806ccc3))
+
+## [1.2.0](https://github.com/cloudquery/plugin-sdk/compare/v1.1.2...v1.2.0) (2022-11-09)
+
+
+### Features
+
+* **codegen:** Add sanity check to `TableDefinition` ([#376](https://github.com/cloudquery/plugin-sdk/issues/376)) ([49c27b5](https://github.com/cloudquery/plugin-sdk/commit/49c27b515d1e0318c986d9c0bd58ce7a17c0a0d7))
+
+
+### Bug Fixes
+
+* Revert "fix(faker): Use `MarshalText` for faker timestamps ([#373](https://github.com/cloudquery/plugin-sdk/issues/373))" ([#381](https://github.com/cloudquery/plugin-sdk/issues/381)) ([a01ec51](https://github.com/cloudquery/plugin-sdk/commit/a01ec517c63d18e103aaa7c09e49c620f87a8c76))
+* Update `resolveResource` timeout to 10 minutes ([#384](https://github.com/cloudquery/plugin-sdk/issues/384)) ([456ef2f](https://github.com/cloudquery/plugin-sdk/commit/456ef2fd19fb1e15ccf9929bc0b092580d040011))
+* Use MarshalText when serializing timestamps when applicable ([#382](https://github.com/cloudquery/plugin-sdk/issues/382)) ([b110a90](https://github.com/cloudquery/plugin-sdk/commit/b110a9095ffb705289eb8a250eeb390ba5450a50))
+
+## [1.1.2](https://github.com/cloudquery/plugin-sdk/compare/v1.1.1...v1.1.2) (2022-11-09)
+
+
+### Bug Fixes
+
+* **faker:** Use `MarshalText` for faker timestamps ([#373](https://github.com/cloudquery/plugin-sdk/issues/373)) ([a291438](https://github.com/cloudquery/plugin-sdk/commit/a29143861b22432c81cdc8b04650d9d8d0ac9671))
+
+## [1.1.1](https://github.com/cloudquery/plugin-sdk/compare/v1.1.0...v1.1.1) (2022-11-09)
+
+
+### Bug Fixes
+
+* Context cancelled too early for delete stale mode ([#377](https://github.com/cloudquery/plugin-sdk/issues/377)) ([cd7bf6d](https://github.com/cloudquery/plugin-sdk/commit/cd7bf6d90b8b4942919165f0b5cda7ac33b238e3))
+
+## [1.1.0](https://github.com/cloudquery/plugin-sdk/compare/v1.0.4...v1.1.0) (2022-11-08)
+
+
+### Features
+
+* Add Testing suite for destination plugins ([#369](https://github.com/cloudquery/plugin-sdk/issues/369)) ([1a542b9](https://github.com/cloudquery/plugin-sdk/commit/1a542b9bf23219373d0b683030770c2f15502016))
+
+## [1.0.4](https://github.com/cloudquery/plugin-sdk/compare/v1.0.3...v1.0.4) (2022-11-08)
+
+
+### Bug Fixes
+
+* Make path a required config parameter ([#368](https://github.com/cloudquery/plugin-sdk/issues/368)) ([77fdaf8](https://github.com/cloudquery/plugin-sdk/commit/77fdaf85c1f580b760694ed7fb0563be71d06726))
+
+## [1.0.3](https://github.com/cloudquery/plugin-sdk/compare/v1.0.2...v1.0.3) (2022-11-07)
+
+
+### Bug Fixes
+
+* Allow managed clients to disable sentry logging ([#363](https://github.com/cloudquery/plugin-sdk/issues/363)) ([dc20388](https://github.com/cloudquery/plugin-sdk/commit/dc203886a6b077afa4e1b1138c3c1c60b0fcd2f2))
+* Normalize Windows line breaks before parsing configuration files ([#352](https://github.com/cloudquery/plugin-sdk/issues/352)) ([979e207](https://github.com/cloudquery/plugin-sdk/commit/979e207831a2835943a420791fc9598ada2efbf7))
+
 ## [1.0.2](https://github.com/cloudquery/plugin-sdk/compare/v1.0.1...v1.0.2) (2022-11-07)
 
 

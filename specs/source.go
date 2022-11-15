@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/thoas/go-funk"
 )
 
 const (
@@ -43,12 +45,6 @@ func (s *Source) SetDefaults() {
 	if s.Registry.String() == "" {
 		s.Registry = RegistryGithub
 	}
-	if s.Path == "" {
-		s.Path = s.Name
-	}
-	if s.Registry == RegistryGithub && !strings.Contains(s.Path, "/") {
-		s.Path = "cloudquery/" + s.Path
-	}
 	if s.Tables == nil {
 		s.Tables = []string{"*"}
 	}
@@ -78,6 +74,15 @@ func (s *Source) UnmarshalSpec(out interface{}) error {
 func (s *Source) Validate() error {
 	if s.Name == "" {
 		return fmt.Errorf("name is required")
+	}
+	if s.Path == "" {
+		msg := "path is required"
+		// give a small hint to help users transition from the old config format that didn't require path
+		officialPlugins := []string{"aws", "azure", "gcp", "digitalocean", "github", "heroku", "k8s", "okta", "terraform", "cloudflare"}
+		if funk.ContainsString(officialPlugins, s.Name) {
+			msg += fmt.Sprintf(". Hint: try setting path to cloudquery/%s in your config", s.Name)
+		}
+		return fmt.Errorf(msg)
 	}
 
 	if s.Registry == RegistryGithub {

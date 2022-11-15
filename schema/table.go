@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+
+	"github.com/cloudquery/plugin-sdk/internal/glob"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -71,7 +73,17 @@ func (tt Tables) TableNames() []string {
 	return ret
 }
 
-// Get return table by name
+// GetTopLevel returns a table by name. Only returns the table if it is in top-level list.
+func (tt Tables) GetTopLevel(name string) *Table {
+	for _, t := range tt {
+		if t.Name == name {
+			return t
+		}
+	}
+	return nil
+}
+
+// Get returns a table by name. Returns top-level tables and relations.
 func (tt Tables) Get(name string) *Table {
 	for _, t := range tt {
 		if t.Name == name {
@@ -83,6 +95,23 @@ func (tt Tables) Get(name string) *Table {
 		}
 	}
 	return nil
+}
+
+// GlobMatch returns a list of tables that match a given glob. If a parent table is matched,
+// it will also return all its descendants as part of the list.
+func (tt Tables) GlobMatch(pattern string) Tables {
+	tables := make([]*Table, 0, 10)
+	for _, t := range tt {
+		if glob.Glob(pattern, t.Name) {
+			tables = append(tables, t)
+			// recurse down to get all child tables
+			tables = append(tables, t.Relations.GlobMatch("*")...)
+			continue
+		}
+		// also try to match against child tables, even if the parent didn't match
+		tables = append(tables, t.Relations.GlobMatch(pattern)...)
+	}
+	return tables
 }
 
 func (tt Tables) ValidateDuplicateColumns() error {

@@ -57,6 +57,7 @@ func (dst *TextArray) String() string {
 		}
 		sb.WriteString(element.String())
 	}
+	sb.WriteString("}")
 	return sb.String()
 }
 

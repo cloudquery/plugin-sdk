@@ -46,6 +46,9 @@ const (
 // Add internal columns
 func addInternalColumns(tables []*schema.Table) {
 	for _, table := range tables {
+		if c := table.Column("_cq_id"); c != nil {
+			continue
+		}
 		cqID := schema.CqIDColumn
 		if len(table.PrimaryKeys()) == 0 {
 			cqID.CreationOptions.PrimaryKey = true
@@ -125,33 +128,16 @@ func (p *SourcePlugin) Metrics() SourceMetrics {
 	return p.metrics
 }
 
-func filterParentTables(tables schema.Tables, filter []string) schema.Tables {
-	var res schema.Tables
-	if tables == nil {
-		return nil
-	}
-	if len(filter) == 0 {
-		return tables
-	}
-	for _, name := range filter {
-		if t := tables.Get(name); t != nil {
-			res = append(res, t)
-		}
-	}
-	return res
-}
-
 // Sync is syncing data from the requested tables in spec to the given channel
 func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
 		return fmt.Errorf("invalid spec: %w", err)
 	}
-	tableNames, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
+	tables, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
 	if err != nil {
 		return err
 	}
-	tables := filterParentTables(p.tables, tableNames)
 
 	c, err := p.newExecutionClient(ctx, p.logger, spec)
 	if err != nil {
