@@ -198,24 +198,17 @@ doc --format json .
 )
 
 func newCmdSourceDoc(source *sourceServe) *cobra.Command {
+	format := newEnum([]string{"json", "markdown"}, "markdown")
 	cmd := &cobra.Command{
 		Use:   "doc <directory>",
 		Short: sourceDocShort,
 		Long:  sourceDocLong,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			format, err := cmd.Flags().GetString("format")
-			if err != nil {
-				return err
-			}
-			fmt := plugins.SourceDocsFormat(strings.ToLower(format))
-			if err := fmt.Validate(); err != nil {
-				return err
-			}
-			return source.plugin.GenerateSourcePluginDocs(args[0], fmt)
+			return source.plugin.GenerateSourcePluginDocs(args[0], format.Value)
 		},
 	}
-	cmd.Flags().String("format", "markdown", "output format (markdown, json)")
+	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
 	return cmd
 }
 

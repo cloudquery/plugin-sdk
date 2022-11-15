@@ -15,33 +15,8 @@ import (
 //go:embed templates/*.go.tpl
 var templatesFS embed.FS
 
-type SourceDocsFormat string
-
-const (
-	SourceDocsFormatMarkdown = "markdown"
-	SourceDocsFormatJSON     = "json"
-)
-
-var SourceDocsFormats = []SourceDocsFormat{
-	SourceDocsFormatMarkdown,
-	SourceDocsFormatJSON,
-}
-
-func (s SourceDocsFormat) String() string {
-	return string(s)
-}
-
-func (s SourceDocsFormat) Validate() error {
-	for _, f := range SourceDocsFormats {
-		if s == f {
-			return nil
-		}
-	}
-	return fmt.Errorf("invalid format: %v", s.String())
-}
-
 // GenerateSourcePluginDocs creates table documentation for the source plugin based on its list of tables
-func (p *SourcePlugin) GenerateSourcePluginDocs(dir string, format SourceDocsFormat) error {
+func (p *SourcePlugin) GenerateSourcePluginDocs(dir, format string) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
@@ -49,12 +24,12 @@ func (p *SourcePlugin) GenerateSourcePluginDocs(dir string, format SourceDocsFor
 	SetDestinationManagedCqColumns(p.Tables())
 
 	switch format {
-	case SourceDocsFormatMarkdown:
+	case "markdown":
 		return p.renderTablesAsMarkdown(dir)
-	case SourceDocsFormatJSON:
+	case "json":
 		return p.renderTablesAsJSON(dir)
 	default:
-		return fmt.Errorf("unsupported format: %v", format.String())
+		return fmt.Errorf("unsupported format: %v", format)
 	}
 }
 
