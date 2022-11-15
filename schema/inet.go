@@ -160,7 +160,6 @@ func (dst *Inet) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	*dst = Inet{Status: tmp.Status}
-	dst.Status = tmp.Status
 	if dst.Status == Present {
 		if err := dst.Set(tmp.IPNet.String()); err != nil {
 			return err
