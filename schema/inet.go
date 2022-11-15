@@ -3,6 +3,7 @@ package schema
 
 import (
 	"encoding"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -10,6 +11,12 @@ import (
 
 type InetTransformer interface {
 	TransformInet(*Inet) interface{}
+}
+
+// workaround this Golang bug: https://github.com/golang/go/issues/35727
+type inetIntermidate struct {
+	IPNet  *net.IPNet
+	Status Status
 }
 
 // Inet represents both inet and cidr PostgreSQL types.
@@ -144,6 +151,22 @@ func maybeGetIPv4(input string, ip net.IP) net.IP {
 	}
 
 	return ip.To4()
+}
+
+// workaround this Golang bug: https://github.com/golang/go/issues/35727
+func (dst *Inet) UnmarshalJSON(b []byte) error {
+	tmp := inetIntermidate{}
+	if err := json.Unmarshal(b, &tmp); err != nil {
+		return err
+	}
+	dst.Status = tmp.Status
+	if dst.Status == Present {
+		if err := dst.Set(tmp.IPNet.String()); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (dst Inet) Get() interface{} {
