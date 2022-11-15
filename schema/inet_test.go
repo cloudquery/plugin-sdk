@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -57,5 +59,34 @@ func TestInetSet(t *testing.T) {
 		if !r.Equal(&tt.result) {
 			t.Errorf("%d: %v != %v", i, r, tt.result)
 		}
+	}
+}
+
+func TestInetMarshalUnmarshal(t *testing.T) {
+	var r Inet
+	err := r.Set("10.244.0.0/24")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var r2 Inet
+	err = json.Unmarshal(b, &r2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Equal(&r2) {
+		t.Errorf("%v != %v", r, r2)
+	}
+
+	// workaround this Golang bug: https://github.com/golang/go/issues/35727
+	if !bytes.Equal(r.IPNet.Mask, r2.IPNet.Mask) {
+		t.Errorf("%v != %v", r.IPNet.Mask, r2.IPNet.Mask)
+	}
+	//nolint:all
+	if !bytes.Equal(r.IPNet.IP, r2.IPNet.IP) {
+		t.Errorf("%v != %v", r.IPNet.IP, r2.IPNet.IP)
 	}
 }

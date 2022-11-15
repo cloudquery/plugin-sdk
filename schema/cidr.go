@@ -1,5 +1,7 @@
 package schema
 
+import "encoding/json"
+
 type CIDR Inet
 
 type CIDRTransformer interface {
@@ -35,4 +37,8 @@ func (dst *CIDR) Set(src interface{}) error {
 
 func (dst CIDR) Get() interface{} {
 	return (Inet)(dst).Get()
+}
+
+func (dst *CIDR) UnmarshalJSON(b []byte) error {
+	return json.Unmarshal(b, (*Inet)(dst))
 }
