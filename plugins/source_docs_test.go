@@ -63,7 +63,7 @@ func TestGenerateSourcePluginDocs(t *testing.T) {
 	t.Run("Markdown", func(t *testing.T) {
 		tmpdir := t.TempDir()
 
-		err := p.GenerateSourcePluginDocs(tmpdir, SourceDocsFormatMarkdown)
+		err := p.GenerateSourcePluginDocs(tmpdir, "markdown")
 		if err != nil {
 			t.Fatalf("unexpected error calling GenerateSourcePluginDocs: %v", err)
 		}
@@ -82,7 +82,7 @@ func TestGenerateSourcePluginDocs(t *testing.T) {
 	t.Run("JSON", func(t *testing.T) {
 		tmpdir := t.TempDir()
 
-		err := p.GenerateSourcePluginDocs(tmpdir, SourceDocsFormatJSON)
+		err := p.GenerateSourcePluginDocs(tmpdir, "json")
 		if err != nil {
 			t.Fatalf("unexpected error calling GenerateSourcePluginDocs: %v", err)
 		}
