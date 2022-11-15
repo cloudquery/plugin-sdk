@@ -14,7 +14,7 @@ type InetTransformer interface {
 }
 
 // workaround this Golang bug: https://github.com/golang/go/issues/35727
-type inetIntermidate struct {
+type inetWrapper struct {
 	IPNet  *net.IPNet
 	Status Status
 }
@@ -155,10 +155,11 @@ func maybeGetIPv4(input string, ip net.IP) net.IP {
 
 // workaround this Golang bug: https://github.com/golang/go/issues/35727
 func (dst *Inet) UnmarshalJSON(b []byte) error {
-	tmp := inetIntermidate{}
+	tmp := inetWrapper{}
 	if err := json.Unmarshal(b, &tmp); err != nil {
 		return err
 	}
+	*dst = Inet{Status: tmp.Status}
 	dst.Status = tmp.Status
 	if dst.Status == Present {
 		if err := dst.Set(tmp.IPNet.String()); err != nil {
