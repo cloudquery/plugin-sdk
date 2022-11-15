@@ -3,6 +3,7 @@ package schema
 
 import (
 	"encoding"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -10,6 +11,13 @@ import (
 
 type InetTransformer interface {
 	TransformInet(*Inet) interface{}
+}
+
+// This is due to this nasty bug in Golang net.IPnet marshal/unmarshal
+// https://github.com/golang/go/issues/35727
+type inetIntermidate struct {
+	IPNet  *net.IPNet
+	Status Status
 }
 
 // Inet represents both inet and cidr PostgreSQL types.
@@ -122,6 +130,21 @@ func (dst *Inet) Set(src interface{}) error {
 			return dst.Set(originalSrc)
 		}
 		return fmt.Errorf("cannot convert %v to Inet", value)
+	}
+
+	return nil
+}
+
+func (dst *Inet) UnmarshalJSON(b []byte) error {
+	tmp := inetIntermidate{}
+	if err := json.Unmarshal(b, &tmp); err != nil {
+		return err
+	}
+	dst.Status = tmp.Status
+	if dst.Status == Present {
+		if err := dst.Set(tmp.IPNet.String()); err != nil {
+			return err
+		}
 	}
 
 	return nil
