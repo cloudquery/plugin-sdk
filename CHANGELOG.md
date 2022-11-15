@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3](https://github.com/cloudquery/plugin-sdk/compare/v1.5.2...v1.5.3) (2022-11-15)
+
+
+### Bug Fixes
+
+* Workaround Go Inet marshal bug ([#410](https://github.com/cloudquery/plugin-sdk/issues/410)) ([bd7718c](https://github.com/cloudquery/plugin-sdk/commit/bd7718c3a5a76d8c0c70db66d5a6231450ad9e78))
+
 ## [1.5.2](https://github.com/cloudquery/plugin-sdk/compare/v1.5.1...v1.5.2) (2022-11-14)
 
 
