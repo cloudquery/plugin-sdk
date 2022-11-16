@@ -184,19 +184,32 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 }
 
 const (
-	sourceDocShort = "Generate markdown documentation for tables"
+	sourceDocShort = "Generate documentation for tables"
+	sourceDocLong  = `Generate documentation for tables
+
+If format is markdown, a destination directory will be created (if necessary) containing markdown files.
+Example:
+doc ./output 
+
+If format is JSON, a destination directory will be created (if necessary) with a single json file called __tables.json.
+Example:
+doc --format json .
+`
 )
 
 func newCmdSourceDoc(source *sourceServe) *cobra.Command {
-	return &cobra.Command{
-		Use:   "doc <folder>",
+	format := newEnum([]string{"json", "markdown"}, "markdown")
+	cmd := &cobra.Command{
+		Use:   "doc <directory>",
 		Short: sourceDocShort,
-		Long:  sourceDocShort,
+		Long:  sourceDocLong,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return source.plugin.GenerateSourcePluginDocs(args[0])
+			return source.plugin.GenerateSourcePluginDocs(args[0], format.Value)
 		},
 	}
+	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
+	return cmd
 }
 
 func newCmdSourceRoot(source *sourceServe) *cobra.Command {
