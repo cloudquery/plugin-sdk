@@ -15,8 +15,7 @@ import (
 )
 
 type BenchmarkScenario struct {
-	Accounts          int
-	Regions           int
+	Clients           int
 	Tables            int
 	ChildrenPerTable  int
 	Columns           int
@@ -30,11 +29,8 @@ type BenchmarkScenario struct {
 }
 
 func (s *BenchmarkScenario) SetDefaults() {
-	if s.Accounts == 0 {
-		s.Accounts = 1
-	}
-	if s.Regions == 0 {
-		s.Regions = 1
+	if s.Clients == 0 {
+		s.Clients = 1
 	}
 	if s.Tables == 0 {
 		s.Tables = 1
@@ -141,7 +137,7 @@ func (s *SourceBenchmark) setup(b *testing.B) {
 			Columns:             columns,
 			Relations:           relations,
 			Resolver:            tableResolver,
-			Multiplex:           nMultiplexer(s.Accounts * s.Regions),
+			Multiplex:           nMultiplexer(s.Clients),
 			PreResourceResolver: preResourceResolver,
 		}
 		for u := range relations {
@@ -255,7 +251,7 @@ type benchmarkClient struct {
 }
 
 func (b benchmarkClient) ID() string {
-	return fmt.Sprintf("id-%d", b.num)
+	return fmt.Sprintf("client%d", b.num)
 }
 
 func nMultiplexer(n int) schema.Multiplexer {
@@ -277,8 +273,7 @@ func BenchmarkDefaultConcurrency(b *testing.B) {
 func benchmarkWithConcurrency(b *testing.B, concurrency uint64) {
 	b.ReportAllocs()
 	bs := BenchmarkScenario{
-		Accounts:          5,
-		Regions:           5,
+		Clients:           25,
 		Tables:            5,
 		Columns:           10,
 		ColumnResolvers:   1,
@@ -300,8 +295,7 @@ func BenchmarkTablesWithChildrenDefaultConcurrency(b *testing.B) {
 func benchmarkTablesWithChildrenConcurrency(b *testing.B, concurrency uint64) {
 	b.ReportAllocs()
 	bs := BenchmarkScenario{
-		Accounts:          2,
-		Regions:           1,
+		Clients:           2,
 		Tables:            2,
 		ChildrenPerTable:  2,
 		Columns:           10,
