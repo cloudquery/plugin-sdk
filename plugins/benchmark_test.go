@@ -212,6 +212,8 @@ func (s *SourceBenchmark) Run() {
 	s.b.ReportMetric(0, "ns/op") // drop default ns/op output
 	s.b.ReportMetric(float64(totalResources)/(end.Sub(start).Seconds()), "resources/s")
 	s.b.ReportMetric(float64(totalResources)/s.lowerBound().Seconds(), "targetResources/s")
+
+	// Enable the below metrics for more verbose information about the scenario:
 	//s.b.ReportMetric(float64(totalResources), "resources")
 	//s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
 }
