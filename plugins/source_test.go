@@ -279,15 +279,9 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		if i >= len(tc.data) {
 			t.Fatalf("expected %d resources. got %d", len(tc.data), i)
 		}
-		// if !resource.GetValues().Equal(tc.data[i]) {
-		// 	t.Log(tc.data)
-		// }
 		if !resource.GetValues().Equal(tc.data[i]) {
 			t.Fatalf("expected at i=%d: %v. got %v", i, tc.data[i], resource.GetValues())
 		}
-		// if !tc.data[i].Equal(resource.GetValues()) {
-		// 	t.Fatalf("expected %v. got %v", tc.data[i], resource.GetValues())
-		// }
 		i++
 	}
 	if len(tc.data) != i {
