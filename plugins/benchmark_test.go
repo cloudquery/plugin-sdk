@@ -113,7 +113,10 @@ func (s *SourceBenchmark) setup(b *testing.B) {
 	}
 	columnResolver := func(ctx context.Context, meta schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
 		s.simulateAPICall(s.ResolverMin, s.ResolverStdDev, s.ResolverMean)
-		resource.Set(c.Name, "test")
+		err := resource.Set(c.Name, "test")
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 	s.tables = make([]*schema.Table, s.Tables)
