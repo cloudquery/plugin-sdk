@@ -13,11 +13,7 @@ import (
 func TestDestinationPlugin(t *testing.T) {
 	p := NewDestinationPlugin("test", "development", NewTestDestinationMemDBClient)
 	DestinationPluginTestSuiteRunner(t, p, nil,
-		DestinationTestSuiteTests{
-			Overwrite:   true,
-			DeleteStale: true,
-			Append:      true,
-		})
+		DestinationTestSuiteTests{})
 }
 
 func TestDestinationOnNewError(t *testing.T) {
