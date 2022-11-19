@@ -175,42 +175,46 @@ func min(a, b int) int {
 }
 
 func (s *SourceBenchmark) Run() {
-	ctx := context.Background()
-	spec := specs.Source{
-		Name:         "testSource",
-		Path:         "cloudquery/testSource",
-		Tables:       []string{"*"},
-		Version:      "v1.0.0",
-		Destinations: []string{"test"},
-		Concurrency:  s.Concurrency,
-	}
-	resources := make(chan *schema.Resource)
-	g, ctx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		defer close(resources)
-		return s.plugin.Sync(ctx,
-			spec,
-			resources)
-	})
-	s.b.ResetTimer()
-	start := time.Now()
-	totalResources := 0
-	for range resources {
-		// read resources channel until empty
-		totalResources++
-	}
-	if err := g.Wait(); err != nil {
-		s.b.Fatal(err)
-	}
-	end := time.Now()
-	s.b.StopTimer()
-	s.b.ReportMetric(0, "ns/op") // drop default ns/op output
-	s.b.ReportMetric(float64(totalResources)/(end.Sub(start).Seconds()), "resources/s")
-	s.b.ReportMetric(float64(totalResources)/s.lowerBound().Seconds(), "targetResources/s")
+	for n := 0; n < s.b.N; n++ {
+		s.b.StopTimer()
+		ctx := context.Background()
+		spec := specs.Source{
+			Name:         "testSource",
+			Path:         "cloudquery/testSource",
+			Tables:       []string{"*"},
+			Version:      "v1.0.0",
+			Destinations: []string{"test"},
+			Concurrency:  s.Concurrency,
+		}
+		resources := make(chan *schema.Resource)
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			defer close(resources)
+			return s.plugin.Sync(ctx,
+				spec,
+				resources)
+		})
+		s.b.StartTimer()
+		start := time.Now()
 
-	// Enable the below metrics for more verbose information about the scenario:
-	//s.b.ReportMetric(float64(totalResources), "resources")
-	//s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
+		totalResources := 0
+		for range resources {
+			// read resources channel until empty
+			totalResources++
+		}
+		if err := g.Wait(); err != nil {
+			s.b.Fatal(err)
+		}
+
+		end := time.Now()
+		s.b.ReportMetric(0, "ns/op") // drop default ns/op output
+		s.b.ReportMetric(float64(totalResources)/(end.Sub(start).Seconds()), "resources/s")
+		s.b.ReportMetric(float64(totalResources)/s.lowerBound().Seconds(), "targetResources/s")
+
+		// Enable the below metrics for more verbose information about the scenario:
+		//s.b.ReportMetric(float64(totalResources), "resources")
+		//s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
+	}
 }
 
 // lowerBound calculates a rough lower bound on the sync time so that we know how
