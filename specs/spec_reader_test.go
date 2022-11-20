@@ -106,7 +106,7 @@ spec:
 		otherstuff: 2
 		credentials1: ${file:./testdata/creds1.txt}
 	`)
-	expectedCfg :=  []byte(`
+	expectedCfg := []byte(`
 kind: source
 spec:
 	name: test
@@ -136,6 +136,6 @@ spec:
 	expectedErr := `open ./testdata/creds2.txt: no such file or directory`
 	_, err = expandFileConfig(badCfg)
 	if err.Error() != expectedErr {
-		t.Fatalf("expected: '%s' got: %s", expectedErr, err)	
+		t.Fatalf("expected: '%s' got: %s", expectedErr, err)
 	}
 }
