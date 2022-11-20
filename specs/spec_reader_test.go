@@ -133,8 +133,11 @@ spec:
 		credentials: ${file:./testdata/creds2.txt}
 		otherstuff: 2
 	`)
-	expectedErr := `open ./testdata/creds2.txt: no such file or directory`
 	_, err = expandFileConfig(badCfg)
+	expectedErr := `open ./testdata/creds2.txt: no such file or directory`
+	if runtime.GOOS == "windows" {
+		expectedErr = `open ./testdata/creds2.txt: The system cannot find the file specified.`
+	}
 	if err.Error() != expectedErr {
 		t.Fatalf("expected: '%s' got: %s", expectedErr, err)
 	}
