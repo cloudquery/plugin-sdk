@@ -21,7 +21,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/status"
 )
 
@@ -252,7 +251,7 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	}
 	stream, err := c.pbClient.Sync(ctx, &pb.Sync_Request{
 		Spec: b,
-	}, grpc.UseCompressor(gzip.Name))
+	})
 	if err != nil {
 		return fmt.Errorf("failed to call Sync: %w", err)
 	}
