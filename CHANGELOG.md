@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0](https://github.com/cloudquery/plugin-sdk/compare/v1.5.3...v1.6.0) (2022-11-21)
+
+
+### Features
+
+* Add option to plugin doc command to output tables as JSON ([#347](https://github.com/cloudquery/plugin-sdk/issues/347)) ([c1b4240](https://github.com/cloudquery/plugin-sdk/commit/c1b424044d2e8aa33d833222b5d7d09a7b606ae7))
+* Support ${file:./path} expansion in spec ([#418](https://github.com/cloudquery/plugin-sdk/issues/418)) ([58d7c44](https://github.com/cloudquery/plugin-sdk/commit/58d7c4420431142ac95fa2eb2cb16ce64d6ba179))
+
+
+### Bug Fixes
+
+* Fix Destination testing suite ([#417](https://github.com/cloudquery/plugin-sdk/issues/417)) ([4771efa](https://github.com/cloudquery/plugin-sdk/commit/4771efadf9c5a0ba8ace33af89614557a721072e))
+* Increase GRPC message size limit to 50MiB ([#419](https://github.com/cloudquery/plugin-sdk/issues/419)) ([a54c6ea](https://github.com/cloudquery/plugin-sdk/commit/a54c6ea15d0af87b3c314f21f62e7ec9071e372f))
+
 ## [1.5.3](https://github.com/cloudquery/plugin-sdk/compare/v1.5.2...v1.5.3) (2022-11-15)
 
 
