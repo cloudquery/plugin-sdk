@@ -2,6 +2,7 @@ package specs
 
 import (
 	"bytes"
+	"os"
 	"path"
 	"runtime"
 	"testing"
@@ -104,7 +105,7 @@ spec:
 	spec:
 		credentials: ${file:./testdata/creds.txt}
 		otherstuff: 2
-		credentials1: ${file:./testdata/creds1.txt}
+		credentials1: [${file:./testdata/creds.txt}, ${file:./testdata/creds1.txt}]
 	`)
 	expectedCfg := []byte(`
 kind: source
@@ -114,7 +115,7 @@ spec:
 	spec:
 		credentials: mytestcreds
 		otherstuff: 2
-		credentials1: anothercredtest
+		credentials1: [mytestcreds, anothercredtest]
 	`)
 	expandedCfg, err := expandFileConfig(cfg)
 	if err != nil {
@@ -134,11 +135,7 @@ spec:
 		otherstuff: 2
 	`)
 	_, err = expandFileConfig(badCfg)
-	expectedErr := `open ./testdata/creds2.txt: no such file or directory`
-	if runtime.GOOS == "windows" {
-		expectedErr = `open ./testdata/creds2.txt: The system cannot find the file specified.`
-	}
-	if err.Error() != expectedErr {
-		t.Fatalf("expected: '%s' got: %s", expectedErr, err)
+	if !os.IsNotExist(err) {
+		t.Fatalf("expected error: %s, got: %s", os.ErrNotExist, err)
 	}
 }

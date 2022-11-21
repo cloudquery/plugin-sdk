@@ -13,7 +13,7 @@ type SpecReader struct {
 	Destinations map[string]*Destination
 }
 
-var fileRegex = regexp.MustCompile(`\$\{file:(.+)\}`)
+var fileRegex = regexp.MustCompile(`\$\{file:([^}]+)\}`)
 
 func expandFileConfig(cfg []byte) ([]byte, error) {
 	var expandErr error
