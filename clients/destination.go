@@ -77,7 +77,13 @@ func NewDestinationClient(ctx context.Context, registry specs.Registry, path str
 	switch registry {
 	case specs.RegistryGrpc:
 		if c.userConn == nil {
-			c.conn, err = grpc.DialContext(ctx, path, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			c.conn, err = grpc.DialContext(ctx, path,
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithDefaultCallOptions(
+					grpc.MaxCallRecvMsgSize(maxMsgSize),
+					grpc.MaxCallSendMsgSize(maxMsgSize),
+				),
+			)
 			if err != nil {
 				return nil, fmt.Errorf("failed to dial grpc source plugin at %s: %w", path, err)
 			}
