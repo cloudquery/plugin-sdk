@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	_ "google.golang.org/grpc/encoding/gzip" // to register GRPC gzip compression
+
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/servers"
 	"github.com/cloudquery/plugin-sdk/plugins"
@@ -113,6 +115,7 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
+				grpc.MaxRecvMsgSize(maxReceiveMsgSize),
 			)
 			source.plugin.SetLogger(logger)
 			pb.RegisterSourceServer(s, &servers.SourceServer{
