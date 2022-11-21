@@ -14,3 +14,5 @@ spec:
   version: v1.0.0
   registry: grpc
   write_mode: overwrite
+  spec:
+    credentials: ${file:./testdata/creds.txt}
