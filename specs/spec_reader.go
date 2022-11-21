@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -12,10 +13,30 @@ type SpecReader struct {
 	Destinations map[string]*Destination
 }
 
+var fileRegex = regexp.MustCompile(`\$\{file:([^}]+)\}`)
+
+func expandFileConfig(cfg []byte) ([]byte, error) {
+	var expandErr error
+	cfg = fileRegex.ReplaceAllFunc(cfg, func(match []byte) []byte {
+		filename := fileRegex.FindSubmatch(match)[1]
+		content, err := os.ReadFile(string(filename))
+		if err != nil {
+			expandErr = err
+			return nil
+		}
+		return content
+	})
+	return cfg, expandErr
+}
+
 func (r *SpecReader) loadSpecsFromFile(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read file %s: %w", path, err)
+	}
+	data, err = expandFileConfig(data)
+	if err != nil {
+		return fmt.Errorf("failed to expand file variable in file %s: %w", path, err)
 	}
 	data = []byte(os.ExpandEnv(string(data)))
 

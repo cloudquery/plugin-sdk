@@ -19,9 +19,9 @@ type destinationTestSuite struct {
 }
 
 type DestinationTestSuiteTests struct {
-	Overwrite   bool
-	DeleteStale bool
-	Append      bool
+	SkipOverwrite   bool
+	SkipDeleteStale bool
+	SkipAppend      bool
 }
 
 func getTestLogger(t *testing.T) zerolog.Logger {
@@ -106,7 +106,7 @@ func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.C
 		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
 	}
 
-	if s.tests.DeleteStale {
+	if !s.tests.SkipDeleteStale {
 		if err := p.DeleteStale(ctx, tables, sourceName, secondSyncTime); err != nil {
 			return fmt.Errorf("failed to delete stale data second time: %w", err)
 		}
@@ -199,7 +199,7 @@ func DestinationPluginTestSuiteRunner(t *testing.T, p *DestinationPlugin, spec i
 
 	t.Run("TestWriteOverwrite", func(t *testing.T) {
 		t.Helper()
-		if suite.tests.Overwrite {
+		if suite.tests.SkipOverwrite {
 			t.Skip("skipping TestWriteOverwrite")
 			return
 		}
@@ -210,7 +210,7 @@ func DestinationPluginTestSuiteRunner(t *testing.T, p *DestinationPlugin, spec i
 
 	t.Run("TestWriteAppend", func(t *testing.T) {
 		t.Helper()
-		if suite.tests.Append {
+		if suite.tests.SkipAppend {
 			t.Skip("skipping TestWriteAppend")
 			return
 		}

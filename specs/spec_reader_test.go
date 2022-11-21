@@ -1,6 +1,8 @@
 package specs
 
 import (
+	"bytes"
+	"os"
 	"path"
 	"runtime"
 	"testing"
@@ -91,5 +93,49 @@ func TestLoadSpecs(t *testing.T) {
 				t.Fatalf("got: %d expected: %d", len(specReader.Destinations), tc.destinations)
 			}
 		})
+	}
+}
+
+func TestExpandFile(t *testing.T) {
+	cfg := []byte(`
+kind: source
+spec:
+	name: test
+	version: v1.0.0
+	spec:
+		credentials: ${file:./testdata/creds.txt}
+		otherstuff: 2
+		credentials1: [${file:./testdata/creds.txt}, ${file:./testdata/creds1.txt}]
+	`)
+	expectedCfg := []byte(`
+kind: source
+spec:
+	name: test
+	version: v1.0.0
+	spec:
+		credentials: mytestcreds
+		otherstuff: 2
+		credentials1: [mytestcreds, anothercredtest]
+	`)
+	expandedCfg, err := expandFileConfig(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(expandedCfg, expectedCfg) {
+		t.Fatalf("got: %s expected: %s", expandedCfg, expectedCfg)
+	}
+
+	badCfg := []byte(`
+kind: source
+spec:
+	name: test
+	version: v1.0.0
+	spec:
+		credentials: ${file:./testdata/creds2.txt}
+		otherstuff: 2
+	`)
+	_, err = expandFileConfig(badCfg)
+	if !os.IsNotExist(err) {
+		t.Fatalf("expected error: %s, got: %s", os.ErrNotExist, err)
 	}
 }
