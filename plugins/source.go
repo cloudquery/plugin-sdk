@@ -32,7 +32,7 @@ type SourcePlugin struct {
 	// resourceSem is a semaphore that limits the number of concurrent resources being fetched
 	resourceSem *semaphore.Weighted
 	// tableSem is a semaphore that limits the number of concurrent tables being fetched
-	tableSem *semaphore.Weighted
+	tableSems []*semaphore.Weighted
 	// maxDepth is the max depth of tables
 	maxDepth uint64
 	// caser
@@ -101,7 +101,6 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 	if p.maxDepth > maxAllowedDepth {
 		panic(fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth))
 	}
-
 	return &p
 }
 
