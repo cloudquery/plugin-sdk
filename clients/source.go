@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/status"
 )
 
@@ -166,7 +167,15 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 		d := &net.Dialer{}
 		return d.DialContext(ctx, "unix", addr)
 	}
-	c.conn, err = grpc.DialContext(ctx, c.grpcSocketName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock(), grpc.WithContextDialer(dialer))
+	c.conn, err = grpc.DialContext(ctx, c.grpcSocketName,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+		grpc.WithContextDialer(dialer),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(maxMsgSize),
+			grpc.MaxCallSendMsgSize(maxMsgSize),
+		),
+	)
 	if err != nil {
 		if err := cmd.Process.Kill(); err != nil {
 			c.logger.Error().Err(err).Msg("failed to kill plugin process")
@@ -243,7 +252,7 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	}
 	stream, err := c.pbClient.Sync(ctx, &pb.Sync_Request{
 		Spec: b,
-	})
+	}, grpc.UseCompressor(gzip.Name))
 	if err != nil {
 		return fmt.Errorf("failed to call Sync: %w", err)
 	}

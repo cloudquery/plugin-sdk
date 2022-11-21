@@ -107,6 +107,7 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
+				grpc.MaxRecvMsgSize(maxReceiveMsgSize),
 			)
 			pb.RegisterDestinationServer(s, &servers.DestinationServer{
 				Plugin: destination.plugin,
