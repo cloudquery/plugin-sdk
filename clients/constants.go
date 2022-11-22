@@ -1,5 +1,5 @@
 package clients
 
 const (
-	maxMsgSize = 50 * 1024 * 1024 // 50 MiB
+	maxMsgSize = 100 * 1024 * 1024 // 100 MiB
 )
