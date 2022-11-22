@@ -24,10 +24,17 @@ jobs:
       - run: go build ./...
       - name: Run tests
         if: matrix.os != 'ubuntu-latest'
-        run: go test ./...
+        run: go test -race ./...
       - name: Run tests
         if: matrix.os == 'ubuntu-latest'
-        run: go test -coverprofile=coverage.out ./...
+        run: go test -race -coverprofile=coverage.out ./...
+      - name: Run benchmark
+        if: matrix.os == 'ubuntu-latest'
+        run: make benchmark-ci
+      - name: Delta
+        uses: netlify/delta-action@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate coverage report
         if: always() && matrix.os == 'ubuntu-latest'
         run: go tool cover -html coverage.out -o coverage.html
