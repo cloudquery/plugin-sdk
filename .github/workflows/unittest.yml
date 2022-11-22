@@ -35,7 +35,7 @@ jobs:
         uses: hermanschaaf/delta-action@v1.0.7
         with:
           title: "⏱️ Benchmark results"
-          style: "graph"
+          style: "text"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate coverage report
         if: always() && matrix.os == 'ubuntu-latest'
