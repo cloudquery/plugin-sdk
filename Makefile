@@ -12,7 +12,7 @@ gen-proto:
 
 .PHONY: gen-proto
 benchmark:
-	go test -bench=Benchmark -run=^$ ./...
+	go test -bench=Benchmark -run="^$$" ./...
 
 benchmark-ci:
 	go test -bench . -benchmem ./... -run="^$$" | gobenchdata --json bench.json
