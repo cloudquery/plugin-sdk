@@ -90,7 +90,7 @@ func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server
 		msg := &pb.Sync2_Response{
 			Resource: b,
 		}
-		err = s.checkMessageSize(msg, resource)
+		err = checkMessageSize(msg, resource)
 		if err != nil {
 			s.Logger.Warn().Str("table", resource.Table.Name).
 				Int("bytes", len(msg.String())).
@@ -103,22 +103,6 @@ func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server
 	}
 
 	return syncErr
-}
-
-func (s *SourceServer) checkMessageSize(msg proto.Message, resource *schema.Resource) error {
-	size := proto.Size(msg)
-	// log error to Sentry if row exceeds half of the max size
-	if size > MaxMsgSize/2 {
-		sentry.WithScope(func(scope *sentry.Scope) {
-			scope.SetTag("table", resource.Table.Name)
-			scope.SetExtra("bytes", size)
-			sentry.CurrentHub().CaptureMessage("Large message detected")
-		})
-	}
-	if size > MaxMsgSize {
-		return errors.New("message exceeds max size")
-	}
-	return nil
 }
 
 func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request) (*pb.GetSourceMetrics_Response, error) {
@@ -142,4 +126,20 @@ func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request)
 	return &pb.GetSourceMetrics_Response{
 		Metrics: b,
 	}, nil
+}
+
+func checkMessageSize(msg proto.Message, resource *schema.Resource) error {
+	size := proto.Size(msg)
+	// log error to Sentry if row exceeds half of the max size
+	if size > MaxMsgSize/2 {
+		sentry.WithScope(func(scope *sentry.Scope) {
+			scope.SetTag("table", resource.Table.Name)
+			scope.SetExtra("bytes", size)
+			sentry.CurrentHub().CaptureMessage("Large message detected")
+		})
+	}
+	if size > MaxMsgSize {
+		return errors.New("message exceeds max size")
+	}
+	return nil
 }
