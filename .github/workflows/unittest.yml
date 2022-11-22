@@ -32,7 +32,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: make benchmark-ci
       - name: Delta
-        uses: hermanschaaf/delta-action@v1.0.2
+        uses: hermanschaaf/delta-action@v1.0.3
         with:
           title: "⏱️ Benchmark results"
           style: "graph"
