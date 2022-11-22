@@ -34,6 +34,7 @@ jobs:
       - name: Delta
         uses: netlify/delta-action@v1.1.0
         with:
+          title: "⏱️ Benchmark results"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate coverage report
         if: always() && matrix.os == 'ubuntu-latest'

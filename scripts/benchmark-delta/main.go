@@ -29,6 +29,10 @@ type deltaResult struct {
 	Value  float64 // value
 }
 
+func prettyName(name string) string {
+	return strings.Trim(strings.TrimPrefix(name, "Benchmark"), "_")
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		log.Fatalf("Usage: %s <path to benchdata JSON file>", os.Args[0])
@@ -52,7 +56,7 @@ func main() {
 					fmt.Println(bm.Name, "ns/op", bm.NsPerOp)
 					deltaResults = append(deltaResults, deltaResult{
 						Name:   bm.Name + "_ns_per_op",
-						Metric: "ns/op",
+						Metric: prettyName(bm.Name) + " " + "ns/op",
 						Value:  bm.NsPerOp,
 					})
 				}
@@ -65,7 +69,7 @@ func main() {
 					fmt.Println(bm.Name, k, v)
 					deltaResults = append(deltaResults, deltaResult{
 						Name:   bm.Name + "_" + strings.ReplaceAll(k, "/", "_per_"),
-						Metric: k,
+						Metric: prettyName(bm.Name) + " " + k,
 						Value:  v,
 					})
 				}
