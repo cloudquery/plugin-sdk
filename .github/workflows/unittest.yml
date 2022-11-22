@@ -32,7 +32,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: make benchmark-ci
       - name: Delta
-        uses: netlify/delta-action@v1.1.0
+        uses: hermanschaaf/delta-action@latest
         with:
           title: "⏱️ Benchmark results"
           token: ${{ secrets.GITHUB_TOKEN }}
