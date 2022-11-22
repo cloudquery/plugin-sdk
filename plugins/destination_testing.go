@@ -22,6 +22,7 @@ type DestinationTestSuiteTests struct {
 	SkipOverwrite   bool
 	SkipDeleteStale bool
 	SkipAppend      bool
+	SkipAppendTwice	bool
 }
 
 func getTestLogger(t *testing.T) zerolog.Logger {
@@ -127,7 +128,7 @@ func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.C
 	return nil
 }
 
-func (*destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+func (t *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -156,30 +157,40 @@ func (*destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Contex
 		TableName: table.Name,
 		Data:      testdata.TestData(),
 	}
-	// we dont use time.now because looks like there is some strange
-	// issue on windows machine on github actions where it returns the same thing
-	// for all calls.
-	secondSyncTime := syncTime.Add(time.Second).UTC()
-	// write second time
-	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
-		return fmt.Errorf("failed to write one second time: %w", err)
+
+	if !t.tests.SkipAppendTwice {
+		// we dont use time.now because looks like there is some strange
+		// issue on windows machine on github actions where it returns the same thing
+		// for all calls.
+		secondSyncTime := syncTime.Add(time.Second).UTC()
+		// write second time
+		if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
+			return fmt.Errorf("failed to write one second time: %w", err)
+		}
 	}
+
 
 	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
 
-	if len(resourcesRead) != 2 {
-		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
+	expectedResource := 2
+	if t.tests.SkipAppendTwice {
+		expectedResource = 1
+	}
+
+	if len(resourcesRead) != expectedResource {
+		return fmt.Errorf("expected %d resources, got %d",expectedResource, len(resourcesRead))
 	}
 
 	if resource.Data.Equal(resourcesRead[0]) {
 		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
 	}
-
-	if resource.Data.Equal(resourcesRead[1]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
+	if !t.tests.SkipAppendTwice {
+		if resource.Data.Equal(resourcesRead[1]) {
+			return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
+		}
 	}
 
 	return nil
