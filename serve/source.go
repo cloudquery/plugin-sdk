@@ -113,8 +113,8 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
-				grpc.MaxRecvMsgSize(maxMsgSize),
-				grpc.MaxSendMsgSize(maxMsgSize),
+				grpc.MaxRecvMsgSize(servers.MaxMsgSize),
+				grpc.MaxSendMsgSize(servers.MaxMsgSize),
 			)
 			source.plugin.SetLogger(logger)
 			pb.RegisterSourceServer(s, &servers.SourceServer{

@@ -4,15 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 type SourceServer struct {
@@ -84,9 +87,17 @@ func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server
 			return status.Errorf(codes.Internal, "failed to marshal resource: %v", err)
 		}
 
-		if err := stream.Send(&pb.Sync2_Response{
+		msg := &pb.Sync2_Response{
 			Resource: b,
-		}); err != nil {
+		}
+		err = checkMessageSize(msg, resource)
+		if err != nil {
+			s.Logger.Warn().Str("table", resource.Table.Name).
+				Int("bytes", len(msg.String())).
+				Msg("Row exceeding max bytes ignored")
+			continue
+		}
+		if err := stream.Send(msg); err != nil {
 			return status.Errorf(codes.Internal, "failed to send resource: %v", err)
 		}
 	}
@@ -115,4 +126,20 @@ func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request)
 	return &pb.GetSourceMetrics_Response{
 		Metrics: b,
 	}, nil
+}
+
+func checkMessageSize(msg proto.Message, resource *schema.Resource) error {
+	size := proto.Size(msg)
+	// log error to Sentry if row exceeds half of the max size
+	if size > MaxMsgSize/2 {
+		sentry.WithScope(func(scope *sentry.Scope) {
+			scope.SetTag("table", resource.Table.Name)
+			scope.SetExtra("bytes", size)
+			sentry.CurrentHub().CaptureMessage("Large message detected")
+		})
+	}
+	if size > MaxMsgSize {
+		return errors.New("message exceeds max size")
+	}
+	return nil
 }
