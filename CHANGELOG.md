@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0](https://github.com/cloudquery/plugin-sdk/compare/v1.6.0...v1.7.0) (2022-11-22)
+
+
+### Features
+
+* Resolve table relations in parallel ([#416](https://github.com/cloudquery/plugin-sdk/issues/416)) ([aadbde9](https://github.com/cloudquery/plugin-sdk/commit/aadbde9064eb30c2412c13d9e770e216e8c57ec9))
+
+
+### Bug Fixes
+
+* Revert "feat: Resolve table relations in parallel" ([#422](https://github.com/cloudquery/plugin-sdk/issues/422)) ([655a04b](https://github.com/cloudquery/plugin-sdk/commit/655a04b8f9d8c7857a800e0666392a02a4c805ba))
+* Skip very large gRPC messages, log when it happens ([#421](https://github.com/cloudquery/plugin-sdk/issues/421)) ([0874d58](https://github.com/cloudquery/plugin-sdk/commit/0874d585d2fc4cddc890fbb9d92423ad7c1029fe))
+
 ## [1.6.0](https://github.com/cloudquery/plugin-sdk/compare/v1.5.3...v1.6.0) (2022-11-21)
 
 
