@@ -22,7 +22,7 @@ type DestinationTestSuiteTests struct {
 	SkipOverwrite   bool
 	SkipDeleteStale bool
 	SkipAppend      bool
-	SkipAppendTwice	bool
+	SkipAppendTwice bool
 }
 
 func getTestLogger(t *testing.T) zerolog.Logger {
@@ -128,7 +128,7 @@ func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.C
 	return nil
 }
 
-func (t *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -158,7 +158,7 @@ func (t *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Cont
 		Data:      testdata.TestData(),
 	}
 
-	if !t.tests.SkipAppendTwice {
+	if !s.tests.SkipAppendTwice {
 		// we dont use time.now because looks like there is some strange
 		// issue on windows machine on github actions where it returns the same thing
 		// for all calls.
@@ -169,25 +169,24 @@ func (t *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Cont
 		}
 	}
 
-
 	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
 
 	expectedResource := 2
-	if t.tests.SkipAppendTwice {
+	if s.tests.SkipAppendTwice {
 		expectedResource = 1
 	}
 
 	if len(resourcesRead) != expectedResource {
-		return fmt.Errorf("expected %d resources, got %d",expectedResource, len(resourcesRead))
+		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
 	if resource.Data.Equal(resourcesRead[0]) {
 		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
 	}
-	if !t.tests.SkipAppendTwice {
+	if !s.tests.SkipAppendTwice {
 		if resource.Data.Equal(resourcesRead[1]) {
 			return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
 		}
