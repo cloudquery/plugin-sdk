@@ -1,7 +1,7 @@
 {{- if not .Parent }}
-| [{{.Name}}]({{.Name}}.md) |
+- [{{.Name}}]({{.Name}}.md)
 {{- else}}
-| {{. | indentToDepth}}↳ [{{.Name}}]({{.Name}}.md) |
+{{. | indentToDepth}}  - [{{.Name}}]({{.Name}}.md)
 {{- end}}
 {{- range $index, $rel := .Relations}}
 {{- template "all_tables_entry.md.go.tpl" $rel}}
