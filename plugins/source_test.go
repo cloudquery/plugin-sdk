@@ -296,3 +296,22 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		t.Fatal(err)
 	}
 }
+
+func TestIgnoredColumns(t *testing.T) {
+	validateResources(t, schema.Resources{
+		{
+			Item: struct {
+				A *string
+			}{},
+			Table: &schema.Table{
+				Columns: schema.ColumnList{
+					{
+						Name:          "a",
+						Type:          schema.TypeString,
+						IgnoreInTests: true,
+					},
+				},
+			},
+		},
+	})
+}
