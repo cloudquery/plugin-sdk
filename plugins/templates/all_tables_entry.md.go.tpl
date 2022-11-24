@@ -1,8 +1,5 @@
-{{- if not .Parent }}
-- [{{.Name}}]({{.Name}}.md)
-{{- else}}
-{{. | indentToDepth}}  - [{{.Name}}]({{.Name}}.md)
-{{- end}}
+
+{{. | indentToDepth}}- [{{.Name}}]({{.Name}}.md)
 {{- range $index, $rel := .Relations}}
 {{- template "all_tables_entry.md.go.tpl" $rel}}
 {{- end}}

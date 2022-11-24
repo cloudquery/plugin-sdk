@@ -141,7 +141,7 @@ func formatType(v schema.ValueType) string {
 
 func indentToDepth(table *schema.Table) string {
 	s := ""
-	t := table.Parent
+	t := table
 	for t.Parent != nil {
 		s += "  "
 		t = t.Parent
