@@ -3,8 +3,5 @@
 | Name          |
 | ------------- |
 {{- range $table := $.Tables }}
-| [{{$table.Name}}]({{$table.Name}}.md) |
-{{- range $index, $rel := $table.Relations}}
-| ↳ [{{$rel.Name}}]({{$rel.Name}}.md) |
-{{- end}}
+{{- template "all_tables_entry.md.go.tpl" $table}}
 {{- end }}

@@ -1,15 +1,14 @@
-# Table: relation_table
+# Table: relation_relation_table
 
-Description for relational table
+Description for relational table's relation
 
 The primary key for this table is **_cq_id**.
 
 ## Relations
 
-This table depends on [test_table](test_table.md).
+This table depends on [relation_table](relation_table.md).
 
-The following tables depend on relation_table:
-  - [relation_relation_table](relation_relation_table.md)
+
 
 ## Columns
 | Name          | Type          |
