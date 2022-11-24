@@ -19,10 +19,22 @@ type destinationTestSuite struct {
 }
 
 type DestinationTestSuiteTests struct {
-	SkipOverwrite   bool
+	// SkipOverwrite skips testing for "overwrite" mode. Use if the destination
+	//	// plugin doesn't support this feature.
+	SkipOverwrite bool
+
+	// SkipDeleteStale skips testing "delete-stale" mode. Use if the destination
+	// plugin doesn't support this feature.
 	SkipDeleteStale bool
-	SkipAppend      bool
-	SkipAppendTwice bool
+
+	// SkipAppend skips testing for "append" mode. Use if the destination
+	// plugin doesn't support this feature.
+	SkipAppend bool
+
+	// SkipSecondAppend skips the second append step in the test.
+	// This is useful in cases like cloud storage where you can't append to an
+	// existing object after the file has been closed.
+	SkipSecondAppend bool
 }
 
 func getTestLogger(t *testing.T) zerolog.Logger {
@@ -158,7 +170,7 @@ func (s *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Cont
 		Data:      testdata.TestData(),
 	}
 
-	if !s.tests.SkipAppendTwice {
+	if !s.tests.SkipSecondAppend {
 		// we dont use time.now because looks like there is some strange
 		// issue on windows machine on github actions where it returns the same thing
 		// for all calls.
@@ -175,7 +187,7 @@ func (s *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Cont
 	}
 
 	expectedResource := 2
-	if s.tests.SkipAppendTwice {
+	if s.tests.SkipSecondAppend {
 		expectedResource = 1
 	}
 
@@ -186,7 +198,7 @@ func (s *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Cont
 	if resource.Data.Equal(resourcesRead[0]) {
 		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
 	}
-	if !s.tests.SkipAppendTwice {
+	if !s.tests.SkipSecondAppend {
 		if resource.Data.Equal(resourcesRead[1]) {
 			return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
 		}
