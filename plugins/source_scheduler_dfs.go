@@ -23,18 +23,17 @@ const (
 )
 
 func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
-	// current DFS supports only parallelization for top level tables and resources.
-	// it is possible to extend support for multiple levels but this require benchmarking to find a good fit on how to split
-	// gorourtines for each level efficiently.
 	// This is very similar to the concurrent web crawler problem with some minor changes.
-	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree/subchilds.
-	tableConcurrency := spec.Concurrency / minResourceConcurrency
-	if tableConcurrency < minTableConcurrency {
-		tableConcurrency = minTableConcurrency
-	}
+	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree.
+	tableConcurrency := max(spec.Concurrency/minResourceConcurrency, minTableConcurrency)
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
 
-	p.tableSem = semaphore.NewWeighted(int64(tableConcurrency))
+	p.tableSems = make([]*semaphore.Weighted, p.maxDepth)
+	for i := uint64(0); i < p.maxDepth; i++ {
+		p.tableSems[i] = semaphore.NewWeighted(int64(tableConcurrency))
+		// reduce table concurrency logarithmically for every depth level
+		tableConcurrency = max(tableConcurrency/2, minTableConcurrency)
+	}
 	p.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
 
 	var wg sync.WaitGroup
@@ -52,7 +51,7 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 		p.metrics.initWithClients(table, clients)
 		for _, client := range clients {
 			client := client
-			if err := p.tableSem.Acquire(ctx, 1); err != nil {
+			if err := p.tableSems[0].Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				wg.Wait()
 				return
@@ -60,17 +59,17 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				defer p.tableSem.Release(1)
+				defer p.tableSems[0].Release(1)
 				// not checking for error here as nothing much todo.
 				// the error is logged and this happens when context is cancelled
-				p.resolveTableDfs(ctx, tables, table, client, nil, resolvedResources)
+				p.resolveTableDfs(ctx, tables, table, client, nil, resolvedResources, 0)
 			}()
 		}
 	}
 	wg.Wait()
 }
 
-func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables schema.Tables, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource) {
+func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables schema.Tables, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
 	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 	logger.Info().Msg("table resolver started")
@@ -97,14 +96,14 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables sc
 	}()
 
 	for r := range res {
-		p.resolveResourcesDfs(ctx, allIncludedTables, table, client, parent, r, resolvedResources)
+		p.resolveResourcesDfs(ctx, allIncludedTables, table, client, parent, r, resolvedResources, depth)
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
 	logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("fetch table finished")
 }
 
-func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, allIncludedTables schema.Tables, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource) {
+func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, allIncludedTables schema.Tables, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource, depth int) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
@@ -136,17 +135,31 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, allIncludedTable
 		wg.Wait()
 	}()
 
+	var wg sync.WaitGroup
 	for resource := range resourcesChan {
+		resource := resource
 		resolvedResources <- resource
 		for _, relation := range resource.Table.Relations {
+			relation := relation
 			if allIncludedTables.GetTopLevel(relation.Name) == nil {
 				// this indicates that child table is skipped by user config,
 				// so we should not sync it
 				continue
 			}
-			p.resolveTableDfs(ctx, allIncludedTables, relation, client, resource, resolvedResources)
+			if err := p.tableSems[depth].Acquire(ctx, 1); err != nil {
+				// This means context was cancelled
+				wg.Wait()
+				return
+			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				defer p.tableSems[depth].Release(1)
+				p.resolveTableDfs(ctx, allIncludedTables, relation, client, resource, resolvedResources, depth+1)
+			}()
 		}
 	}
+	wg.Wait()
 }
 
 func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item interface{}) *schema.Resource {
@@ -208,4 +221,11 @@ func (p *SourcePlugin) resolveColumn(ctx context.Context, logger zerolog.Logger,
 			_ = resource.Set(c.Name, v)
 		}
 	}
+}
+
+func max(a, b uint64) uint64 {
+	if a > b {
+		return a
+	}
+	return b
 }
