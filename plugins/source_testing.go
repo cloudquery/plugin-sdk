@@ -88,6 +88,7 @@ func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Reso
 // Also does some additional validations.
 func validateResources(t *testing.T, resources []*schema.Resource) {
 	t.Helper()
+
 	table := resources[0].Table
 
 	// A set of column-names that have values in at least one of the resources.
@@ -107,12 +108,8 @@ func validateResources(t *testing.T, resources []*schema.Resource) {
 	// Make sure every column has at least one value.
 	for i, hasValue := range columnsWithValues {
 		col := table.Columns[i]
-		switch {
-		case col.IgnoreInTests,
-			hasValue,
-			col.Name == "_cq_parent_id" && table.Parent != nil:
-		// nop
-		default:
+		emptyExpected := col.Name == "_cq_parent_id" && table.Parent == nil
+		if !hasValue && !emptyExpected && !col.IgnoreInTests {
 			t.Errorf("table: %s column %s has no values", table.Name, table.Columns[i].Name)
 		}
 	}
