@@ -299,7 +299,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 }
 
 func TestIgnoredColumns(t *testing.T) {
-	require.NoError(t, validateResources(schema.Resources{
+	require.Empty(t, validateResourcesHelper(schema.Resources{
 		{
 			Item: struct {
 				A *string
@@ -315,7 +315,7 @@ func TestIgnoredColumns(t *testing.T) {
 			},
 		},
 	}))
-	require.Error(t, validateResources(schema.Resources{
+	errs := validateResourcesHelper(schema.Resources{
 		{
 			Item: struct {
 				A *string
@@ -329,5 +329,7 @@ func TestIgnoredColumns(t *testing.T) {
 				},
 			},
 		},
-	}))
+	})
+	require.NotEmpty(t, errs)
+	require.Error(t, errs[0])
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source, opts ...TestSourcePluginOption) {
@@ -75,7 +74,7 @@ func validateTable(t *testing.T, table *schema.Table, resources []*schema.Resour
 		t.Errorf("Expected table %s to be synced but it was not found", table.Name)
 		return
 	}
-	require.NoError(t, validateResources(tableResources))
+	validateResources(t, tableResources)
 }
 
 func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Resource) {
@@ -88,7 +87,17 @@ func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Reso
 
 // Validates that every column has at least one non-nil value.
 // Also does some additional validations.
-func validateResources(resources []*schema.Resource) error {
+func validateResources(t *testing.T, resources []*schema.Resource) {
+	t.Helper()
+	for _, err := range validateResourcesHelper(resources) {
+		if err != nil {
+			t.Error(err)
+		}
+	}
+}
+
+func validateResourcesHelper(resources []*schema.Resource) []error {
+	var errs []error
 	table := resources[0].Table
 
 	// A set of column-names that have values in at least one of the resources.
@@ -114,8 +123,8 @@ func validateResources(resources []*schema.Resource) error {
 			col.Name == "_cq_parent_id" && table.Parent != nil:
 		// nop
 		default:
-			return fmt.Errorf("table: %s column %s has no values", table.Name, table.Columns[i].Name)
+			errs = append(errs, fmt.Errorf("table: %s column %s has no values", table.Name, table.Columns[i].Name))
 		}
 	}
-	return nil
+	return errs
 }
