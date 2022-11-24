@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -298,7 +299,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 }
 
 func TestIgnoredColumns(t *testing.T) {
-	validateResources(t, schema.Resources{
+	require.NoError(t, validateResources(schema.Resources{
 		{
 			Item: struct {
 				A *string
@@ -313,5 +314,20 @@ func TestIgnoredColumns(t *testing.T) {
 				},
 			},
 		},
-	})
+	}))
+	require.Error(t, validateResources(schema.Resources{
+		{
+			Item: struct {
+				A *string
+			}{},
+			Table: &schema.Table{
+				Columns: schema.ColumnList{
+					{
+						Name: "a",
+						Type: schema.TypeString,
+					},
+				},
+			},
+		},
+	}))
 }
