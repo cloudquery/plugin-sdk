@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1](https://github.com/cloudquery/plugin-sdk/compare/v1.8.0...v1.8.1) (2022-11-24)
+
+
+### Bug Fixes
+
+* Small improvement to PK checking in codegen ([#432](https://github.com/cloudquery/plugin-sdk/issues/432)) ([15f7d1b](https://github.com/cloudquery/plugin-sdk/commit/15f7d1b4dfbdf1966650be8f93d85cb4492e0767))
+
 ## [1.8.0](https://github.com/cloudquery/plugin-sdk/compare/v1.7.0...v1.8.0) (2022-11-23)
 
 
