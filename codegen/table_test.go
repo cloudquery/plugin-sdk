@@ -245,9 +245,10 @@ func TestTableFromGoStruct(t *testing.T) {
 	}
 
 	tests := []struct {
-		name string
-		args args
-		want TableDefinition
+		name    string
+		args    args
+		want    TableDefinition
+		wantErr bool
 	}{
 		{
 			name: "should generate table from struct with default options",
@@ -355,13 +356,24 @@ func TestTableFromGoStruct(t *testing.T) {
 			},
 			want: expectedTestSliceStruct,
 		},
+		{
+			name: "should error if there are undefined pk columns",
+			args: args{
+				testStruct: testSliceStruct{},
+				options:    []TableOption{WithPKColumns("int_col", "some_col")},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			table, err := NewTableFromStruct("test_struct", tt.args.testStruct, tt.args.options...)
-			if err != nil {
-				t.Fatal(err)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
 			}
 			if diff := cmp.Diff(&tt.want, table,
 				cmpopts.IgnoreUnexported(TableDefinition{})); diff != "" {

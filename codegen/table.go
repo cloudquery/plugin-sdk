@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/rs/zerolog"
+	"github.com/thoas/go-funk"
 	"golang.org/x/exp/slices"
 )
 
@@ -105,7 +106,7 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOption) (*Tab
 		columns = append(columns, column)
 	}
 	if len(t.extraPKColumns) > 0 {
-		return nil, fmt.Errorf("%s table definition has %d extra PK keys", t.Name, len(t.extraPKColumns))
+		return nil, fmt.Errorf("%s table definition has %d extra PK keys: %v", t.Name, len(t.extraPKColumns), funk.Keys(t.extraPKColumns))
 	}
 	t.Columns = columns
 
