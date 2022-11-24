@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -89,15 +88,6 @@ func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Reso
 // Also does some additional validations.
 func validateResources(t *testing.T, resources []*schema.Resource) {
 	t.Helper()
-	for _, err := range validateResourcesHelper(resources) {
-		if err != nil {
-			t.Error(err)
-		}
-	}
-}
-
-func validateResourcesHelper(resources []*schema.Resource) []error {
-	var errs []error
 	table := resources[0].Table
 
 	// A set of column-names that have values in at least one of the resources.
@@ -123,8 +113,7 @@ func validateResourcesHelper(resources []*schema.Resource) []error {
 			col.Name == "_cq_parent_id" && table.Parent != nil:
 		// nop
 		default:
-			errs = append(errs, fmt.Errorf("table: %s column %s has no values", table.Name, table.Columns[i].Name))
+			t.Errorf("table: %s column %s has no values", table.Name, table.Columns[i].Name)
 		}
 	}
-	return errs
 }
