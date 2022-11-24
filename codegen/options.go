@@ -32,6 +32,18 @@ func WithPKColumns(columnNames ...string) TableOption {
 	}
 }
 
+// WithIgnoreInTestsColumns allows to specify what columns should be ignored during testing
+func WithIgnoreInTestsColumns(columnNames ...string) TableOption {
+	return func(t *TableDefinition) {
+		if t.extraIgnoreInTestsColumns == nil {
+			t.extraIgnoreInTestsColumns = make(map[string]struct{}, len(columnNames))
+		}
+		for _, name := range columnNames {
+			t.extraIgnoreInTestsColumns[name] = struct{}{}
+		}
+	}
+}
+
 // WithUnwrapStructFields allows to unwrap specific struct fields (1 level deep only)
 func WithUnwrapStructFields(fields []string) TableOption {
 	return func(t *TableDefinition) {

@@ -33,6 +33,8 @@ type (
 		extraColumns   ColumnDefinitions
 		extraPKColumns map[string]struct{}
 
+		extraIgnoreInTestsColumns map[string]struct{}
+
 		skipFields           []string
 		structFieldsToUnwrap []string
 
@@ -106,6 +108,20 @@ func NewTableFromStruct(name string, obj interface{}, opts ...TableOption) (*Tab
 	}
 	if len(t.extraPKColumns) > 0 {
 		return nil, fmt.Errorf("%s table definition has %d extra PK keys", t.Name, len(t.extraPKColumns))
+	}
+	t.Columns = columns
+
+	// ignore columns in tests
+	columns = make(ColumnDefinitions, 0, len(t.Columns))
+	for _, column := range t.Columns {
+		if _, ok := t.extraIgnoreInTestsColumns[column.Name]; ok {
+			column.IgnoreInTests = true
+			delete(t.extraIgnoreInTestsColumns, column.Name)
+		}
+		columns = append(columns, column)
+	}
+	if len(t.extraIgnoreInTestsColumns) > 0 {
+		return nil, fmt.Errorf("%s table definition has %d extra fields to be ignored in tests", t.Name, len(t.extraIgnoreInTestsColumns))
 	}
 	t.Columns = columns
 
