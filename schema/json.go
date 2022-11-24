@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"reflect"
 )
 
 type JSONTransformer interface {
@@ -63,6 +64,7 @@ func (dst *JSON) Set(src interface{}) error {
 		} else {
 			*dst = JSON{Bytes: value, Status: Present}
 		}
+
 	// Encode* methods are defined on *JSON. If JSON is passed directly then the
 	// struct itself would be encoded instead of Bytes. This is clearly a footgun
 	// so detect and return an error. See https://github.com/jackc/pgx/issues/350.
@@ -74,6 +76,20 @@ func (dst *JSON) Set(src interface{}) error {
 		if err != nil {
 			return err
 		}
+
+		// For map and slice jsons, it is easier for users to work with '[]' or '{}' instead of JSON's 'null'.
+		if bytes.Equal(buf, []byte(`null`)) {
+			if isEmptyStringMap(value) {
+				*dst = JSON{Bytes: []byte("{}"), Status: Present}
+				return nil
+			}
+
+			if isEmptySlice(value) {
+				*dst = JSON{Bytes: []byte("[]"), Status: Present}
+				return nil
+			}
+		}
+
 		*dst = JSON{Bytes: buf, Status: Present}
 	}
 
@@ -94,4 +110,30 @@ func (dst JSON) Get() interface{} {
 	default:
 		return dst.Status
 	}
+}
+
+// isEmptyStringMap returns true if the value is a map from string to any (i.e. map[string]interface{}).
+// We need to use reflection for this, because it impossible to type-assert a map[string]string into a
+// map[string]interface{}. See https://go.dev/doc/faq#convert_slice_of_interface.
+func isEmptyStringMap(value interface{}) bool {
+	if reflect.TypeOf(value).Kind() != reflect.Map {
+		return false
+	}
+
+	if reflect.TypeOf(value).Key().Kind() != reflect.String {
+		return false
+	}
+
+	return reflect.ValueOf(value).Len() == 0
+}
+
+// isEmptySlice returns true if the value is a slice (i.e. []interface{}).
+// We need to use reflection for this, because it impossible to type-assert a map[string]string into a
+// map[string]interface{}. See https://go.dev/doc/faq#convert_slice_of_interface.
+func isEmptySlice(value interface{}) bool {
+	if reflect.TypeOf(value).Kind() != reflect.Slice {
+		return false
+	}
+
+	return reflect.ValueOf(value).Len() == 0
 }
