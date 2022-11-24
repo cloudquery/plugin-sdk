@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -74,6 +75,9 @@ func (p *DestinationPlugin) Init(ctx context.Context, logger zerolog.Logger, spe
 	p.client, err = p.newDestinationClient(ctx, logger, spec)
 	if err != nil {
 		return err
+	}
+	if p.client == nil {
+		return fmt.Errorf("destination client is nil")
 	}
 	return nil
 }
