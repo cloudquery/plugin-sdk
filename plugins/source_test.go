@@ -348,5 +348,19 @@ func TestTablesForSpec(t *testing.T) {
 			t.Fatalf("got error = %v, expected %v", err.Error(), "tables entry matches no known tables: \"invalid_table\"")
 		}
 	})
+}
 
+func TestIgnoredColumns(t *testing.T) {
+	validateResources(t, schema.Resources{{
+		Item: struct{ A *string }{},
+		Table: &schema.Table{
+			Columns: schema.ColumnList{
+				{
+					Name:          "a",
+					Type:          schema.TypeString,
+					IgnoreInTests: true,
+				},
+			},
+		},
+	}})
 }
