@@ -30,7 +30,7 @@ func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_
 	}, nil
 }
 
-func (s *SourceServer) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
+func (s *SourceServer) GetTables(_ context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
 	if len(req.Spec) == 0 {
 		b, err := json.Marshal(s.Plugin.Tables())
 		if err != nil {
