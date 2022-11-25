@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0](https://github.com/cloudquery/plugin-sdk/compare/v1.8.2...v1.9.0) (2022-11-25)
+
+
+### Features
+
+* Handle resolving of empty maps and slices ([#430](https://github.com/cloudquery/plugin-sdk/issues/430)) ([a5672b5](https://github.com/cloudquery/plugin-sdk/commit/a5672b5faa9f41f2179650f989761217575b3934))
+
+
+### Bug Fixes
+
+* Fix docs for deeply nested tables ([#434](https://github.com/cloudquery/plugin-sdk/issues/434)) ([48e0466](https://github.com/cloudquery/plugin-sdk/commit/48e04662a6afc82dba084efa5f91bbe1470b2d43))
+
 ## [1.8.2](https://github.com/cloudquery/plugin-sdk/compare/v1.8.1...v1.8.2) (2022-11-25)
 
 
