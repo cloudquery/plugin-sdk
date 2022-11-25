@@ -19,9 +19,22 @@ type destinationTestSuite struct {
 }
 
 type DestinationTestSuiteTests struct {
-	SkipOverwrite   bool
+	// SkipOverwrite skips testing for "overwrite" mode. Use if the destination
+	//	// plugin doesn't support this feature.
+	SkipOverwrite bool
+
+	// SkipDeleteStale skips testing "delete-stale" mode. Use if the destination
+	// plugin doesn't support this feature.
 	SkipDeleteStale bool
-	SkipAppend      bool
+
+	// SkipAppend skips testing for "append" mode. Use if the destination
+	// plugin doesn't support this feature.
+	SkipAppend bool
+
+	// SkipSecondAppend skips the second append step in the test.
+	// This is useful in cases like cloud storage where you can't append to an
+	// existing object after the file has been closed.
+	SkipSecondAppend bool
 }
 
 func getTestLogger(t *testing.T) zerolog.Logger {
@@ -127,7 +140,7 @@ func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.C
 	return nil
 }
 
-func (*destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -156,13 +169,16 @@ func (*destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Contex
 		TableName: table.Name,
 		Data:      testdata.TestData(),
 	}
-	// we dont use time.now because looks like there is some strange
-	// issue on windows machine on github actions where it returns the same thing
-	// for all calls.
-	secondSyncTime := syncTime.Add(time.Second).UTC()
-	// write second time
-	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
-		return fmt.Errorf("failed to write one second time: %w", err)
+
+	if !s.tests.SkipSecondAppend {
+		// we dont use time.now because looks like there is some strange
+		// issue on windows machine on github actions where it returns the same thing
+		// for all calls.
+		secondSyncTime := syncTime.Add(time.Second).UTC()
+		// write second time
+		if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
+			return fmt.Errorf("failed to write one second time: %w", err)
+		}
 	}
 
 	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
@@ -170,16 +186,22 @@ func (*destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Contex
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
 
-	if len(resourcesRead) != 2 {
-		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
+	expectedResource := 2
+	if s.tests.SkipSecondAppend {
+		expectedResource = 1
+	}
+
+	if len(resourcesRead) != expectedResource {
+		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
 	if resource.Data.Equal(resourcesRead[0]) {
 		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
 	}
-
-	if resource.Data.Equal(resourcesRead[1]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
+	if !s.tests.SkipSecondAppend {
+		if resource.Data.Equal(resourcesRead[1]) {
+			return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
+		}
 	}
 
 	return nil

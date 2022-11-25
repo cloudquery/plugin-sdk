@@ -65,6 +65,15 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
+func (tt Tables) FlattenTables() Tables {
+	tables := make(Tables, 0, len(tt))
+	for _, t := range tt {
+		tables = append(tables, t)
+		tables = append(tables, t.Relations.FlattenTables()...)
+	}
+	return tables
+}
+
 func (tt Tables) TableNames() []string {
 	ret := []string{}
 	for _, t := range tt {
