@@ -230,7 +230,23 @@ func (c *SourceClient) GetMetrics(ctx context.Context) (*plugins.SourceMetrics, 
 }
 
 func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
-	res, err := c.pbClient.GetTables(ctx, &pb.GetTables_Request{})
+	return c.GetTablesForSpec(ctx, nil)
+}
+
+func (c *SourceClient) GetTablesForSpec(ctx context.Context, spec *specs.Source) ([]*schema.Table, error) {
+	var (
+		b   []byte
+		err error
+	)
+	if spec != nil {
+		b, err = json.Marshal(spec)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal source spec: %w", err)
+		}
+	}
+	res, err := c.pbClient.GetTables(ctx, &pb.GetTables_Request{
+		Spec: b,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call GetTables: %w", err)
 	}

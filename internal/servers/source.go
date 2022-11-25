@@ -30,8 +30,28 @@ func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_
 	}, nil
 }
 
-func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.GetTables_Response, error) {
-	b, err := json.Marshal(s.Plugin.Tables())
+func (s *SourceServer) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
+	if len(req.Spec) == 0 {
+		b, err := json.Marshal(s.Plugin.Tables())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal tables: %w", err)
+		}
+		return &pb.GetTables_Response{
+			Tables: b,
+		}, nil
+	}
+
+	var spec specs.Source
+	dec := json.NewDecoder(bytes.NewReader(req.Spec))
+	dec.UseNumber()
+	if err := dec.Decode(&spec); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to decode spec: %v", err)
+	}
+	tables, err := s.Plugin.TablesForSpec(spec)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "validation failed: %v", err)
+	}
+	b, err := json.Marshal(tables)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal tables: %w", err)
 	}

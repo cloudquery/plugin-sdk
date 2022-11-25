@@ -108,9 +108,19 @@ func (p *SourcePlugin) SetLogger(logger zerolog.Logger) {
 	p.logger = logger.With().Str("module", p.name+"-src").Logger()
 }
 
-// Tables returns all supported tables by this source plugin
+// Tables returns all tables supported by this source plugin
 func (p *SourcePlugin) Tables() schema.Tables {
 	return p.tables
+}
+
+// TablesForSpec returns all tables supported by this source plugin that match the given spec.
+// It validates the tables part of the spec and will return an error if it is found to be invalid.
+func (p *SourcePlugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
+	spec.SetDefaults()
+	if err := spec.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid spec: %w", err)
+	}
+	return p.listAndValidateTables(spec.Tables, spec.SkipTables)
 }
 
 // Name return the name of this plugin
