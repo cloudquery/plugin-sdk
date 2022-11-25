@@ -83,7 +83,9 @@ func (p *SourcePlugin) renderTablesAsMarkdown(dir string) error {
 			return err
 		}
 	}
-	t, err := template.New("all_tables.md.go.tpl").ParseFS(templatesFS, "templates/all_tables.md.go.tpl")
+	t, err := template.New("all_tables.md.go.tpl").Funcs(template.FuncMap{
+		"indentToDepth": indentToDepth,
+	}).ParseFS(templatesFS, "templates/all_tables*.md.go.tpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse template for README.md: %v", err)
 	}
@@ -135,4 +137,14 @@ func renderTable(table *schema.Table, dir string) error {
 
 func formatType(v schema.ValueType) string {
 	return strings.TrimPrefix(v.String(), "Type")
+}
+
+func indentToDepth(table *schema.Table) string {
+	s := ""
+	t := table
+	for t.Parent != nil {
+		s += "  "
+		t = t.Parent
+	}
+	return s
 }

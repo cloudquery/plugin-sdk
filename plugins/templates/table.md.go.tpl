@@ -17,8 +17,7 @@ The composite primary key for this table is ({{ range $index, $pk := $.PrimaryKe
 {{- if $.Parent }}
 This table depends on [{{ $.Parent.Name }}]({{ $.Parent.Name }}.md).
 {{- end}}
-
-{{- if $.Relations }}
+{{ if $.Relations }}
 The following tables depend on {{.Name}}:
 {{- range $rel := $.Relations }}
   - [{{ $rel.Name }}]({{ $rel.Name }}.md)

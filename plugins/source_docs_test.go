@@ -42,6 +42,18 @@ var testTables = []*schema.Table{
 						Type: schema.TypeString,
 					},
 				},
+				Relations: []*schema.Table{
+					{
+						Name:        "relation_relation_table",
+						Description: "Description for relational table's relation",
+						Columns: []schema.Column{
+							{
+								Name: "string_col",
+								Type: schema.TypeString,
+							},
+						},
+					},
+				},
 			},
 			{
 				Name:        "relation_table2",
@@ -68,7 +80,7 @@ func TestGenerateSourcePluginDocs(t *testing.T) {
 			t.Fatalf("unexpected error calling GenerateSourcePluginDocs: %v", err)
 		}
 
-		expectFiles := []string{"test_table.md", "relation_table.md", "README.md"}
+		expectFiles := []string{"test_table.md", "relation_table.md", "relation_relation_table.md", "README.md"}
 		for _, exp := range expectFiles {
 			t.Run(exp, func(t *testing.T) {
 				output := path.Join(tmpdir, exp)
