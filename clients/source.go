@@ -24,6 +24,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var ErrMethodNotSupported = errors.New("method not supported")
+
 // SourceClient
 type SourceClient struct {
 	pbClient       pb.SourceClient
@@ -230,7 +232,15 @@ func (c *SourceClient) GetMetrics(ctx context.Context) (*plugins.SourceMetrics, 
 }
 
 func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
-	return c.GetTablesForSpec(ctx, nil)
+	res, err := c.pbClient.GetTables(ctx, &pb.GetTables_Request{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to call GetTables: %w", err)
+	}
+	var tables []*schema.Table
+	if err := json.Unmarshal(res.Tables, &tables); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal tables: %w", err)
+	}
+	return tables, nil
 }
 
 func (c *SourceClient) GetTablesForSpec(ctx context.Context, spec *specs.Source) ([]*schema.Table, error) {
@@ -244,11 +254,15 @@ func (c *SourceClient) GetTablesForSpec(ctx context.Context, spec *specs.Source)
 			return nil, fmt.Errorf("failed to marshal source spec: %w", err)
 		}
 	}
-	res, err := c.pbClient.GetTables(ctx, &pb.GetTables_Request{
+	res, err := c.pbClient.GetTablesForSpec(ctx, &pb.GetTablesForSpec_Request{
 		Spec: b,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to call GetTables: %w", err)
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.Unimplemented {
+			return nil, ErrMethodNotSupported
+		}
+		return nil, fmt.Errorf("failed to call GetTablesForSpec: %w", err)
 	}
 	var tables []*schema.Table
 	if err := json.Unmarshal(res.Tables, &tables); err != nil {

@@ -31,12 +31,22 @@ func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_
 }
 
 func (s *SourceServer) GetTables(_ context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
+	b, err := json.Marshal(s.Plugin.Tables())
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal tables: %w", err)
+	}
+	return &pb.GetTables_Response{
+		Tables: b,
+	}, nil
+}
+
+func (s *SourceServer) GetTablesForSpec(_ context.Context, req *pb.GetTablesForSpec_Request) (*pb.GetTablesForSpec_Response, error) {
 	if len(req.Spec) == 0 {
 		b, err := json.Marshal(s.Plugin.Tables())
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal tables: %w", err)
 		}
-		return &pb.GetTables_Response{
+		return &pb.GetTablesForSpec_Response{
 			Tables: b,
 		}, nil
 	}
@@ -55,7 +65,7 @@ func (s *SourceServer) GetTables(_ context.Context, req *pb.GetTables_Request) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal tables: %w", err)
 	}
-	return &pb.GetTables_Response{
+	return &pb.GetTablesForSpec_Response{
 		Tables: b,
 	}, nil
 }
