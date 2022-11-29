@@ -24,8 +24,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var ErrMethodNotSupported = errors.New("method not supported")
-
 // SourceClient
 type SourceClient struct {
 	pbClient       pb.SourceClient
@@ -258,10 +256,6 @@ func (c *SourceClient) GetTablesForSpec(ctx context.Context, spec *specs.Source)
 		Spec: b,
 	})
 	if err != nil {
-		st, ok := status.FromError(err)
-		if ok && st.Code() == codes.Unimplemented {
-			return nil, ErrMethodNotSupported
-		}
 		return nil, fmt.Errorf("failed to call GetTablesForSpec: %w", err)
 	}
 	var tables []*schema.Table
