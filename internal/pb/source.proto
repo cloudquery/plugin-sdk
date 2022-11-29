@@ -15,6 +15,8 @@ service Source {
   rpc GetVersion(GetVersion.Request) returns (GetVersion.Response);
   // Get all tables the source plugin supports
   rpc GetTables(GetTables.Request) returns (GetTables.Response);
+  // Get all tables the source plugin supports, optionally filtered by a given spec.
+  rpc GetTablesForSpec(GetTablesForSpec.Request) returns (GetTablesForSpec.Response);
   // GetSyncSummary returns the latest sync summary of the source plugin. we don't want to send the summary on
   // every sync request.
   rpc GetSyncSummary(GetSyncSummary.Request) returns (GetSyncSummary.Response);
@@ -56,9 +58,21 @@ message GetSyncSummary {
   }
 }
 
-
 message GetTables {
   message Request {}
+  message Response {
+    string name = 1;
+    string version = 2;
+    // Marshalled []*schema.Table
+    bytes tables = 3;
+  }
+}
+
+message GetTablesForSpec {
+  message Request {
+    // Marshalled specs.Source
+    bytes spec = 1;
+  }
   message Response {
     string name = 1;
     string version = 2;

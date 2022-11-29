@@ -241,6 +241,30 @@ func (c *SourceClient) GetTables(ctx context.Context) ([]*schema.Table, error) {
 	return tables, nil
 }
 
+func (c *SourceClient) GetTablesForSpec(ctx context.Context, spec *specs.Source) ([]*schema.Table, error) {
+	var (
+		b   []byte
+		err error
+	)
+	if spec != nil {
+		b, err = json.Marshal(spec)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal source spec: %w", err)
+		}
+	}
+	res, err := c.pbClient.GetTablesForSpec(ctx, &pb.GetTablesForSpec_Request{
+		Spec: b,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to call GetTablesForSpec: %w", err)
+	}
+	var tables []*schema.Table
+	if err := json.Unmarshal(res.Tables, &tables); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal tables: %w", err)
+	}
+	return tables, nil
+}
+
 // Sync start syncing for the source client per the given spec and returning the results
 // in the given channel. res is marshaled schema.Resource. We are not unmarshalling this for performance reasons
 // as usually this is sent over-the-wire anyway to a source plugin

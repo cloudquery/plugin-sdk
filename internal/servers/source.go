@@ -40,6 +40,36 @@ func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.Ge
 	}, nil
 }
 
+func (s *SourceServer) GetTablesForSpec(_ context.Context, req *pb.GetTablesForSpec_Request) (*pb.GetTablesForSpec_Response, error) {
+	if len(req.Spec) == 0 {
+		b, err := json.Marshal(s.Plugin.Tables())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal tables: %w", err)
+		}
+		return &pb.GetTablesForSpec_Response{
+			Tables: b,
+		}, nil
+	}
+
+	var spec specs.Source
+	dec := json.NewDecoder(bytes.NewReader(req.Spec))
+	dec.UseNumber()
+	if err := dec.Decode(&spec); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to decode spec: %v", err)
+	}
+	tables, err := s.Plugin.TablesForSpec(spec)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "validation failed: %v", err)
+	}
+	b, err := json.Marshal(tables)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal tables: %w", err)
+	}
+	return &pb.GetTablesForSpec_Response{
+		Tables: b,
+	}, nil
+}
+
 func (s *SourceServer) GetName(context.Context, *pb.GetName_Request) (*pb.GetName_Response, error) {
 	return &pb.GetName_Response{
 		Name: s.Plugin.Name(),

@@ -39,9 +39,9 @@ var expectedExampleSpecConfig = specs.Spec{
 	},
 }
 
-func testTable() *schema.Table {
+func testTable(name string) *schema.Table {
 	return &schema.Table{
-		Name: "test_table",
+		Name: name,
 		Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
 			res <- map[string]interface{}{
 				"TestColumn": 3,
@@ -79,7 +79,7 @@ func TestSourceSuccess(t *testing.T) {
 	plugin := plugins.NewSourcePlugin(
 		"testSourcePlugin",
 		"v1.0.0",
-		[]*schema.Table{testTable()},
+		[]*schema.Table{testTable("test_table"), testTable("test_table2")},
 		newTestExecutionClient)
 
 	cmd := newCmdSourceRoot(&sourceServe{
@@ -145,6 +145,22 @@ func TestSourceSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(tables) != 2 {
+		t.Fatalf("Expected 2 tables but got %d", len(tables))
+	}
+
+	tables, err = c.GetTablesForSpec(ctx, &specs.Source{
+		Name:         "testSourcePlugin",
+		Version:      "v1.0.0",
+		Path:         "cloudquery/testSourcePlugin",
+		Registry:     specs.RegistryGithub,
+		Tables:       []string{"test_table"},
+		Spec:         TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
+		Destinations: []string{"test"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(tables) != 1 {
 		t.Fatalf("Expected 1 table but got %d", len(tables))
 	}
@@ -156,7 +172,7 @@ func TestSourceSuccess(t *testing.T) {
 			Version:      "v1.0.0",
 			Path:         "cloudquery/testSourcePlugin",
 			Registry:     specs.RegistryGithub,
-			Tables:       []string{"*"},
+			Tables:       []string{"test_table"},
 			Spec:         TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
 			Destinations: []string{"test"},
 		},
@@ -220,7 +236,7 @@ func TestSourceFail(t *testing.T) {
 	plugin := plugins.NewSourcePlugin(
 		"testSourcePlugin",
 		"v1.0.0",
-		[]*schema.Table{testTable()},
+		[]*schema.Table{testTable("test_table")},
 		newTestExecutionClientErr)
 
 	cmd := newCmdSourceRoot(&sourceServe{

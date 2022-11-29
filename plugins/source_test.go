@@ -297,6 +297,59 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 	}
 }
 
+func TestTablesForSpec(t *testing.T) {
+	tables := []*schema.Table{
+		testTableSuccess(),
+		testTableResolverPanic(),
+	}
+	plugin := NewSourcePlugin(
+		"testSourcePlugin",
+		"1.0.0",
+		tables,
+		newTestExecutionClient,
+	)
+	plugin.SetLogger(zerolog.New(zerolog.NewTestWriter(t)))
+	t.Run("success case", func(t *testing.T) {
+		spec := specs.Source{
+			Name: "testSource",
+			Path: "cloudquery/testSource",
+			Tables: []string{
+				"test_table_success",
+			},
+			Version:      "v1.0.0",
+			Destinations: []string{"test"},
+		}
+		got, err := plugin.TablesForSpec(spec)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(got) != 1 {
+			t.Errorf("got %d tables, want %d", len(got), 1)
+		}
+		if got[0] != tables[0] {
+			t.Errorf("got table %v, want %v", got[0].Name, tables[0].Name)
+		}
+	})
+	t.Run("error case", func(t *testing.T) {
+		spec := specs.Source{
+			Name: "testSource",
+			Path: "cloudquery/testSource",
+			Tables: []string{
+				"invalid_table",
+			},
+			Version:      "v1.0.0",
+			Destinations: []string{"test"},
+		}
+		_, err := plugin.TablesForSpec(spec)
+		if err == nil {
+			t.Fatalf("got no error, expected error indicating invalid table name")
+		}
+		if err.Error() != "tables entry matches no known tables: \"invalid_table\"" {
+			t.Fatalf("got error = %v, expected %v", err.Error(), "tables entry matches no known tables: \"invalid_table\"")
+		}
+	})
+}
+
 func TestIgnoredColumns(t *testing.T) {
 	validateResources(t, schema.Resources{{
 		Item: struct{ A *string }{},
