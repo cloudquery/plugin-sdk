@@ -30,7 +30,7 @@ func (*SourceServer) GetProtocolVersion(context.Context, *pb.GetProtocolVersion_
 	}, nil
 }
 
-func (s *SourceServer) GetTables(_ context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
+func (s *SourceServer) GetTables(context.Context, *pb.GetTables_Request) (*pb.GetTables_Response, error) {
 	b, err := json.Marshal(s.Plugin.Tables())
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal tables: %w", err)
