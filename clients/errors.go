@@ -16,9 +16,7 @@ func IsUnimplemented(err error) bool {
 	st, ok := status.FromError(err)
 	if ok && st.Code() == codes.Unimplemented {
 		return true
-	} else {
-		err = errors.Unwrap(err)
-		return IsUnimplemented(err)
 	}
-	return false
+	err = errors.Unwrap(err)
+	return IsUnimplemented(err)
 }
