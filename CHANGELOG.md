@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0](https://github.com/cloudquery/plugin-sdk/compare/v1.9.0...v1.10.0) (2022-11-29)
+
+
+### Features
+
+* Add function to list tables that match a source spec ([#440](https://github.com/cloudquery/plugin-sdk/issues/440)) ([a8f3690](https://github.com/cloudquery/plugin-sdk/commit/a8f369029dd90a1530112fcf2b675fc9e4f2e0d8))
+
 ## [1.9.0](https://github.com/cloudquery/plugin-sdk/compare/v1.8.2...v1.9.0) (2022-11-25)
 
 
