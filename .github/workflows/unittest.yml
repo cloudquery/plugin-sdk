@@ -4,7 +4,8 @@ on:
     branches:
       - main
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   unitests:
@@ -31,13 +32,17 @@ jobs:
       - name: Run benchmark
         if: matrix.os == 'ubuntu-latest'
         run: make benchmark-ci
-#        Commented out until we find a way to safely comment on PRs from forked repos
-#      - name: Delta
-#        uses: netlify/delta-action@v4.1.0
-#        with:
-#          title: "⏱️ Benchmark results"
-#          style: "text"
-#          token: ${{ secrets.GH_CQ_BOT }}
+      - name: Save PR number
+        if: github.event_name == 'pull_request'
+        run: echo ${{ github.event.number }} > ./pr_number
+      - name: Upload deltas
+        uses: actions/upload-artifact@v3
+        with:
+          name: delta-action-benchmarks
+          retention-days: 7
+          path: |
+            .delta.*
+            pr_number
       - name: Generate coverage report
         if: always() && matrix.os == 'ubuntu-latest'
         run: go tool cover -html coverage.out -o coverage.html
