@@ -1,0 +1,32 @@
+name: Post Unit Tests
+
+on:
+  workflow_run:
+    workflows: [Unit tests]
+    types:
+      - completed
+
+jobs:
+  post-unitests:
+    runs-on: ubuntu-latest
+    steps:
+      # This posts the status to the PR/commit
+      - uses: haya14busa/action-workflow_run-status@v1
+      - name: Download benchmarks
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          # This is the workflow that triggered this run
+          workflow: ${{ github.event.workflow.id }}
+          workflow_conclusion: success
+          name: delta-action-benchmarks
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get PR number
+        if: github.event.workflow_run.event == 'pull_request'
+        id: pr_number
+        run: echo "pr_number=$(cat pr_number)" >> $GITHUB_OUTPUT
+      - name: Post deltas to GitHub
+        uses: netlify/delta-action@v4
+        with:
+          title: "⏱️ Benchmark results"
+          style: "text"
+          pr_number: ${{ steps.pr_number.outputs.pr_number }}
