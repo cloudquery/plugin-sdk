@@ -1,6 +1,7 @@
 package faker
 
 import (
+	"net"
 	"testing"
 	"time"
 
@@ -45,4 +46,17 @@ func TestFakerWithCustomType(t *testing.T) {
 	assert.NotEmpty(t, a.B)
 	assert.NotEmpty(t, a.C)
 	assert.NotEmpty(t, a.D)
+}
+
+type complexType struct {
+	F net.IP
+}
+
+func TestFakerWithComplexCustomType(t *testing.T) {
+	a := complexType{}
+	if err := FakeObject(&a); err != nil {
+		t.Fatal(err)
+	}
+	assert.NotEmpty(t, a.F)
+
 }
