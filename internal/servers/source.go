@@ -13,6 +13,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -92,7 +93,6 @@ func (*SourceServer) Sync(*pb.Sync_Request, pb.Source_SyncServer) error {
 
 func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server) error {
 	resources := make(chan *schema.Resource)
-	var syncErr error
 
 	var spec specs.Source
 	dec := json.NewDecoder(bytes.NewReader(req.Spec))
@@ -102,13 +102,15 @@ func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server
 		return status.Errorf(codes.InvalidArgument, "failed to decode spec: %v", err)
 	}
 
-	go func() {
+	eg := errgroup.Group{}
+	eg.Go(func() error {
 		defer close(resources)
 		err := s.Plugin.Sync(stream.Context(), spec, resources)
 		if err != nil {
-			syncErr = fmt.Errorf("failed to sync resources: %w", err)
+			return fmt.Errorf("failed to sync resources: %w", err)
 		}
-	}()
+		return nil
+	})
 
 	for resource := range resources {
 		destResource := resource.ToDestinationResource()
@@ -132,7 +134,7 @@ func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server
 		}
 	}
 
-	return syncErr
+	return eg.Wait()
 }
 
 func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request) (*pb.GetSourceMetrics_Response, error) {
