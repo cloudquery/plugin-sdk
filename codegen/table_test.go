@@ -31,8 +31,12 @@ type (
 			IntCol    int    `json:"int_col,omitempty"`
 			StringCol string `json:"string_col,omitempty"`
 		}
-		IntArrayCol    []int      `json:"int_array_col,omitempty"`
-		StringArrayCol []string   `json:"string_array_col,omitempty"`
+		IntArrayCol    []int  `json:"int_array_col,omitempty"`
+		IntArrayColToo []*int `json:"int_array_col_too,omitempty"`
+
+		StringArrayCol    []string  `json:"string_array_col,omitempty"`
+		StringArrayColToo []*string `json:"string_array_col_too,omitempty"`
+
 		TimeCol        time.Time  `json:"time_col,omitempty"`
 		TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
 		JSONTag        *string    `json:"json_tag"`
@@ -115,9 +119,19 @@ var (
 			Resolver: `schema.PathResolver("IntArrayCol")`,
 		},
 		{
+			Name:     "int_array_col_too",
+			Type:     schema.TypeIntArray,
+			Resolver: `schema.PathResolver("IntArrayColToo")`,
+		},
+		{
 			Name:     "string_array_col",
 			Type:     schema.TypeStringArray,
 			Resolver: `schema.PathResolver("StringArrayCol")`,
+		},
+		{
+			Name:     "string_array_col_too",
+			Type:     schema.TypeStringArray,
+			Resolver: `schema.PathResolver("StringArrayColToo")`,
 		},
 		{
 			Name:     "time_col",
