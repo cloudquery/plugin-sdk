@@ -49,7 +49,7 @@ func TestFakerWithCustomType(t *testing.T) {
 }
 
 type complexType struct {
-	F net.IP
+	IPAddress net.IP
 }
 
 func TestFakerWithComplexCustomType(t *testing.T) {
@@ -57,6 +57,6 @@ func TestFakerWithComplexCustomType(t *testing.T) {
 	if err := FakeObject(&a); err != nil {
 		t.Fatal(err)
 	}
-	assert.NotEmpty(t, a.F)
-
+	assert.NotEmpty(t, a.IPAddress)
+	assert.Equal(t, "1.1.1.1", a.IPAddress.String())
 }
