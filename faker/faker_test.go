@@ -52,7 +52,7 @@ type complexType struct {
 	IPAddress net.IP
 }
 
-func TestFakerWithComplexCustomType(t *testing.T) {
+func TestFakerCanFakeNetIP(t *testing.T) {
 	a := complexType{}
 	if err := FakeObject(&a); err != nil {
 		t.Fatal(err)
