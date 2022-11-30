@@ -26,7 +26,6 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 		return reflect.Value{}, fmt.Errorf("max_depth reached")
 	}
 	k := t.Kind()
-
 	switch k {
 	case reflect.Ptr:
 		v := reflect.New(t.Elem())
@@ -70,17 +69,29 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	case reflect.String:
 		return reflect.ValueOf("test string"), nil
 	case reflect.Slice:
-		sliceLen := 1
-		v := reflect.MakeSlice(t, sliceLen, sliceLen)
-		for i := 0; i < v.Len(); i++ {
-			val, err := f.getFakedValue(v.Index(i).Interface())
-			if err != nil {
-				return reflect.Value{}, err
+		switch t.String() {
+		case "net.IP":
+			sliceLen := 4
+			v := reflect.MakeSlice(reflect.TypeOf([]uint8{uint8(123)}), sliceLen, sliceLen)
+			for i := 0; i < v.Len(); i++ {
+				val := reflect.ValueOf(uint8(1))
+				val = val.Convert(v.Index(i).Type())
+				v.Index(i).Set(val)
 			}
-			val = val.Convert(v.Index(i).Type())
-			v.Index(i).Set(val)
+			return v, nil
+		default:
+			sliceLen := 1
+			v := reflect.MakeSlice(t, sliceLen, sliceLen)
+			for i := 0; i < v.Len(); i++ {
+				val, err := f.getFakedValue(v.Index(i).Interface())
+				if err != nil {
+					return reflect.Value{}, err
+				}
+				val = val.Convert(v.Index(i).Type())
+				v.Index(i).Set(val)
+			}
+			return v, nil
 		}
-		return v, nil
 	case reflect.Array:
 		v := reflect.New(t).Elem()
 		for i := 0; i < v.Len(); i++ {
