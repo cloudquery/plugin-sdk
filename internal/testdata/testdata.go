@@ -134,7 +134,7 @@ func TestData() schema.CQTypes {
 		Status: schema.Present,
 	}
 	jsonColumn := &schema.JSON{
-		Bytes:  []byte(`{"test": "test"}`),
+		Bytes:  []byte(`{"test":"test"}`),
 		Status: schema.Present,
 	}
 	uuidArrayColumn := &schema.UUIDArray{}

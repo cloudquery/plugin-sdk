@@ -40,8 +40,12 @@ func (dst *Timestamptz) Equal(src CQType) bool {
 		return false
 	}
 
+	// Nanoseconds field sometimes gets stripped in the DB, so instead of `Equal` we just check
+	// that the timestamps are within 1 second of each other.
 	if value, ok := src.(*Timestamptz); ok {
-		return dst.Status == value.Status && dst.Time.Equal(value.Time) && dst.InfinityModifier == value.InfinityModifier
+		return dst.Status == value.Status &&
+			dst.Time.Sub(value.Time).Abs() < time.Second &&
+			dst.InfinityModifier == value.InfinityModifier
 	}
 
 	return false
