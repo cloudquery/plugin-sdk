@@ -64,9 +64,7 @@ func (s *SourceMetrics) initWithTables(tables schema.Tables) {
 
 func (s *SourceMetrics) initWithClients(table *schema.Table, clients []schema.ClientMeta) {
 	for _, client := range clients {
-		if _, ok := s.TableClient[table.Name][client.ID()]; !ok {
-			s.TableClient[table.Name][client.ID()] = &TableClientMetrics{}
-		}
+		s.TableClient[table.Name][client.ID()] = &TableClientMetrics{}
 		for _, relation := range table.Relations {
 			s.initWithClients(relation, clients)
 		}
