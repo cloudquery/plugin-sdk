@@ -35,7 +35,7 @@ type (
 		IntPointerArrayCol []*int `json:"int_pointer_array_col,omitempty"`
 
 		StringArrayCol    []string  `json:"string_array_col,omitempty"`
-		StringArrayColToo []*string `json:"string_array_col_too,omitempty"`
+		StringPointerArrayColToo []*string `json:"string_pointer_array_col,omitempty"`
 
 		TimeCol        time.Time  `json:"time_col,omitempty"`
 		TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
