@@ -32,7 +32,7 @@ type (
 			StringCol string `json:"string_col,omitempty"`
 		}
 		IntArrayCol    []int  `json:"int_array_col,omitempty"`
-		IntArrayColToo []*int `json:"int_array_col_too,omitempty"`
+		IntPointerArrayCol []*int `json:"int_pointer_array_col,omitempty"`
 
 		StringArrayCol    []string  `json:"string_array_col,omitempty"`
 		StringArrayColToo []*string `json:"string_array_col_too,omitempty"`
