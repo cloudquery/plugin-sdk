@@ -5,7 +5,7 @@ import "encoding/json"
 type CIDR Inet
 
 type CIDRTransformer interface {
-	TransformCIDR(*CIDR) interface{}
+	TransformCIDR(*CIDR) (interface{}, error)
 }
 
 func (*CIDR) Type() ValueType {

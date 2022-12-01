@@ -10,7 +10,7 @@ import (
 )
 
 type InetTransformer interface {
-	TransformInet(*Inet) interface{}
+	TransformInet(*Inet) (interface{}, error)
 }
 
 // workaround this Golang bug: https://github.com/golang/go/issues/35727

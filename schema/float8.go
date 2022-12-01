@@ -8,7 +8,7 @@ import (
 )
 
 type Float8Transformer interface {
-	TransformFloat8(*Float8) interface{}
+	TransformFloat8(*Float8) (interface{}, error)
 }
 
 type Float8 struct {

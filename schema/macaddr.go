@@ -7,7 +7,7 @@ import (
 )
 
 type MacaddrTransformer interface {
-	TransformMacaddr(*Macaddr) interface{}
+	TransformMacaddr(*Macaddr) (interface{}, error)
 }
 
 type Macaddr struct {

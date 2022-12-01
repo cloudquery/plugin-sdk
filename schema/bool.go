@@ -7,7 +7,7 @@ import (
 )
 
 type BoolTransformer interface {
-	TransformBool(*Bool) interface{}
+	TransformBool(*Bool) (interface{}, error)
 }
 
 type Bool struct {

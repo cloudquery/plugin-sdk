@@ -8,7 +8,7 @@ import (
 )
 
 type UUIDArrayTransformer interface {
-	TransformUUIDArray(*UUIDArray) interface{}
+	TransformUUIDArray(*UUIDArray) (interface{}, error)
 }
 
 type UUIDArray struct {

@@ -8,7 +8,7 @@ import (
 )
 
 type JSONTransformer interface {
-	TransformJSON(*JSON) interface{}
+	TransformJSON(*JSON) (interface{}, error)
 }
 
 type JSON struct {

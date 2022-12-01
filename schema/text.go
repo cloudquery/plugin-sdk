@@ -7,7 +7,7 @@ import (
 )
 
 type TextTransformer interface {
-	TransformText(*Text) interface{}
+	TransformText(*Text) (interface{}, error)
 }
 
 type Text struct {

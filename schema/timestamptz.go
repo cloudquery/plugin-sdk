@@ -22,7 +22,7 @@ const (
 )
 
 type TimestamptzTransformer interface {
-	TransformTimestamptz(*Timestamptz) interface{}
+	TransformTimestamptz(*Timestamptz) (interface{}, error)
 }
 
 type Timestamptz struct {

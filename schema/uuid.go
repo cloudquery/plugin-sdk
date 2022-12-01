@@ -7,7 +7,7 @@ import (
 )
 
 type UUIDTransformer interface {
-	TransformUUID(*UUID) interface{}
+	TransformUUID(*UUID) (interface{}, error)
 }
 
 type UUID struct {

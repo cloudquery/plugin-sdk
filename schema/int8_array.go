@@ -8,7 +8,7 @@ import (
 )
 
 type Int8ArrayTransformer interface {
-	TransformInt8Array(*Int8Array) interface{}
+	TransformInt8Array(*Int8Array) (interface{}, error)
 }
 
 type Int8Array struct {

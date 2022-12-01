@@ -9,7 +9,7 @@ import (
 )
 
 type CIDRArrayTransformer interface {
-	TransformCIDRArray(*CIDRArray) interface{}
+	TransformCIDRArray(*CIDRArray) (interface{}, error)
 }
 
 type CIDRArray struct {

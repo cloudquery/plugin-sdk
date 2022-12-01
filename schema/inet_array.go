@@ -9,7 +9,7 @@ import (
 )
 
 type InetArrayTransformer interface {
-	TransformInetArray(*InetArray) interface{}
+	TransformInetArray(*InetArray) (interface{}, error)
 }
 
 type InetArray struct {

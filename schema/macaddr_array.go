@@ -9,7 +9,7 @@ import (
 )
 
 type MacaddrArrayTransformer interface {
-	TransformMacaddrArray(*MacaddrArray) interface{}
+	TransformMacaddrArray(*MacaddrArray) (interface{}, error)
 }
 
 type MacaddrArray struct {

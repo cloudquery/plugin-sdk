@@ -8,7 +8,7 @@ import (
 )
 
 type ByteaTransformer interface {
-	TransformBytea(*Bytea) interface{}
+	TransformBytea(*Bytea) (interface{}, error)
 }
 
 type Bytea struct {

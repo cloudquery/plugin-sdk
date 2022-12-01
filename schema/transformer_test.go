@@ -10,7 +10,10 @@ func TestTransformWithTransformer(t *testing.T) {
 		}
 		cqTypes = append(cqTypes, NewCqTypeFromValueType(i))
 	}
-	transformedVal := TransformWithTransformer(&DefaultTransformer{}, cqTypes)
+	transformedVal, err := TransformWithTransformer(&DefaultTransformer{}, cqTypes)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if transformedVal == nil {
 		t.Fatal("expected not nil")
 	}

@@ -155,9 +155,16 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	_ = syncTimeColumn.Set(syncTime)
 	for r := range res {
 		r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
+
+		transformedData, err := schema.TransformWithTransformer(p.client, r.Data)
+		if err != nil {
+			p.logger.Error().Str("table", r.TableName).Err(err).Msg("Failed to transform data")
+			continue
+		}
+
 		clientResource := &ClientResource{
 			TableName: r.TableName,
-			Data:      schema.TransformWithTransformer(p.client, r.Data),
+			Data:      transformedData,
 		}
 		select {
 		case <-gctx.Done():

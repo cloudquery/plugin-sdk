@@ -8,7 +8,7 @@ import (
 )
 
 type TextArrayTransformer interface {
-	TransformTextArray(*TextArray) interface{}
+	TransformTextArray(*TextArray) (interface{}, error)
 }
 
 type TextArray struct {
