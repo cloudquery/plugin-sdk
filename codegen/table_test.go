@@ -77,7 +77,7 @@ type (
 )
 
 var (
-	expectedColumns = []ColumnDefinition{
+	expectedColumns = ColumnDefinitions{
 		{
 			Name:     "int_col",
 			Type:     schema.TypeInt,
@@ -142,14 +142,20 @@ var (
 	}
 	expectedTestTable = TableDefinition{
 		Name:                "test_struct",
-		Columns:             expectedColumns,
+		Columns:             expectedColumns.sorted(),
 		nameTransformer:     DefaultNameTransformer,
 		typeTransformer:     DefaultTypeTransformer,
 		resolverTransformer: DefaultResolverTransformer,
 	}
 	expectedTestTableEmbeddedStruct = TableDefinition{
-		Name:                "test_struct",
-		Columns:             append(expectedColumns, ColumnDefinition{Name: "embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("EmbeddedString")`}),
+		Name: "test_struct",
+		Columns: append(expectedColumns,
+			ColumnDefinition{
+				Name:     "embedded_string",
+				Type:     schema.TypeString,
+				Resolver: `schema.PathResolver("EmbeddedString")`,
+			},
+		).sorted(),
 		nameTransformer:     DefaultNameTransformer,
 		typeTransformer:     DefaultTypeTransformer,
 		resolverTransformer: DefaultResolverTransformer,
@@ -166,7 +172,7 @@ var (
 				Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`,
 				Options:  schema.ColumnCreationOptions{PrimaryKey: true},
 			},
-		},
+		}.sorted(),
 		nameTransformer:     DefaultNameTransformer,
 		typeTransformer:     DefaultTypeTransformer,
 		resolverTransformer: DefaultResolverTransformer,
@@ -333,7 +339,7 @@ func TestTableFromGoStruct(t *testing.T) {
 					{Name: "account_id", Type: schema.TypeString, Resolver: `schema.PathResolver("AccountID")`},
 					{Name: "postgre_sql", Type: schema.TypeString, Resolver: `schema.PathResolver("PostgreSQL")`},
 					{Name: "ids", Type: schema.TypeString, Resolver: `schema.PathResolver("IDs")`},
-				},
+				}.sorted(),
 				nameTransformer: DefaultNameTransformer},
 		},
 		{
