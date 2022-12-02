@@ -49,7 +49,13 @@ func TestFakerWithCustomType(t *testing.T) {
 }
 
 type complexType struct {
-	IPAddress net.IP
+	IPAddress      net.IP
+	IPAddresses    []net.IP
+	PtrIPAddress   *net.IP
+	PtrIPAddresses []*net.IP
+	NestedComplex  struct {
+		IPAddress net.IP
+	}
 }
 
 func TestFakerCanFakeNetIP(t *testing.T) {
@@ -59,4 +65,16 @@ func TestFakerCanFakeNetIP(t *testing.T) {
 	}
 	assert.NotEmpty(t, a.IPAddress)
 	assert.Equal(t, "1.1.1.1", a.IPAddress.String())
+
+	assert.Equal(t, 1, len(a.IPAddresses))
+	assert.Equal(t, "1.1.1.1", a.IPAddresses[0].String())
+
+	assert.NotEmpty(t, a.PtrIPAddress)
+	assert.Equal(t, "1.1.1.1", a.PtrIPAddress.String())
+
+	assert.Equal(t, 1, len(a.PtrIPAddresses))
+	assert.Equal(t, "1.1.1.1", a.PtrIPAddresses[0].String())
+
+	assert.NotEmpty(t, a.NestedComplex.IPAddress)
+	assert.Equal(t, "1.1.1.1", a.NestedComplex.IPAddress.String())
 }
