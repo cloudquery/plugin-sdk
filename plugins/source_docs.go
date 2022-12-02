@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"text/template"
 
 	"github.com/cloudquery/plugin-sdk/schema"
+	"golang.org/x/exp/slices"
+	"golang.org/x/sync/errgroup"
 )
 
 //go:embed templates/*.go.tpl
@@ -78,11 +81,18 @@ func (p *SourcePlugin) jsonifyTables(tables schema.Tables) []jsonTable {
 }
 
 func (p *SourcePlugin) renderTablesAsMarkdown(dir string) error {
+	// render all tables
+	grp, _ := errgroup.WithContext(context.Background())
 	for _, table := range p.Tables() {
-		if err := renderAllTables(table, dir); err != nil {
-			return err
-		}
+		table := table
+		grp.Go(func() error {
+			return renderAllTables(table, dir)
+		})
 	}
+	if err := grp.Wait(); err != nil {
+		return err
+	}
+
 	t, err := template.New("all_tables.md.go.tpl").Funcs(template.FuncMap{
 		"indentToDepth": indentToDepth,
 	}).ParseFS(templatesFS, "templates/all_tables*.md.go.tpl")
@@ -106,12 +116,16 @@ func renderAllTables(t *schema.Table, dir string) error {
 	if err := renderTable(t, dir); err != nil {
 		return err
 	}
-	for _, r := range t.Relations {
-		if err := renderAllTables(r, dir); err != nil {
-			return err
-		}
+
+	// render all relations
+	grp, _ := errgroup.WithContext(context.Background())
+	for _, table := range t.Relations {
+		table := table
+		grp.Go(func() error {
+			return renderAllTables(table, dir)
+		})
 	}
-	return nil
+	return grp.Wait()
 }
 
 func renderTable(table *schema.Table, dir string) error {
@@ -129,10 +143,30 @@ func renderTable(table *schema.Table, dir string) error {
 		return fmt.Errorf("failed to create file %v: %v", outputPath, err)
 	}
 	defer f.Close()
+
+	sortTableColumns(table)
 	if err := t.Execute(f, table); err != nil {
 		return fmt.Errorf("failed to execute template: %v", err)
 	}
 	return nil
+}
+
+func sortTableColumns(table *schema.Table) {
+	const cqPfx = "_cq"
+	slices.SortStableFunc(table.Columns, func(a, b schema.Column) bool {
+		switch {
+		case strings.HasPrefix(a.Name, cqPfx):
+			return !strings.HasPrefix(b.Name, cqPfx) || a.Name < b.Name
+		case strings.HasPrefix(b.Name, cqPfx):
+			return false
+		case a.CreationOptions.PrimaryKey:
+			return !b.CreationOptions.PrimaryKey || a.Name < b.Name
+		case b.CreationOptions.PrimaryKey:
+			return false
+		default:
+			return a.Name < b.Name
+		}
+	})
 }
 
 func formatType(v schema.ValueType) string {

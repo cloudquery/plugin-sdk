@@ -4,14 +4,6 @@
     "description": "Description for test table",
     "columns": [
       {
-        "name": "_cq_source_name",
-        "type": "TypeString"
-      },
-      {
-        "name": "_cq_sync_time",
-        "type": "TypeTimestamp"
-      },
-      {
         "name": "_cq_id",
         "type": "TypeUUID"
       },
@@ -20,8 +12,12 @@
         "type": "TypeUUID"
       },
       {
-        "name": "int_col",
-        "type": "TypeInt"
+        "name": "_cq_source_name",
+        "type": "TypeString"
+      },
+      {
+        "name": "_cq_sync_time",
+        "type": "TypeTimestamp"
       },
       {
         "name": "id_col",
@@ -32,6 +28,10 @@
         "name": "id_col2",
         "type": "TypeInt",
         "is_primary_key": true
+      },
+      {
+        "name": "int_col",
+        "type": "TypeInt"
       }
     ],
     "relations": [
@@ -40,14 +40,6 @@
         "description": "Description for relational table",
         "columns": [
           {
-            "name": "_cq_source_name",
-            "type": "TypeString"
-          },
-          {
-            "name": "_cq_sync_time",
-            "type": "TypeTimestamp"
-          },
-          {
             "name": "_cq_id",
             "type": "TypeUUID",
             "is_primary_key": true
@@ -55,6 +47,14 @@
           {
             "name": "_cq_parent_id",
             "type": "TypeUUID"
+          },
+          {
+            "name": "_cq_source_name",
+            "type": "TypeString"
+          },
+          {
+            "name": "_cq_sync_time",
+            "type": "TypeTimestamp"
           },
           {
             "name": "string_col",
@@ -67,14 +67,6 @@
             "description": "Description for relational table's relation",
             "columns": [
               {
-                "name": "_cq_source_name",
-                "type": "TypeString"
-              },
-              {
-                "name": "_cq_sync_time",
-                "type": "TypeTimestamp"
-              },
-              {
                 "name": "_cq_id",
                 "type": "TypeUUID",
                 "is_primary_key": true
@@ -82,6 +74,14 @@
               {
                 "name": "_cq_parent_id",
                 "type": "TypeUUID"
+              },
+              {
+                "name": "_cq_source_name",
+                "type": "TypeString"
+              },
+              {
+                "name": "_cq_sync_time",
+                "type": "TypeTimestamp"
               },
               {
                 "name": "string_col",
@@ -97,14 +97,6 @@
         "description": "Description for second relational table",
         "columns": [
           {
-            "name": "_cq_source_name",
-            "type": "TypeString"
-          },
-          {
-            "name": "_cq_sync_time",
-            "type": "TypeTimestamp"
-          },
-          {
             "name": "_cq_id",
             "type": "TypeUUID",
             "is_primary_key": true
@@ -112,6 +104,14 @@
           {
             "name": "_cq_parent_id",
             "type": "TypeUUID"
+          },
+          {
+            "name": "_cq_source_name",
+            "type": "TypeString"
+          },
+          {
+            "name": "_cq_sync_time",
+            "type": "TypeTimestamp"
           },
           {
             "name": "string_col",
