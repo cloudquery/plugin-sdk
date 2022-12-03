@@ -72,7 +72,11 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables schema.Tables, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
 	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
-	logger.Info().Msg("table resolver started")
+
+	if parent == nil { // Log only for root tables, otherwise we spam too much.
+		logger.Info().Msg("table resolver started")
+	}
+
 	tableMetrics := p.metrics.TableClient[table.Name][clientName]
 	res := make(chan interface{})
 	go func() {
@@ -100,7 +104,9 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables sc
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
-	logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("fetch table finished")
+	if parent == nil { // Log only for root tables, otherwise we spam too much.
+		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("fetch table finished")
+	}
 }
 
 func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, allIncludedTables schema.Tables, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource, depth int) {
