@@ -120,7 +120,20 @@ func (p *SourcePlugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
 	if err := spec.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid spec: %w", err)
 	}
-	return p.listAndValidateTables(spec.Tables, spec.SkipTables)
+	tables, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
+	if err != nil {
+		return nil, err
+	}
+	// listAndValidateTables returns a flattened list - we only want to return
+	// the top-level tables from this function.
+	var topLevelTables schema.Tables
+	for _, t := range tables {
+		if t.Parent != nil {
+			continue
+		}
+		topLevelTables = append(topLevelTables, t)
+	}
+	return topLevelTables, nil
 }
 
 // Name return the name of this plugin
