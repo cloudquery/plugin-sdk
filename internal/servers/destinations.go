@@ -104,6 +104,8 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
 			if err := eg.Wait(); err != nil {
+				// log the unmarshal error so we don't lose that information, but return the write error as that's the first one that occurred
+				s.Logger.Error().Err(err).Msg("failed to unmarshal resource")
 				return fmt.Errorf("plugin write failed: %w", err)
 			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
