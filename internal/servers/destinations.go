@@ -86,14 +86,14 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 
 	for {
 		r, err := msg.Recv()
-		if err != nil {
-			if err == io.EOF {
-				close(resources)
-				if err := eg.Wait(); err != nil {
-					return fmt.Errorf("got EOF. failed to wait for plugin: %w", err)
-				}
-				return msg.SendAndClose(&pb.Write2_Response{})
+		if err == io.EOF {
+			close(resources)
+			if err := eg.Wait(); err != nil {
+				return fmt.Errorf("got EOF. failed to wait for plugin: %w", err)
 			}
+			return msg.SendAndClose(&pb.Write2_Response{})
+		}
+		if err != nil {
 			close(resources)
 			if err := eg.Wait(); err != nil {
 				s.Logger.Error().Err(err).Msg("got error. failed to wait for plugin")
