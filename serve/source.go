@@ -51,11 +51,9 @@ func Source(plugin *plugins.SourcePlugin, opts ...SourceOption) {
 	}
 	if err := newCmdSourceRoot(s).Execute(); err != nil {
 		sentry.CaptureMessage(err.Error())
-		sentry.Flush(flushTimeout)
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	sentry.Flush(flushTimeout)
 }
 
 // nolint:dupl
@@ -129,6 +127,7 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 					Debug:            false,
 					AttachStacktrace: false,
 					Release:          version,
+					Transport:        sentry.NewHTTPSyncTransport(),
 					ServerName:       "oss", // set to "oss" on purpose to avoid sending any identifying information
 					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations
 					Integrations: func(integrations []sentry.Integration) []sentry.Integration {
