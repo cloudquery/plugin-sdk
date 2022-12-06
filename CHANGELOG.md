@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0](https://github.com/cloudquery/plugin-sdk/compare/v1.10.0...v1.11.0) (2022-12-05)
+
+
+### Features
+
+* Add Support for net.IP in Faker ([#445](https://github.com/cloudquery/plugin-sdk/issues/445)) ([2deced1](https://github.com/cloudquery/plugin-sdk/commit/2deced12ec51d504840d064be367d70e855697f5))
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 6ab00d0 ([#449](https://github.com/cloudquery/plugin-sdk/issues/449)) ([b981e33](https://github.com/cloudquery/plugin-sdk/commit/b981e3301e53fa2f8d0b7a854b50fec84ad28a3a))
+* **deps:** Update module github.com/avast/retry-go/v4 to v4.3.1 ([#450](https://github.com/cloudquery/plugin-sdk/issues/450)) ([e4116f1](https://github.com/cloudquery/plugin-sdk/commit/e4116f1982dbe6fb4bd5222dbc8d58af551b56b1))
+* **deps:** Update module google.golang.org/grpc to v1.51.0 ([#451](https://github.com/cloudquery/plugin-sdk/issues/451)) ([538211c](https://github.com/cloudquery/plugin-sdk/commit/538211c863ec2d4b719b83086a842e89ecc396d3))
+* Don't log start-and-finish of relational tables ([#459](https://github.com/cloudquery/plugin-sdk/issues/459)) ([4d6eeca](https://github.com/cloudquery/plugin-sdk/commit/4d6eecac9d9ed76caf064287b1f15fd321c7a651))
+* Sync Metrics for Long running plugins ([#455](https://github.com/cloudquery/plugin-sdk/issues/455)) ([3fecc61](https://github.com/cloudquery/plugin-sdk/commit/3fecc612db841db289796f0dd77dfe9efa10847f))
+* TablesForSpec should only return top-level tables ([#456](https://github.com/cloudquery/plugin-sdk/issues/456)) ([ab7ca97](https://github.com/cloudquery/plugin-sdk/commit/ab7ca972e0b187a7dfb66132a03f07479cd29bb7))
+
 ## [1.10.0](https://github.com/cloudquery/plugin-sdk/compare/v1.9.0...v1.10.0) (2022-11-29)
 
 
