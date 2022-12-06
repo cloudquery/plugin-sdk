@@ -48,11 +48,11 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 
 	var wg sync.WaitGroup
 	for _, table := range tables {
-		if table.Parent != nil {
-			// skip descendent tables here - they will be handled by the recursive
-			// depth-first-search later.
-			continue
-		}
+		// if table.Parent != nil {
+		// 	// skip descendent tables here - they will be handled by the recursive
+		// 	// depth-first-search later.
+		// 	continue
+		// }
 		table := table
 		clients := []schema.ClientMeta{client}
 		if table.Multiplex != nil {
