@@ -3,7 +3,6 @@ package plugins
 import (
 	"context"
 	"fmt"
-	"os"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -94,12 +93,6 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables sc
 	}
 
 	tableMetrics := p.metrics.TableClient[table.Name][clientName]
-	if tableMetrics == nil {
-		fmt.Println(table.Name + " " + clientName)
-		fmt.Println(table.Name + " " + clientName)
-		fmt.Println(p.metrics.TableClient[table.Name])
-		os.Exit(3)
-	}
 	res := make(chan interface{})
 	go func() {
 		defer func() {
@@ -197,10 +190,6 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	objectStartTime := time.Now()
 	clientID := client.ID()
 	tableMetrics := p.metrics.TableClient[table.Name][clientID]
-	if tableMetrics == nil {
-		fmt.Println("table metrics is nil" + table.Name + " " + clientID)
-		os.Exit(1)
-	}
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientID).Logger()
 	defer func() {
 		if err := recover(); err != nil {
