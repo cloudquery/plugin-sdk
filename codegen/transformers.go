@@ -54,10 +54,11 @@ func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 		}
 		return schema.TypeJSON, nil
 	case reflect.Slice:
-		switch elemValueType, _ := defaultGoTypeToSchemaType(v.Elem()); elemValueType {
-		case schema.TypeString:
+		switch v.Elem().Kind() {
+		case reflect.String:
 			return schema.TypeStringArray, nil
-		case schema.TypeInt:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			return schema.TypeIntArray, nil
 		default:
 			return schema.TypeJSON, nil
