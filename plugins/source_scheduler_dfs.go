@@ -103,8 +103,8 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables sc
 				p.logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
 				atomic.AddUint64(&tableMetrics.Panics, 1)
 			}
-			close(res)
 		}()
+		defer close(res)
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
 			atomic.AddUint64(&tableMetrics.Errors, 1)
