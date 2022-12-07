@@ -58,7 +58,6 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 		if table.Multiplex != nil {
 			clients = table.Multiplex(client)
 		}
-		// p.metrics.initWithClients(table, clients)
 		for _, client := range clients {
 			client := client
 			if err := p.tableSems[0].Acquire(ctx, 1); err != nil {
