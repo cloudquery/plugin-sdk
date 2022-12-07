@@ -54,7 +54,6 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 		p.metrics.initWithClients(table, clients)
 	}
 
-
 	var wg sync.WaitGroup
 	for i, table := range tables {
 		if table.Parent != nil {
