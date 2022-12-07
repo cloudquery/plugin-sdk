@@ -36,6 +36,16 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 	}
 	p.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
 
+	for _, table := range tables {
+		clients := []schema.ClientMeta{client}
+		if table.Multiplex != nil {
+			clients = table.Multiplex(client)
+		}
+		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
+		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
+		p.metrics.initWithClients(table, clients)
+	}
+
 	var wg sync.WaitGroup
 	for _, table := range tables {
 		if table.Parent != nil {
@@ -48,7 +58,6 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 		if table.Multiplex != nil {
 			clients = table.Multiplex(client)
 		}
-		p.metrics.initWithClients(table, clients)
 		for _, client := range clients {
 			client := client
 			if err := p.tableSems[0].Acquire(ctx, 1); err != nil {

@@ -156,6 +156,7 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	if err := spec.Validate(); err != nil {
 		return fmt.Errorf("invalid spec: %w", err)
 	}
+	// flattens all tables and relations
 	tables, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
 	if err != nil {
 		return err
