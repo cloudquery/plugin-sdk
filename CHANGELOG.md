@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1](https://github.com/cloudquery/plugin-sdk/compare/v1.11.0...v1.11.1) (2022-12-07)
+
+
+### Bug Fixes
+
+* **codegen:** Column type for slices ([7474c90](https://github.com/cloudquery/plugin-sdk/commit/7474c90415119082bdb1cdb145bd16d1ef51a3b2))
+* Concurrent read,write to a map ([#467](https://github.com/cloudquery/plugin-sdk/issues/467)) ([ebef24a](https://github.com/cloudquery/plugin-sdk/commit/ebef24a00e667aab04c1e5258c7f9c70757894d6))
+* **sentry:** Use HTTPSyncTransport, remove flush ([#465](https://github.com/cloudquery/plugin-sdk/issues/465)) ([4d48306](https://github.com/cloudquery/plugin-sdk/commit/4d483064218fbabea350297260dec59bc547bc6e))
+* Skip relations when initializing metrics ([#469](https://github.com/cloudquery/plugin-sdk/issues/469)) ([5efe564](https://github.com/cloudquery/plugin-sdk/commit/5efe56493a21264172655bfc0b769be72d135c91))
+
 ## [1.11.0](https://github.com/cloudquery/plugin-sdk/compare/v1.10.0...v1.11.0) (2022-12-05)
 
 
