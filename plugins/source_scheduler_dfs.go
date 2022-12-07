@@ -39,8 +39,8 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 
 	// we have this because plugins can return sometimes clients in a random way which will cause
 	// differences between this run and the next one.
-	preInitialisedClients := make([][]schema.ClientMeta, 0)
-	for _, table := range tables {
+	preInitialisedClients := make([][]schema.ClientMeta, len(tables))
+	for i, table := range tables {
 		if table.Parent != nil {
 			// skip descendent tables here - they are handled in initWithClients
 			continue
@@ -49,7 +49,7 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 		if table.Multiplex != nil {
 			clients = table.Multiplex(client)
 		}
-		preInitialisedClients = append(preInitialisedClients, clients)
+		preInitialisedClients[i] = clients
 		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
 		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
 		p.metrics.initWithClients(table, clients)
@@ -97,6 +97,7 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables sc
 	if tableMetrics == nil {
 		fmt.Println(table.Name + " " + clientName)
 		fmt.Println(table.Name + " " + clientName)
+		fmt.Println(p.metrics.TableClient[table.Name])
 		os.Exit(3)
 	}
 	res := make(chan interface{})
