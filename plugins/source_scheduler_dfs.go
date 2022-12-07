@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"fmt"
+	"os"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -36,6 +37,9 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 	}
 	p.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
 
+	// we have this because plugins can return sometimes clients in a random way which will cause
+	// differences between this run and the next one.
+	preInitialisedClients := make([][]schema.ClientMeta, 0)
 	for _, table := range tables {
 		if table.Parent != nil {
 			// skip descendent tables here - they are handled in initWithClients
@@ -45,23 +49,22 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 		if table.Multiplex != nil {
 			clients = table.Multiplex(client)
 		}
+		preInitialisedClients = append(preInitialisedClients, clients)
 		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
 		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
 		p.metrics.initWithClients(table, clients)
 	}
 
+
 	var wg sync.WaitGroup
-	for _, table := range tables {
+	for i, table := range tables {
 		if table.Parent != nil {
 			// skip descendent tables here - they will be handled by the recursive
 			// depth-first-search later.
 			continue
 		}
 		table := table
-		clients := []schema.ClientMeta{client}
-		if table.Multiplex != nil {
-			clients = table.Multiplex(client)
-		}
+		clients := preInitialisedClients[i]
 		for _, client := range clients {
 			client := client
 			if err := p.tableSems[0].Acquire(ctx, 1); err != nil {
@@ -91,6 +94,11 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables sc
 	}
 
 	tableMetrics := p.metrics.TableClient[table.Name][clientName]
+	if tableMetrics == nil {
+		fmt.Println(table.Name + " " + clientName)
+		fmt.Println(table.Name + " " + clientName)
+		os.Exit(3)
+	}
 	res := make(chan interface{})
 	go func() {
 		defer func() {
@@ -188,6 +196,10 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	objectStartTime := time.Now()
 	clientID := client.ID()
 	tableMetrics := p.metrics.TableClient[table.Name][clientID]
+	if tableMetrics == nil {
+		fmt.Println("table metrics is nil" + table.Name + " " + clientID)
+		os.Exit(1)
+	}
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientID).Logger()
 	defer func() {
 		if err := recover(); err != nil {

@@ -26,7 +26,7 @@ type SourcePlugin struct {
 	// Tables is all tables supported by this source plugin
 	tables schema.Tables
 	// status sync metrics
-	metrics SourceMetrics
+	metrics *SourceMetrics
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
 	logger zerolog.Logger
 	// resourceSem is a semaphore that limits the number of concurrent resources being fetched
@@ -88,7 +88,7 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 		version:            version,
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
-		metrics:            SourceMetrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
+		metrics:            &SourceMetrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:              caser.New(),
 	}
 	addInternalColumns(p.tables)
@@ -146,7 +146,7 @@ func (p *SourcePlugin) Version() string {
 	return p.version
 }
 
-func (p *SourcePlugin) Metrics() SourceMetrics {
+func (p *SourcePlugin) Metrics() *SourceMetrics {
 	return p.metrics
 }
 
