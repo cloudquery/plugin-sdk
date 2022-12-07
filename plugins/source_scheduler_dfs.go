@@ -37,6 +37,10 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 	p.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
 
 	for _, table := range tables {
+		if table.Parent != nil {
+			// skip descendent tables here - they are handled in initWithClients
+			continue
+		}
 		clients := []schema.ClientMeta{client}
 		if table.Multiplex != nil {
 			clients = table.Multiplex(client)
