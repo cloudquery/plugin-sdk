@@ -36,29 +36,31 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 	}
 	p.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
 
+	// we have this because plugins can return sometimes clients in a random way which will cause
+	// differences between this run and the next one.
+	preInitialisedClients := make([][]schema.ClientMeta, 0, selectedTables.Size())
 	for _, table := range p.tables {
 		if !selectedTables.Contains(table.Name) {
+			// skip descendent tables here - they are handled in initWithClients
 			continue
 		}
 		clients := []schema.ClientMeta{client}
 		if table.Multiplex != nil {
 			clients = table.Multiplex(client)
 		}
+		preInitialisedClients = append(preInitialisedClients, clients)
 		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
 		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
 		p.metrics.initWithClients(table, selectedTables, clients)
 	}
 
 	var wg sync.WaitGroup
-	for _, table := range p.tables {
+	for i, table := range p.tables {
 		if !selectedTables.Contains(table.Name) {
 			continue
 		}
 		table := table
-		clients := []schema.ClientMeta{client}
-		if table.Multiplex != nil {
-			clients = table.Multiplex(client)
-		}
+		clients := preInitialisedClients[i]
 		for _, client := range clients {
 			client := client
 			if err := p.tableSems[0].Acquire(ctx, 1); err != nil {

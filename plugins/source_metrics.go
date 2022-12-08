@@ -54,10 +54,10 @@ func (s *SourceMetrics) Equal(other *SourceMetrics) bool {
 }
 
 func (s *SourceMetrics) initWithClients(table *schema.Table, selectedTables *schema.TableSet, clients []schema.ClientMeta) {
-	s.TableClient[table.Name] = make(map[string]*TableClientMetrics)
 	if !selectedTables.Contains(table.Name) {
 		return
 	}
+	s.TableClient[table.Name] = make(map[string]*TableClientMetrics, len(clients))
 	for _, client := range clients {
 		s.TableClient[table.Name][client.ID()] = &TableClientMetrics{}
 	}
