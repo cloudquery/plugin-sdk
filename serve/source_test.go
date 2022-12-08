@@ -230,7 +230,7 @@ func TestSourceSuccess(t *testing.T) {
 	}
 }
 
-const testSourceFailExpectedErr = "failed to fetch resources from stream: rpc error: code = Unknown desc = failed to sync resources: failed to create execution client for source plugin testSourcePlugin: error in newTestExecutionClientErr"
+const testSourceFailExpectedErr = "failed to sync resources: failed to create execution client for source plugin testSourcePlugin: error in newTestExecutionClientErr"
 
 func TestSourceFail(t *testing.T) {
 	plugin := plugins.NewSourcePlugin(
