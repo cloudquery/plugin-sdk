@@ -20,3 +20,8 @@ func IsUnimplemented(err error) bool {
 	err = errors.Unwrap(err)
 	return IsUnimplemented(err)
 }
+
+func extractErrorMessage(err error) string {
+	st := status.Convert(err)
+	return st.Message()
+}

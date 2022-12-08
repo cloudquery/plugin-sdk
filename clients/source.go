@@ -277,7 +277,7 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 		Spec: b,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to call Sync: %w", err)
+		return fmt.Errorf("failed to call Sync: %s", extractErrorMessage(err))
 	}
 	for {
 		r, err := stream.Recv()
@@ -285,7 +285,7 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 			if err == io.EOF {
 				return nil
 			}
-			return fmt.Errorf("failed to fetch resources from stream: %w", err)
+			return errors.New(extractErrorMessage(err))
 		}
 		select {
 		case <-ctx.Done():
@@ -307,7 +307,7 @@ func (c *SourceClient) Sync2(ctx context.Context, spec specs.Source, res chan<- 
 		Spec: b,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to call Sync: %w", err)
+		return fmt.Errorf("failed to call Sync: %s", extractErrorMessage(err))
 	}
 	for {
 		r, err := stream.Recv()
@@ -315,7 +315,7 @@ func (c *SourceClient) Sync2(ctx context.Context, spec specs.Source, res chan<- 
 			if err == io.EOF {
 				return nil
 			}
-			return fmt.Errorf("failed to fetch resources from stream: %w", err)
+			return errors.New(extractErrorMessage(err))
 		}
 		select {
 		case <-ctx.Done():
