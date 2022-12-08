@@ -66,13 +66,13 @@ var (
 )
 
 type TableSet struct {
-	tables map[string]bool
+	tables map[string]struct{}
 }
 
 func NewTableSet(tables Tables) *TableSet {
-	m := make(map[string]bool, len(tables))
+	m := make(map[string]struct{}, len(tables))
 	for _, t := range tables {
-		m[t.Name] = true
+		m[t.Name] = struct{}{}
 	}
 	return &TableSet{tables: m}
 }
