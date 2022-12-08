@@ -51,12 +51,20 @@ func (dst *JSON) Set(src interface{}) error {
 
 	switch value := src.(type) {
 	case string:
-		*dst = JSON{Bytes: []byte(value), Status: Present}
+		if value == "" {
+			*dst = JSON{Bytes: []byte(`""`), Status: Present}
+		} else {
+			*dst = JSON{Bytes: []byte(value), Status: Present}
+		}
 	case *string:
 		if value == nil {
 			*dst = JSON{Status: Null}
 		} else {
-			*dst = JSON{Bytes: []byte(*value), Status: Present}
+			if *value == "" {
+				*dst = JSON{Bytes: []byte(`""`), Status: Present}
+			} else {
+				*dst = JSON{Bytes: []byte(*value), Status: Present}
+			}
 		}
 	case []byte:
 		if value == nil {

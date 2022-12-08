@@ -9,10 +9,14 @@ type Foo struct {
 }
 
 func TestJSONSet(t *testing.T) {
+	emptyString := ""
 	successfulTests := []struct {
 		source interface{}
 		result JSON
 	}{
+
+		{source: emptyString, result: JSON{Bytes: []byte(`""`), Status: Present}},
+		{source: &emptyString, result: JSON{Bytes: []byte(`""`), Status: Present}},
 		{source: "{}", result: JSON{Bytes: []byte("{}"), Status: Present}},
 		{source: []byte("{}"), result: JSON{Bytes: []byte("{}"), Status: Present}},
 		{source: ([]byte)(nil), result: JSON{Status: Null}},
