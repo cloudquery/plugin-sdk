@@ -314,7 +314,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 	}
 
 	stats := plugin.Metrics()
-	if !tc.stats.Equal(&stats) {
+	if !tc.stats.Equal(stats) {
 		t.Fatalf("unexpected stats: %v", cmp.Diff(tc.stats, stats))
 	}
 	if err := g.Wait(); err != nil {
