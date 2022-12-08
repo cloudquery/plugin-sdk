@@ -28,9 +28,8 @@ func (p *SourcePlugin) validate() error {
 }
 
 // listAndValidateTables returns all the tables matched by the `tables` and `skip_tables` config settings.
-// It will return ALL tables, including descendent tables. Callers should take care to only use the top-level
-// tables if that is what they need.
-func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schema.Tables, error) {
+// It returns a set of tables (both top-level and descendent) that should be included.
+func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (*schema.TableSet, error) {
 	if len(tables) == 0 {
 		return nil, fmt.Errorf("list of tables is empty")
 	}
@@ -95,6 +94,5 @@ func (p *SourcePlugin) listAndValidateTables(tables, skipTables []string) (schem
 			return nil, fmt.Errorf("table %s is a descendant table and cannot be included without %s", t.Name, strings.Join(missingParents, ", "))
 		}
 	}
-
-	return remainingTables, nil
+	return schema.NewTableSet(remainingTables), nil
 }

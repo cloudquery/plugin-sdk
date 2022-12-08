@@ -65,6 +65,33 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
+type TableSet struct {
+	tables map[string]bool
+}
+
+func NewTableSet(tables Tables) *TableSet {
+	m := make(map[string]bool, len(tables))
+	for _, t := range tables {
+		m[t.Name] = true
+	}
+	return &TableSet{tables: m}
+}
+
+func (s *TableSet) Add(other *TableSet) {
+	for name, table := range other.tables {
+		s.tables[name] = table
+	}
+}
+
+func (s TableSet) Size() int {
+	return len(s.tables)
+}
+
+func (s TableSet) Contains(name string) bool {
+	_, ok := s.tables[name]
+	return ok
+}
+
 func (tt Tables) FlattenTables() Tables {
 	tables := make(Tables, 0, len(tt))
 	for _, t := range tt {

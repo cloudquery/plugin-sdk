@@ -53,21 +53,16 @@ func (s *SourceMetrics) Equal(other *SourceMetrics) bool {
 	return true
 }
 
-func (s *SourceMetrics) initWithTables(tables schema.Tables) {
-	s.TableClient = make(map[string]map[string]*TableClientMetrics)
-	for _, table := range tables {
-		s.TableClient[table.Name] = make(map[string]*TableClientMetrics)
-		s.initWithTables(table.Relations)
-	}
-}
-
-func (s *SourceMetrics) initWithClients(table *schema.Table, clients []schema.ClientMeta) {
+func (s *SourceMetrics) initWithClients(table *schema.Table, selectedTables *schema.TableSet, clients []schema.ClientMeta) {
 	s.TableClient[table.Name] = make(map[string]*TableClientMetrics)
+	if !selectedTables.Contains(table.Name) {
+		return
+	}
 	for _, client := range clients {
 		s.TableClient[table.Name][client.ID()] = &TableClientMetrics{}
-		for _, relation := range table.Relations {
-			s.initWithClients(relation, clients)
-		}
+	}
+	for _, relation := range table.Relations {
+		s.initWithClients(relation, selectedTables, clients)
 	}
 }
 

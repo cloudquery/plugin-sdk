@@ -96,7 +96,6 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 	if err := p.validate(); err != nil {
 		panic(err)
 	}
-	p.metrics.initWithTables(p.tables)
 	p.maxDepth = maxDepth(p.tables)
 	if p.maxDepth > maxAllowedDepth {
 		panic(fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth))
@@ -120,18 +119,17 @@ func (p *SourcePlugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
 	if err := spec.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid spec: %w", err)
 	}
-	tables, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
+	selectedTables, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
 	if err != nil {
 		return nil, err
 	}
-	// listAndValidateTables returns a flattened list - we only want to return
-	// the top-level tables from this function.
+	// listAndValidateTables returns a set of all tables - we only want to return
+	// the top-level tables from the set in this function.
 	var topLevelTables schema.Tables
-	for _, t := range tables {
-		if t.Parent != nil {
-			continue
+	for _, t := range p.tables {
+		if selectedTables.Contains(t.Name) {
+			topLevelTables = append(topLevelTables, t)
 		}
-		topLevelTables = append(topLevelTables, t)
 	}
 	return topLevelTables, nil
 }

@@ -199,9 +199,14 @@ func TestSourcePlugin_listAndValidateAllResources(t *testing.T) {
 			if tt.wantErr {
 				return
 			}
-			gotNames := make([]string, len(gotTables))
-			for i := range gotTables {
-				gotNames[i] = gotTables[i].Name
+			gotNames := make([]string, 0, gotTables.Size())
+			if gotTables.Size() != len(tt.want) {
+				t.Errorf("SourcePlugin.listAndValidateTables() returned %d tables, want %d", gotTables.Size(), len(tt.want))
+			}
+			for _, table := range tt.plugin.tables.FlattenTables() {
+				if gotTables.Contains(table.Name) {
+					gotNames = append(gotNames, table.Name)
+				}
 			}
 			if diff := cmp.Diff(gotNames, tt.want); diff != "" {
 				t.Errorf("SourcePlugin.listAndValidateTables() diff (+got, -want): %v", diff)
