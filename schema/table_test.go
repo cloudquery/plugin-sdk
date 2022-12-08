@@ -7,25 +7,8 @@ var testTable = &Table{
 	Columns: []Column{},
 	Relations: []*Table{
 		{
-			Name:    "test_sub",
+			Name:    "test2",
 			Columns: []Column{},
-		},
-	},
-}
-
-var testTable2 = &Table{
-	Name:    "test2",
-	Columns: []Column{},
-	Relations: []*Table{
-		{
-			Name:    "test2_sub",
-			Columns: []Column{},
-			Relations: []*Table{
-				{
-					Name:    "test2_sub_sub",
-					Columns: []Column{},
-				},
-			},
 		},
 	},
 }
