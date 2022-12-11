@@ -19,6 +19,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -300,7 +301,20 @@ func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, so
 	}
 	_, err = saveClient.CloseAndRecv()
 	if err != nil {
-		return fmt.Errorf("failed to CloseAndRecv client: %w", err)
+		st := status.Convert(err)
+		errorWithDetails := st.Message()
+		if len(st.Details()) > 0 {
+			errorWithDetails += "\nDetails:\n"
+			for _, d := range st.Details() {
+				switch t := d.(type) {
+				case *errdetails.ErrorInfo:
+					errorWithDetails += t.Reason + "\n"
+				default:
+					errorWithDetails += fmt.Sprintf("%v\n", d)
+				}
+			}
+		}
+		return errors.New(errorWithDetails)
 	}
 
 	return nil

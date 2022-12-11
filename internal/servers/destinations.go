@@ -3,6 +3,7 @@ package servers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -60,6 +62,12 @@ func (*DestinationServer) Write(pb.Destination_WriteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Write is deprecated please upgrade client")
 }
 
+func addErrorDetails(err error, reason string) error {
+	st := status.Convert(err)
+	st, _ = st.WithDetails(&errdetails.ErrorInfo{Reason: reason})
+	return st.Err()
+}
+
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
@@ -86,36 +94,42 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 
 	for {
 		r, err := msg.Recv()
-		if err != nil {
-			if err == io.EOF {
-				close(resources)
-				if err := eg.Wait(); err != nil {
-					return status.Errorf(codes.Internal, "failed to wait for plugin: %v", err)
-				}
-				return msg.SendAndClose(&pb.Write2_Response{})
-			}
+		if err == io.EOF {
 			close(resources)
 			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("got error. failed to wait for plugin")
+				return addErrorDetails(errors.New("plugin write failed"), err.Error())
+			}
+			return msg.SendAndClose(&pb.Write2_Response{})
+		}
+		if err != nil {
+			close(resources)
+			if err := eg.Wait(); err != nil {
+				return addErrorDetails(errors.New("plugin write failed"), err.Error())
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
 		var resource schema.DestinationResource
-		if err := json.Unmarshal(r.Resource, &resource); err != nil {
+		if unmarshalError := json.Unmarshal(r.Resource, &resource); unmarshalError != nil {
 			close(resources)
-			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("failed to unmarshal resource. failed to wait for plugin")
+			errWithDetails := addErrorDetails(errors.New("failed to unmarshal resource"), unmarshalError.Error())
+			if writeError := eg.Wait(); writeError != nil {
+				errWithDetails = addErrorDetails(errors.New("plugin write failed and failed to unmarshal resource"), writeError.Error())
+				errWithDetails = addErrorDetails(errWithDetails, unmarshalError.Error())
 			}
-			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
+			return errWithDetails
 		}
 		select {
 		case resources <- resource:
 		case <-ctx.Done():
 			close(resources)
 			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("failed to wait")
+				return addErrorDetails(errors.New("plugin write failed"), err.Error())
 			}
-			return ctx.Err()
+			ctxError := ctx.Err()
+			if ctxError == nil {
+				return nil
+			}
+			return addErrorDetails(errors.New("context error"), ctxError.Error())
 		}
 	}
 }
