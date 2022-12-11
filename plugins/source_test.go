@@ -50,31 +50,6 @@ func testTableSuccess() *schema.Table {
 	}
 }
 
-func testTableWithChild() *schema.Table {
-	return &schema.Table{
-		Name:     "test_table_parent",
-		Resolver: testResolverSuccess,
-		Columns: []schema.Column{
-			{
-				Name: "test_column",
-				Type: schema.TypeInt,
-			},
-		},
-		Relations: []*schema.Table{
-			{
-				Name:     "test_table_child",
-				Resolver: testResolverSuccess,
-				Columns: []schema.Column{
-					{
-						Name: "test_column",
-						Type: schema.TypeInt,
-					},
-				},
-			},
-		},
-	}
-}
-
 func testTableResolverPanic() *schema.Table {
 	return &schema.Table{
 		Name:     "test_table_resolver_panic",
