@@ -9,8 +9,5 @@ import (
 // was unimplemented on the server side.
 func IsUnimplemented(err error) bool {
 	st := status.Convert(err)
-	if st == nil {
-		return false
-	}
-	return st.Code() == codes.Unimplemented
+	return st != nil && st.Code() == codes.Unimplemented
 }
