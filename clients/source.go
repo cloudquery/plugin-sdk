@@ -188,10 +188,7 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 func (c *SourceClient) GetProtocolVersion(ctx context.Context) (uint64, error) {
 	res, err := c.pbClient.GetProtocolVersion(ctx, &pb.GetProtocolVersion_Request{})
 	if err != nil {
-		s, ok := status.FromError(err)
-		if !ok {
-			return 0, fmt.Errorf("failed to cal GetProtocolVersion: %w", err)
-		}
+		s := status.Convert(err)
 		if s.Code() != codes.Unimplemented {
 			return 0, err
 		}
