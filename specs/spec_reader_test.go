@@ -31,6 +31,15 @@ var specLoaderTestCases = []specLoaderTestCase{
 		destinations: 2,
 	},
 	{
+		name: "success_yaml_extension",
+		path: []string{getPath("gcp.yml"), getPath("dir_yaml")},
+		err: func() string {
+			return ""
+		},
+		sources:      2,
+		destinations: 2,
+	},
+	{
 		name: "duplicate_source",
 		path: []string{getPath("gcp.yml"), getPath("gcp.yml")},
 		err: func() string {
