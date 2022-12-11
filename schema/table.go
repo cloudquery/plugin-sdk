@@ -56,6 +56,8 @@ type Table struct {
 	// Used when it is hard to create a reproducible environment with a row in this table.
 	IgnoreInTests bool `json:"ignore_in_tests"`
 
+	matched bool
+
 	// Parent is the parent table in case this table is called via parent table (i.e. relation)
 	Parent *Table `json:"-"`
 }
@@ -64,6 +66,18 @@ var (
 	reValidTableName  = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
+
+func (tt Tables) FilterDfs(tables, skipTables []string) Tables {
+	filteredTables := make(Tables, 0, len(tt))
+	for _, t := range tt {
+		filteredTable := t.Copy(nil)
+		filteredTable.filterDfs(tables, skipTables)
+		if filteredTable.matched {
+			filteredTables = append(filteredTables, filteredTable)
+		}
+	}
+	return filteredTables
+}
 
 func (tt Tables) FlattenTables() Tables {
 	tables := make(Tables, 0, len(tt))
@@ -167,6 +181,31 @@ func (tt Tables) ValidateColumnNames() error {
 	return nil
 }
 
+// this will filter the tree in-place
+func (t *Table) filterDfs(tables, skipTables []string) {
+	for _, includeTable := range tables {
+		if glob.Glob(includeTable, t.Name) {
+			t.matched = true
+			break
+		}
+	}
+	for _, skipTable := range skipTables {
+		if glob.Glob(skipTable, t.Name) {
+			t.matched = false
+			break
+		}
+	}
+	filteredRelations := make([]*Table, 0, len(t.Relations))
+	for _, r := range t.Relations {
+		r.filterDfs(tables, skipTables)
+		if r.matched {
+			t.matched = true
+			filteredRelations = append(filteredRelations, r)
+		}
+	}
+	t.Relations = filteredRelations
+}
+
 func (t *Table) ValidateName() error {
 	ok := reValidTableName.MatchString(t.Name)
 	if !ok {
@@ -239,4 +278,16 @@ func (t *Table) TableNames() []string {
 		ret = append(ret, rel.TableNames()...)
 	}
 	return ret
+}
+
+func (t *Table) Copy(parent *Table) *Table {
+	c := *t
+	c.Parent = parent
+	c.Columns = make([]Column, len(t.Columns))
+	copy(c.Columns, t.Columns)
+	c.Relations = make([]*Table, len(t.Relations))
+	for i := range t.Relations {
+		c.Relations[i] = t.Relations[i].Copy(&c)
+	}
+	return &c
 }
