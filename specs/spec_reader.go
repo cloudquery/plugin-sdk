@@ -82,7 +82,8 @@ func (r *SpecReader) loadSpecsFromDir(path string) error {
 		return fmt.Errorf("failed to read directory %s: %w", path, err)
 	}
 	for _, file := range files {
-		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") && strings.HasSuffix(file.Name(), ".yml") {
+		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") &&
+			(strings.HasSuffix(file.Name(), ".yml") || strings.HasSuffix(file.Name(), ".yaml")) {
 			if err := r.loadSpecsFromFile(filepath.Join(path, file.Name())); err != nil {
 				return err
 			}
