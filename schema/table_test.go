@@ -159,6 +159,13 @@ func TestTablesFilterDFS(t *testing.T) {
 			configurationSkipTables: []string{},
 			want:                    []string{"main_table", "sub_table"},
 		},
+		{
+			name:                    "should skip parent table",
+			tables:                  []*Table{{Name: "main_table", Relations: []*Table{{Name: "sub_table", Parent: &Table{Name: "main_table"}}}}},
+			configurationTables:     []string{"*"},
+			configurationSkipTables: []string{"main_table"},
+			want:                    []string{},
+		},
 	}
 
 	for _, tt := range tests {

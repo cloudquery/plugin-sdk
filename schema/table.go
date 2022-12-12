@@ -190,8 +190,7 @@ func (t *Table) filterDfs(tables, skipTables []string) *Table {
 	}
 	for _, skipTable := range skipTables {
 		if glob.Glob(skipTable, t.Name) {
-			matched = false
-			break
+			return nil
 		}
 	}
 	filteredRelations := make([]*Table, 0, len(t.Relations))
