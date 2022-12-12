@@ -311,3 +311,19 @@ func TestIgnoredColumns(t *testing.T) {
 		},
 	}})
 }
+
+func TestvalidateGlobSpec() {
+	tables := []*schema.Table{
+		{
+			Name: "test_table",
+		},
+		{
+			Name: "test_table_2",
+		},
+	}
+	spec := specs.Source{
+		Tables: []string{"test_table"},
+		SkipTables: nil,
+	}
+	
+}

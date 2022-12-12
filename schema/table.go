@@ -65,7 +65,34 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
-func (tt Tables) FilterDfs(tables, skipTables []string) Tables {
+func (tt Tables) FilterDfs(tables, skipTables []string) (Tables, error) {
+	flattenedTables := tt.FlattenTables()
+	for _, includePattern := range tables {
+		matched := false
+		for _, table := range flattenedTables {
+			if glob.Glob(includePattern, table.Name) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return nil, fmt.Errorf("tables include a pattern %s with no matches", includePattern)
+		}
+	}
+	for _, excludePattern := range skipTables {
+		matched := false
+		for _, table := range flattenedTables {
+			if glob.Glob(excludePattern, table.Name) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return nil, fmt.Errorf("skip_tables include a pattern %s with no matches", excludePattern)
+		}
+	}
+	
+
 	filteredTables := make(Tables, 0, len(tt))
 	for _, t := range tt {
 		filteredTable := t.Copy(nil)
@@ -74,7 +101,7 @@ func (tt Tables) FilterDfs(tables, skipTables []string) Tables {
 			filteredTables = append(filteredTables, filteredTable)
 		}
 	}
-	return filteredTables
+	return filteredTables, nil
 }
 
 func (tt Tables) FlattenTables() Tables {
@@ -118,22 +145,6 @@ func (tt Tables) Get(name string) *Table {
 	return nil
 }
 
-// GlobMatch returns a list of tables that match a given glob. If a parent table is matched,
-// it will also return all its descendants as part of the list.
-func (tt Tables) GlobMatch(pattern string) Tables {
-	tables := make([]*Table, 0, 10)
-	for _, t := range tt {
-		if glob.Glob(pattern, t.Name) {
-			tables = append(tables, t)
-			// recurse down to get all child tables
-			tables = append(tables, t.Relations.GlobMatch("*")...)
-			continue
-		}
-		// also try to match against child tables, even if the parent didn't match
-		tables = append(tables, t.Relations.GlobMatch(pattern)...)
-	}
-	return tables
-}
 
 func (tt Tables) ValidateDuplicateColumns() error {
 	for _, t := range tt {

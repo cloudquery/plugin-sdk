@@ -119,6 +119,9 @@ func (p *SourcePlugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
 	if err := spec.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid spec: %w", err)
 	}
+	if err := p.validateGlobSpec(spec); err != nil {
+		return nil, err
+	}
 	tables := p.tables.FilterDfs(spec.Tables, spec.SkipTables)
 	return tables, nil
 }
@@ -142,6 +145,9 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
 		return fmt.Errorf("invalid spec: %w", err)
+	}
+	if err := p.validateGlobSpec(spec); err != nil {
+		return err
 	}
 	// flattens all tables and relations
 	tables := p.tables.FilterDfs(spec.Tables, spec.SkipTables)
