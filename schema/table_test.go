@@ -31,7 +31,7 @@ func TestTablesFilterDFS(t *testing.T) {
 		configurationTables     []string
 		configurationSkipTables []string
 		want                    []string
-		err								 			string
+		err                     string
 	}{
 		{
 			name:                "should return all tables when '*' is provided",
@@ -173,7 +173,7 @@ func TestTablesFilterDFS(t *testing.T) {
 			configurationTables:     []string{"*"},
 			configurationSkipTables: []string{"main_table1"},
 			want:                    []string{},
-			err: "skip_tables include a pattern main_table1 with no matches",
+			err:                     "skip_tables include a pattern main_table1 with no matches",
 		},
 		{
 			name:                    "should skip parent table",
@@ -181,13 +181,14 @@ func TestTablesFilterDFS(t *testing.T) {
 			configurationTables:     []string{"main_table1"},
 			configurationSkipTables: []string{},
 			want:                    []string{},
-			err: "tables include a pattern main_table1 with no matches",
+			err:                     "tables include a pattern main_table1 with no matches",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotTables, err := tt.tables.FilterDfs(tt.configurationTables, tt.configurationSkipTables)
+			//nolint:gocritic
 			if err != nil && tt.err == "" {
 				t.Errorf("got error %v, want nil", err)
 			} else if err != nil && tt.err != "" && err.Error() != tt.err {

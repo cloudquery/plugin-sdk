@@ -91,7 +91,6 @@ func (tt Tables) FilterDfs(tables, skipTables []string) (Tables, error) {
 			return nil, fmt.Errorf("skip_tables include a pattern %s with no matches", excludePattern)
 		}
 	}
-	
 
 	filteredTables := make(Tables, 0, len(tt))
 	for _, t := range tt {
@@ -144,7 +143,6 @@ func (tt Tables) Get(name string) *Table {
 	}
 	return nil
 }
-
 
 func (tt Tables) ValidateDuplicateColumns() error {
 	for _, t := range tt {

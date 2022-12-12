@@ -119,10 +119,10 @@ func (p *SourcePlugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
 	if err := spec.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid spec: %w", err)
 	}
-	if err := p.validateGlobSpec(spec); err != nil {
-		return nil, err
+	tables, err := p.tables.FilterDfs(spec.Tables, spec.SkipTables)
+	if err != nil {
+		return nil, fmt.Errorf("failed to filter tables: %w", err)
 	}
-	tables := p.tables.FilterDfs(spec.Tables, spec.SkipTables)
 	return tables, nil
 }
 
@@ -146,11 +146,11 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	if err := spec.Validate(); err != nil {
 		return fmt.Errorf("invalid spec: %w", err)
 	}
-	if err := p.validateGlobSpec(spec); err != nil {
-		return err
-	}
 	// flattens all tables and relations
-	tables := p.tables.FilterDfs(spec.Tables, spec.SkipTables)
+	tables, err := p.tables.FilterDfs(spec.Tables, spec.SkipTables)
+	if err != nil {
+		return fmt.Errorf("failed to filter tables: %w", err)
+	}
 	if len(tables) == 0 {
 		return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
 	}

@@ -99,4 +99,3 @@ func (s *Source) Validate() error {
 	}
 	return nil
 }
-
