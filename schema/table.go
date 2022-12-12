@@ -56,8 +56,6 @@ type Table struct {
 	// Used when it is hard to create a reproducible environment with a row in this table.
 	IgnoreInTests bool `json:"ignore_in_tests"`
 
-	matched bool
-
 	// Parent is the parent table in case this table is called via parent table (i.e. relation)
 	Parent *Table `json:"-"`
 }
@@ -71,8 +69,8 @@ func (tt Tables) FilterDfs(tables, skipTables []string) Tables {
 	filteredTables := make(Tables, 0, len(tt))
 	for _, t := range tt {
 		filteredTable := t.Copy(nil)
-		filteredTable.filterDfs(tables, skipTables)
-		if filteredTable.matched {
+		filteredTable = filteredTable.filterDfs(tables, skipTables)
+		if filteredTable != nil {
 			filteredTables = append(filteredTables, filteredTable)
 		}
 	}
@@ -182,28 +180,33 @@ func (tt Tables) ValidateColumnNames() error {
 }
 
 // this will filter the tree in-place
-func (t *Table) filterDfs(tables, skipTables []string) {
+func (t *Table) filterDfs(tables, skipTables []string) *Table {
+	var matched bool
 	for _, includeTable := range tables {
 		if glob.Glob(includeTable, t.Name) {
-			t.matched = true
+			matched = true
 			break
 		}
 	}
 	for _, skipTable := range skipTables {
 		if glob.Glob(skipTable, t.Name) {
-			t.matched = false
+			matched = false
 			break
 		}
 	}
 	filteredRelations := make([]*Table, 0, len(t.Relations))
 	for _, r := range t.Relations {
-		r.filterDfs(tables, skipTables)
-		if r.matched {
-			t.matched = true
+		filteredChild := r.filterDfs(tables, skipTables)
+		if filteredChild != nil {
+			matched = true
 			filteredRelations = append(filteredRelations, r)
 		}
 	}
 	t.Relations = filteredRelations
+	if matched {
+		return t
+	}
+	return nil
 }
 
 func (t *Table) ValidateName() error {
