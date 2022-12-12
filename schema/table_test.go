@@ -67,7 +67,7 @@ func TestTablesFilterDFS(t *testing.T) {
 			want:                    []string{"main_table", "sub_table", "sub_sub_table"},
 		},
 		{
-			name: "should return the parent and all its descendents, but skip children and their descendents if they are skipped",
+			name: "should return the parent and all its descendants, but skip children and their descendants if they are skipped",
 			tables: []*Table{{Name: "main_table", Relations: []*Table{
 				{Name: "sub_table", Parent: &Table{Name: "main_table"}, Relations: []*Table{
 					{Name: "sub_sub_table", Parent: &Table{Name: "sub_table"}},
