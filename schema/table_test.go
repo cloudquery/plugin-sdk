@@ -46,7 +46,7 @@ func TestTablesFilterDFS(t *testing.T) {
 			want:                    []string{"table2"},
 		},
 		{
-			name: "should return the parent and all its descendents",
+			name: "should return the parent and all its descendants",
 			tables: []*Table{
 				{
 					Name: "main_table",
