@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	defaultConcurrency = 1000000
+	defaultConcurrency = 500000
 )
 
 // Source is the spec for a source plugin
