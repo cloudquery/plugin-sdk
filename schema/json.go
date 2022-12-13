@@ -36,6 +36,29 @@ func (dst *JSON) String() string {
 	return string(dst.Bytes)
 }
 
+func handleDefault(dst *JSON, value interface{}) error {
+	buf, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	// For map and slice jsons, it is easier for users to work with '[]' or '{}' instead of JSON's 'null'.
+	if bytes.Equal(buf, []byte(`null`)) {
+		if isEmptyStringMap(value) {
+			*dst = JSON{Bytes: []byte("{}"), Status: Present}
+			return nil
+		}
+
+		if isEmptySlice(value) {
+			*dst = JSON{Bytes: []byte("[]"), Status: Present}
+			return nil
+		}
+	}
+
+	*dst = JSON{Bytes: buf, Status: Present}
+	return nil
+}
+
 func (dst *JSON) Set(src interface{}) error {
 	if src == nil {
 		*dst = JSON{Status: Null}
@@ -54,7 +77,7 @@ func (dst *JSON) Set(src interface{}) error {
 		if value == "" {
 			*dst = JSON{Bytes: []byte(`""`), Status: Present}
 		} else {
-			*dst = JSON{Bytes: []byte(value), Status: Present}
+			return handleDefault(dst, value)
 		}
 	case *string:
 		if value == nil {
@@ -63,7 +86,7 @@ func (dst *JSON) Set(src interface{}) error {
 			if *value == "" {
 				*dst = JSON{Bytes: []byte(`""`), Status: Present}
 			} else {
-				*dst = JSON{Bytes: []byte(*value), Status: Present}
+				return handleDefault(dst, value)
 			}
 		}
 	case []byte:
@@ -80,25 +103,7 @@ func (dst *JSON) Set(src interface{}) error {
 		return errors.New("use pointer to JSON instead of value")
 
 	default:
-		buf, err := json.Marshal(value)
-		if err != nil {
-			return err
-		}
-
-		// For map and slice jsons, it is easier for users to work with '[]' or '{}' instead of JSON's 'null'.
-		if bytes.Equal(buf, []byte(`null`)) {
-			if isEmptyStringMap(value) {
-				*dst = JSON{Bytes: []byte("{}"), Status: Present}
-				return nil
-			}
-
-			if isEmptySlice(value) {
-				*dst = JSON{Bytes: []byte("[]"), Status: Present}
-				return nil
-			}
-		}
-
-		*dst = JSON{Bytes: buf, Status: Present}
+		handleDefault(dst, value)
 	}
 
 	return nil
