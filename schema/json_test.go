@@ -13,6 +13,7 @@ func TestJSONSet(t *testing.T) {
 		source interface{}
 		result JSON
 	}{
+		{source: "", result: JSON{Bytes: []byte(""), Status: Null}},
 		{source: "{}", result: JSON{Bytes: []byte("{}"), Status: Present}},
 		{source: []byte("{}"), result: JSON{Bytes: []byte("{}"), Status: Present}},
 		{source: ([]byte)(nil), result: JSON{Status: Null}},
