@@ -183,6 +183,13 @@ func TestTablesFilterDFS(t *testing.T) {
 			want:                    []string{},
 			err:                     "tables include a pattern main_table1 with no matches",
 		},
+		{
+			name:                    "should return child tables unless skipped if parent table is specified",
+			tables:                  []*Table{{Name: "main_table", Relations: []*Table{{Name: "sub_table_1", Parent: &Table{Name: "main_table"}}, {Name: "sub_table_2", Parent: &Table{Name: "main_table"}}}}},
+			configurationTables:     []string{"main_table"},
+			configurationSkipTables: []string{"sub_table_2"},
+			want:                    []string{"main_table", "sub_table_1"},
+		},
 	}
 
 	for _, tt := range tests {
