@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.1](https://github.com/cloudquery/plugin-sdk/compare/v1.12.0...v1.12.1) (2022-12-13)
+
+
+### Bug Fixes
+
+* Don't panic on empty-string for timestamp ([#489](https://github.com/cloudquery/plugin-sdk/issues/489)) ([83813de](https://github.com/cloudquery/plugin-sdk/commit/83813de73b4d907bd6bdd93b47e53bf5800f0805))
+* Fix deadlock off-by-one ([#493](https://github.com/cloudquery/plugin-sdk/issues/493)) ([4ea9ed8](https://github.com/cloudquery/plugin-sdk/commit/4ea9ed82eed9528a2cb2f74ffe80d8e5e75a83d6))
+* Reduce default concurrency ([#491](https://github.com/cloudquery/plugin-sdk/issues/491)) ([f995da9](https://github.com/cloudquery/plugin-sdk/commit/f995da9d2f4c2dfe7d0a09107a610a7cd700ce5a))
+* Refactor glob filters ([#488](https://github.com/cloudquery/plugin-sdk/issues/488)) ([cb5f6bb](https://github.com/cloudquery/plugin-sdk/commit/cb5f6bbd111a3532fa0ad37039894c60fda52ef4))
+
 ## [1.12.0](https://github.com/cloudquery/plugin-sdk/compare/v1.11.2...v1.12.0) (2022-12-11)
 
 
