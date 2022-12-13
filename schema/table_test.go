@@ -63,7 +63,7 @@ func TestTablesFilterDFS(t *testing.T) {
 					},
 				},
 			},
-			configurationTables:     []string{"sub_sub_table"},
+			configurationTables:     []string{"main_table"},
 			configurationSkipTables: []string{},
 			want:                    []string{"main_table", "sub_table", "sub_sub_table"},
 		},
@@ -182,6 +182,16 @@ func TestTablesFilterDFS(t *testing.T) {
 			configurationSkipTables: []string{},
 			want:                    []string{},
 			err:                     "tables include a pattern main_table1 with no matches",
+		},
+		{
+			name: "skip child table but return siblings",
+			tables: []*Table{
+				{Name: "main_table", Relations: []*Table{
+					{Name: "sub_table_1", Parent: &Table{Name: "main_table"}},
+					{Name: "sub_table_2", Parent: &Table{Name: "main_table"}}}}},
+			configurationTables:     []string{"main_table"},
+			configurationSkipTables: []string{"sub_table_2"},
+			want:                    []string{"main_table", "sub_table_1"},
 		},
 	}
 

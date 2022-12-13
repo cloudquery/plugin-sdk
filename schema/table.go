@@ -95,7 +95,7 @@ func (tt Tables) FilterDfs(tables, skipTables []string) (Tables, error) {
 	filteredTables := make(Tables, 0, len(tt))
 	for _, t := range tt {
 		filteredTable := t.Copy(nil)
-		filteredTable = filteredTable.filterDfs(tables, skipTables)
+		filteredTable = filteredTable.filterDfs(false, tables, skipTables)
 		if filteredTable != nil {
 			filteredTables = append(filteredTables, filteredTable)
 		}
@@ -189,8 +189,8 @@ func (tt Tables) ValidateColumnNames() error {
 }
 
 // this will filter the tree in-place
-func (t *Table) filterDfs(tables, skipTables []string) *Table {
-	var matched bool
+func (t *Table) filterDfs(parentMatched bool, tables []string, skipTables []string) *Table {
+	matched := parentMatched
 	for _, includeTable := range tables {
 		if glob.Glob(includeTable, t.Name) {
 			matched = true
@@ -204,7 +204,7 @@ func (t *Table) filterDfs(tables, skipTables []string) *Table {
 	}
 	filteredRelations := make([]*Table, 0, len(t.Relations))
 	for _, r := range t.Relations {
-		filteredChild := r.filterDfs(tables, skipTables)
+		filteredChild := r.filterDfs(matched, tables, skipTables)
 		if filteredChild != nil {
 			matched = true
 			filteredRelations = append(filteredRelations, r)
