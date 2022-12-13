@@ -22,6 +22,8 @@ const (
 	minResourceConcurrency = 100
 )
 
+const periodicMetricLoggerInterval = 30 * time.Second
+
 func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree.
@@ -50,6 +52,14 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 		p.metrics.initWithClients(table, clients)
 	}
 
+	// We start a goroutine that logs the metrics periodically.
+	// It needs its own waitgroup
+	var logWg sync.WaitGroup
+	logWg.Add(1)
+
+	logCtx, logCancel := context.WithCancel(ctx)
+	go p.periodicMetricLogger(logCtx, &logWg)
+
 	var wg sync.WaitGroup
 	for i, table := range tables {
 		table := table
@@ -59,6 +69,9 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 			if err := p.tableSems[0].Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				wg.Wait()
+				// gracefully shut down the logger goroutine
+				logCancel()
+				logWg.Wait()
 				return
 			}
 			wg.Add(1)
@@ -71,7 +84,13 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 			}()
 		}
 	}
+
+	// Wait for all the worker goroutines to finish
 	wg.Wait()
+
+	// gracefully shut down the logger goroutine
+	logCancel()
+	logWg.Wait()
 }
 
 func (p *Plugin) logTablesMetrics(tables schema.Tables, client schema.ClientMeta) {
@@ -244,4 +263,24 @@ func max(a, b uint64) uint64 {
 		return a
 	}
 	return b
+}
+
+func (p *Plugin) periodicMetricLogger(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	ticker := time.NewTicker(periodicMetricLoggerInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			p.logger.Info().
+				Uint64("total_resources", p.metrics.TotalResourcesAtomic()).
+				Uint64("total_errors", p.metrics.TotalErrorsAtomic()).
+				Uint64("total_panics", p.metrics.TotalPanicsAtomic()).
+				Msg("Sync in progress")
+		}
+	}
 }
