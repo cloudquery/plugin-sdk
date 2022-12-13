@@ -51,11 +51,21 @@ func (dst *JSON) Set(src interface{}) error {
 
 	switch value := src.(type) {
 	case string:
+		// validate this is a valid json
+		err := json.Unmarshal([]byte(value), &struct{}{})
+		if err != nil {
+			return err
+		}
 		*dst = JSON{Bytes: []byte(value), Status: Present}
 	case *string:
 		if value == nil {
 			*dst = JSON{Status: Null}
 		} else {
+			// validate this is a valid json
+			err := json.Unmarshal([]byte(*value), &struct{}{})
+			if err != nil {
+				return err
+			}
 			*dst = JSON{Bytes: []byte(*value), Status: Present}
 		}
 	case []byte:
