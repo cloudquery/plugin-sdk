@@ -40,10 +40,6 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 	// differences between this run and the next one.
 	preInitialisedClients := make([][]schema.ClientMeta, len(tables))
 	for i, table := range tables {
-		if table.Parent != nil {
-			// skip descendent tables here - they are handled in initWithClients
-			continue
-		}
 		clients := []schema.ClientMeta{client}
 		if table.Multiplex != nil {
 			clients = table.Multiplex(client)
@@ -56,11 +52,6 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 
 	var wg sync.WaitGroup
 	for i, table := range tables {
-		if table.Parent != nil {
-			// skip descendent tables here - they will be handled by the recursive
-			// depth-first-search later.
-			continue
-		}
 		table := table
 		clients := preInitialisedClients[i]
 		for _, client := range clients {
@@ -76,14 +67,14 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 				defer p.tableSems[0].Release(1)
 				// not checking for error here as nothing much todo.
 				// the error is logged and this happens when context is cancelled
-				p.resolveTableDfs(ctx, tables, table, client, nil, resolvedResources, 1)
+				p.resolveTableDfs(ctx, table, client, nil, resolvedResources, 1)
 			}()
 		}
 	}
 	wg.Wait()
 }
 
-func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables schema.Tables, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
 	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
@@ -114,7 +105,7 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables sc
 	}()
 
 	for r := range res {
-		p.resolveResourcesDfs(ctx, allIncludedTables, table, client, parent, r, resolvedResources, depth)
+		p.resolveResourcesDfs(ctx, table, client, parent, r, resolvedResources, depth)
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
@@ -123,7 +114,7 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, allIncludedTables sc
 	}
 }
 
-func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, allIncludedTables schema.Tables, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource, depth int) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
@@ -161,11 +152,6 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, allIncludedTable
 		resolvedResources <- resource
 		for _, relation := range resource.Table.Relations {
 			relation := relation
-			if allIncludedTables.GetTopLevel(relation.Name) == nil {
-				// this indicates that child table is skipped by user config,
-				// so we should not sync it
-				continue
-			}
 			if err := p.tableSems[depth].Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				wg.Wait()
@@ -175,7 +161,7 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, allIncludedTable
 			go func() {
 				defer wg.Done()
 				defer p.tableSems[depth].Release(1)
-				p.resolveTableDfs(ctx, allIncludedTables, relation, client, resource, resolvedResources, depth+1)
+				p.resolveTableDfs(ctx, relation, client, resource, resolvedResources, depth+1)
 			}()
 		}
 	}

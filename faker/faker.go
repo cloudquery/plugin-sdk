@@ -1,6 +1,7 @@
 package faker
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -67,6 +68,9 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 			return v, nil
 		}
 	case reflect.String:
+		if t == reflect.TypeOf(json.Number("")) {
+			return reflect.ValueOf("123456789"), nil
+		}
 		return reflect.ValueOf("test string"), nil
 	case reflect.Slice:
 		switch t.String() {

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0](https://github.com/cloudquery/plugin-sdk/compare/v1.11.2...v1.12.0) (2022-12-11)
+
+
+### Features
+
+* Add handling for json.Number in faker ([#481](https://github.com/cloudquery/plugin-sdk/issues/481)) ([ad20787](https://github.com/cloudquery/plugin-sdk/commit/ad2078708d66b3667ba7718e24b43f95db6eba02))
+
+
+### Bug Fixes
+
+* Allow both 'yml' and 'yaml' extensions ([#476](https://github.com/cloudquery/plugin-sdk/issues/476)) ([52c4c56](https://github.com/cloudquery/plugin-sdk/commit/52c4c566b7b06498562a48f8591d24fe49c37bc7))
+* **errors:** Remove usage of `codes.Internal` ([#485](https://github.com/cloudquery/plugin-sdk/issues/485)) ([62692b9](https://github.com/cloudquery/plugin-sdk/commit/62692b9cb8a3ff3465d9d14a1ec7cc801d3490af))
+
 ## [1.11.2](https://github.com/cloudquery/plugin-sdk/compare/v1.11.1...v1.11.2) (2022-12-08)
 
 

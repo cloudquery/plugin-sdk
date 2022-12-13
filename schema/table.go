@@ -65,6 +65,44 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
+func (tt Tables) FilterDfs(tables, skipTables []string) (Tables, error) {
+	flattenedTables := tt.FlattenTables()
+	for _, includePattern := range tables {
+		matched := false
+		for _, table := range flattenedTables {
+			if glob.Glob(includePattern, table.Name) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return nil, fmt.Errorf("tables include a pattern %s with no matches", includePattern)
+		}
+	}
+	for _, excludePattern := range skipTables {
+		matched := false
+		for _, table := range flattenedTables {
+			if glob.Glob(excludePattern, table.Name) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return nil, fmt.Errorf("skip_tables include a pattern %s with no matches", excludePattern)
+		}
+	}
+
+	filteredTables := make(Tables, 0, len(tt))
+	for _, t := range tt {
+		filteredTable := t.Copy(nil)
+		filteredTable = filteredTable.filterDfs(tables, skipTables)
+		if filteredTable != nil {
+			filteredTables = append(filteredTables, filteredTable)
+		}
+	}
+	return filteredTables, nil
+}
+
 func (tt Tables) FlattenTables() Tables {
 	tables := make(Tables, 0, len(tt))
 	for _, t := range tt {
@@ -104,23 +142,6 @@ func (tt Tables) Get(name string) *Table {
 		}
 	}
 	return nil
-}
-
-// GlobMatch returns a list of tables that match a given glob. If a parent table is matched,
-// it will also return all its descendants as part of the list.
-func (tt Tables) GlobMatch(pattern string) Tables {
-	tables := make([]*Table, 0, 10)
-	for _, t := range tt {
-		if glob.Glob(pattern, t.Name) {
-			tables = append(tables, t)
-			// recurse down to get all child tables
-			tables = append(tables, t.Relations.GlobMatch("*")...)
-			continue
-		}
-		// also try to match against child tables, even if the parent didn't match
-		tables = append(tables, t.Relations.GlobMatch(pattern)...)
-	}
-	return tables
 }
 
 func (tt Tables) ValidateDuplicateColumns() error {
@@ -163,6 +184,35 @@ func (tt Tables) ValidateColumnNames() error {
 		if err := t.Relations.ValidateColumnNames(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// this will filter the tree in-place
+func (t *Table) filterDfs(tables, skipTables []string) *Table {
+	var matched bool
+	for _, includeTable := range tables {
+		if glob.Glob(includeTable, t.Name) {
+			matched = true
+			break
+		}
+	}
+	for _, skipTable := range skipTables {
+		if glob.Glob(skipTable, t.Name) {
+			return nil
+		}
+	}
+	filteredRelations := make([]*Table, 0, len(t.Relations))
+	for _, r := range t.Relations {
+		filteredChild := r.filterDfs(tables, skipTables)
+		if filteredChild != nil {
+			matched = true
+			filteredRelations = append(filteredRelations, r)
+		}
+	}
+	t.Relations = filteredRelations
+	if matched {
+		return t
 	}
 	return nil
 }
@@ -239,4 +289,16 @@ func (t *Table) TableNames() []string {
 		ret = append(ret, rel.TableNames()...)
 	}
 	return ret
+}
+
+func (t *Table) Copy(parent *Table) *Table {
+	c := *t
+	c.Parent = parent
+	c.Columns = make([]Column, len(t.Columns))
+	copy(c.Columns, t.Columns)
+	c.Relations = make([]*Table, len(t.Relations))
+	for i := range t.Relations {
+		c.Relations[i] = t.Relations[i].Copy(&c)
+	}
+	return &c
 }

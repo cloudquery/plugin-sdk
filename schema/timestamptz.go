@@ -123,7 +123,7 @@ func (dst Timestamptz) Get() interface{} {
 }
 
 func (dst *Timestamptz) DecodeText(src []byte) error {
-	if src == nil {
+	if len(src) == 0 {
 		*dst = Timestamptz{Status: Null}
 		return nil
 	}
