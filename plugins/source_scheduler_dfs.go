@@ -67,7 +67,7 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 				defer p.tableSems[0].Release(1)
 				// not checking for error here as nothing much todo.
 				// the error is logged and this happens when context is cancelled
-				p.resolveTableDfs(ctx, table, client, nil, resolvedResources, 0)
+				p.resolveTableDfs(ctx, table, client, nil, resolvedResources, 1)
 			}()
 		}
 	}
