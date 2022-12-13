@@ -261,6 +261,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		Tables:       []string{"*"},
 		Version:      "v1.0.0",
 		Destinations: []string{"test"},
+		Concurrency:  1, // choose a very low value to check that we don't run into deadlocks
 	}
 	resources := make(chan *schema.Resource)
 	g, ctx := errgroup.WithContext(ctx)
