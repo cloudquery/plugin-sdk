@@ -63,7 +63,7 @@ func TestTablesFilterDFS(t *testing.T) {
 					},
 				},
 			},
-			configurationTables:     []string{"sub_sub_table"},
+			configurationTables:     []string{"main_table"},
 			configurationSkipTables: []string{},
 			want:                    []string{"main_table", "sub_table", "sub_sub_table"},
 		},
