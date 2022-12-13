@@ -55,7 +55,7 @@ func (dst *JSON) Set(src interface{}) error {
 			*dst = JSON{Bytes: []byte(""), Status: Null}
 			return nil
 		}
-		// validate this is a valid json
+		// validate this is a valid json string
 		err := json.Unmarshal([]byte(value), &struct{}{})
 		if err != nil {
 			return err
