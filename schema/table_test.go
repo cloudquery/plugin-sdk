@@ -184,7 +184,7 @@ func TestTablesFilterDFS(t *testing.T) {
 			err:                     "tables include a pattern main_table1 with no matches",
 		},
 		{
-			name:                    "skip child table but return sibilings",
+			name:                    "skip child table but return siblings",
 			tables:                  []*Table{
 				{Name: "main_table", Relations: []*Table{
 					{Name: "sub_table_1", Parent: &Table{Name: "main_table"}},
