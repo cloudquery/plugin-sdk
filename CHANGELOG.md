@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.2](https://github.com/cloudquery/plugin-sdk/compare/v1.12.1...v1.12.2) (2022-12-13)
+
+
+### Bug Fixes
+
+* Glob table filtering ([#494](https://github.com/cloudquery/plugin-sdk/issues/494)) ([d6c126b](https://github.com/cloudquery/plugin-sdk/commit/d6c126bfa59321f8cf3f521c800a496f386ae961))
+
+## [1.12.1](https://github.com/cloudquery/plugin-sdk/compare/v1.12.0...v1.12.1) (2022-12-13)
+
+
+### Bug Fixes
+
+* Don't panic on empty-string for timestamp ([#489](https://github.com/cloudquery/plugin-sdk/issues/489)) ([83813de](https://github.com/cloudquery/plugin-sdk/commit/83813de73b4d907bd6bdd93b47e53bf5800f0805))
+* Fix deadlock off-by-one ([#493](https://github.com/cloudquery/plugin-sdk/issues/493)) ([4ea9ed8](https://github.com/cloudquery/plugin-sdk/commit/4ea9ed82eed9528a2cb2f74ffe80d8e5e75a83d6))
+* Reduce default concurrency ([#491](https://github.com/cloudquery/plugin-sdk/issues/491)) ([f995da9](https://github.com/cloudquery/plugin-sdk/commit/f995da9d2f4c2dfe7d0a09107a610a7cd700ce5a))
+* Refactor glob filters ([#488](https://github.com/cloudquery/plugin-sdk/issues/488)) ([cb5f6bb](https://github.com/cloudquery/plugin-sdk/commit/cb5f6bbd111a3532fa0ad37039894c60fda52ef4))
+
+## [1.12.0](https://github.com/cloudquery/plugin-sdk/compare/v1.11.2...v1.12.0) (2022-12-11)
+
+
+### Features
+
+* Add handling for json.Number in faker ([#481](https://github.com/cloudquery/plugin-sdk/issues/481)) ([ad20787](https://github.com/cloudquery/plugin-sdk/commit/ad2078708d66b3667ba7718e24b43f95db6eba02))
+
+
+### Bug Fixes
+
+* Allow both 'yml' and 'yaml' extensions ([#476](https://github.com/cloudquery/plugin-sdk/issues/476)) ([52c4c56](https://github.com/cloudquery/plugin-sdk/commit/52c4c566b7b06498562a48f8591d24fe49c37bc7))
+* **errors:** Remove usage of `codes.Internal` ([#485](https://github.com/cloudquery/plugin-sdk/issues/485)) ([62692b9](https://github.com/cloudquery/plugin-sdk/commit/62692b9cb8a3ff3465d9d14a1ec7cc801d3490af))
+
 ## [1.11.2](https://github.com/cloudquery/plugin-sdk/compare/v1.11.1...v1.11.2) (2022-12-08)
 
 

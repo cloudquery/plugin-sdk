@@ -119,20 +119,11 @@ func (p *SourcePlugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
 	if err := spec.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid spec: %w", err)
 	}
-	tables, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
+	tables, err := p.tables.FilterDfs(spec.Tables, spec.SkipTables)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to filter tables: %w", err)
 	}
-	// listAndValidateTables returns a flattened list - we only want to return
-	// the top-level tables from this function.
-	var topLevelTables schema.Tables
-	for _, t := range tables {
-		if t.Parent != nil {
-			continue
-		}
-		topLevelTables = append(topLevelTables, t)
-	}
-	return topLevelTables, nil
+	return tables, nil
 }
 
 // Name return the name of this plugin
@@ -155,10 +146,12 @@ func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *
 	if err := spec.Validate(); err != nil {
 		return fmt.Errorf("invalid spec: %w", err)
 	}
-	// flattens all tables and relations
-	tables, err := p.listAndValidateTables(spec.Tables, spec.SkipTables)
+	tables, err := p.tables.FilterDfs(spec.Tables, spec.SkipTables)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to filter tables: %w", err)
+	}
+	if len(tables) == 0 {
+		return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
 	}
 
 	c, err := p.newExecutionClient(ctx, p.logger, spec)
