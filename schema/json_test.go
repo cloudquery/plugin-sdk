@@ -14,6 +14,8 @@ func TestJSONSet(t *testing.T) {
 		result JSON
 	}{
 		{source: "", result: JSON{Bytes: []byte(""), Status: Null}},
+		{source: "[]", result: JSON{Bytes: []byte("[]"), Status: Present}},
+		{source: "[1,2,3]", result: JSON{Bytes: []byte("[1,2,3]"), Status: Present}},
 		{source: "{}", result: JSON{Bytes: []byte("{}"), Status: Present}},
 		{source: []byte("{}"), result: JSON{Bytes: []byte("{}"), Status: Present}},
 		{source: ([]byte)(nil), result: JSON{Status: Null}},
