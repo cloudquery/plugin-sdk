@@ -148,3 +148,49 @@ spec:
 		t.Fatalf("expected error: %s, got: %s", os.ErrNotExist, err)
 	}
 }
+
+func TestExpandEnv(t *testing.T) {
+	os.Setenv("TEST_ENV_CREDS", "mytestcreds")
+	os.Setenv("TEST_ENV_CREDS2", "anothercredtest")
+	cfg := []byte(`
+kind: source
+spec:
+	name: test
+	version: v1.0.0
+	spec:
+		credentials: ${TEST_ENV_CREDS}
+		otherstuff: 2
+		credentials1: [${TEST_ENV_CREDS}, ${TEST_ENV_CREDS2}]
+	`)
+	expectedCfg := []byte(`
+kind: source
+spec:
+	name: test
+	version: v1.0.0
+	spec:
+		credentials: mytestcreds
+		otherstuff: 2
+		credentials1: [mytestcreds, anothercredtest]
+	`)
+	expandedCfg, err := expandEnv(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(expandedCfg, expectedCfg) {
+		t.Fatalf("got: %s expected: %s", expandedCfg, expectedCfg)
+	}
+
+	badCfg := []byte(`
+kind: source
+spec:
+	name: test
+	version: v1.0.0
+	spec:
+		credentials: ${TEST_ENV_CREDS1}
+		otherstuff: 2
+	`)
+	_, err = expandEnv(badCfg)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
