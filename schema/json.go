@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"reflect"
 )
 
@@ -57,7 +56,7 @@ func (dst *JSON) Set(src interface{}) error {
 			return nil
 		}
 		if !json.Valid([]byte(value)) {
-			return fmt.Errorf("invalid json: %s", value)
+			return errors.New("invalid JSON string value")
 		}
 		*dst = JSON{Bytes: []byte(value), Status: Present}
 	case *string:
@@ -69,7 +68,7 @@ func (dst *JSON) Set(src interface{}) error {
 				return nil
 			}
 			if !json.Valid([]byte(*value)) {
-				return fmt.Errorf("invalid json: %s", *value)
+				return errors.New("invalid JSON string pointer value")
 			}
 			*dst = JSON{Bytes: []byte(*value), Status: Present}
 		}
@@ -83,7 +82,7 @@ func (dst *JSON) Set(src interface{}) error {
 			}
 
 			if !json.Valid(value) {
-				return fmt.Errorf("invalid json: %s", value)
+				return errors.New("invalid JSON byte array value")
 			}
 			*dst = JSON{Bytes: value, Status: Present}
 		}
