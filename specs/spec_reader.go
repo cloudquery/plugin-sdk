@@ -30,6 +30,7 @@ func expandFileConfig(cfg []byte) ([]byte, error) {
 	return cfg, expandErr
 }
 
+// expand environment variables in the format ${ENV_VAR}
 func expandEnv(cfg []byte) ([]byte, error) {
 	var expandErr error
 	cfg = envRegex.ReplaceAllFunc(cfg, func(match []byte) []byte {
