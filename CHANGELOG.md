@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.3](https://github.com/cloudquery/plugin-sdk/compare/v1.12.2...v1.12.3) (2022-12-14)
+
+
+### Bug Fixes
+
+* Throw error on empty env variable ([#499](https://github.com/cloudquery/plugin-sdk/issues/499)) ([4b77cf5](https://github.com/cloudquery/plugin-sdk/commit/4b77cf511f7c6a05fdeb96941da2eaf0c3a80fa0))
+* Validate json strings and handle empty strings ([#497](https://github.com/cloudquery/plugin-sdk/issues/497)) ([dd5f008](https://github.com/cloudquery/plugin-sdk/commit/dd5f008ee46561663555fc419d0246bfc3bc8be0))
+
 ## [1.12.2](https://github.com/cloudquery/plugin-sdk/compare/v1.12.1...v1.12.2) (2022-12-13)
 
 
