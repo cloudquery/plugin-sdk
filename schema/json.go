@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -55,10 +56,8 @@ func (dst *JSON) Set(src interface{}) error {
 			*dst = JSON{Bytes: []byte(""), Status: Null}
 			return nil
 		}
-		// validate this is a valid json string
-		err := json.Unmarshal([]byte(value), &struct{}{})
-		if err != nil {
-			return err
+		if !json.Valid([]byte(value)) {
+			return fmt.Errorf("invalid json: %s", value)
 		}
 		*dst = JSON{Bytes: []byte(value), Status: Present}
 	case *string:
@@ -69,10 +68,8 @@ func (dst *JSON) Set(src interface{}) error {
 				*dst = JSON{Bytes: []byte(""), Status: Null}
 				return nil
 			}
-			// validate this is a valid json
-			err := json.Unmarshal([]byte(*value), &struct{}{})
-			if err != nil {
-				return err
+			if !json.Valid([]byte(*value)) {
+				return fmt.Errorf("invalid json: %s", *value)
 			}
 			*dst = JSON{Bytes: []byte(*value), Status: Present}
 		}
@@ -85,10 +82,8 @@ func (dst *JSON) Set(src interface{}) error {
 				return nil
 			}
 
-			// validate this is a valid json
-			err := json.Unmarshal(value, &struct{}{})
-			if err != nil {
-				return err
+			if !json.Valid(value) {
+				return fmt.Errorf("invalid json: %s", value)
 			}
 			*dst = JSON{Bytes: value, Status: Present}
 		}
