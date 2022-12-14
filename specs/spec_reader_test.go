@@ -149,7 +149,6 @@ spec:
 	}
 }
 
-
 func TestExpandEnv(t *testing.T) {
 	os.Setenv("TEST_ENV_CREDS", "mytestcreds")
 	os.Setenv("TEST_ENV_CREDS2", "anothercredtest")
