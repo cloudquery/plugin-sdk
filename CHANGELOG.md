@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.5](https://github.com/cloudquery/plugin-sdk/compare/v1.12.4...v1.12.5) (2022-12-14)
+
+
+### Bug Fixes
+
+* Don't print value with error on invalid JSON ([#503](https://github.com/cloudquery/plugin-sdk/issues/503)) ([4b36824](https://github.com/cloudquery/plugin-sdk/commit/4b368246dcb470f87933bd7e7f575e201befa7c1))
+
 ## [1.12.4](https://github.com/cloudquery/plugin-sdk/compare/v1.12.3...v1.12.4) (2022-12-14)
 
 
