@@ -23,12 +23,7 @@ func WithExtraColumns(columns ColumnDefinitions) TableOption {
 // WithPKColumns allows to specify what columns should be considered PKs without need for WithExtraColumns + WithSkipFields
 func WithPKColumns(columnNames ...string) TableOption {
 	return func(t *TableDefinition) {
-		if t.extraPKColumns == nil {
-			t.extraPKColumns = make(map[string]struct{}, len(columnNames))
-		}
-		for _, name := range columnNames {
-			t.extraPKColumns[name] = struct{}{}
-		}
+		t.pkColumns = append(t.pkColumns, columnNames...)
 	}
 }
 

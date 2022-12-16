@@ -83,6 +83,12 @@ type (
 var (
 	expectedColumns = []ColumnDefinition{
 		{
+			Name:     "string_col",
+			Type:     schema.TypeString,
+			Resolver: `schema.PathResolver("StringCol")`,
+			Options:  schema.ColumnCreationOptions{PrimaryKey: true},
+		},
+		{
 			Name:     "int_col",
 			Type:     schema.TypeInt,
 			Resolver: `schema.PathResolver("IntCol")`,
@@ -92,11 +98,6 @@ var (
 			Name:     "int64_col",
 			Type:     schema.TypeInt,
 			Resolver: `schema.PathResolver("Int64Col")`,
-		},
-		{
-			Name:     "string_col",
-			Type:     schema.TypeString,
-			Resolver: `schema.PathResolver("StringCol")`,
 		},
 		{
 			Name:     "float_col",
@@ -171,8 +172,6 @@ var (
 	expectedTestTableNonEmbeddedStruct = TableDefinition{
 		Name: "test_struct",
 		Columns: ColumnDefinitions{
-			// Should not be unwrapped
-			ColumnDefinition{Name: "test_struct", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TestStruct")`},
 			// Should be unwrapped
 			ColumnDefinition{
 				Name:     "non_embedded_embedded_string",
@@ -180,6 +179,8 @@ var (
 				Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`,
 				Options:  schema.ColumnCreationOptions{PrimaryKey: true},
 			},
+			// Should not be unwrapped
+			ColumnDefinition{Name: "test_struct", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TestStruct")`},
 		},
 		nameTransformer:     DefaultNameTransformer,
 		typeTransformer:     DefaultTypeTransformer,
@@ -268,7 +269,7 @@ func TestTableFromGoStruct(t *testing.T) {
 			name: "should generate table from struct with default options",
 			args: args{
 				testStruct: testStruct{},
-				options:    []TableOption{WithPKColumns("int_col")},
+				options:    []TableOption{WithPKColumns("string_col", "int_col")},
 			},
 			want: expectedTestTable,
 		},
@@ -277,7 +278,7 @@ func TestTableFromGoStruct(t *testing.T) {
 			args: args{
 				testStruct: testStructWithEmbeddedStruct{},
 				options: []TableOption{
-					WithPKColumns("int_col"),
+					WithPKColumns("string_col", "int_col"),
 					WithUnwrapAllEmbeddedStructs(),
 				},
 			},
@@ -325,7 +326,16 @@ func TestTableFromGoStruct(t *testing.T) {
 			args: args{
 				testStruct: testStructCaseCheck{},
 				options: []TableOption{
-					WithPKColumns("ip_address"),
+					WithPKColumns("ip_address", "ids"),
+					WithSkipFields([]string{"CIDR"}),
+					WithExtraColumns(ColumnDefinitions{
+						{
+							Name:     "cidr",
+							Type:     schema.TypeInt,
+							Resolver: `schema.PathResolver("CIDR")`,
+							Options:  schema.ColumnCreationOptions{PrimaryKey: true},
+						},
+					}),
 					WithNameTransformer(customNameTransformer),
 				},
 			},
@@ -338,15 +348,25 @@ func TestTableFromGoStruct(t *testing.T) {
 						Resolver: `schema.PathResolver("IPAddress")`,
 						Options:  schema.ColumnCreationOptions{PrimaryKey: true},
 					},
+					{
+						Name:     "ids",
+						Type:     schema.TypeString,
+						Resolver: `schema.PathResolver("IDs")`,
+						Options:  schema.ColumnCreationOptions{PrimaryKey: true},
+					},
+					{
+						Name:     "cidr",
+						Type:     schema.TypeInt,
+						Resolver: `schema.PathResolver("CIDR")`,
+						Options:  schema.ColumnCreationOptions{PrimaryKey: true},
+					},
 					{Name: "cdns", Type: schema.TypeString, Resolver: `schema.PathResolver("CDNs")`},
 					{Name: "my_cdn", Type: schema.TypeString, Resolver: `schema.PathResolver("MyCDN")`},
-					{Name: "cidr", Type: schema.TypeInt, Resolver: `schema.PathResolver("CIDR")`},
 					{Name: "ipv6", Type: schema.TypeInt, Resolver: `schema.PathResolver("IPV6")`},
 					{Name: "ipv6_test", Type: schema.TypeInt, Resolver: `schema.PathResolver("IPv6Test")`},
 					{Name: "ipv6_address", Type: schema.TypeInt, Resolver: `schema.PathResolver("Ipv6Address")`},
 					{Name: "account_id", Type: schema.TypeString, Resolver: `schema.PathResolver("AccountID")`},
 					{Name: "postgre_sql", Type: schema.TypeString, Resolver: `schema.PathResolver("PostgreSQL")`},
-					{Name: "ids", Type: schema.TypeString, Resolver: `schema.PathResolver("IDs")`},
 				},
 				nameTransformer: DefaultNameTransformer},
 		},

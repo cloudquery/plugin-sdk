@@ -6,7 +6,6 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/rs/zerolog"
-	"github.com/thoas/go-funk"
 	"golang.org/x/exp/slices"
 )
 
@@ -31,8 +30,8 @@ type (
 		typeTransformer     TypeTransformer
 		resolverTransformer ResolverTransformer
 
-		extraColumns   ColumnDefinitions
-		extraPKColumns map[string]struct{}
+		extraColumns ColumnDefinitions
+		pkColumns    []string
 
 		skipFields           []string
 		structFieldsToUnwrap []string
@@ -96,19 +95,9 @@ func NewTableFromStruct(name string, obj any, opts ...TableOption) (*TableDefini
 		}
 	}
 
-	// add PK options
-	columns := make(ColumnDefinitions, 0, len(t.Columns))
-	for _, column := range t.Columns {
-		if _, ok := t.extraPKColumns[column.Name]; ok {
-			column.Options.PrimaryKey = true
-			delete(t.extraPKColumns, column.Name)
-		}
-		columns = append(columns, column)
+	if err := t.pkOrder(); err != nil {
+		return nil, err
 	}
-	if len(t.extraPKColumns) > 0 {
-		return nil, fmt.Errorf("%s table definition has %d extra PK keys: %v", t.Name, len(t.extraPKColumns), funk.Keys(t.extraPKColumns))
-	}
-	t.Columns = columns
 
 	return t, t.Check()
 }
