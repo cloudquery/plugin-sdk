@@ -7,16 +7,16 @@ import (
 type TableOption func(*TableDefinition)
 
 // WithSkipFields allows to specify what struct fields should be skipped.
-func WithSkipFields(fields []string) TableOption {
+func WithSkipFields(fields ...string) TableOption {
 	return func(t *TableDefinition) {
-		t.skipFields = fields
+		t.skipFields = append(t.skipFields, fields...)
 	}
 }
 
 // WithExtraColumns allows passing additional ColumnDefinitions
-func WithExtraColumns(columns ColumnDefinitions) TableOption {
+func WithExtraColumns(columns ...ColumnDefinition) TableOption {
 	return func(t *TableDefinition) {
-		t.extraColumns = columns
+		t.extraColumns = append(t.extraColumns, columns...)
 	}
 }
 
@@ -33,9 +33,9 @@ func WithPKColumns(columnNames ...string) TableOption {
 }
 
 // WithUnwrapStructFields allows to unwrap specific struct fields (1 level deep only)
-func WithUnwrapStructFields(fields []string) TableOption {
+func WithUnwrapStructFields(fields ...string) TableOption {
 	return func(t *TableDefinition) {
-		t.structFieldsToUnwrap = fields
+		t.structFieldsToUnwrap = append(t.structFieldsToUnwrap, fields...)
 	}
 }
 

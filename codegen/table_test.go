@@ -289,7 +289,7 @@ func TestTableFromGoStruct(t *testing.T) {
 				testStruct: testStructWithNonEmbeddedStruct{},
 				options: []TableOption{
 					WithPKColumns("non_embedded_embedded_string"),
-					WithUnwrapStructFields([]string{"NonEmbedded"}),
+					WithUnwrapStructFields("NonEmbedded"),
 				},
 			},
 			want: expectedTestTableNonEmbeddedStruct,
