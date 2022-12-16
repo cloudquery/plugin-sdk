@@ -92,7 +92,7 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table,
 					scope.SetTag("table", table.Name)
 					sentry.CurrentHub().CaptureMessage(stack)
 				})
-				p.logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
+				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
 				atomic.AddUint64(&tableMetrics.Panics, 1)
 			}
 			close(res)
