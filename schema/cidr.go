@@ -12,7 +12,7 @@ func (*CIDR) Type() ValueType {
 	return TypeCIDR
 }
 
-func (dst *CIDR) Size() int {
+func (*CIDR) Size() int {
 	return 32
 }
 
