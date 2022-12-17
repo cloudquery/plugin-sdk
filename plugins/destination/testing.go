@@ -14,11 +14,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type destinationTestSuite struct {
-	tests DestinationTestSuiteTests
+type TestSuite struct {
+	tests TestSuiteTests
 }
 
-type DestinationTestSuiteTests struct {
+type TestSuiteTests struct {
 	// SkipOverwrite skips testing for "overwrite" mode. Use if the destination
 	//	// plugin doesn't support this feature.
 	SkipOverwrite bool
@@ -45,7 +45,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
 }
 
-func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *TestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -140,7 +140,7 @@ func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.C
 	return nil
 }
 
-func (s *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *TestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -207,13 +207,13 @@ func (s *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Cont
 	return nil
 }
 
-func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec interface{}, tests DestinationTestSuiteTests) {
+func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec interface{}, tests TestSuiteTests) {
 	t.Helper()
 	destSpec := specs.Destination{
 		Name: "testsuite",
 		Spec: spec,
 	}
-	suite := &destinationTestSuite{
+	suite := &TestSuite{
 		tests: tests,
 	}
 	ctx := context.Background()

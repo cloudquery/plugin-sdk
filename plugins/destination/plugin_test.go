@@ -13,7 +13,7 @@ import (
 func TestPlugin(t *testing.T) {
 	p := NewDestinationPlugin("test", "development", NewTestDestinationMemDBClient)
 	PluginTestSuiteRunner(t, p, nil,
-		DestinationTestSuiteTests{})
+		TestSuiteTests{})
 }
 
 func TestOnNewError(t *testing.T) {
