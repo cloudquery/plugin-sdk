@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/plugins"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -79,42 +79,37 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 	sourceName := r.Source
 	syncTime := r.Timestamp.AsTime()
 
-	eg, ctx := errgroup.WithContext(msg.Context())
-	eg.Go(func() error {
-		return s.Plugin.Write(ctx, tables, sourceName, syncTime, resources)
-	})
+	ctx := msg.Context()
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.Plugin.Write(ctx, tables, sourceName, syncTime, resources)
+	}()
 
 	for {
 		r, err := msg.Recv()
 		if err != nil {
 			if err == io.EOF {
 				close(resources)
-				if err := eg.Wait(); err != nil {
-					return fmt.Errorf("got EOF. failed to wait for plugin: %w", err)
-				}
+				wg.Wait()
 				return msg.SendAndClose(&pb.Write2_Response{})
 			}
 			close(resources)
-			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("got error. failed to wait for plugin")
-			}
+			wg.Wait()
 			return fmt.Errorf("failed to receive msg: %w", err)
 		}
 		var resource schema.DestinationResource
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
-			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("failed to unmarshal resource. failed to wait for plugin")
-			}
+			wg.Wait()
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
 		select {
 		case resources <- resource:
 		case <-ctx.Done():
 			close(resources)
-			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("failed to wait")
-			}
+			wg.Wait()
 			return ctx.Err()
 		}
 	}

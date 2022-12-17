@@ -111,7 +111,15 @@ func (c *TestDestinationMemDBClient) Read(_ context.Context, table *schema.Table
 	return nil
 }
 
-func (c *TestDestinationMemDBClient) Write(ctx context.Context, tables schema.Tables, resources <-chan *ClientResource) error {
+func (c *TestDestinationMemDBClient) PreWrite(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) (interface{}, error) {
+	return nil, nil
+}
+
+func (c *TestDestinationMemDBClient) PostWrite(ctx context.Context, writeClient interface{}, tables schema.Tables, sourceName string, syncTime time.Time) error {
+	return nil
+}
+
+func (c *TestDestinationMemDBClient) WriteTableBatch(ctx context.Context, _ interface{}, table *schema.Table, resources [][]interface{}) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -122,15 +130,16 @@ func (c *TestDestinationMemDBClient) Write(ctx context.Context, tables schema.Ta
 		}
 		return nil
 	}
-	for resource := range resources {
-		if c.spec.WriteMode == specs.WriteModeAppend {
-			c.memoryDB[resource.TableName] = append(c.memoryDB[resource.TableName], resource.Data)
-		} else {
-			c.overwrite(tables.Get(resource.TableName), resource.Data)
+	if c.spec.WriteMode == specs.WriteModeAppend {
+		c.memoryDB[table.Name] = append(c.memoryDB[table.Name], resources...)
+	} else {
+		for _, resource := range resources {
+			c.overwrite(table, resource)
 		}
 	}
 	return nil
 }
+
 
 func (*TestDestinationMemDBClient) Metrics() DestinationMetrics {
 	return DestinationMetrics{}

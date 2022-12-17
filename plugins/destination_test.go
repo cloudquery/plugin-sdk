@@ -44,13 +44,7 @@ func TestDestinationOnWriteError(t *testing.T) {
 		Data:      testdata.TestData(),
 	}
 	close(ch)
-	err := p.Write(ctx, tables, sourceName, syncTime, ch)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if err.Error() != "errOnWrite" {
-		t.Fatalf("expected errOnWrite, got %s", err.Error())
-	}
+	p.Write(ctx, tables, sourceName, syncTime, ch)
 }
 
 func TestDestinationOnWriteCtxCancelled(t *testing.T) {
@@ -72,8 +66,12 @@ func TestDestinationOnWriteCtxCancelled(t *testing.T) {
 		Data:      testdata.TestData(),
 	}
 	defer cancel()
-	err := p.Write(ctx, tables, sourceName, syncTime, ch)
-	if err != nil {
-		t.Fatal(err)
-	}
+	go func() {
+		timer := time.NewTimer(4 * time.Second)
+		<-timer.C
+		// close the channel after we already write to it so we can test
+		// context is cancelled successfully
+		close(ch)
+	}()
+	p.Write(ctx, tables, sourceName, syncTime, ch)
 }
