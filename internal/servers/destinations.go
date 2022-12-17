@@ -11,7 +11,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -79,41 +78,51 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 	sourceName := r.Source
 	syncTime := r.Timestamp.AsTime()
 
-	eg, ctx := errgroup.WithContext(msg.Context())
-	eg.Go(func() error {
-		return s.Plugin.Write(ctx, tables, sourceName, syncTime, resources)
-	})
+	ctx := msg.Context()
+	var pluginWriteErr error
+	pluginWriteDone := make(chan struct{})
+	go func() {
+		pluginWriteErr = s.Plugin.Write(ctx, tables, sourceName, syncTime, resources)
+		pluginWriteDone <- struct{}{}
+	}()
 
 	for {
 		r, err := msg.Recv()
 		if err != nil {
-			if err == io.EOF {
-				close(resources)
-				if err := eg.Wait(); err != nil {
-					return fmt.Errorf("got EOF. failed to wait for plugin: %w", err)
-				}
-				return msg.SendAndClose(&pb.Write2_Response{})
-			}
 			close(resources)
-			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("got error. failed to wait for plugin")
+			<-pluginWriteDone
+			// there is no way to return multiple errors so we return the first one
+			// potentially can be solved nicer next year
+			// https://lukas.zapletalovi.com/posts/2022/wrapping-multiple-errors/		
+			if pluginWriteErr != nil {
+				return fmt.Errorf("msg received returns %v. plugin returned: %w", err, pluginWriteErr)
+			}
+			if err == io.EOF {
+				return msg.SendAndClose(&pb.Write2_Response{})
 			}
 			return fmt.Errorf("failed to receive msg: %w", err)
 		}
 		var resource schema.DestinationResource
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
-			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("failed to unmarshal resource. failed to wait for plugin")
+			<-pluginWriteDone
+			// There is no way to return multiple errors so we return the first one
+			// potentially can be solved nicer next year
+			// https://lukas.zapletalovi.com/posts/2022/wrapping-multiple-errors/		
+			if pluginWriteErr != nil {
+				return fmt.Errorf("failed to unmarshal resource %v. plugin returned: %w", err, pluginWriteErr)
 			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
 		select {
 		case resources <- resource:
+		case <-pluginWriteDone:
+			close(resources)
+			return pluginWriteErr
 		case <-ctx.Done():
 			close(resources)
-			if err := eg.Wait(); err != nil {
-				s.Logger.Error().Err(err).Msg("failed to wait")
+			if pluginWriteErr != nil {
+				return fmt.Errorf("context done %v. plugin returned: %w", ctx.Err(), pluginWriteErr)
 			}
 			return ctx.Err()
 		}
