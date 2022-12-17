@@ -120,6 +120,7 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	// we don't need any waitgroups here because we are waiting for the channel to close
 	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
 		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("table sync finished")
+		p.logTablesMetrics(table.Relations, client)
 	}
 }
 
