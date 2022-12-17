@@ -162,14 +162,16 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 		select {
 		case <-gctx.Done():
 			close(ch)
-			return eg.Wait()
+			if err := eg.Wait(); err != nil {
+				return fmt.Errorf("context done %v. write client returned: %w", gctx.Err(), err)
+			}
 		case ch <- clientResource:
 		}
 	}
 
 	close(ch)
 	if err := eg.Wait(); err != nil {
-		return err
+		return fmt.Errorf("write client returned: %w", err)
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
 		if err := p.DeleteStale(ctx, tables, sourceName, syncTime); err != nil {
