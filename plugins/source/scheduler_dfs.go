@@ -1,4 +1,4 @@
-package plugins
+package source
 
 import (
 	"context"
@@ -22,7 +22,7 @@ const (
 	minResourceConcurrency = 100
 )
 
-func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
+func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree.
 	tableConcurrency := max(spec.Concurrency/minResourceConcurrency, minTableConcurrency)
@@ -74,7 +74,7 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 	wg.Wait()
 }
 
-func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
 	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
@@ -114,7 +114,7 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table,
 	}
 }
 
-func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource, depth int) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
@@ -168,7 +168,7 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Ta
 	wg.Wait()
 }
 
-func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item interface{}) *schema.Resource {
+func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item interface{}) *schema.Resource {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	resource := schema.NewResourceData(table, parent, item)
@@ -205,7 +205,7 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	return resource
 }
 
-func (p *SourcePlugin) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
+func (p *Plugin) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
 	columnStartTime := time.Now()
 	defer func() {
 		if err := recover(); err != nil {

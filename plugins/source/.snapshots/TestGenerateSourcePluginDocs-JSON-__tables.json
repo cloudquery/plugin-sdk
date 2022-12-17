@@ -1,0 +1,125 @@
+[
+  {
+    "name": "test_table",
+    "description": "Description for test table",
+    "columns": [
+      {
+        "name": "_cq_source_name",
+        "type": "TypeString"
+      },
+      {
+        "name": "_cq_sync_time",
+        "type": "TypeTimestamp"
+      },
+      {
+        "name": "_cq_id",
+        "type": "TypeUUID"
+      },
+      {
+        "name": "_cq_parent_id",
+        "type": "TypeUUID"
+      },
+      {
+        "name": "int_col",
+        "type": "TypeInt"
+      },
+      {
+        "name": "id_col",
+        "type": "TypeInt",
+        "is_primary_key": true
+      },
+      {
+        "name": "id_col2",
+        "type": "TypeInt",
+        "is_primary_key": true
+      }
+    ],
+    "relations": [
+      {
+        "name": "relation_table",
+        "description": "Description for relational table",
+        "columns": [
+          {
+            "name": "_cq_source_name",
+            "type": "TypeString"
+          },
+          {
+            "name": "_cq_sync_time",
+            "type": "TypeTimestamp"
+          },
+          {
+            "name": "_cq_id",
+            "type": "TypeUUID",
+            "is_primary_key": true
+          },
+          {
+            "name": "_cq_parent_id",
+            "type": "TypeUUID"
+          },
+          {
+            "name": "string_col",
+            "type": "TypeString"
+          }
+        ],
+        "relations": [
+          {
+            "name": "relation_relation_table",
+            "description": "Description for relational table's relation",
+            "columns": [
+              {
+                "name": "_cq_source_name",
+                "type": "TypeString"
+              },
+              {
+                "name": "_cq_sync_time",
+                "type": "TypeTimestamp"
+              },
+              {
+                "name": "_cq_id",
+                "type": "TypeUUID",
+                "is_primary_key": true
+              },
+              {
+                "name": "_cq_parent_id",
+                "type": "TypeUUID"
+              },
+              {
+                "name": "string_col",
+                "type": "TypeString"
+              }
+            ],
+            "relations": []
+          }
+        ]
+      },
+      {
+        "name": "relation_table2",
+        "description": "Description for second relational table",
+        "columns": [
+          {
+            "name": "_cq_source_name",
+            "type": "TypeString"
+          },
+          {
+            "name": "_cq_sync_time",
+            "type": "TypeTimestamp"
+          },
+          {
+            "name": "_cq_id",
+            "type": "TypeUUID",
+            "is_primary_key": true
+          },
+          {
+            "name": "_cq_parent_id",
+            "type": "TypeUUID"
+          },
+          {
+            "name": "string_col",
+            "type": "TypeString"
+          }
+        ],
+        "relations": []
+      }
+    ]
+  }
+]

@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/source"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/getsentry/sentry-go"
@@ -20,7 +20,7 @@ import (
 
 type SourceServer struct {
 	pb.UnimplementedSourceServer
-	Plugin *plugins.SourcePlugin
+	Plugin *source.Plugin
 	Logger zerolog.Logger
 }
 
@@ -139,7 +139,7 @@ func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request)
 	// Aggregate metrics before sending to keep response size small.
 	// Temporary fix for https://github.com/cloudquery/cloudquery/issues/3962
 	m := s.Plugin.Metrics()
-	agg := &plugins.TableClientMetrics{}
+	agg := &source.TableClientMetrics{}
 	for _, table := range m.TableClient {
 		for _, tableClient := range table {
 			agg.Resources += tableClient.Resources
@@ -147,8 +147,8 @@ func (s *SourceServer) GetMetrics(context.Context, *pb.GetSourceMetrics_Request)
 			agg.Panics += tableClient.Panics
 		}
 	}
-	b, err := json.Marshal(&plugins.SourceMetrics{
-		TableClient: map[string]map[string]*plugins.TableClientMetrics{"": {"": agg}},
+	b, err := json.Marshal(&source.Metrics{
+		TableClient: map[string]map[string]*source.TableClientMetrics{"": {"": agg}},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal source metrics: %w", err)

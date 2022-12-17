@@ -10,7 +10,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/servers"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -23,7 +23,7 @@ import (
 )
 
 type destinationServe struct {
-	plugin    *plugins.DestinationPlugin
+	plugin    *destination.Plugin
 	sentryDSN string
 }
 
@@ -40,7 +40,7 @@ var testDestinationListenerLock sync.Mutex
 
 const serveDestinationShort = `Start destination plugin server`
 
-func Destination(plugin *plugins.DestinationPlugin, opts ...DestinationOption) {
+func Destination(plugin *destination.Plugin, opts ...DestinationOption) {
 	s := &destinationServe{
 		plugin: plugin,
 	}

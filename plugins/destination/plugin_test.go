@@ -1,4 +1,4 @@
-package plugins
+package destination
 
 import (
 	"context"
@@ -10,13 +10,13 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 )
 
-func TestDestinationPlugin(t *testing.T) {
+func TestPlugin(t *testing.T) {
 	p := NewDestinationPlugin("test", "development", NewTestDestinationMemDBClient)
-	DestinationPluginTestSuiteRunner(t, p, nil,
+	PluginTestSuiteRunner(t, p, nil,
 		DestinationTestSuiteTests{})
 }
 
-func TestDestinationOnNewError(t *testing.T) {
+func TestOnNewError(t *testing.T) {
 	ctx := context.Background()
 	p := NewDestinationPlugin("test", "development", newTestDestinationMemDBClientErrOnNew)
 	err := p.Init(ctx, getTestLogger(t), specs.Destination{})
@@ -26,7 +26,7 @@ func TestDestinationOnNewError(t *testing.T) {
 	}
 }
 
-func TestDestinationOnWriteError(t *testing.T) {
+func TestOnWriteError(t *testing.T) {
 	ctx := context.Background()
 	newClientFunc := getNewTestDestinationMemDBClient(withErrOnWrite())
 	p := NewDestinationPlugin("test", "development", newClientFunc)
@@ -53,7 +53,7 @@ func TestDestinationOnWriteError(t *testing.T) {
 	}
 }
 
-func TestDestinationOnWriteCtxCancelled(t *testing.T) {
+func TestOnWriteCtxCancelled(t *testing.T) {
 	ctx := context.Background()
 	newClientFunc := getNewTestDestinationMemDBClient(withBlockingWrite())
 	p := NewDestinationPlugin("test", "development", newClientFunc)

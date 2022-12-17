@@ -1,4 +1,4 @@
-package plugins
+package destination
 
 import (
 	"context"
@@ -45,7 +45,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
 }
 
-func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -140,7 +140,7 @@ func (s *destinationTestSuite) destinationPluginTestWriteOverwrite(ctx context.C
 	return nil
 }
 
-func (s *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *DestinationPlugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -207,7 +207,7 @@ func (s *destinationTestSuite) destinationPluginTestWriteAppend(ctx context.Cont
 	return nil
 }
 
-func DestinationPluginTestSuiteRunner(t *testing.T, p *DestinationPlugin, spec interface{}, tests DestinationTestSuiteTests) {
+func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec interface{}, tests DestinationTestSuiteTests) {
 	t.Helper()
 	destSpec := specs.Destination{
 		Name: "testsuite",

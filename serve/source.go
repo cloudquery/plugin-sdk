@@ -10,7 +10,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/servers"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/source"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -24,7 +24,7 @@ import (
 )
 
 type sourceServe struct {
-	plugin    *plugins.SourcePlugin
+	plugin    *source.Plugin
 	sentryDSN string
 }
 
@@ -42,7 +42,7 @@ var testSourceListenerLock sync.Mutex
 
 const serveSourceShort = `Start source plugin server`
 
-func Source(plugin *plugins.SourcePlugin, opts ...SourceOption) {
+func Source(plugin *source.Plugin, opts ...SourceOption) {
 	s := &sourceServe{
 		plugin: plugin,
 	}
@@ -206,7 +206,7 @@ func newCmdSourceDoc(source *sourceServe) *cobra.Command {
 		Long:  sourceDocLong,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return source.plugin.GenerateSourcePluginDocs(args[0], format.Value)
+			return source.plugin.GeneratePluginDocs(args[0], format.Value)
 		},
 	}
 	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
