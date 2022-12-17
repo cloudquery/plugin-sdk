@@ -19,6 +19,10 @@ func (*Bool) Type() ValueType {
 	return TypeBool
 }
 
+func (*Bool) Size() int {
+	return 2
+}
+
 func (dst *Bool) Equal(src CQType) bool {
 	if src == nil {
 		return false

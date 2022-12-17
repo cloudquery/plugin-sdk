@@ -19,6 +19,10 @@ func (*Text) Type() ValueType {
 	return TypeString
 }
 
+func (dst *Text) Size() int {
+	return len(dst.Str)
+}
+
 func (dst *Text) Equal(src CQType) bool {
 	if src == nil {
 		return false

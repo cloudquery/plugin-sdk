@@ -29,6 +29,10 @@ func (*Inet) Type() ValueType {
 	return TypeInet
 }
 
+func (dst *Inet) Size() int {
+	return 32
+}
+
 func (dst *Inet) Equal(src CQType) bool {
 	if src == nil {
 		return false

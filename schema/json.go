@@ -20,6 +20,10 @@ func (*JSON) Type() ValueType {
 	return TypeJSON
 }
 
+func (dst *JSON) Size() int {
+	return len(dst.Bytes)
+}
+
 func (dst *JSON) Equal(src CQType) bool {
 	if src == nil {
 		return false

@@ -22,6 +22,10 @@ func (*InetArray) Type() ValueType {
 	return TypeInetArray
 }
 
+func (dst *InetArray) Size() int {
+	return len(dst.Elements) * 32
+}
+
 func (dst *InetArray) Equal(src CQType) bool {
 	if src == nil {
 		return false

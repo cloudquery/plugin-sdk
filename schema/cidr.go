@@ -12,6 +12,10 @@ func (*CIDR) Type() ValueType {
 	return TypeCIDR
 }
 
+func (dst *CIDR) Size() int {
+	return 32
+}
+
 func (dst *CIDR) String() string {
 	if dst.Status == Present {
 		return dst.IPNet.String()

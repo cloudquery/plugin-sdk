@@ -212,9 +212,21 @@ type CQType interface {
 	String() string
 	Equal(CQType) bool
 	Type() ValueType
+	Size() int
 }
 
 type CQTypes []CQType
+
+// returns total number of bytes occupied by all values
+// this useful to understand how much data is being transffered rather then just number
+// of resources
+func (c CQTypes) Size() int {
+	var size int
+	for _, v := range c {
+		size += v.Size()
+	}
+	return size
+}
 
 func (c CQTypes) MarshalJSON() ([]byte, error) {
 	res := make([]map[string]interface{}, len(c))

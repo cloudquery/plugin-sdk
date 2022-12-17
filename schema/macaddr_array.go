@@ -22,6 +22,14 @@ func (*MacaddrArray) Type() ValueType {
 	return TypeMacAddrArray
 }
 
+func (dst *MacaddrArray) Size() int {
+	totalSize := 0
+	for _, element := range dst.Elements {
+		totalSize += element.Size()
+	}
+	return totalSize
+}
+
 func (dst *MacaddrArray) Equal(src CQType) bool {
 	if src == nil {
 		return false
