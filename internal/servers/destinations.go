@@ -93,7 +93,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 			<-pluginWriteDone
 			// there is no way to return multiple errors so we return the first one
 			// potentially can be solved nicer next year
-			// https://lukas.zapletalovi.com/posts/2022/wrapping-multiple-errors/		
+			// https://lukas.zapletalovi.com/posts/2022/wrapping-multiple-errors/
 			if pluginWriteErr != nil {
 				return fmt.Errorf("msg received returns %v. plugin returned: %w", err, pluginWriteErr)
 			}
@@ -108,7 +108,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 			<-pluginWriteDone
 			// There is no way to return multiple errors so we return the first one
 			// potentially can be solved nicer next year
-			// https://lukas.zapletalovi.com/posts/2022/wrapping-multiple-errors/		
+			// https://lukas.zapletalovi.com/posts/2022/wrapping-multiple-errors/
 			if pluginWriteErr != nil {
 				return fmt.Errorf("failed to unmarshal resource %v. plugin returned: %w", err, pluginWriteErr)
 			}
