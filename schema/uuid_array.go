@@ -21,6 +21,10 @@ func (*UUIDArray) Type() ValueType {
 	return TypeUUIDArray
 }
 
+func (dst *UUIDArray) Size() int {
+	return 16 * len(dst.Elements)
+}
+
 func (dst *UUIDArray) Equal(src CQType) bool {
 	if src == nil {
 		return false

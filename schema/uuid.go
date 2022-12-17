@@ -19,6 +19,10 @@ func (*UUID) Type() ValueType {
 	return TypeUUID
 }
 
+func (dst *UUID) Size() int {
+	return 16
+}
+
 func (dst *UUID) Equal(src CQType) bool {
 	if src == nil {
 		return false
