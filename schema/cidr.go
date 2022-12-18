@@ -12,8 +12,8 @@ func (*CIDR) Type() ValueType {
 	return TypeCIDR
 }
 
-func (*CIDR) Size() int {
-	return 32
+func (dst *CIDR) Size() int {
+	return len(dst.IPNet.IP) + len(dst.IPNet.Mask)
 }
 
 func (dst *CIDR) String() string {

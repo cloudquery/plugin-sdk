@@ -30,7 +30,7 @@ func (*Inet) Type() ValueType {
 }
 
 func (dst *Inet) Size() int {
-	return 32
+	return len(dst.IPNet.IP) + len(dst.IPNet.Mask)
 }
 
 func (dst *Inet) Equal(src CQType) bool {
