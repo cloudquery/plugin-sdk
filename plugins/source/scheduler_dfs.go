@@ -88,7 +88,7 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
-		logger.Info().Msg("root table resolver started")
+		logger.Info().Msg("top level table resolver started")
 	}
 	tableMetrics := p.metrics.TableClient[table.Name][clientName]
 
