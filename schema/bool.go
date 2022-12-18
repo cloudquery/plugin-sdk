@@ -20,7 +20,7 @@ func (*Bool) Type() ValueType {
 }
 
 func (*Bool) Size() int {
-	return 2
+	return 1
 }
 
 func (dst *Bool) Equal(src CQType) bool {
