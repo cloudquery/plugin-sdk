@@ -207,8 +207,8 @@ func (r ValueType) String() string {
 }
 
 type CQType interface {
-	Set(v interface{}) error
-	Get() interface{}
+	Set(v any) error
+	Get() any
 	String() string
 	Equal(CQType) bool
 	Type() ValueType
@@ -217,9 +217,9 @@ type CQType interface {
 type CQTypes []CQType
 
 func (c CQTypes) MarshalJSON() ([]byte, error) {
-	res := make([]map[string]interface{}, len(c))
+	res := make([]map[string]any, len(c))
 	for i, v := range c {
-		res[i] = map[string]interface{}{
+		res[i] = map[string]any{
 			"type":  v.Type().overTheWireString(),
 			"value": v,
 		}

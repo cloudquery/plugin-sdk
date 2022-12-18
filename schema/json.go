@@ -8,7 +8,7 @@ import (
 )
 
 type JSONTransformer interface {
-	TransformJSON(*JSON) interface{}
+	TransformJSON(*JSON) any
 }
 
 type JSON struct {
@@ -36,13 +36,13 @@ func (dst *JSON) String() string {
 	return string(dst.Bytes)
 }
 
-func (dst *JSON) Set(src interface{}) error {
+func (dst *JSON) Set(src any) error {
 	if src == nil {
 		*dst = JSON{Status: Null}
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(interface{ Get() any }); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -118,10 +118,10 @@ func (dst *JSON) Set(src interface{}) error {
 	return nil
 }
 
-func (dst JSON) Get() interface{} {
+func (dst JSON) Get() any {
 	switch dst.Status {
 	case Present:
-		var i interface{}
+		var i any
 		err := json.Unmarshal(dst.Bytes, &i)
 		if err != nil {
 			return dst
@@ -134,10 +134,10 @@ func (dst JSON) Get() interface{} {
 	}
 }
 
-// isEmptyStringMap returns true if the value is a map from string to any (i.e. map[string]interface{}).
+// isEmptyStringMap returns true if the value is a map from string to any (i.e. map[string]any).
 // We need to use reflection for this, because it impossible to type-assert a map[string]string into a
-// map[string]interface{}. See https://go.dev/doc/faq#convert_slice_of_interface.
-func isEmptyStringMap(value interface{}) bool {
+// map[string]any. See https://go.dev/doc/faq#convert_slice_of_interface.
+func isEmptyStringMap(value any) bool {
 	if reflect.TypeOf(value).Kind() != reflect.Map {
 		return false
 	}
@@ -149,10 +149,10 @@ func isEmptyStringMap(value interface{}) bool {
 	return reflect.ValueOf(value).Len() == 0
 }
 
-// isEmptySlice returns true if the value is a slice (i.e. []interface{}).
+// isEmptySlice returns true if the value is a slice (i.e. []any).
 // We need to use reflection for this, because it impossible to type-assert a map[string]string into a
-// map[string]interface{}. See https://go.dev/doc/faq#convert_slice_of_interface.
-func isEmptySlice(value interface{}) bool {
+// map[string]any. See https://go.dev/doc/faq#convert_slice_of_interface.
+func isEmptySlice(value any) bool {
 	if reflect.TypeOf(value).Kind() != reflect.Slice {
 		return false
 	}

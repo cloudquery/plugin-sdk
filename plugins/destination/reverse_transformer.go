@@ -11,7 +11,7 @@ type DefaultReverseTransformer struct {
 
 // DefaultReverseTransformer tries best effort to convert a slice of values to CQTypes
 // based on the provided table columns.
-func (*DefaultReverseTransformer) ReverseTransformValues(table *schema.Table, values []interface{}) (schema.CQTypes, error) {
+func (*DefaultReverseTransformer) ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error) {
 	res := make(schema.CQTypes, len(values))
 
 	for i, v := range values {

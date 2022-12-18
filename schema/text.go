@@ -7,7 +7,7 @@ import (
 )
 
 type TextTransformer interface {
-	TransformText(*Text) interface{}
+	TransformText(*Text) any
 }
 
 type Text struct {
@@ -38,7 +38,7 @@ func (dst *Text) String() string {
 	}
 }
 
-func (dst *Text) Set(src interface{}) error {
+func (dst *Text) Set(src any) error {
 	if src == nil {
 		*dst = Text{Status: Null}
 		return nil
@@ -106,7 +106,7 @@ func (dst *Text) Set(src interface{}) error {
 	return nil
 }
 
-func (dst Text) Get() interface{} {
+func (dst Text) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst.Str

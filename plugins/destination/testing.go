@@ -207,7 +207,7 @@ func (s *TestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plu
 	return nil
 }
 
-func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec interface{}, tests TestSuiteTests) {
+func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests TestSuiteTests) {
 	t.Helper()
 	destSpec := specs.Destination{
 		Name: "testsuite",

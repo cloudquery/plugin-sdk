@@ -9,7 +9,7 @@ import (
 )
 
 type InetArrayTransformer interface {
-	TransformInetArray(*InetArray) interface{}
+	TransformInetArray(*InetArray) any
 }
 
 type InetArray struct {
@@ -62,7 +62,7 @@ func (dst *InetArray) String() string {
 	return sb.String()
 }
 
-func (dst *InetArray) Set(src interface{}) error {
+func (dst *InetArray) Set(src any) error {
 	// untyped nil and typed nil interfaces are different
 	if src == nil {
 		*dst = InetArray{Status: Null}
@@ -245,7 +245,7 @@ func (dst *InetArray) setRecursive(value reflect.Value, index, dimension int) (i
 	return index, nil
 }
 
-func (dst InetArray) Get() interface{} {
+func (dst InetArray) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst

@@ -38,7 +38,7 @@ type Source struct {
 	Destinations []string `json:"destinations,omitempty"`
 	// Spec defines plugin specific configuration
 	// This is different in every source plugin.
-	Spec interface{} `json:"spec,omitempty"`
+	Spec any `json:"spec,omitempty"`
 }
 
 func (s *Source) SetDefaults() {
@@ -60,7 +60,7 @@ func (s *Source) SetDefaults() {
 }
 
 // UnmarshalSpec unmarshals the internal spec into the given interface
-func (s *Source) UnmarshalSpec(out interface{}) error {
+func (s *Source) UnmarshalSpec(out any) error {
 	b, err := json.Marshal(s.Spec)
 	if err != nil {
 		return err

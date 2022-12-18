@@ -7,7 +7,7 @@ import (
 
 func TestMacaddrArraySet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result MacaddrArray
 	}{
 		{

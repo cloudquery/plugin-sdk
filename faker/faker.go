@@ -17,7 +17,7 @@ type faker struct {
 
 var errEFaceNotAllowed = fmt.Errorf("interface{} not allowed")
 
-func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
+func (f faker) getFakedValue(a any) (reflect.Value, error) {
 	t := reflect.TypeOf(a)
 	if t == nil {
 		return reflect.Value{}, errEFaceNotAllowed
@@ -164,7 +164,7 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	}
 }
 
-func FakeObject(obj interface{}, opts ...Option) error {
+func FakeObject(obj any, opts ...Option) error {
 	reflectType := reflect.TypeOf(obj)
 
 	if reflectType.Kind() != reflect.Ptr {

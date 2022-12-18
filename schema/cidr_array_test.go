@@ -8,7 +8,7 @@ import (
 
 func TestCIDRArraySet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result CIDRArray
 	}{
 		{

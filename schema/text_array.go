@@ -8,7 +8,7 @@ import (
 )
 
 type TextArrayTransformer interface {
-	TransformTextArray(*TextArray) interface{}
+	TransformTextArray(*TextArray) any
 }
 
 type TextArray struct {
@@ -61,7 +61,7 @@ func (dst *TextArray) String() string {
 	return sb.String()
 }
 
-func (dst *TextArray) Set(src interface{}) error {
+func (dst *TextArray) Set(src any) error {
 	// untyped nil and typed nil interfaces are different
 	if src == nil {
 		*dst = TextArray{Status: Null}
@@ -222,7 +222,7 @@ func (dst *TextArray) setRecursive(value reflect.Value, index, dimension int) (i
 	return index, nil
 }
 
-func (dst TextArray) Get() interface{} {
+func (dst TextArray) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst

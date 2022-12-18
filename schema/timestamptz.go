@@ -22,7 +22,7 @@ const (
 )
 
 type TimestamptzTransformer interface {
-	TransformTimestamptz(*Timestamptz) interface{}
+	TransformTimestamptz(*Timestamptz) any
 }
 
 type Timestamptz struct {
@@ -55,13 +55,13 @@ func (dst *Timestamptz) String() string {
 	}
 }
 
-func (dst *Timestamptz) Set(src interface{}) error {
+func (dst *Timestamptz) Set(src any) error {
 	if src == nil {
 		*dst = Timestamptz{Status: Null}
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(interface{ Get() any }); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -108,7 +108,7 @@ func (dst *Timestamptz) Set(src interface{}) error {
 	return nil
 }
 
-func (dst Timestamptz) Get() interface{} {
+func (dst Timestamptz) Get() any {
 	switch dst.Status {
 	case Present:
 		if dst.InfinityModifier != None {
