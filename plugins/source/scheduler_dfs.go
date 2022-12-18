@@ -74,15 +74,24 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 	wg.Wait()
 }
 
+func (p *Plugin) logTablesMetrics(tables schema.Tables, client schema.ClientMeta) {
+	clientName := client.ID()
+	for _, table := range tables {
+		metrics := p.metrics.TableClient[table.Name][clientName]
+		p.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Uint64("errors", metrics.Errors).Msg("table sync finished")
+		p.logTablesMetrics(table.Relations, client)
+	}
+}
+
 func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
 	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
-		logger.Info().Msg("table resolver started")
+		logger.Info().Msg("top level table resolver started")
 	}
-
 	tableMetrics := p.metrics.TableClient[table.Name][clientName]
+
 	res := make(chan interface{})
 	go func() {
 		defer func() {
@@ -109,8 +118,9 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
-	if parent == nil { // Log only for root tables, otherwise we spam too much.
-		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("fetch table finished")
+	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
+		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("table sync finished")
+		p.logTablesMetrics(table.Relations, client)
 	}
 }
 
