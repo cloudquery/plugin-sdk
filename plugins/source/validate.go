@@ -1,10 +1,10 @@
-package plugins
+package source
 
 import (
 	"fmt"
 )
 
-func (p *SourcePlugin) validate() error {
+func (p *Plugin) validate() error {
 	if err := p.tables.ValidateDuplicateColumns(); err != nil {
 		return fmt.Errorf("found duplicate columns in source plugin: %s: %w", p.name, err)
 	}

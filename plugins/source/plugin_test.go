@@ -1,4 +1,4 @@
-package plugins
+package source
 
 import (
 	"context"
@@ -121,14 +121,14 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 
 type syncTestCase struct {
 	table *schema.Table
-	stats SourceMetrics
+	stats Metrics
 	data  []schema.CQTypes
 }
 
 var syncTestCases = []syncTestCase{
 	{
 		table: testTableSuccess(),
-		stats: SourceMetrics{
+		stats: Metrics{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_success": {
 					"testExecutionClient": {
@@ -147,7 +147,7 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTableResolverPanic(),
-		stats: SourceMetrics{
+		stats: Metrics{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_resolver_panic": {
 					"testExecutionClient": {
@@ -160,7 +160,7 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTablePreResourceResolverPanic(),
-		stats: SourceMetrics{
+		stats: Metrics{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_pre_resource_resolver_panic": {
 					"testExecutionClient": {
@@ -173,7 +173,7 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTableColumnResolverPanic(),
-		stats: SourceMetrics{
+		stats: Metrics{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_column_resolver_panic": {
 					"testExecutionClient": {
@@ -194,7 +194,7 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTableRelationSuccess(),
-		stats: SourceMetrics{
+		stats: Metrics{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_relation_success": {
 					"testExecutionClient": {
@@ -248,7 +248,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		tc.table,
 	}
 
-	plugin := NewSourcePlugin(
+	plugin := NewPlugin(
 		"testSourcePlugin",
 		"1.0.0",
 		tables,

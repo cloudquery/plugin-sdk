@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -196,12 +196,12 @@ func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, err
 	return res.Version, nil
 }
 
-func (c *DestinationClient) GetMetrics(ctx context.Context) (*plugins.DestinationMetrics, error) {
+func (c *DestinationClient) GetMetrics(ctx context.Context) (*destination.Metrics, error) {
 	res, err := c.pbClient.GetMetrics(ctx, &pb.GetDestinationMetrics_Request{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call GetMetrics: %w", err)
 	}
-	var stats plugins.DestinationMetrics
+	var stats destination.Metrics
 	if err := json.Unmarshal(res.Metrics, &stats); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal destination metrics: %w", err)
 	}

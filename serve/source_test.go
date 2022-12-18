@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/clients"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/source"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -76,8 +76,8 @@ func bufSourceDialer(context.Context, string) (net.Conn, error) {
 }
 
 func TestSourceSuccess(t *testing.T) {
-	plugin := plugins.NewSourcePlugin(
-		"testSourcePlugin",
+	plugin := source.NewPlugin(
+		"testPlugin",
 		"v1.0.0",
 		[]*schema.Table{testTable("test_table"), testTable("test_table2")},
 		newTestExecutionClient)
@@ -129,8 +129,8 @@ func TestSourceSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if name != "testSourcePlugin" {
-		t.Fatalf("expected name to be testSourcePlugin but got %s", name)
+	if name != "testPlugin" {
+		t.Fatalf("expected name to be testPlugin but got %s", name)
 	}
 
 	version, err := c.Version(ctx)
@@ -233,7 +233,7 @@ func TestSourceSuccess(t *testing.T) {
 const testSourceFailExpectedErr = "failed to fetch resources from stream: rpc error: code = Unknown desc = failed to sync resources: failed to create execution client for source plugin testSourcePlugin: error in newTestExecutionClientErr"
 
 func TestSourceFail(t *testing.T) {
-	plugin := plugins.NewSourcePlugin(
+	plugin := source.NewPlugin(
 		"testSourcePlugin",
 		"v1.0.0",
 		[]*schema.Table{testTable("test_table")},
