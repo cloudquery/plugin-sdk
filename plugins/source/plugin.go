@@ -1,4 +1,4 @@
-package plugins
+package source
 
 import (
 	"context"
@@ -12,21 +12,21 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-type SourceNewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
+type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
 
-// SourcePlugin is the base structure required to pass to sdk.serve
+// Plugin is the base structure required to pass to sdk.serve
 // We take a declarative approach to API here similar to Cobra
-type SourcePlugin struct {
+type Plugin struct {
 	// Name of plugin i.e aws,gcp, azure etc'
 	name string
 	// Version of the plugin
 	version string
 	// Called upon configure call to validate and init configuration
-	newExecutionClient SourceNewExecutionClientFunc
+	newExecutionClient NewExecutionClientFunc
 	// Tables is all tables supported by this source plugin
 	tables schema.Tables
 	// status sync metrics
-	metrics *SourceMetrics
+	metrics *Metrics
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
 	logger zerolog.Logger
 	// resourceSem is a semaphore that limits the number of concurrent resources being fetched
@@ -80,15 +80,15 @@ func maxDepth(tables schema.Tables) uint64 {
 	return depth
 }
 
-// NewSourcePlugin returns a new plugin with a given name, version, tables, newExecutionClient
+// NewPlugin returns a new plugin with a given name, version, tables, newExecutionClient
 // and additional options.
-func NewSourcePlugin(name string, version string, tables []*schema.Table, newExecutionClient SourceNewExecutionClientFunc) *SourcePlugin {
-	p := SourcePlugin{
+func NewPlugin(name string, version string, tables []*schema.Table, newExecutionClient NewExecutionClientFunc) *Plugin {
+	p := Plugin{
 		name:               name,
 		version:            version,
 		tables:             tables,
 		newExecutionClient: newExecutionClient,
-		metrics:            &SourceMetrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
+		metrics:            &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:              caser.New(),
 	}
 	addInternalColumns(p.tables)
@@ -103,18 +103,18 @@ func NewSourcePlugin(name string, version string, tables []*schema.Table, newExe
 	return &p
 }
 
-func (p *SourcePlugin) SetLogger(logger zerolog.Logger) {
+func (p *Plugin) SetLogger(logger zerolog.Logger) {
 	p.logger = logger.With().Str("module", p.name+"-src").Logger()
 }
 
 // Tables returns all tables supported by this source plugin
-func (p *SourcePlugin) Tables() schema.Tables {
+func (p *Plugin) Tables() schema.Tables {
 	return p.tables
 }
 
 // TablesForSpec returns all tables supported by this source plugin that match the given spec.
 // It validates the tables part of the spec and will return an error if it is found to be invalid.
-func (p *SourcePlugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
+func (p *Plugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid spec: %w", err)
@@ -127,21 +127,21 @@ func (p *SourcePlugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
 }
 
 // Name return the name of this plugin
-func (p *SourcePlugin) Name() string {
+func (p *Plugin) Name() string {
 	return p.name
 }
 
 // Version returns the version of this plugin
-func (p *SourcePlugin) Version() string {
+func (p *Plugin) Version() string {
 	return p.version
 }
 
-func (p *SourcePlugin) Metrics() *SourceMetrics {
+func (p *Plugin) Metrics() *Metrics {
 	return p.metrics
 }
 
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *SourcePlugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
+func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
 		return fmt.Errorf("invalid spec: %w", err)

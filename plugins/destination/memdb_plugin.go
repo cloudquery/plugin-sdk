@@ -1,4 +1,4 @@
-package plugins
+package destination
 
 import (
 	"context"
@@ -33,25 +33,25 @@ func withBlockingWrite() TestDestinationOption {
 	}
 }
 
-func getNewTestDestinationMemDBClient(options ...TestDestinationOption) NewDestinationClientFunc {
+func getNewTestDestinationMemDBClient(options ...TestDestinationOption) NewClientFunc {
 	c := &TestDestinationMemDBClient{
 		memoryDB: make(map[string][][]interface{}),
 	}
 	for _, opt := range options {
 		opt(c)
 	}
-	return func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error) {
+	return func(context.Context, zerolog.Logger, specs.Destination) (Client, error) {
 		return c, nil
 	}
 }
 
-func NewTestDestinationMemDBClient(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error) {
+func NewTestDestinationMemDBClient(context.Context, zerolog.Logger, specs.Destination) (Client, error) {
 	return &TestDestinationMemDBClient{
 		memoryDB: make(map[string][][]interface{}),
 	}, nil
 }
 
-func newTestDestinationMemDBClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error) {
+func newTestDestinationMemDBClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (Client, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
@@ -132,8 +132,8 @@ func (c *TestDestinationMemDBClient) Write(ctx context.Context, tables schema.Ta
 	return nil
 }
 
-func (*TestDestinationMemDBClient) Metrics() DestinationMetrics {
-	return DestinationMetrics{}
+func (*TestDestinationMemDBClient) Metrics() Metrics {
+	return Metrics{}
 }
 
 func (c *TestDestinationMemDBClient) Close(context.Context) error {

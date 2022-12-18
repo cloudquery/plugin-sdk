@@ -10,7 +10,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/servers"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -23,7 +23,7 @@ import (
 )
 
 type destinationServe struct {
-	plugin    *plugins.DestinationPlugin
+	plugin    *destination.Plugin
 	sentryDSN string
 }
 
@@ -40,7 +40,7 @@ var testDestinationListenerLock sync.Mutex
 
 const serveDestinationShort = `Start destination plugin server`
 
-func Destination(plugin *plugins.DestinationPlugin, opts ...DestinationOption) {
+func Destination(plugin *destination.Plugin, opts ...DestinationOption) {
 	s := &destinationServe{
 		plugin: plugin,
 	}
@@ -55,7 +55,7 @@ func Destination(plugin *plugins.DestinationPlugin, opts ...DestinationOption) {
 }
 
 // nolint:dupl
-func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
+func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 	var address string
 	var network string
 	var noSentry bool
@@ -109,14 +109,14 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 				grpc.MaxSendMsgSize(servers.MaxMsgSize),
 			)
 			pb.RegisterDestinationServer(s, &servers.DestinationServer{
-				Plugin: destination.plugin,
+				Plugin: serve.plugin,
 				Logger: logger,
 			})
-			version := destination.plugin.Version()
+			version := serve.plugin.Version()
 
-			if destination.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {
+			if serve.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {
 				err = sentry.Init(sentry.ClientOptions{
-					Dsn:              destination.sentryDSN,
+					Dsn:              serve.sentryDSN,
 					Debug:            false,
 					AttachStacktrace: false,
 					Release:          version,
@@ -175,12 +175,12 @@ func newCmdDestinationServe(destination *destinationServe) *cobra.Command {
 	return cmd
 }
 
-func newCmdDestinationRoot(destination *destinationServe) *cobra.Command {
+func newCmdDestinationRoot(serve *destinationServe) *cobra.Command {
 	cmd := &cobra.Command{
-		Use: fmt.Sprintf("%s <command>", destination.plugin.Name()),
+		Use: fmt.Sprintf("%s <command>", serve.plugin.Name()),
 	}
-	cmd.AddCommand(newCmdDestinationServe(destination))
+	cmd.AddCommand(newCmdDestinationServe(serve))
 	cmd.CompletionOptions.DisableDefaultCmd = true
-	cmd.Version = destination.plugin.Version()
+	cmd.Version = serve.plugin.Version()
 	return cmd
 }

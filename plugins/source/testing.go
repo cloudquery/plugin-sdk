@@ -1,4 +1,4 @@
-package plugins
+package source
 
 import (
 	"context"
@@ -8,10 +8,10 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 )
 
-func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source, opts ...TestSourcePluginOption) {
+func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...TestPluginOption) {
 	t.Helper()
 
-	o := &testSourcePluginOptions{
+	o := &testPluginOptions{
 		parallel: true,
 	}
 	for _, opt := range opts {
@@ -40,15 +40,15 @@ func TestSourcePluginSync(t *testing.T, plugin *SourcePlugin, spec specs.Source,
 	validateTables(t, plugin.Tables(), syncedResources)
 }
 
-type TestSourcePluginOption func(*testSourcePluginOptions)
+type TestPluginOption func(*testPluginOptions)
 
-func WithTestSourcePluginNoParallel() TestSourcePluginOption {
-	return func(f *testSourcePluginOptions) {
+func WithTestPluginNoParallel() TestPluginOption {
+	return func(f *testPluginOptions) {
 		f.parallel = false
 	}
 }
 
-type testSourcePluginOptions struct {
+type testPluginOptions struct {
 	parallel bool
 }
 

@@ -1,4 +1,4 @@
-package plugins
+package source
 
 import (
 	"embed"
@@ -9,19 +9,20 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
 //go:embed templates/*.go.tpl
 var templatesFS embed.FS
 
-// GenerateSourcePluginDocs creates table documentation for the source plugin based on its list of tables
-func (p *SourcePlugin) GenerateSourcePluginDocs(dir, format string) error {
+// GeneratePluginDocs creates table documentation for the source plugin based on its list of tables
+func (p *Plugin) GeneratePluginDocs(dir, format string) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
 
-	SetDestinationManagedCqColumns(p.Tables())
+	destination.SetDestinationManagedCqColumns(p.Tables())
 
 	switch format {
 	case "markdown":
@@ -46,7 +47,7 @@ type jsonColumn struct {
 	IsPrimaryKey bool   `json:"is_primary_key,omitempty"`
 }
 
-func (p *SourcePlugin) renderTablesAsJSON(dir string) error {
+func (p *Plugin) renderTablesAsJSON(dir string) error {
 	tables := p.jsonifyTables(p.Tables())
 	b, err := json.MarshalIndent(tables, "", "  ")
 	if err != nil {
@@ -56,7 +57,7 @@ func (p *SourcePlugin) renderTablesAsJSON(dir string) error {
 	return os.WriteFile(outputPath, b, 0644)
 }
 
-func (p *SourcePlugin) jsonifyTables(tables schema.Tables) []jsonTable {
+func (p *Plugin) jsonifyTables(tables schema.Tables) []jsonTable {
 	jsonTables := make([]jsonTable, len(tables))
 	for i, table := range tables {
 		jsonColumns := make([]jsonColumn, len(table.Columns))
@@ -77,7 +78,7 @@ func (p *SourcePlugin) jsonifyTables(tables schema.Tables) []jsonTable {
 	return jsonTables
 }
 
-func (p *SourcePlugin) renderTablesAsMarkdown(dir string) error {
+func (p *Plugin) renderTablesAsMarkdown(dir string) error {
 	for _, table := range p.Tables() {
 		if err := renderAllTables(table, dir); err != nil {
 			return err

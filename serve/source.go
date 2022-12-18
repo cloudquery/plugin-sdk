@@ -10,7 +10,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
 	"github.com/cloudquery/plugin-sdk/internal/servers"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/source"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -24,7 +24,7 @@ import (
 )
 
 type sourceServe struct {
-	plugin    *plugins.SourcePlugin
+	plugin    *source.Plugin
 	sentryDSN string
 }
 
@@ -42,7 +42,7 @@ var testSourceListenerLock sync.Mutex
 
 const serveSourceShort = `Start source plugin server`
 
-func Source(plugin *plugins.SourcePlugin, opts ...SourceOption) {
+func Source(plugin *source.Plugin, opts ...SourceOption) {
 	s := &sourceServe{
 		plugin: plugin,
 	}
@@ -57,7 +57,7 @@ func Source(plugin *plugins.SourcePlugin, opts ...SourceOption) {
 }
 
 // nolint:dupl
-func newCmdSourceServe(source *sourceServe) *cobra.Command {
+func newCmdSourceServe(serve *sourceServe) *cobra.Command {
 	var address string
 	var network string
 	var noSentry bool
@@ -114,16 +114,16 @@ func newCmdSourceServe(source *sourceServe) *cobra.Command {
 				grpc.MaxRecvMsgSize(servers.MaxMsgSize),
 				grpc.MaxSendMsgSize(servers.MaxMsgSize),
 			)
-			source.plugin.SetLogger(logger)
+			serve.plugin.SetLogger(logger)
 			pb.RegisterSourceServer(s, &servers.SourceServer{
-				Plugin: source.plugin,
+				Plugin: serve.plugin,
 				Logger: logger,
 			})
-			version := source.plugin.Version()
+			version := serve.plugin.Version()
 
-			if source.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {
+			if serve.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {
 				err = sentry.Init(sentry.ClientOptions{
-					Dsn:              source.sentryDSN,
+					Dsn:              serve.sentryDSN,
 					Debug:            false,
 					AttachStacktrace: false,
 					Release:          version,
@@ -198,7 +198,7 @@ doc --format json .
 `
 )
 
-func newCmdSourceDoc(source *sourceServe) *cobra.Command {
+func newCmdSourceDoc(serve *sourceServe) *cobra.Command {
 	format := newEnum([]string{"json", "markdown"}, "markdown")
 	cmd := &cobra.Command{
 		Use:   "doc <directory>",
@@ -206,20 +206,20 @@ func newCmdSourceDoc(source *sourceServe) *cobra.Command {
 		Long:  sourceDocLong,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return source.plugin.GenerateSourcePluginDocs(args[0], format.Value)
+			return serve.plugin.GeneratePluginDocs(args[0], format.Value)
 		},
 	}
 	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
 	return cmd
 }
 
-func newCmdSourceRoot(source *sourceServe) *cobra.Command {
+func newCmdSourceRoot(serve *sourceServe) *cobra.Command {
 	cmd := &cobra.Command{
-		Use: fmt.Sprintf("%s <command>", source.plugin.Name()),
+		Use: fmt.Sprintf("%s <command>", serve.plugin.Name()),
 	}
-	cmd.AddCommand(newCmdSourceServe(source))
-	cmd.AddCommand(newCmdSourceDoc(source))
+	cmd.AddCommand(newCmdSourceServe(serve))
+	cmd.AddCommand(newCmdSourceDoc(serve))
 	cmd.CompletionOptions.DisableDefaultCmd = true
-	cmd.Version = source.plugin.Version()
+	cmd.Version = serve.plugin.Version()
 	return cmd
 }

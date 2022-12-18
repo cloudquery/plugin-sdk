@@ -1,4 +1,4 @@
-package plugins
+package source
 
 import (
 	"context"
@@ -22,7 +22,7 @@ const (
 	minResourceConcurrency = 100
 )
 
-func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
+func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree.
 	tableConcurrency := max(spec.Concurrency/minResourceConcurrency, minTableConcurrency)
@@ -74,15 +74,24 @@ func (p *SourcePlugin) syncDfs(ctx context.Context, spec specs.Source, client sc
 	wg.Wait()
 }
 
-func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) logTablesMetrics(tables schema.Tables, client schema.ClientMeta) {
+	clientName := client.ID()
+	for _, table := range tables {
+		metrics := p.metrics.TableClient[table.Name][clientName]
+		p.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Uint64("errors", metrics.Errors).Msg("table sync finished")
+		p.logTablesMetrics(table.Relations, client)
+	}
+}
+
+func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
 	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
-		logger.Info().Msg("table resolver started")
+		logger.Info().Msg("top level table resolver started")
 	}
-
 	tableMetrics := p.metrics.TableClient[table.Name][clientName]
+
 	res := make(chan interface{})
 	go func() {
 		defer func() {
@@ -109,12 +118,13 @@ func (p *SourcePlugin) resolveTableDfs(ctx context.Context, table *schema.Table,
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
-	if parent == nil { // Log only for root tables, otherwise we spam too much.
-		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("fetch table finished")
+	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
+		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("table sync finished")
+		p.logTablesMetrics(table.Relations, client)
 	}
 }
 
-func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource, depth int) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
@@ -168,7 +178,7 @@ func (p *SourcePlugin) resolveResourcesDfs(ctx context.Context, table *schema.Ta
 	wg.Wait()
 }
 
-func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item interface{}) *schema.Resource {
+func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item interface{}) *schema.Resource {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	resource := schema.NewResourceData(table, parent, item)
@@ -205,7 +215,7 @@ func (p *SourcePlugin) resolveResource(ctx context.Context, table *schema.Table,
 	return resource
 }
 
-func (p *SourcePlugin) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
+func (p *Plugin) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
 	columnStartTime := time.Now()
 	defer func() {
 		if err := recover(); err != nil {

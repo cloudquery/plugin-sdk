@@ -14,7 +14,7 @@ import (
 	"sync"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/source"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -217,12 +217,12 @@ func (c *SourceClient) Version(ctx context.Context) (string, error) {
 	return res.Version, nil
 }
 
-func (c *SourceClient) GetMetrics(ctx context.Context) (*plugins.SourceMetrics, error) {
+func (c *SourceClient) GetMetrics(ctx context.Context) (*source.Metrics, error) {
 	res, err := c.pbClient.GetMetrics(ctx, &pb.GetSourceMetrics_Request{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call GetMetrics: %w", err)
 	}
-	var stats plugins.SourceMetrics
+	var stats source.Metrics
 	if err := json.Unmarshal(res.Metrics, &stats); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal source stats: %w", err)
 	}
