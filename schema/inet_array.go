@@ -23,7 +23,11 @@ func (*InetArray) Type() ValueType {
 }
 
 func (dst *InetArray) Size() int {
-	return len(dst.Elements) * 32
+	totalSize := 0
+	for _, element := range dst.Elements {
+		totalSize += element.Size()
+	}
+	return totalSize
 }
 
 func (dst *InetArray) Equal(src CQType) bool {
