@@ -40,18 +40,18 @@ func getNewTestDestinationMemDBClient(options ...TestDestinationOption) NewClien
 	for _, opt := range options {
 		opt(c)
 	}
-	return func(context.Context, zerolog.Logger, specs.Destination) (Client, error) {
+	return func(context.Context, zerolog.Logger, specs.Destination) (UnmanagedClient, error) {
 		return c, nil
 	}
 }
 
-func NewTestDestinationMemDBClient(context.Context, zerolog.Logger, specs.Destination) (Client, error) {
+func NewTestDestinationMemDBClient(context.Context, zerolog.Logger, specs.Destination) (UnmanagedClient, error) {
 	return &TestDestinationMemDBClient{
 		memoryDB: make(map[string][][]interface{}),
 	}, nil
 }
 
-func newTestDestinationMemDBClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (Client, error) {
+func newTestDestinationMemDBClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (UnmanagedClient, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
@@ -84,10 +84,7 @@ func (c *TestDestinationMemDBClient) overwrite(table *schema.Table, data []inter
 	c.memoryDB[table.Name] = append(c.memoryDB[table.Name], data)
 }
 
-func (c *TestDestinationMemDBClient) Initialize(_ context.Context, spec specs.Destination) error {
-	c.spec = spec
-	return nil
-}
+
 func (c *TestDestinationMemDBClient) Migrate(_ context.Context, tables schema.Tables) error {
 	for _, table := range tables {
 		if c.memoryDB[table.Name] == nil {

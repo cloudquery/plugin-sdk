@@ -263,9 +263,8 @@ func (t *Table) Column(name string) *Column {
 // If the column with the same name exists, overwrites it.
 // Otherwise, adds the column to the beginning of the table.
 func (t *Table) OverwriteOrAddColumn(column *Column) {
-	for i, c := range t.Columns {
+	for _, c := range t.Columns {
 		if c.Name == column.Name {
-			t.Columns[i] = *column
 			return
 		}
 	}

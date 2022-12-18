@@ -45,7 +45,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
 }
 
-func (s *TestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *TestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *UnmanagedPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -63,11 +63,11 @@ func (s *TestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *
 	sourceName := uuid.NewString()
 	resource := schema.DestinationResource{
 		TableName: table.Name,
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
 	resource2 := schema.DestinationResource{
 		TableName: table.Name,
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
 	_ = resource2.Data[5].Set("00000000-0000-0000-0000-000000000007")
 	resources := []schema.DestinationResource{
@@ -140,7 +140,7 @@ func (s *TestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *
 	return nil
 }
 
-func (s *TestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *TestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *UnmanagedPlugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -158,7 +158,7 @@ func (s *TestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plu
 	sourceName := uuid.NewString()
 	resource := schema.DestinationResource{
 		TableName: table.Name,
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
 
 	if err := p.writeOne(ctx, tables, sourceName, syncTime, resource); err != nil {
@@ -167,7 +167,7 @@ func (s *TestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plu
 
 	resource = schema.DestinationResource{
 		TableName: table.Name,
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
 
 	if !s.tests.SkipSecondAppend {
@@ -207,7 +207,7 @@ func (s *TestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plu
 	return nil
 }
 
-func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec interface{}, tests TestSuiteTests) {
+func UnamanagedPluginTestSuiteRunner(t *testing.T, p *UnmanagedPlugin, spec interface{}, tests TestSuiteTests) {
 	t.Helper()
 	destSpec := specs.Destination{
 		Name: "testsuite",
