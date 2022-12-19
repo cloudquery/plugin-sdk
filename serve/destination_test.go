@@ -107,8 +107,8 @@ func TestDestination(t *testing.T) {
 		TableName: tableName,
 		Data:      testdata.GenTestData(table),
 	}
-	destResource.Data[0].Set(sourceName)
-	destResource.Data[1].Set(syncTime)
+	_ = destResource.Data[0].Set(sourceName)
+	_ = destResource.Data[1].Set(syncTime)
 	b, err := json.Marshal(destResource)
 	if err != nil {
 		t.Fatal(err)

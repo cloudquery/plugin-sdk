@@ -57,15 +57,15 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		TableName: table.Name,
 		Data:      testdata.GenTestData(table),
 	}
-	resource.Data[0].Set(sourceName)
-	resource.Data[1].Set(syncTime)
+	_ = resource.Data[0].Set(sourceName)
+	_ = resource.Data[1].Set(syncTime)
 
 	resource2 := schema.DestinationResource{
 		TableName: table.Name,
 		Data:      testdata.GenTestData(table),
 	}
-	resource2.Data[0].Set(sourceName)
-	resource2.Data[1].Set(syncTime)
+	_ = resource2.Data[0].Set(sourceName)
+	_ = resource2.Data[1].Set(syncTime)
 
 	resources := []schema.DestinationResource{
 		resource,
@@ -94,7 +94,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 	}
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
-	resource.Data[1].Set(secondSyncTime)
+	_ = resource.Data[1].Set(secondSyncTime)
 	// write second time
 	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
@@ -158,8 +158,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		TableName: table.Name,
 		Data:      testdata.GenTestData(table),
 	}
-	resource.Data[0].Set(sourceName)
-	resource.Data[1].Set(syncTime)
+	_ = resource.Data[0].Set(sourceName)
+	_ = resource.Data[1].Set(syncTime)
 
 	if err := p.writeOne(ctx, tables, sourceName, syncTime, resource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
@@ -175,8 +175,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		// issue on windows machine on github actions where it returns the same thing
 		// for all calls.
 		secondSyncTime := syncTime.Add(10 * time.Second).UTC()
-		resource2.Data[0].Set(sourceName)
-		resource2.Data[1].Set(secondSyncTime)
+		_ = resource2.Data[0].Set(sourceName)
+		_ = resource2.Data[1].Set(secondSyncTime)
 		// write second time
 		if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource2); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)

@@ -2,6 +2,7 @@ package destination
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -40,7 +41,7 @@ func (p *Plugin) writeUnmanaged(ctx context.Context, tables schema.Tables, sourc
 
 	close(ch)
 	if err := eg.Wait(); err != nil {
-		return err
+		return fmt.Errorf("failed waiting to destination clien %w", err)
 	}
 	return nil
 }

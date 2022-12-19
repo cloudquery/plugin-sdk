@@ -25,6 +25,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 	for {
 		select {
 		case r, ok := <-ch:
+			//nolint:revive
 			if ok {
 				resources = append(resources, schema.TransformWithTransformer(p.client, r))
 				if len(resources) == p.spec.BatchSize {
