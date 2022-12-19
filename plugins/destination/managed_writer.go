@@ -10,14 +10,12 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 )
 
-
 type worker struct {
 	count int
 	wg    *sync.WaitGroup
 	ch    chan schema.CQTypes
 	flush chan chan bool
 }
-
 
 // batchTimeout is the timeout for a batch to be sent to the destination if no resources are received
 const batchTimeout = 20 * time.Second
@@ -126,7 +124,7 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, tables schema.Table
 	syncTimeColumn := &schema.Timestamptz{}
 	_ = syncTimeColumn.Set(syncTime)
 	for r := range res {
-		// this is a check to keep backward compatible for sources that are not adding 
+		// this is a check to keep backward compatible for sources that are not adding
 		// source and sync time
 		if len(r.Data) < len(tables.Get(r.TableName).Columns) {
 			r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)

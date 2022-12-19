@@ -6,14 +6,11 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
-// TestTable returns a table with columns of all type. useful for destination testing purposes
-func TestTable(name string) *schema.Table {
+func TestSourceTable(name string) *schema.Table {
 	return &schema.Table{
 		Name:        name,
 		Description: "Test table",
 		Columns: schema.ColumnList{
-			schema.CqSourceNameColumn,
-			schema.CqSyncTimeColumn,
 			schema.CqIDColumn,
 			schema.CqParentIDColumn,
 			{
@@ -87,6 +84,16 @@ func TestTable(name string) *schema.Table {
 			},
 		},
 	}
+}
+
+// TestTable returns a table with columns of all type. useful for destination testing purposes
+func TestTable(name string) *schema.Table {
+	sourceTable := TestSourceTable(name)
+	sourceTable.Columns = append(schema.ColumnList{
+			schema.CqSourceNameColumn,
+			schema.CqSyncTimeColumn,
+		}, sourceTable.Columns...)
+	return sourceTable
 }
 
 func GenTestData(table *schema.Table) schema.CQTypes {

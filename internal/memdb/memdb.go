@@ -1,17 +1,20 @@
-package destination
+package memdb
 
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 )
 
-// TestDestinationMemDBClient is mostly used for testing.
-type TestDestinationMemDBClient struct {
+// client is mostly used for testing the destination plugin.
+type client struct {
 	schema.DefaultTransformer
 	spec          specs.Destination
 	memoryDB      map[string][][]interface{}
@@ -19,50 +22,59 @@ type TestDestinationMemDBClient struct {
 	blockingWrite bool
 }
 
-type TestDestinationOption func(*TestDestinationMemDBClient)
+type Option func(*client)
 
-func withErrOnWrite() TestDestinationOption {
-	return func(c *TestDestinationMemDBClient) {
+func WithErrOnWrite() Option {
+	return func(c *client) {
 		c.errOnWrite = true
 	}
 }
 
-func withBlockingWrite() TestDestinationOption {
-	return func(c *TestDestinationMemDBClient) {
+func WithBlockingWrite() Option {
+	return func(c *client) {
 		c.blockingWrite = true
 	}
 }
 
-func getNewTestDestinationMemDBClient(options ...TestDestinationOption) NewClientFunc {
-	c := &TestDestinationMemDBClient{
+func GetNewClient(options ...Option) destination.NewClientFunc {
+	c := &client{
 		memoryDB: make(map[string][][]interface{}),
 	}
 	for _, opt := range options {
 		opt(c)
 	}
-	return func(context.Context, zerolog.Logger, specs.Destination) (UnmanagedClient, error) {
+	return func(context.Context, zerolog.Logger, specs.Destination) (destination.Client, error) {
 		return c, nil
 	}
 }
 
-func NewTestDestinationMemDBClient(context.Context, zerolog.Logger, specs.Destination) (UnmanagedClient, error) {
-	return &TestDestinationMemDBClient{
+func getTestLogger(t *testing.T) zerolog.Logger {
+	t.Helper()
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
+	return zerolog.New(zerolog.NewTestWriter(t)).Output(
+		zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.StampMicro},
+	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
+}
+
+func NewClient(_ context.Context, _ zerolog.Logger, spec specs.Destination) (destination.Client, error) {
+	return &client{
 		memoryDB: make(map[string][][]interface{}),
+		spec:     spec,
 	}, nil
 }
 
-func newTestDestinationMemDBClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (UnmanagedClient, error) {
+func NewClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (destination.Client, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
-func (*TestDestinationMemDBClient) ReverseTransformValues(_ *schema.Table, values []interface{}) (schema.CQTypes, error) {
+func (*client) ReverseTransformValues(_ *schema.Table, values []interface{}) (schema.CQTypes, error) {
 	res := make(schema.CQTypes, len(values))
 	for i, v := range values {
 		res[i] = v.(schema.CQType)
 	}
 	return res, nil
 }
-func (c *TestDestinationMemDBClient) overwrite(table *schema.Table, data []interface{}) {
+func (c *client) overwrite(table *schema.Table, data []interface{}) {
 	pks := table.PrimaryKeys()
 	//nolint:prealloc
 	var pksIndex []int
@@ -84,8 +96,7 @@ func (c *TestDestinationMemDBClient) overwrite(table *schema.Table, data []inter
 	c.memoryDB[table.Name] = append(c.memoryDB[table.Name], data)
 }
 
-
-func (c *TestDestinationMemDBClient) Migrate(_ context.Context, tables schema.Tables) error {
+func (c *client) Migrate(_ context.Context, tables schema.Tables) error {
 	for _, table := range tables {
 		if c.memoryDB[table.Name] == nil {
 			c.memoryDB[table.Name] = make([][]interface{}, 0)
@@ -94,7 +105,7 @@ func (c *TestDestinationMemDBClient) Migrate(_ context.Context, tables schema.Ta
 	return nil
 }
 
-func (c *TestDestinationMemDBClient) Read(_ context.Context, table *schema.Table, source string, res chan<- []interface{}) error {
+func (c *client) Read(_ context.Context, table *schema.Table, source string, res chan<- []interface{}) error {
 	if c.memoryDB[table.Name] == nil {
 		return nil
 	}
@@ -108,7 +119,7 @@ func (c *TestDestinationMemDBClient) Read(_ context.Context, table *schema.Table
 	return nil
 }
 
-func (c *TestDestinationMemDBClient) Write(ctx context.Context, tables schema.Tables, resources <-chan *ClientResource) error {
+func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-chan *destination.ClientResource) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -129,16 +140,37 @@ func (c *TestDestinationMemDBClient) Write(ctx context.Context, tables schema.Ta
 	return nil
 }
 
-func (*TestDestinationMemDBClient) Metrics() Metrics {
-	return Metrics{}
+func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resources [][]interface{}) error {
+	if c.errOnWrite {
+		return fmt.Errorf("errOnWrite")
+	}
+	if c.blockingWrite {
+		<-ctx.Done()
+		if c.errOnWrite {
+			return fmt.Errorf("errOnWrite")
+		}
+		return nil
+	}
+	for _, resource := range resources {
+		if c.spec.WriteMode == specs.WriteModeAppend {
+			c.memoryDB[table.Name] = append(c.memoryDB[table.Name], resource)
+		} else {
+			c.overwrite(table, resource)
+		}
+	}
+	return nil
 }
 
-func (c *TestDestinationMemDBClient) Close(context.Context) error {
+func (*client) Metrics() destination.Metrics {
+	return destination.Metrics{}
+}
+
+func (c *client) Close(context.Context) error {
 	c.memoryDB = nil
 	return nil
 }
 
-func (c *TestDestinationMemDBClient) DeleteStale(ctx context.Context, tables schema.Tables, source string, syncTime time.Time) error {
+func (c *client) DeleteStale(ctx context.Context, tables schema.Tables, source string, syncTime time.Time) error {
 	for _, table := range tables {
 		c.deleteStaleTable(ctx, table, source, syncTime)
 		if err := c.DeleteStale(ctx, table.Relations, source, syncTime); err != nil {
@@ -148,15 +180,17 @@ func (c *TestDestinationMemDBClient) DeleteStale(ctx context.Context, tables sch
 	return nil
 }
 
-func (c *TestDestinationMemDBClient) deleteStaleTable(_ context.Context, table *schema.Table, source string, syncTime time.Time) {
+func (c *client) deleteStaleTable(_ context.Context, table *schema.Table, source string, syncTime time.Time) {
 	sourceColIndex := table.Columns.Index(schema.CqSourceNameColumn.Name)
 	syncColIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
+	var filteredTable [][]interface{}
 	for i, row := range c.memoryDB[table.Name] {
 		if row[sourceColIndex].(*schema.Text).Str == source {
 			rowSyncTime := row[syncColIndex].(*schema.Timestamptz)
-			if rowSyncTime.Time.Before(syncTime) {
-				c.memoryDB[table.Name] = append(c.memoryDB[table.Name][:i], c.memoryDB[table.Name][i+1:]...)
+			if !rowSyncTime.Time.UTC().Before(syncTime) {
+				filteredTable = append(filteredTable, c.memoryDB[table.Name][i])
 			}
 		}
 	}
+	c.memoryDB[table.Name] = filteredTable
 }

@@ -59,7 +59,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 	}
 	resource.Data[0].Set(sourceName)
 	resource.Data[1].Set(syncTime)
-	
+
 	resource2 := schema.DestinationResource{
 		TableName: table.Name,
 		Data:      testdata.GenTestData(table),
@@ -169,7 +169,6 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		TableName: table.Name,
 		Data:      testdata.GenTestData(table),
 	}
-
 
 	if !s.tests.SkipSecondAppend {
 		// we dont use time.now because looks like there is some strange

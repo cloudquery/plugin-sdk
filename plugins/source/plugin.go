@@ -56,8 +56,6 @@ func addInternalColumns(tables []*schema.Table) {
 		table.Columns = append([]schema.Column{
 			cqID,
 			schema.CqParentIDColumn,
-			schema.CqSyncTimeColumn,
-			schema.CqSourceNameColumn,
 		}, table.Columns...)
 		addInternalColumns(table.Relations)
 	}

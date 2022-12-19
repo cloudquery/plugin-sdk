@@ -39,7 +39,6 @@ type Client interface {
 	Close(ctx context.Context) error
 }
 
-
 type ClientResource struct {
 	TableName string
 	Data      []interface{}
@@ -54,7 +53,7 @@ type Plugin struct {
 	version string
 	// Called upon configure call to validate and init configuration
 	newClient NewClientFunc
-	writer 		 writerType
+	writer    writerType
 	// initialized destination client
 	client Client
 	// spec the client was initialized with
@@ -79,14 +78,14 @@ func WithManagerWriter() Option {
 }
 
 // NewPlugin creates a new unmanaged plugin
-func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts...Option) *Plugin {
+func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ...Option) *Plugin {
 	p := &Plugin{
-		name:                 name,
-		version:              version,
-		newClient: newClientFunc,
-		metrics: make(map[string]*Metrics),
+		name:        name,
+		version:     version,
+		newClient:   newClientFunc,
+		metrics:     make(map[string]*Metrics),
 		metricsLock: &sync.RWMutex{},
-		workers: make(map[string]*worker),
+		workers:     make(map[string]*worker),
 		workersLock: &sync.Mutex{},
 	}
 	if newClientFunc == nil {
