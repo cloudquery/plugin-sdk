@@ -46,7 +46,7 @@ type Plugin struct {
 
 const writeWorkers = 1
 
-func NewDestinationPlugin(name string, version string, newDestinationClient NewClientFunc) *Plugin {
+func NewPlugin(name string, version string, newDestinationClient NewClientFunc) *Plugin {
 	p := &Plugin{
 		name:                 name,
 		version:              version,

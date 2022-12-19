@@ -24,7 +24,7 @@ func bufDestinationDialer(context.Context, string) (net.Conn, error) {
 }
 
 func TestDestination(t *testing.T) {
-	plugin := destination.NewDestinationPlugin("testDestinationPlugin", "development", destination.NewTestDestinationMemDBClient)
+	plugin := destination.NewPlugin("testDestinationPlugin", "development", destination.NewTestDestinationMemDBClient)
 	s := &destinationServe{
 		plugin: plugin,
 	}
