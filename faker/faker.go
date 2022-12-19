@@ -15,7 +15,7 @@ type faker struct {
 	logger   zerolog.Logger
 }
 
-var errEFaceNotAllowed = fmt.Errorf("interface{} not allowed")
+var errEFaceNotAllowed = fmt.Errorf("any not allowed")
 
 func (f faker) getFakedValue(a any) (reflect.Value, error) {
 	t := reflect.TypeOf(a)
