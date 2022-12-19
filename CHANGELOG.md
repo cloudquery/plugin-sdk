@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.7](https://github.com/cloudquery/plugin-sdk/compare/v1.12.6...v1.12.7) (2022-12-19)
+
+
+### Bug Fixes
+
+* **destination:** Rename `NewDestinationPlugin` to `NewPlugin` ([#519](https://github.com/cloudquery/plugin-sdk/issues/519)) ([3934775](https://github.com/cloudquery/plugin-sdk/commit/39347757ba443e93ab36de86c8672223f9554145))
+
 ## [1.12.6](https://github.com/cloudquery/plugin-sdk/compare/v1.12.5...v1.12.6) (2022-12-18)
 
 
