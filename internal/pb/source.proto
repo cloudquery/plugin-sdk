@@ -2,6 +2,7 @@ syntax = "proto3";
 package proto;
 option go_package = "/pb";
 import "internal/pb/base.proto";
+import "google/protobuf/timestamp.proto";
 
 service Source {
   // Get the current protocol version of the plugin. This helps
@@ -30,6 +31,8 @@ service Source {
 message Sync {
   message Request {
     bytes spec = 1;
+    // sync timestamp
+    google.protobuf.Timestamp timestamp = 2;
   }
   message Response {
     // marshalled *schema.Resources
