@@ -11,7 +11,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -154,70 +153,6 @@ var (
 			Resolver: `schema.PathResolver("NoJSONTag")`,
 		},
 	}
-	expectedTestTable = TableDefinition{
-		Name:                "test_struct",
-		Columns:             expectedColumns,
-		nameTransformer:     DefaultNameTransformer,
-		typeTransformer:     DefaultTypeTransformer,
-		resolverTransformer: DefaultResolverTransformer,
-	}
-	expectedTestTableEmbeddedStruct = TableDefinition{
-		Name:                "test_struct",
-		Columns:             append(expectedColumns, ColumnDefinition{Name: "embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("EmbeddedString")`}),
-		nameTransformer:     DefaultNameTransformer,
-		typeTransformer:     DefaultTypeTransformer,
-		resolverTransformer: DefaultResolverTransformer,
-	}
-	expectedTestTableNonEmbeddedStruct = TableDefinition{
-		Name: "test_struct",
-		Columns: ColumnDefinitions{
-			// Should not be unwrapped
-			ColumnDefinition{Name: "test_struct", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TestStruct")`},
-			// Should be unwrapped
-			ColumnDefinition{
-				Name:     "non_embedded_embedded_string",
-				Type:     schema.TypeString,
-				Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`,
-				Options:  schema.ColumnCreationOptions{PrimaryKey: true},
-			},
-		},
-		nameTransformer:     DefaultNameTransformer,
-		typeTransformer:     DefaultTypeTransformer,
-		resolverTransformer: DefaultResolverTransformer,
-	}
-	expectedTestTableStructForCustomResolvers = TableDefinition{
-		Name: "test_struct",
-		Columns: ColumnDefinitions{
-			{
-				Name:     "time_col",
-				Type:     schema.TypeTimestamp,
-				Resolver: `schema.PathResolver("TimeCol")`,
-				Options:  schema.ColumnCreationOptions{PrimaryKey: true},
-			},
-			{
-				Name:     "custom",
-				Type:     schema.TypeTimestamp,
-				Resolver: `customResolver("Custom")`,
-			},
-		},
-		nameTransformer:     DefaultNameTransformer,
-		typeTransformer:     customTypeTransformer,
-		resolverTransformer: customResolverTransformer,
-	}
-	expectedTestSliceStruct = TableDefinition{
-		Name: "test_struct",
-		Columns: ColumnDefinitions{
-			{
-				Name:     "int_col",
-				Type:     schema.TypeInt,
-				Resolver: `schema.PathResolver("IntCol")`,
-				Options:  schema.ColumnCreationOptions{PrimaryKey: true},
-			},
-		},
-		nameTransformer:     DefaultNameTransformer,
-		typeTransformer:     customTypeTransformer,
-		resolverTransformer: customResolverTransformer,
-	}
 )
 
 func customResolverTransformer(field reflect.StructField, path string) (string, error) {
@@ -253,153 +188,173 @@ func customNameTransformer(field reflect.StructField) (string, error) {
 }
 
 func TestTableFromGoStruct(t *testing.T) {
-	type args struct {
-		testStruct any
-		options    []TableOption
-	}
 
 	tests := []struct {
-		name    string
-		args    args
-		want    TableDefinition
-		wantErr bool
+		name            string
+		TableDefinition TableDefinition
+		want            ColumnDefinitions
+		wantErr         bool
 	}{
 		{
 			name: "should generate table from struct with default options",
-			args: args{
-				testStruct: testStruct{},
-				options:    []TableOption{WithPKColumns("int_col")},
+			TableDefinition: TableDefinition{
+				NameOverride: "tables",
+				Struct:       testStruct{},
+				PKColumns:    []string{"int_col"},
 			},
-			want: expectedTestTable,
+			want: expectedColumns,
 		},
 		{
 			name: "should unwrap all embedded structs when option is set",
-			args: args{
-				testStruct: testStructWithEmbeddedStruct{},
-				options: []TableOption{
-					WithPKColumns("int_col"),
-					WithUnwrapAllEmbeddedStructs(),
-				},
+			TableDefinition: TableDefinition{
+				NameOverride:                  "tables",
+				Struct:                        testStructWithEmbeddedStruct{},
+				PKColumns:                     []string{"int_col"},
+				UnwrapAllEmbeddedStructFields: true,
 			},
-			want: expectedTestTableEmbeddedStruct,
+			want: append(expectedColumns, ColumnDefinition{Name: "embedded_string", Type: schema.TypeString, Resolver: `schema.PathResolver("EmbeddedString")`}),
 		},
 		{
 			name: "should unwrap specific structs when option is set",
-			args: args{
-				testStruct: testStructWithNonEmbeddedStruct{},
-				options: []TableOption{
-					WithPKColumns("non_embedded_embedded_string"),
-					WithUnwrapStructFields([]string{"NonEmbedded"}),
+			TableDefinition: TableDefinition{
+				NameOverride:         "tables",
+				Struct:               testStructWithNonEmbeddedStruct{},
+				PKColumns:            []string{"non_embedded_embedded_string"},
+				StructFieldsToUnwrap: []string{"NonEmbedded"},
+			},
+			want: ColumnDefinitions{
+				// Should not be unwrapped
+				ColumnDefinition{Name: "test_struct", Type: schema.TypeJSON, Resolver: `schema.PathResolver("TestStruct")`},
+				// Should be unwrapped
+				ColumnDefinition{
+					Name:     "non_embedded_embedded_string",
+					Type:     schema.TypeString,
+					Resolver: `schema.PathResolver("NonEmbedded.EmbeddedString")`,
+					Options:  schema.ColumnCreationOptions{PrimaryKey: true},
 				},
 			},
-			want: expectedTestTableNonEmbeddedStruct,
 		},
 		{
 			name: "should override schema type when option is set",
-			args: args{
-				testStruct: testStructWithCustomType{},
-				options: []TableOption{
-					WithPKColumns("time_col"),
-					WithTypeTransformer(func(t reflect.StructField) (schema.ValueType, error) {
-						switch t.Type {
-						case reflect.TypeOf(time.Time{}), reflect.TypeOf(&time.Time{}):
-							return schema.TypeJSON, nil
-						default:
-							return schema.TypeInvalid, nil
-						}
-					}),
+			TableDefinition: TableDefinition{
+				NameOverride: "tables",
+				Struct:       testStructWithCustomType{},
+				PKColumns:    []string{"time_col"},
+				TypeTransformer: func(t reflect.StructField) (schema.ValueType, error) {
+					switch t.Type {
+					case reflect.TypeOf(time.Time{}), reflect.TypeOf(&time.Time{}):
+						return schema.TypeJSON, nil
+					default:
+						return schema.TypeInvalid, nil
+					}
 				},
 			},
-			want: TableDefinition{Name: "test_struct",
-				// We expect the time column to be of type JSON, since we override the type of `time.Time` to be JSON
-				Columns: ColumnDefinitions{{
-					Name:     "time_col",
-					Type:     schema.TypeJSON,
-					Resolver: `schema.PathResolver("TimeCol")`,
-					Options:  schema.ColumnCreationOptions{PrimaryKey: true},
-				}},
-				nameTransformer: DefaultNameTransformer},
+			want: ColumnDefinitions{{
+				Name:     "time_col",
+				Type:     schema.TypeJSON,
+				Resolver: `schema.PathResolver("TimeCol")`,
+				Options:  schema.ColumnCreationOptions{PrimaryKey: true},
+			}},
 		},
 		{
 			name: "should handle default and custom acronyms correctly",
-			args: args{
-				testStruct: testStructCaseCheck{},
-				options: []TableOption{
-					WithPKColumns("ip_address"),
-					WithNameTransformer(customNameTransformer),
-				},
+			TableDefinition: TableDefinition{
+				NameOverride:    "tables",
+				Struct:          testStructCaseCheck{},
+				PKColumns:       []string{"ip_address"},
+				NameTransformer: customNameTransformer,
 			},
-			want: TableDefinition{Name: "test_struct",
-				// We expect the time column to be of type JSON, since we override the type of `time.Time` to be JSON
-				Columns: ColumnDefinitions{
-					{
-						Name:     "ip_address",
-						Type:     schema.TypeString,
-						Resolver: `schema.PathResolver("IPAddress")`,
-						Options:  schema.ColumnCreationOptions{PrimaryKey: true},
-					},
-					{Name: "cdns", Type: schema.TypeString, Resolver: `schema.PathResolver("CDNs")`},
-					{Name: "my_cdn", Type: schema.TypeString, Resolver: `schema.PathResolver("MyCDN")`},
-					{Name: "cidr", Type: schema.TypeInt, Resolver: `schema.PathResolver("CIDR")`},
-					{Name: "ipv6", Type: schema.TypeInt, Resolver: `schema.PathResolver("IPV6")`},
-					{Name: "ipv6_test", Type: schema.TypeInt, Resolver: `schema.PathResolver("IPv6Test")`},
-					{Name: "ipv6_address", Type: schema.TypeInt, Resolver: `schema.PathResolver("Ipv6Address")`},
-					{Name: "account_id", Type: schema.TypeString, Resolver: `schema.PathResolver("AccountID")`},
-					{Name: "postgre_sql", Type: schema.TypeString, Resolver: `schema.PathResolver("PostgreSQL")`},
-					{Name: "ids", Type: schema.TypeString, Resolver: `schema.PathResolver("IDs")`},
+			want: ColumnDefinitions{
+				{
+					Name:     "ip_address",
+					Type:     schema.TypeString,
+					Resolver: `schema.PathResolver("IPAddress")`,
+					Options:  schema.ColumnCreationOptions{PrimaryKey: true},
 				},
-				nameTransformer: DefaultNameTransformer},
+				{Name: "cdns", Type: schema.TypeString, Resolver: `schema.PathResolver("CDNs")`},
+				{Name: "my_cdn", Type: schema.TypeString, Resolver: `schema.PathResolver("MyCDN")`},
+				{Name: "cidr", Type: schema.TypeInt, Resolver: `schema.PathResolver("CIDR")`},
+				{Name: "ipv6", Type: schema.TypeInt, Resolver: `schema.PathResolver("IPV6")`},
+				{Name: "ipv6_test", Type: schema.TypeInt, Resolver: `schema.PathResolver("IPv6Test")`},
+				{Name: "ipv6_address", Type: schema.TypeInt, Resolver: `schema.PathResolver("Ipv6Address")`},
+				{Name: "account_id", Type: schema.TypeString, Resolver: `schema.PathResolver("AccountID")`},
+				{Name: "postgre_sql", Type: schema.TypeString, Resolver: `schema.PathResolver("PostgreSQL")`},
+				{Name: "ids", Type: schema.TypeString, Resolver: `schema.PathResolver("IDs")`},
+			},
 		},
 		{
 			name: "should use custom resolvers",
-			args: args{
-				testStruct: testStructForCustomResolvers{},
-				options: []TableOption{
-					WithPKColumns("time_col"),
-					WithTypeTransformer(customTypeTransformer),
-					WithResolverTransformer(customResolverTransformer),
+			TableDefinition: TableDefinition{
+				NameOverride:        "tables",
+				Struct:              testStructForCustomResolvers{},
+				PKColumns:           []string{"time_col"},
+				TypeTransformer:     customTypeTransformer,
+				ResolverTransformer: customResolverTransformer,
+			},
+			want: ColumnDefinitions{
+				{
+					Name:     "time_col",
+					Type:     schema.TypeTimestamp,
+					Resolver: `schema.PathResolver("TimeCol")`,
+					Options:  schema.ColumnCreationOptions{PrimaryKey: true},
+				},
+				{
+					Name:     "custom",
+					Type:     schema.TypeTimestamp,
+					Resolver: `customResolver("Custom")`,
 				},
 			},
-			want: expectedTestTableStructForCustomResolvers,
 		},
 		{
 			name: "should generate table from slice struct",
-			args: args{
-				testStruct: testSliceStruct{},
-				options:    []TableOption{WithPKColumns("int_col")},
+			TableDefinition: TableDefinition{
+				NameOverride: "tables",
+				Struct:       testSliceStruct{},
+				PKColumns:    []string{"int_col"},
 			},
-			want: expectedTestSliceStruct,
+			want: ColumnDefinitions{
+				{
+					Name:     "int_col",
+					Type:     schema.TypeInt,
+					Resolver: `schema.PathResolver("IntCol")`,
+					Options:  schema.ColumnCreationOptions{PrimaryKey: true},
+				},
+			},
 		},
 		{
 			name: "should error if there are undefined pk columns",
-			args: args{
-				testStruct: testSliceStruct{},
-				options:    []TableOption{WithPKColumns("int_col", "some_col")},
+			TableDefinition: TableDefinition{
+				NameOverride: "tables",
+				Struct:       testStruct{},
+				PKColumns:    []string{"int_col", "some_col"},
 			},
 			wantErr: true,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			table, err := NewTableFromStruct("test_struct", tt.args.testStruct, tt.args.options...)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			columns, err := test.TableDefinition.Columns()
+			if err != nil != test.wantErr {
+				t.Fatalf("error = %v, wantErr %v", err, test.wantErr)
 			}
-			if tt.wantErr {
+			if test.wantErr {
 				return
 			}
-			if diff := cmp.Diff(&tt.want, table,
-				cmpopts.IgnoreUnexported(TableDefinition{})); diff != "" {
-				t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
+			if diff := cmp.Diff(test.want, columns); diff != "" {
+				t.Fatalf("columns does not match expected. diff (-got, +want): %s", diff)
 			}
 			buf := bytes.NewBufferString("")
-			if err := table.GenerateTemplate(buf); err != nil {
+			if err := test.TableDefinition.GenerateTemplate(buf); err != nil {
 				t.Fatal(err)
 			}
 			fmt.Println(buf.String())
 		})
 	}
+
+}
+
+type EmptyStruct struct {
 }
 
 func TestTableDefinition_Check(t *testing.T) {
@@ -415,39 +370,45 @@ func TestTableDefinition_Check(t *testing.T) {
 		{
 			name:       "no table name",
 			definition: new(TableDefinition),
-			err:        fmt.Errorf("empty table name"),
+			err:        fmt.Errorf("unable to generate table name: missing fields (pluginName, service, subService)"),
 		},
 		{
-			name:       "no columns",
-			definition: &TableDefinition{Name: "no_columns"},
-			err:        fmt.Errorf("no_columns: no columns"),
+			name: "no columns",
+			definition: &TableDefinition{
+				NameOverride: "no_columns",
+				Struct:       EmptyStruct{},
+			},
+			err: fmt.Errorf("no_columns: no columns"),
 		},
 		{
 			name: "no column name",
 			definition: &TableDefinition{
-				Name:    "no_column_name",
-				Columns: ColumnDefinitions{{}},
+				NameOverride: "no_column_names",
+				Struct:       testStruct{},
+				ExtraColumns: ColumnDefinitions{{}},
 			},
-			err: fmt.Errorf("no_column_name: empty column name"),
+			err: fmt.Errorf("no_column_names: empty column name"),
 		},
 		{
 			name: "invalid type",
 			definition: &TableDefinition{
-				Name:    "invalid_type",
-				Columns: ColumnDefinitions{{Name: "col1"}},
+				NameOverride: "invalid_types",
+				Struct:       EmptyStruct{},
+				ExtraColumns: ColumnDefinitions{{Name: "col1"}},
 			},
-			err: fmt.Errorf("invalid_type->col1: invalid column type"),
+			err: fmt.Errorf("invalid_types->col1: invalid column type"),
 		},
 		{
 			name: "duplicate name",
 			definition: &TableDefinition{
-				Name: "duplicate_name",
-				Columns: ColumnDefinitions{
+				NameOverride: "duplicate_names",
+				Struct:       testStruct{},
+				ExtraColumns: ColumnDefinitions{
 					{Name: "col1", Type: schema.TypeInt},
 					{Name: "col1", Type: schema.TypeInt},
 				},
 			},
-			err: fmt.Errorf("duplicate_name->col1: duplicate column name"),
+			err: fmt.Errorf("duplicate_names->col1: duplicate column name"),
 		},
 	}
 	for _, tt := range tests {

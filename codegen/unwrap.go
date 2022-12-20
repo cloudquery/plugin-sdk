@@ -11,11 +11,11 @@ func (t *TableDefinition) shouldUnwrapField(field reflect.StructField) bool {
 	switch {
 	case !isFieldStruct(field.Type):
 		return false
-	case slices.Contains(t.structFieldsToUnwrap, field.Name):
+	case slices.Contains(t.StructFieldsToUnwrap, field.Name):
 		return true
 	case !field.Anonymous:
 		return false
-	case t.unwrapAllEmbeddedStructFields:
+	case t.UnwrapAllEmbeddedStructFields:
 		return true
 	default:
 		return false
@@ -31,7 +31,7 @@ func (t *TableDefinition) getUnwrappedFields(field reflect.StructField) []reflec
 	fields := make([]reflect.StructField, 0)
 	for i := 0; i < reflectType.NumField(); i++ {
 		sf := reflectType.Field(i)
-		if t.ignoreField(sf) {
+		if t.shouldIgnoreField(sf) {
 			continue
 		}
 
@@ -40,7 +40,9 @@ func (t *TableDefinition) getUnwrappedFields(field reflect.StructField) []reflec
 	return fields
 }
 
-func (t *TableDefinition) unwrapField(field reflect.StructField) error {
+func (t *TableDefinition) unwrapField(field reflect.StructField) (ColumnDefinitions, error) {
+	var columns ColumnDefinitions
+
 	unwrappedFields := t.getUnwrappedFields(field)
 	var parent *reflect.StructField
 	// For non embedded structs we need to add the parent field name to the path
@@ -48,9 +50,12 @@ func (t *TableDefinition) unwrapField(field reflect.StructField) error {
 		parent = &field
 	}
 	for _, f := range unwrappedFields {
-		if err := t.addColumnFromField(f, parent); err != nil {
-			return fmt.Errorf("failed to add column from field %s: %w", f.Name, err)
+		fieldColumns, err := t.makeColumnFromField(f, parent)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add column from field %s: %w", f.Name, err)
 		}
+		columns = append(columns, fieldColumns...)
 	}
-	return nil
+
+	return columns, nil
 }

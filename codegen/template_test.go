@@ -24,8 +24,9 @@ func TestGenerateTemplate(t *testing.T) {
 			name: "should add comma between relations",
 			args: args{
 				table: &TableDefinition{
-					Name:      "with relations",
-					Relations: []string{"relation1", "relation2"},
+					NameOverride: "with relations",
+					Struct:       EmptyStruct{},
+					Relations:    []string{"relation1", "relation2"},
 				},
 			},
 		},
@@ -33,8 +34,9 @@ func TestGenerateTemplate(t *testing.T) {
 			name: "should add ignore_in_tests to columns",
 			args: args{
 				table: &TableDefinition{
-					Name: "with relations",
-					Columns: []ColumnDefinition{
+					NameOverride: "with relations",
+					Struct:       EmptyStruct{},
+					ExtraColumns: []ColumnDefinition{
 						{Name: "ignore_in_tests", Type: schema.TypeString, IgnoreInTests: true},
 					},
 				},
