@@ -8,7 +8,7 @@ import (
 )
 
 type UUIDArrayTransformer interface {
-	TransformUUIDArray(*UUIDArray) interface{}
+	TransformUUIDArray(*UUIDArray) any
 }
 
 type UUIDArray struct {
@@ -62,7 +62,7 @@ func (dst *UUIDArray) String() string {
 	return sb.String()
 }
 
-func (dst *UUIDArray) Set(src interface{}) error {
+func (dst *UUIDArray) Set(src any) error {
 	// untyped nil and typed nil interfaces are different
 	if src == nil {
 		*dst = UUIDArray{Status: Null}
@@ -260,7 +260,7 @@ func (dst *UUIDArray) setRecursive(value reflect.Value, index, dimension int) (i
 	return index, nil
 }
 
-func (dst UUIDArray) Get() interface{} {
+func (dst UUIDArray) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst

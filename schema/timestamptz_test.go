@@ -16,7 +16,7 @@ func TestTimestamptzSet(t *testing.T) {
 	timeRFC3339NanoBytes, _ := timeInstance.MarshalText()
 
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Timestamptz
 	}{
 		{source: time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local), result: Timestamptz{Time: time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local), Status: Present}},

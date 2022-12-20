@@ -15,9 +15,9 @@ type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Cli
 
 type Client interface {
 	schema.CQTypeTransformer
-	ReverseTransformValues(table *schema.Table, values []interface{}) (schema.CQTypes, error)
+	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Tables) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []interface{}) error
+	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []any) error
 	Write(ctx context.Context, tables schema.Tables, res <-chan *ClientResource) error
 	Metrics() Metrics
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
@@ -26,7 +26,7 @@ type Client interface {
 
 type ClientResource struct {
 	TableName string
-	Data      []interface{}
+	Data      []any
 }
 
 type Plugin struct {
@@ -105,7 +105,7 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName st
 
 func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes) error {
 	SetDestinationManagedCqColumns(schema.Tables{table})
-	ch := make(chan []interface{})
+	ch := make(chan []any)
 	var err error
 	go func() {
 		defer close(ch)

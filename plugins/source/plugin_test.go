@@ -18,14 +18,14 @@ var _ schema.ClientMeta = &testExecutionClient{}
 
 var stableUUID = uuid.MustParse("00000000000040008000000000000000")
 
-func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- interface{}) error {
-	res <- map[string]interface{}{
+func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+	res <- map[string]any{
 		"TestColumn": 3,
 	}
 	return nil
 }
 
-func testResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, chan<- interface{}) error {
+func testResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, chan<- any) error {
 	panic("Resolver")
 }
 
