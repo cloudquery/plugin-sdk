@@ -258,6 +258,32 @@ func (c CQTypes) Len() int {
 	return len(c)
 }
 
+func (c CQTypes) Diff(other CQTypes) string {
+	var diff strings.Builder
+	if other == nil {
+		return "other is nil"
+	}
+	if len(c) != len(other) {
+		return fmt.Sprintf("length mismatch: %d != %d", len(c), len(other))
+	}
+	for i := range c {
+		if c[i] == nil && other[i] == nil {
+			continue
+		}
+		if c[i] == nil && other[i] != nil {
+			diff.WriteString(fmt.Sprintf("value at %d is nil while other is %v\n", i, other[i]))
+		}
+		if c[i] != nil && other[i] == nil {
+			diff.WriteString(fmt.Sprintf("value at %d is nil while src is %v\n", i, other[i]))
+		}
+		if !c[i].Equal(other[i]) {
+			c[i].Type()
+			diff.WriteString(fmt.Sprintf("value at %d is(%s) %v while other is(%s) %v\n", i, c[i], c[i].Type(), other[i], other[i].Type()))
+		}
+	}
+	return diff.String()
+}
+
 func (c CQTypes) Equal(other CQTypes) bool {
 	if other == nil {
 		return false

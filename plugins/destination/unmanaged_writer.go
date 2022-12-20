@@ -14,7 +14,7 @@ func (p *Plugin) writeUnmanaged(ctx context.Context, tables schema.Tables, sourc
 	eg, gctx := errgroup.WithContext(ctx)
 	// given most destination plugins writing in batch we are using a worker pool to write in parallel
 	// it might not generalize well and we might need to move it to each destination plugin implementation.
-	for i := 0; i < writeWorkers; i++ {
+	for i := 0; i < p.maxWorkers; i++ {
 		eg.Go(func() error {
 			return p.client.Write(gctx, tables, ch)
 		})

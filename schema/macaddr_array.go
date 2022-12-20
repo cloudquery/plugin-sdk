@@ -46,6 +46,30 @@ func (dst *MacaddrArray) Equal(src CQType) bool {
 	return true
 }
 
+
+func (dst *MacaddrArray) fromString(value string) error {
+	// this is basically back from string encoding
+	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+		return fmt.Errorf("cannot decode %v into MacaddrArray", value)
+	}
+
+	value = value[1 : len(value)-1]
+	strs := strings.Split(value, ",")
+	elements := make([]Macaddr, len(strs))
+	for i := range strs {
+		if err := elements[i].Set(strs[i]); err != nil {
+			return err
+		}
+	}
+
+	*dst = MacaddrArray{
+		Elements:   elements,
+		Dimensions: []ArrayDimension{{Length: int32(len(elements)), LowerBound: 1}},
+		Status:     Present,
+	}
+	return nil
+}
+
 func (dst *MacaddrArray) String() string {
 	var sb strings.Builder
 	if dst.Status == Present {
@@ -116,7 +140,10 @@ func (dst *MacaddrArray) Set(src interface{}) error {
 				Status:     Present,
 			}
 		}
-
+	case string:
+		return dst.fromString(value)
+	case *string:
+		return dst.fromString(*value)
 	case []Macaddr:
 		if value == nil {
 			*dst = MacaddrArray{Status: Null}

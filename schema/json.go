@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -20,6 +21,19 @@ func (*JSON) Type() ValueType {
 	return TypeJSON
 }
 
+// JSONBytesEqual compares the JSON in two byte slices.
+func jsonBytesEqual(a, b []byte) (bool, error) {
+	var j, j2 interface{}
+	if err := json.Unmarshal(a, &j); err != nil {
+			return false, err
+	}
+	if err := json.Unmarshal(b, &j2); err != nil {
+			return false, err
+	}
+	return reflect.DeepEqual(j2, j), nil
+}
+
+
 func (dst *JSON) Equal(src CQType) bool {
 	if src == nil {
 		return false
@@ -28,8 +42,14 @@ func (dst *JSON) Equal(src CQType) bool {
 	if !ok {
 		return false
 	}
-
-	return dst.Status == s.Status && bytes.Equal(dst.Bytes, s.Bytes)
+	if dst.Status != s.Status {
+		return false
+	}
+	equal, err := jsonBytesEqual(dst.Bytes, s.Bytes)
+	if err != nil {
+		panic(fmt.Sprintf("failed to compare jsons: %v", err))
+	}
+	return equal
 }
 
 func (dst *JSON) String() string {

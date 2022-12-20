@@ -33,7 +33,7 @@ func (dst *InetArray) Equal(src CQType) bool {
 	if dst.Status != s.Status {
 		return false
 	}
-	if len(dst.Elements) != len(s.Elements) || len(dst.Dimensions) != len(s.Dimensions) {
+	if len(dst.Elements) != len(s.Elements) {
 		return false
 	}
 
@@ -151,6 +151,14 @@ func (dst *InetArray) Set(src interface{}) error {
 				Status:     Present,
 			}
 		}
+	case string:
+		if err := dst.fromString(value); err != nil {
+			return nil
+		}
+	case *string:
+		if err := dst.fromString(*value); err != nil {
+			return nil
+		}
 	default:
 		// Fallback to reflection if an optimised match was not found.
 		// The reflection is necessary for arrays and multidimensional slices,
@@ -209,6 +217,28 @@ func (dst *InetArray) Set(src interface{}) error {
 	}
 
 	return nil
+}
+
+func (dst *InetArray) fromString(value string) error {
+		// this is basically back from string encoding
+		if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+			return fmt.Errorf("cannot decode %v into InetArray", value)
+		}
+		// remove the curly braces
+		value = value[1 : len(value)-1]
+		inets := strings.Split(value, ",")
+		elements := make([]Inet, len(inets))
+		for i := range inets {
+			if err := elements[i].Set(inets[i]); err != nil {
+				return err
+			}
+		}
+		*dst = InetArray{
+			Elements:   elements,
+			Dimensions: []ArrayDimension{{Length: int32(len(elements)), LowerBound: 1}},
+			Status:     Present,
+		}
+		return nil
 }
 
 func (dst *InetArray) setRecursive(value reflect.Value, index, dimension int) (int, error) {

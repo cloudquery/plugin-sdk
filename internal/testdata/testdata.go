@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/google/uuid"
 )
 
 func TestSourceTable(name string) *schema.Table {
@@ -117,7 +118,7 @@ func GenTestData(table *schema.Table) schema.CQTypes {
 			}
 		case schema.TypeUUID:
 			uuidColumn := &schema.UUID{}
-			if err := uuidColumn.Set("00000000-0000-0000-0000-000000000001"); err != nil {
+			if err := uuidColumn.Set(uuid.NewString()); err != nil {
 				panic(err)
 			}
 			data[i] = uuidColumn
@@ -143,7 +144,7 @@ func GenTestData(table *schema.Table) schema.CQTypes {
 			}
 		case schema.TypeTimestamp:
 			data[i] = &schema.Timestamptz{
-				Time:   time.Now(),
+				Time:   time.Now().UTC(),
 				Status: schema.Present,
 			}
 		case schema.TypeJSON:

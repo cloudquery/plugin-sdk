@@ -92,6 +92,11 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, tables schema.Table
 	metrics := &Metrics{}
 
 	p.workersLock.Lock()
+	// we call this after workers lock as we don't want to call PreWriteTableBatch concurrently
+	if err := p.client.PreWriteTableBatch(ctx, tables); err != nil {
+		p.workersLock.Unlock()
+		return err
+	}
 	for _, table := range tables.FlattenTables() {
 		table := table
 		if p.workers[table.Name] == nil {

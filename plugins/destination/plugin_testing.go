@@ -85,12 +85,14 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		return fmt.Errorf("expected 2 resource, got %d", len(resourcesRead))
 	}
 
-	if !resource.Data.Equal(resourcesRead[0]) {
-		return fmt.Errorf("expected first resource to be (len:%d):\n%v\ngot(len:%d):\n%v", len(resource.Data), resource.Data, len(resourcesRead[0]), resourcesRead[0])
+	if diff := resource.Data.Diff(resourcesRead[0]); diff != "" {
+		return fmt.Errorf("expected first resource diff: %s", diff)
+		// return fmt.Errorf("expected first resource to be (len:%d):\n%v\ngot(len:%d):\n%v", len(resource.Data), resource.Data, len(resourcesRead[0]), resourcesRead[0])
 	}
 
-	if !resource2.Data.Equal(resourcesRead[1]) {
-		return fmt.Errorf("expected second resource to be:\n%v\ngot:\n%v", resource.Data, resourcesRead[1])
+	if diff := resource2.Data.Diff(resourcesRead[1]); diff != "" {
+		return fmt.Errorf("expected second resource diff: %s", diff)
+		// return fmt.Errorf("expected second resource to be:\n%v\ngot:\n%v", resource.Data, resourcesRead[1])
 	}
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
@@ -106,15 +108,17 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 	}
 
 	if len(resourcesRead) != 2 {
-		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
+		return fmt.Errorf("after overwrite expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if !resource.Data.Equal(resourcesRead[0]) {
-		return fmt.Errorf("expected first resource to be (len:%d):\n%v\ngot(len:%d):\n%v", len(resource.Data), resource.Data, len(resourcesRead[0]), resourcesRead[0])
+	if diff := resource2.Data.Diff(resourcesRead[0]); diff != "" {
+		return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
+		// return fmt.Errorf("expected second resource to be:\n%v\ngot:\n%v", resource.Data, resourcesRead[1])
 	}
 
-	if !resource2.Data.Equal(resourcesRead[1]) {
-		return fmt.Errorf("expected second resource to be:\n%v\ngot:\n%v", resource.Data, resourcesRead[1])
+	if diff := resource.Data.Diff(resourcesRead[1]); diff != "" {
+		return fmt.Errorf("after overwrite expected second resource diff: %s", diff)
+		// return fmt.Errorf("expected first resource to be (len:%d):\n%v\ngot(len:%d):\n%v", len(resource.Data), resource.Data, len(resourcesRead[0]), resourcesRead[0])
 	}
 
 	if !s.tests.SkipDeleteStale {
@@ -131,8 +135,9 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		return fmt.Errorf("expected 1 resource after delete stale, got %d", len(resourcesRead))
 	}
 
-	if resource2.Data.Equal(resourcesRead[0]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+	if diff := resource.Data.Diff(resourcesRead[0]); diff != "" {
+		return fmt.Errorf("after delete stale expected second resource diff: %s", diff)
+		// return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
 	}
 
 	return nil
@@ -197,13 +202,15 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
-	if !resource.Data.Equal(resourcesRead[0]) {
-		return fmt.Errorf("expected first resource to be (len:%d):\n%v\ngot(len:%d):\n%v", len(resource.Data), resource.Data, len(resourcesRead[0]), resourcesRead[0])
+	if diff := resource.Data.Diff(resourcesRead[0]); diff != "" {
+		return fmt.Errorf("first expected resource diff: %s", diff)
+		// return fmt.Errorf("expected first resource to be (len:%d):\n%v\ngot(len:%d):\n%v", len(resource.Data), resource.Data, len(resourcesRead[0]), resourcesRead[0])
 	}
 
 	if !s.tests.SkipSecondAppend {
-		if !resource2.Data.Equal(resourcesRead[1]) {
-			return fmt.Errorf("expected second resource to be (len:%d):\n%v\ngot (len:%d):\n%v", len(resource2.Data), resource2.Data, len(resourcesRead[1]), resourcesRead[1])
+		if diff := resource2.Data.Diff(resourcesRead[1]); diff != "" {
+			return fmt.Errorf("what second expected resource diff: %s", diff)
+			// return fmt.Errorf("expected second resource to be (len:%d):\n%v\ngot (len:%d):\n%v", len(resource2.Data), resource2.Data, len(resourcesRead[1]), resourcesRead[1])
 		}
 	}
 
@@ -215,7 +222,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 	return zerolog.New(zerolog.NewTestWriter(t)).Output(
 		zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.StampMicro},
-	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
+	).Level(zerolog.TraceLevel).With().Timestamp().Logger()
 }
 
 func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec interface{}, tests PluginTestSuiteTests) {

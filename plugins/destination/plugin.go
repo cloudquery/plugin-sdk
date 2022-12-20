@@ -2,6 +2,7 @@ package destination
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -20,12 +21,33 @@ const (
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
 type ManagedWriter interface {
+	PreWriteTableBatch(ctx context.Context, tables schema.Tables) error
 	WriteTableBatch(ctx context.Context, table *schema.Table, data [][]interface{}) error
 }
+
+type UnimplementedManagedWriter struct {}
 
 type UnmanagedWriter interface {
 	Write(ctx context.Context, tables schema.Tables, res <-chan *ClientResource) error
 	Metrics() Metrics
+}
+
+type UnimplementedUnmanagedWriter struct {}
+
+func (u *UnimplementedManagedWriter) PreWriteTableBatch(ctx context.Context, tables schema.Tables) error {
+	panic("PreWriteTableBatch not implemented")
+}
+
+func (u *UnimplementedManagedWriter) WriteTableBatch(ctx context.Context, table *schema.Table, data [][]interface{}) error {
+	panic("WriteTableBatch not implemented")
+}
+
+func (u *UnimplementedUnmanagedWriter) Write(ctx context.Context, tables schema.Tables, res <-chan *ClientResource) error {
+	panic("Write not implemented")
+}
+
+func (u *UnimplementedUnmanagedWriter) Metrics() Metrics {
+	panic("Metrics not implemented")
 }
 
 type Client interface {
@@ -67,13 +89,21 @@ type Plugin struct {
 
 	workers     map[string]*worker
 	workersLock *sync.Mutex
+
+	maxWorkers int
 }
 
-const writeWorkers = 1
+const maxWorkers = 1
 
 func WithManagerWriter() Option {
 	return func(p *Plugin) {
 		p.writer = managed
+	}
+}
+
+func WithMaxWorkers(maxWorkers int) Option {
+	return func(p *Plugin) {
+		p.maxWorkers = maxWorkers
 	}
 }
 
@@ -87,6 +117,7 @@ func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ..
 		metricsLock: &sync.RWMutex{},
 		workers:     make(map[string]*worker),
 		workersLock: &sync.Mutex{},
+		maxWorkers:  1,
 	}
 	if newClientFunc == nil {
 		// we do this check because we only call this during runtime later on so it can fail
@@ -131,6 +162,9 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 	p.logger = logger
 	p.spec = spec
 	p.spec.SetDefaults()
+	if p.spec.Workers > int(p.maxWorkers) {
+		return fmt.Errorf("this plugin doesn't support more than %d workers", p.maxWorkers)
+	}
 	p.client, err = p.newClient(ctx, logger, spec)
 	if err != nil {
 		return err
