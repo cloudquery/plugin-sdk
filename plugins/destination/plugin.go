@@ -69,7 +69,7 @@ type Plugin struct {
 	version string
 	// Called upon configure call to validate and init configuration
 	newClient NewClientFunc
-	writer    writerType
+	writerType    writerType
 	// initialized destination client
 	client Client
 	// spec the client was initialized with
