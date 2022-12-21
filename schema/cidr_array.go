@@ -9,7 +9,7 @@ import (
 )
 
 type CIDRArrayTransformer interface {
-	TransformCIDRArray(*CIDRArray) interface{}
+	TransformCIDRArray(*CIDRArray) any
 }
 
 type CIDRArray struct {
@@ -63,7 +63,7 @@ func (dst *CIDRArray) String() string {
 	return sb.String()
 }
 
-func (dst *CIDRArray) Set(src interface{}) error {
+func (dst *CIDRArray) Set(src any) error {
 	// untyped nil and typed nil interfaces are different
 	if src == nil {
 		*dst = CIDRArray{Status: Null}
@@ -242,7 +242,7 @@ func (dst *CIDRArray) setRecursive(value reflect.Value, index, dimension int) (i
 	return index, nil
 }
 
-func (dst CIDRArray) Get() interface{} {
+func (dst CIDRArray) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst

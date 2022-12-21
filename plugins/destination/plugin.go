@@ -1,4 +1,4 @@
-package plugins
+package destination
 
 import (
 	"context"
@@ -11,33 +11,33 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type NewDestinationClientFunc func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error)
+type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
-type DestinationClient interface {
+type Client interface {
 	schema.CQTypeTransformer
-	ReverseTransformValues(table *schema.Table, values []interface{}) (schema.CQTypes, error)
+	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Tables) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []interface{}) error
+	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []any) error
 	Write(ctx context.Context, tables schema.Tables, res <-chan *ClientResource) error
-	Metrics() DestinationMetrics
+	Metrics() Metrics
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
 }
 
 type ClientResource struct {
 	TableName string
-	Data      []interface{}
+	Data      []any
 }
 
-type DestinationPlugin struct {
+type Plugin struct {
 	// Name of destination plugin i.e postgresql,snowflake
 	name string
 	// Version of the destination plugin
 	version string
 	// Called upon configure call to validate and init configuration
-	newDestinationClient NewDestinationClientFunc
+	newDestinationClient NewClientFunc
 	// initialized destination client
-	client DestinationClient
+	client Client
 	// spec the client was initialized with
 	spec specs.Destination
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
@@ -46,8 +46,8 @@ type DestinationPlugin struct {
 
 const writeWorkers = 1
 
-func NewDestinationPlugin(name string, version string, newDestinationClient NewDestinationClientFunc) *DestinationPlugin {
-	p := &DestinationPlugin{
+func NewPlugin(name string, version string, newDestinationClient NewClientFunc) *Plugin {
+	p := &Plugin{
 		name:                 name,
 		version:              version,
 		newDestinationClient: newDestinationClient,
@@ -55,20 +55,20 @@ func NewDestinationPlugin(name string, version string, newDestinationClient NewD
 	return p
 }
 
-func (p *DestinationPlugin) Name() string {
+func (p *Plugin) Name() string {
 	return p.name
 }
 
-func (p *DestinationPlugin) Version() string {
+func (p *Plugin) Version() string {
 	return p.version
 }
 
-func (p *DestinationPlugin) Metrics() DestinationMetrics {
+func (p *Plugin) Metrics() Metrics {
 	return p.client.Metrics()
 }
 
 // we need lazy loading because we want to be able to initialize after
-func (p *DestinationPlugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Destination) error {
+func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Destination) error {
 	var err error
 	p.logger = logger
 	p.spec = spec
@@ -83,12 +83,12 @@ func (p *DestinationPlugin) Init(ctx context.Context, logger zerolog.Logger, spe
 }
 
 // we implement all DestinationClient functions so we can hook into pre-post behavior
-func (p *DestinationPlugin) Migrate(ctx context.Context, tables schema.Tables) error {
+func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
 	SetDestinationManagedCqColumns(tables)
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *DestinationPlugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]schema.CQTypes, error) {
+func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]schema.CQTypes, error) {
 	var readErr error
 	ch := make(chan schema.CQTypes)
 	go func() {
@@ -103,9 +103,9 @@ func (p *DestinationPlugin) readAll(ctx context.Context, table *schema.Table, so
 	return resources, readErr
 }
 
-func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes) error {
+func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes) error {
 	SetDestinationManagedCqColumns(schema.Tables{table})
-	ch := make(chan []interface{})
+	ch := make(chan []any)
 	var err error
 	go func() {
 		defer close(ch)
@@ -122,13 +122,13 @@ func (p *DestinationPlugin) Read(ctx context.Context, table *schema.Table, sourc
 }
 
 // this function is currently used mostly for testing so it's not a public api
-func (p *DestinationPlugin) writeOne(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, resource schema.DestinationResource) error {
+func (p *Plugin) writeOne(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, resource schema.DestinationResource) error {
 	resources := []schema.DestinationResource{resource}
 	return p.writeAll(ctx, tables, sourceName, syncTime, resources)
 }
 
 // this function is currently used mostly for testing so it's not a public api
-func (p *DestinationPlugin) writeAll(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, resources []schema.DestinationResource) error {
+func (p *Plugin) writeAll(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, resources []schema.DestinationResource) error {
 	ch := make(chan schema.DestinationResource, len(resources))
 	for _, resource := range resources {
 		ch <- resource
@@ -137,7 +137,7 @@ func (p *DestinationPlugin) writeAll(ctx context.Context, tables schema.Tables, 
 	return p.Write(ctx, tables, sourceName, syncTime, ch)
 }
 
-func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan schema.DestinationResource) error {
+func (p *Plugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan schema.DestinationResource) error {
 	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
 	ch := make(chan *ClientResource)
@@ -179,12 +179,12 @@ func (p *DestinationPlugin) Write(ctx context.Context, tables schema.Tables, sou
 	return nil
 }
 
-func (p *DestinationPlugin) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
+func (p *Plugin) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
 	syncTime = syncTime.UTC()
 	return p.client.DeleteStale(ctx, tables, sourceName, syncTime)
 }
 
-func (p *DestinationPlugin) Close(ctx context.Context) error {
+func (p *Plugin) Close(ctx context.Context) error {
 	return p.client.Close(ctx)
 }
 

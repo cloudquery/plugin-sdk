@@ -5,7 +5,7 @@ import "encoding/json"
 type CIDR Inet
 
 type CIDRTransformer interface {
-	TransformCIDR(*CIDR) interface{}
+	TransformCIDR(*CIDR) any
 }
 
 func (*CIDR) Type() ValueType {
@@ -31,11 +31,11 @@ func (dst *CIDR) Equal(src CQType) bool {
 	return dst.Status == s.Status && dst.IPNet.String() == s.IPNet.String()
 }
 
-func (dst *CIDR) Set(src interface{}) error {
+func (dst *CIDR) Set(src any) error {
 	return (*Inet)(dst).Set(src)
 }
 
-func (dst CIDR) Get() interface{} {
+func (dst CIDR) Get() any {
 	return (Inet)(dst).Get()
 }
 

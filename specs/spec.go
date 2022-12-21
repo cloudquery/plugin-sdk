@@ -11,8 +11,8 @@ import (
 type Kind int
 
 type Spec struct {
-	Kind Kind        `json:"kind"`
-	Spec interface{} `json:"spec"`
+	Kind Kind `json:"kind"`
+	Spec any  `json:"spec"`
 }
 
 const (
@@ -55,8 +55,8 @@ func KindFromString(s string) (Kind, error) {
 
 func (s *Spec) UnmarshalJSON(data []byte) error {
 	var t struct {
-		Kind Kind        `json:"kind"`
-		Spec interface{} `json:"spec"`
+		Kind Kind `json:"kind"`
+		Spec any  `json:"spec"`
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
@@ -83,7 +83,7 @@ func (s *Spec) UnmarshalJSON(data []byte) error {
 	return dec.Decode(s.Spec)
 }
 
-func UnmarshalJSONStrict(b []byte, out interface{}) error {
+func UnmarshalJSONStrict(b []byte, out any) error {
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.DisallowUnknownFields()
 	dec.UseNumber()

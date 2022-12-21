@@ -4,7 +4,7 @@ import "testing"
 
 func TestTextSet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Text
 	}{
 		{source: "foo", result: Text{Str: "foo", Status: Present}},

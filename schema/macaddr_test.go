@@ -6,7 +6,7 @@ import (
 
 func TestMacaddrSet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Macaddr
 	}{
 		{

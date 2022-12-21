@@ -9,7 +9,7 @@ import (
 )
 
 type MacaddrArrayTransformer interface {
-	TransformMacaddrArray(*MacaddrArray) interface{}
+	TransformMacaddrArray(*MacaddrArray) any
 }
 
 type MacaddrArray struct {
@@ -63,7 +63,7 @@ func (dst *MacaddrArray) String() string {
 	return sb.String()
 }
 
-func (dst *MacaddrArray) Set(src interface{}) error {
+func (dst *MacaddrArray) Set(src any) error {
 	// untyped nil and typed nil interfaces are different
 	if src == nil {
 		*dst = MacaddrArray{Status: Null}
@@ -223,7 +223,7 @@ func (dst *MacaddrArray) setRecursive(value reflect.Value, index, dimension int)
 	return index, nil
 }
 
-func (dst MacaddrArray) Get() interface{} {
+func (dst MacaddrArray) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst

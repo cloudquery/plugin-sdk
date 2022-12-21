@@ -1,4 +1,4 @@
-package plugins
+package destination
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 type TestDestinationMemDBClient struct {
 	schema.DefaultTransformer
 	spec          specs.Destination
-	memoryDB      map[string][][]interface{}
+	memoryDB      map[string][][]any
 	errOnWrite    bool
 	blockingWrite bool
 }
@@ -33,36 +33,36 @@ func withBlockingWrite() TestDestinationOption {
 	}
 }
 
-func getNewTestDestinationMemDBClient(options ...TestDestinationOption) NewDestinationClientFunc {
+func getNewTestDestinationMemDBClient(options ...TestDestinationOption) NewClientFunc {
 	c := &TestDestinationMemDBClient{
-		memoryDB: make(map[string][][]interface{}),
+		memoryDB: make(map[string][][]any),
 	}
 	for _, opt := range options {
 		opt(c)
 	}
-	return func(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error) {
+	return func(context.Context, zerolog.Logger, specs.Destination) (Client, error) {
 		return c, nil
 	}
 }
 
-func NewTestDestinationMemDBClient(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error) {
+func NewTestDestinationMemDBClient(context.Context, zerolog.Logger, specs.Destination) (Client, error) {
 	return &TestDestinationMemDBClient{
-		memoryDB: make(map[string][][]interface{}),
+		memoryDB: make(map[string][][]any),
 	}, nil
 }
 
-func newTestDestinationMemDBClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (DestinationClient, error) {
+func newTestDestinationMemDBClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (Client, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
-func (*TestDestinationMemDBClient) ReverseTransformValues(_ *schema.Table, values []interface{}) (schema.CQTypes, error) {
+func (*TestDestinationMemDBClient) ReverseTransformValues(_ *schema.Table, values []any) (schema.CQTypes, error) {
 	res := make(schema.CQTypes, len(values))
 	for i, v := range values {
 		res[i] = v.(schema.CQType)
 	}
 	return res, nil
 }
-func (c *TestDestinationMemDBClient) overwrite(table *schema.Table, data []interface{}) {
+func (c *TestDestinationMemDBClient) overwrite(table *schema.Table, data []any) {
 	pks := table.PrimaryKeys()
 	//nolint:prealloc
 	var pksIndex []int
@@ -91,13 +91,13 @@ func (c *TestDestinationMemDBClient) Initialize(_ context.Context, spec specs.De
 func (c *TestDestinationMemDBClient) Migrate(_ context.Context, tables schema.Tables) error {
 	for _, table := range tables {
 		if c.memoryDB[table.Name] == nil {
-			c.memoryDB[table.Name] = make([][]interface{}, 0)
+			c.memoryDB[table.Name] = make([][]any, 0)
 		}
 	}
 	return nil
 }
 
-func (c *TestDestinationMemDBClient) Read(_ context.Context, table *schema.Table, source string, res chan<- []interface{}) error {
+func (c *TestDestinationMemDBClient) Read(_ context.Context, table *schema.Table, source string, res chan<- []any) error {
 	if c.memoryDB[table.Name] == nil {
 		return nil
 	}
@@ -132,8 +132,8 @@ func (c *TestDestinationMemDBClient) Write(ctx context.Context, tables schema.Ta
 	return nil
 }
 
-func (*TestDestinationMemDBClient) Metrics() DestinationMetrics {
-	return DestinationMetrics{}
+func (*TestDestinationMemDBClient) Metrics() Metrics {
+	return Metrics{}
 }
 
 func (c *TestDestinationMemDBClient) Close(context.Context) error {

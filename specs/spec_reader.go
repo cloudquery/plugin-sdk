@@ -14,6 +14,7 @@ type SpecReader struct {
 }
 
 var fileRegex = regexp.MustCompile(`\$\{file:([^}]+)\}`)
+var envRegex = regexp.MustCompile(`\$\{([^}]+)\}`)
 
 func expandFileConfig(cfg []byte) ([]byte, error) {
 	var expandErr error
@@ -29,6 +30,22 @@ func expandFileConfig(cfg []byte) ([]byte, error) {
 	return cfg, expandErr
 }
 
+// expand environment variables in the format ${ENV_VAR}
+func expandEnv(cfg []byte) ([]byte, error) {
+	var expandErr error
+	cfg = envRegex.ReplaceAllFunc(cfg, func(match []byte) []byte {
+		envVar := envRegex.FindSubmatch(match)[1]
+		content, ok := os.LookupEnv(string(envVar))
+		if !ok {
+			expandErr = fmt.Errorf("env variable %s not found", envVar)
+			return nil
+		}
+		return []byte(content)
+	})
+
+	return cfg, expandErr
+}
+
 func (r *SpecReader) loadSpecsFromFile(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -38,7 +55,10 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to expand file variable in file %s: %w", path, err)
 	}
-	data = []byte(os.ExpandEnv(string(data)))
+	data, err = expandEnv(data)
+	if err != nil {
+		return fmt.Errorf("failed to expand environment variable in file %s: %w", path, err)
+	}
 
 	// support multiple yamls in one file
 	// this should work both on Windows and Unix
@@ -82,7 +102,8 @@ func (r *SpecReader) loadSpecsFromDir(path string) error {
 		return fmt.Errorf("failed to read directory %s: %w", path, err)
 	}
 	for _, file := range files {
-		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") && strings.HasSuffix(file.Name(), ".yml") {
+		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") &&
+			(strings.HasSuffix(file.Name(), ".yml") || strings.HasSuffix(file.Name(), ".yaml")) {
 			if err := r.loadSpecsFromFile(filepath.Join(path, file.Name())); err != nil {
 				return err
 			}

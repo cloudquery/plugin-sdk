@@ -8,7 +8,7 @@ import (
 )
 
 type Int8ArrayTransformer interface {
-	TransformInt8Array(*Int8Array) interface{}
+	TransformInt8Array(*Int8Array) any
 }
 
 type Int8Array struct {
@@ -62,7 +62,7 @@ func (dst *Int8Array) String() string {
 	return sb.String()
 }
 
-func (dst *Int8Array) Set(src interface{}) error {
+func (dst *Int8Array) Set(src any) error {
 	// untyped nil and typed nil interfaces are different
 	if src == nil {
 		*dst = Int8Array{Status: Null}
@@ -494,7 +494,7 @@ func (dst *Int8Array) setRecursive(value reflect.Value, index, dimension int) (i
 	return index, nil
 }
 
-func (dst Int8Array) Get() interface{} {
+func (dst Int8Array) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst

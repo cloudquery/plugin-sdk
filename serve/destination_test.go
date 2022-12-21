@@ -10,7 +10,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/clients"
 	"github.com/cloudquery/plugin-sdk/internal/testdata"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"google.golang.org/grpc"
@@ -24,7 +24,7 @@ func bufDestinationDialer(context.Context, string) (net.Conn, error) {
 }
 
 func TestDestination(t *testing.T) {
-	plugin := plugins.NewDestinationPlugin("testDestinationPlugin", "development", plugins.NewTestDestinationMemDBClient)
+	plugin := destination.NewPlugin("testDestinationPlugin", "development", destination.NewTestDestinationMemDBClient)
 	s := &destinationServe{
 		plugin: plugin,
 	}

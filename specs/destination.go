@@ -12,12 +12,12 @@ import (
 type WriteMode int
 
 type Destination struct {
-	Name      string      `json:"name,omitempty"`
-	Version   string      `json:"version,omitempty"`
-	Path      string      `json:"path,omitempty"`
-	Registry  Registry    `json:"registry,omitempty"`
-	WriteMode WriteMode   `json:"write_mode,omitempty"`
-	Spec      interface{} `json:"spec,omitempty"`
+	Name      string    `json:"name,omitempty"`
+	Version   string    `json:"version,omitempty"`
+	Path      string    `json:"path,omitempty"`
+	Registry  Registry  `json:"registry,omitempty"`
+	WriteMode WriteMode `json:"write_mode,omitempty"`
+	Spec      any       `json:"spec,omitempty"`
 }
 
 const (
@@ -36,7 +36,7 @@ func (d *Destination) SetDefaults() {
 	}
 }
 
-func (d *Destination) UnmarshalSpec(out interface{}) error {
+func (d *Destination) UnmarshalSpec(out any) error {
 	b, err := json.Marshal(d.Spec)
 	if err != nil {
 		return err
