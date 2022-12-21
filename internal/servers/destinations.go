@@ -86,8 +86,8 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 
 	for {
 		r, err := msg.Recv()
-    if err == io.EOF {
-      close(resources)
+		if err == io.EOF {
+			close(resources)
 			if err := eg.Wait(); err != nil {
 				return status.Errorf(codes.Internal, "failed to wait for plugin: %v", err)
 			}
