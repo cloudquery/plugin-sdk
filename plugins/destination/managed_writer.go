@@ -19,7 +19,7 @@ type worker struct {
 
 
 func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan schema.CQTypes, flush <-chan chan bool) {
-	resources := make([][]interface{}, 0)
+	resources := make([][]any, 0)
 	for {
 		select {
 		case r, ok := <-ch:
