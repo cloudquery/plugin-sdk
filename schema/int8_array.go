@@ -32,7 +32,7 @@ func (dst *Int8Array) Equal(src CQType) bool {
 	if dst.Status != s.Status {
 		return false
 	}
-	if len(dst.Elements) != len(s.Elements) || len(dst.Dimensions) != len(s.Dimensions) {
+	if len(dst.Elements) != len(s.Elements) {
 		return false
 	}
 
@@ -43,6 +43,29 @@ func (dst *Int8Array) Equal(src CQType) bool {
 	}
 
 	return true
+}
+
+func (dst *Int8Array) fromString(value string) error {
+	// this is basically back from string encoding
+	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+		return fmt.Errorf("cannot decode %v into Int8Array", value)
+	}
+
+	value = value[1 : len(value)-1]
+	strs := strings.Split(value, ",")
+	elements := make([]Int8, len(strs))
+	for i := range strs {
+		if err := elements[i].Set(strs[i]); err != nil {
+			return err
+		}
+	}
+
+	*dst = Int8Array{
+		Elements:   elements,
+		Dimensions: []ArrayDimension{{Length: int32(len(elements)), LowerBound: 1}},
+		Status:     Present,
+	}
+	return nil
 }
 
 func (dst *Int8Array) String() string {
@@ -399,6 +422,14 @@ func (dst *Int8Array) Set(src any) error {
 				Dimensions: []ArrayDimension{{Length: int32(len(value)), LowerBound: 1}},
 				Status:     Present,
 			}
+		}
+	case string:
+		if err := dst.fromString(value); err != nil {
+			return err
+		}
+	case *string:
+		if err := dst.fromString(*value); err != nil {
+			return err
 		}
 	default:
 		// Fallback to reflection if an optimised match was not found.
