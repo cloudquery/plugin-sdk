@@ -68,8 +68,8 @@ type Plugin struct {
 	// Version of the destination plugin
 	version string
 	// Called upon configure call to validate and init configuration
-	newClient NewClientFunc
-	writerType    writerType
+	newClient  NewClientFunc
+	writerType writerType
 	// initialized destination client
 	client Client
 	// spec the client was initialized with
@@ -89,7 +89,7 @@ type Plugin struct {
 
 func WithManagerWriter() Option {
 	return func(p *Plugin) {
-		p.writer = managed
+		p.writerType = managed
 	}
 }
 
@@ -124,7 +124,7 @@ func (p *Plugin) Version() string {
 }
 
 func (p *Plugin) Metrics() Metrics {
-	switch p.writer {
+	switch p.writerType {
 	case unmanaged:
 		return p.client.Metrics()
 	case managed:
@@ -213,7 +213,7 @@ func (p *Plugin) writeAll(ctx context.Context, tables schema.Tables, sourceName 
 func (p *Plugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan schema.DestinationResource) error {
 	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
-	switch p.writer {
+	switch p.writerType {
 	case unmanaged:
 		if err := p.writeUnmanaged(ctx, tables, sourceName, syncTime, res); err != nil {
 			return err

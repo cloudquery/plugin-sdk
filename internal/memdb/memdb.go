@@ -76,7 +76,7 @@ func (*client) ReverseTransformValues(_ *schema.Table, values []any) (schema.CQT
 }
 func (c *client) overwrite(table *schema.Table, data []any) {
 	pks := table.PrimaryKeys()
-        pksIndex := make([]int, len(pks))
+	pksIndex := make([]int, len(pks))
 	for i := range pks {
 		pksIndex[i] = table.Columns.Index(pks[i])
 	}
