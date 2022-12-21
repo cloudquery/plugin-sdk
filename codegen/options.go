@@ -46,6 +46,15 @@ func WithUnwrapAllEmbeddedStructs() TableOption {
 	}
 }
 
+// WithUnwrapAllEmbeddedStructFieldsRecursively instructs codegen to unwrap all embedded fields recursively
+// Use with caution.
+func WithUnwrapAllEmbeddedStructFieldsRecursively() TableOption {
+	return func(t *TableDefinition) {
+		t.unwrapAllEmbeddedStructFieldsRecursively = true
+		t.unwrapAllEmbeddedStructFields = true
+	}
+}
+
 // WithLogger allows passing custom logger
 func WithLogger(logger zerolog.Logger) TableOption {
 	return func(t *TableDefinition) {

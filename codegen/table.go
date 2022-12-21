@@ -37,7 +37,8 @@ type (
 		skipFields           []string
 		structFieldsToUnwrap []string
 
-		unwrapAllEmbeddedStructFields bool
+		unwrapAllEmbeddedStructFields            bool
+		unwrapAllEmbeddedStructFieldsRecursively bool
 
 		logger zerolog.Logger
 	}

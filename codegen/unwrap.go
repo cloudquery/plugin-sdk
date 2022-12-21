@@ -48,6 +48,13 @@ func (t *TableDefinition) unwrapField(field reflect.StructField) error {
 		parent = &field
 	}
 	for _, f := range unwrappedFields {
+		if isFieldStruct(f.Type) && f.Anonymous && t.unwrapAllEmbeddedStructFieldsRecursively {
+			if err := t.unwrapField(f); err != nil {
+				return err
+			}
+			continue
+		}
+
 		if err := t.addColumnFromField(f, parent); err != nil {
 			return fmt.Errorf("failed to add column from field %s: %w", f.Name, err)
 		}
