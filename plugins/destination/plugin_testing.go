@@ -112,7 +112,6 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 
 	if diff := resource2.Data.Diff(resourcesRead[0]); diff != "" {
 		return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
-		// return fmt.Errorf("expected second resource to be:\n%v\ngot:\n%v", resource.Data, resourcesRead[1])
 	}
 
 	if diff := resource.Data.Diff(resourcesRead[1]); diff != "" {
