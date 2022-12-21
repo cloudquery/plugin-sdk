@@ -18,6 +18,9 @@ const (
 	managed
 )
 
+// this max possible workers either per table when using managed write or per batch when using unmanaged
+const defaultMaxWorkers = 10
+
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
 type ManagedWriter interface {
@@ -101,6 +104,7 @@ func WithMaxWorkers(maxWorkers int) Option {
 	}
 }
 
+
 // NewPlugin creates a new unmanaged plugin
 func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ...Option) *Plugin {
 	p := &Plugin{
@@ -111,7 +115,7 @@ func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ..
 		metricsLock: &sync.RWMutex{},
 		workers:     make(map[string]*worker),
 		workersLock: &sync.Mutex{},
-		maxWorkers:  1,
+		maxWorkers:  defaultMaxWorkers,
 	}
 	if newClientFunc == nil {
 		// we do this check because we only call this during runtime later on so it can fail
