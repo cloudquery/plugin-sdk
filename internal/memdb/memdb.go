@@ -145,10 +145,6 @@ func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-ch
 	return nil
 }
 
-func (*client) PreWriteTableBatch(context.Context, schema.Tables) error {
-	return nil
-}
-
 func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resources [][]any) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")

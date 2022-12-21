@@ -21,7 +21,6 @@ const (
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
 type ManagedWriter interface {
-	PreWriteTableBatch(ctx context.Context, tables schema.Tables) error
 	WriteTableBatch(ctx context.Context, table *schema.Table, data [][]interface{}) error
 }
 
@@ -34,9 +33,6 @@ type UnmanagedWriter interface {
 
 type UnimplementedUnmanagedWriter struct{}
 
-func (*UnimplementedManagedWriter) PreWriteTableBatch(context.Context, schema.Tables) error {
-	panic("PreWriteTableBatch not implemented")
-}
 
 func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, [][]interface{}) error {
 	panic("WriteTableBatch not implemented")
