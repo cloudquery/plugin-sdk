@@ -134,7 +134,6 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 
 	if diff := resource.Data.Diff(resourcesRead[0]); diff != "" {
 		return fmt.Errorf("after delete stale expected second resource diff: %s", diff)
-		// return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
 	}
 
 	return nil
