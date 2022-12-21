@@ -17,9 +17,6 @@ const (
 	managed
 )
 
-// this max possible workers either per table when using managed write or per batch when using unmanaged
-const defaultMaxWorkers = 10
-
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
 type ManagedWriter interface {
@@ -95,7 +92,6 @@ func WithManagerWriter() Option {
 		p.writer = managed
 	}
 }
-
 
 // NewPlugin creates a new unmanaged plugin
 func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ...Option) *Plugin {
