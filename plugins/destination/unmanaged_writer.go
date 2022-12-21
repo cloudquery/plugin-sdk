@@ -41,7 +41,7 @@ func (p *Plugin) writeUnmanaged(ctx context.Context, tables schema.Tables, sourc
 
 	close(ch)
 	if err := eg.Wait(); err != nil {
-		return fmt.Errorf("failed waiting to destination clien %w", err)
+		return fmt.Errorf("failed waiting for destination client %w", err)
 	}
 	return nil
 }
