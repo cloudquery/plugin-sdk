@@ -17,7 +17,6 @@ type worker struct {
 	flush chan chan bool
 }
 
-
 func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan schema.CQTypes, flush <-chan chan bool) {
 	resources := make([][]any, 0)
 	for {

@@ -33,7 +33,6 @@ type UnmanagedWriter interface {
 
 type UnimplementedUnmanagedWriter struct{}
 
-
 func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, [][]interface{}) error {
 	panic("WriteTableBatch not implemented")
 }
@@ -86,7 +85,7 @@ type Plugin struct {
 	workers     map[string]*worker
 	workersLock *sync.Mutex
 
-	maxWorkers int
+	maxWorkers   int
 	batchTimeout time.Duration
 }
 
