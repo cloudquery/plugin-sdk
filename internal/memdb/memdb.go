@@ -89,7 +89,6 @@ func (c *client) overwrite(table *schema.Table, data []any) {
 			}
 		}
 		if found {
-			// c.memoryDB[table.Name][i] = data
 			c.memoryDB[table.Name] = append(c.memoryDB[table.Name][:i], c.memoryDB[table.Name][i+1:]...)
 			c.memoryDB[table.Name] = append(c.memoryDB[table.Name], data)
 			return
