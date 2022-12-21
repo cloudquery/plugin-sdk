@@ -47,7 +47,7 @@ const (
 func addInternalColumns(tables []*schema.Table) {
 	for _, table := range tables {
 		if c := table.Column("_cq_id"); c != nil {
-			continue
+			panic(fmt.Sprintf("table %s already has column _cq_id", table.Name))
 		}
 		cqID := schema.CqIDColumn
 		if len(table.PrimaryKeys()) == 0 {

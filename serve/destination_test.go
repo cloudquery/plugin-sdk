@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/clients"
+	"github.com/cloudquery/plugin-sdk/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/internal/testdata"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -24,7 +25,7 @@ func bufDestinationDialer(context.Context, string) (net.Conn, error) {
 }
 
 func TestDestination(t *testing.T) {
-	plugin := destination.NewPlugin("testDestinationPlugin", "development", destination.NewTestDestinationMemDBClient)
+	plugin := destination.NewPlugin("testDestinationPlugin", "development", memdb.NewClient)
 	s := &destinationServe{
 		plugin: plugin,
 	}
@@ -95,35 +96,41 @@ func TestDestination(t *testing.T) {
 
 	tableName := "test_destination_serve"
 	sourceName := "test_destination_serve_source"
-	tables := schema.Tables{testdata.TestTable(tableName)}
+	syncTime := time.Now()
+	table := testdata.TestTable(tableName)
+	tables := schema.Tables{table}
 	if err := c.Migrate(ctx, tables); err != nil {
 		t.Fatal(err)
 	}
 
 	destResource := schema.DestinationResource{
 		TableName: tableName,
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
+	_ = destResource.Data[0].Set(sourceName)
+	_ = destResource.Data[1].Set(syncTime)
 	b, err := json.Marshal(destResource)
 	if err != nil {
 		t.Fatal(err)
 	}
-	testdata.TestData()
+	// testdata.GenTestData(table)
 	resources := make(chan []byte, 1)
 	resources <- b
 	close(resources)
-	if err := c.Write2(ctx, tables, sourceName, time.Now(), resources); err != nil {
+	if err := c.Write2(ctx, tables, sourceName, syncTime, resources); err != nil {
 		t.Fatal(err)
 	}
 
 	readCh := make(chan schema.CQTypes, 1)
-	plugin.Read(ctx, tables[0], sourceName, readCh)
+	if err := plugin.Read(ctx, table, sourceName, readCh); err != nil {
+		t.Fatal(err)
+	}
 	close(readCh)
 	totalResources := 0
 	for resource := range readCh {
 		totalResources++
-		if !destResource.Data.Equal(resource[2:]) {
-			t.Fatalf("expected %v but got %v", destResource.Data, resource[2:])
+		if !destResource.Data.Equal(resource) {
+			t.Fatalf("expected %v but got %v", destResource.Data, resource)
 		}
 	}
 	if totalResources != 1 {

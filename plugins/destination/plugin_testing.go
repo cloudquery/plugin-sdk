@@ -14,11 +14,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type TestSuite struct {
-	tests TestSuiteTests
+type PluginTestSuite struct {
+	tests PluginTestSuiteTests
 }
 
-type TestSuiteTests struct {
+type PluginTestSuiteTests struct {
 	// SkipOverwrite skips testing for "overwrite" mode. Use if the destination
 	//	// plugin doesn't support this feature.
 	SkipOverwrite bool
@@ -37,22 +37,14 @@ type TestSuiteTests struct {
 	SkipSecondAppend bool
 }
 
-func getTestLogger(t *testing.T) zerolog.Logger {
-	t.Helper()
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
-	return zerolog.New(zerolog.NewTestWriter(t)).Output(
-		zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.StampMicro},
-	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
-}
-
-func (s *TestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := "cq_test_write_overwrite"
 	table := testdata.TestTable(tableName)
-	syncTime := time.Now().UTC()
+	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*schema.Table{
 		table,
 	}
@@ -60,16 +52,21 @@ func (s *TestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
-	sourceName := uuid.NewString()
+	sourceName := "testOverwriteSource" + uuid.NewString()
 	resource := schema.DestinationResource{
 		TableName: table.Name,
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
+	_ = resource.Data[0].Set(sourceName)
+	_ = resource.Data[1].Set(syncTime)
+
 	resource2 := schema.DestinationResource{
 		TableName: table.Name,
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
-	_ = resource2.Data[5].Set("00000000-0000-0000-0000-000000000007")
+	_ = resource2.Data[0].Set(sourceName)
+	_ = resource2.Data[1].Set(syncTime)
+
 	resources := []schema.DestinationResource{
 		resource,
 		resource2,
@@ -88,15 +85,17 @@ func (s *TestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *
 		return fmt.Errorf("expected 2 resource, got %d", len(resourcesRead))
 	}
 
-	if resource.Data.Equal(resourcesRead[0]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+	if diff := resource.Data.Diff(resourcesRead[0]); diff != "" {
+		return fmt.Errorf("expected first resource diff: %s", diff)
 	}
 
-	if resource2.Data.Equal(resourcesRead[1]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
+	if diff := resource2.Data.Diff(resourcesRead[1]); diff != "" {
+		return fmt.Errorf("expected second resource diff: %s", diff)
+		// return fmt.Errorf("expected second resource to be:\n%v\ngot:\n%v", resource.Data, resourcesRead[1])
 	}
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
+	_ = resource.Data[1].Set(secondSyncTime)
 	// write second time
 	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
@@ -108,15 +107,15 @@ func (s *TestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *
 	}
 
 	if len(resourcesRead) != 2 {
-		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
+		return fmt.Errorf("after overwrite expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if resource.Data.Equal(resourcesRead[0]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+	if diff := resource2.Data.Diff(resourcesRead[0]); diff != "" {
+		return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
 	}
 
-	if resource2.Data.Equal(resourcesRead[1]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
+	if diff := resource.Data.Diff(resourcesRead[1]); diff != "" {
+		return fmt.Errorf("after overwrite expected second resource diff: %s", diff)
 	}
 
 	if !s.tests.SkipDeleteStale {
@@ -130,24 +129,24 @@ func (s *TestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
 	if len(resourcesRead) != 1 {
-		return fmt.Errorf("expected 1 resource, got %d", len(resourcesRead))
+		return fmt.Errorf("expected 1 resource after delete stale, got %d", len(resourcesRead))
 	}
 
-	if resource2.Data.Equal(resourcesRead[0]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+	if diff := resource.Data.Diff(resourcesRead[0]); diff != "" {
+		return fmt.Errorf("after delete stale expected second resource diff: %s", diff)
 	}
 
 	return nil
 }
 
-func (s *TestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := "cq_test_write_append"
 	table := testdata.TestTable(tableName)
-	syncTime := time.Now().UTC()
+	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*schema.Table{
 		table,
 	}
@@ -155,28 +154,32 @@ func (s *TestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plu
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
-	sourceName := uuid.NewString()
+	sourceName := "testAppendSource" + uuid.NewString()
 	resource := schema.DestinationResource{
 		TableName: table.Name,
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
+	_ = resource.Data[0].Set(sourceName)
+	_ = resource.Data[1].Set(syncTime)
 
 	if err := p.writeOne(ctx, tables, sourceName, syncTime, resource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
-	resource = schema.DestinationResource{
+	resource2 := schema.DestinationResource{
 		TableName: table.Name,
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
 
 	if !s.tests.SkipSecondAppend {
 		// we dont use time.now because looks like there is some strange
 		// issue on windows machine on github actions where it returns the same thing
 		// for all calls.
-		secondSyncTime := syncTime.Add(time.Second).UTC()
+		secondSyncTime := syncTime.Add(10 * time.Second).UTC()
+		_ = resource2.Data[0].Set(sourceName)
+		_ = resource2.Data[1].Set(secondSyncTime)
 		// write second time
-		if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
+		if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource2); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
@@ -195,25 +198,34 @@ func (s *TestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plu
 		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
-	if resource.Data.Equal(resourcesRead[0]) {
-		return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[0])
+	if diff := resource.Data.Diff(resourcesRead[0]); diff != "" {
+		return fmt.Errorf("first expected resource diff: %s", diff)
 	}
+
 	if !s.tests.SkipSecondAppend {
-		if resource.Data.Equal(resourcesRead[1]) {
-			return fmt.Errorf("expected data to be %v, got %v", resource.Data, resourcesRead[1])
+		if diff := resource2.Data.Diff(resourcesRead[1]); diff != "" {
+			return fmt.Errorf("second expected resource diff: %s", diff)
 		}
 	}
 
 	return nil
 }
 
-func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests TestSuiteTests) {
+func getTestLogger(t *testing.T) zerolog.Logger {
+	t.Helper()
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
+	return zerolog.New(zerolog.NewTestWriter(t)).Output(
+		zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.StampMicro},
+	).Level(zerolog.TraceLevel).With().Timestamp().Logger()
+}
+
+func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSuiteTests) {
 	t.Helper()
 	destSpec := specs.Destination{
 		Name: "testsuite",
 		Spec: spec,
 	}
-	suite := &TestSuite{
+	suite := &PluginTestSuite{
 		tests: tests,
 	}
 	ctx := context.Background()

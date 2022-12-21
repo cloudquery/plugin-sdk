@@ -33,7 +33,7 @@ func (dst *CIDRArray) Equal(src CQType) bool {
 	if dst.Status != s.Status {
 		return false
 	}
-	if len(dst.Elements) != len(s.Elements) || len(dst.Dimensions) != len(s.Dimensions) {
+	if len(dst.Elements) != len(s.Elements) {
 		return false
 	}
 
@@ -44,6 +44,28 @@ func (dst *CIDRArray) Equal(src CQType) bool {
 	}
 
 	return true
+}
+
+func (dst *CIDRArray) fromString(value string) error {
+	// this is basically back from string encoding
+	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+		return fmt.Errorf("cannot decode %v into InetArray", value)
+	}
+	// remove the curly braces
+	value = value[1 : len(value)-1]
+	inets := strings.Split(value, ",")
+	elements := make([]CIDR, len(inets))
+	for i := range inets {
+		if err := elements[i].Set(inets[i]); err != nil {
+			return err
+		}
+	}
+	*dst = CIDRArray{
+		Elements:   elements,
+		Dimensions: []ArrayDimension{{Length: int32(len(elements)), LowerBound: 1}},
+		Status:     Present,
+	}
+	return nil
 }
 
 func (dst *CIDRArray) String() string {
@@ -148,6 +170,10 @@ func (dst *CIDRArray) Set(src any) error {
 				Status:     Present,
 			}
 		}
+	case string:
+		return dst.fromString(value)
+	case *string:
+		return dst.fromString(*value)
 	default:
 		// Fallback to reflection if an optimised match was not found.
 		// The reflection is necessary for arrays and multidimensional slices,

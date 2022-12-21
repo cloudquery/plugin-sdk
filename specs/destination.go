@@ -17,6 +17,7 @@ type Destination struct {
 	Path      string    `json:"path,omitempty"`
 	Registry  Registry  `json:"registry,omitempty"`
 	WriteMode WriteMode `json:"write_mode,omitempty"`
+	BatchSize int       `json:"batch_size,omitempty"`
 	Spec      any       `json:"spec,omitempty"`
 }
 
@@ -26,6 +27,8 @@ const (
 	WriteModeAppend
 )
 
+const defaultBatchSize = 10000
+
 var (
 	writeModeStrings = []string{"overwrite-delete-stale", "overwrite", "append"}
 )
@@ -33,6 +36,9 @@ var (
 func (d *Destination) SetDefaults() {
 	if d.Registry.String() == "" {
 		d.Registry = RegistryGithub
+	}
+	if d.BatchSize == 0 {
+		d.BatchSize = defaultBatchSize
 	}
 }
 
@@ -69,7 +75,9 @@ func (d *Destination) Validate() error {
 			return fmt.Errorf("version must start with v")
 		}
 	}
-
+	if d.BatchSize < 0 {
+		return fmt.Errorf("batch_size must be greater than 0")
+	}
 	return nil
 }
 

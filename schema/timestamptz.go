@@ -41,7 +41,10 @@ func (dst *Timestamptz) Equal(src CQType) bool {
 	}
 
 	if value, ok := src.(*Timestamptz); ok {
-		return dst.Status == value.Status && dst.Time.Equal(value.Time) && dst.InfinityModifier == value.InfinityModifier
+		if dst.Status != value.Status || dst.InfinityModifier != value.InfinityModifier {
+			return false
+		}
+		return dst.Time.Equal(value.Time)
 	}
 
 	return false
