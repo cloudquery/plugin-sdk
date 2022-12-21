@@ -12,15 +12,15 @@ import (
 type WriteMode int
 
 type Destination struct {
-	Name         string      `json:"name,omitempty"`
-	Version      string      `json:"version,omitempty"`
-	Path         string      `json:"path,omitempty"`
-	Registry     Registry    `json:"registry,omitempty"`
-	WriteMode    WriteMode   `json:"write_mode,omitempty"`
-	BatchTimeout int         `json:"batch_timeout,omitempty"`
-	BatchSize    int         `json:"batch_size,omitempty"`
-	Workers      int         `json:"workers,omitempty"`
-	Spec         any `json:"spec,omitempty"`
+	Name         string    `json:"name,omitempty"`
+	Version      string    `json:"version,omitempty"`
+	Path         string    `json:"path,omitempty"`
+	Registry     Registry  `json:"registry,omitempty"`
+	WriteMode    WriteMode `json:"write_mode,omitempty"`
+	BatchTimeout int       `json:"batch_timeout,omitempty"`
+	BatchSize    int       `json:"batch_size,omitempty"`
+	Workers      int       `json:"workers,omitempty"`
+	Spec         any       `json:"spec,omitempty"`
 }
 
 const (
