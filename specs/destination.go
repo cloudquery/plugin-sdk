@@ -12,15 +12,13 @@ import (
 type WriteMode int
 
 type Destination struct {
-	Name         string    `json:"name,omitempty"`
-	Version      string    `json:"version,omitempty"`
-	Path         string    `json:"path,omitempty"`
-	Registry     Registry  `json:"registry,omitempty"`
-	WriteMode    WriteMode `json:"write_mode,omitempty"`
-	BatchTimeout int       `json:"batch_timeout,omitempty"`
-	BatchSize    int       `json:"batch_size,omitempty"`
-	Workers      int       `json:"workers,omitempty"`
-	Spec         any       `json:"spec,omitempty"`
+	Name      string    `json:"name,omitempty"`
+	Version   string    `json:"version,omitempty"`
+	Path      string    `json:"path,omitempty"`
+	Registry  Registry  `json:"registry,omitempty"`
+	WriteMode WriteMode `json:"write_mode,omitempty"`
+	BatchSize int       `json:"batch_size,omitempty"`
+	Spec      any       `json:"spec,omitempty"`
 }
 
 const (
@@ -30,10 +28,6 @@ const (
 )
 
 const defaultBatchSize = 10000
-const defaultWorkers = 1
-
-// batchTimeout is the timeout for a batch to be sent to the destination if no resources are received
-const defaultBatchTimeoutSeconds = 20
 
 var (
 	writeModeStrings = []string{"overwrite-delete-stale", "overwrite", "append"}
@@ -45,12 +39,6 @@ func (d *Destination) SetDefaults() {
 	}
 	if d.BatchSize == 0 {
 		d.BatchSize = defaultBatchSize
-	}
-	if d.Workers == 0 {
-		d.Workers = defaultWorkers
-	}
-	if d.BatchTimeout == 0 {
-		d.BatchTimeout = defaultBatchTimeoutSeconds
 	}
 }
 
@@ -89,9 +77,6 @@ func (d *Destination) Validate() error {
 	}
 	if d.BatchSize < 0 {
 		return fmt.Errorf("batch_size must be greater than 0")
-	}
-	if d.Workers < 0 {
-		return fmt.Errorf("workers must be greater than 0")
 	}
 	return nil
 }

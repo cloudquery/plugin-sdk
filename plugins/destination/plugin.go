@@ -17,6 +17,8 @@ const (
 	managed
 )
 
+const defaultBatchTimeoutSeconds = 20
+
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
 type ManagedWriter interface {
@@ -93,16 +95,23 @@ func WithManagerWriter() Option {
 	}
 }
 
+func WithBatchTimeout(seconds int) Option {
+	return func(p *Plugin) {
+		p.batchTimeout = time.Duration(seconds) * time.Second
+	}
+}
+
 // NewPlugin creates a new destination plugin
 func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ...Option) *Plugin {
 	p := &Plugin{
-		name:        name,
-		version:     version,
-		newClient:   newClientFunc,
-		metrics:     make(map[string]*Metrics),
-		metricsLock: &sync.RWMutex{},
-		workers:     make(map[string]*worker),
-		workersLock: &sync.Mutex{},
+		name:         name,
+		version:      version,
+		newClient:    newClientFunc,
+		metrics:      make(map[string]*Metrics),
+		metricsLock:  &sync.RWMutex{},
+		workers:      make(map[string]*worker),
+		workersLock:  &sync.Mutex{},
+		batchTimeout: time.Duration(defaultBatchTimeoutSeconds) * time.Second,
 	}
 	if newClientFunc == nil {
 		// we do this check because we only call this during runtime later on so it can fail
@@ -147,7 +156,6 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 	p.logger = logger
 	p.spec = spec
 	p.spec.SetDefaults()
-	p.batchTimeout = time.Duration(p.spec.BatchTimeout) * time.Second
 	p.client, err = p.newClient(ctx, logger, spec)
 	if err != nil {
 		return err
