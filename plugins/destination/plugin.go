@@ -57,7 +57,7 @@ type Client interface {
 
 type ClientResource struct {
 	TableName string
-	Data      []interface{}
+	Data      []any
 }
 
 type Option func(*Plugin)
