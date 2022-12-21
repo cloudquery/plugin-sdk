@@ -144,7 +144,7 @@ func GenTestData(table *schema.Table) schema.CQTypes {
 			}
 		case schema.TypeTimestamp:
 			data[i] = &schema.Timestamptz{
-				Time:   time.Now().UTC(),
+				Time:   time.Now().UTC().Round(time.Second),
 				Status: schema.Present,
 			}
 		case schema.TypeJSON:

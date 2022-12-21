@@ -44,7 +44,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 	}
 	tableName := "cq_test_write_overwrite"
 	table := testdata.TestTable(tableName)
-	syncTime := time.Now().UTC()
+	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*schema.Table{
 		table,
 	}
@@ -149,7 +149,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 	tableName := "cq_test_write_append"
 	table := testdata.TestTable(tableName)
-	syncTime := time.Now().UTC()
+	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*schema.Table{
 		table,
 	}
