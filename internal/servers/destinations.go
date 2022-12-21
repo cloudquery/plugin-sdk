@@ -115,11 +115,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 			if err := eg.Wait(); err != nil {
 				s.Logger.Error().Err(err).Msg("failed to wait")
 			}
-			st := status.FromContextError(ctx.Err())
-			if st == nil {
-				return nil
-			}
-			return st.Err()
+			return status.FromContextError(ctx.Err()).Err()
 		}
 	}
 }
