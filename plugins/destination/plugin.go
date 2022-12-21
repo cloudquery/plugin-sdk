@@ -2,7 +2,6 @@ package destination
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -88,19 +87,12 @@ type Plugin struct {
 	workers     map[string]*worker
 	workersLock *sync.Mutex
 
-	maxWorkers   int
 	batchTimeout time.Duration
 }
 
 func WithManagerWriter() Option {
 	return func(p *Plugin) {
 		p.writer = managed
-	}
-}
-
-func WithMaxWorkers(maxWorkers int) Option {
-	return func(p *Plugin) {
-		p.maxWorkers = maxWorkers
 	}
 }
 
@@ -115,7 +107,6 @@ func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ..
 		metricsLock: &sync.RWMutex{},
 		workers:     make(map[string]*worker),
 		workersLock: &sync.Mutex{},
-		maxWorkers:  defaultMaxWorkers,
 	}
 	if newClientFunc == nil {
 		// we do this check because we only call this during runtime later on so it can fail
@@ -160,9 +151,6 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 	p.logger = logger
 	p.spec = spec
 	p.spec.SetDefaults()
-	if p.spec.Workers > p.maxWorkers {
-		return fmt.Errorf("this plugin doesn't support more than %d workers", p.maxWorkers)
-	}
 	p.batchTimeout = time.Duration(p.spec.BatchTimeout) * time.Second
 	p.client, err = p.newClient(ctx, logger, spec)
 	if err != nil {

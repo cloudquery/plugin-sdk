@@ -101,13 +101,11 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, tables schema.Table
 				flush: flush,
 				wg:    wg,
 			}
-			for i := 0; i < p.spec.Workers; i++ {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					p.worker(ctx, metrics, table, ch, flush)
-				}()
-			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				p.worker(ctx, metrics, table, ch, flush)
+			}()
 		} else {
 			p.workers[table.Name].count++
 		}

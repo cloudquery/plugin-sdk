@@ -12,13 +12,9 @@ import (
 func (p *Plugin) writeUnmanaged(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan schema.DestinationResource) error {
 	ch := make(chan *ClientResource)
 	eg, gctx := errgroup.WithContext(ctx)
-	// given most destination plugins writing in batch we are using a worker pool to write in parallel
-	// it might not generalize well and we might need to move it to each destination plugin implementation.
-	for i := 0; i < p.maxWorkers; i++ {
-		eg.Go(func() error {
-			return p.client.Write(gctx, tables, ch)
-		})
-	}
+	eg.Go(func() error {
+		return p.client.Write(gctx, tables, ch)
+	})
 	sourceColumn := &schema.Text{}
 	_ = sourceColumn.Set(sourceName)
 	syncTimeColumn := &schema.Timestamptz{}
