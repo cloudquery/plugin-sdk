@@ -17,8 +17,6 @@ type worker struct {
 	flush chan chan bool
 }
 
-// batchTimeout is the timeout for a batch to be sent to the destination if no resources are received
-const batchTimeout = 20 * time.Second
 
 func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan schema.CQTypes, flush <-chan chan bool) {
 	resources := make([][]interface{}, 0)
@@ -53,7 +51,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 				}
 				return
 			}
-		case <-time.After(batchTimeout):
+		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
 				start := time.Now()
 				if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {

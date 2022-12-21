@@ -91,6 +91,7 @@ type Plugin struct {
 	workersLock *sync.Mutex
 
 	maxWorkers int
+	batchTimeout time.Duration
 }
 
 func WithManagerWriter() Option {
@@ -163,6 +164,7 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 	if p.spec.Workers > p.maxWorkers {
 		return fmt.Errorf("this plugin doesn't support more than %d workers", p.maxWorkers)
 	}
+	p.batchTimeout = time.Duration(p.spec.BatchTimeout) * time.Second
 	p.client, err = p.newClient(ctx, logger, spec)
 	if err != nil {
 		return err

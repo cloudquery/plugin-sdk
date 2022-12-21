@@ -17,6 +17,7 @@ type Destination struct {
 	Path      string      `json:"path,omitempty"`
 	Registry  Registry    `json:"registry,omitempty"`
 	WriteMode WriteMode   `json:"write_mode,omitempty"`
+	BatchTimeout int     `json:"batch_timeout,omitempty"`
 	BatchSize int         `json:"batch_size,omitempty"`
 	Workers   int         `json:"workers,omitempty"`
 	Spec      interface{} `json:"spec,omitempty"`
@@ -30,6 +31,8 @@ const (
 
 const defaultBatchSize = 10000
 const defaultWorkers = 1
+// batchTimeout is the timeout for a batch to be sent to the destination if no resources are received
+const defaultBatchTimeoutSeconds = 20
 
 var (
 	writeModeStrings = []string{"overwrite-delete-stale", "overwrite", "append"}
@@ -44,6 +47,9 @@ func (d *Destination) SetDefaults() {
 	}
 	if d.Workers == 0 {
 		d.Workers = defaultWorkers
+	}
+	if d.BatchTimeout == 0 {
+		d.BatchTimeout = defaultBatchTimeoutSeconds
 	}
 }
 
