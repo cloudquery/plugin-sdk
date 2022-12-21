@@ -204,7 +204,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 
 	if !s.tests.SkipSecondAppend {
 		if diff := resource2.Data.Diff(resourcesRead[1]); diff != "" {
-			return fmt.Errorf("what second expected resource diff: %s", diff)
+			return fmt.Errorf("second expected resource diff: %s", diff)
 		}
 	}
 
