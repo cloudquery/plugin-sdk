@@ -219,7 +219,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 	).Level(zerolog.TraceLevel).With().Timestamp().Logger()
 }
 
-func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec interface{}, tests PluginTestSuiteTests) {
+func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSuiteTests) {
 	t.Helper()
 	destSpec := specs.Destination{
 		Name: "testsuite",

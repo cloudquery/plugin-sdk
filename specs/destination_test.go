@@ -28,7 +28,7 @@ func TestWriteModeFromString(t *testing.T) {
 
 func TestDestinationSpecUnmarshalSpec(t *testing.T) {
 	destination := Destination{
-		Spec: map[string]interface{}{
+		Spec: map[string]any{
 			"connection_string": "postgres://user:pass@host:port/db",
 		},
 	}

@@ -20,7 +20,7 @@ const (
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
 type ManagedWriter interface {
-	WriteTableBatch(ctx context.Context, table *schema.Table, data [][]interface{}) error
+	WriteTableBatch(ctx context.Context, table *schema.Table, data [][]any) error
 }
 
 type UnimplementedManagedWriter struct{}
@@ -32,7 +32,7 @@ type UnmanagedWriter interface {
 
 type UnimplementedUnmanagedWriter struct{}
 
-func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, [][]interface{}) error {
+func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, [][]any) error {
 	panic("WriteTableBatch not implemented")
 }
 
@@ -46,7 +46,7 @@ func (*UnimplementedUnmanagedWriter) Metrics() Metrics {
 
 type Client interface {
 	schema.CQTypeTransformer
-	ReverseTransformValues(table *schema.Table, values []interface{}) (schema.CQTypes, error)
+	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Tables) error
 	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []any) error
 	ManagedWriter
@@ -178,7 +178,7 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName st
 
 func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes) error {
 	SetDestinationManagedCqColumns(schema.Tables{table})
-	ch := make(chan []interface{})
+	ch := make(chan []any)
 	var err error
 	go func() {
 		defer close(ch)

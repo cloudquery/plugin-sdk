@@ -35,7 +35,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 						p.logger.Info().Str("table", table.Name).Int("len", p.spec.BatchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 						atomic.AddUint64(&metrics.Writes, uint64(p.spec.BatchSize))
 					}
-					resources = make([][]interface{}, 0)
+					resources = make([][]any, 0)
 				}
 			} else {
 				if len(resources) > 0 {
@@ -61,7 +61,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 					p.logger.Info().Str("table", table.Name).Int("len", len(resources)).Dur("time", time.Since(start)).Msg("batch written successfully on timeout")
 					atomic.AddUint64(&metrics.Writes, uint64(len(resources)))
 				}
-				resources = make([][]interface{}, 0)
+				resources = make([][]any, 0)
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
@@ -74,7 +74,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 					p.logger.Info().Str("table", table.Name).Int("len", len(resources)).Dur("time", time.Since(start)).Msg("batch written successfully on timeout")
 					atomic.AddUint64(&metrics.Writes, uint64(len(resources)))
 				}
-				resources = make([][]interface{}, 0)
+				resources = make([][]any, 0)
 				done <- true
 			}
 		}

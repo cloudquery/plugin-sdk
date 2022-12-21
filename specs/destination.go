@@ -20,7 +20,7 @@ type Destination struct {
 	BatchTimeout int         `json:"batch_timeout,omitempty"`
 	BatchSize    int         `json:"batch_size,omitempty"`
 	Workers      int         `json:"workers,omitempty"`
-	Spec         interface{} `json:"spec,omitempty"`
+	Spec         any `json:"spec,omitempty"`
 }
 
 const (
@@ -54,7 +54,7 @@ func (d *Destination) SetDefaults() {
 	}
 }
 
-func (d *Destination) UnmarshalSpec(out interface{}) error {
+func (d *Destination) UnmarshalSpec(out any) error {
 	b, err := json.Marshal(d.Spec)
 	if err != nil {
 		return err
