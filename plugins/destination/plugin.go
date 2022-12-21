@@ -93,7 +93,7 @@ func WithManagerWriter() Option {
 	}
 }
 
-// NewPlugin creates a new unmanaged plugin
+// NewPlugin creates a new destination plugin
 func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ...Option) *Plugin {
 	p := &Plugin{
 		name:        name,
