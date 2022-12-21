@@ -48,7 +48,7 @@ type Client interface {
 	schema.CQTypeTransformer
 	ReverseTransformValues(table *schema.Table, values []interface{}) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Tables) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []interface{}) error
+	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []any) error
 	ManagedWriter
 	UnmanagedWriter
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
