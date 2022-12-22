@@ -18,7 +18,7 @@ func TestPluginUnmanagedClient(t *testing.T) {
 }
 
 func TestPluginManagedClient(t *testing.T) {
-	p := destination.NewPlugin("test", "development", NewClient, destination.WithManagerWriter())
+	p := destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter())
 	destination.PluginTestSuiteRunner(t, p, nil,
 		destination.PluginTestSuiteTests{})
 }
