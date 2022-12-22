@@ -89,7 +89,7 @@ type Plugin struct {
 	batchTimeout time.Duration
 }
 
-func WithManagerWriter() Option {
+func WithManagedWriter() Option {
 	return func(p *Plugin) {
 		p.writerType = managed
 	}
