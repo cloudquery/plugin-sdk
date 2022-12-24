@@ -7,7 +7,7 @@ import (
 	"io"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -18,7 +18,7 @@ import (
 
 type DestinationServer struct {
 	pb.UnimplementedDestinationServer
-	Plugin *plugins.DestinationPlugin
+	Plugin *destination.Plugin
 	Logger zerolog.Logger
 }
 
@@ -70,11 +70,11 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 		if err == io.EOF {
 			return msg.SendAndClose(&pb.Write2_Response{})
 		}
-		return fmt.Errorf("write: failed to receive msg: %w", err)
+		return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 	}
 	var tables schema.Tables
 	if err := json.Unmarshal(r.Tables, &tables); err != nil {
-		return fmt.Errorf("write: failed to unmarshal tables: %w", err)
+		return status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
 	sourceName := r.Source
 	syncTime := r.Timestamp.AsTime()
@@ -90,7 +90,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 			if err == io.EOF {
 				close(resources)
 				if err := eg.Wait(); err != nil {
-					return fmt.Errorf("got EOF. failed to wait for plugin: %w", err)
+					return status.Errorf(codes.Internal, "failed to wait for plugin: %v", err)
 				}
 				return msg.SendAndClose(&pb.Write2_Response{})
 			}
@@ -98,7 +98,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 			if err := eg.Wait(); err != nil {
 				s.Logger.Error().Err(err).Msg("got error. failed to wait for plugin")
 			}
-			return fmt.Errorf("failed to receive msg: %w", err)
+			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
 		var resource schema.DestinationResource
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {

@@ -1,6 +1,6 @@
-package plugins
+package destination
 
-type DestinationMetrics struct {
+type Metrics struct {
 	// Errors number of errors / failed writes
 	Errors uint64
 	// Writes number of successful writes

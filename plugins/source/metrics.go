@@ -1,12 +1,13 @@
-package plugins
+package source
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
-type SourceMetrics struct {
+type Metrics struct {
 	TableClient map[string]map[string]*TableClientMetrics
 }
 
@@ -23,7 +24,7 @@ func (s *TableClientMetrics) Equal(other *TableClientMetrics) bool {
 }
 
 // Equal compares to stats. Mostly useful in testing
-func (s *SourceMetrics) Equal(other *SourceMetrics) bool {
+func (s *Metrics) Equal(other *Metrics) bool {
 	for table, clientStats := range s.TableClient {
 		for client, stats := range clientStats {
 			if _, ok := other.TableClient[table]; !ok {
@@ -53,25 +54,17 @@ func (s *SourceMetrics) Equal(other *SourceMetrics) bool {
 	return true
 }
 
-func (s *SourceMetrics) initWithTables(tables schema.Tables) {
-	s.TableClient = make(map[string]map[string]*TableClientMetrics)
-	for _, table := range tables {
-		s.TableClient[table.Name] = make(map[string]*TableClientMetrics)
-		s.initWithTables(table.Relations)
-	}
-}
-
-func (s *SourceMetrics) initWithClients(table *schema.Table, clients []schema.ClientMeta) {
-	s.TableClient[table.Name] = make(map[string]*TableClientMetrics)
+func (s *Metrics) initWithClients(table *schema.Table, clients []schema.ClientMeta) {
+	s.TableClient[table.Name] = make(map[string]*TableClientMetrics, len(clients))
 	for _, client := range clients {
 		s.TableClient[table.Name][client.ID()] = &TableClientMetrics{}
-		for _, relation := range table.Relations {
-			s.initWithClients(relation, clients)
-		}
+	}
+	for _, relation := range table.Relations {
+		s.initWithClients(relation, clients)
 	}
 }
 
-func (s *SourceMetrics) TotalErrors() uint64 {
+func (s *Metrics) TotalErrors() uint64 {
 	var total uint64
 	for _, clientMetrics := range s.TableClient {
 		for _, metrics := range clientMetrics {
@@ -81,7 +74,17 @@ func (s *SourceMetrics) TotalErrors() uint64 {
 	return total
 }
 
-func (s *SourceMetrics) TotalPanics() uint64 {
+func (s *Metrics) TotalErrorsAtomic() uint64 {
+	var total uint64
+	for _, clientMetrics := range s.TableClient {
+		for _, metrics := range clientMetrics {
+			total += atomic.LoadUint64(&metrics.Errors)
+		}
+	}
+	return total
+}
+
+func (s *Metrics) TotalPanics() uint64 {
 	var total uint64
 	for _, clientMetrics := range s.TableClient {
 		for _, metrics := range clientMetrics {
@@ -91,11 +94,31 @@ func (s *SourceMetrics) TotalPanics() uint64 {
 	return total
 }
 
-func (s *SourceMetrics) TotalResources() uint64 {
+func (s *Metrics) TotalPanicsAtomic() uint64 {
+	var total uint64
+	for _, clientMetrics := range s.TableClient {
+		for _, metrics := range clientMetrics {
+			total += atomic.LoadUint64(&metrics.Panics)
+		}
+	}
+	return total
+}
+
+func (s *Metrics) TotalResources() uint64 {
 	var total uint64
 	for _, clientMetrics := range s.TableClient {
 		for _, metrics := range clientMetrics {
 			total += metrics.Resources
+		}
+	}
+	return total
+}
+
+func (s *Metrics) TotalResourcesAtomic() uint64 {
+	var total uint64
+	for _, clientMetrics := range s.TableClient {
+		for _, metrics := range clientMetrics {
+			total += atomic.LoadUint64(&metrics.Resources)
 		}
 	}
 	return total

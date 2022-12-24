@@ -20,8 +20,8 @@ type CQTypeTransformer interface {
 	UUIDTransformer
 }
 
-func TransformWithTransformer(transformer CQTypeTransformer, values CQTypes) []interface{} {
-	res := make([]interface{}, len(values))
+func TransformWithTransformer(transformer CQTypeTransformer, values CQTypes) []any {
+	res := make([]any, len(values))
 	for i, v := range values {
 		switch v.Type() {
 		case TypeBool:
@@ -68,70 +68,70 @@ func TransformWithTransformer(transformer CQTypeTransformer, values CQTypes) []i
 type DefaultTransformer struct {
 }
 
-func (*DefaultTransformer) TransformBool(v *Bool) interface{} {
+func (*DefaultTransformer) TransformBool(v *Bool) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformBytea(v *Bytea) interface{} {
+func (*DefaultTransformer) TransformBytea(v *Bytea) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformFloat8(v *Float8) interface{} {
+func (*DefaultTransformer) TransformFloat8(v *Float8) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformInt8(v *Int8) interface{} {
+func (*DefaultTransformer) TransformInt8(v *Int8) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformInt8Array(v *Int8Array) interface{} {
+func (*DefaultTransformer) TransformInt8Array(v *Int8Array) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformJSON(v *JSON) interface{} {
+func (*DefaultTransformer) TransformJSON(v *JSON) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformText(v *Text) interface{} {
+func (*DefaultTransformer) TransformText(v *Text) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformTextArray(v *TextArray) interface{} {
+func (*DefaultTransformer) TransformTextArray(v *TextArray) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformTimestamptz(v *Timestamptz) interface{} {
+func (*DefaultTransformer) TransformTimestamptz(v *Timestamptz) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformUUID(v *UUID) interface{} {
+func (*DefaultTransformer) TransformUUID(v *UUID) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformUUIDArray(v *UUIDArray) interface{} {
+func (*DefaultTransformer) TransformUUIDArray(v *UUIDArray) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformCIDR(v *CIDR) interface{} {
+func (*DefaultTransformer) TransformCIDR(v *CIDR) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformCIDRArray(v *CIDRArray) interface{} {
+func (*DefaultTransformer) TransformCIDRArray(v *CIDRArray) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformInet(v *Inet) interface{} {
+func (*DefaultTransformer) TransformInet(v *Inet) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformInetArray(v *InetArray) interface{} {
+func (*DefaultTransformer) TransformInetArray(v *InetArray) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformMacaddr(v *Macaddr) interface{} {
+func (*DefaultTransformer) TransformMacaddr(v *Macaddr) any {
 	return v
 }
 
-func (*DefaultTransformer) TransformMacaddrArray(v *MacaddrArray) interface{} {
+func (*DefaultTransformer) TransformMacaddrArray(v *MacaddrArray) any {
 	return v
 }

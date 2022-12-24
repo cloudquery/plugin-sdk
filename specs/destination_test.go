@@ -28,7 +28,7 @@ func TestWriteModeFromString(t *testing.T) {
 
 func TestDestinationSpecUnmarshalSpec(t *testing.T) {
 	destination := Destination{
-		Spec: map[string]interface{}{
+		Spec: map[string]any{
 			"connection_string": "postgres://user:pass@host:port/db",
 		},
 	}
@@ -144,9 +144,10 @@ spec:
 `,
 		"",
 		&Destination{
-			Name:     "test",
-			Registry: RegistryGrpc,
-			Path:     "localhost:9999",
+			Name:      "test",
+			Registry:  RegistryGrpc,
+			Path:      "localhost:9999",
+			BatchSize: defaultBatchSize,
 		},
 	},
 	{
@@ -159,9 +160,10 @@ spec:
 `,
 		"",
 		&Destination{
-			Name:     "test",
-			Registry: RegistryLocal,
-			Path:     "/home/user/some_executable",
+			Name:      "test",
+			Registry:  RegistryLocal,
+			Path:      "/home/user/some_executable",
+			BatchSize: 10000,
 		},
 	},
 	{
@@ -174,10 +176,11 @@ spec:
 `,
 		"",
 		&Destination{
-			Name:     "test",
-			Registry: RegistryGithub,
-			Path:     "cloudquery/test",
-			Version:  "v1.1.0",
+			Name:      "test",
+			Registry:  RegistryGithub,
+			Path:      "cloudquery/test",
+			Version:   "v1.1.0",
+			BatchSize: 10000,
 		},
 	},
 }
@@ -196,13 +199,13 @@ func TestDestinationUnmarshalSpecValidate(t *testing.T) {
 			err = destination.Validate()
 			if err != nil {
 				if err.Error() != tc.err {
-					t.Fatalf("expected:%s got:%s", tc.err, err.Error())
+					t.Fatalf("expected:\n%s\ngot:\n%s", tc.err, err.Error())
 				}
 				return
 			}
 
 			if cmp.Diff(destination, tc.destination) != "" {
-				t.Fatalf("expected:%v got:%v", tc.destination, destination)
+				t.Fatalf("expected:\n%v\ngot:\n%v\n", tc.destination, destination)
 			}
 		})
 	}

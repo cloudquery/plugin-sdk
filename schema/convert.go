@@ -13,7 +13,7 @@ const (
 )
 
 // underlyingNumberType gets the underlying type that can be converted to Int2, Int4, Int8, Float4, or Float8
-func underlyingNumberType(val interface{}) (interface{}, bool) {
+func underlyingNumberType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
 	switch refVal.Kind() {
@@ -68,7 +68,7 @@ func underlyingNumberType(val interface{}) (interface{}, bool) {
 }
 
 // underlyingBoolType gets the underlying type that can be converted to Bool
-func underlyingBoolType(val interface{}) (interface{}, bool) {
+func underlyingBoolType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
 	switch refVal.Kind() {
@@ -87,7 +87,7 @@ func underlyingBoolType(val interface{}) (interface{}, bool) {
 }
 
 // underlyingBytesType gets the underlying type that can be converted to []byte
-func underlyingBytesType(val interface{}) (interface{}, bool) {
+func underlyingBytesType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
 	switch refVal.Kind() {
@@ -108,7 +108,7 @@ func underlyingBytesType(val interface{}) (interface{}, bool) {
 }
 
 // underlyingTimeType gets the underlying type that can be converted to time.Time
-func underlyingTimeType(val interface{}) (interface{}, bool) {
+func underlyingTimeType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
 	switch refVal.Kind() {
@@ -129,7 +129,7 @@ func underlyingTimeType(val interface{}) (interface{}, bool) {
 }
 
 // underlyingStringType gets the underlying type that can be converted to String
-func underlyingStringType(val interface{}) (interface{}, bool) {
+func underlyingStringType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
 	switch refVal.Kind() {
@@ -148,7 +148,7 @@ func underlyingStringType(val interface{}) (interface{}, bool) {
 }
 
 // underlyingUUIDType gets the underlying type that can be converted to [16]byte
-func underlyingUUIDType(val interface{}) (interface{}, bool) {
+func underlyingUUIDType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
 	switch refVal.Kind() {
@@ -169,7 +169,7 @@ func underlyingUUIDType(val interface{}) (interface{}, bool) {
 }
 
 // underlyingSliceType gets the underlying slice type
-func underlyingSliceType(val interface{}) (interface{}, bool) {
+func underlyingSliceType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
 	switch refVal.Kind() {
@@ -191,7 +191,7 @@ func underlyingSliceType(val interface{}) (interface{}, bool) {
 }
 
 // underlyingPtrType dereferences a pointer
-func underlyingPtrType(val interface{}) (interface{}, bool) {
+func underlyingPtrType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
 	//nolint:gocritic
