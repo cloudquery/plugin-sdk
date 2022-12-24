@@ -8,7 +8,7 @@ import (
 )
 
 type Int8ArrayTransformer interface {
-	TransformInt8Array(*Int8Array) interface{}
+	TransformInt8Array(*Int8Array) any
 }
 
 type Int8Array struct {
@@ -32,7 +32,7 @@ func (dst *Int8Array) Equal(src CQType) bool {
 	if dst.Status != s.Status {
 		return false
 	}
-	if len(dst.Elements) != len(s.Elements) || len(dst.Dimensions) != len(s.Dimensions) {
+	if len(dst.Elements) != len(s.Elements) {
 		return false
 	}
 
@@ -43,6 +43,29 @@ func (dst *Int8Array) Equal(src CQType) bool {
 	}
 
 	return true
+}
+
+func (dst *Int8Array) fromString(value string) error {
+	// this is basically back from string encoding
+	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+		return fmt.Errorf("cannot decode %v into Int8Array", value)
+	}
+
+	value = value[1 : len(value)-1]
+	strs := strings.Split(value, ",")
+	elements := make([]Int8, len(strs))
+	for i := range strs {
+		if err := elements[i].Set(strs[i]); err != nil {
+			return err
+		}
+	}
+
+	*dst = Int8Array{
+		Elements:   elements,
+		Dimensions: []ArrayDimension{{Length: int32(len(elements)), LowerBound: 1}},
+		Status:     Present,
+	}
+	return nil
 }
 
 func (dst *Int8Array) String() string {
@@ -62,7 +85,7 @@ func (dst *Int8Array) String() string {
 	return sb.String()
 }
 
-func (dst *Int8Array) Set(src interface{}) error {
+func (dst *Int8Array) Set(src any) error {
 	// untyped nil and typed nil interfaces are different
 	if src == nil {
 		*dst = Int8Array{Status: Null}
@@ -400,6 +423,14 @@ func (dst *Int8Array) Set(src interface{}) error {
 				Status:     Present,
 			}
 		}
+	case string:
+		if err := dst.fromString(value); err != nil {
+			return err
+		}
+	case *string:
+		if err := dst.fromString(*value); err != nil {
+			return err
+		}
 	default:
 		// Fallback to reflection if an optimised match was not found.
 		// The reflection is necessary for arrays and multidimensional slices,
@@ -494,7 +525,7 @@ func (dst *Int8Array) setRecursive(value reflect.Value, index, dimension int) (i
 	return index, nil
 }
 
-func (dst Int8Array) Get() interface{} {
+func (dst Int8Array) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst

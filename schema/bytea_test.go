@@ -6,7 +6,7 @@ import (
 
 func TestByteaSet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Bytea
 	}{
 		{source: []byte{1, 2, 3}, result: Bytea{Bytes: []byte{1, 2, 3}, Status: Present}},

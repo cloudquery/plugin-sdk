@@ -8,7 +8,7 @@ import (
 
 func TestInetArraySet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result InetArray
 	}{
 		{

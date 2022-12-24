@@ -6,7 +6,7 @@ import (
 
 func TestUUIDArraySet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result UUIDArray
 	}{
 		{

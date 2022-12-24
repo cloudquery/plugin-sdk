@@ -1,4 +1,4 @@
-package plugins
+package source
 
 import (
 	"context"
@@ -18,14 +18,14 @@ var _ schema.ClientMeta = &testExecutionClient{}
 
 var stableUUID = uuid.MustParse("00000000000040008000000000000000")
 
-func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- interface{}) error {
-	res <- map[string]interface{}{
+func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+	res <- map[string]any{
 		"TestColumn": 3,
 	}
 	return nil
 }
 
-func testResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, chan<- interface{}) error {
+func testResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, chan<- any) error {
 	panic("Resolver")
 }
 
@@ -45,31 +45,6 @@ func testTableSuccess() *schema.Table {
 			{
 				Name: "test_column",
 				Type: schema.TypeInt,
-			},
-		},
-	}
-}
-
-func testTableWithChild() *schema.Table {
-	return &schema.Table{
-		Name:     "test_table_parent",
-		Resolver: testResolverSuccess,
-		Columns: []schema.Column{
-			{
-				Name: "test_column",
-				Type: schema.TypeInt,
-			},
-		},
-		Relations: []*schema.Table{
-			{
-				Name:     "test_table_child",
-				Resolver: testResolverSuccess,
-				Columns: []schema.Column{
-					{
-						Name: "test_column",
-						Type: schema.TypeInt,
-					},
-				},
 			},
 		},
 	}
@@ -146,14 +121,14 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (sche
 
 type syncTestCase struct {
 	table *schema.Table
-	stats SourceMetrics
+	stats Metrics
 	data  []schema.CQTypes
 }
 
 var syncTestCases = []syncTestCase{
 	{
 		table: testTableSuccess(),
-		stats: SourceMetrics{
+		stats: Metrics{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_success": {
 					"testExecutionClient": {
@@ -172,7 +147,7 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTableResolverPanic(),
-		stats: SourceMetrics{
+		stats: Metrics{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_resolver_panic": {
 					"testExecutionClient": {
@@ -185,7 +160,7 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTablePreResourceResolverPanic(),
-		stats: SourceMetrics{
+		stats: Metrics{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_pre_resource_resolver_panic": {
 					"testExecutionClient": {
@@ -198,7 +173,7 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTableColumnResolverPanic(),
-		stats: SourceMetrics{
+		stats: Metrics{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_column_resolver_panic": {
 					"testExecutionClient": {
@@ -219,7 +194,7 @@ var syncTestCases = []syncTestCase{
 	},
 	{
 		table: testTableRelationSuccess(),
-		stats: SourceMetrics{
+		stats: Metrics{
 			TableClient: map[string]map[string]*TableClientMetrics{
 				"test_table_relation_success": {
 					"testExecutionClient": {
@@ -273,7 +248,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		tc.table,
 	}
 
-	plugin := NewSourcePlugin(
+	plugin := NewPlugin(
 		"testSourcePlugin",
 		"1.0.0",
 		tables,
@@ -286,6 +261,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		Tables:       []string{"*"},
 		Version:      "v1.0.0",
 		Destinations: []string{"test"},
+		Concurrency:  1, // choose a very low value to check that we don't run into deadlocks
 	}
 	resources := make(chan *schema.Resource)
 	g, ctx := errgroup.WithContext(ctx)
@@ -314,65 +290,12 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 	}
 
 	stats := plugin.Metrics()
-	if !tc.stats.Equal(&stats) {
+	if !tc.stats.Equal(stats) {
 		t.Fatalf("unexpected stats: %v", cmp.Diff(tc.stats, stats))
 	}
 	if err := g.Wait(); err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestTablesForSpec(t *testing.T) {
-	tables := []*schema.Table{
-		testTableWithChild(),
-		testTableResolverPanic(),
-	}
-	plugin := NewSourcePlugin(
-		"testSourcePlugin",
-		"1.0.0",
-		tables,
-		newTestExecutionClient,
-	)
-	plugin.SetLogger(zerolog.New(zerolog.NewTestWriter(t)))
-	t.Run("success case", func(t *testing.T) {
-		spec := specs.Source{
-			Name: "testSource",
-			Path: "cloudquery/testSource",
-			Tables: []string{
-				"test_table_parent",
-			},
-			Version:      "v1.0.0",
-			Destinations: []string{"test"},
-		}
-		got, err := plugin.TablesForSpec(spec)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(got) != 1 {
-			t.Errorf("got %d tables, want %d", len(got), 1)
-		}
-		if got[0] != tables[0] {
-			t.Errorf("got table %v, want %v", got[0].Name, tables[0].Name)
-		}
-	})
-	t.Run("error case", func(t *testing.T) {
-		spec := specs.Source{
-			Name: "testSource",
-			Path: "cloudquery/testSource",
-			Tables: []string{
-				"invalid_table",
-			},
-			Version:      "v1.0.0",
-			Destinations: []string{"test"},
-		}
-		_, err := plugin.TablesForSpec(spec)
-		if err == nil {
-			t.Fatalf("got no error, expected error indicating invalid table name")
-		}
-		if err.Error() != "tables entry matches no known tables: \"invalid_table\"" {
-			t.Fatalf("got error = %v, expected %v", err.Error(), "tables entry matches no known tables: \"invalid_table\"")
-		}
-	})
 }
 
 func TestIgnoredColumns(t *testing.T) {

@@ -16,7 +16,7 @@ func TestTimestamptzSet(t *testing.T) {
 	timeRFC3339NanoBytes, _ := timeInstance.MarshalText()
 
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Timestamptz
 	}{
 		{source: time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local), result: Timestamptz{Time: time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local), Status: Present}},
@@ -32,6 +32,7 @@ func TestTimestamptzSet(t *testing.T) {
 		{source: "2150-10-15 07:25:09.75007611 +0000 UTC", result: Timestamptz{Time: time.Date(2150, 10, 15, 7, 25, 9, 750076110, time.UTC), Status: Present}},
 		{source: timeInstance.String(), result: Timestamptz{Time: time.Date(2105, 7, 23, 22, 23, 37, 750076110, time.UTC), Status: Present}},
 		{source: Timestamp{timeInstance}, result: Timestamptz{Time: time.Date(2105, 7, 23, 22, 23, 37, 750076110, time.UTC), Status: Present}},
+		{source: "", result: Timestamptz{Status: Null}},
 	}
 
 	for i, tt := range successfulTests {
@@ -39,6 +40,7 @@ func TestTimestamptzSet(t *testing.T) {
 		err := r.Set(tt.source)
 		if err != nil {
 			t.Errorf("%d: %v", i, err)
+			continue
 		}
 
 		if !r.Equal(&tt.result) {

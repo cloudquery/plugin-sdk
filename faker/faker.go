@@ -1,6 +1,7 @@
 package faker
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -14,9 +15,9 @@ type faker struct {
 	logger   zerolog.Logger
 }
 
-var errEFaceNotAllowed = fmt.Errorf("interface{} not allowed")
+var errEFaceNotAllowed = fmt.Errorf("any not allowed")
 
-func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
+func (f faker) getFakedValue(a any) (reflect.Value, error) {
 	t := reflect.TypeOf(a)
 	if t == nil {
 		return reflect.Value{}, errEFaceNotAllowed
@@ -67,6 +68,9 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 			return v, nil
 		}
 	case reflect.String:
+		if t == reflect.TypeOf(json.Number("")) {
+			return reflect.ValueOf("123456789"), nil
+		}
 		return reflect.ValueOf("test string"), nil
 	case reflect.Slice:
 		switch t.String() {
@@ -160,7 +164,7 @@ func (f faker) getFakedValue(a interface{}) (reflect.Value, error) {
 	}
 }
 
-func FakeObject(obj interface{}, opts ...Option) error {
+func FakeObject(obj any, opts ...Option) error {
 	reflectType := reflect.TypeOf(obj)
 
 	if reflectType.Kind() != reflect.Ptr {

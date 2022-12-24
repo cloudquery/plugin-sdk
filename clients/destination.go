@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/plugins"
+	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -156,7 +156,7 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 				c.logger.Err(err).Msg("failed to read log line from plugin")
 				break
 			}
-			var structuredLogLine map[string]interface{}
+			var structuredLogLine map[string]any
 			if err := json.Unmarshal(line, &structuredLogLine); err != nil {
 				c.logger.Err(err).Str("line", string(line)).Msg("failed to unmarshal log line from plugin")
 			} else {
@@ -183,10 +183,7 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, error) {
 	res, err := c.pbClient.GetProtocolVersion(ctx, &pb.GetProtocolVersion_Request{})
 	if err != nil {
-		s, ok := status.FromError(err)
-		if !ok {
-			return 0, fmt.Errorf("failed to call GetProtocolVersion: %w", err)
-		}
+		s := status.Convert(err)
 		if s.Code() != codes.Unimplemented {
 			return 0, err
 		}
@@ -196,12 +193,12 @@ func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, err
 	return res.Version, nil
 }
 
-func (c *DestinationClient) GetMetrics(ctx context.Context) (*plugins.DestinationMetrics, error) {
+func (c *DestinationClient) GetMetrics(ctx context.Context) (*destination.Metrics, error) {
 	res, err := c.pbClient.GetMetrics(ctx, &pb.GetDestinationMetrics_Request{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call GetMetrics: %w", err)
 	}
-	var stats plugins.DestinationMetrics
+	var stats destination.Metrics
 	if err := json.Unmarshal(res.Metrics, &stats); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal destination metrics: %w", err)
 	}

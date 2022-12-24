@@ -1,6 +1,6 @@
 //go:build !windows
 
-package plugins
+package source
 
 import (
 	"os"
@@ -69,15 +69,15 @@ var testTables = []*schema.Table{
 	},
 }
 
-func TestGenerateSourcePluginDocs(t *testing.T) {
-	p := NewSourcePlugin("test", "v1.0.0", testTables, newTestExecutionClient)
+func TestGeneratePluginDocs(t *testing.T) {
+	p := NewPlugin("test", "v1.0.0", testTables, newTestExecutionClient)
 
 	t.Run("Markdown", func(t *testing.T) {
 		tmpdir := t.TempDir()
 
-		err := p.GenerateSourcePluginDocs(tmpdir, "markdown")
+		err := p.GeneratePluginDocs(tmpdir, "markdown")
 		if err != nil {
-			t.Fatalf("unexpected error calling GenerateSourcePluginDocs: %v", err)
+			t.Fatalf("unexpected error calling GeneratePluginDocs: %v", err)
 		}
 
 		expectFiles := []string{"test_table.md", "relation_table.md", "relation_relation_table.md", "README.md"}
@@ -94,9 +94,9 @@ func TestGenerateSourcePluginDocs(t *testing.T) {
 	t.Run("JSON", func(t *testing.T) {
 		tmpdir := t.TempDir()
 
-		err := p.GenerateSourcePluginDocs(tmpdir, "json")
+		err := p.GeneratePluginDocs(tmpdir, "json")
 		if err != nil {
-			t.Fatalf("unexpected error calling GenerateSourcePluginDocs: %v", err)
+			t.Fatalf("unexpected error calling GeneratePluginDocs: %v", err)
 		}
 
 		expectFiles := []string{"__tables.json"}

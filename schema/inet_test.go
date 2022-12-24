@@ -28,7 +28,7 @@ func mustParseCIDR(t testing.TB, s string) *net.IPNet {
 
 func TestInetSet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Inet
 	}{
 		{source: mustParseCIDR(t, "127.0.0.1/32"), result: Inet{IPNet: mustParseCIDR(t, "127.0.0.1/32"), Status: Present}},

@@ -1,6 +1,7 @@
 package faker
 
 import (
+	"encoding/json"
 	"net"
 	"testing"
 	"time"
@@ -13,7 +14,8 @@ type testFakerStruct struct {
 	B string
 	C *string
 	D time.Time
-	E interface{}
+	E any
+	F json.Number
 }
 
 func TestFaker(t *testing.T) {
@@ -25,7 +27,8 @@ func TestFaker(t *testing.T) {
 	assert.NotEmpty(t, a.B)
 	assert.NotEmpty(t, a.C)
 	assert.NotEmpty(t, a.D)
-	assert.Empty(t, a.E) // empty interfaces are not faked
+	assert.Empty(t, a.E)                           // empty interfaces are not faked
+	assert.Equal(t, json.Number("123456789"), a.F) // json numbers should be numbers
 }
 
 type customType string

@@ -5,6 +5,97 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.1](https://github.com/cloudquery/plugin-sdk/compare/v1.13.0...v1.13.1) (2022-12-22)
+
+
+### Bug Fixes
+
+* Typo manager-&gt;managed ([#526](https://github.com/cloudquery/plugin-sdk/issues/526)) ([7503b1f](https://github.com/cloudquery/plugin-sdk/commit/7503b1fba9fbd42e423207195ae8af93c988ea99))
+
+## [1.13.0](https://github.com/cloudquery/plugin-sdk/compare/v1.12.7...v1.13.0) (2022-12-21)
+
+
+### Features
+
+* Add managed API for destination plugins ([#521](https://github.com/cloudquery/plugin-sdk/issues/521)) ([3df6129](https://github.com/cloudquery/plugin-sdk/commit/3df6129255784dc54707755da9ddd81b848b4a2d))
+
+## [1.12.7](https://github.com/cloudquery/plugin-sdk/compare/v1.12.6...v1.12.7) (2022-12-19)
+
+
+### Bug Fixes
+
+* **destination:** Rename `NewDestinationPlugin` to `NewPlugin` ([#519](https://github.com/cloudquery/plugin-sdk/issues/519)) ([3934775](https://github.com/cloudquery/plugin-sdk/commit/39347757ba443e93ab36de86c8672223f9554145))
+
+## [1.12.6](https://github.com/cloudquery/plugin-sdk/compare/v1.12.5...v1.12.6) (2022-12-18)
+
+
+### Bug Fixes
+
+* Add better logging/metric per table ([#513](https://github.com/cloudquery/plugin-sdk/issues/513)) ([da36396](https://github.com/cloudquery/plugin-sdk/commit/da363966a7f74adb85280cc6688e0c573112e506))
+* Improve formatting of newlines in markdown files ([#492](https://github.com/cloudquery/plugin-sdk/issues/492)) ([e48ff90](https://github.com/cloudquery/plugin-sdk/commit/e48ff90e0b38ea67efc5648e0bff4895938545ce))
+* Include table name in logs on panic ([#505](https://github.com/cloudquery/plugin-sdk/issues/505)) ([a0b8a46](https://github.com/cloudquery/plugin-sdk/commit/a0b8a46c05b86ce3276d7f5455ca0762579db532))
+* Move source & destination plugin code to separate packages ([#516](https://github.com/cloudquery/plugin-sdk/issues/516)) ([6733785](https://github.com/cloudquery/plugin-sdk/commit/67337856a8c973ecb5fb4749078f63e9b9909129))
+* Use correct error codes ([#514](https://github.com/cloudquery/plugin-sdk/issues/514)) ([8b53d76](https://github.com/cloudquery/plugin-sdk/commit/8b53d76ca155eb95526698d16a2233faf4fd4a1e))
+
+## [1.12.5](https://github.com/cloudquery/plugin-sdk/compare/v1.12.4...v1.12.5) (2022-12-14)
+
+
+### Bug Fixes
+
+* Don't print value with error on invalid JSON ([#503](https://github.com/cloudquery/plugin-sdk/issues/503)) ([4b36824](https://github.com/cloudquery/plugin-sdk/commit/4b368246dcb470f87933bd7e7f575e201befa7c1))
+
+## [1.12.4](https://github.com/cloudquery/plugin-sdk/compare/v1.12.3...v1.12.4) (2022-12-14)
+
+
+### Bug Fixes
+
+* Use json.Valid ([#500](https://github.com/cloudquery/plugin-sdk/issues/500)) ([4242e5e](https://github.com/cloudquery/plugin-sdk/commit/4242e5ec3ad674cccb7d8597d3c016b68ab563bd))
+
+## [1.12.3](https://github.com/cloudquery/plugin-sdk/compare/v1.12.2...v1.12.3) (2022-12-14)
+
+
+### Bug Fixes
+
+* Throw error on empty env variable ([#499](https://github.com/cloudquery/plugin-sdk/issues/499)) ([4b77cf5](https://github.com/cloudquery/plugin-sdk/commit/4b77cf511f7c6a05fdeb96941da2eaf0c3a80fa0))
+* Validate json strings and handle empty strings ([#497](https://github.com/cloudquery/plugin-sdk/issues/497)) ([dd5f008](https://github.com/cloudquery/plugin-sdk/commit/dd5f008ee46561663555fc419d0246bfc3bc8be0))
+
+## [1.12.2](https://github.com/cloudquery/plugin-sdk/compare/v1.12.1...v1.12.2) (2022-12-13)
+
+
+### Bug Fixes
+
+* Glob table filtering ([#494](https://github.com/cloudquery/plugin-sdk/issues/494)) ([d6c126b](https://github.com/cloudquery/plugin-sdk/commit/d6c126bfa59321f8cf3f521c800a496f386ae961))
+
+## [1.12.1](https://github.com/cloudquery/plugin-sdk/compare/v1.12.0...v1.12.1) (2022-12-13)
+
+
+### Bug Fixes
+
+* Don't panic on empty-string for timestamp ([#489](https://github.com/cloudquery/plugin-sdk/issues/489)) ([83813de](https://github.com/cloudquery/plugin-sdk/commit/83813de73b4d907bd6bdd93b47e53bf5800f0805))
+* Fix deadlock off-by-one ([#493](https://github.com/cloudquery/plugin-sdk/issues/493)) ([4ea9ed8](https://github.com/cloudquery/plugin-sdk/commit/4ea9ed82eed9528a2cb2f74ffe80d8e5e75a83d6))
+* Reduce default concurrency ([#491](https://github.com/cloudquery/plugin-sdk/issues/491)) ([f995da9](https://github.com/cloudquery/plugin-sdk/commit/f995da9d2f4c2dfe7d0a09107a610a7cd700ce5a))
+* Refactor glob filters ([#488](https://github.com/cloudquery/plugin-sdk/issues/488)) ([cb5f6bb](https://github.com/cloudquery/plugin-sdk/commit/cb5f6bbd111a3532fa0ad37039894c60fda52ef4))
+
+## [1.12.0](https://github.com/cloudquery/plugin-sdk/compare/v1.11.2...v1.12.0) (2022-12-11)
+
+
+### Features
+
+* Add handling for json.Number in faker ([#481](https://github.com/cloudquery/plugin-sdk/issues/481)) ([ad20787](https://github.com/cloudquery/plugin-sdk/commit/ad2078708d66b3667ba7718e24b43f95db6eba02))
+
+
+### Bug Fixes
+
+* Allow both 'yml' and 'yaml' extensions ([#476](https://github.com/cloudquery/plugin-sdk/issues/476)) ([52c4c56](https://github.com/cloudquery/plugin-sdk/commit/52c4c566b7b06498562a48f8591d24fe49c37bc7))
+* **errors:** Remove usage of `codes.Internal` ([#485](https://github.com/cloudquery/plugin-sdk/issues/485)) ([62692b9](https://github.com/cloudquery/plugin-sdk/commit/62692b9cb8a3ff3465d9d14a1ec7cc801d3490af))
+
+## [1.11.2](https://github.com/cloudquery/plugin-sdk/compare/v1.11.1...v1.11.2) (2022-12-08)
+
+
+### Bug Fixes
+
+* Initialise clients only once ([#473](https://github.com/cloudquery/plugin-sdk/issues/473)) ([c88a521](https://github.com/cloudquery/plugin-sdk/commit/c88a521dbb9793cc8acc08c11826f1b158f2669b))
+
 ## [1.11.1](https://github.com/cloudquery/plugin-sdk/compare/v1.11.0...v1.11.1) (2022-12-07)
 
 
