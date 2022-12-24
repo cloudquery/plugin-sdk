@@ -111,7 +111,7 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	}
 	tableMetrics := p.metrics.TableClient[table.Name][clientName]
 
-	res := make(chan interface{})
+	res := make(chan any)
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
@@ -143,7 +143,7 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	}
 }
 
-func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
@@ -197,7 +197,7 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 	wg.Wait()
 }
 
-func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item interface{}) *schema.Resource {
+func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item any) *schema.Resource {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	resource := schema.NewResourceData(table, parent, item)

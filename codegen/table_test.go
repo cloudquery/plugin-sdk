@@ -254,7 +254,7 @@ func customNameTransformer(field reflect.StructField) (string, error) {
 
 func TestTableFromGoStruct(t *testing.T) {
 	type args struct {
-		testStruct interface{}
+		testStruct any
 		options    []TableOption
 	}
 

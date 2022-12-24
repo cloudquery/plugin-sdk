@@ -9,7 +9,7 @@ import (
 )
 
 type InetArrayTransformer interface {
-	TransformInetArray(*InetArray) interface{}
+	TransformInetArray(*InetArray) any
 }
 
 type InetArray struct {
@@ -33,7 +33,7 @@ func (dst *InetArray) Equal(src CQType) bool {
 	if dst.Status != s.Status {
 		return false
 	}
-	if len(dst.Elements) != len(s.Elements) || len(dst.Dimensions) != len(s.Dimensions) {
+	if len(dst.Elements) != len(s.Elements) {
 		return false
 	}
 
@@ -43,6 +43,28 @@ func (dst *InetArray) Equal(src CQType) bool {
 		}
 	}
 	return true
+}
+
+func (dst *InetArray) fromString(value string) error {
+	// this is basically back from string encoding
+	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+		return fmt.Errorf("cannot decode %v into InetArray", value)
+	}
+	// remove the curly braces
+	value = value[1 : len(value)-1]
+	inets := strings.Split(value, ",")
+	elements := make([]Inet, len(inets))
+	for i := range inets {
+		if err := elements[i].Set(inets[i]); err != nil {
+			return err
+		}
+	}
+	*dst = InetArray{
+		Elements:   elements,
+		Dimensions: []ArrayDimension{{Length: int32(len(elements)), LowerBound: 1}},
+		Status:     Present,
+	}
+	return nil
 }
 
 func (dst *InetArray) String() string {
@@ -62,7 +84,7 @@ func (dst *InetArray) String() string {
 	return sb.String()
 }
 
-func (dst *InetArray) Set(src interface{}) error {
+func (dst *InetArray) Set(src any) error {
 	// untyped nil and typed nil interfaces are different
 	if src == nil {
 		*dst = InetArray{Status: Null}
@@ -150,6 +172,14 @@ func (dst *InetArray) Set(src interface{}) error {
 				Dimensions: []ArrayDimension{{Length: int32(len(value)), LowerBound: 1}},
 				Status:     Present,
 			}
+		}
+	case string:
+		if err := dst.fromString(value); err != nil {
+			return nil
+		}
+	case *string:
+		if err := dst.fromString(*value); err != nil {
+			return nil
 		}
 	default:
 		// Fallback to reflection if an optimised match was not found.
@@ -245,7 +275,7 @@ func (dst *InetArray) setRecursive(value reflect.Value, index, dimension int) (i
 	return index, nil
 }
 
-func (dst InetArray) Get() interface{} {
+func (dst InetArray) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst

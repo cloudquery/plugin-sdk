@@ -2,32 +2,67 @@ package destination
 
 import (
 	"context"
-	"fmt"
+	"sync"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
-	"golang.org/x/sync/errgroup"
 )
+
+type writerType int
+
+const (
+	unmanaged writerType = iota
+	managed
+)
+
+const defaultBatchTimeoutSeconds = 20
 
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
-type Client interface {
-	schema.CQTypeTransformer
-	ReverseTransformValues(table *schema.Table, values []interface{}) (schema.CQTypes, error)
-	Migrate(ctx context.Context, tables schema.Tables) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []interface{}) error
+type ManagedWriter interface {
+	WriteTableBatch(ctx context.Context, table *schema.Table, data [][]any) error
+}
+
+type UnimplementedManagedWriter struct{}
+
+type UnmanagedWriter interface {
 	Write(ctx context.Context, tables schema.Tables, res <-chan *ClientResource) error
 	Metrics() Metrics
+}
+
+type UnimplementedUnmanagedWriter struct{}
+
+func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, [][]any) error {
+	panic("WriteTableBatch not implemented")
+}
+
+func (*UnimplementedUnmanagedWriter) Write(context.Context, schema.Tables, <-chan *ClientResource) error {
+	panic("Write not implemented")
+}
+
+func (*UnimplementedUnmanagedWriter) Metrics() Metrics {
+	panic("Metrics not implemented")
+}
+
+type Client interface {
+	schema.CQTypeTransformer
+	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
+	Migrate(ctx context.Context, tables schema.Tables) error
+	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []any) error
+	ManagedWriter
+	UnmanagedWriter
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
 }
 
 type ClientResource struct {
 	TableName string
-	Data      []interface{}
+	Data      []any
 }
+
+type Option func(*Plugin)
 
 type Plugin struct {
 	// Name of destination plugin i.e postgresql,snowflake
@@ -35,22 +70,56 @@ type Plugin struct {
 	// Version of the destination plugin
 	version string
 	// Called upon configure call to validate and init configuration
-	newDestinationClient NewClientFunc
+	newClient  NewClientFunc
+	writerType writerType
 	// initialized destination client
 	client Client
 	// spec the client was initialized with
 	spec specs.Destination
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
+
+	// This is in use if the user passed a managed client
+	metrics     map[string]*Metrics
+	metricsLock *sync.RWMutex
+
+	workers     map[string]*worker
+	workersLock *sync.Mutex
+
+	batchTimeout time.Duration
 }
 
-const writeWorkers = 1
+func WithManagedWriter() Option {
+	return func(p *Plugin) {
+		p.writerType = managed
+	}
+}
 
-func NewDestinationPlugin(name string, version string, newDestinationClient NewClientFunc) *Plugin {
+func WithBatchTimeout(seconds int) Option {
+	return func(p *Plugin) {
+		p.batchTimeout = time.Duration(seconds) * time.Second
+	}
+}
+
+// NewPlugin creates a new destination plugin
+func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ...Option) *Plugin {
 	p := &Plugin{
-		name:                 name,
-		version:              version,
-		newDestinationClient: newDestinationClient,
+		name:         name,
+		version:      version,
+		newClient:    newClientFunc,
+		metrics:      make(map[string]*Metrics),
+		metricsLock:  &sync.RWMutex{},
+		workers:      make(map[string]*worker),
+		workersLock:  &sync.Mutex{},
+		batchTimeout: time.Duration(defaultBatchTimeoutSeconds) * time.Second,
+	}
+	if newClientFunc == nil {
+		// we do this check because we only call this during runtime later on so it can fail
+		// before the server starts
+		panic("newClientFunc can't be nil")
+	}
+	for _, opt := range opts {
+		opt(p)
 	}
 	return p
 }
@@ -64,7 +133,21 @@ func (p *Plugin) Version() string {
 }
 
 func (p *Plugin) Metrics() Metrics {
-	return p.client.Metrics()
+	switch p.writerType {
+	case unmanaged:
+		return p.client.Metrics()
+	case managed:
+		metrics := Metrics{}
+		p.metricsLock.RLock()
+		for _, m := range p.metrics {
+			metrics.Errors += m.Errors
+			metrics.Writes += m.Writes
+		}
+		p.metricsLock.RUnlock()
+		return metrics
+	default:
+		panic("unknown client type")
+	}
 }
 
 // we need lazy loading because we want to be able to initialize after
@@ -72,12 +155,10 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 	var err error
 	p.logger = logger
 	p.spec = spec
-	p.client, err = p.newDestinationClient(ctx, logger, spec)
+	p.spec.SetDefaults()
+	p.client, err = p.newClient(ctx, logger, spec)
 	if err != nil {
 		return err
-	}
-	if p.client == nil {
-		return fmt.Errorf("destination client is nil")
 	}
 	return nil
 }
@@ -105,7 +186,7 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName st
 
 func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes) error {
 	SetDestinationManagedCqColumns(schema.Tables{table})
-	ch := make(chan []interface{})
+	ch := make(chan []any)
 	var err error
 	go func() {
 		defer close(ch)
@@ -140,36 +221,17 @@ func (p *Plugin) writeAll(ctx context.Context, tables schema.Tables, sourceName 
 func (p *Plugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan schema.DestinationResource) error {
 	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
-	ch := make(chan *ClientResource)
-	eg, gctx := errgroup.WithContext(ctx)
-	// given most destination plugins writing in batch we are using a worker pool to write in parallel
-	// it might not generalize well and we might need to move it to each destination plugin implementation.
-	for i := 0; i < writeWorkers; i++ {
-		eg.Go(func() error {
-			return p.client.Write(gctx, tables, ch)
-		})
-	}
-	sourceColumn := &schema.Text{}
-	_ = sourceColumn.Set(sourceName)
-	syncTimeColumn := &schema.Timestamptz{}
-	_ = syncTimeColumn.Set(syncTime)
-	for r := range res {
-		r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
-		clientResource := &ClientResource{
-			TableName: r.TableName,
-			Data:      schema.TransformWithTransformer(p.client, r.Data),
+	switch p.writerType {
+	case unmanaged:
+		if err := p.writeUnmanaged(ctx, tables, sourceName, syncTime, res); err != nil {
+			return err
 		}
-		select {
-		case <-gctx.Done():
-			close(ch)
-			return eg.Wait()
-		case ch <- clientResource:
+	case managed:
+		if err := p.writeManagedTableBatch(ctx, tables, sourceName, syncTime, res); err != nil {
+			return err
 		}
-	}
-
-	close(ch)
-	if err := eg.Wait(); err != nil {
-		return err
+	default:
+		panic("unknown client type")
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
 		if err := p.DeleteStale(ctx, tables, sourceName, syncTime); err != nil {

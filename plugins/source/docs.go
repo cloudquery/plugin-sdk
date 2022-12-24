@@ -123,7 +123,7 @@ func renderAllTables(t *schema.Table, dir string) error {
 }
 
 func renderTable(table *schema.Table, dir string) error {
-	t := template.New("").Funcs(map[string]interface{}{
+	t := template.New("").Funcs(map[string]any{
 		"formatType": formatType,
 	})
 	t, err := t.New("table.md.go.tpl").ParseFS(templatesFS, "templates/table.md.go.tpl")

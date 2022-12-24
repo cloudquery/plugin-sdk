@@ -1,4 +1,4 @@
-package destination
+package memdb
 
 import (
 	"context"
@@ -6,19 +6,26 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/testdata"
+	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 )
 
-func TestPlugin(t *testing.T) {
-	p := NewDestinationPlugin("test", "development", NewTestDestinationMemDBClient)
-	PluginTestSuiteRunner(t, p, nil,
-		TestSuiteTests{})
+func TestPluginUnmanagedClient(t *testing.T) {
+	p := destination.NewPlugin("test", "development", NewClient)
+	destination.PluginTestSuiteRunner(t, p, nil,
+		destination.PluginTestSuiteTests{})
 }
 
-func TestOnNewError(t *testing.T) {
+func TestPluginManagedClient(t *testing.T) {
+	p := destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter())
+	destination.PluginTestSuiteRunner(t, p, nil,
+		destination.PluginTestSuiteTests{})
+}
+
+func TestPluginOnNewError(t *testing.T) {
 	ctx := context.Background()
-	p := NewDestinationPlugin("test", "development", newTestDestinationMemDBClientErrOnNew)
+	p := destination.NewPlugin("test", "development", NewClientErrOnNew)
 	err := p.Init(ctx, getTestLogger(t), specs.Destination{})
 
 	if err == nil {
@@ -28,20 +35,21 @@ func TestOnNewError(t *testing.T) {
 
 func TestOnWriteError(t *testing.T) {
 	ctx := context.Background()
-	newClientFunc := getNewTestDestinationMemDBClient(withErrOnWrite())
-	p := NewDestinationPlugin("test", "development", newClientFunc)
+	newClientFunc := GetNewClient(WithErrOnWrite())
+	p := destination.NewPlugin("test", "development", newClientFunc)
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
+	table := testdata.TestTable("test")
 	tables := []*schema.Table{
-		testdata.TestTable("test"),
+		table,
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
 	ch := make(chan schema.DestinationResource, 1)
 	ch <- schema.DestinationResource{
 		TableName: "test",
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
 	close(ch)
 	err := p.Write(ctx, tables, sourceName, syncTime, ch)
@@ -55,11 +63,12 @@ func TestOnWriteError(t *testing.T) {
 
 func TestOnWriteCtxCancelled(t *testing.T) {
 	ctx := context.Background()
-	newClientFunc := getNewTestDestinationMemDBClient(withBlockingWrite())
-	p := NewDestinationPlugin("test", "development", newClientFunc)
+	newClientFunc := GetNewClient(WithBlockingWrite())
+	p := destination.NewPlugin("test", "development", newClientFunc)
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
+	table := testdata.TestTable("test")
 	tables := []*schema.Table{
 		testdata.TestTable("test"),
 	}
@@ -69,7 +78,7 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	ch <- schema.DestinationResource{
 		TableName: "test",
-		Data:      testdata.TestData(),
+		Data:      testdata.GenTestData(table),
 	}
 	defer cancel()
 	err := p.Write(ctx, tables, sourceName, syncTime, ch)

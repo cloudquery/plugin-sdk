@@ -35,15 +35,15 @@ var expectedExampleSpecConfig = specs.Spec{
 		Path:    "cloudquery/testSourcePlugin",
 		Version: "v1.0.0",
 		Tables:  []string{"*"},
-		Spec:    map[string]interface{}{"accounts": []interface{}{"all"}},
+		Spec:    map[string]any{"accounts": []any{"all"}},
 	},
 }
 
 func testTable(name string) *schema.Table {
 	return &schema.Table{
 		Name: name,
-		Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
-			res <- map[string]interface{}{
+		Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- any) error {
+			res <- map[string]any{
 				"TestColumn": 3,
 			}
 			return nil

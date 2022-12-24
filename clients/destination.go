@@ -156,7 +156,7 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 				c.logger.Err(err).Msg("failed to read log line from plugin")
 				break
 			}
-			var structuredLogLine map[string]interface{}
+			var structuredLogLine map[string]any
 			if err := json.Unmarshal(line, &structuredLogLine); err != nil {
 				c.logger.Err(err).Str("line", string(line)).Msg("failed to unmarshal log line from plugin")
 			} else {

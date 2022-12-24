@@ -78,7 +78,7 @@ func NewBenchmark(b *testing.B, scenario BenchmarkScenario) *Benchmark {
 }
 
 func (s *Benchmark) setup(b *testing.B) {
-	tableResolver := func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
+	tableResolver := func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- any) error {
 		s.simulateAPICall(s.ResolverMin, s.ResolverStdDev, s.ResolverMean)
 		total := 0
 		for total < s.ResourcesPerTable {

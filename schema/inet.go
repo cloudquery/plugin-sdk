@@ -10,7 +10,7 @@ import (
 )
 
 type InetTransformer interface {
-	TransformInet(*Inet) interface{}
+	TransformInet(*Inet) any
 }
 
 // workaround this Golang bug: https://github.com/golang/go/issues/35727
@@ -48,13 +48,13 @@ func (dst *Inet) String() string {
 	}
 }
 
-func (dst *Inet) Set(src interface{}) error {
+func (dst *Inet) Set(src any) error {
 	if src == nil {
 		*dst = Inet{Status: Null}
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(interface{ Get() any }); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -169,7 +169,7 @@ func (dst *Inet) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (dst Inet) Get() interface{} {
+func (dst Inet) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst.IPNet

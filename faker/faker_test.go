@@ -14,7 +14,7 @@ type testFakerStruct struct {
 	B string
 	C *string
 	D time.Time
-	E interface{}
+	E any
 	F json.Number
 }
 

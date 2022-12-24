@@ -7,7 +7,7 @@ import (
 )
 
 type UUIDTransformer interface {
-	TransformUUID(*UUID) interface{}
+	TransformUUID(*UUID) any
 }
 
 type UUID struct {
@@ -39,14 +39,14 @@ func (dst *UUID) String() string {
 	}
 }
 
-func (dst *UUID) Set(src interface{}) error {
+func (dst *UUID) Set(src any) error {
 	if src == nil {
 		*dst = UUID{Status: Null}
 		return nil
 	}
 
 	switch value := src.(type) {
-	case interface{ Get() interface{} }:
+	case interface{ Get() any }:
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -88,7 +88,7 @@ func (dst *UUID) Set(src interface{}) error {
 	return nil
 }
 
-func (dst UUID) Get() interface{} {
+func (dst UUID) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst.Bytes

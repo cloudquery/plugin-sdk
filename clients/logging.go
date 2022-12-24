@@ -2,7 +2,7 @@ package clients
 
 import "github.com/rs/zerolog"
 
-func jsonToLog(l zerolog.Logger, msg map[string]interface{}) {
+func jsonToLog(l zerolog.Logger, msg map[string]any) {
 	level := msg["level"]
 	delete(msg, "level")
 	switch level {

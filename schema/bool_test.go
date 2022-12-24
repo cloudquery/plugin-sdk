@@ -6,7 +6,7 @@ import (
 
 func TestBoolSet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Bool
 	}{
 		{source: true, result: Bool{Bool: true, Status: Present}},
