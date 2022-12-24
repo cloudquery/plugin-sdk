@@ -278,10 +278,10 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	}
 	for {
 		r, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
 			return fmt.Errorf("failed to fetch resources from stream: %w", err)
 		}
 		select {
@@ -308,10 +308,10 @@ func (c *SourceClient) Sync2(ctx context.Context, spec specs.Source, res chan<- 
 	}
 	for {
 		r, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
 			return fmt.Errorf("failed to fetch resources from stream: %w", err)
 		}
 		select {
