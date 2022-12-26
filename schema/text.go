@@ -4,6 +4,7 @@ package schema
 import (
 	"database/sql/driver"
 	"fmt"
+	"strings"
 )
 
 type TextTransformer interface {
@@ -27,6 +28,8 @@ func (dst *Text) Size() int {
 	return len(dst.Str)
 }
 
+// Used only in tests - we allow one of the strings to be missing null byttes (since some destinations like)
+// postgresql strip it.
 func (dst *Text) Equal(src CQType) bool {
 	if src == nil {
 		return false
@@ -35,7 +38,7 @@ func (dst *Text) Equal(src CQType) bool {
 	if !ok {
 		return false
 	}
-	return dst.Status == s.Status && dst.Str == s.Str
+	return dst.Status == s.Status && strings.ReplaceAll(dst.Str, "\x00", "") == strings.ReplaceAll(s.Str, "\x00", "")
 }
 
 func (dst *Text) String() string {
