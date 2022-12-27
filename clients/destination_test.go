@@ -93,9 +93,9 @@ func TestDestinationClientWriteReturnsCorrectError(t *testing.T) {
 
 	columns := []schema.Column{{Name: "int", Type: schema.TypeInt}}
 	tables := schema.Tables{&schema.Table{Name: "test-1", Columns: columns}, &schema.Table{Name: "test-2", Columns: columns}}
-	resource1 := schema.Resource{Item: map[string]interface{}{"int": 1}, Table: tables[0]}
+	resource1 := schema.Resource{Item: map[string]any{"int": 1}, Table: tables[0]}
 	destResource1, _ := json.Marshal(resource1.ToDestinationResource())
-	resource2 := schema.Resource{Item: map[string]interface{}{"int": 1}, Table: tables[1]}
+	resource2 := schema.Resource{Item: map[string]any{"int": 1}, Table: tables[1]}
 	destResource2, _ := json.Marshal(resource2.ToDestinationResource())
 	resourcesChannel := make(chan []byte)
 	go func() {
