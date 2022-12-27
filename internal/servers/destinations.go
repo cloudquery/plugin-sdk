@@ -96,7 +96,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 		if err != nil {
 			close(resources)
 			if wgErr := eg.Wait(); wgErr != nil {
-				return status.Errorf(codes.Internal, "failed to receive msg: %v and write failed: %v ", err, wgErr)
+				return status.Errorf(codes.Internal, "failed to receive msg: %v and write failed: %v", err, wgErr)
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
