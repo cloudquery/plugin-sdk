@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0](https://github.com/cloudquery/plugin-sdk/compare/v1.13.1...v1.14.0) (2022-12-27)
+
+
+### Features
+
+* Add basic periodic metric INFO logger ([#496](https://github.com/cloudquery/plugin-sdk/issues/496)) ([8d1d32e](https://github.com/cloudquery/plugin-sdk/commit/8d1d32eacf34a7835cb9e712cc448c66d7894b55))
+
+
+### Bug Fixes
+
+* **destinations:** Stop writing resources when channel is closed ([#460](https://github.com/cloudquery/plugin-sdk/issues/460)) ([5590845](https://github.com/cloudquery/plugin-sdk/commit/5590845d5ce9f3395a57e6c1997c2e4071b41952))
+* Don't hide errors in destination server ([#529](https://github.com/cloudquery/plugin-sdk/issues/529)) ([d91f94f](https://github.com/cloudquery/plugin-sdk/commit/d91f94fc8bd74830c88c42d4e8a1bee16bcbd2a7))
+
 ## [1.13.1](https://github.com/cloudquery/plugin-sdk/compare/v1.13.0...v1.13.1) (2022-12-22)
 
 
