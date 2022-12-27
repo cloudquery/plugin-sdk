@@ -86,17 +86,17 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 
 	for {
 		r, err := msg.Recv()
-		if err != nil {
-			if err == io.EOF {
-				close(resources)
-				if err := eg.Wait(); err != nil {
-					return status.Errorf(codes.Internal, "failed to wait for plugin: %v", err)
-				}
-				return msg.SendAndClose(&pb.Write2_Response{})
+		if err == io.EOF {
+			close(resources)
+			if err := eg.Wait(); err != nil {
+				return status.Errorf(codes.Internal, "write failed: %v", err)
 			}
+			return msg.SendAndClose(&pb.Write2_Response{})
+		}
+		if err != nil {
 			close(resources)
 			if wgErr := eg.Wait(); wgErr != nil {
-				return status.Errorf(codes.Internal, "failed to receive msg: %v and wait for plugin: ", err, wgErr)
+				return status.Errorf(codes.Internal, "failed to receive msg: %v and write failed: %v ", err, wgErr)
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
@@ -104,7 +104,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 		if err := json.Unmarshal(r.Resource, &resource); err != nil {
 			close(resources)
 			if wgErr := eg.Wait(); wgErr != nil {
-				return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v and wait for plugin: %v", err, wgErr)
+				return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v and write failed: %v", err, wgErr)
 			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
@@ -113,7 +113,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 		case <-ctx.Done():
 			close(resources)
 			if err := eg.Wait(); err != nil {
-				return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v",ctx.Err(),  err)
+				return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
 			}
 			return status.Errorf(codes.Internal, "Context done: %v", ctx.Err())
 		}
