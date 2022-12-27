@@ -6,7 +6,7 @@ import (
 
 func TestFloat8Set(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Float8
 	}{
 		{source: float32(1), result: Float8{Float: 1, Status: Present}},

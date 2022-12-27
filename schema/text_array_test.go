@@ -6,7 +6,7 @@ import (
 
 func TestTextArraySet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result TextArray
 	}{
 		{

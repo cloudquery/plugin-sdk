@@ -6,7 +6,7 @@ import (
 
 func TestInt8Set(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Int8
 	}{
 		{source: int8(1), result: Int8{Int: 1, Status: Present}},

@@ -29,7 +29,7 @@ func HasDuplicates(resources []string) bool {
 	return false
 }
 
-func ToStringSliceE(i interface{}) ([]string, error) {
+func ToStringSliceE(i any) ([]string, error) {
 	switch v := i.(type) {
 	case *[]string:
 		return cast.ToStringSliceE(*v)

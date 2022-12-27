@@ -56,7 +56,7 @@ func (t *TableDefinition) ignoreField(field reflect.StructField) bool {
 }
 
 // NewTableFromStruct creates a new TableDefinition from a struct by inspecting its fields
-func NewTableFromStruct(name string, obj interface{}, opts ...TableOption) (*TableDefinition, error) {
+func NewTableFromStruct(name string, obj any, opts ...TableOption) (*TableDefinition, error) {
 	t := &TableDefinition{
 		Name:                name,
 		nameTransformer:     DefaultNameTransformer,

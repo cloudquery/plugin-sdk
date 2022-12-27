@@ -10,15 +10,15 @@ func TestInterfaceSlice(t *testing.T) {
 	someStringPtr := "test"
 	cases := []struct {
 		Name  string
-		Value interface{}
-		Want  []interface{}
+		Value any
+		Want  []any
 	}{
-		{Name: "base", Value: []string{"a", "b", "c"}, Want: []interface{}{"a", "b", "c"}},
+		{Name: "base", Value: []string{"a", "b", "c"}, Want: []any{"a", "b", "c"}},
 		{Name: "nil", Value: nil, Want: nil},
-		{Name: "empty", Value: []interface{}{}, Want: []interface{}{}},
-		{Name: "empty_string_array", Value: []string{}, Want: []interface{}{}},
-		{Name: "string_ptr_array", Value: []*string{&someStringPtr}, Want: []interface{}{&someStringPtr}},
-		{Name: "string_array_ptr", Value: &[]string{"a"}, Want: []interface{}{"a"}},
+		{Name: "empty", Value: []any{}, Want: []any{}},
+		{Name: "empty_string_array", Value: []string{}, Want: []any{}},
+		{Name: "string_ptr_array", Value: []*string{&someStringPtr}, Want: []any{&someStringPtr}},
+		{Name: "string_array_ptr", Value: &[]string{"a"}, Want: []any{"a"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {

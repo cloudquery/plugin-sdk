@@ -1,4 +1,4 @@
-package plugins
+package source
 
 import (
 	"context"
@@ -55,19 +55,19 @@ func (s *BenchmarkScenario) SetDefaults() {
 	}
 }
 
-type SourceBenchmark struct {
+type Benchmark struct {
 	*BenchmarkScenario
 
 	b      *testing.B
 	tables []*schema.Table
-	plugin *SourcePlugin
+	plugin *Plugin
 
 	apiCalls atomic.Int64
 }
 
-func NewSourceBenchmark(b *testing.B, scenario BenchmarkScenario) *SourceBenchmark {
+func NewBenchmark(b *testing.B, scenario BenchmarkScenario) *Benchmark {
 	scenario.SetDefaults()
-	sb := &SourceBenchmark{
+	sb := &Benchmark{
 		BenchmarkScenario: &scenario,
 		b:                 b,
 		tables:            nil,
@@ -77,8 +77,8 @@ func NewSourceBenchmark(b *testing.B, scenario BenchmarkScenario) *SourceBenchma
 	return sb
 }
 
-func (s *SourceBenchmark) setup(b *testing.B) {
-	tableResolver := func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- interface{}) error {
+func (s *Benchmark) setup(b *testing.B) {
+	tableResolver := func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- any) error {
 		s.simulateAPICall(s.ResolverMin, s.ResolverStdDev, s.ResolverMean)
 		total := 0
 		for total < s.ResourcesPerTable {
@@ -145,8 +145,8 @@ func (s *SourceBenchmark) setup(b *testing.B) {
 		}
 	}
 
-	plugin := NewSourcePlugin(
-		"testSourcePlugin",
+	plugin := NewPlugin(
+		"testPlugin",
 		"1.0.0",
 		s.tables,
 		newTestExecutionClient,
@@ -156,7 +156,7 @@ func (s *SourceBenchmark) setup(b *testing.B) {
 	s.b = b
 }
 
-func (s *SourceBenchmark) simulateAPICall(min, stdDev, mean time.Duration) {
+func (s *Benchmark) simulateAPICall(min, stdDev, mean time.Duration) {
 	s.apiCalls.Add(1)
 	sample := int(rand.NormFloat64()*float64(stdDev) + float64(mean))
 	duration := time.Duration(sample)
@@ -174,7 +174,7 @@ func min(a, b int) int {
 	return b
 }
 
-func (s *SourceBenchmark) Run() {
+func (s *Benchmark) Run() {
 	for n := 0; n < s.b.N; n++ {
 		s.b.StopTimer()
 		ctx := context.Background()
@@ -220,7 +220,7 @@ func (s *SourceBenchmark) Run() {
 // lowerBound calculates a rough lower bound on the sync time so that we know how
 // much room there is for optimization. This does not currently take the "concurrency"
 // value into account. Use this number only as a rough guide.
-func (s *SourceBenchmark) lowerBound() time.Duration {
+func (s *Benchmark) lowerBound() time.Duration {
 	// we require one API call per page
 	pages := s.ResourcesPerTable / s.ResourcesPerPage
 	if s.ResourcesPerTable%s.ResourcesPerPage == 0 {
@@ -288,7 +288,7 @@ func benchmarkWithConcurrency(b *testing.B, concurrency uint64) {
 		ResolverStdDev:    100 * time.Millisecond,
 		Concurrency:       concurrency,
 	}
-	sb := NewSourceBenchmark(b, bs)
+	sb := NewBenchmark(b, bs)
 	sb.Run()
 }
 
@@ -311,6 +311,6 @@ func benchmarkTablesWithChildrenConcurrency(b *testing.B, concurrency uint64) {
 		ResolverStdDev:    100 * time.Millisecond,
 		Concurrency:       concurrency,
 	}
-	sb := NewSourceBenchmark(b, bs)
+	sb := NewBenchmark(b, bs)
 	sb.Run()
 }

@@ -1,9 +1,9 @@
-package plugins
+package source
 
 import "testing"
 
-func TestSourceMetrics(t *testing.T) {
-	s := &SourceMetrics{
+func TestMetrics(t *testing.T) {
+	s := &Metrics{
 		TableClient: make(map[string]map[string]*TableClientMetrics),
 	}
 	s.TableClient["test_table"] = make(map[string]*TableClientMetrics)
@@ -22,7 +22,7 @@ func TestSourceMetrics(t *testing.T) {
 		t.Fatal("expected 3 panics")
 	}
 
-	other := &SourceMetrics{
+	other := &Metrics{
 		TableClient: make(map[string]map[string]*TableClientMetrics),
 	}
 	other.TableClient["test_table"] = make(map[string]*TableClientMetrics)

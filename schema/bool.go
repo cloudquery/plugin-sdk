@@ -7,7 +7,7 @@ import (
 )
 
 type BoolTransformer interface {
-	TransformBool(*Bool) interface{}
+	TransformBool(*Bool) any
 }
 
 type Bool struct {
@@ -42,13 +42,13 @@ func (dst *Bool) String() string {
 	}
 }
 
-func (dst *Bool) Set(src interface{}) error {
+func (dst *Bool) Set(src any) error {
 	if src == nil {
 		*dst = Bool{Status: Null}
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(interface{ Get() any }); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -86,7 +86,7 @@ func (dst *Bool) Set(src interface{}) error {
 	return nil
 }
 
-func (dst Bool) Get() interface{} {
+func (dst Bool) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst.Bool

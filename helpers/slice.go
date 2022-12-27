@@ -2,8 +2,8 @@ package helpers
 
 import "reflect"
 
-// InterfaceSlice converts any interface{} into a []interface{} slice
-func InterfaceSlice(slice interface{}) []interface{} {
+// InterfaceSlice converts any any into a []any slice
+func InterfaceSlice(slice any) []any {
 	// if value is nil return nil
 	if slice == nil {
 		return nil
@@ -16,17 +16,17 @@ func InterfaceSlice(slice interface{}) []interface{} {
 			return nil
 		}
 
-		ret := make([]interface{}, s.Elem().Len())
+		ret := make([]any, s.Elem().Len())
 		for i := 0; i < s.Elem().Len(); i++ {
 			ret[i] = s.Elem().Index(i).Interface()
 		}
 		return ret
 	}
 	if s.Kind() != reflect.Slice {
-		return []interface{}{slice}
+		return []any{slice}
 	}
 
-	ret := make([]interface{}, s.Len())
+	ret := make([]any, s.Len())
 
 	for i := 0; i < s.Len(); i++ {
 		ret[i] = s.Index(i).Interface()
