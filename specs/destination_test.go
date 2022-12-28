@@ -147,7 +147,7 @@ spec:
 			Name:      "test",
 			Registry:  RegistryGrpc,
 			Path:      "localhost:9999",
-			BatchSize: defaultBatchSize,
+			BatchSize: 10000,
 		},
 	},
 	{
@@ -195,7 +195,7 @@ func TestDestinationUnmarshalSpecValidate(t *testing.T) {
 				t.Fatal(err)
 			}
 			destination := spec.Spec.(*Destination)
-			destination.SetDefaults()
+			destination.SetDefaults(1000)
 			err = destination.Validate()
 			if err != nil {
 				if err.Error() != tc.err {
