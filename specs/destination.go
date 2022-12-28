@@ -27,13 +27,11 @@ const (
 	WriteModeAppend
 )
 
-const defaultBatchSize = 10000
-
 var (
 	writeModeStrings = []string{"overwrite-delete-stale", "overwrite", "append"}
 )
 
-func (d *Destination) SetDefaults() {
+func (d *Destination) SetDefaults(defaultBatchSize int) {
 	if d.Registry.String() == "" {
 		d.Registry = RegistryGithub
 	}
