@@ -75,8 +75,8 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 					atomic.AddUint64(&metrics.Writes, uint64(len(resources)))
 				}
 				resources = make([][]any, 0)
-				done <- true
 			}
+			done <- true
 		}
 	}
 }
