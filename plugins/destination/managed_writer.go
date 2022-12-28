@@ -19,21 +19,22 @@ type worker struct {
 
 func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan schema.CQTypes, flush <-chan chan bool) {
 	resources := make([][]any, 0)
+	batchSize := p.client.BatchSize()
 	for {
 		select {
 		case r, ok := <-ch:
 			//nolint:revive
 			if ok {
 				resources = append(resources, schema.TransformWithTransformer(p.client, r))
-				if len(resources) == p.spec.BatchSize {
+				if len(resources) == batchSize {
 					start := time.Now()
 					if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
-						p.logger.Err(err).Str("table", table.Name).Int("len", p.spec.BatchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
+						p.logger.Err(err).Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 						// we don't return as we need to continue until channel is closed otherwise there will be a deadlock
-						atomic.AddUint64(&metrics.Errors, uint64(p.spec.BatchSize))
+						atomic.AddUint64(&metrics.Errors, uint64(batchSize))
 					} else {
-						p.logger.Info().Str("table", table.Name).Int("len", p.spec.BatchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
-						atomic.AddUint64(&metrics.Writes, uint64(p.spec.BatchSize))
+						p.logger.Info().Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+						atomic.AddUint64(&metrics.Writes, uint64(batchSize))
 					}
 					resources = make([][]any, 0)
 				}

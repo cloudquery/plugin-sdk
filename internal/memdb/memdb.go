@@ -165,6 +165,10 @@ func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resou
 	return nil
 }
 
+func (*client) BatchSize() int {
+	return 100
+}
+
 func (*client) Metrics() destination.Metrics {
 	return destination.Metrics{}
 }

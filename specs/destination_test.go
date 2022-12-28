@@ -144,10 +144,9 @@ spec:
 `,
 		"",
 		&Destination{
-			Name:      "test",
-			Registry:  RegistryGrpc,
-			Path:      "localhost:9999",
-			BatchSize: defaultBatchSize,
+			Name:     "test",
+			Registry: RegistryGrpc,
+			Path:     "localhost:9999",
 		},
 	},
 	{
@@ -160,10 +159,9 @@ spec:
 `,
 		"",
 		&Destination{
-			Name:      "test",
-			Registry:  RegistryLocal,
-			Path:      "/home/user/some_executable",
-			BatchSize: 10000,
+			Name:     "test",
+			Registry: RegistryLocal,
+			Path:     "/home/user/some_executable",
 		},
 	},
 	{
@@ -176,11 +174,10 @@ spec:
 `,
 		"",
 		&Destination{
-			Name:      "test",
-			Registry:  RegistryGithub,
-			Path:      "cloudquery/test",
-			Version:   "v1.1.0",
-			BatchSize: 10000,
+			Name:     "test",
+			Registry: RegistryGithub,
+			Path:     "cloudquery/test",
+			Version:  "v1.1.0",
 		},
 	},
 }

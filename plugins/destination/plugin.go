@@ -23,6 +23,7 @@ type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Cli
 
 type ManagedWriter interface {
 	WriteTableBatch(ctx context.Context, table *schema.Table, data [][]any) error
+	BatchSize() int
 }
 
 type UnimplementedManagedWriter struct{}
@@ -36,6 +37,10 @@ type UnimplementedUnmanagedWriter struct{}
 
 func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, [][]any) error {
 	panic("WriteTableBatch not implemented")
+}
+
+func (*UnimplementedManagedWriter) BatchSize() int {
+	panic("BatchSize not implemented")
 }
 
 func (*UnimplementedUnmanagedWriter) Write(context.Context, schema.Tables, <-chan *ClientResource) error {
