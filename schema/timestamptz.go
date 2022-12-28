@@ -50,6 +50,27 @@ func (dst *Timestamptz) Equal(src CQType) bool {
 	return false
 }
 
+func (dst *Timestamptz) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+
+	s, ok := src.(*Timestamptz)
+	if !ok {
+		return false
+	}
+
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+
+	if dst.InfinityModifier != s.InfinityModifier {
+		return dst.InfinityModifier < s.InfinityModifier
+	}
+
+	return dst.Time.Before(s.Time)
+}
+
 func (dst *Timestamptz) String() string {
 	if dst.Status == Present {
 		return dst.Time.Format(time.RFC3339)

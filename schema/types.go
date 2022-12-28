@@ -210,6 +210,7 @@ type CQType interface {
 	Set(v any) error
 	Get() any
 	String() string
+	LessThan(CQType) bool
 	Equal(CQType) bool
 	Type() ValueType
 }

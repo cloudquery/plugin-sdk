@@ -31,6 +31,19 @@ func (dst *CIDR) Equal(src CQType) bool {
 	return dst.Status == s.Status && dst.IPNet.String() == s.IPNet.String()
 }
 
+func (dst *CIDR) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*CIDR)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+	return dst.String() < s.String()
+}
 func (dst *CIDR) Set(src any) error {
 	return (*Inet)(dst).Set(src)
 }

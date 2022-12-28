@@ -55,6 +55,21 @@ func (dst *JSON) Equal(src CQType) bool {
 	return equal
 }
 
+func (dst *JSON) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*JSON)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+
+	return bytes.Compare(dst.Bytes, s.Bytes) < 0
+}
+
 func (dst *JSON) String() string {
 	return string(dst.Bytes)
 }

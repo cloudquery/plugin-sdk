@@ -50,7 +50,7 @@ type Client interface {
 	schema.CQTypeTransformer
 	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Tables) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []any) error
+	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []any, opts ReadOptions) error
 	ManagedWriter
 	UnmanagedWriter
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
@@ -169,12 +169,12 @@ func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]schema.CQTypes, error) {
+func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string, opts ...ReadOption) ([]schema.CQTypes, error) {
 	var readErr error
 	ch := make(chan schema.CQTypes)
 	go func() {
 		defer close(ch)
-		readErr = p.Read(ctx, table, sourceName, ch)
+		readErr = p.Read(ctx, table, sourceName, ch, opts...)
 	}()
 	//nolint:prealloc
 	var resources []schema.CQTypes
@@ -184,13 +184,49 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName st
 	return resources, readErr
 }
 
-func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes) error {
+type ReadOption func(*ReadOptions)
+
+type ReadOptions struct {
+	Columns []string        // columns to select. Beneficial for columnar storage formats
+	OrderBy []OrderByColumn // columns to order by. Use discretion: it may require a full table scan if not indexed
+	Limit   int             // limit the number of rows returned
+}
+
+func WithColumns(columns []string) ReadOption {
+	return func(o *ReadOptions) {
+		o.Columns = columns
+	}
+}
+
+type OrderByColumn struct {
+	Name string
+	Desc bool
+}
+
+func WithOrderBy(orderBy []OrderByColumn) ReadOption {
+	return func(o *ReadOptions) {
+		o.OrderBy = orderBy
+	}
+}
+
+func WithLimit(limit int) ReadOption {
+	return func(o *ReadOptions) {
+		o.Limit = limit
+	}
+}
+
+func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes, opts ...ReadOption) error {
+	readOptions := ReadOptions{}
+	for _, opt := range opts {
+		opt(&readOptions)
+	}
+
 	SetDestinationManagedCqColumns(schema.Tables{table})
 	ch := make(chan []any)
 	var err error
 	go func() {
 		defer close(ch)
-		err = p.client.Read(ctx, table, sourceName, ch)
+		err = p.client.Read(ctx, table, sourceName, ch, readOptions)
 	}()
 	for resource := range ch {
 		r, err := p.client.ReverseTransformValues(table, resource)

@@ -31,6 +31,17 @@ func (dst *UUID) Equal(src CQType) bool {
 	return dst.Status == s.Status && dst.Bytes == s.Bytes
 }
 
+func (dst *UUID) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*UUID)
+	if !ok {
+		return false
+	}
+	return dst.Status < s.Status
+}
+
 func (dst *UUID) String() string {
 	if dst.Status == Present {
 		return hex.EncodeToString(dst.Bytes[:])

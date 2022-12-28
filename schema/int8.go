@@ -31,6 +31,20 @@ func (dst *Int8) Equal(src CQType) bool {
 	return dst.Status == s.Status && dst.Int == s.Int
 }
 
+func (dst *Int8) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Int8)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+	return dst.Int < s.Int
+}
+
 func (dst *Int8) String() string {
 	if dst.Status == Present {
 		return strconv.FormatInt(dst.Int, 10)

@@ -30,6 +30,20 @@ func (dst *Macaddr) Equal(src CQType) bool {
 	return dst.Status == s.Status && dst.Addr.String() == s.Addr.String()
 }
 
+func (dst *Macaddr) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Macaddr)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+	return dst.Addr.String() < s.Addr.String()
+}
+
 func (dst *Macaddr) String() string {
 	if dst.Status == Present {
 		return dst.Addr.String()

@@ -46,6 +46,25 @@ func (dst *CIDRArray) Equal(src CQType) bool {
 	return true
 }
 
+func (dst *CIDRArray) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*CIDRArray)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+	for i := range dst.Elements {
+		if !(dst.Elements[i]).Equal(&s.Elements[i]) {
+			return dst.Elements[i].LessThan(&s.Elements[i])
+		}
+	}
+	return len(dst.Elements) < len(s.Elements)
+}
+
 func (dst *CIDRArray) fromString(value string) error {
 	// this is basically back from string encoding
 	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {

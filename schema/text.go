@@ -30,6 +30,20 @@ func (dst *Text) Equal(src CQType) bool {
 	return dst.Status == s.Status && dst.Str == s.Str
 }
 
+func (dst *Text) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Text)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+	return dst.Str < s.Str
+}
+
 func (dst *Text) String() string {
 	if dst.Status == Present {
 		return dst.Str

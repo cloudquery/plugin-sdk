@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"testing"
 	"time"
 
@@ -53,55 +54,46 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 	}
 
 	sourceName := "testOverwriteSource" + uuid.NewString()
-	resource := schema.DestinationResource{
-		TableName: table.Name,
-		Data:      testdata.GenTestData(table),
-	}
-	_ = resource.Data[0].Set(sourceName)
-	_ = resource.Data[1].Set(syncTime)
 
-	resource2 := schema.DestinationResource{
-		TableName: table.Name,
-		Data:      testdata.GenTestData(table),
-	}
-	_ = resource2.Data[0].Set(sourceName)
-	_ = resource2.Data[1].Set(syncTime)
-
-	resources := []schema.DestinationResource{
-		resource,
-		resource2,
-	}
-
+	resources := createTestResources(table, sourceName, syncTime, 2)
 	if err := p.writeAll(ctx, tables, sourceName, syncTime, resources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
 
-	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
+	resourcesRead, err := p.readAll(ctx, tables[0], sourceName,
+		WithOrderBy([]OrderByColumn{
+			{Name: schema.CqIDColumn.Name, Desc: false},
+		}),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
 
 	if len(resourcesRead) != 2 {
-		return fmt.Errorf("expected 2 resource, got %d", len(resourcesRead))
+		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if diff := resource.Data.Diff(resourcesRead[0]); diff != "" {
+	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
 		return fmt.Errorf("expected first resource diff: %s", diff)
 	}
 
-	if diff := resource2.Data.Diff(resourcesRead[1]); diff != "" {
+	if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
 		return fmt.Errorf("expected second resource diff: %s", diff)
 		// return fmt.Errorf("expected second resource to be:\n%v\ngot:\n%v", resource.Data, resourcesRead[1])
 	}
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
-	_ = resource.Data[1].Set(secondSyncTime)
+	_ = resources[0].Data[1].Set(secondSyncTime)
 	// write second time
-	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource); err != nil {
+	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resources[0]); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
-	resourcesRead, err = p.readAll(ctx, tables[0], sourceName)
+	resourcesRead, err = p.readAll(ctx, tables[0], sourceName,
+		WithOrderBy([]OrderByColumn{
+			{Name: schema.CqIDColumn.Name, Desc: false},
+		}),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
@@ -110,11 +102,11 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		return fmt.Errorf("after overwrite expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if diff := resource2.Data.Diff(resourcesRead[0]); diff != "" {
+	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
 		return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
 	}
 
-	if diff := resource.Data.Diff(resourcesRead[1]); diff != "" {
+	if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
 		return fmt.Errorf("after overwrite expected second resource diff: %s", diff)
 	}
 
@@ -124,7 +116,11 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		}
 	}
 
-	resourcesRead, err = p.readAll(ctx, tables[0], sourceName)
+	resourcesRead, err = p.readAll(ctx, tables[0], sourceName,
+		WithOrderBy([]OrderByColumn{
+			{Name: schema.CqIDColumn.Name, Desc: false},
+		}),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
@@ -132,8 +128,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		return fmt.Errorf("expected 1 resource after delete stale, got %d", len(resourcesRead))
 	}
 
-	if diff := resource.Data.Diff(resourcesRead[0]); diff != "" {
-		return fmt.Errorf("after delete stale expected second resource diff: %s", diff)
+	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
+		return fmt.Errorf("after delete stale expected first resource diff: %s", diff)
 	}
 
 	return nil
@@ -154,37 +150,27 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
+	resources := make([]schema.DestinationResource, 2)
 	sourceName := "testAppendSource" + uuid.NewString()
-	resource := schema.DestinationResource{
-		TableName: table.Name,
-		Data:      testdata.GenTestData(table),
-	}
-	_ = resource.Data[0].Set(sourceName)
-	_ = resource.Data[1].Set(syncTime)
-
-	if err := p.writeOne(ctx, tables, sourceName, syncTime, resource); err != nil {
+	resources[0] = createTestResources(table, sourceName, syncTime, 1)[0]
+	if err := p.writeOne(ctx, tables, sourceName, syncTime, resources[0]); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
-	resource2 := schema.DestinationResource{
-		TableName: table.Name,
-		Data:      testdata.GenTestData(table),
-	}
-
+	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
+	resources[1] = createTestResources(table, sourceName, secondSyncTime, 1)[0]
 	if !s.tests.SkipSecondAppend {
-		// we dont use time.now because looks like there is some strange
-		// issue on windows machine on github actions where it returns the same thing
-		// for all calls.
-		secondSyncTime := syncTime.Add(10 * time.Second).UTC()
-		_ = resource2.Data[0].Set(sourceName)
-		_ = resource2.Data[1].Set(secondSyncTime)
 		// write second time
-		if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resource2); err != nil {
+		if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resources[1]); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
 
-	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
+	resourcesRead, err := p.readAll(ctx, tables[0], sourceName,
+		WithOrderBy([]OrderByColumn{
+			{Name: schema.CqIDColumn.Name, Desc: false},
+		}),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
@@ -198,12 +184,12 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
-	if diff := resource.Data.Diff(resourcesRead[0]); diff != "" {
+	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
 		return fmt.Errorf("first expected resource diff: %s", diff)
 	}
 
 	if !s.tests.SkipSecondAppend {
-		if diff := resource2.Data.Diff(resourcesRead[1]); diff != "" {
+		if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
 			return fmt.Errorf("second expected resource diff: %s", diff)
 		}
 	}
@@ -252,4 +238,25 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 			t.Fatal(err)
 		}
 	})
+}
+
+func createTestResources(table *schema.Table, sourceName string, syncTime time.Time, count int) []schema.DestinationResource {
+	resources := make([]schema.DestinationResource, count)
+	for i := 0; i < count; i++ {
+		resource := schema.DestinationResource{
+			TableName: table.Name,
+			Data:      testdata.GenTestData(table),
+		}
+		_ = resource.Data[0].Set(sourceName)
+		_ = resource.Data[1].Set(syncTime)
+		resources[i] = resource
+	}
+
+	// sort resources by CQ ID so that the comparison becomes deterministic
+	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
+	sort.Slice(resources, func(i, j int) bool {
+		return resources[i].Data[cqIDIndex].LessThan(resources[j].Data[cqIDIndex])
+	})
+
+	return resources
 }

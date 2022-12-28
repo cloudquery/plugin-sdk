@@ -45,6 +45,25 @@ func (dst *TextArray) Equal(src CQType) bool {
 	return true
 }
 
+func (dst *TextArray) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*TextArray)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+	for i := range dst.Elements {
+		if !(dst.Elements[i]).Equal(&s.Elements[i]) {
+			return dst.Elements[i].LessThan(&s.Elements[i])
+		}
+	}
+	return len(dst.Elements) < len(s.Elements)
+}
+
 func (dst *TextArray) fromString(value string) error {
 	// this is basically back from string encoding
 	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {

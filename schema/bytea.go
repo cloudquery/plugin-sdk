@@ -32,6 +32,20 @@ func (dst *Bytea) Equal(src CQType) bool {
 	return dst.Status == s.Status && bytes.Equal(dst.Bytes, s.Bytes)
 }
 
+func (dst *Bytea) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Bytea)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+	return string(dst.Bytes) < string(s.Bytes)
+}
+
 func (dst *Bytea) String() string {
 	if dst.Status == Present {
 		return hex.EncodeToString(dst.Bytes)

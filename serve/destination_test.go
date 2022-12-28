@@ -122,7 +122,12 @@ func TestDestination(t *testing.T) {
 	}
 
 	readCh := make(chan schema.CQTypes, 1)
-	if err := plugin.Read(ctx, table, sourceName, readCh); err != nil {
+	opts := []destination.ReadOption{
+		destination.WithOrderBy([]destination.OrderByColumn{
+			{Name: schema.CqSyncTimeColumn.Name, Desc: true},
+		}),
+	}
+	if err := plugin.Read(ctx, table, sourceName, readCh, opts...); err != nil {
 		t.Fatal(err)
 	}
 	close(readCh)

@@ -40,6 +40,20 @@ func (dst *Inet) Equal(src CQType) bool {
 	return dst.Status == s.Status && dst.IPNet.String() == s.IPNet.String()
 }
 
+func (dst *Inet) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Inet)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+	return dst.IPNet.String() < s.IPNet.String()
+}
+
 func (dst *Inet) String() string {
 	if dst.Status == Present {
 		return dst.IPNet.String()

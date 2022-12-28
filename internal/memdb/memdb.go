@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"testing"
 	"time"
 
@@ -105,18 +106,32 @@ func (c *client) Migrate(_ context.Context, tables schema.Tables) error {
 	return nil
 }
 
-func (c *client) Read(_ context.Context, table *schema.Table, source string, res chan<- []any) error {
+func (c *client) Read(_ context.Context, table *schema.Table, source string, res chan<- []any, opts destination.ReadOptions) error {
 	if c.memoryDB[table.Name] == nil {
 		return nil
 	}
 	sourceColIndex := table.Columns.Index(schema.CqSourceNameColumn.Name)
+	orderByColIndexes := make([]int, len(opts.OrderBy))
+	for i, v := range opts.OrderBy {
+		orderByColIndexes[i] = table.Columns.Index(v.Name)
+	}
 	var sortedRes [][]any
 	for _, row := range c.memoryDB[table.Name] {
 		if row[sourceColIndex].(*schema.Text).Str == source {
 			sortedRes = append(sortedRes, row)
 		}
 	}
-
+	sort.Slice(sortedRes, func(i, j int) bool {
+		for _, col := range orderByColIndexes {
+			if !sortedRes[i][col].(schema.CQType).Equal(sortedRes[j][col].(schema.CQType)) {
+				return sortedRes[i][col].(schema.CQType).LessThan(sortedRes[j][col].(schema.CQType))
+			}
+		}
+		return false
+	})
+	if opts.Limit > 0 {
+		sortedRes = sortedRes[:opts.Limit]
+	}
 	for _, row := range sortedRes {
 		res <- row
 	}

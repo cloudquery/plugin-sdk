@@ -44,6 +44,20 @@ func (dst *Float8) Equal(src CQType) bool {
 	return math.Abs(dst.Float-s.Float) <= float64EqualityThreshold
 }
 
+func (dst *Float8) LessThan(src CQType) bool {
+	if src == nil {
+		return false
+	}
+	s, ok := src.(*Float8)
+	if !ok {
+		return false
+	}
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+	return dst.Float-s.Float < float64EqualityThreshold
+}
+
 func (dst *Float8) Set(src any) error {
 	if src == nil {
 		*dst = Float8{Status: Null}
