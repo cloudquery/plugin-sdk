@@ -67,11 +67,11 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 			if len(resources) > 0 {
 				start := time.Now()
 				if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
-					p.logger.Err(err).Str("table", table.Name).Int("len", len(resources)).Dur("time", time.Since(start)).Msg("failed to write batch on timeout")
+					p.logger.Err(err).Str("table", table.Name).Int("len", len(resources)).Dur("time", time.Since(start)).Msg("failed to write batch on flush")
 					// we don't return as we need to continue until channel is closed otherwise there will be a deadlock
 					atomic.AddUint64(&metrics.Errors, uint64(len(resources)))
 				} else {
-					p.logger.Info().Str("table", table.Name).Int("len", len(resources)).Dur("time", time.Since(start)).Msg("batch written successfully on timeout")
+					p.logger.Info().Str("table", table.Name).Int("len", len(resources)).Dur("time", time.Since(start)).Msg("batch written successfully on flush")
 					atomic.AddUint64(&metrics.Writes, uint64(len(resources)))
 				}
 				resources = make([][]any, 0)
