@@ -61,7 +61,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 	}
 
 	resourcesRead, err := p.readAll(ctx, table, sourceName,
-		WithOrderBy([]OrderByColumn{
+		OrderBy([]OrderByColumn{
 			{Name: schema.CqIDColumn.Name, Desc: false},
 		}),
 	)
@@ -90,7 +90,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 	}
 
 	resourcesRead, err = p.readAll(ctx, table, sourceName,
-		WithOrderBy([]OrderByColumn{
+		OrderBy([]OrderByColumn{
 			{Name: schema.CqIDColumn.Name, Desc: false},
 		}),
 	)
@@ -117,7 +117,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 	}
 
 	resourcesRead, err = p.readAll(ctx, tables[0], sourceName,
-		WithOrderBy([]OrderByColumn{
+		OrderBy([]OrderByColumn{
 			{Name: schema.CqIDColumn.Name, Desc: false},
 		}),
 	)
@@ -172,7 +172,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	})
 
 	resourcesRead, err := p.readAll(ctx, tables[0], sourceName,
-		WithOrderBy([]OrderByColumn{
+		OrderBy([]OrderByColumn{
 			{Name: schema.CqIDColumn.Name, Desc: false},
 		}),
 	)

@@ -192,15 +192,36 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName st
 	return resources, readErr
 }
 
+type Operator string
+
+// Filter represents a match condition for a column.
+// The operator is assumed to be equality, as this is the only operator
+// we support for now.
+type Filter struct {
+	Column string
+	Value  schema.CQType
+}
+
+// Filters represent multiple match conditions for a column.
+// ALL conditions must be met for a row to be included in the result. (i.e. AND)
+type Filters []Filter
+
 type ReadOption func(*ReadOptions)
 
 type ReadOptions struct {
+	Where   Filters
 	Columns []string        // columns to select. Beneficial for columnar storage formats
 	OrderBy []OrderByColumn // columns to order by. Use discretion: it may require a full table scan if not indexed
 	Limit   int             // limit the number of rows returned
 }
 
-func WithColumns(columns []string) ReadOption {
+func Where(filters []Filter) ReadOption {
+	return func(opts *ReadOptions) {
+		opts.Where = filters
+	}
+}
+
+func Select(columns []string) ReadOption {
 	return func(o *ReadOptions) {
 		o.Columns = columns
 	}
@@ -211,13 +232,13 @@ type OrderByColumn struct {
 	Desc bool
 }
 
-func WithOrderBy(orderBy []OrderByColumn) ReadOption {
+func OrderBy(orderBy []OrderByColumn) ReadOption {
 	return func(o *ReadOptions) {
 		o.OrderBy = orderBy
 	}
 }
 
-func WithLimit(limit int) ReadOption {
+func Limit(limit int) ReadOption {
 	return func(o *ReadOptions) {
 		o.Limit = limit
 	}

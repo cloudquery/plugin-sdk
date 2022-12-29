@@ -117,9 +117,13 @@ func (c *client) Read(_ context.Context, table *schema.Table, source string, res
 	}
 	var sortedRes [][]any
 	for _, row := range c.memoryDB[table.Name] {
-		if row[sourceColIndex].(*schema.Text).Str == source {
-			sortedRes = append(sortedRes, row)
+		if row[sourceColIndex].(*schema.Text).Str != source {
+			continue
 		}
+		if !match(opts.Where, table, row) {
+			continue
+		}
+		sortedRes = append(sortedRes, row)
 	}
 	sort.Slice(sortedRes, func(i, j int) bool {
 		for o, col := range orderByColIndexes {
@@ -151,6 +155,16 @@ func (c *client) Read(_ context.Context, table *schema.Table, source string, res
 	}
 
 	return nil
+}
+
+func match(f destination.Filters, table *schema.Table, row []any) bool {
+	for _, filter := range f {
+		col := table.Columns.Index(filter.Column)
+		if !filter.Value.Equal(row[col].(schema.CQType)) {
+			return false
+		}
+	}
+	return true
 }
 
 func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-chan *destination.ClientResource) error {

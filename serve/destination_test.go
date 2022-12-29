@@ -123,7 +123,7 @@ func TestDestination(t *testing.T) {
 
 	readCh := make(chan schema.CQTypes, 1)
 	opts := []destination.ReadOption{
-		destination.WithOrderBy([]destination.OrderByColumn{
+		destination.OrderBy([]destination.OrderByColumn{
 			{Name: schema.CqSyncTimeColumn.Name, Desc: true},
 		}),
 	}
