@@ -51,7 +51,12 @@ func (dst *Inet) LessThan(src CQType) bool {
 	if dst.Status != s.Status {
 		return dst.Status < s.Status
 	}
-	return dst.IPNet.String() < s.IPNet.String()
+	for i := range dst.IPNet.IP {
+		if dst.IPNet.IP[i] != s.IPNet.IP[i] {
+			return dst.IPNet.IP[i] < s.IPNet.IP[i]
+		}
+	}
+	return false
 }
 
 func (dst *Inet) String() string {

@@ -90,3 +90,26 @@ func TestInetMarshalUnmarshal(t *testing.T) {
 		t.Errorf("%v != %v", r.IPNet.IP, r2.IPNet.IP)
 	}
 }
+
+func TestInet_LessThan(t *testing.T) {
+	ip1 := mustParseCIDR(t, "127.0.0.1/32")
+	ip2 := mustParseCIDR(t, "127.0.0.2/32")
+	tests := []struct {
+		a    Inet
+		b    Inet
+		want bool
+	}{
+		{a: Inet{IPNet: ip1, Status: Present}, b: Inet{IPNet: ip2, Status: Present}, want: true},
+		{a: Inet{IPNet: ip2, Status: Present}, b: Inet{IPNet: ip1, Status: Present}, want: false},
+		{a: Inet{IPNet: ip1, Status: Present}, b: Inet{IPNet: ip1, Status: Present}, want: false},
+		{a: Inet{IPNet: ip1, Status: Null}, b: Inet{IPNet: ip1, Status: Present}, want: true},
+		{a: Inet{IPNet: ip1, Status: Present}, b: Inet{IPNet: ip1, Status: Null}, want: false},
+		{a: Inet{IPNet: ip1, Status: Null}, b: Inet{IPNet: ip1, Status: Null}, want: false},
+	}
+
+	for _, tt := range tests {
+		if got := tt.a.LessThan(&tt.b); got != tt.want {
+			t.Errorf("%v.LessThan(%v) = %v, want %v", tt.a, tt.b, got, tt.want)
+		}
+	}
+}
