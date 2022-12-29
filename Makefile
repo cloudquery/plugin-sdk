@@ -4,7 +4,11 @@ test:
 
 .PHONY: lint
 lint:
-	golangci-lint run
+	golangci-lint run --config .golangci.yml
+
+.PHONY: lint-fix
+lint-fix:
+	golangci-lint run --fix --config .golangci.yml
 
 .PHONY: gen-proto
 gen-proto:
