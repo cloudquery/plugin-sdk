@@ -31,3 +31,24 @@ func TestMacaddrSet(t *testing.T) {
 		}
 	}
 }
+
+func TestMacAddr_LessThan(t *testing.T) {
+	macAddr1 := mustParseMacaddr(t, "01:23:45:67:89:ab")
+	macAddr2 := mustParseMacaddr(t, "01:23:45:67:89:ac")
+	cases := []struct {
+		a    Macaddr
+		b    Macaddr
+		want bool
+	}{
+		{a: Macaddr{Addr: macAddr1, Status: Present}, b: Macaddr{Addr: macAddr2, Status: Present}, want: true},
+		{a: Macaddr{Addr: macAddr2, Status: Present}, b: Macaddr{Addr: macAddr1, Status: Present}, want: false},
+		{a: Macaddr{Addr: macAddr1, Status: Undefined}, b: Macaddr{Addr: macAddr1, Status: Present}, want: true},
+		{a: Macaddr{Addr: macAddr1, Status: Present}, b: Macaddr{Addr: macAddr1, Status: Undefined}, want: false},
+	}
+
+	for _, tt := range cases {
+		if got := tt.a.LessThan(&tt.b); got != tt.want {
+			t.Errorf("%v.LessThan(%v) = %v, want %v", tt.a, tt.b, got, tt.want)
+		}
+	}
+}

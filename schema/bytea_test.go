@@ -28,3 +28,22 @@ func TestByteaSet(t *testing.T) {
 		}
 	}
 }
+
+func TestBytea_LessThan(t *testing.T) {
+	cases := []struct {
+		a    Bytea
+		b    Bytea
+		want bool
+	}{
+		{a: Bytea{Bytes: []byte{1, 2, 3}, Status: Present}, b: Bytea{Bytes: []byte{1, 2, 4}, Status: Present}, want: true},
+		{a: Bytea{Bytes: []byte{1, 2, 4}, Status: Present}, b: Bytea{Bytes: []byte{1, 2, 3}, Status: Present}, want: false},
+		{a: Bytea{Bytes: []byte{1, 2, 3}, Status: Undefined}, b: Bytea{Bytes: []byte{1, 2, 3}, Status: Present}, want: true},
+		{a: Bytea{Bytes: []byte{1, 2, 3}, Status: Present}, b: Bytea{Bytes: []byte{1, 2, 3}, Status: Undefined}, want: false},
+	}
+
+	for _, tt := range cases {
+		if got := tt.a.LessThan(&tt.b); got != tt.want {
+			t.Errorf("%v.LessThan(%v) = %v, want %v", tt.a, tt.b, got, tt.want)
+		}
+	}
+}

@@ -165,7 +165,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
-	
+
 	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
 	sort.Slice(resources, func(i, j int) bool {
 		return resources[i].Data[cqIDIndex].LessThan(resources[j].Data[cqIDIndex])

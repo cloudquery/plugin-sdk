@@ -39,3 +39,23 @@ func TestInt8Set(t *testing.T) {
 		}
 	}
 }
+
+func TestInt8_LessThan(t *testing.T) {
+	cases := []struct {
+		a    Int8
+		b    Int8
+		want bool
+	}{
+		{a: Int8{Int: 0, Status: Present}, b: Int8{Int: 0, Status: Present}, want: false},
+		{a: Int8{Int: 1, Status: Present}, b: Int8{Int: 0, Status: Present}, want: false},
+		{a: Int8{Int: 0, Status: Present}, b: Int8{Int: 1, Status: Present}, want: true},
+		{a: Int8{Int: 1, Status: Undefined}, b: Int8{Int: 1, Status: Present}, want: true},
+		{a: Int8{Int: 1, Status: Present}, b: Int8{Int: 1, Status: Undefined}, want: false},
+	}
+
+	for _, tt := range cases {
+		if got := tt.a.LessThan(&tt.b); got != tt.want {
+			t.Errorf("%v.LessThan(%v) = %v, want %v", tt.a, tt.b, got, tt.want)
+		}
+	}
+}

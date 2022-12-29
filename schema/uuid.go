@@ -42,7 +42,16 @@ func (dst *UUID) LessThan(src CQType) bool {
 	if dst.Status != s.Status {
 		return dst.Status < s.Status
 	}
-	return dst.String() < s.String()
+	n := len(dst.Bytes)
+	if n > len(s.Bytes) {
+		n = len(s.Bytes)
+	}
+	for i := 0; i < n; i++ {
+		if dst.Bytes[i] != s.Bytes[i] {
+			return dst.Bytes[i] < s.Bytes[i]
+		}
+	}
+	return len(dst.Bytes) < len(s.Bytes)
 }
 
 func (dst *UUID) String() string {

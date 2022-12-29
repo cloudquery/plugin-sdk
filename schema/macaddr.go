@@ -41,7 +41,12 @@ func (dst *Macaddr) LessThan(src CQType) bool {
 	if dst.Status != s.Status {
 		return dst.Status < s.Status
 	}
-	return dst.Addr.String() < s.Addr.String()
+	for i := range dst.Addr {
+		if dst.Addr[i] != s.Addr[i] {
+			return dst.Addr[i] < s.Addr[i]
+		}
+	}
+	return false
 }
 
 func (dst *Macaddr) String() string {

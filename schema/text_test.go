@@ -24,3 +24,22 @@ func TestTextSet(t *testing.T) {
 		}
 	}
 }
+
+func TestText_LessThan(t *testing.T) {
+	cases := []struct {
+		a    Text
+		b    Text
+		want bool
+	}{
+		{a: Text{Str: "foo", Status: Present}, b: Text{Str: "bar", Status: Present}, want: false},
+		{a: Text{Str: "bar", Status: Present}, b: Text{Str: "foo", Status: Present}, want: true},
+		{a: Text{Str: "foo", Status: Undefined}, b: Text{Str: "foo", Status: Present}, want: true},
+		{a: Text{Str: "foo", Status: Present}, b: Text{Str: "foo", Status: Undefined}, want: false},
+	}
+
+	for _, tt := range cases {
+		if got := tt.a.LessThan(&tt.b); got != tt.want {
+			t.Errorf("%v.LessThan(%v) = %v, want %v", tt.a, tt.b, got, tt.want)
+		}
+	}
+}

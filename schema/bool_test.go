@@ -31,3 +31,23 @@ func TestBoolSet(t *testing.T) {
 		}
 	}
 }
+
+func TestBool_LessThan(t *testing.T) {
+	cases := []struct {
+		a    Bool
+		b    Bool
+		want bool
+	}{
+		{a: Bool{Bool: true, Status: Present}, b: Bool{Bool: false, Status: Present}, want: false},
+		{a: Bool{Bool: false, Status: Present}, b: Bool{Bool: true, Status: Present}, want: true},
+		{a: Bool{Bool: true, Status: Undefined}, b: Bool{Bool: true, Status: Present}, want: true},
+		{a: Bool{Bool: true, Status: Present}, b: Bool{Bool: true, Status: Undefined}, want: false},
+		{a: Bool{Bool: true, Status: Present}, b: Bool{Bool: true, Status: Present}, want: false},
+	}
+
+	for _, tt := range cases {
+		if got := tt.a.LessThan(&tt.b); got != tt.want {
+			t.Errorf("%v.LessThan(%v) = %v, want %v", tt.a, tt.b, got, tt.want)
+		}
+	}
+}

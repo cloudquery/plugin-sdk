@@ -72,3 +72,28 @@ func TestUUIDSet(t *testing.T) {
 		}
 	}
 }
+
+func TestUUID_LessThan(t *testing.T) {
+	uuid1 := [16]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	uuid2 := [16]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16}
+
+	cases := []struct {
+		a    UUID
+		b    UUID
+		want bool
+	}{
+		{a: UUID{Bytes: uuid1, Status: Present}, b: UUID{Bytes: uuid2, Status: Present}, want: true},
+		{a: UUID{Bytes: uuid2, Status: Present}, b: UUID{Bytes: uuid1, Status: Present}, want: false},
+		{a: UUID{Bytes: uuid1, Status: Present}, b: UUID{Bytes: uuid1, Status: Present}, want: false},
+		{a: UUID{Bytes: uuid1, Status: Null}, b: UUID{Bytes: uuid2, Status: Present}, want: true},
+		{a: UUID{Bytes: uuid2, Status: Null}, b: UUID{Bytes: uuid1, Status: Present}, want: true},
+		{a: UUID{Bytes: uuid1, Status: Null}, b: UUID{Bytes: uuid1, Status: Present}, want: true},
+		{a: UUID{Bytes: uuid1, Status: Null}, b: UUID{Bytes: uuid2, Status: Null}, want: true},
+	}
+
+	for _, tt := range cases {
+		if got := tt.a.LessThan(&tt.b); got != tt.want {
+			t.Errorf("UUID.LessThan(%v, %v) = %v; want %v", tt.a, tt.b, got, tt.want)
+		}
+	}
+}
