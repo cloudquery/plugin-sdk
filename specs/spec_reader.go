@@ -84,7 +84,8 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 			if r.Destinations[destination.Name] != nil {
 				return fmt.Errorf("duplicate destination name %s", destination.Name)
 			}
-			destination.SetDefaults()
+			// We set the default value to 0 so it can be overridden later by plugins' defaults
+			destination.SetDefaults(0)
 			if err := destination.Validate(); err != nil {
 				return fmt.Errorf("failed to validate destination %s: %w", destination.Name, err)
 			}

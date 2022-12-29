@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/internal/testdata"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
