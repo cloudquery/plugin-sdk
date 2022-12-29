@@ -115,7 +115,7 @@ func (c *client) Read(_ context.Context, table *schema.Table, source string, res
 	for i, v := range opts.OrderBy {
 		orderByColIndexes[i] = table.Columns.Index(v.Name)
 	}
-	var sortedRes [][]any
+	sortedRes := make([][]any, 0)
 	for _, row := range c.memoryDB[table.Name] {
 		if row[sourceColIndex].(*schema.Text).Str != source {
 			continue
