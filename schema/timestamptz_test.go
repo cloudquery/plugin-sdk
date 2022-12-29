@@ -48,3 +48,25 @@ func TestTimestamptzSet(t *testing.T) {
 		}
 	}
 }
+
+func TestTimestamptz_LessThan(t *testing.T) {
+	t1 := time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
+	t2 := time.Date(2000, 1, 1, 0, 0, 1, 0, time.Local)
+	cases := []struct {
+		a, b Timestamptz
+		want bool
+	}{
+		{a: Timestamptz{Time: t1, Status: Present}, b: Timestamptz{Time: t2, Status: Present}, want: true},
+		{a: Timestamptz{Time: t2, Status: Present}, b: Timestamptz{Time: t1, Status: Present}, want: false},
+		{a: Timestamptz{Time: t1, Status: Present}, b: Timestamptz{Time: t1, Status: Present}, want: false},
+		{a: Timestamptz{Time: t1, Status: Present}, b: Timestamptz{Time: t1, Status: Null}, want: false},
+		{a: Timestamptz{Time: t1, Status: Null}, b: Timestamptz{Time: t1, Status: Present}, want: true},
+		{a: Timestamptz{Time: t1, Status: Null}, b: Timestamptz{Time: t1, Status: Null}, want: false},
+	}
+
+	for _, tt := range cases {
+		if tt.a.LessThan(&tt.b) != tt.want {
+			t.Errorf("%v < %v = %v, want %v", tt.a, tt.b, !tt.want, tt.want)
+		}
+	}
+}
