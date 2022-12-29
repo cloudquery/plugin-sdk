@@ -10,10 +10,10 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/clients"
 	"github.com/cloudquery/plugin-sdk/internal/memdb"
-	"github.com/cloudquery/plugin-sdk/internal/testdata"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/cloudquery/plugin-sdk/testdata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0](https://github.com/cloudquery/plugin-sdk/compare/v1.15.1...v1.16.0) (2022-12-28)
+
+
+### Features
+
+* **destinations:** Allow plugins to set default batch size ([#540](https://github.com/cloudquery/plugin-sdk/issues/540)) ([bc1476b](https://github.com/cloudquery/plugin-sdk/commit/bc1476b0d6a7f9b3014c2d78108fc5a499399893))
+
+## [1.15.1](https://github.com/cloudquery/plugin-sdk/compare/v1.15.0...v1.15.1) (2022-12-28)
+
+
+### Bug Fixes
+
+* **destinations:** Set done even if no resources to flush ([#537](https://github.com/cloudquery/plugin-sdk/issues/537)) ([02eca6d](https://github.com/cloudquery/plugin-sdk/commit/02eca6d1962d306f7571cdfc4f4255ef93a98c02))
+
+## [1.15.0](https://github.com/cloudquery/plugin-sdk/compare/v1.14.0...v1.15.0) (2022-12-28)
+
+
+### Features
+
+* Make TestData public ([#534](https://github.com/cloudquery/plugin-sdk/issues/534)) ([a476052](https://github.com/cloudquery/plugin-sdk/commit/a4760521cff17b251a0c90b4cb45eaa8257d6fe2))
+
 ## [1.14.0](https://github.com/cloudquery/plugin-sdk/compare/v1.13.1...v1.14.0) (2022-12-27)
 
 
