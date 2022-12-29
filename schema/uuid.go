@@ -39,7 +39,10 @@ func (dst *UUID) LessThan(src CQType) bool {
 	if !ok {
 		return false
 	}
-	return dst.Status < s.Status
+	if dst.Status != s.Status {
+		return dst.Status < s.Status
+	}
+	return dst.String() < s.String()
 }
 
 func (dst *UUID) String() string {

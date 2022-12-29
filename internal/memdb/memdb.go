@@ -122,9 +122,13 @@ func (c *client) Read(_ context.Context, table *schema.Table, source string, res
 		}
 	}
 	sort.Slice(sortedRes, func(i, j int) bool {
-		for _, col := range orderByColIndexes {
+		for o, col := range orderByColIndexes {
 			if !sortedRes[i][col].(schema.CQType).Equal(sortedRes[j][col].(schema.CQType)) {
-				return sortedRes[i][col].(schema.CQType).LessThan(sortedRes[j][col].(schema.CQType))
+				less := sortedRes[i][col].(schema.CQType).LessThan(sortedRes[j][col].(schema.CQType))
+				if opts.OrderBy[o].Desc {
+					return !less
+				}
+				return less
 			}
 		}
 		return false
@@ -132,9 +136,20 @@ func (c *client) Read(_ context.Context, table *schema.Table, source string, res
 	if opts.Limit > 0 {
 		sortedRes = sortedRes[:opts.Limit]
 	}
-	for _, row := range sortedRes {
-		res <- row
+	if len(opts.Columns) == 0 {
+		for _, row := range sortedRes {
+			res <- row
+		}
+	} else {
+		for _, r := range sortedRes {
+			row := make([]any, len(opts.Columns))
+			for i, col := range opts.Columns {
+				row[i] = r[table.Columns.Index(col)]
+			}
+			res <- row
+		}
 	}
+
 	return nil
 }
 

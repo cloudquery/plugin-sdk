@@ -60,7 +60,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		return fmt.Errorf("failed to write all: %w", err)
 	}
 
-	resourcesRead, err := p.readAll(ctx, tables[0], sourceName,
+	resourcesRead, err := p.readAll(ctx, table, sourceName,
 		WithOrderBy([]OrderByColumn{
 			{Name: schema.CqIDColumn.Name, Desc: false},
 		}),
@@ -89,7 +89,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
-	resourcesRead, err = p.readAll(ctx, tables[0], sourceName,
+	resourcesRead, err = p.readAll(ctx, table, sourceName,
 		WithOrderBy([]OrderByColumn{
 			{Name: schema.CqIDColumn.Name, Desc: false},
 		}),
@@ -165,6 +165,11 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
+	
+	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
+	sort.Slice(resources, func(i, j int) bool {
+		return resources[i].Data[cqIDIndex].LessThan(resources[j].Data[cqIDIndex])
+	})
 
 	resourcesRead, err := p.readAll(ctx, tables[0], sourceName,
 		WithOrderBy([]OrderByColumn{
