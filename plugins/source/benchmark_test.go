@@ -328,8 +328,7 @@ func (c *DefaultClient) Call(_, _ string) error {
 	sample := int(rand.NormFloat64()*float64(c.stdDev) + float64(c.mean))
 	duration := time.Duration(sample)
 	if duration < c.min {
-		time.Sleep(c.min)
-		return nil
+		duration = c.min
 	}
 	time.Sleep(duration)
 	return nil

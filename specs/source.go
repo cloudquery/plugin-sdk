@@ -100,6 +100,10 @@ func (s *Source) Validate() error {
 		}
 	}
 
+	if s.Scheduler != "dfs" && s.Scheduler != "round-robin" {
+		return fmt.Errorf("unknown scheduler. Must be one of: [dfs, round-robin]")
+	}
+
 	if len(s.Destinations) == 0 {
 		return fmt.Errorf("at least one destination is required")
 	}
