@@ -14,9 +14,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
-	// This is very similar to the concurrent web crawler problem with some minor changes.
-	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree.
+func (p *Plugin) syncRoundRobin(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
 	tableConcurrency := max(spec.Concurrency/minResourceConcurrency, minTableConcurrency)
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
 
@@ -51,28 +49,49 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 	go p.periodicMetricLogger(logCtx, &logWg)
 
 	var wg sync.WaitGroup
-	for i, table := range tables {
-		table := table
-		clients := preInitialisedClients[i]
-		for _, client := range clients {
-			client := client
-			if err := p.tableSems[0].Acquire(ctx, 1); err != nil {
-				// This means context was cancelled
-				wg.Wait()
-				// gracefully shut down the logger goroutine
-				logCancel()
-				logWg.Wait()
-				return
+	type tableClient struct {
+		table  *schema.Table
+		client schema.ClientMeta
+	}
+
+	// interleave table-clients so that we get:
+	// table1-client1, table2-client1, table3-client, table1-client2, table2-client2, table3-client2, ...
+	tableClients := make([]tableClient, 0)
+	c := 0
+	for {
+		addedNew := false
+		for i, table := range tables {
+			if c < len(preInitialisedClients[i]) {
+				tableClients = append(tableClients, tableClient{table: table, client: preInitialisedClients[i][c]})
+				addedNew = true
 			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				defer p.tableSems[0].Release(1)
-				// not checking for error here as nothing much todo.
-				// the error is logged and this happens when context is cancelled
-				p.resolveTableDfs(ctx, table, client, nil, resolvedResources, 1)
-			}()
 		}
+		c++
+		if !addedNew {
+			break
+		}
+	}
+
+	for _, tc := range tableClients {
+		table := tc.table
+		cl := tc.client
+		if err := p.tableSems[0].Acquire(ctx, 1); err != nil {
+			// This means context was cancelled
+			wg.Wait()
+			// gracefully shut down the logger goroutine
+			logCancel()
+			logWg.Wait()
+			return
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer p.tableSems[0].Release(1)
+			// not checking for error here as nothing much todo.
+			// the error is logged and this happens when context is cancelled
+			p.resolveTableRoundRobin(ctx, table, cl, nil, resolvedResources, 1)
+		}()
+
 	}
 
 	// Wait for all the worker goroutines to finish
@@ -83,7 +102,7 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 	logWg.Wait()
 }
 
-func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) resolveTableRoundRobin(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
 	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
@@ -114,7 +133,7 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	}()
 
 	for r := range res {
-		p.resolveResourcesDfs(ctx, table, client, parent, r, resolvedResources, depth)
+		p.resolveResourcesRoundRobin(ctx, table, client, parent, r, resolvedResources, depth)
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
@@ -124,7 +143,7 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	}
 }
 
-func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) resolveResourcesRoundRobin(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
@@ -171,7 +190,7 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 			go func() {
 				defer wg.Done()
 				defer p.tableSems[depth].Release(1)
-				p.resolveTableDfs(ctx, relation, client, resource, resolvedResources, depth+1)
+				p.resolveTableRoundRobin(ctx, relation, client, resource, resolvedResources, depth+1)
 			}()
 		}
 	}

@@ -36,6 +36,9 @@ type Source struct {
 	SkipTables []string `json:"skip_tables,omitempty"`
 	// Destinations are the names of destination plugins to send sync data to
 	Destinations []string `json:"destinations,omitempty"`
+	// Scheduler defines the scheduling algorithm that should be used to sync data
+	Scheduler string `json:"scheduler,omitempty"`
+
 	// Spec defines plugin specific configuration
 	// This is different in every source plugin.
 	Spec any `json:"spec,omitempty"`
@@ -56,6 +59,9 @@ func (s *Source) SetDefaults() {
 	}
 	if s.Concurrency == 0 {
 		s.Concurrency = defaultConcurrency
+	}
+	if s.Scheduler == "" {
+		s.Scheduler = "dfs"
 	}
 }
 

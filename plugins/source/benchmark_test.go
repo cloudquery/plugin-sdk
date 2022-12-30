@@ -16,15 +16,17 @@ import (
 )
 
 type BenchmarkScenario struct {
-	Client            Client
-	Clients           int
-	Tables            int
-	ChildrenPerTable  int
-	Columns           int
-	ColumnResolvers   int // number of columns with custom resolvers
-	ResourcesPerTable int
-	ResourcesPerPage  int
-	Concurrency       uint64
+	Client                Client
+	Scheduler             string
+	Clients               int
+	Tables                int
+	ChildrenPerTable      int
+	Columns               int
+	ColumnResolvers       int // number of columns with custom resolvers
+	ResourcesPerTable     int
+	ResourcesPerPage      int
+	NoPreResourceResolver bool
+	Concurrency           uint64
 }
 
 func (s *BenchmarkScenario) SetDefaults() {
@@ -75,9 +77,9 @@ func NewBenchmark(b *testing.B, scenario BenchmarkScenario) *Benchmark {
 func (s *Benchmark) setup(b *testing.B) {
 	createResolvers := func(tableName string) (schema.TableResolver, schema.RowResolver, schema.ColumnResolver) {
 		tableResolver := func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- any) error {
-			s.simulateAPICall(meta.ID(), tableName)
 			total := 0
 			for total < s.ResourcesPerTable {
+				s.simulateAPICall(meta.ID(), tableName)
 				num := min(s.ResourcesPerPage, s.ResourcesPerTable-total)
 				resources := make([]struct {
 					Column1 string
@@ -126,19 +128,23 @@ func (s *Benchmark) setup(b *testing.B) {
 		relations := make([]*schema.Table, s.ChildrenPerTable)
 		for u := 0; u < s.ChildrenPerTable; u++ {
 			relations[u] = &schema.Table{
-				Name:                fmt.Sprintf("table%d_child%d", i, u),
-				Columns:             columns,
-				Resolver:            tableResolver,
-				PreResourceResolver: preResourceResolver,
+				Name:     fmt.Sprintf("table%d_child%d", i, u),
+				Columns:  columns,
+				Resolver: tableResolver,
+			}
+			if !s.NoPreResourceResolver {
+				relations[u].PreResourceResolver = preResourceResolver
 			}
 		}
 		s.tables[i] = &schema.Table{
-			Name:                fmt.Sprintf("table%d", i),
-			Columns:             columns,
-			Relations:           relations,
-			Resolver:            tableResolver,
-			Multiplex:           nMultiplexer(s.Clients),
-			PreResourceResolver: preResourceResolver,
+			Name:      fmt.Sprintf("table%d", i),
+			Columns:   columns,
+			Relations: relations,
+			Resolver:  tableResolver,
+			Multiplex: nMultiplexer(s.Clients),
+		}
+		if !s.NoPreResourceResolver {
+			s.tables[i].PreResourceResolver = preResourceResolver
 		}
 		for u := range relations {
 			relations[u].Parent = s.tables[i]
@@ -188,6 +194,7 @@ func (s *Benchmark) Run() {
 			Version:      "v1.0.0",
 			Destinations: []string{"test"},
 			Concurrency:  s.Concurrency,
+			Scheduler:    s.Scheduler,
 		}
 		resources := make(chan *schema.Resource)
 		g, ctx := errgroup.WithContext(ctx)
@@ -215,8 +222,8 @@ func (s *Benchmark) Run() {
 		s.b.ReportMetric(float64(totalResources)/s.lowerBound().Seconds(), "targetResources/s")
 
 		// Enable the below metrics for more verbose information about the scenario:
-		//s.b.ReportMetric(float64(totalResources), "resources")
-		//s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
+		s.b.ReportMetric(float64(totalResources), "resources")
+		s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
 	}
 }
 
@@ -235,8 +242,11 @@ func (s *Benchmark) lowerBound() time.Duration {
 	longestLoad := s.Client.ExpectedTime()
 	minTime := longestLoad * time.Duration(pages)
 
-	// double this because PreResourceResolver requires an additional call
-	factor := 2
+	factor := 1
+	if !s.NoPreResourceResolver {
+		// double this because PreResourceResolver requires an additional call
+		factor++
+	}
 	if s.ColumnResolvers > 0 {
 		// column resolvers also take time, and have to be called after PreResourceResolver
 		factor++
@@ -273,11 +283,15 @@ func nMultiplexer(n int) schema.Multiplexer {
 	}
 }
 
-func BenchmarkDefaultConcurrency(b *testing.B) {
-	benchmarkWithConcurrency(b, 0)
+func BenchmarkDefaultConcurrencyDFS(b *testing.B) {
+	benchmarkWithScheduler(b, SchedulerDFS)
 }
 
-func benchmarkWithConcurrency(b *testing.B, concurrency uint64) {
+func BenchmarkDefaultConcurrencyRoundRobin(b *testing.B) {
+	benchmarkWithScheduler(b, SchedulerRoundRobin)
+}
+
+func benchmarkWithScheduler(b *testing.B, scheduler string) {
 	b.ReportAllocs()
 	minTime := 1 * time.Millisecond
 	mean := 10 * time.Millisecond
@@ -291,17 +305,21 @@ func benchmarkWithConcurrency(b *testing.B, concurrency uint64) {
 		ColumnResolvers:   1,
 		ResourcesPerTable: 100,
 		ResourcesPerPage:  50,
-		Concurrency:       concurrency,
+		Scheduler:         scheduler,
 	}
 	sb := NewBenchmark(b, bs)
 	sb.Run()
 }
 
-func BenchmarkTablesWithChildrenDefaultConcurrency(b *testing.B) {
-	benchmarkTablesWithChildrenConcurrency(b, 0)
+func BenchmarkTablesWithChildrenDFS(b *testing.B) {
+	benchmarkTablesWithChildrenScheduler(b, SchedulerDFS)
 }
 
-func benchmarkTablesWithChildrenConcurrency(b *testing.B, concurrency uint64) {
+func BenchmarkTablesWithChildrenRoundRobin(b *testing.B) {
+	benchmarkTablesWithChildrenScheduler(b, SchedulerRoundRobin)
+}
+
+func benchmarkTablesWithChildrenScheduler(b *testing.B, scheduler string) {
 	b.ReportAllocs()
 	minTime := 1 * time.Millisecond
 	mean := 10 * time.Millisecond
@@ -316,7 +334,7 @@ func benchmarkTablesWithChildrenConcurrency(b *testing.B, concurrency uint64) {
 		ColumnResolvers:   1,
 		ResourcesPerTable: 100,
 		ResourcesPerPage:  50,
-		Concurrency:       concurrency,
+		Scheduler:         scheduler,
 	}
 	sb := NewBenchmark(b, bs)
 	sb.Run()
@@ -385,8 +403,8 @@ func (r *RateLimitClient) Call(clientID, table string) error {
 	r.callsLock.Lock()
 	defer r.callsLock.Unlock()
 
-	// limit the number of calls per window by client-table pair
-	key := clientID + "." + table
+	// limit the number of calls per window by table
+	key := table
 
 	// remove calls from outside the call window
 	updated := make([]time.Time, 0, len(r.calls[key]))
@@ -409,22 +427,39 @@ func (r *RateLimitClient) Call(clientID, table string) error {
 // by the cloud provider. Instead of limiting by the global number of API calls, the limit is applied
 // per client and table. This mirrors the behavior of GCP. A good scheduler should spread the load across tables
 // so that other tables can make progress while waiting for the rate limit to reset.
-func BenchmarkTablesWithRateLimitingPerTable(b *testing.B) {
+func BenchmarkTablesWithRateLimitingDFS(b *testing.B) {
+	benchmarkTablesWithRateLimitingScheduler(b, SchedulerDFS)
+}
+
+func BenchmarkTablesWithRateLimitingRoundRobin(b *testing.B) {
+	benchmarkTablesWithRateLimitingScheduler(b, SchedulerRoundRobin)
+}
+
+// In this benchmark, we set up a scenario where each table has a global rate limit of 1 call per 100ms.
+// Every table requires 1 call to resolve, and has 10 clients. This means, at best, each table can resolve in 1 second.
+// We have 100 such tables and a concurrency that allows 1000 calls at a time. A good scheduler for this scenario
+// should be able to resolve all tables in a bit more than 1 second.
+func benchmarkTablesWithRateLimitingScheduler(b *testing.B, scheduler string) {
 	b.ReportAllocs()
 	minTime := 1 * time.Millisecond
-	mean := 10 * time.Millisecond
-	stdDev := 100 * time.Millisecond
-	c := NewRateLimitClient(minTime, mean, stdDev, 100, 1*time.Second)
+	mean := 1 * time.Millisecond
+	stdDev := 1 * time.Millisecond
+	maxCallsPerWindow := 1
+	window := 100 * time.Millisecond
+	c := NewRateLimitClient(minTime, mean, stdDev, maxCallsPerWindow, window)
+
 	bs := BenchmarkScenario{
-		Client:            c,
-		Clients:           5,
-		Tables:            5,
-		ChildrenPerTable:  0,
-		Columns:           10,
-		ColumnResolvers:   1,
-		ResourcesPerTable: 1000,
-		ResourcesPerPage:  100,
-		Concurrency:       0,
+		Client:                c,
+		Scheduler:             scheduler,
+		Clients:               10,
+		Tables:                100,
+		ChildrenPerTable:      0,
+		Columns:               10,
+		ColumnResolvers:       0,
+		ResourcesPerTable:     1,
+		ResourcesPerPage:      1,
+		Concurrency:           1000,
+		NoPreResourceResolver: true,
 	}
 	sb := NewBenchmark(b, bs)
 	sb.Run()

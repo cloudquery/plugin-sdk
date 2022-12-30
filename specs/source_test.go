@@ -137,6 +137,7 @@ spec:
 			Version:      "v1.1.0",
 			Tables:       []string{"*"},
 			Destinations: []string{"test"},
+			Scheduler:    "dfs",
 		},
 	},
 }
