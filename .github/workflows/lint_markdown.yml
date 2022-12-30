@@ -15,7 +15,7 @@ jobs:
       - name: Vale
         uses: errata-ai/vale-action@v2
         with:
-          vale_flags: "--glob='!{plugins/.snapshots/*,CHANGELOG.md,.github/styles/proselint/README.md}'"
+          vale_flags: "--glob=!{plugins/.snapshots/*,CHANGELOG.md,.github/styles/proselint/README.md}"
           filter_mode: nofilter
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
