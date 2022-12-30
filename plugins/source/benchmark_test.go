@@ -383,9 +383,10 @@ func (r *RateLimitClient) Call(clientID, table string) error {
 }
 
 // BenchmarkDefaultConcurrency represents a benchmark scenario where rate limiting is applied
-// by the cloud provider. Instead of limiting by the global number of API calls, the limit is applied
-// per client and table. This mirrors the behavior of GCP. A good scheduler should spread the load across tables
-// so that other tables can make progress while waiting for the rate limit to reset.
+// by the cloud provider. In this rate limiter, the limit is applied globally per table.
+// This mirrors the behavior of GCP, where rate limiting is applied per project *token*, not
+// per project. A good scheduler should spread the load across tables so that other tables can make
+// progress while waiting for the rate limit to reset.
 func BenchmarkTablesWithRateLimitingDFS(b *testing.B) {
 	benchmarkTablesWithRateLimitingScheduler(b, SchedulerDFS)
 }
