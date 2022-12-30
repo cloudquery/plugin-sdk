@@ -49,7 +49,6 @@ func (s *BenchmarkScenario) SetDefaults() {
 
 type Client interface {
 	Call(clientID, tableName string) error
-	ExpectedTime() time.Duration
 }
 
 type Benchmark struct {
@@ -219,48 +218,12 @@ func (s *Benchmark) Run() {
 		end := time.Now()
 		s.b.ReportMetric(0, "ns/op") // drop default ns/op output
 		s.b.ReportMetric(float64(totalResources)/(end.Sub(start).Seconds()), "resources/s")
-		s.b.ReportMetric(float64(totalResources)/s.lowerBound().Seconds(), "targetResources/s")
 
 		// Enable the below metrics for more verbose information about the scenario:
-		s.b.ReportMetric(float64(totalResources), "resources")
-		s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
+		//s.b.ReportMetric(float64(s.apiCalls.Load())/(end.Sub(start).Seconds()), "api-calls/s")
+		//s.b.ReportMetric(float64(totalResources), "resources")
+		//s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
 	}
-}
-
-// lowerBound calculates a rough lower bound on the sync time so that we know how
-// much room there is for optimization. This does not currently take the "concurrency"
-// value into account. Use this number only as a rough guide.
-func (s *Benchmark) lowerBound() time.Duration {
-	// we require one API call per page
-	pages := s.ResourcesPerTable / s.ResourcesPerPage
-	if s.ResourcesPerTable%s.ResourcesPerPage == 0 {
-		pages++
-	}
-
-	// Use the mean time + stdDev for now, but that's not 100% accurate for many reasons. One
-	// is that samples are rounded up to the minimum time. Use only as a rough guide.
-	longestLoad := s.Client.ExpectedTime()
-	minTime := longestLoad * time.Duration(pages)
-
-	factor := 1
-	if !s.NoPreResourceResolver {
-		// double this because PreResourceResolver requires an additional call
-		factor++
-	}
-	if s.ColumnResolvers > 0 {
-		// column resolvers also take time, and have to be called after PreResourceResolver
-		factor++
-	}
-	minTime *= time.Duration(factor)
-
-	// every child table will need to make one API call per resource in the
-	// parent table. Theoretically these calls can be done in parallel, and child tables
-	// can all be resolved in parallel too.
-	if s.ChildrenPerTable > 0 {
-		minTime += longestLoad * time.Duration(pages) * time.Duration(factor)
-	}
-
-	return minTime
 }
 
 type benchmarkClient struct {
@@ -370,10 +333,6 @@ func (c *DefaultClient) Call(_, _ string) error {
 	}
 	time.Sleep(duration)
 	return nil
-}
-
-func (c *DefaultClient) ExpectedTime() time.Duration {
-	return c.mean + c.stdDev // this is a rough estimate to account for the minimum time
 }
 
 type RateLimitClient struct {

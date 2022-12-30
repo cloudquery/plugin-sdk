@@ -110,6 +110,8 @@ func (p *Plugin) periodicMetricLogger(ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
+// unparam's suggestion to remove the second parameter is not good advice here.
+// nolint:unparam
 func max(a, b uint64) uint64 {
 	if a > b {
 		return a

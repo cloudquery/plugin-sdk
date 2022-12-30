@@ -17,6 +17,11 @@ const (
 	SchedulerRoundRobin = "round-robin"
 )
 
+var allSchedulers = []string{
+	SchedulerDFS,
+	SchedulerRoundRobin,
+}
+
 type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
 
 // Plugin is the base structure required to pass to sdk.serve
@@ -170,7 +175,7 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 	case SchedulerRoundRobin:
 		p.syncRoundRobin(ctx, spec, c, tables, res)
 	default:
-		return fmt.Errorf("unknown scheduler %s. Options are: %v", spec.Scheduler, []string{SchedulerDFS, SchedulerRoundRobin})
+		return fmt.Errorf("unknown scheduler %s. Options are: %v", spec.Scheduler, allSchedulers)
 	}
 
 	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")

@@ -91,7 +91,6 @@ func (p *Plugin) syncRoundRobin(ctx context.Context, spec specs.Source, client s
 			// the error is logged and this happens when context is cancelled
 			p.resolveTableRoundRobin(ctx, table, cl, nil, resolvedResources, 1)
 		}()
-
 	}
 
 	// Wait for all the worker goroutines to finish
