@@ -215,8 +215,8 @@ func (s *Benchmark) Run() {
 		s.b.ReportMetric(float64(totalResources)/s.lowerBound().Seconds(), "targetResources/s")
 
 		// Enable the below metrics for more verbose information about the scenario:
-		s.b.ReportMetric(float64(totalResources), "resources")
-		s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
+		//s.b.ReportMetric(float64(totalResources), "resources")
+		//s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
 	}
 }
 
@@ -377,7 +377,10 @@ func NewRateLimitClient(min, mean, stdDev time.Duration, maxCallsPerWindow int, 
 
 func (r *RateLimitClient) Call(clientID, table string) error {
 	// this will sleep for the appropriate amount of time before responding
-	r.DefaultClient.Call(clientID, table)
+	err := r.DefaultClient.Call(clientID, table)
+	if err != nil {
+		return err
+	}
 
 	r.callsLock.Lock()
 	defer r.callsLock.Unlock()
