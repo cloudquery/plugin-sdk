@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.1](https://github.com/cloudquery/plugin-sdk/compare/v1.16.0...v1.16.1) (2023-01-01)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 738e83a ([#546](https://github.com/cloudquery/plugin-sdk/issues/546)) ([bdf3ff1](https://github.com/cloudquery/plugin-sdk/commit/bdf3ff1e9e93164e20e73046534fa1a8dd208576))
+* **deps:** Update google.golang.org/genproto digest to f9683d7 ([#552](https://github.com/cloudquery/plugin-sdk/issues/552)) ([763d22b](https://github.com/cloudquery/plugin-sdk/commit/763d22b5f209ae26d54937c84f07f8895062ebc5))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.16.0 ([#549](https://github.com/cloudquery/plugin-sdk/issues/549)) ([b4a0efc](https://github.com/cloudquery/plugin-sdk/commit/b4a0efc392a9323011d217c40ca3661d38351c37))
+* **deps:** Update module github.com/inconshreveable/mousetrap to v1.1.0 ([#555](https://github.com/cloudquery/plugin-sdk/issues/555)) ([f449234](https://github.com/cloudquery/plugin-sdk/commit/f4492343b52a8edf3864b4d77c4e2f40d0d3e308))
+* **deps:** Update module github.com/mattn/go-isatty to v0.0.17 ([#553](https://github.com/cloudquery/plugin-sdk/issues/553)) ([826006f](https://github.com/cloudquery/plugin-sdk/commit/826006f6d70e9cb1c4a062d5691be05b41514926))
+* **deps:** Update module github.com/schollz/progressbar/v3 to v3.12.2 ([#547](https://github.com/cloudquery/plugin-sdk/issues/547)) ([b6640b8](https://github.com/cloudquery/plugin-sdk/commit/b6640b8134aff9d9c12c211d0994eda657a966d0))
+* **deps:** Update module github.com/thoas/go-funk to v0.9.3 ([#548](https://github.com/cloudquery/plugin-sdk/issues/548)) ([6e5469a](https://github.com/cloudquery/plugin-sdk/commit/6e5469a32ec688b94070f300633050fbe2e53018))
+* **deps:** Update module golang.org/x/net to v0.4.0 ([#550](https://github.com/cloudquery/plugin-sdk/issues/550)) ([9ced5ec](https://github.com/cloudquery/plugin-sdk/commit/9ced5ec92f60be484d470550781110b1a3b6a2d0))
+* **deps:** Update module golang.org/x/text to v0.5.0 ([#551](https://github.com/cloudquery/plugin-sdk/issues/551)) ([1353026](https://github.com/cloudquery/plugin-sdk/commit/1353026325232a7de6c0ea403cdcbe5e821abe53))
+* Managed writer log message, timeout-&gt;flush ([#536](https://github.com/cloudquery/plugin-sdk/issues/536)) ([6b0c711](https://github.com/cloudquery/plugin-sdk/commit/6b0c71174d71c4fc5f5a55f9317caa1037f75d15))
+
 ## [1.16.0](https://github.com/cloudquery/plugin-sdk/compare/v1.15.1...v1.16.0) (2022-12-28)
 
 
