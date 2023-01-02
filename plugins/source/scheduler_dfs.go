@@ -169,8 +169,8 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 				if resolvedResource == nil {
 					return
 				}
-				tableMetrics := p.metrics.TableClient[table.Name][client.ID()]
 				if err := resolvedResource.Validate(); err != nil {
+					tableMetrics := p.metrics.TableClient[table.Name][client.ID()]
 					p.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
 					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
