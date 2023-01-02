@@ -103,12 +103,16 @@ func (r *Resource) Columns() []string {
 
 // Validates that all primary keys have values.
 func (r *Resource) Validate() error {
+	var missingPks []string
 	for i, c := range r.Table.Columns {
 		if c.CreationOptions.PrimaryKey {
 			if r.data[i].GetStatus() != Present {
-				return fmt.Errorf("primary key on column %s is not set", c.Name)
+				missingPks = append(missingPks, c.Name)
 			}
 		}
+	}
+	if len(missingPks) > 0 {
+		return fmt.Errorf("missing primary key on columns: %v", missingPks)
 	}
 	return nil
 }
