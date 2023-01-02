@@ -12,16 +12,6 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-const (
-	SchedulerDFS        = "dfs"
-	SchedulerRoundRobin = "round-robin"
-)
-
-var allSchedulers = []string{
-	SchedulerDFS,
-	SchedulerRoundRobin,
-}
-
 type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
 
 // Plugin is the base structure required to pass to sdk.serve
@@ -170,12 +160,12 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 	}
 	startTime := time.Now()
 	switch spec.Scheduler {
-	case SchedulerDFS:
+	case specs.SchedulerDFS:
 		p.syncDfs(ctx, spec, c, tables, res)
-	case SchedulerRoundRobin:
+	case specs.SchedulerRoundRobin:
 		p.syncRoundRobin(ctx, spec, c, tables, res)
 	default:
-		return fmt.Errorf("unknown scheduler %s. Options are: %v", spec.Scheduler, allSchedulers)
+		return fmt.Errorf("unknown scheduler %s. Options are: %v", spec.Scheduler, specs.AllSchedulers.String())
 	}
 
 	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")

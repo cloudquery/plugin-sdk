@@ -37,7 +37,7 @@ type Source struct {
 	// Destinations are the names of destination plugins to send sync data to
 	Destinations []string `json:"destinations,omitempty"`
 	// Scheduler defines the scheduling algorithm that should be used to sync data
-	Scheduler string `json:"scheduler,omitempty"`
+	Scheduler Scheduler `json:"scheduler,omitempty"`
 
 	// Spec defines plugin specific configuration
 	// This is different in every source plugin.
@@ -47,6 +47,9 @@ type Source struct {
 func (s *Source) SetDefaults() {
 	if s.Registry.String() == "" {
 		s.Registry = RegistryGithub
+	}
+	if s.Scheduler.String() == "" {
+		s.Scheduler = SchedulerDFS
 	}
 	if s.Tables == nil {
 		s.Tables = []string{"*"}
@@ -59,9 +62,6 @@ func (s *Source) SetDefaults() {
 	}
 	if s.Concurrency == 0 {
 		s.Concurrency = defaultConcurrency
-	}
-	if s.Scheduler == "" {
-		s.Scheduler = "dfs"
 	}
 }
 
@@ -99,13 +99,11 @@ func (s *Source) Validate() error {
 			return fmt.Errorf("version must start with v")
 		}
 	}
-
-	if s.Scheduler != "dfs" && s.Scheduler != "round-robin" {
-		return fmt.Errorf("unknown scheduler. Must be one of: [dfs, round-robin]")
-	}
-
 	if len(s.Destinations) == 0 {
 		return fmt.Errorf("at least one destination is required")
+	}
+	if !funk.Contains(AllSchedulers, s.Scheduler) {
+		return fmt.Errorf("unknown scheduler %v. Must be one of: %v", s.Scheduler, AllSchedulers.String())
 	}
 	return nil
 }

@@ -234,18 +234,18 @@ func (testRand) Read(p []byte) (n int, err error) {
 
 func TestSync(t *testing.T) {
 	uuid.SetRand(testRand{})
-	for _, scheduler := range allSchedulers {
+	for _, scheduler := range specs.AllSchedulers {
 		for _, tc := range syncTestCases {
 			tc := tc
 			tc.table = tc.table.Copy(nil)
-			t.Run(tc.table.Name+"_"+scheduler, func(t *testing.T) {
+			t.Run(tc.table.Name+"_"+scheduler.String(), func(t *testing.T) {
 				testSyncTable(t, tc, scheduler)
 			})
 		}
 	}
 }
 
-func testSyncTable(t *testing.T, tc syncTestCase, scheduler string) {
+func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler) {
 	ctx := context.Background()
 	tables := []*schema.Table{
 		tc.table,

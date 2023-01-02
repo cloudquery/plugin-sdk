@@ -17,7 +17,7 @@ import (
 
 type BenchmarkScenario struct {
 	Client                Client
-	Scheduler             string
+	Scheduler             specs.Scheduler
 	Clients               int
 	Tables                int
 	ChildrenPerTable      int
@@ -247,14 +247,14 @@ func nMultiplexer(n int) schema.Multiplexer {
 }
 
 func BenchmarkDefaultConcurrencyDFS(b *testing.B) {
-	benchmarkWithScheduler(b, SchedulerDFS)
+	benchmarkWithScheduler(b, specs.SchedulerDFS)
 }
 
 func BenchmarkDefaultConcurrencyRoundRobin(b *testing.B) {
-	benchmarkWithScheduler(b, SchedulerRoundRobin)
+	benchmarkWithScheduler(b, specs.SchedulerRoundRobin)
 }
 
-func benchmarkWithScheduler(b *testing.B, scheduler string) {
+func benchmarkWithScheduler(b *testing.B, scheduler specs.Scheduler) {
 	b.ReportAllocs()
 	minTime := 1 * time.Millisecond
 	mean := 10 * time.Millisecond
@@ -275,14 +275,14 @@ func benchmarkWithScheduler(b *testing.B, scheduler string) {
 }
 
 func BenchmarkTablesWithChildrenDFS(b *testing.B) {
-	benchmarkTablesWithChildrenScheduler(b, SchedulerDFS)
+	benchmarkTablesWithChildrenScheduler(b, specs.SchedulerDFS)
 }
 
 func BenchmarkTablesWithChildrenRoundRobin(b *testing.B) {
-	benchmarkTablesWithChildrenScheduler(b, SchedulerRoundRobin)
+	benchmarkTablesWithChildrenScheduler(b, specs.SchedulerRoundRobin)
 }
 
-func benchmarkTablesWithChildrenScheduler(b *testing.B, scheduler string) {
+func benchmarkTablesWithChildrenScheduler(b *testing.B, scheduler specs.Scheduler) {
 	b.ReportAllocs()
 	minTime := 1 * time.Millisecond
 	mean := 10 * time.Millisecond
@@ -387,18 +387,18 @@ func (r *RateLimitClient) Call(clientID, table string) error {
 // per project. A good scheduler should spread the load across tables so that other tables can make
 // progress while waiting for the rate limit to reset.
 func BenchmarkTablesWithRateLimitingDFS(b *testing.B) {
-	benchmarkTablesWithRateLimitingScheduler(b, SchedulerDFS)
+	benchmarkTablesWithRateLimitingScheduler(b, specs.SchedulerDFS)
 }
 
 func BenchmarkTablesWithRateLimitingRoundRobin(b *testing.B) {
-	benchmarkTablesWithRateLimitingScheduler(b, SchedulerRoundRobin)
+	benchmarkTablesWithRateLimitingScheduler(b, specs.SchedulerRoundRobin)
 }
 
 // In this benchmark, we set up a scenario where each table has a global rate limit of 1 call per 100ms.
 // Every table requires 1 call to resolve, and has 10 clients. This means, at best, each table can resolve in 1 second.
 // We have 100 such tables and a concurrency that allows 1000 calls at a time. A good scheduler for this scenario
 // should be able to resolve all tables in a bit more than 1 second.
-func benchmarkTablesWithRateLimitingScheduler(b *testing.B, scheduler string) {
+func benchmarkTablesWithRateLimitingScheduler(b *testing.B, scheduler specs.Scheduler) {
 	b.ReportAllocs()
 	minTime := 1 * time.Millisecond
 	mean := 1 * time.Millisecond
