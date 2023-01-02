@@ -21,6 +21,10 @@ const (
 // infinityMicrosecondOffset         = 9223372036854775807
 )
 
+func (dst *Timestamptz) GetStatus() Status {
+	return dst.Status
+}
+
 type TimestamptzTransformer interface {
 	TransformTimestamptz(*Timestamptz) any
 }

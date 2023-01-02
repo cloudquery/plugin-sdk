@@ -17,6 +17,10 @@ type TextArray struct {
 	Status     Status
 }
 
+func (dst *TextArray) GetStatus() Status {
+	return dst.Status
+}
+
 func (*TextArray) Type() ValueType {
 	return TypeStringArray
 }

@@ -101,6 +101,19 @@ func (r *Resource) Columns() []string {
 	return r.Table.Columns.Names()
 }
 
+// Validates various constraints. for exmaple
+// does all primary keys has values
+func (r *Resource) Validate() error {
+	for i, c := range r.Table.Columns {
+		if c.CreationOptions.PrimaryKey {
+			if r.data[i].GetStatus() != Present {
+				return fmt.Errorf("primary key on column %s is not set", c.Name)
+			}
+		}
+	}
+	return nil
+}
+
 func (rr Resources) GetIds() []uuid.UUID {
 	rids := make([]uuid.UUID, len(rr))
 	for i, r := range rr {

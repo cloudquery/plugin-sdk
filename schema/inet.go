@@ -29,6 +29,10 @@ func (*Inet) Type() ValueType {
 	return TypeInet
 }
 
+func (dst *Inet) GetStatus() Status {
+	return dst.Status
+}
+
 func (dst *Inet) Equal(src CQType) bool {
 	if src == nil {
 		return false

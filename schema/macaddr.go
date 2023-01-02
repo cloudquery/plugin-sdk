@@ -15,6 +15,10 @@ type Macaddr struct {
 	Status Status
 }
 
+func (dst *Macaddr) GetStatus() Status {
+	return dst.Status
+}
+
 func (*Macaddr) Type() ValueType {
 	return TypeMacAddr
 }

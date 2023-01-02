@@ -18,6 +18,10 @@ type Float8 struct {
 
 const float64EqualityThreshold = 1e-9
 
+func (dst *Float8) GetStatus() Status {
+	return dst.Status
+}
+
 func (*Float8) Type() ValueType {
 	return TypeFloat
 }
