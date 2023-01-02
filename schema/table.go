@@ -20,6 +20,8 @@ type RowResolver func(ctx context.Context, meta ClientMeta, resource *Resource) 
 
 type Multiplexer func(meta ClientMeta) []ClientMeta
 
+type Transform func(table *Table) error
+
 type Tables []*Table
 
 // This is deprecated
@@ -38,6 +40,8 @@ type Table struct {
 	Columns ColumnList `json:"columns"`
 	// Relations are a set of related tables defines
 	Relations Tables `json:"relations"`
+	// Transform
+	Transform Transform `json:"transform"`
 	// Resolver is the main entry point to fetching table data and
 	Resolver TableResolver `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
