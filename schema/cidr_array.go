@@ -18,6 +18,10 @@ type CIDRArray struct {
 	Status     Status
 }
 
+func (dst *CIDRArray) GetStatus() Status {
+	return dst.Status
+}
+
 func (*CIDRArray) Type() ValueType {
 	return TypeCIDRArray
 }

@@ -15,6 +15,10 @@ type Text struct {
 	Status Status
 }
 
+func (dst *Text) GetStatus() Status {
+	return dst.Status
+}
+
 func (*Text) Type() ValueType {
 	return TypeString
 }

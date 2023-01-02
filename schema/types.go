@@ -212,6 +212,7 @@ type CQType interface {
 	String() string
 	Equal(CQType) bool
 	Type() ValueType
+	GetStatus() Status
 }
 
 type CQTypes []CQType

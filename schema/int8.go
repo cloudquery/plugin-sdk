@@ -16,6 +16,10 @@ type Int8 struct {
 	Status Status
 }
 
+func (dst *Int8) GetStatus() Status {
+	return dst.Status
+}
+
 func (*Int8) Type() ValueType {
 	return TypeInt
 }

@@ -17,6 +17,10 @@ type UUIDArray struct {
 	Status     Status
 }
 
+func (dst *UUIDArray) GetStatus() Status {
+	return dst.Status
+}
+
 func (*UUIDArray) Type() ValueType {
 	return TypeUUIDArray
 }

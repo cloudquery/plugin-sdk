@@ -16,6 +16,10 @@ type JSON struct {
 	Status Status
 }
 
+func (dst *JSON) GetStatus() Status {
+	return dst.Status
+}
+
 func (*JSON) Type() ValueType {
 	return TypeJSON
 }
