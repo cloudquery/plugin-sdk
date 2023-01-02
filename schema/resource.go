@@ -101,7 +101,7 @@ func (r *Resource) Columns() []string {
 	return r.Table.Columns.Names()
 }
 
-// Validates various constraints. For example: Does all primary keys has values.
+// Validates that all primary keys have values.
 func (r *Resource) Validate() error {
 	for i, c := range r.Table.Columns {
 		if c.CreationOptions.PrimaryKey {
