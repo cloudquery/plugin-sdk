@@ -14,7 +14,10 @@ const (
 )
 
 var AllSchedulers = Schedulers{SchedulerDFS, SchedulerRoundRobin}
-var AllSchedulerNames = []string{"dfs", "round-robin"}
+var AllSchedulerNames = [...]string{
+	SchedulerDFS:        "dfs",
+	SchedulerRoundRobin: "round-robin",
+}
 
 type Schedulers []Scheduler
 
@@ -33,10 +36,7 @@ func (s Scheduler) String() string {
 	return AllSchedulerNames[s]
 }
 func (s Scheduler) MarshalJSON() ([]byte, error) {
-	buffer := bytes.NewBufferString(`"`)
-	buffer.WriteString(s.String())
-	buffer.WriteString(`"`)
-	return buffer.Bytes(), nil
+	return []byte(`"` + s.String() + `"`), nil
 }
 
 func (s *Scheduler) UnmarshalJSON(data []byte) (err error) {
@@ -51,12 +51,10 @@ func (s *Scheduler) UnmarshalJSON(data []byte) (err error) {
 }
 
 func SchedulerFromString(s string) (Scheduler, error) {
-	switch s {
-	case "dfs":
-		return SchedulerDFS, nil
-	case "round-robin":
-		return SchedulerRoundRobin, nil
-	default:
-		return SchedulerDFS, fmt.Errorf("unknown scheduler %s", s)
+	for i, scheduler := range AllSchedulerNames {
+		if s == scheduler {
+			return Scheduler(i), nil
+		}
 	}
+	return SchedulerDFS, fmt.Errorf("unknown scheduler %s", s)
 }
