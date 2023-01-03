@@ -91,8 +91,6 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 	}
 	updatedResource.Data[1].Set(secondSyncTime)
 
-	sortResources(table, resources)
-
 	// write second time
 	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
@@ -108,7 +106,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		return fmt.Errorf("after overwrite expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
+	if diff := resources[1].Data.Diff(resourcesRead[0]); diff != "" {
 		return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
 	}
 
