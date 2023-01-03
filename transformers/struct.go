@@ -10,10 +10,10 @@ import (
 )
 
 type structTransformer struct {
-	table *schema.Table
-	skipFields []string
-	nameTransformer     NameTransformer
-	typeTransformer     TypeTransformer
+	table           *schema.Table
+	skipFields      []string
+	nameTransformer NameTransformer
+	typeTransformer TypeTransformer
 }
 
 type NameTransformer func(reflect.StructField) (string, error)
@@ -47,8 +47,8 @@ func WithTypeTransformer(transformer TypeTransformer) StructTransformerOption {
 
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
-		nameTransformer:     codegen.DefaultNameTransformer,
-		typeTransformer:     codegen.DefaultTypeTransformer,
+		nameTransformer: codegen.DefaultNameTransformer,
+		typeTransformer: codegen.DefaultTypeTransformer,
 	}
 	for _, opt := range opts {
 		opt(t)
@@ -69,7 +69,7 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 		eType := e.Type()
 		for i := 0; i < e.NumField(); i++ {
 			field := eType.Field(i)
-	
+
 			if err := t.addColumnFromField(field, nil); err != nil {
 				return fmt.Errorf("failed to add column for field %s: %w", field.Name, err)
 			}
@@ -137,7 +137,6 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 
 	return nil
 }
-
 
 func isTypeIgnored(t reflect.Type) bool {
 	switch t.Kind() {

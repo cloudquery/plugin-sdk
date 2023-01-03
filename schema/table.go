@@ -41,7 +41,7 @@ type Table struct {
 	// Relations are a set of related tables defines
 	Relations Tables `json:"relations"`
 	// Transform
-	Transform Transform `json:"transform"`
+	Transform Transform `json:"-"`
 	// Resolver is the main entry point to fetching table data and
 	Resolver TableResolver `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
