@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/backend"
 	"github.com/cloudquery/plugin-sdk/clients"
 	"github.com/cloudquery/plugin-sdk/plugins/source"
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -61,11 +62,11 @@ func (*testExecutionClient) ID() string {
 	return "testExecutionClient"
 }
 
-func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
+func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source, backend.Backend) (schema.ClientMeta, error) {
 	return &testExecutionClient{}, nil
 }
 
-func newTestExecutionClientErr(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
+func newTestExecutionClientErr(context.Context, zerolog.Logger, specs.Source, backend.Backend) (schema.ClientMeta, error) {
 	return nil, errTestExecutionClientErr
 }
 

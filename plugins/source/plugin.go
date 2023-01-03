@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/backend"
 	"github.com/cloudquery/plugin-sdk/caser"
+	"github.com/cloudquery/plugin-sdk/internal/backends/local"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/semaphore"
 )
 
-type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error)
+type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, backend.Backend) (schema.ClientMeta, error)
 
 // Plugin is the base structure required to pass to sdk.serve
 // We take a declarative approach to API here similar to Cobra
@@ -154,7 +156,24 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 		return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
 	}
 
-	c, err := p.newExecutionClient(ctx, p.logger, spec)
+	var backend backend.Backend
+	switch spec.Backend {
+	case specs.BackendLocal:
+		backend, err = local.New(spec)
+		if err != nil {
+			return fmt.Errorf("failed to initialize local backend: %w", err)
+		}
+	}
+
+	defer func() {
+		p.logger.Info().Msg("closing backend")
+		err := backend.Close()
+		if err != nil {
+			p.logger.Error().Err(err).Msg("failed to close backend")
+		}
+	}()
+
+	c, err := p.newExecutionClient(ctx, p.logger, spec, backend)
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}

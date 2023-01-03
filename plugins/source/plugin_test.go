@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/cloudquery/plugin-sdk/backend"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/go-cmp/cmp"
@@ -115,7 +116,7 @@ func (*testExecutionClient) ID() string {
 	return "testExecutionClient"
 }
 
-func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source) (schema.ClientMeta, error) {
+func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source, backend.Backend) (schema.ClientMeta, error) {
 	return &testExecutionClient{}, nil
 }
 
