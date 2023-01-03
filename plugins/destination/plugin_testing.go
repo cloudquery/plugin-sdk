@@ -86,10 +86,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		TableName: table.Name,
 		Data:      make(schema.CQTypes, len(resources[0].Data)),
 	}
-	for i, v := range resources[0].Data {
-		updatedResource.Data[i] = v
-	}
-	updatedResource.Data[1].Set(secondSyncTime)
+	copy(updatedResource.Data, resources[0].Data)
+	_ = updatedResource.Data[1].Set(secondSyncTime)
 
 	// write second time
 	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, updatedResource); err != nil {
