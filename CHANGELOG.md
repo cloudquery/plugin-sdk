@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.2](https://github.com/cloudquery/plugin-sdk/compare/v1.17.1...v1.17.2) (2023-01-03)
+
+
+### Bug Fixes
+
+* **testing:** Fix bug in testing missed due to reference to resource being re-used in memdb ([#567](https://github.com/cloudquery/plugin-sdk/issues/567)) ([95ab353](https://github.com/cloudquery/plugin-sdk/commit/95ab3538e29d9f253173c3a0dffd92e185cdc53c))
+
+## [1.17.1](https://github.com/cloudquery/plugin-sdk/compare/v1.17.0...v1.17.1) (2023-01-03)
+
+
+### Bug Fixes
+
+* **testing:** Some fixes to the ordering for plugin tests ([#565](https://github.com/cloudquery/plugin-sdk/issues/565)) ([79c2b85](https://github.com/cloudquery/plugin-sdk/commit/79c2b85c38d9f42b3240559ae9b4a0d057a50607))
+
+## [1.17.0](https://github.com/cloudquery/plugin-sdk/compare/v1.16.1...v1.17.0) (2023-01-02)
+
+
+### Features
+
+* Add primary key validation ([#563](https://github.com/cloudquery/plugin-sdk/issues/563)) ([09f891a](https://github.com/cloudquery/plugin-sdk/commit/09f891a0b34f1ec76b8143df6d7942afae506015))
+
+
+### Bug Fixes
+
+* **testing:** Sort results before comparison in tests ([#561](https://github.com/cloudquery/plugin-sdk/issues/561)) ([587715d](https://github.com/cloudquery/plugin-sdk/commit/587715de5a6fb06d861c12ece10d8b1fdf1d7ecb))
+
 ## [1.16.1](https://github.com/cloudquery/plugin-sdk/compare/v1.16.0...v1.16.1) (2023-01-01)
 
 
