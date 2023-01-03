@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0](https://github.com/cloudquery/plugin-sdk/compare/v1.16.1...v1.17.0) (2023-01-02)
+
+
+### Features
+
+* Add primary key validation ([#563](https://github.com/cloudquery/plugin-sdk/issues/563)) ([09f891a](https://github.com/cloudquery/plugin-sdk/commit/09f891a0b34f1ec76b8143df6d7942afae506015))
+
+
+### Bug Fixes
+
+* **testing:** Sort results before comparison in tests ([#561](https://github.com/cloudquery/plugin-sdk/issues/561)) ([587715d](https://github.com/cloudquery/plugin-sdk/commit/587715de5a6fb06d861c12ece10d8b1fdf1d7ecb))
+
 ## [1.16.1](https://github.com/cloudquery/plugin-sdk/compare/v1.16.0...v1.16.1) (2023-01-01)
 
 
