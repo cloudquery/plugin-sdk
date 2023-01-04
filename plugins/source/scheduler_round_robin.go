@@ -9,6 +9,11 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+type tableClient struct {
+	table  *schema.Table
+	client schema.ClientMeta
+}
+
 func (p *Plugin) syncRoundRobin(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
 	tableConcurrency := max(spec.Concurrency/minResourceConcurrency, minTableConcurrency)
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
@@ -43,30 +48,9 @@ func (p *Plugin) syncRoundRobin(ctx context.Context, spec specs.Source, client s
 	logCtx, logCancel := context.WithCancel(ctx)
 	go p.periodicMetricLogger(logCtx, &logWg)
 
+	tableClients := roundRobinInterleave(tables, preInitialisedClients)
+
 	var wg sync.WaitGroup
-	type tableClient struct {
-		table  *schema.Table
-		client schema.ClientMeta
-	}
-
-	// interleave table-clients so that we get:
-	// table1-client1, table2-client1, table3-client1, table1-client2, table2-client2, table3-client2, ...
-	tableClients := make([]tableClient, 0)
-	c := 0
-	for {
-		addedNew := false
-		for i, table := range tables {
-			if c < len(preInitialisedClients[i]) {
-				tableClients = append(tableClients, tableClient{table: table, client: preInitialisedClients[i][c]})
-				addedNew = true
-			}
-		}
-		c++
-		if !addedNew {
-			break
-		}
-	}
-
 	for _, tc := range tableClients {
 		table := tc.table
 		cl := tc.client
@@ -96,4 +80,25 @@ func (p *Plugin) syncRoundRobin(ctx context.Context, spec specs.Source, client s
 	// gracefully shut down the logger goroutine
 	logCancel()
 	logWg.Wait()
+}
+
+// interleave table-clients so that we get:
+// table1-client1, table2-client1, table3-client1, table1-client2, table2-client2, table3-client2, ...
+func roundRobinInterleave(tables schema.Tables, preInitialisedClients [][]schema.ClientMeta) []tableClient {
+	tableClients := make([]tableClient, 0)
+	c := 0
+	for {
+		addedNew := false
+		for i, table := range tables {
+			if c < len(preInitialisedClients[i]) {
+				tableClients = append(tableClients, tableClient{table: table, client: preInitialisedClients[i][c]})
+				addedNew = true
+			}
+		}
+		c++
+		if !addedNew {
+			break
+		}
+	}
+	return tableClients
 }
