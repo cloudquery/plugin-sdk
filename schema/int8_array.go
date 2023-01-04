@@ -17,6 +17,10 @@ type Int8Array struct {
 	Status     Status
 }
 
+func (dst *Int8Array) GetStatus() Status {
+	return dst.Status
+}
+
 func (*Int8Array) Type() ValueType {
 	return TypeIntArray
 }

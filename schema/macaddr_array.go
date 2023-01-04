@@ -18,6 +18,10 @@ type MacaddrArray struct {
 	Status     Status
 }
 
+func (dst *MacaddrArray) GetStatus() Status {
+	return dst.Status
+}
+
 func (*MacaddrArray) Type() ValueType {
 	return TypeMacAddrArray
 }

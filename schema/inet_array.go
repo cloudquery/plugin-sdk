@@ -18,6 +18,10 @@ type InetArray struct {
 	Status     Status
 }
 
+func (dst *InetArray) GetStatus() Status {
+	return dst.Status
+}
+
 func (*InetArray) Type() ValueType {
 	return TypeInetArray
 }

@@ -8,6 +8,10 @@ type CIDRTransformer interface {
 	TransformCIDR(*CIDR) any
 }
 
+func (dst *CIDR) GetStatus() Status {
+	return dst.Status
+}
+
 func (*CIDR) Type() ValueType {
 	return TypeCIDR
 }

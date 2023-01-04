@@ -15,6 +15,10 @@ type Bool struct {
 	Status Status
 }
 
+func (dst *Bool) GetStatus() Status {
+	return dst.Status
+}
+
 func (*Bool) Type() ValueType {
 	return TypeBool
 }

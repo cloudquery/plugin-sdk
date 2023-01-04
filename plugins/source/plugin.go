@@ -66,6 +66,21 @@ func setParents(tables schema.Tables, parent *schema.Table) {
 	}
 }
 
+// Apply transformations to tables
+func transformTables(tables schema.Tables) error {
+	for _, table := range tables {
+		if table.Transform != nil {
+			if err := table.Transform(table); err != nil {
+				return fmt.Errorf("failed to transform table %s: %w", table.Name, err)
+			}
+		}
+		if err := transformTables(table.Relations); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func maxDepth(tables schema.Tables) uint64 {
 	var depth uint64
 	if len(tables) == 0 {
@@ -93,6 +108,9 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 	}
 	addInternalColumns(p.tables)
 	setParents(p.tables, nil)
+	if err := transformTables(p.tables); err != nil {
+		panic(err)
+	}
 	if err := p.validate(); err != nil {
 		panic(err)
 	}

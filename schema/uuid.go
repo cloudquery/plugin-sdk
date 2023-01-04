@@ -19,6 +19,10 @@ func (*UUID) Type() ValueType {
 	return TypeUUID
 }
 
+func (dst *UUID) GetStatus() Status {
+	return dst.Status
+}
+
 func (dst *UUID) Equal(src CQType) bool {
 	if src == nil {
 		return false
