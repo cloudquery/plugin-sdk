@@ -54,7 +54,7 @@ func (s *Source) SetDefaults() {
 	}
 	if s.Backend.String() == "" {
 		s.Backend = BackendLocal
-  }
+	}
 	if s.Scheduler.String() == "" {
 		s.Scheduler = SchedulerDFS
 	}
