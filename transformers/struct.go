@@ -23,7 +23,7 @@ type TypeTransformer func(reflect.StructField) (schema.ValueType, error)
 type StructTransformerOption func(*structTransformer)
 
 // WithSkipFields allows to specify what struct fields should be skipped.
-func WithSkipFields(fields []string) StructTransformerOption {
+func WithSkipFields(fields ...string) StructTransformerOption {
 	return func(t *structTransformer) {
 		t.skipFields = fields
 	}
