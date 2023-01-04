@@ -12,6 +12,9 @@
     {{- if .Options.PrimaryKey}}
       PrimaryKey: true,
     {{- end }}
+    {{- if .Options.IncrementalKey}}
+      IncrementalKey: true,
+    {{- end }}
   },
   {{- end}}
   {{- if .IgnoreInTests}}

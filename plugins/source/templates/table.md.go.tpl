@@ -11,15 +11,14 @@ The composite primary key for this table is ({{ range $index, $pk := $.PrimaryKe
 	{{- end -}}).
 {{ end }}
 {{- if $.IsIncremental -}}
+It supports incremental syncs
 {{- $ikLength := len $.IncrementalKeys -}}
-{{- if eq $ikLength 1 -}}
-It supports incremental syncs based on the **{{ index $.IncrementalKeys 0 }}** column.
-{{- else -}}
-It supports incremental syncs based on the ({{ range $index, $pk := $.IncrementalKeys -}}
-	{{if $index }}, {{end -}}
+{{- if eq $ikLength 1 }} based on the **{{ index $.IncrementalKeys 0 }}** column
+{{- else if gt $ikLength 1 }} based on the ({{ range $index, $pk := $.IncrementalKeys -}}
+	{{- if $index -}}, {{end -}}
 		**{{$pk}}**
-	{{- end -}}) columns.
-{{- end -}}
+	{{- end -}}) columns
+{{- end -}}.
 {{- end -}}
 
 {{- if or ($.Relations) ($.Parent) }}
