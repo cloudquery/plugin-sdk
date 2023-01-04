@@ -71,18 +71,27 @@ func TestLocal(t *testing.T) {
 	if got != "" {
 		t.Fatalf("expected empty value for some_other_table -> test_key, but got %s", got)
 	}
+	err = local.Close()
+	if err != nil {
+		t.Fatalf("failed to close local backend the second time: %v", err)
+	}
 
 	// check that state is namespaced by source name
 	ss.Name = "test2"
-	local, err = New(ss)
+	local2, err := New(ss)
 	if err != nil {
 		t.Fatalf("failed to create local backend for test2: %v", err)
 	}
-	got, err = local.Get("test_table", "test_key")
+
+	got, err = local2.Get("test_table", "test_key")
 	if err != nil {
 		t.Fatalf("failed to get value for local backend test2: %v", err)
 	}
 	if got != "" {
 		t.Fatalf("expected empty value for test2 -> test_table -> test_key, but got %s", got)
+	}
+	err = local2.Close()
+	if err != nil {
+		t.Fatalf("failed to close second local backend: %v", err)
 	}
 }
