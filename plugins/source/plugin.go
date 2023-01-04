@@ -66,7 +66,7 @@ func setParents(tables schema.Tables, parent *schema.Table) {
 	}
 }
 
-// Set parent links on relational tables
+// Apply transformations to tables
 func transformTables(tables schema.Tables) error {
 	for _, table := range tables {
 		if table.Transform != nil {
