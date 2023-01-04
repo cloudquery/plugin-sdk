@@ -122,6 +122,15 @@ func (l *Local) flush() error {
 }
 
 func (l *Local) flushTable(table string, entries entries) error {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	err := os.MkdirAll(l.spec.Path, 0755)
+	if err != nil {
+		return fmt.Errorf("failed to create state directory %v: %w", l.spec.Path, err)
+	}
+
 	b, err := json.MarshalIndent(entries, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal state for table %v: %w", table, err)
