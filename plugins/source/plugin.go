@@ -169,7 +169,7 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 
 	defer func() {
 		p.logger.Info().Msg("closing backend")
-		err := be.Close()
+		err := be.Close(nil)
 		if err != nil {
 			p.logger.Error().Err(err).Msg("failed to close backend")
 		}

@@ -1,6 +1,7 @@
 package local
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -8,6 +9,7 @@ import (
 
 func TestLocal(t *testing.T) {
 	tmpDir := t.TempDir()
+	ctx := context.Background()
 	ss := specs.Source{
 		Name:    "test",
 		Version: "vtest",
@@ -25,7 +27,7 @@ func TestLocal(t *testing.T) {
 		t.Fatalf("expected path to be %s, but got %s", tmpDir, local.spec.Path)
 	}
 
-	got, err := local.Get("test_table", "test_key")
+	got, err := local.Get(ctx, "test_table", "test_key")
 	if err != nil {
 		t.Fatalf("failed to get value: %v", err)
 	}
@@ -33,12 +35,12 @@ func TestLocal(t *testing.T) {
 		t.Fatalf("expected empty value, but got %s", got)
 	}
 
-	err = local.Set("test_table", "test_key", "test_value")
+	err = local.Set(ctx, "test_table", "test_key", "test_value")
 	if err != nil {
 		t.Fatalf("failed to set value: %v", err)
 	}
 
-	got, err = local.Get("test_table", "test_key")
+	got, err = local.Get(ctx, "test_table", "test_key")
 	if err != nil {
 		t.Fatalf("failed to get value after setting it: %v", err)
 	}
@@ -46,7 +48,7 @@ func TestLocal(t *testing.T) {
 		t.Fatalf("expected value to be test_value, but got %s", got)
 	}
 
-	err = local.Close()
+	err = local.Close(ctx)
 	if err != nil {
 		t.Fatalf("failed to close local backend: %v", err)
 	}
@@ -56,7 +58,7 @@ func TestLocal(t *testing.T) {
 		t.Fatalf("failed to open local backend after closing it: %v", err)
 	}
 
-	got, err = local.Get("test_table", "test_key")
+	got, err = local.Get(ctx, "test_table", "test_key")
 	if err != nil {
 		t.Fatalf("failed to get value after closing and reopening local backend: %v", err)
 	}
@@ -64,14 +66,14 @@ func TestLocal(t *testing.T) {
 		t.Fatalf("expected value to be test_value, but got %s", got)
 	}
 
-	got, err = local.Get("some_other_table", "test_key")
+	got, err = local.Get(ctx, "some_other_table", "test_key")
 	if err != nil {
 		t.Fatalf("failed to get value after closing and reopening local backend: %v", err)
 	}
 	if got != "" {
 		t.Fatalf("expected empty value for some_other_table -> test_key, but got %s", got)
 	}
-	err = local.Close()
+	err = local.Close(ctx)
 	if err != nil {
 		t.Fatalf("failed to close local backend the second time: %v", err)
 	}
@@ -83,14 +85,14 @@ func TestLocal(t *testing.T) {
 		t.Fatalf("failed to create local backend for test2: %v", err)
 	}
 
-	got, err = local2.Get("test_table", "test_key")
+	got, err = local2.Get(ctx, "test_table", "test_key")
 	if err != nil {
 		t.Fatalf("failed to get value for local backend test2: %v", err)
 	}
 	if got != "" {
 		t.Fatalf("expected empty value for test2 -> test_table -> test_key, but got %s", got)
 	}
-	err = local2.Close()
+	err = local2.Close(ctx)
 	if err != nil {
 		t.Fatalf("failed to close second local backend: %v", err)
 	}

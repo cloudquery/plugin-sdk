@@ -48,6 +48,9 @@ type Table struct {
 	// PreResourceResolver is called before all columns are resolved but after Resource is created. The ordering of resolvers is:
 	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
 	PreResourceResolver RowResolver `json:"-"`
+	// IsIncremental is a flag that indicates if the table is incremental or not. This flag mainly affects how the table is
+	// documented.
+	IsIncremental bool
 
 	// IgnoreInTests is used to exclude a table from integration tests.
 	// By default, integration tests fetch all resources from cloudquery's test account, and verify all tables
@@ -281,6 +284,17 @@ func (t *Table) PrimaryKeys() []string {
 	}
 
 	return primaryKeys
+}
+
+func (t *Table) IncrementalKeys() []string {
+	var incrementalKeys []string
+	for _, c := range t.Columns {
+		if c.CreationOptions.IncrementalKey {
+			incrementalKeys = append(incrementalKeys, c.Name)
+		}
+	}
+
+	return incrementalKeys
 }
 
 func (t *Table) TableNames() []string {

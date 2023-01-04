@@ -1,6 +1,7 @@
 package local
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -67,6 +68,10 @@ func (l *Local) loadPreviousState() (map[string]entries, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read state file %v: %w", name, err)
 		}
+		err = f.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to close state file %v: %w", name, err)
+		}
 		var kv entries
 		err = json.Unmarshal(b, &kv)
 		if err != nil {
@@ -78,7 +83,7 @@ func (l *Local) loadPreviousState() (map[string]entries, error) {
 	return tables, nil
 }
 
-func (l *Local) Get(table, key string) (string, error) {
+func (l *Local) Get(_ context.Context, table, key string) (string, error) {
 	l.tablesLock.RLock()
 	defer l.tablesLock.RUnlock()
 
@@ -88,7 +93,7 @@ func (l *Local) Get(table, key string) (string, error) {
 	return l.tables[table][key], nil
 }
 
-func (l *Local) Set(table, key, value string) error {
+func (l *Local) Set(_ context.Context, table, key, value string) error {
 	l.tablesLock.Lock()
 	defer l.tablesLock.Unlock()
 
@@ -104,7 +109,7 @@ func (l *Local) Set(table, key, value string) error {
 	return nil
 }
 
-func (l *Local) Close() error {
+func (l *Local) Close(_ context.Context) error {
 	l.tablesLock.RLock()
 	defer l.tablesLock.RUnlock()
 

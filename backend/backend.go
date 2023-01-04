@@ -1,10 +1,12 @@
 package backend
 
+import "context"
+
 type Backend interface {
 	// Set sets the value for the given key.
-	Set(table, key, value string) error
+	Set(ctx context.Context, table, key, value string) error
 	// Get returns the value for the given key.
-	Get(table, key string) (string, error)
+	Get(ctx context.Context, table, key string) (string, error)
 	// Close closes the backend.
-	Close() error
+	Close(ctx context.Context) error
 }

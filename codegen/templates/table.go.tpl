@@ -18,6 +18,9 @@
 		{{- if .IgnoreError}}
     IgnoreError:  {{.IgnoreError}},
     {{- end}}
+        {{- if .IsIncremental}}
+    IsIncremental:  {{.IsIncremental}},
+    {{- end}}
 		Columns: []schema.Column{
 {{range .Columns}}{{template "column.go.tpl" .}}{{end}}
 		},
