@@ -77,13 +77,20 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 
 	if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
 		return fmt.Errorf("expected second resource diff: %s", diff)
-		// return fmt.Errorf("expected second resource to be:\n%v\ngot:\n%v", resource.Data, resourcesRead[1])
 	}
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
-	_ = resources[0].Data[1].Set(secondSyncTime)
+
+	// copy first resource but update the sync time
+	updatedResource := schema.DestinationResource{
+		TableName: table.Name,
+		Data:      make(schema.CQTypes, len(resources[0].Data)),
+	}
+	copy(updatedResource.Data, resources[0].Data)
+	_ = updatedResource.Data[1].Set(secondSyncTime)
+
 	// write second time
-	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resources[0]); err != nil {
+	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
@@ -97,11 +104,11 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		return fmt.Errorf("after overwrite expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
+	if diff := resources[1].Data.Diff(resourcesRead[0]); diff != "" {
 		return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
 	}
 
-	if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
+	if diff := updatedResource.Data.Diff(resourcesRead[1]); diff != "" {
 		return fmt.Errorf("after overwrite expected second resource diff: %s", diff)
 	}
 
@@ -121,8 +128,9 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		return fmt.Errorf("expected 1 resource after delete stale, got %d", len(resourcesRead))
 	}
 
-	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
-		return fmt.Errorf("after delete stale expected first resource diff: %s", diff)
+	// we expect the only resource returned to match the updated resource we wrote
+	if diff := updatedResource.Data.Diff(resourcesRead[0]); diff != "" {
+		return fmt.Errorf("after delete stale expected resource diff: %s", diff)
 	}
 
 	return nil
@@ -152,13 +160,14 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
 	resources[1] = createTestResources(table, sourceName, secondSyncTime, 1)[0]
+	sortResources(table, resources)
+
 	if !s.tests.SkipSecondAppend {
 		// write second time
 		if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resources[1]); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
-	sortResources(table, resources)
 
 	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
 	if err != nil {
@@ -247,14 +256,24 @@ func createTestResources(table *schema.Table, sourceName string, syncTime time.T
 
 func sortResources(table *schema.Table, resources []schema.DestinationResource) {
 	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
+	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
 	sort.Slice(resources, func(i, j int) bool {
+		// sort by sync time, then UUID
+		if !resources[i].Data[syncTimeIndex].Equal(resources[j].Data[syncTimeIndex]) {
+			return resources[i].Data[syncTimeIndex].Get().(time.Time).Before(resources[j].Data[syncTimeIndex].Get().(time.Time))
+		}
 		return resources[i].Data[cqIDIndex].String() < resources[j].Data[cqIDIndex].String()
 	})
 }
 
 func sortCQTypes(table *schema.Table, resources []schema.CQTypes) {
 	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
+	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
 	sort.Slice(resources, func(i, j int) bool {
+		// sort by sync time, then UUID
+		if !resources[i][syncTimeIndex].Equal(resources[j][syncTimeIndex]) {
+			return resources[i][syncTimeIndex].Get().(time.Time).Before(resources[j][syncTimeIndex].Get().(time.Time))
+		}
 		return resources[i][cqIDIndex].String() < resources[j][cqIDIndex].String()
 	})
 }

@@ -76,6 +76,12 @@ func (dst *Timestamptz) Set(src any) error {
 	}
 
 	switch value := src.(type) {
+	case int:
+		*dst = Timestamptz{Time: time.Unix(int64(value), 0), Status: Present}
+	case int64:
+		*dst = Timestamptz{Time: time.Unix(value, 0), Status: Present}
+	case uint64:
+		*dst = Timestamptz{Time: time.Unix(int64(value), 0), Status: Present}
 	case time.Time:
 		*dst = Timestamptz{Time: value, Status: Present}
 	case *time.Time:

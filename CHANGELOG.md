@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0](https://github.com/cloudquery/plugin-sdk/compare/v1.17.2...v1.18.0) (2023-01-04)
+
+
+### Features
+
+* Add Transformer for tables (codegen replacement) ([#564](https://github.com/cloudquery/plugin-sdk/issues/564)) ([a643ddf](https://github.com/cloudquery/plugin-sdk/commit/a643ddf237fa7f40a20e525b78932d6b241b6c26))
+* Support conversion of Unix timestamps in timestamptz ([#570](https://github.com/cloudquery/plugin-sdk/issues/570)) ([6b948ab](https://github.com/cloudquery/plugin-sdk/commit/6b948ab392c59c936d49182eb8b70444d81d38b5))
+
+## [1.17.2](https://github.com/cloudquery/plugin-sdk/compare/v1.17.1...v1.17.2) (2023-01-03)
+
+
+### Bug Fixes
+
+* **testing:** Fix bug in testing missed due to reference to resource being re-used in memdb ([#567](https://github.com/cloudquery/plugin-sdk/issues/567)) ([95ab353](https://github.com/cloudquery/plugin-sdk/commit/95ab3538e29d9f253173c3a0dffd92e185cdc53c))
+
+## [1.17.1](https://github.com/cloudquery/plugin-sdk/compare/v1.17.0...v1.17.1) (2023-01-03)
+
+
+### Bug Fixes
+
+* **testing:** Some fixes to the ordering for plugin tests ([#565](https://github.com/cloudquery/plugin-sdk/issues/565)) ([79c2b85](https://github.com/cloudquery/plugin-sdk/commit/79c2b85c38d9f42b3240559ae9b4a0d057a50607))
+
 ## [1.17.0](https://github.com/cloudquery/plugin-sdk/compare/v1.16.1...v1.17.0) (2023-01-02)
 
 
