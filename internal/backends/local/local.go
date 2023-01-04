@@ -59,28 +59,35 @@ func (l *Local) loadPreviousState() (map[string]entries, error) {
 		if !strings.HasSuffix(name, ".json") || !strings.HasPrefix(name, l.sourceName+"-") {
 			continue
 		}
-		p := path.Join(l.spec.Path, name)
-		f, err := os.Open(p)
+		table, kv, err := l.readFile(name)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open state file %v: %w", name, err)
+			return nil, err
 		}
-		b, err := io.ReadAll(f)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read state file %v: %w", name, err)
-		}
-		err = f.Close()
-		if err != nil {
-			return nil, fmt.Errorf("failed to close state file %v: %w", name, err)
-		}
-		var kv entries
-		err = json.Unmarshal(b, &kv)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal state file %v: %w", name, err)
-		}
-		table := strings.TrimPrefix(strings.TrimSuffix(name, ".json"), l.sourceName+"-")
 		tables[table] = kv
 	}
 	return tables, nil
+}
+
+func (l *Local) readFile(name string) (table string, kv entries, err error) {
+	p := path.Join(l.spec.Path, name)
+	f, err := os.Open(p)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to open state file %v: %w", name, err)
+	}
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to read state file %v: %w", name, err)
+	}
+	err = f.Close()
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to close state file %v: %w", name, err)
+	}
+	err = json.Unmarshal(b, &kv)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to unmarshal state file %v: %w", name, err)
+	}
+	table = strings.TrimPrefix(strings.TrimSuffix(name, ".json"), l.sourceName+"-")
+	return table, kv, nil
 }
 
 func (l *Local) Get(_ context.Context, table, key string) (string, error) {
