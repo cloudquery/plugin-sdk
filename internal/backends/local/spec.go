@@ -6,5 +6,7 @@ type Spec struct {
 }
 
 func (s *Spec) SetDefaults() {
-	s.Path = ".cq"
+	if s.Path == "" {
+		s.Path = ".cq/state"
+	}
 }

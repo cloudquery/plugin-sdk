@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/cloudquery/plugin-sdk/specs"
 )
@@ -15,6 +16,7 @@ type Local struct {
 	sourceName string
 	spec       Spec
 	tables     map[string]entries // table -> key -> value
+	tablesLock sync.RWMutex
 }
 
 type entries map[string]string
@@ -77,6 +79,9 @@ func (l *Local) loadPreviousState() (map[string]entries, error) {
 }
 
 func (l *Local) Get(table, key string) (string, error) {
+	l.tablesLock.RLock()
+	defer l.tablesLock.RUnlock()
+
 	if _, ok := l.tables[table]; !ok {
 		return "", nil
 	}
@@ -84,28 +89,48 @@ func (l *Local) Get(table, key string) (string, error) {
 }
 
 func (l *Local) Set(table, key, value string) error {
+	l.tablesLock.Lock()
+	defer l.tablesLock.Unlock()
+
 	if _, ok := l.tables[table]; !ok {
 		l.tables[table] = map[string]string{}
 	}
+	prev := l.tables[table][key]
 	l.tables[table][key] = value
-	return l.flush()
-}
-
-func (l *Local) flush() error {
-	for table, kv := range l.tables {
-		b, err := json.MarshalIndent(kv, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to marshal state for table %v: %w", table, err)
-		}
-		f := path.Join(l.spec.Path, l.sourceName+"-"+table+".json")
-		err = os.WriteFile(f, b, 0644)
-		if err != nil {
-			return fmt.Errorf("failed to write state for table %v: %w", table, err)
-		}
+	if prev != value {
+		// only flush if the value changed
+		return l.flushTable(table, l.tables[table])
 	}
 	return nil
 }
 
 func (l *Local) Close() error {
+	l.tablesLock.RLock()
+	defer l.tablesLock.RUnlock()
+
 	return l.flush()
+}
+
+func (l *Local) flush() error {
+	for table, kv := range l.tables {
+		err := l.flushTable(table, kv)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (l *Local) flushTable(table string, entries entries) error {
+	b, err := json.MarshalIndent(entries, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal state for table %v: %w", table, err)
+	}
+	f := path.Join(l.spec.Path, l.sourceName+"-"+table+".json")
+	err = os.WriteFile(f, b, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write state for table %v: %w", table, err)
+	}
+
+	return nil
 }
