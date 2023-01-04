@@ -72,19 +72,19 @@ func (l *Local) readFile(name string) (table string, kv entries, err error) {
 	p := path.Join(l.spec.Path, name)
 	f, err := os.Open(p)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to open state file %v: %w", name, err)
+		return "", nil, fmt.Errorf("failed to open state file: %w", err)
 	}
 	b, err := io.ReadAll(f)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to read state file %v: %w", name, err)
+		return "", nil, fmt.Errorf("failed to read state file: %w", err)
 	}
 	err = f.Close()
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to close state file %v: %w", name, err)
+		return "", nil, fmt.Errorf("failed to close state file: %w", err)
 	}
 	err = json.Unmarshal(b, &kv)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to unmarshal state file %v: %w", name, err)
+		return "", nil, fmt.Errorf("failed to unmarshal state file: %w", err)
 	}
 	table = strings.TrimPrefix(strings.TrimSuffix(name, ".json"), l.sourceName+"-")
 	return table, kv, nil
