@@ -156,24 +156,26 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 		return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
 	}
 
-	var backend backend.Backend
+	var be backend.Backend
 	switch spec.Backend {
 	case specs.BackendLocal:
-		backend, err = local.New(spec)
+		be, err = local.New(spec)
 		if err != nil {
 			return fmt.Errorf("failed to initialize local backend: %w", err)
 		}
+	default:
+		return fmt.Errorf("unknown backend: %s", spec.Backend)
 	}
 
 	defer func() {
 		p.logger.Info().Msg("closing backend")
-		err := backend.Close()
+		err := be.Close()
 		if err != nil {
 			p.logger.Error().Err(err).Msg("failed to close backend")
 		}
 	}()
 
-	c, err := p.newExecutionClient(ctx, p.logger, spec, backend)
+	c, err := p.newExecutionClient(ctx, p.logger, spec, be)
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
