@@ -235,15 +235,18 @@ func (testRand) Read(p []byte) (n int, err error) {
 
 func TestSync(t *testing.T) {
 	uuid.SetRand(testRand{})
-	for _, tc := range syncTestCases {
-		tc := tc
-		t.Run(tc.table.Name, func(t *testing.T) {
-			testSyncTable(t, tc)
-		})
+	for _, scheduler := range specs.AllSchedulers {
+		for _, tc := range syncTestCases {
+			tc := tc
+			tc.table = tc.table.Copy(nil)
+			t.Run(tc.table.Name+"_"+scheduler.String(), func(t *testing.T) {
+				testSyncTable(t, tc, scheduler)
+			})
+		}
 	}
 }
 
-func testSyncTable(t *testing.T, tc syncTestCase) {
+func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler) {
 	ctx := context.Background()
 	tables := []*schema.Table{
 		tc.table,
@@ -263,6 +266,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		Version:      "v1.0.0",
 		Destinations: []string{"test"},
 		Concurrency:  1, // choose a very low value to check that we don't run into deadlocks
+		Scheduler:    scheduler,
 	}
 	resources := make(chan *schema.Resource)
 	g, ctx := errgroup.WithContext(ctx)

@@ -198,7 +198,14 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
 	startTime := time.Now()
-	p.syncDfs(ctx, spec, c, tables, res)
+	switch spec.Scheduler {
+	case specs.SchedulerDFS:
+		p.syncDfs(ctx, spec, c, tables, res)
+	case specs.SchedulerRoundRobin:
+		p.syncRoundRobin(ctx, spec, c, tables, res)
+	default:
+		return fmt.Errorf("unknown scheduler %s. Options are: %v", spec.Scheduler, specs.AllSchedulers.String())
+	}
 
 	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return nil
