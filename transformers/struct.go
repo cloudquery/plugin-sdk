@@ -10,10 +10,12 @@ import (
 )
 
 type structTransformer struct {
-	table           *schema.Table
-	skipFields      []string
-	nameTransformer NameTransformer
-	typeTransformer TypeTransformer
+	table                         *schema.Table
+	skipFields                    []string
+	nameTransformer               NameTransformer
+	typeTransformer               TypeTransformer
+	unwrapAllEmbeddedStructFields bool
+	structFieldsToUnwrap          []string
 }
 
 type NameTransformer func(reflect.StructField) (string, error)
@@ -21,6 +23,31 @@ type NameTransformer func(reflect.StructField) (string, error)
 type TypeTransformer func(reflect.StructField) (schema.ValueType, error)
 
 type StructTransformerOption func(*structTransformer)
+
+func isFieldStruct(reflectType reflect.Type) bool {
+	switch reflectType.Kind() {
+	case reflect.Struct:
+		return true
+	case reflect.Ptr:
+		return reflectType.Elem().Kind() == reflect.Struct
+	default:
+		return false
+	}
+}
+
+// WithUnwrapAllEmbeddedStructs instructs codegen to unwrap all embedded fields (1 level deep only)
+func WithUnwrapAllEmbeddedStructs() StructTransformerOption {
+	return func(t *structTransformer) {
+		t.unwrapAllEmbeddedStructFields = true
+	}
+}
+
+// WithUnwrapStructFields allows to unwrap specific struct fields (1 level deep only)
+func WithUnwrapStructFields(fields ...string) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.structFieldsToUnwrap = fields
+	}
+}
 
 // WithSkipFields allows to specify what struct fields should be skipped.
 func WithSkipFields(fields ...string) StructTransformerOption {
@@ -37,8 +64,6 @@ func WithNameTransformer(transformer NameTransformer) StructTransformerOption {
 	}
 }
 
-// WithTypeTransformer sets a function that can override the schema type for specific fields. Return `schema.TypeInvalid` to fall back to default behavior.
-// DefaultTypeTransformer is used as the default.
 func WithTypeTransformer(transformer TypeTransformer) StructTransformerOption {
 	return func(t *structTransformer) {
 		t.typeTransformer = transformer
@@ -70,11 +95,66 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 		for i := 0; i < e.NumField(); i++ {
 			field := eType.Field(i)
 
-			if err := t.addColumnFromField(field, nil); err != nil {
-				return fmt.Errorf("failed to add column for field %s: %w", field.Name, err)
+			switch {
+			case t.shouldUnwrapField(field):
+				if err := t.unwrapField(field); err != nil {
+					return err
+				}
+			default:
+				if err := t.addColumnFromField(field, nil); err != nil {
+					return fmt.Errorf("failed to add column for field %s: %w", field.Name, err)
+				}
 			}
 		}
 		return nil
+	}
+}
+
+func (t *structTransformer) getUnwrappedFields(field reflect.StructField) []reflect.StructField {
+	reflectType := field.Type
+	if reflectType.Kind() == reflect.Ptr {
+		reflectType = reflectType.Elem()
+	}
+
+	fields := make([]reflect.StructField, 0)
+	for i := 0; i < reflectType.NumField(); i++ {
+		sf := reflectType.Field(i)
+		if t.ignoreField(sf) {
+			continue
+		}
+
+		fields = append(fields, sf)
+	}
+	return fields
+}
+
+func (t *structTransformer) unwrapField(field reflect.StructField) error {
+	unwrappedFields := t.getUnwrappedFields(field)
+	var parent *reflect.StructField
+	// For non embedded structs we need to add the parent field name to the path
+	if !field.Anonymous {
+		parent = &field
+	}
+	for _, f := range unwrappedFields {
+		if err := t.addColumnFromField(f, parent); err != nil {
+			return fmt.Errorf("failed to add column from field %s: %w", f.Name, err)
+		}
+	}
+	return nil
+}
+
+func (t *structTransformer) shouldUnwrapField(field reflect.StructField) bool {
+	switch {
+	case !isFieldStruct(field.Type):
+		return false
+	case slices.Contains(t.structFieldsToUnwrap, field.Name):
+		return true
+	case !field.Anonymous:
+		return false
+	case t.unwrapAllEmbeddedStructFields:
+		return true
+	default:
+		return false
 	}
 }
 
