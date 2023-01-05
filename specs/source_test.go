@@ -120,6 +120,28 @@ spec:
 		nil,
 	},
 	{
+		"valid_scheduler",
+		`kind: source
+spec:
+  name: test
+  path: cloudquery/test
+  version: v1.1.0
+  destinations: ["test"]
+  scheduler: round-robin
+`,
+		"",
+		&Source{
+			Name:         "test",
+			Registry:     RegistryGithub,
+			Path:         "cloudquery/test",
+			Concurrency:  defaultConcurrency,
+			Version:      "v1.1.0",
+			Tables:       []string{"*"},
+			Destinations: []string{"test"},
+			Scheduler:    SchedulerRoundRobin,
+		},
+	},
+	{
 		"success",
 		`kind: source
 spec:
@@ -137,6 +159,7 @@ spec:
 			Version:      "v1.1.0",
 			Tables:       []string{"*"},
 			Destinations: []string{"test"},
+			Scheduler:    SchedulerDFS,
 		},
 	},
 }
