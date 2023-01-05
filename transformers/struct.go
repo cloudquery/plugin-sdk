@@ -91,7 +91,7 @@ func WithTypeTransformer(transformer TypeTransformer) StructTransformerOption {
 func WithResolverTransformer(transformer ResolverTransformer) StructTransformerOption {
 	return func(t *structTransformer) {
 		t.resolverTransformer = transformer
-  }
+	}
 }
 
 // WithIgnoreInTestsTransformer overrides how column ignoreInTests will be determined.
