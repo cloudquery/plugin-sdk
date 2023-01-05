@@ -141,7 +141,7 @@ func TestInt8Array_Size(t *testing.T) {
 		t.Errorf("%v.Size() = %d, want %d", r, sz, 0)
 	}
 
-	r.Set([]int64{1, 2, 3})
+	_ = r.Set([]int64{1, 2, 3})
 	sz = r.Size()
 	if sz != 24 {
 		t.Errorf("%v.Size() = %d, want %d", r, sz, 24)

@@ -168,7 +168,7 @@ func TestUUIDArray_Size(t *testing.T) {
 		t.Errorf("bad size: %d", r.Size())
 	}
 
-	r.Set([2][1][1][3]string{
+	_ = r.Set([2][1][1][3]string{
 		{{{
 			"00010203-0405-0607-0809-0a0b0c0d0e0f",
 			"10111213-1415-1617-1819-1a1b1c1d1e1f",
