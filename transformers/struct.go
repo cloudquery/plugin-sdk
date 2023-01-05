@@ -14,6 +14,7 @@ type structTransformer struct {
 	skipFields                    []string
 	nameTransformer               NameTransformer
 	typeTransformer               TypeTransformer
+	ignoreInTestsTransformer      IgnoreInTestsTransformer
 	unwrapAllEmbeddedStructFields bool
 	structFieldsToUnwrap          []string
 }
@@ -21,6 +22,12 @@ type structTransformer struct {
 type NameTransformer func(reflect.StructField) (string, error)
 
 type TypeTransformer func(reflect.StructField) (schema.ValueType, error)
+
+type IgnoreInTestsTransformer func(field reflect.StructField) bool
+
+func DefaultIgnoreInTestsTransformer(_ reflect.StructField) bool {
+	return false
+}
 
 type StructTransformerOption func(*structTransformer)
 
@@ -70,10 +77,19 @@ func WithTypeTransformer(transformer TypeTransformer) StructTransformerOption {
 	}
 }
 
+// WithIgnoreInTestsTransformer overrides how column ignoreInTests will be determined.
+// DefaultIgnoreInTestsTransformer is used as the default.
+func WithIgnoreInTestsTransformer(transformer IgnoreInTestsTransformer) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.ignoreInTestsTransformer = transformer
+	}
+}
+
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
-		nameTransformer: codegen.DefaultNameTransformer,
-		typeTransformer: codegen.DefaultTypeTransformer,
+		nameTransformer:          codegen.DefaultNameTransformer,
+		typeTransformer:          codegen.DefaultTypeTransformer,
+		ignoreInTestsTransformer: DefaultIgnoreInTestsTransformer,
 	}
 	for _, opt := range opts {
 		opt(t)
@@ -209,9 +225,10 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	}
 	t.table.Columns = append(t.table.Columns,
 		schema.Column{
-			Name:     name,
-			Type:     columnType,
-			Resolver: schema.PathResolver(path),
+			Name:          name,
+			Type:          columnType,
+			Resolver:      schema.PathResolver(path),
+			IgnoreInTests: t.ignoreInTestsTransformer(field),
 		},
 	)
 
