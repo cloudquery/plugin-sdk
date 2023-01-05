@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.0](https://github.com/cloudquery/plugin-sdk/compare/v1.18.0...v1.19.0) (2023-01-05)
+
+
+### Features
+
+* Add scheduler option and introduce Round Robin scheduler ([#545](https://github.com/cloudquery/plugin-sdk/issues/545)) ([d89a911](https://github.com/cloudquery/plugin-sdk/commit/d89a91139bf0d76833d0c756101fac58c1c15823))
+* Add unwrap option to transformations ([#573](https://github.com/cloudquery/plugin-sdk/issues/573)) ([a17ee4b](https://github.com/cloudquery/plugin-sdk/commit/a17ee4bf7fb017018566ddea5d783891c7cb82d3))
+
 ## [1.18.0](https://github.com/cloudquery/plugin-sdk/compare/v1.17.2...v1.18.0) (2023-01-04)
 
 
