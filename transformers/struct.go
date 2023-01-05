@@ -64,6 +64,12 @@ func WithNameTransformer(transformer NameTransformer) StructTransformerOption {
 	}
 }
 
+func WithTypeTransformer(transformer TypeTransformer) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.typeTransformer = transformer
+	}
+}
+
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
 		nameTransformer: codegen.DefaultNameTransformer,
