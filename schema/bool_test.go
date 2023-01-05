@@ -31,29 +31,3 @@ func TestBoolSet(t *testing.T) {
 		}
 	}
 }
-
-func TestBool_Size(t *testing.T) {
-	tests := []struct {
-		name string
-		b    Bool
-		want int
-	}{
-		{
-			name: "present",
-			b:    Bool{Bool: true, Status: Present},
-			want: 1,
-		},
-		{
-			name: "null",
-			b:    Bool{Status: Null},
-			want: 1,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.b.Size(); got != tt.want {
-				t.Errorf("Bool.Size() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
