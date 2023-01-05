@@ -14,6 +14,7 @@ type structTransformer struct {
 	skipFields                    []string
 	nameTransformer               NameTransformer
 	typeTransformer               TypeTransformer
+	resolverTransformer           ResolverTransformer
 	unwrapAllEmbeddedStructFields bool
 	structFieldsToUnwrap          []string
 }
@@ -21,6 +22,12 @@ type structTransformer struct {
 type NameTransformer func(reflect.StructField) (string, error)
 
 type TypeTransformer func(reflect.StructField) (schema.ValueType, error)
+
+type ResolverTransformer func(field reflect.StructField, path string) schema.ColumnResolver
+
+func DefaultResolverTransformer(field reflect.StructField, path string) schema.ColumnResolver {
+	return schema.PathResolver(path)
+}
 
 type StructTransformerOption func(*structTransformer)
 
@@ -64,16 +71,27 @@ func WithNameTransformer(transformer NameTransformer) StructTransformerOption {
 	}
 }
 
+// WithTypeTransformer overrides how column type will be determined.
+// DefaultTypeTransformer is used as the default.
 func WithTypeTransformer(transformer TypeTransformer) StructTransformerOption {
 	return func(t *structTransformer) {
 		t.typeTransformer = transformer
 	}
 }
 
+// WithResolverTransformer overrides how column resolver will be determined.
+// DefaultResolverTransformer is used as the default.
+func WithResolverTransformer(transformer ResolverTransformer) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.resolverTransformer = transformer
+	}
+}
+
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
-		nameTransformer: codegen.DefaultNameTransformer,
-		typeTransformer: codegen.DefaultTypeTransformer,
+		nameTransformer:     codegen.DefaultNameTransformer,
+		typeTransformer:     codegen.DefaultTypeTransformer,
+		resolverTransformer: DefaultResolverTransformer,
 	}
 	for _, opt := range opts {
 		opt(t)
@@ -207,11 +225,17 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	if t.table.Columns.Get(name) != nil {
 		return nil
 	}
+
+	resolver := t.resolverTransformer(field, path)
+	if resolver == nil {
+		resolver = DefaultResolverTransformer(field, path)
+	}
+
 	t.table.Columns = append(t.table.Columns,
 		schema.Column{
 			Name:     name,
 			Type:     columnType,
-			Resolver: schema.PathResolver(path),
+			Resolver: resolver,
 		},
 	)
 
