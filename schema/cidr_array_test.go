@@ -8,7 +8,7 @@ import (
 
 func TestCIDRArraySet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result CIDRArray
 	}{
 		{
@@ -113,5 +113,16 @@ func TestCIDRArraySet(t *testing.T) {
 		if !r.Equal(&tt.result) {
 			t.Errorf("%d: %v != %v", i, r, tt.result)
 		}
+	}
+}
+
+func TestCIDRArray_Size(t *testing.T) {
+	a := CIDRArray{
+		Elements:   []CIDR{{IPNet: mustParseCIDR(t, "127.0.0.1/32"), Status: Present}},
+		Dimensions: []ArrayDimension{{LowerBound: 1, Length: 1}},
+		Status:     Present,
+	}
+	if a.Size() != 8 {
+		t.Errorf("Size() = %d, want 8", a.Size())
 	}
 }

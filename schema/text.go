@@ -7,12 +7,16 @@ import (
 )
 
 type TextTransformer interface {
-	TransformText(*Text) interface{}
+	TransformText(*Text) any
 }
 
 type Text struct {
 	Str    string
 	Status Status
+}
+
+func (dst *Text) GetStatus() Status {
+	return dst.Status
 }
 
 func (*Text) Type() ValueType {
@@ -42,7 +46,7 @@ func (dst *Text) String() string {
 	}
 }
 
-func (dst *Text) Set(src interface{}) error {
+func (dst *Text) Set(src any) error {
 	if src == nil {
 		*dst = Text{Status: Null}
 		return nil
@@ -110,7 +114,7 @@ func (dst *Text) Set(src interface{}) error {
 	return nil
 }
 
-func (dst Text) Get() interface{} {
+func (dst Text) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst.Str

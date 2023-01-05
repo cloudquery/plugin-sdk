@@ -11,6 +11,7 @@ The following tables depend on test_table:
   - [relation_table2](relation_table2.md)
 
 ## Columns
+
 | Name          | Type          |
 | ------------- | ------------- |
 |_cq_source_name|String|

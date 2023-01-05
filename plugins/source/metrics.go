@@ -1,6 +1,7 @@
 package source
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -73,6 +74,16 @@ func (s *Metrics) TotalErrors() uint64 {
 	return total
 }
 
+func (s *Metrics) TotalErrorsAtomic() uint64 {
+	var total uint64
+	for _, clientMetrics := range s.TableClient {
+		for _, metrics := range clientMetrics {
+			total += atomic.LoadUint64(&metrics.Errors)
+		}
+	}
+	return total
+}
+
 func (s *Metrics) TotalPanics() uint64 {
 	var total uint64
 	for _, clientMetrics := range s.TableClient {
@@ -83,11 +94,31 @@ func (s *Metrics) TotalPanics() uint64 {
 	return total
 }
 
+func (s *Metrics) TotalPanicsAtomic() uint64 {
+	var total uint64
+	for _, clientMetrics := range s.TableClient {
+		for _, metrics := range clientMetrics {
+			total += atomic.LoadUint64(&metrics.Panics)
+		}
+	}
+	return total
+}
+
 func (s *Metrics) TotalResources() uint64 {
 	var total uint64
 	for _, clientMetrics := range s.TableClient {
 		for _, metrics := range clientMetrics {
 			total += metrics.Resources
+		}
+	}
+	return total
+}
+
+func (s *Metrics) TotalResourcesAtomic() uint64 {
+	var total uint64
+	for _, clientMetrics := range s.TableClient {
+		for _, metrics := range clientMetrics {
+			total += atomic.LoadUint64(&metrics.Resources)
 		}
 	}
 	return total

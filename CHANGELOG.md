@@ -5,6 +5,122 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0](https://github.com/cloudquery/plugin-sdk/compare/v1.17.2...v1.18.0) (2023-01-04)
+
+
+### Features
+
+* Add Transformer for tables (codegen replacement) ([#564](https://github.com/cloudquery/plugin-sdk/issues/564)) ([a643ddf](https://github.com/cloudquery/plugin-sdk/commit/a643ddf237fa7f40a20e525b78932d6b241b6c26))
+* Support conversion of Unix timestamps in timestamptz ([#570](https://github.com/cloudquery/plugin-sdk/issues/570)) ([6b948ab](https://github.com/cloudquery/plugin-sdk/commit/6b948ab392c59c936d49182eb8b70444d81d38b5))
+
+## [1.17.2](https://github.com/cloudquery/plugin-sdk/compare/v1.17.1...v1.17.2) (2023-01-03)
+
+
+### Bug Fixes
+
+* **testing:** Fix bug in testing missed due to reference to resource being re-used in memdb ([#567](https://github.com/cloudquery/plugin-sdk/issues/567)) ([95ab353](https://github.com/cloudquery/plugin-sdk/commit/95ab3538e29d9f253173c3a0dffd92e185cdc53c))
+
+## [1.17.1](https://github.com/cloudquery/plugin-sdk/compare/v1.17.0...v1.17.1) (2023-01-03)
+
+
+### Bug Fixes
+
+* **testing:** Some fixes to the ordering for plugin tests ([#565](https://github.com/cloudquery/plugin-sdk/issues/565)) ([79c2b85](https://github.com/cloudquery/plugin-sdk/commit/79c2b85c38d9f42b3240559ae9b4a0d057a50607))
+
+## [1.17.0](https://github.com/cloudquery/plugin-sdk/compare/v1.16.1...v1.17.0) (2023-01-02)
+
+
+### Features
+
+* Add primary key validation ([#563](https://github.com/cloudquery/plugin-sdk/issues/563)) ([09f891a](https://github.com/cloudquery/plugin-sdk/commit/09f891a0b34f1ec76b8143df6d7942afae506015))
+
+
+### Bug Fixes
+
+* **testing:** Sort results before comparison in tests ([#561](https://github.com/cloudquery/plugin-sdk/issues/561)) ([587715d](https://github.com/cloudquery/plugin-sdk/commit/587715de5a6fb06d861c12ece10d8b1fdf1d7ecb))
+
+## [1.16.1](https://github.com/cloudquery/plugin-sdk/compare/v1.16.0...v1.16.1) (2023-01-01)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 738e83a ([#546](https://github.com/cloudquery/plugin-sdk/issues/546)) ([bdf3ff1](https://github.com/cloudquery/plugin-sdk/commit/bdf3ff1e9e93164e20e73046534fa1a8dd208576))
+* **deps:** Update google.golang.org/genproto digest to f9683d7 ([#552](https://github.com/cloudquery/plugin-sdk/issues/552)) ([763d22b](https://github.com/cloudquery/plugin-sdk/commit/763d22b5f209ae26d54937c84f07f8895062ebc5))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.16.0 ([#549](https://github.com/cloudquery/plugin-sdk/issues/549)) ([b4a0efc](https://github.com/cloudquery/plugin-sdk/commit/b4a0efc392a9323011d217c40ca3661d38351c37))
+* **deps:** Update module github.com/inconshreveable/mousetrap to v1.1.0 ([#555](https://github.com/cloudquery/plugin-sdk/issues/555)) ([f449234](https://github.com/cloudquery/plugin-sdk/commit/f4492343b52a8edf3864b4d77c4e2f40d0d3e308))
+* **deps:** Update module github.com/mattn/go-isatty to v0.0.17 ([#553](https://github.com/cloudquery/plugin-sdk/issues/553)) ([826006f](https://github.com/cloudquery/plugin-sdk/commit/826006f6d70e9cb1c4a062d5691be05b41514926))
+* **deps:** Update module github.com/schollz/progressbar/v3 to v3.12.2 ([#547](https://github.com/cloudquery/plugin-sdk/issues/547)) ([b6640b8](https://github.com/cloudquery/plugin-sdk/commit/b6640b8134aff9d9c12c211d0994eda657a966d0))
+* **deps:** Update module github.com/thoas/go-funk to v0.9.3 ([#548](https://github.com/cloudquery/plugin-sdk/issues/548)) ([6e5469a](https://github.com/cloudquery/plugin-sdk/commit/6e5469a32ec688b94070f300633050fbe2e53018))
+* **deps:** Update module golang.org/x/net to v0.4.0 ([#550](https://github.com/cloudquery/plugin-sdk/issues/550)) ([9ced5ec](https://github.com/cloudquery/plugin-sdk/commit/9ced5ec92f60be484d470550781110b1a3b6a2d0))
+* **deps:** Update module golang.org/x/text to v0.5.0 ([#551](https://github.com/cloudquery/plugin-sdk/issues/551)) ([1353026](https://github.com/cloudquery/plugin-sdk/commit/1353026325232a7de6c0ea403cdcbe5e821abe53))
+* Managed writer log message, timeout-&gt;flush ([#536](https://github.com/cloudquery/plugin-sdk/issues/536)) ([6b0c711](https://github.com/cloudquery/plugin-sdk/commit/6b0c71174d71c4fc5f5a55f9317caa1037f75d15))
+
+## [1.16.0](https://github.com/cloudquery/plugin-sdk/compare/v1.15.1...v1.16.0) (2022-12-28)
+
+
+### Features
+
+* **destinations:** Allow plugins to set default batch size ([#540](https://github.com/cloudquery/plugin-sdk/issues/540)) ([bc1476b](https://github.com/cloudquery/plugin-sdk/commit/bc1476b0d6a7f9b3014c2d78108fc5a499399893))
+
+## [1.15.1](https://github.com/cloudquery/plugin-sdk/compare/v1.15.0...v1.15.1) (2022-12-28)
+
+
+### Bug Fixes
+
+* **destinations:** Set done even if no resources to flush ([#537](https://github.com/cloudquery/plugin-sdk/issues/537)) ([02eca6d](https://github.com/cloudquery/plugin-sdk/commit/02eca6d1962d306f7571cdfc4f4255ef93a98c02))
+
+## [1.15.0](https://github.com/cloudquery/plugin-sdk/compare/v1.14.0...v1.15.0) (2022-12-28)
+
+
+### Features
+
+* Make TestData public ([#534](https://github.com/cloudquery/plugin-sdk/issues/534)) ([a476052](https://github.com/cloudquery/plugin-sdk/commit/a4760521cff17b251a0c90b4cb45eaa8257d6fe2))
+
+## [1.14.0](https://github.com/cloudquery/plugin-sdk/compare/v1.13.1...v1.14.0) (2022-12-27)
+
+
+### Features
+
+* Add basic periodic metric INFO logger ([#496](https://github.com/cloudquery/plugin-sdk/issues/496)) ([8d1d32e](https://github.com/cloudquery/plugin-sdk/commit/8d1d32eacf34a7835cb9e712cc448c66d7894b55))
+
+
+### Bug Fixes
+
+* **destinations:** Stop writing resources when channel is closed ([#460](https://github.com/cloudquery/plugin-sdk/issues/460)) ([5590845](https://github.com/cloudquery/plugin-sdk/commit/5590845d5ce9f3395a57e6c1997c2e4071b41952))
+* Don't hide errors in destination server ([#529](https://github.com/cloudquery/plugin-sdk/issues/529)) ([d91f94f](https://github.com/cloudquery/plugin-sdk/commit/d91f94fc8bd74830c88c42d4e8a1bee16bcbd2a7))
+
+## [1.13.1](https://github.com/cloudquery/plugin-sdk/compare/v1.13.0...v1.13.1) (2022-12-22)
+
+
+### Bug Fixes
+
+* Typo manager-&gt;managed ([#526](https://github.com/cloudquery/plugin-sdk/issues/526)) ([7503b1f](https://github.com/cloudquery/plugin-sdk/commit/7503b1fba9fbd42e423207195ae8af93c988ea99))
+
+## [1.13.0](https://github.com/cloudquery/plugin-sdk/compare/v1.12.7...v1.13.0) (2022-12-21)
+
+
+### Features
+
+* Add managed API for destination plugins ([#521](https://github.com/cloudquery/plugin-sdk/issues/521)) ([3df6129](https://github.com/cloudquery/plugin-sdk/commit/3df6129255784dc54707755da9ddd81b848b4a2d))
+
+## [1.12.7](https://github.com/cloudquery/plugin-sdk/compare/v1.12.6...v1.12.7) (2022-12-19)
+
+
+### Bug Fixes
+
+* **destination:** Rename `NewDestinationPlugin` to `NewPlugin` ([#519](https://github.com/cloudquery/plugin-sdk/issues/519)) ([3934775](https://github.com/cloudquery/plugin-sdk/commit/39347757ba443e93ab36de86c8672223f9554145))
+
+## [1.12.6](https://github.com/cloudquery/plugin-sdk/compare/v1.12.5...v1.12.6) (2022-12-18)
+
+
+### Bug Fixes
+
+* Add better logging/metric per table ([#513](https://github.com/cloudquery/plugin-sdk/issues/513)) ([da36396](https://github.com/cloudquery/plugin-sdk/commit/da363966a7f74adb85280cc6688e0c573112e506))
+* Improve formatting of newlines in markdown files ([#492](https://github.com/cloudquery/plugin-sdk/issues/492)) ([e48ff90](https://github.com/cloudquery/plugin-sdk/commit/e48ff90e0b38ea67efc5648e0bff4895938545ce))
+* Include table name in logs on panic ([#505](https://github.com/cloudquery/plugin-sdk/issues/505)) ([a0b8a46](https://github.com/cloudquery/plugin-sdk/commit/a0b8a46c05b86ce3276d7f5455ca0762579db532))
+* Move source & destination plugin code to separate packages ([#516](https://github.com/cloudquery/plugin-sdk/issues/516)) ([6733785](https://github.com/cloudquery/plugin-sdk/commit/67337856a8c973ecb5fb4749078f63e9b9909129))
+* Use correct error codes ([#514](https://github.com/cloudquery/plugin-sdk/issues/514)) ([8b53d76](https://github.com/cloudquery/plugin-sdk/commit/8b53d76ca155eb95526698d16a2233faf4fd4a1e))
+
 ## [1.12.5](https://github.com/cloudquery/plugin-sdk/compare/v1.12.4...v1.12.5) (2022-12-14)
 
 

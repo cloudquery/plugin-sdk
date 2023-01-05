@@ -1,11 +1,13 @@
 package source
 
 import (
+	"bytes"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -15,6 +17,9 @@ import (
 
 //go:embed templates/*.go.tpl
 var templatesFS embed.FS
+
+var reMatchNewlines = regexp.MustCompile(`\n{3,}`)
+var reMatchHeaders = regexp.MustCompile(`(#{1,6}.+)\n+`)
 
 // GeneratePluginDocs creates table documentation for the source plugin based on its list of tables
 func (p *Plugin) GeneratePluginDocs(dir, format string) error {
@@ -91,15 +96,17 @@ func (p *Plugin) renderTablesAsMarkdown(dir string) error {
 		return fmt.Errorf("failed to parse template for README.md: %v", err)
 	}
 
+	var b bytes.Buffer
+	if err := t.Execute(&b, p); err != nil {
+		return fmt.Errorf("failed to execute template: %v", err)
+	}
+	content := formatMarkdown(b.String())
 	outputPath := filepath.Join(dir, "README.md")
 	f, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file %v: %v", outputPath, err)
 	}
-	defer f.Close()
-	if err := t.Execute(f, p); err != nil {
-		return fmt.Errorf("failed to execute template: %v", err)
-	}
+	f.WriteString(content)
 	return nil
 }
 
@@ -116,7 +123,7 @@ func renderAllTables(t *schema.Table, dir string) error {
 }
 
 func renderTable(table *schema.Table, dir string) error {
-	t := template.New("").Funcs(map[string]interface{}{
+	t := template.New("").Funcs(map[string]any{
 		"formatType": formatType,
 	})
 	t, err := t.New("table.md.go.tpl").ParseFS(templatesFS, "templates/table.md.go.tpl")
@@ -125,15 +132,23 @@ func renderTable(table *schema.Table, dir string) error {
 	}
 
 	outputPath := filepath.Join(dir, fmt.Sprintf("%s.md", table.Name))
+
+	var b bytes.Buffer
+	if err := t.Execute(&b, table); err != nil {
+		return fmt.Errorf("failed to execute template: %v", err)
+	}
+	content := formatMarkdown(b.String())
 	f, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file %v: %v", outputPath, err)
 	}
-	defer f.Close()
-	if err := t.Execute(f, table); err != nil {
-		return fmt.Errorf("failed to execute template: %v", err)
-	}
-	return nil
+	f.WriteString(content)
+	return f.Close()
+}
+
+func formatMarkdown(s string) string {
+	s = reMatchNewlines.ReplaceAllString(s, "\n\n")
+	return reMatchHeaders.ReplaceAllString(s, `$1`+"\n\n")
 }
 
 func formatType(v schema.ValueType) string {

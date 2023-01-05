@@ -153,7 +153,7 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 				c.logger.Err(err).Msg("failed to read log line from plugin")
 				break
 			}
-			var structuredLogLine map[string]interface{}
+			var structuredLogLine map[string]any
 			if err := json.Unmarshal(line, &structuredLogLine); err != nil {
 				c.logger.Err(err).Str("line", string(line)).Msg("failed to unmarshal log line from plugin")
 			} else {
@@ -188,10 +188,7 @@ func (c *SourceClient) newManagedClient(ctx context.Context, path string) error 
 func (c *SourceClient) GetProtocolVersion(ctx context.Context) (uint64, error) {
 	res, err := c.pbClient.GetProtocolVersion(ctx, &pb.GetProtocolVersion_Request{})
 	if err != nil {
-		s, ok := status.FromError(err)
-		if !ok {
-			return 0, fmt.Errorf("failed to cal GetProtocolVersion: %w", err)
-		}
+		s := status.Convert(err)
 		if s.Code() != codes.Unimplemented {
 			return 0, err
 		}
@@ -281,10 +278,10 @@ func (c *SourceClient) Sync(ctx context.Context, spec specs.Source, res chan<- [
 	}
 	for {
 		r, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
 			return fmt.Errorf("failed to fetch resources from stream: %w", err)
 		}
 		select {
@@ -311,10 +308,10 @@ func (c *SourceClient) Sync2(ctx context.Context, spec specs.Source, res chan<- 
 	}
 	for {
 		r, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
 			return fmt.Errorf("failed to fetch resources from stream: %w", err)
 		}
 		select {

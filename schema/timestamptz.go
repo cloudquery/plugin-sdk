@@ -21,8 +21,12 @@ const (
 // infinityMicrosecondOffset         = 9223372036854775807
 )
 
+func (dst *Timestamptz) GetStatus() Status {
+	return dst.Status
+}
+
 type TimestamptzTransformer interface {
-	TransformTimestamptz(*Timestamptz) interface{}
+	TransformTimestamptz(*Timestamptz) any
 }
 
 type Timestamptz struct {
@@ -36,7 +40,7 @@ func (*Timestamptz) Type() ValueType {
 }
 
 func (dst *Timestamptz) Size() int {
-	return 32
+	return 24
 }
 
 func (dst *Timestamptz) Equal(src CQType) bool {
@@ -45,7 +49,10 @@ func (dst *Timestamptz) Equal(src CQType) bool {
 	}
 
 	if value, ok := src.(*Timestamptz); ok {
-		return dst.Status == value.Status && dst.Time.Equal(value.Time) && dst.InfinityModifier == value.InfinityModifier
+		if dst.Status != value.Status || dst.InfinityModifier != value.InfinityModifier {
+			return false
+		}
+		return dst.Time.Equal(value.Time)
 	}
 
 	return false
@@ -59,13 +66,13 @@ func (dst *Timestamptz) String() string {
 	}
 }
 
-func (dst *Timestamptz) Set(src interface{}) error {
+func (dst *Timestamptz) Set(src any) error {
 	if src == nil {
 		*dst = Timestamptz{Status: Null}
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(interface{ Get() any }); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -73,6 +80,12 @@ func (dst *Timestamptz) Set(src interface{}) error {
 	}
 
 	switch value := src.(type) {
+	case int:
+		*dst = Timestamptz{Time: time.Unix(int64(value), 0), Status: Present}
+	case int64:
+		*dst = Timestamptz{Time: time.Unix(value, 0), Status: Present}
+	case uint64:
+		*dst = Timestamptz{Time: time.Unix(int64(value), 0), Status: Present}
 	case time.Time:
 		*dst = Timestamptz{Time: value, Status: Present}
 	case *time.Time:
@@ -112,7 +125,7 @@ func (dst *Timestamptz) Set(src interface{}) error {
 	return nil
 }
 
-func (dst Timestamptz) Get() interface{} {
+func (dst Timestamptz) Get() any {
 	switch dst.Status {
 	case Present:
 		if dst.InfinityModifier != None {

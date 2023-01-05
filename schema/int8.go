@@ -8,12 +8,16 @@ import (
 )
 
 type Int8Transformer interface {
-	TransformInt8(*Int8) interface{}
+	TransformInt8(*Int8) any
 }
 
 type Int8 struct {
 	Int    int64
 	Status Status
+}
+
+func (dst *Int8) GetStatus() Status {
+	return dst.Status
 }
 
 func (*Int8) Type() ValueType {
@@ -43,13 +47,13 @@ func (dst *Int8) String() string {
 	}
 }
 
-func (dst *Int8) Set(src interface{}) error {
+func (dst *Int8) Set(src any) error {
 	if src == nil {
 		*dst = Int8{Status: Null}
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(interface{ Get() any }); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -187,7 +191,7 @@ func (dst *Int8) Set(src interface{}) error {
 	return nil
 }
 
-func (dst Int8) Get() interface{} {
+func (dst Int8) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst.Int

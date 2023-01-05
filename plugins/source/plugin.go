@@ -47,7 +47,7 @@ const (
 func addInternalColumns(tables []*schema.Table) {
 	for _, table := range tables {
 		if c := table.Column("_cq_id"); c != nil {
-			continue
+			panic(fmt.Sprintf("table %s already has column _cq_id", table.Name))
 		}
 		cqID := schema.CqIDColumn
 		if len(table.PrimaryKeys()) == 0 {
@@ -64,6 +64,21 @@ func setParents(tables schema.Tables, parent *schema.Table) {
 		table.Parent = parent
 		setParents(table.Relations, table)
 	}
+}
+
+// Apply transformations to tables
+func transformTables(tables schema.Tables) error {
+	for _, table := range tables {
+		if table.Transform != nil {
+			if err := table.Transform(table); err != nil {
+				return fmt.Errorf("failed to transform table %s: %w", table.Name, err)
+			}
+		}
+		if err := transformTables(table.Relations); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func maxDepth(tables schema.Tables) uint64 {
@@ -93,6 +108,9 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 	}
 	addInternalColumns(p.tables)
 	setParents(p.tables, nil)
+	if err := transformTables(p.tables); err != nil {
+		panic(err)
+	}
 	if err := p.validate(); err != nil {
 		panic(err)
 	}
@@ -159,7 +177,14 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
 	startTime := time.Now()
-	p.syncDfs(ctx, spec, c, tables, res)
+	switch spec.Scheduler {
+	case specs.SchedulerDFS:
+		p.syncDfs(ctx, spec, c, tables, res)
+	case specs.SchedulerRoundRobin:
+		p.syncRoundRobin(ctx, spec, c, tables, res)
+	default:
+		return fmt.Errorf("unknown scheduler %s. Options are: %v", spec.Scheduler, specs.AllSchedulers.String())
+	}
 
 	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return nil

@@ -6,20 +6,12 @@ import (
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/getsentry/sentry-go"
-	"github.com/rs/zerolog"
-	"github.com/thoas/go-funk"
 	"golang.org/x/sync/semaphore"
-)
-
-const (
-	minTableConcurrency    = 1
-	minResourceConcurrency = 100
 )
 
 func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
@@ -50,6 +42,14 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 		p.metrics.initWithClients(table, clients)
 	}
 
+	// We start a goroutine that logs the metrics periodically.
+	// It needs its own waitgroup
+	var logWg sync.WaitGroup
+	logWg.Add(1)
+
+	logCtx, logCancel := context.WithCancel(ctx)
+	go p.periodicMetricLogger(logCtx, &logWg)
+
 	var wg sync.WaitGroup
 	for i, table := range tables {
 		table := table
@@ -59,6 +59,9 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 			if err := p.tableSems[0].Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				wg.Wait()
+				// gracefully shut down the logger goroutine
+				logCancel()
+				logWg.Wait()
 				return
 			}
 			wg.Add(1)
@@ -71,16 +74,13 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 			}()
 		}
 	}
-	wg.Wait()
-}
 
-func (p *Plugin) logTablesMetrics(tables schema.Tables, client schema.ClientMeta) {
-	clientName := client.ID()
-	for _, table := range tables {
-		metrics := p.metrics.TableClient[table.Name][clientName]
-		p.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Uint64("errors", metrics.Errors).Msg("table sync finished")
-		p.logTablesMetrics(table.Relations, client)
-	}
+	// Wait for all the worker goroutines to finish
+	wg.Wait()
+
+	// gracefully shut down the logger goroutine
+	logCancel()
+	logWg.Wait()
 }
 
 func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
@@ -92,7 +92,7 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	}
 	tableMetrics := p.metrics.TableClient[table.Name][clientName]
 
-	res := make(chan interface{})
+	res := make(chan any)
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
@@ -124,7 +124,7 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	}
 }
 
-func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources interface{}, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
@@ -148,6 +148,12 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 				//nolint:all
 				resolvedResource := p.resolveResource(ctx, table, client, parent, resourcesSlice[i])
 				if resolvedResource == nil {
+					return
+				}
+				if err := resolvedResource.Validate(); err != nil {
+					tableMetrics := p.metrics.TableClient[table.Name][client.ID()]
+					p.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
+					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
 				}
 				resourcesChan <- resolvedResource
@@ -176,72 +182,4 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 		}
 	}
 	wg.Wait()
-}
-
-func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item interface{}) *schema.Resource {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
-	defer cancel()
-	resource := schema.NewResourceData(table, parent, item)
-	objectStartTime := time.Now()
-	clientID := client.ID()
-	tableMetrics := p.metrics.TableClient[table.Name][clientID]
-	logger := p.logger.With().Str("table", table.Name).Str("client", clientID).Logger()
-	defer func() {
-		if err := recover(); err != nil {
-			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
-			logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("resource resolver finished with panic")
-			atomic.AddUint64(&tableMetrics.Panics, 1)
-		}
-	}()
-	if table.PreResourceResolver != nil {
-		if err := table.PreResourceResolver(ctx, client, resource); err != nil {
-			logger.Error().Err(err).Msg("pre resource resolver failed")
-			atomic.AddUint64(&tableMetrics.Errors, 1)
-			return nil
-		}
-	}
-
-	for _, c := range table.Columns {
-		p.resolveColumn(ctx, logger, tableMetrics, client, resource, c)
-	}
-
-	if table.PostResourceResolver != nil {
-		if err := table.PostResourceResolver(ctx, client, resource); err != nil {
-			logger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
-			atomic.AddUint64(&tableMetrics.Errors, 1)
-		}
-	}
-	atomic.AddUint64(&tableMetrics.Resources, 1)
-	return resource
-}
-
-func (p *Plugin) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
-	columnStartTime := time.Now()
-	defer func() {
-		if err := recover(); err != nil {
-			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
-			logger.Error().Str("column", c.Name).Interface("error", err).TimeDiff("duration", time.Now(), columnStartTime).Str("stack", stack).Msg("column resolver finished with panic")
-			atomic.AddUint64(&tableMetrics.Panics, 1)
-		}
-	}()
-
-	if c.Resolver != nil {
-		if err := c.Resolver(ctx, client, resource, c); err != nil {
-			logger.Error().Err(err).Msg("column resolver finished with error")
-			atomic.AddUint64(&tableMetrics.Errors, 1)
-		}
-	} else {
-		// base use case: try to get column with CamelCase name
-		v := funk.Get(resource.GetItem(), p.caser.ToPascal(c.Name), funk.WithAllowZero())
-		if v != nil {
-			_ = resource.Set(c.Name, v)
-		}
-	}
-}
-
-func max(a, b uint64) uint64 {
-	if a > b {
-		return a
-	}
-	return b
 }

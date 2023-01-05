@@ -6,7 +6,7 @@ import (
 
 func TestByteaSet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Bytea
 	}{
 		{source: []byte{1, 2, 3}, result: Bytea{Bytes: []byte{1, 2, 3}, Status: Present}},
@@ -26,5 +26,31 @@ func TestByteaSet(t *testing.T) {
 		if !r.Equal(&tt.result) {
 			t.Errorf("%d: %v != %v", i, r, tt.result)
 		}
+	}
+}
+
+func TestBytea_Size(t *testing.T) {
+	tests := []struct {
+		name string
+		b    Bytea
+		want int
+	}{
+		{
+			name: "present",
+			b:    Bytea{Bytes: []byte{1, 2, 3}, Status: Present},
+			want: 3,
+		},
+		{
+			name: "null",
+			b:    Bytea{Status: Null},
+			want: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.b.Size(); got != tt.want {
+				t.Errorf("Bytea.Size() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

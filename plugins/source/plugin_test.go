@@ -18,14 +18,14 @@ var _ schema.ClientMeta = &testExecutionClient{}
 
 var stableUUID = uuid.MustParse("00000000000040008000000000000000")
 
-func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- interface{}) error {
-	res <- map[string]interface{}{
+func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+	res <- map[string]any{
 		"TestColumn": 3,
 	}
 	return nil
 }
 
-func testResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, chan<- interface{}) error {
+func testResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, chan<- any) error {
 	panic("Resolver")
 }
 
@@ -234,15 +234,18 @@ func (testRand) Read(p []byte) (n int, err error) {
 
 func TestSync(t *testing.T) {
 	uuid.SetRand(testRand{})
-	for _, tc := range syncTestCases {
-		tc := tc
-		t.Run(tc.table.Name, func(t *testing.T) {
-			testSyncTable(t, tc)
-		})
+	for _, scheduler := range specs.AllSchedulers {
+		for _, tc := range syncTestCases {
+			tc := tc
+			tc.table = tc.table.Copy(nil)
+			t.Run(tc.table.Name+"_"+scheduler.String(), func(t *testing.T) {
+				testSyncTable(t, tc, scheduler)
+			})
+		}
 	}
 }
 
-func testSyncTable(t *testing.T, tc syncTestCase) {
+func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler) {
 	ctx := context.Background()
 	tables := []*schema.Table{
 		tc.table,
@@ -262,6 +265,7 @@ func testSyncTable(t *testing.T, tc syncTestCase) {
 		Version:      "v1.0.0",
 		Destinations: []string{"test"},
 		Concurrency:  1, // choose a very low value to check that we don't run into deadlocks
+		Scheduler:    scheduler,
 	}
 	resources := make(chan *schema.Resource)
 	g, ctx := errgroup.WithContext(ctx)

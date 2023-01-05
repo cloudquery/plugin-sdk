@@ -114,7 +114,7 @@ func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server
 		destResource := resource.ToDestinationResource()
 		b, err := json.Marshal(destResource)
 		if err != nil {
-			return status.Errorf(codes.InvalidArgument, "failed to marshal resource: %v", err)
+			return status.Errorf(codes.Internal, "failed to marshal resource: %v", err)
 		}
 
 		msg := &pb.Sync2_Response{
@@ -128,7 +128,7 @@ func (s *SourceServer) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server
 			continue
 		}
 		if err := stream.Send(msg); err != nil {
-			return fmt.Errorf("failed to send resource: %v", err)
+			return status.Errorf(codes.Internal, "failed to send resource: %v", err)
 		}
 	}
 

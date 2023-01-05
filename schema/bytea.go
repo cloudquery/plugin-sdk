@@ -8,7 +8,7 @@ import (
 )
 
 type ByteaTransformer interface {
-	TransformBytea(*Bytea) interface{}
+	TransformBytea(*Bytea) any
 }
 
 type Bytea struct {
@@ -22,6 +22,10 @@ func (*Bytea) Type() ValueType {
 
 func (dst *Bytea) Size() int {
 	return len(dst.Bytes)
+}
+
+func (dst *Bytea) GetStatus() Status {
+	return dst.Status
 }
 
 func (dst *Bytea) Equal(src CQType) bool {
@@ -44,13 +48,13 @@ func (dst *Bytea) String() string {
 	}
 }
 
-func (dst *Bytea) Set(src interface{}) error {
+func (dst *Bytea) Set(src any) error {
 	if src == nil {
 		*dst = Bytea{Status: Null}
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(interface{ Get() any }); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -85,7 +89,7 @@ func (dst *Bytea) Set(src interface{}) error {
 	return nil
 }
 
-func (dst Bytea) Get() interface{} {
+func (dst Bytea) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst.Bytes

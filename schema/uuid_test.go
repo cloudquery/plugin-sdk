@@ -14,13 +14,13 @@ func (s StringUUIDType) String() string {
 	return string(s)
 }
 
-func (s GetterUUIDType) Get() interface{} {
+func (s GetterUUIDType) Get() any {
 	return string(s)
 }
 
 func TestUUIDSet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result UUID
 	}{
 		{

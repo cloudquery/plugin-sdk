@@ -16,7 +16,7 @@ func TestTimestamptzSet(t *testing.T) {
 	timeRFC3339NanoBytes, _ := timeInstance.MarshalText()
 
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Timestamptz
 	}{
 		{source: time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local), result: Timestamptz{Time: time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local), Status: Present}},
@@ -25,6 +25,9 @@ func TestTimestamptzSet(t *testing.T) {
 		{source: time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local), result: Timestamptz{Time: time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local), Status: Present}},
 		{source: time.Date(2000, 1, 1, 0, 0, 1, 0, time.Local), result: Timestamptz{Time: time.Date(2000, 1, 1, 0, 0, 1, 0, time.Local), Status: Present}},
 		{source: time.Date(2200, 1, 1, 0, 0, 0, 0, time.Local), result: Timestamptz{Time: time.Date(2200, 1, 1, 0, 0, 0, 0, time.Local), Status: Present}},
+		{source: int(time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local).Unix()), result: Timestamptz{Time: time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local), Status: Present}},
+		{source: uint64(time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local).Unix()), result: Timestamptz{Time: time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local), Status: Present}},
+		{source: time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local).Unix(), result: Timestamptz{Time: time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local), Status: Present}},
 		{source: _time(time.Date(1970, 1, 1, 0, 0, 0, 0, time.Local)), result: Timestamptz{Time: time.Date(1970, 1, 1, 0, 0, 0, 0, time.Local), Status: Present}},
 		{source: Infinity, result: Timestamptz{InfinityModifier: Infinity, Status: Present}},
 		{source: NegativeInfinity, result: Timestamptz{InfinityModifier: NegativeInfinity, Status: Present}},

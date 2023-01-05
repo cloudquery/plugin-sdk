@@ -8,7 +8,7 @@ import (
 )
 
 type UUIDArrayTransformer interface {
-	TransformUUIDArray(*UUIDArray) interface{}
+	TransformUUIDArray(*UUIDArray) any
 }
 
 type UUIDArray struct {
@@ -17,12 +17,20 @@ type UUIDArray struct {
 	Status     Status
 }
 
+func (dst *UUIDArray) GetStatus() Status {
+	return dst.Status
+}
+
 func (*UUIDArray) Type() ValueType {
 	return TypeUUIDArray
 }
 
 func (dst *UUIDArray) Size() int {
-	return 16 * len(dst.Elements)
+	totalSize := 0
+	for _, element := range dst.Elements {
+		totalSize += element.Size()
+	}
+	return totalSize
 }
 
 func (dst *UUIDArray) Equal(src CQType) bool {
@@ -36,7 +44,7 @@ func (dst *UUIDArray) Equal(src CQType) bool {
 	if dst.Status != s.Status {
 		return false
 	}
-	if len(dst.Elements) != len(s.Elements) || len(dst.Dimensions) != len(s.Dimensions) {
+	if len(dst.Elements) != len(s.Elements) {
 		return false
 	}
 
@@ -47,6 +55,34 @@ func (dst *UUIDArray) Equal(src CQType) bool {
 	}
 
 	return true
+}
+
+func (dst *UUIDArray) fromString(value string) error {
+	// this is basically back from string encoding
+	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+		return fmt.Errorf("cannot decode %v into InetArray", value)
+	}
+
+	value = value[1 : len(value)-1]
+	strs := strings.Split(value, ",")
+	if len(strs) == 0 {
+		*dst = UUIDArray{Status: Present}
+		return nil
+	}
+
+	elements := make([]UUID, len(strs))
+	for i := range strs {
+		if err := elements[i].Set(strs[i]); err != nil {
+			return err
+		}
+	}
+
+	*dst = UUIDArray{
+		Elements:   elements,
+		Dimensions: []ArrayDimension{{Length: int32(len(elements)), LowerBound: 1}},
+		Status:     Present,
+	}
+	return nil
 }
 
 func (dst *UUIDArray) String() string {
@@ -66,7 +102,7 @@ func (dst *UUIDArray) String() string {
 	return sb.String()
 }
 
-func (dst *UUIDArray) Set(src interface{}) error {
+func (dst *UUIDArray) Set(src any) error {
 	// untyped nil and typed nil interfaces are different
 	if src == nil {
 		*dst = UUIDArray{Status: Null}
@@ -170,6 +206,10 @@ func (dst *UUIDArray) Set(src interface{}) error {
 				Status:     Present,
 			}
 		}
+	case string:
+		return dst.fromString(value)
+	case *string:
+		return dst.fromString(*value)
 	default:
 		// Fallback to reflection if an optimised match was not found.
 		// The reflection is necessary for arrays and multidimensional slices,
@@ -264,7 +304,7 @@ func (dst *UUIDArray) setRecursive(value reflect.Value, index, dimension int) (i
 	return index, nil
 }
 
-func (dst UUIDArray) Get() interface{} {
+func (dst UUIDArray) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst

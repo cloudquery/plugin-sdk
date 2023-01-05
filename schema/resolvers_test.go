@@ -16,7 +16,7 @@ var resolverTestTable = &Table{
 	},
 }
 
-var resolverTestItem = map[string]interface{}{
+var resolverTestItem = map[string]any{
 	"PathResolver": "test",
 }
 

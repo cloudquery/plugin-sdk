@@ -156,7 +156,7 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 				c.logger.Err(err).Msg("failed to read log line from plugin")
 				break
 			}
-			var structuredLogLine map[string]interface{}
+			var structuredLogLine map[string]any
 			if err := json.Unmarshal(line, &structuredLogLine); err != nil {
 				c.logger.Err(err).Str("line", string(line)).Msg("failed to unmarshal log line from plugin")
 			} else {
@@ -183,10 +183,7 @@ func (c *DestinationClient) newManagedClient(ctx context.Context, path string) e
 func (c *DestinationClient) GetProtocolVersion(ctx context.Context) (uint64, error) {
 	res, err := c.pbClient.GetProtocolVersion(ctx, &pb.GetProtocolVersion_Request{})
 	if err != nil {
-		s, ok := status.FromError(err)
-		if !ok {
-			return 0, fmt.Errorf("failed to call GetProtocolVersion: %w", err)
-		}
+		s := status.Convert(err)
 		if s.Code() != codes.Unimplemented {
 			return 0, err
 		}
@@ -252,7 +249,7 @@ func (c *DestinationClient) Migrate(ctx context.Context, tables []*schema.Table)
 
 // Write writes rows as they are received from the channel to the destination plugin.
 // resources is marshaled schema.Resource. We are not marshalling this inside the function
-// because usually it is alreadun marshalled from the destination plugin.
+// because usually it is already marshalled from the destination plugin.
 func (c *DestinationClient) Write(ctx context.Context, source string, syncTime time.Time, resources <-chan []byte) (uint64, error) {
 	saveClient, err := c.pbClient.Write(ctx)
 	if err != nil {
@@ -264,6 +261,10 @@ func (c *DestinationClient) Write(ctx context.Context, source string, syncTime t
 			Source:    source,
 			Timestamp: timestamppb.New(syncTime),
 		}); err != nil {
+			if err == io.EOF {
+				// don't send write request if the channel is closed
+				break
+			}
 			return 0, fmt.Errorf("failed to call Write.Send: %w", err)
 		}
 	}
@@ -295,6 +296,10 @@ func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, so
 		if err := saveClient.Send(&pb.Write2_Request{
 			Resource: resource,
 		}); err != nil {
+			if err == io.EOF {
+				// don't send write request if the channel is closed
+				break
+			}
 			return fmt.Errorf("failed to call Write2.Send: %w", err)
 		}
 	}

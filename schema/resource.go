@@ -12,7 +12,7 @@ type Resources []*Resource
 // generates an Id based on Table's Columns. Resource data can be accessed by the Get and Set methods
 type Resource struct {
 	// Original resource item that wa from prior resolve
-	Item interface{}
+	Item any
 	// Set if this is an embedded table
 	Parent *Resource
 	// internal fields
@@ -29,7 +29,7 @@ type DestinationResource struct {
 	Data      CQTypes `json:"data"`
 }
 
-func NewResourceData(t *Table, parent *Resource, item interface{}) *Resource {
+func NewResourceData(t *Table, parent *Resource, item any) *Resource {
 	r := Resource{
 		Item:   item,
 		Parent: parent,
@@ -63,7 +63,7 @@ func (r *Resource) Get(columnName string) CQType {
 // Set sets a column with value. This does validation and conversion to
 // one of concrete  it returns an error just for backward compatibility
 // and panics in case it fails
-func (r *Resource) Set(columnName string, value interface{}) error {
+func (r *Resource) Set(columnName string, value any) error {
 	index := r.Table.Columns.Index(columnName)
 	if index == -1 {
 		// we panic because we want to distinguish between code error and api error
@@ -77,11 +77,11 @@ func (r *Resource) Set(columnName string, value interface{}) error {
 }
 
 // Override original item (this is useful for apis that follow list/details pattern)
-func (r *Resource) SetItem(item interface{}) {
+func (r *Resource) SetItem(item any) {
 	r.Item = item
 }
 
-func (r *Resource) GetItem() interface{} {
+func (r *Resource) GetItem() any {
 	return r.Item
 }
 
@@ -99,6 +99,22 @@ func (r *Resource) ID() uuid.UUID {
 
 func (r *Resource) Columns() []string {
 	return r.Table.Columns.Names()
+}
+
+// Validates that all primary keys have values.
+func (r *Resource) Validate() error {
+	var missingPks []string
+	for i, c := range r.Table.Columns {
+		if c.CreationOptions.PrimaryKey {
+			if r.data[i].GetStatus() != Present {
+				missingPks = append(missingPks, c.Name)
+			}
+		}
+	}
+	if len(missingPks) > 0 {
+		return fmt.Errorf("missing primary key on columns: %v", missingPks)
+	}
+	return nil
 }
 
 func (rr Resources) GetIds() []uuid.UUID {

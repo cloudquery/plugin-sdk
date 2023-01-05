@@ -8,7 +8,7 @@ import (
 )
 
 type Float8Transformer interface {
-	TransformFloat8(*Float8) interface{}
+	TransformFloat8(*Float8) any
 }
 
 type Float8 struct {
@@ -17,6 +17,10 @@ type Float8 struct {
 }
 
 const float64EqualityThreshold = 1e-9
+
+func (dst *Float8) GetStatus() Status {
+	return dst.Status
+}
 
 func (*Float8) Type() ValueType {
 	return TypeFloat
@@ -48,13 +52,13 @@ func (dst *Float8) Equal(src CQType) bool {
 	return math.Abs(dst.Float-s.Float) <= float64EqualityThreshold
 }
 
-func (dst *Float8) Set(src interface{}) error {
+func (dst *Float8) Set(src any) error {
 	if src == nil {
 		*dst = Float8{Status: Null}
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(interface{ Get() any }); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -200,7 +204,7 @@ func (dst *Float8) Set(src interface{}) error {
 	return nil
 }
 
-func (dst Float8) Get() interface{} {
+func (dst Float8) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst.Float

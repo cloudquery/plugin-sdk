@@ -8,13 +8,17 @@ import (
 )
 
 type TextArrayTransformer interface {
-	TransformTextArray(*TextArray) interface{}
+	TransformTextArray(*TextArray) any
 }
 
 type TextArray struct {
 	Elements   []Text
 	Dimensions []ArrayDimension
 	Status     Status
+}
+
+func (dst *TextArray) GetStatus() Status {
+	return dst.Status
 }
 
 func (*TextArray) Type() ValueType {
@@ -40,7 +44,7 @@ func (dst *TextArray) Equal(src CQType) bool {
 	if dst.Status != s.Status {
 		return false
 	}
-	if len(dst.Elements) != len(s.Elements) || len(dst.Dimensions) != len(s.Dimensions) {
+	if len(dst.Elements) != len(s.Elements) {
 		return false
 	}
 
@@ -51,6 +55,28 @@ func (dst *TextArray) Equal(src CQType) bool {
 	}
 
 	return true
+}
+
+func (dst *TextArray) fromString(value string) error {
+	// this is basically back from string encoding
+	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+		return fmt.Errorf("cannot decode %v into Int8Array", value)
+	}
+
+	value = value[1 : len(value)-1]
+	strs := strings.Split(value, ",")
+	elements := make([]Text, len(strs))
+	for i := range strs {
+		if err := elements[i].Set(strs[i]); err != nil {
+			return err
+		}
+	}
+	*dst = TextArray{
+		Elements:   elements,
+		Dimensions: []ArrayDimension{{Length: int32(len(elements)), LowerBound: 1}},
+		Status:     Present,
+	}
+	return nil
 }
 
 func (dst *TextArray) String() string {
@@ -69,7 +95,7 @@ func (dst *TextArray) String() string {
 	return sb.String()
 }
 
-func (dst *TextArray) Set(src interface{}) error {
+func (dst *TextArray) Set(src any) error {
 	// untyped nil and typed nil interfaces are different
 	if src == nil {
 		*dst = TextArray{Status: Null}
@@ -135,6 +161,10 @@ func (dst *TextArray) Set(src interface{}) error {
 				Status:     Present,
 			}
 		}
+	case string:
+		return dst.fromString(value)
+	case *string:
+		return dst.fromString(*value)
 	default:
 		// Fallback to reflection if an optimised match was not found.
 		// The reflection is necessary for arrays and multidimensional slices,
@@ -230,7 +260,7 @@ func (dst *TextArray) setRecursive(value reflect.Value, index, dimension int) (i
 	return index, nil
 }
 
-func (dst TextArray) Get() interface{} {
+func (dst TextArray) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst

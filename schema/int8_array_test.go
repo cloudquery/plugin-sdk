@@ -6,7 +6,7 @@ import (
 
 func TestInt8ArraySet(t *testing.T) {
 	successfulTests := []struct {
-		source interface{}
+		source any
 		result Int8Array
 	}{
 		{
@@ -129,5 +129,21 @@ func TestInt8ArraySet(t *testing.T) {
 		if !r.Equal(&tt.result) {
 			t.Errorf("%d: %v != %v", i, r, tt.result)
 		}
+	}
+}
+
+func TestInt8Array_Size(t *testing.T) {
+	var r Int8Array
+	var sz int
+
+	sz = r.Size()
+	if sz != 0 {
+		t.Errorf("%v.Size() = %d, want %d", r, sz, 0)
+	}
+
+	r.Set([]int64{1, 2, 3})
+	sz = r.Size()
+	if sz != 24 {
+		t.Errorf("%v.Size() = %d, want %d", r, sz, 24)
 	}
 }

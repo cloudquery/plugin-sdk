@@ -13,12 +13,14 @@ import (
 // Table resolver has 3 main arguments:
 // - meta(ClientMeta): is the client returned by the plugin.Provider Configure call
 // - parent(Resource): resource is the parent resource in case this table is called via parent table (i.e. relation)
-// - res(chan interface{}): is a channel to pass results fetched by the TableResolver
-type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- interface{}) error
+// - res(chan any): is a channel to pass results fetched by the TableResolver
+type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, res chan<- any) error
 
 type RowResolver func(ctx context.Context, meta ClientMeta, resource *Resource) error
 
 type Multiplexer func(meta ClientMeta) []ClientMeta
+
+type Transform func(table *Table) error
 
 type Tables []*Table
 
@@ -38,6 +40,8 @@ type Table struct {
 	Columns ColumnList `json:"columns"`
 	// Relations are a set of related tables defines
 	Relations Tables `json:"relations"`
+	// Transform
+	Transform Transform `json:"-"`
 	// Resolver is the main entry point to fetching table data and
 	Resolver TableResolver `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them

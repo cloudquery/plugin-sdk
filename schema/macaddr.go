@@ -7,12 +7,16 @@ import (
 )
 
 type MacaddrTransformer interface {
-	TransformMacaddr(*Macaddr) interface{}
+	TransformMacaddr(*Macaddr) any
 }
 
 type Macaddr struct {
 	Addr   net.HardwareAddr
 	Status Status
+}
+
+func (dst *Macaddr) GetStatus() Status {
+	return dst.Status
 }
 
 func (*Macaddr) Type() ValueType {
@@ -42,13 +46,13 @@ func (dst *Macaddr) String() string {
 	}
 }
 
-func (dst *Macaddr) Set(src interface{}) error {
+func (dst *Macaddr) Set(src any) error {
 	if src == nil {
 		*dst = Macaddr{Status: Null}
 		return nil
 	}
 
-	if value, ok := src.(interface{ Get() interface{} }); ok {
+	if value, ok := src.(interface{ Get() any }); ok {
 		value2 := value.Get()
 		if value2 != value {
 			return dst.Set(value2)
@@ -88,7 +92,7 @@ func (dst *Macaddr) Set(src interface{}) error {
 	return nil
 }
 
-func (dst Macaddr) Get() interface{} {
+func (dst Macaddr) Get() any {
 	switch dst.Status {
 	case Present:
 		return dst.Addr

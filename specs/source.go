@@ -36,14 +36,20 @@ type Source struct {
 	SkipTables []string `json:"skip_tables,omitempty"`
 	// Destinations are the names of destination plugins to send sync data to
 	Destinations []string `json:"destinations,omitempty"`
+	// Scheduler defines the scheduling algorithm that should be used to sync data
+	Scheduler Scheduler `json:"scheduler,omitempty"`
+
 	// Spec defines plugin specific configuration
 	// This is different in every source plugin.
-	Spec interface{} `json:"spec,omitempty"`
+	Spec any `json:"spec,omitempty"`
 }
 
 func (s *Source) SetDefaults() {
 	if s.Registry.String() == "" {
 		s.Registry = RegistryGithub
+	}
+	if s.Scheduler.String() == "" {
+		s.Scheduler = SchedulerDFS
 	}
 	if s.Tables == nil {
 		s.Tables = []string{"*"}
@@ -60,7 +66,7 @@ func (s *Source) SetDefaults() {
 }
 
 // UnmarshalSpec unmarshals the internal spec into the given interface
-func (s *Source) UnmarshalSpec(out interface{}) error {
+func (s *Source) UnmarshalSpec(out any) error {
 	b, err := json.Marshal(s.Spec)
 	if err != nil {
 		return err
@@ -93,9 +99,11 @@ func (s *Source) Validate() error {
 			return fmt.Errorf("version must start with v")
 		}
 	}
-
 	if len(s.Destinations) == 0 {
 		return fmt.Errorf("at least one destination is required")
+	}
+	if !funk.Contains(AllSchedulers, s.Scheduler) {
+		return fmt.Errorf("unknown scheduler %v. Must be one of: %v", s.Scheduler, AllSchedulers.String())
 	}
 	return nil
 }
