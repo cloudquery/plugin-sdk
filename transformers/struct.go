@@ -15,6 +15,7 @@ type structTransformer struct {
 	nameTransformer               NameTransformer
 	typeTransformer               TypeTransformer
 	resolverTransformer           ResolverTransformer
+	ignoreInTestsTransformer      IgnoreInTestsTransformer
 	unwrapAllEmbeddedStructFields bool
 	structFieldsToUnwrap          []string
 }
@@ -27,6 +28,12 @@ type ResolverTransformer func(field reflect.StructField, path string) schema.Col
 
 func DefaultResolverTransformer(_ reflect.StructField, path string) schema.ColumnResolver {
 	return schema.PathResolver(path)
+}
+
+type IgnoreInTestsTransformer func(field reflect.StructField) bool
+
+func DefaultIgnoreInTestsTransformer(_ reflect.StructField) bool {
+	return false
 }
 
 type StructTransformerOption func(*structTransformer)
@@ -84,14 +91,23 @@ func WithTypeTransformer(transformer TypeTransformer) StructTransformerOption {
 func WithResolverTransformer(transformer ResolverTransformer) StructTransformerOption {
 	return func(t *structTransformer) {
 		t.resolverTransformer = transformer
+  }
+}
+
+// WithIgnoreInTestsTransformer overrides how column ignoreInTests will be determined.
+// DefaultIgnoreInTestsTransformer is used as the default.
+func WithIgnoreInTestsTransformer(transformer IgnoreInTestsTransformer) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.ignoreInTestsTransformer = transformer
 	}
 }
 
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
-		nameTransformer:     codegen.DefaultNameTransformer,
-		typeTransformer:     codegen.DefaultTypeTransformer,
-		resolverTransformer: DefaultResolverTransformer,
+		nameTransformer:          codegen.DefaultNameTransformer,
+		typeTransformer:          codegen.DefaultTypeTransformer,
+		resolverTransformer:      DefaultResolverTransformer,
+		ignoreInTestsTransformer: DefaultIgnoreInTestsTransformer,
 	}
 	for _, opt := range opts {
 		opt(t)
@@ -233,9 +249,10 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 
 	t.table.Columns = append(t.table.Columns,
 		schema.Column{
-			Name:     name,
-			Type:     columnType,
-			Resolver: resolver,
+			Name:          name,
+			Type:          columnType,
+			Resolver:      resolver,
+			IgnoreInTests: t.ignoreInTestsTransformer(field),
 		},
 	)
 
