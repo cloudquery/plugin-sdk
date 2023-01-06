@@ -37,7 +37,7 @@ type PluginTestSuiteTests struct {
 	// existing object after the file has been closed.
 	TestSecondAppend bool
 
-	// destinationPluginTestMigrateAppend adds a test for the migrate function where a column is added,
+	// TestMigrateAppend adds a test for the migrate function where a column is added,
 	// data is appended, then the column is removed and more data appended, checking that the migrations handle
 	// this correctly.
 	TestMigrateAppend bool
@@ -202,7 +202,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	return nil
 }
 
-func (*PluginTestSuite) DestinationPluginTestMigrateAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*PluginTestSuite) destinationPluginTestMigrateAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	spec.BatchSize = 1
 	if err := p.Init(ctx, logger, spec); err != nil {
@@ -343,7 +343,7 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 			t.Skip("skipping TestMigrateAppend")
 			return
 		}
-		if err := suite.DestinationPluginTestMigrateAppend(ctx, p, logger, destSpec); err != nil {
+		if err := suite.destinationPluginTestMigrateAppend(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
 		}
 	})
