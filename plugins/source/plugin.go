@@ -14,14 +14,14 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-type options struct {
+type Options struct {
 	Backend backend.Backend
 }
 
-type Option func(o *options)
+type Option func(o *Options)
 
 func WithBackend(b backend.Backend) Option {
-	return func(o *options) {
+	return func(o *Options) {
 		o.Backend = b
 	}
 }
