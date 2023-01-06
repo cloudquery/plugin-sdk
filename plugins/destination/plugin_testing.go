@@ -20,27 +20,27 @@ type PluginTestSuite struct {
 }
 
 type PluginTestSuiteTests struct {
-	// SkipOverwrite skips testing for "overwrite" mode. Use if the destination
-	//	// plugin doesn't support this feature.
-	SkipOverwrite bool
+	// TestOverwrite adds testing for "overwrite" mode. Use if the destination
+	// plugin supports this feature.
+	TestOverwrite bool
 
-	// SkipDeleteStale skips testing "delete-stale" mode. Use if the destination
-	// plugin doesn't support this feature.
-	SkipDeleteStale bool
+	// TestDeleteStale adds testing "delete-stale" mode. Use if the destination
+	// plugin supports this feature.
+	TestDeleteStale bool
 
-	// SkipAppend skips testing for "append" mode. Use if the destination
-	// plugin doesn't support this feature.
-	SkipAppend bool
+	// TestAppend adds testing for "append" mode. Use if the destination
+	// plugin supports this feature.
+	TestAppend bool
 
-	// SkipSecondAppend skips the second append step in the test.
+	// TestSecondAppend will do a second append step in the TestAppend test.
 	// This is useful in cases like cloud storage where you can't append to an
 	// existing object after the file has been closed.
-	SkipSecondAppend bool
+	TestSecondAppend bool
 
-	// destinationPluginTestMigrateAppend skips a test for the migrate function where a column is added,
+	// destinationPluginTestMigrateAppend adds a test for the migrate function where a column is added,
 	// data is appended, then the column is removed and more data appended, checking that the migrations handle
 	// this correctly.
-	SkipMigrateAppend bool
+	TestMigrateAppend bool
 }
 
 func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
@@ -117,7 +117,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Contex
 		return fmt.Errorf("after overwrite expected second resource diff: %s", diff)
 	}
 
-	if !s.tests.SkipDeleteStale {
+	if s.tests.TestDeleteStale {
 		if err := p.DeleteStale(ctx, tables, sourceName, secondSyncTime); err != nil {
 			return fmt.Errorf("failed to delete stale data second time: %w", err)
 		}
@@ -167,7 +167,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	resources[1] = createTestResources(table, sourceName, secondSyncTime, 1)[0]
 	sortResources(table, resources)
 
-	if !s.tests.SkipSecondAppend {
+	if s.tests.TestSecondAppend {
 		// write second time
 		if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resources[1]); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
@@ -181,7 +181,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	sortCQTypes(table, resourcesRead)
 
 	expectedResource := 2
-	if s.tests.SkipSecondAppend {
+	if !s.tests.TestSecondAppend {
 		expectedResource = 1
 	}
 
@@ -193,7 +193,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("first expected resource diff: %s", diff)
 	}
 
-	if !s.tests.SkipSecondAppend {
+	if s.tests.TestSecondAppend {
 		if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
 			return fmt.Errorf("second expected resource diff: %s", diff)
 		}
@@ -202,7 +202,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	return nil
 }
 
-func (*PluginTestSuite) destinationPluginTestMigrateAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*PluginTestSuite) DestinationPluginTestMigrateAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	spec.BatchSize = 1
 	if err := p.Init(ctx, logger, spec); err != nil {
@@ -317,7 +317,7 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 
 	t.Run("TestWriteOverwrite", func(t *testing.T) {
 		t.Helper()
-		if suite.tests.SkipOverwrite {
+		if !suite.tests.TestOverwrite {
 			t.Skip("skipping TestWriteOverwrite")
 			return
 		}
@@ -328,7 +328,7 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 
 	t.Run("TestWriteAppend", func(t *testing.T) {
 		t.Helper()
-		if suite.tests.SkipAppend {
+		if !suite.tests.TestAppend {
 			t.Skip("skipping TestWriteAppend")
 			return
 		}
@@ -339,11 +339,11 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 
 	t.Run("TestMigrateAppend", func(t *testing.T) {
 		t.Helper()
-		if suite.tests.SkipMigrateAppend {
+		if !suite.tests.TestMigrateAppend {
 			t.Skip("skipping TestMigrateAppend")
 			return
 		}
-		if err := suite.destinationPluginTestMigrateAppend(ctx, p, logger, destSpec); err != nil {
+		if err := suite.DestinationPluginTestMigrateAppend(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
 		}
 	})
