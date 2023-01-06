@@ -40,11 +40,13 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
 				resources = make([][]any, 0)
+				sizeBytes = 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
 				resources = make([][]any, 0)
+				sizeBytes = 0
 			}
 			done <- true
 		}
