@@ -144,10 +144,11 @@ spec:
 `,
 		"",
 		&Destination{
-			Name:      "test",
-			Registry:  RegistryGrpc,
-			Path:      "localhost:9999",
-			BatchSize: 10000,
+			Name:           "test",
+			Registry:       RegistryGrpc,
+			Path:           "localhost:9999",
+			BatchSize:      10000,
+			BatchSizeBytes: 10000000,
 		},
 	},
 	{
@@ -160,10 +161,11 @@ spec:
 `,
 		"",
 		&Destination{
-			Name:      "test",
-			Registry:  RegistryLocal,
-			Path:      "/home/user/some_executable",
-			BatchSize: 10000,
+			Name:           "test",
+			Registry:       RegistryLocal,
+			Path:           "/home/user/some_executable",
+			BatchSize:      10000,
+			BatchSizeBytes: 10000000,
 		},
 	},
 	{
@@ -176,11 +178,12 @@ spec:
 `,
 		"",
 		&Destination{
-			Name:      "test",
-			Registry:  RegistryGithub,
-			Path:      "cloudquery/test",
-			Version:   "v1.1.0",
-			BatchSize: 10000,
+			Name:           "test",
+			Registry:       RegistryGithub,
+			Path:           "cloudquery/test",
+			Version:        "v1.1.0",
+			BatchSize:      10000,
+			BatchSizeBytes: 10000000,
 		},
 	},
 }
@@ -195,7 +198,7 @@ func TestDestinationUnmarshalSpecValidate(t *testing.T) {
 				t.Fatal(err)
 			}
 			destination := spec.Spec.(*Destination)
-			destination.SetDefaults(10000)
+			destination.SetDefaults(10000, 10000000)
 			err = destination.Validate()
 			if err != nil {
 				if err.Error() != tc.err {

@@ -19,65 +19,48 @@ type worker struct {
 
 func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan schema.CQTypes, flush <-chan chan bool) {
 	resources := make([][]any, 0)
+	sizeBytes := 0
 	for {
 		select {
 		case r, ok := <-ch:
-			//nolint:revive
 			if ok {
-				resources = append(resources, schema.TransformWithTransformer(p.client, r))
-				if len(resources) == p.spec.BatchSize {
-					start := time.Now()
-					if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
-						p.logger.Err(err).Str("table", table.Name).Int("len", p.spec.BatchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
-						// we don't return as we need to continue until channel is closed otherwise there will be a deadlock
-						atomic.AddUint64(&metrics.Errors, uint64(p.spec.BatchSize))
-					} else {
-						p.logger.Info().Str("table", table.Name).Int("len", p.spec.BatchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
-						atomic.AddUint64(&metrics.Writes, uint64(p.spec.BatchSize))
-					}
+				if len(resources) == p.spec.BatchSize || sizeBytes+r.Size() > p.spec.BatchSizeBytes {
+					p.flush(ctx, metrics, table, resources)
 					resources = make([][]any, 0)
+					sizeBytes = 0
 				}
+				resources = append(resources, schema.TransformWithTransformer(p.client, r))
+				sizeBytes += r.Size()
 			} else {
 				if len(resources) > 0 {
-					start := time.Now()
-					if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
-						p.logger.Err(err).Str("table", table.Name).Int("len", len(resources)).Dur("duration", time.Since(start)).Msg("failed to write last batch")
-						atomic.AddUint64(&metrics.Errors, uint64(len(resources)))
-					} else {
-						p.logger.Info().Str("table", table.Name).Int("len", len(resources)).Dur("duration", time.Since(start)).Msg("last batch written successfully")
-						atomic.AddUint64(&metrics.Writes, uint64(len(resources)))
-					}
+					p.flush(ctx, metrics, table, resources)
 				}
 				return
 			}
 		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
-				start := time.Now()
-				if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
-					p.logger.Err(err).Str("table", table.Name).Int("len", len(resources)).Dur("time", time.Since(start)).Msg("failed to write batch on timeout")
-					// we don't return as we need to continue until channel is closed otherwise there will be a deadlock
-					atomic.AddUint64(&metrics.Errors, uint64(len(resources)))
-				} else {
-					p.logger.Info().Str("table", table.Name).Int("len", len(resources)).Dur("time", time.Since(start)).Msg("batch written successfully on timeout")
-					atomic.AddUint64(&metrics.Writes, uint64(len(resources)))
-				}
+				p.flush(ctx, metrics, table, resources)
 				resources = make([][]any, 0)
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
-				start := time.Now()
-				if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
-					p.logger.Err(err).Str("table", table.Name).Int("len", len(resources)).Dur("time", time.Since(start)).Msg("failed to write batch on flush")
-					// we don't return as we need to continue until channel is closed otherwise there will be a deadlock
-					atomic.AddUint64(&metrics.Errors, uint64(len(resources)))
-				} else {
-					p.logger.Info().Str("table", table.Name).Int("len", len(resources)).Dur("time", time.Since(start)).Msg("batch written successfully on flush")
-					atomic.AddUint64(&metrics.Writes, uint64(len(resources)))
-				}
+				p.flush(ctx, metrics, table, resources)
 				resources = make([][]any, 0)
 			}
 			done <- true
 		}
+	}
+}
+
+func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources [][]any) {
+	start := time.Now()
+	if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
+		p.logger.Err(err).Str("table", table.Name).Int("len", p.spec.BatchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
+		// we don't return an error as we need to continue until channel is closed otherwise there will be a deadlock
+		atomic.AddUint64(&metrics.Errors, uint64(p.spec.BatchSize))
+	} else {
+		p.logger.Info().Str("table", table.Name).Int("len", p.spec.BatchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+		atomic.AddUint64(&metrics.Writes, uint64(p.spec.BatchSize))
 	}
 }
 
