@@ -26,6 +26,14 @@ func (*CIDRArray) Type() ValueType {
 	return TypeCIDRArray
 }
 
+func (dst *CIDRArray) Size() int {
+	totalSize := 0
+	for _, element := range dst.Elements {
+		totalSize += element.Size()
+	}
+	return totalSize
+}
+
 func (dst *CIDRArray) Equal(src CQType) bool {
 	if src == nil {
 		return false

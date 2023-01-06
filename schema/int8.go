@@ -24,6 +24,10 @@ func (*Int8) Type() ValueType {
 	return TypeInt
 }
 
+func (*Int8) Size() int {
+	return 8
+}
+
 func (dst *Int8) Equal(src CQType) bool {
 	if src == nil {
 		return false

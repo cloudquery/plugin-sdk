@@ -26,6 +26,10 @@ func (*Float8) Type() ValueType {
 	return TypeFloat
 }
 
+func (dst *Float8) Size() int {
+	return 8
+}
+
 func (dst *Float8) String() string {
 	if dst.Status == Present {
 		return strconv.FormatFloat(dst.Float, 'f', -1, 64)

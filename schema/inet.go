@@ -29,6 +29,9 @@ func (*Inet) Type() ValueType {
 	return TypeInet
 }
 
+func (dst *Inet) Size() int {
+	return len(dst.IPNet.IP) + len(dst.IPNet.Mask)
+}
 func (dst *Inet) GetStatus() Status {
 	return dst.Status
 }

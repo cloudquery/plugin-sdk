@@ -31,3 +31,29 @@ func TestMacaddrSet(t *testing.T) {
 		}
 	}
 }
+
+func TestMacaddr_Size(t *testing.T) {
+	tests := []struct {
+		name string
+		b    Macaddr
+		want int
+	}{
+		{
+			name: "present",
+			b:    Macaddr{Addr: mustParseMacaddr(t, "01:23:45:67:89:ab"), Status: Present},
+			want: 6,
+		},
+		{
+			name: "null",
+			b:    Macaddr{Status: Null},
+			want: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.b.Size(); got != tt.want {
+				t.Errorf("Macaddr.Size() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

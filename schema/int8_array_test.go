@@ -131,3 +131,19 @@ func TestInt8ArraySet(t *testing.T) {
 		}
 	}
 }
+
+func TestInt8Array_Size(t *testing.T) {
+	var r Int8Array
+	var sz int
+
+	sz = r.Size()
+	if sz != 0 {
+		t.Errorf("%v.Size() = %d, want %d", r, sz, 0)
+	}
+
+	_ = r.Set([]int64{1, 2, 3})
+	sz = r.Size()
+	if sz != 24 {
+		t.Errorf("%v.Size() = %d, want %d", r, sz, 24)
+	}
+}

@@ -26,6 +26,14 @@ func (*InetArray) Type() ValueType {
 	return TypeInetArray
 }
 
+func (dst *InetArray) Size() int {
+	totalSize := 0
+	for _, element := range dst.Elements {
+		totalSize += element.Size()
+	}
+	return totalSize
+}
+
 func (dst *InetArray) Equal(src CQType) bool {
 	if src == nil {
 		return false

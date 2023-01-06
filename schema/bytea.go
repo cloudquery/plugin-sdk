@@ -20,6 +20,10 @@ func (*Bytea) Type() ValueType {
 	return TypeByteArray
 }
 
+func (dst *Bytea) Size() int {
+	return len(dst.Bytes)
+}
+
 func (dst *Bytea) GetStatus() Status {
 	return dst.Status
 }

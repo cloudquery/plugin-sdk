@@ -115,3 +115,29 @@ func TestInetArraySet(t *testing.T) {
 		}
 	}
 }
+
+func TestInetArray_Size(t *testing.T) {
+	tests := []struct {
+		source InetArray
+		want   int
+	}{
+		{
+			source: InetArray{
+				Elements: []Inet{
+					{IPNet: mustParseCIDR(t, "127.0.0.1/24"), Status: Present},
+					{IPNet: mustParseCIDR(t, "10.0.0.1/24"), Status: Present},
+				},
+				Dimensions: []ArrayDimension{
+					{LowerBound: 1, Length: 2},
+					{LowerBound: 1, Length: 1}},
+				Status: Present,
+			},
+			want: 16,
+		},
+	}
+	for _, tt := range tests {
+		if tt.source.Size() != tt.want {
+			t.Errorf("%v.Size() = %d, want %v", tt.source, tt.source.Size(), tt.want)
+		}
+	}
+}

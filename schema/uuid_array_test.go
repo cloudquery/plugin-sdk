@@ -161,3 +161,24 @@ func TestUUIDArraySet(t *testing.T) {
 		}
 	}
 }
+
+func TestUUIDArray_Size(t *testing.T) {
+	var r UUIDArray
+	if r.Size() != 0 {
+		t.Errorf("bad size: %d", r.Size())
+	}
+
+	_ = r.Set([2][1][1][3]string{
+		{{{
+			"00010203-0405-0607-0809-0a0b0c0d0e0f",
+			"10111213-1415-1617-1819-1a1b1c1d1e1f",
+			"20212223-2425-2627-2829-2a2b2c2d2e2f"}}},
+		{{{
+			"30313233-3435-3637-3839-3a3b3c3d3e3f",
+			"40414243-4445-4647-4849-4a4b4c4d4e4f",
+			"50515253-5455-5657-5859-5a5b5c5d5e5f"}}},
+	})
+	if r.Size() != 96 {
+		t.Errorf("bad size: %d", r.Size())
+	}
+}

@@ -19,6 +19,10 @@ func (*UUID) Type() ValueType {
 	return TypeUUID
 }
 
+func (dst *UUID) Size() int {
+	return 16
+}
+
 func (dst *UUID) GetStatus() Status {
 	return dst.Status
 }
