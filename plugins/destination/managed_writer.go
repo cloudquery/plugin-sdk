@@ -23,20 +23,19 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 	for {
 		select {
 		case r, ok := <-ch:
-			if ok {
-				if len(resources) == p.spec.BatchSize || sizeBytes+r.Size() > p.spec.BatchSizeBytes {
-					p.flush(ctx, metrics, table, resources)
-					resources = make([][]any, 0)
-					sizeBytes = 0
-				}
-				resources = append(resources, schema.TransformWithTransformer(p.client, r))
-				sizeBytes += r.Size()
-			} else {
+			if !ok {
 				if len(resources) > 0 {
 					p.flush(ctx, metrics, table, resources)
 				}
 				return
 			}
+			if len(resources) == p.spec.BatchSize || sizeBytes+r.Size() > p.spec.BatchSizeBytes {
+				p.flush(ctx, metrics, table, resources)
+				resources = make([][]any, 0)
+				sizeBytes = 0
+			}
+			resources = append(resources, schema.TransformWithTransformer(p.client, r))
+			sizeBytes += r.Size()
 		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
