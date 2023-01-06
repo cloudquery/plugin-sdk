@@ -39,6 +39,10 @@ func (*Timestamptz) Type() ValueType {
 	return TypeTimestamp
 }
 
+func (dst *Timestamptz) Size() int {
+	return 24
+}
+
 func (dst *Timestamptz) Equal(src CQType) bool {
 	if src == nil {
 		return false

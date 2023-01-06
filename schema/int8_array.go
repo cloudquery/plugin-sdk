@@ -25,6 +25,10 @@ func (*Int8Array) Type() ValueType {
 	return TypeIntArray
 }
 
+func (dst *Int8Array) Size() int {
+	return 8 * len(dst.Elements)
+}
+
 func (dst *Int8Array) Equal(src CQType) bool {
 	if src == nil {
 		return false

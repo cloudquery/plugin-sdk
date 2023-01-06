@@ -24,6 +24,10 @@ func (*JSON) Type() ValueType {
 	return TypeJSON
 }
 
+func (dst *JSON) Size() int {
+	return len(dst.Bytes)
+}
+
 // JSONBytesEqual compares the JSON in two byte slices.
 func jsonBytesEqual(a, b []byte) (bool, error) {
 	var j, j2 any

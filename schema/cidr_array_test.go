@@ -115,3 +115,14 @@ func TestCIDRArraySet(t *testing.T) {
 		}
 	}
 }
+
+func TestCIDRArray_Size(t *testing.T) {
+	a := CIDRArray{
+		Elements:   []CIDR{{IPNet: mustParseCIDR(t, "127.0.0.1/32"), Status: Present}},
+		Dimensions: []ArrayDimension{{LowerBound: 1, Length: 1}},
+		Status:     Present,
+	}
+	if a.Size() != 8 {
+		t.Errorf("Size() = %d, want 8", a.Size())
+	}
+}

@@ -82,3 +82,50 @@ func TestTextArraySet(t *testing.T) {
 		}
 	}
 }
+
+func TestTextArray_Size(t *testing.T) {
+	cases := []struct {
+		source TextArray
+		result int
+	}{
+		{
+			source: TextArray{
+				Elements:   []Text{{Str: "foo", Status: Present}},
+				Dimensions: []ArrayDimension{{LowerBound: 1, Length: 1}},
+				Status:     Present},
+			result: 3,
+		},
+		{
+			source: TextArray{Status: Null},
+			result: 0,
+		},
+		{
+			source: TextArray{
+				Elements:   []Text{{Str: "foo", Status: Present}, {Str: "bar", Status: Present}},
+				Dimensions: []ArrayDimension{{LowerBound: 1, Length: 2}, {LowerBound: 1, Length: 1}},
+				Status:     Present},
+			result: 6,
+		},
+		{
+			source: TextArray{
+				Elements: []Text{
+					{Str: "foo", Status: Present},
+					{Str: "bar", Status: Present},
+					{Str: "baz", Status: Present}},
+				Dimensions: []ArrayDimension{
+					{LowerBound: 1, Length: 2},
+					{LowerBound: 1, Length: 1},
+					{LowerBound: 1, Length: 1},
+					{LowerBound: 1, Length: 3}},
+				Status: Present},
+			result: 9,
+		},
+	}
+
+	for i, tt := range cases {
+		result := tt.source.Size()
+		if result != tt.result {
+			t.Errorf("%d: %v != %v", i, result, tt.result)
+		}
+	}
+}

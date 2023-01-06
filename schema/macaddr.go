@@ -23,6 +23,10 @@ func (*Macaddr) Type() ValueType {
 	return TypeMacAddr
 }
 
+func (dst *Macaddr) Size() int {
+	return len(dst.Addr)
+}
+
 func (dst *Macaddr) Equal(src CQType) bool {
 	if src == nil {
 		return false

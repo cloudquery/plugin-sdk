@@ -57,3 +57,29 @@ func TestJSONSet(t *testing.T) {
 		}
 	}
 }
+
+func TestJSON_Size(t *testing.T) {
+	tests := []struct {
+		name string
+		j    JSON
+		want int
+	}{
+		{
+			name: "empty",
+			j:    JSON{Status: Null},
+			want: 0,
+		},
+		{
+			name: "present",
+			j:    JSON{Bytes: []byte(`{"foo":"bar"}`), Status: Present},
+			want: 13,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.j.Size(); got != tt.want {
+				t.Errorf("JSON.Size() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

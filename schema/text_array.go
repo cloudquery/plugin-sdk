@@ -25,6 +25,14 @@ func (*TextArray) Type() ValueType {
 	return TypeStringArray
 }
 
+func (dst *TextArray) Size() int {
+	totalSize := 0
+	for _, element := range dst.Elements {
+		totalSize += element.Size()
+	}
+	return totalSize
+}
+
 func (dst *TextArray) Equal(src CQType) bool {
 	if src == nil {
 		return false
