@@ -90,27 +90,25 @@ func (l *Local) readFile(name string) (table string, kv entries, err error) {
 	return table, kv, nil
 }
 
-func (l *Local) Get(_ context.Context, table, clientID, key string) (string, error) {
+func (l *Local) Get(_ context.Context, table, clientID string) (string, error) {
 	l.tablesLock.RLock()
 	defer l.tablesLock.RUnlock()
 
 	if _, ok := l.tables[table]; !ok {
 		return "", nil
 	}
-	k := clientID + "-" + key
-	return l.tables[table][k], nil
+	return l.tables[table][clientID], nil
 }
 
-func (l *Local) Set(_ context.Context, table, clientID, key, value string) error {
+func (l *Local) Set(_ context.Context, table, clientID, value string) error {
 	l.tablesLock.Lock()
 	defer l.tablesLock.Unlock()
 
 	if _, ok := l.tables[table]; !ok {
 		l.tables[table] = map[string]string{}
 	}
-	k := clientID + "-" + key
-	prev := l.tables[table][k]
-	l.tables[table][k] = value
+	prev := l.tables[table][clientID]
+	l.tables[table][clientID] = value
 	if prev != value {
 		// only flush if the value changed
 		return l.flushTable(table, l.tables[table])
