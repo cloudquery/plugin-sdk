@@ -13,15 +13,15 @@ import (
 
 type Client struct{}
 
-func (c *Client) ListThings() error {
+func (*Client) ListThings() error {
 	return nil
 }
 
-func (c *Client) ListTables(ctx context.Context) error {
+func (*Client) ListTables(_ context.Context) error {
 	return nil
 }
 
-func (c *Client) CreateTables(ctx context.Context, tables []string) error {
+func (*Client) CreateTables(_ context.Context, _ []string) error {
 	return nil
 }
 
