@@ -4,7 +4,6 @@ package schema
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 )
 
 type ByteaTransformer interface {
@@ -73,7 +72,7 @@ func (dst *Bytea) Set(src any) error {
 			b := make([]byte, hex.DecodedLen(len(value)))
 			_, err := hex.Decode(b, []byte(value))
 			if err != nil {
-				return fmt.Errorf("cannot decode hex string to bytea: %w", err)
+				return &ValidationError{Type: TypeByteArray, Msg: "hex decode failed", Err: err, Value: value}
 			}
 			*dst = Bytea{Status: Present, Bytes: b}
 		} else {
@@ -83,7 +82,7 @@ func (dst *Bytea) Set(src any) error {
 		if originalSrc, ok := underlyingBytesType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return fmt.Errorf("cannot convert %v to Bytea", value)
+		return &ValidationError{Type: TypeByteArray, Msg: noConversion, Value: src}
 	}
 
 	return nil

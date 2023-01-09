@@ -67,7 +67,7 @@ func (dst *UUID) Set(src any) error {
 	case []byte:
 		if value != nil {
 			if len(value) != 16 {
-				return fmt.Errorf("[]byte must be 16 bytes to convert to UUID: %d", len(value))
+				return &ValidationError{Type: TypeUUID, Msg: "[]byte must be 16 bytes to convert to UUID", Value: value}
 			}
 			*dst = UUID{Status: Present}
 			copy(dst.Bytes[:], value)
@@ -90,7 +90,7 @@ func (dst *UUID) Set(src any) error {
 		if originalSrc, ok := underlyingUUIDType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return fmt.Errorf("cannot convert %v to UUID", value)
+		return &ValidationError{Type: TypeUUID, Msg: noConversion, Value: value}
 	}
 
 	return nil
@@ -116,7 +116,7 @@ func parseUUID(src string) (dst [16]byte, err error) {
 		// dashes already stripped, assume valid
 	default:
 		// assume invalid.
-		return dst, fmt.Errorf("cannot parse UUID %v", src)
+		return dst, &ValidationError{Type: TypeUUID, Msg: fmt.Sprintf("invalid %d UUID length", len(src)), Value: src}
 	}
 
 	buf, err := hex.DecodeString(src)

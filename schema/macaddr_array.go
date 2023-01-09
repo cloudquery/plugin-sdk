@@ -61,7 +61,7 @@ func (dst *MacaddrArray) Equal(src CQType) bool {
 func (dst *MacaddrArray) fromString(value string) error {
 	// this is basically back from string encoding
 	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
-		return fmt.Errorf("cannot decode %v into MacaddrArray", value)
+		return &ValidationError{Type: TypeMacAddrArray, Msg: cannotDecodeString, Value: value}
 	}
 
 	value = value[1 : len(value)-1]
@@ -180,7 +180,7 @@ func (dst *MacaddrArray) Set(src any) error {
 
 		dimensions, elementsLength, ok := findDimensionsFromValue(reflectedValue, nil, 0)
 		if !ok {
-			return fmt.Errorf("cannot find dimensions of %v for MacaddrArray", src)
+			return &ValidationError{Type: TypeMacAddrArray, Msg: cannotFindDimensions, Value: src}
 		}
 		if elementsLength == 0 {
 			*dst = MacaddrArray{Status: Present}
@@ -190,7 +190,7 @@ func (dst *MacaddrArray) Set(src any) error {
 			if originalSrc, ok := underlyingSliceType(src); ok {
 				return dst.Set(originalSrc)
 			}
-			return fmt.Errorf("cannot convert %v to MacaddrArray", src)
+			return &ValidationError{Type: TypeMacAddrArray, Msg: noConversion, Value: src}
 		}
 
 		*dst = MacaddrArray{
@@ -221,7 +221,7 @@ func (dst *MacaddrArray) Set(src any) error {
 			}
 		}
 		if elementCount != len(dst.Elements) {
-			return fmt.Errorf("cannot convert %v to MacaddrArray, expected %d dst.Elements, but got %d instead", src, len(dst.Elements), elementCount)
+			return &ValidationError{Type: TypeMacAddrArray, Msg: fmt.Sprintf(expectedElements, len(dst.Elements), elementCount), Value: src}
 		}
 	}
 
@@ -239,7 +239,7 @@ func (dst *MacaddrArray) setRecursive(value reflect.Value, index, dimension int)
 
 		valueLen := value.Len()
 		if int32(valueLen) != dst.Dimensions[dimension].Length {
-			return 0, fmt.Errorf("multidimensional arrays must have array expressions with matching dimensions")
+			return 0, &ValidationError{Type: TypeMacAddrArray, Msg: fmt.Sprintf(expectedElementsInDimension, dst.Dimensions[dimension].Length, dimension, valueLen), Value: value.Interface()}
 		}
 		for i := 0; i < valueLen; i++ {
 			var err error
@@ -252,10 +252,10 @@ func (dst *MacaddrArray) setRecursive(value reflect.Value, index, dimension int)
 		return index, nil
 	}
 	if !value.CanInterface() {
-		return 0, fmt.Errorf("cannot convert all values to MacaddrArray")
+		return 0, &ValidationError{Type: TypeMacAddrArray, Msg: notInterface, Value: value}
 	}
 	if err := dst.Elements[index].Set(value.Interface()); err != nil {
-		return 0, fmt.Errorf("%v in MacaddrArray", err)
+		return 0, &ValidationError{Type: TypeMacAddrArray, Msg: fmt.Sprintf(cannotSetIndex, index), Value: value.Interface(), Err: err}
 	}
 	index++
 

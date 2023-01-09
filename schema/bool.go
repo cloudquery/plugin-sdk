@@ -2,7 +2,6 @@
 package schema
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -88,7 +87,7 @@ func (dst *Bool) Set(src any) error {
 		if originalSrc, ok := underlyingBoolType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return fmt.Errorf("cannot convert %v to Bool", value)
+		return &ValidationError{Type: TypeBool, Msg: noConversion, Value: src}
 	}
 
 	return nil

@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"sync"
@@ -84,6 +85,7 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 }
 
 func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
+	var validationErr *schema.ValidationError
 	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
@@ -109,6 +111,12 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
 			atomic.AddUint64(&tableMetrics.Errors, 1)
+			if errors.As(err, &validationErr) {
+				sentry.WithScope(func(scope *sentry.Scope) {
+					scope.SetTag("table", table.Name)
+					sentry.CurrentHub().CaptureMessage(validationErr.MaskedError())
+				})
+			}
 			return
 		}
 	}()

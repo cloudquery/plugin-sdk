@@ -2,7 +2,6 @@
 package schema
 
 import (
-	"fmt"
 	"net"
 )
 
@@ -86,7 +85,7 @@ func (dst *Macaddr) Set(src any) error {
 		if originalSrc, ok := underlyingPtrType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return fmt.Errorf("cannot convert %v to Macaddr", value)
+		return &ValidationError{Type: TypeMacAddr, Msg: noConversion, Value: value}
 	}
 
 	return nil
