@@ -55,10 +55,14 @@ type Client interface {
 	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Tables) error
 	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []any) error
-	ManagedWriter
-	UnmanagedWriter
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
+
+	// ManagedWriter interface should be implemented if you use WithManagedWriter option.
+	ManagedWriter
+
+	// UnmanagedWriter interface should be implemented if you don't use WithManagedWriter option.
+	UnmanagedWriter
 }
 
 type ClientResource struct {
@@ -83,12 +87,10 @@ type Plugin struct {
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
 
-	// This is in use if the user passed a managed client
-	metrics     map[string]*Metrics
-	metricsLock *sync.RWMutex
-
 	workers     map[string]*worker
-	workersLock *sync.Mutex
+	workersLock sync.RWMutex // implies usage by pointer
+
+	metrics *Metrics
 
 	batchTimeout          time.Duration
 	defaultBatchSize      int
@@ -125,10 +127,8 @@ func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ..
 		name:                  name,
 		version:               version,
 		newClient:             newClientFunc,
-		metrics:               make(map[string]*Metrics),
-		metricsLock:           &sync.RWMutex{},
+		metrics:               new(Metrics),
 		workers:               make(map[string]*worker),
-		workersLock:           &sync.Mutex{},
 		batchTimeout:          time.Duration(defaultBatchTimeoutSeconds) * time.Second,
 		defaultBatchSize:      defaultBatchSize,
 		defaultBatchSizeBytes: defaultBatchSizeBytes,
@@ -157,14 +157,7 @@ func (p *Plugin) Metrics() Metrics {
 	case unmanaged:
 		return p.client.Metrics()
 	case managed:
-		metrics := Metrics{}
-		p.metricsLock.RLock()
-		for _, m := range p.metrics {
-			metrics.Errors += m.Errors
-			metrics.Writes += m.Writes
-		}
-		p.metricsLock.RUnlock()
-		return metrics
+		return p.metrics.Get()
 	default:
 		panic("unknown client type")
 	}
@@ -247,7 +240,7 @@ func (p *Plugin) Write(ctx context.Context, tables schema.Tables, sourceName str
 			return err
 		}
 	case managed:
-		if err := p.writeManagedTableBatch(ctx, tables, sourceName, syncTime, res); err != nil {
+		if err := p.writeManaged(ctx, tables, sourceName, syncTime, res); err != nil {
 			return err
 		}
 	default:
