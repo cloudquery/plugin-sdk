@@ -60,7 +60,7 @@ func (dst *InetArray) Equal(src CQType) bool {
 func (dst *InetArray) fromString(value string) error {
 	// this is basically back from string encoding
 	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
-		return fmt.Errorf("cannot decode %v into InetArray", value)
+		return &ValidationError{Type: TypeInetArray, msg: "cannot decode from string"}
 	}
 	// remove the curly braces
 	value = value[1 : len(value)-1]
@@ -205,7 +205,7 @@ func (dst *InetArray) Set(src any) error {
 
 		dimensions, elementsLength, ok := findDimensionsFromValue(reflectedValue, nil, 0)
 		if !ok {
-			return fmt.Errorf("cannot find dimensions of %v for InetArray", src)
+			return &ValidationError{Type: TypeInetArray, msg: "cannot find dimensions"}
 		}
 		if elementsLength == 0 {
 			*dst = InetArray{Status: Present}
@@ -215,7 +215,7 @@ func (dst *InetArray) Set(src any) error {
 			if originalSrc, ok := underlyingSliceType(src); ok {
 				return dst.Set(originalSrc)
 			}
-			return fmt.Errorf("cannot convert %v to InetArray", src)
+			return &ValidationError{Type: TypeInetArray, msg: "underlying value is not a slice"}
 		}
 
 		*dst = InetArray{
@@ -246,7 +246,7 @@ func (dst *InetArray) Set(src any) error {
 			}
 		}
 		if elementCount != len(dst.Elements) {
-			return fmt.Errorf("cannot convert %v to InetArray, expected %d dst.Elements, but got %d instead", src, len(dst.Elements), elementCount)
+			return &ValidationError{Type: TypeInetArray, msg: fmt.Sprintf("expected %d elements, but got %d instead", len(dst.Elements), elementCount)}
 		}
 	}
 
@@ -264,7 +264,7 @@ func (dst *InetArray) setRecursive(value reflect.Value, index, dimension int) (i
 
 		valueLen := value.Len()
 		if int32(valueLen) != dst.Dimensions[dimension].Length {
-			return 0, fmt.Errorf("multidimensional arrays must have array expressions with matching dimensions")
+			return 0, &ValidationError{Type: TypeInetArray, msg: "multidimensional arrays must have array expressions with matching dimensions"}
 		}
 		for i := 0; i < valueLen; i++ {
 			var err error
@@ -277,10 +277,10 @@ func (dst *InetArray) setRecursive(value reflect.Value, index, dimension int) (i
 		return index, nil
 	}
 	if !value.CanInterface() {
-		return 0, fmt.Errorf("cannot convert all values to InetArray")
+		return 0, &ValidationError{Type: TypeInetArray, msg: "value is not an interface"}
 	}
 	if err := dst.Elements[index].Set(value.Interface()); err != nil {
-		return 0, fmt.Errorf("%v in InetArray", err)
+		return 0, &ValidationError{Type: TypeInetArray, msg: fmt.Sprintf("failed to set value at index %d", index), err: err}
 	}
 	index++
 

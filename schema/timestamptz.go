@@ -119,7 +119,7 @@ func (dst *Timestamptz) Set(src any) error {
 			s := value.String()
 			return dst.Set(s)
 		}
-		return fmt.Errorf("cannot convert %v of type %T to Timestamptz", value, value)
+		return &ValidationError{Type: TypeTimestamp, msg: "no conversion available", Value: value}
 	}
 
 	return nil
@@ -170,8 +170,7 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 			*dst = Timestamptz{Time: normalizePotentialUTC(tim), Status: Present}
 			return nil
 		}
-		return fmt.Errorf("cannot parse %s as Timestamptz", sbuf)
-
+		return &ValidationError{Type: TypeTimestamp, msg: "cannot parse timestamp", Value: sbuf, err: err}
 	}
 
 	return nil

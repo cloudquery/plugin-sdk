@@ -94,7 +94,7 @@ func (dst *Text) Set(src any) error {
 			} else {
 				v, err := value.Value()
 				if err != nil {
-					return fmt.Errorf("driver.Valuer Value() method failed: %w", err)
+					return &ValidationError{Type: TypeString, msg: "driver.Valuer Value() method failed", err: err}
 				}
 
 				// Handles also v == nil case.
@@ -108,7 +108,7 @@ func (dst *Text) Set(src any) error {
 		if originalSrc, ok := underlyingStringType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return fmt.Errorf("cannot convert %v to Text", value)
+		return &ValidationError{Type: TypeString, msg: "not a string", Value: src}
 	}
 
 	return nil

@@ -88,7 +88,7 @@ func (dst *Bool) Set(src any) error {
 		if originalSrc, ok := underlyingBoolType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return fmt.Errorf("cannot convert %v to Bool", value)
+		return &ValidationError{Type: TypeBool, msg: fmt.Sprintf("value %v is not bool", value)}
 	}
 
 	return nil

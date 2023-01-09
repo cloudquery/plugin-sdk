@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"sync"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
 )
@@ -40,6 +42,10 @@ func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, clien
 	defer func() {
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
+			sentry.WithScope(func(scope *sentry.Scope) {
+				scope.SetTag("table", table.Name)
+				sentry.CurrentHub().CaptureMessage(stack)
+			})
 			logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("resource resolver finished with panic")
 			atomic.AddUint64(&tableMetrics.Panics, 1)
 		}
@@ -47,6 +53,13 @@ func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, clien
 	if table.PreResourceResolver != nil {
 		if err := table.PreResourceResolver(ctx, client, resource); err != nil {
 			logger.Error().Err(err).Msg("pre resource resolver failed")
+			var validationErr *schema.ValidationError
+			if errors.As(err, &validationErr) {
+				sentry.WithScope(func(scope *sentry.Scope) {
+					scope.SetTag("table", table.Name)
+					sentry.CurrentHub().CaptureMessage(validationErr.Error())
+				})
+			}
 			atomic.AddUint64(&tableMetrics.Errors, 1)
 			return nil
 		}
@@ -58,6 +71,13 @@ func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, clien
 
 	if table.PostResourceResolver != nil {
 		if err := table.PostResourceResolver(ctx, client, resource); err != nil {
+			var validationErr *schema.ValidationError
+			if errors.As(err, &validationErr) {
+				sentry.WithScope(func(scope *sentry.Scope) {
+					scope.SetTag("table", table.Name)
+					sentry.CurrentHub().CaptureMessage(validationErr.Error())
+				})
+			}
 			logger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
 			atomic.AddUint64(&tableMetrics.Errors, 1)
 		}
@@ -67,10 +87,16 @@ func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, clien
 }
 
 func (p *Plugin) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
+	var validationErr *schema.ValidationError
 	columnStartTime := time.Now()
 	defer func() {
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
+			sentry.WithScope(func(scope *sentry.Scope) {
+				scope.SetTag("table", resource.Table.Name)
+				scope.SetTag("column", c.Name)
+				sentry.CurrentHub().CaptureMessage(stack)
+			})
 			logger.Error().Str("column", c.Name).Interface("error", err).TimeDiff("duration", time.Now(), columnStartTime).Str("stack", stack).Msg("column resolver finished with panic")
 			atomic.AddUint64(&tableMetrics.Panics, 1)
 		}
@@ -78,6 +104,13 @@ func (p *Plugin) resolveColumn(ctx context.Context, logger zerolog.Logger, table
 
 	if c.Resolver != nil {
 		if err := c.Resolver(ctx, client, resource, c); err != nil {
+			if errors.As(err, &validationErr) {
+				sentry.WithScope(func(scope *sentry.Scope) {
+					scope.SetTag("table", resource.Table.Name)
+					scope.SetTag("column", c.Name)
+					sentry.CurrentHub().CaptureMessage(validationErr.Error())
+				})
+			}
 			logger.Error().Err(err).Msg("column resolver finished with error")
 			atomic.AddUint64(&tableMetrics.Errors, 1)
 		}
@@ -85,7 +118,18 @@ func (p *Plugin) resolveColumn(ctx context.Context, logger zerolog.Logger, table
 		// base use case: try to get column with CamelCase name
 		v := funk.Get(resource.GetItem(), p.caser.ToPascal(c.Name), funk.WithAllowZero())
 		if v != nil {
-			_ = resource.Set(c.Name, v)
+			err := resource.Set(c.Name, v)
+			if err != nil {
+				if errors.As(err, &validationErr) {
+					sentry.WithScope(func(scope *sentry.Scope) {
+						scope.SetTag("table", resource.Table.Name)
+						scope.SetTag("column", c.Name)
+						sentry.CurrentHub().CaptureMessage(validationErr.Error())
+					})
+				}
+				logger.Error().Err(err).Msg("column resolver finished with error")
+				atomic.AddUint64(&tableMetrics.Errors, 1)
+			}
 		}
 	}
 }

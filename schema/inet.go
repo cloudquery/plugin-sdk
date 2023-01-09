@@ -84,7 +84,7 @@ func (dst *Inet) Set(src any) error {
 		if err != nil {
 			ip := net.ParseIP(value)
 			if ip == nil {
-				return fmt.Errorf("unable to parse inet address: %s", value)
+				return &ValidationError{Type: TypeInet, msg: "cannot parse string as IP"}
 			}
 
 			if ipv4 := maybeGetIPv4(value, ip); ipv4 != nil {
@@ -125,7 +125,7 @@ func (dst *Inet) Set(src any) error {
 		if tv, ok := src.(encoding.TextMarshaler); ok {
 			text, err := tv.MarshalText()
 			if err != nil {
-				return fmt.Errorf("cannot marshal %v: %w", value, err)
+				return &ValidationError{Type: TypeInet, msg: "cannot marshal text", err: err}
 			}
 			return dst.Set(string(text))
 		}
@@ -135,7 +135,7 @@ func (dst *Inet) Set(src any) error {
 		if originalSrc, ok := underlyingPtrType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return fmt.Errorf("cannot convert %v to Inet", value)
+		return &ValidationError{Type: TypeInet, msg: "no available conversion for value"}
 	}
 
 	return nil

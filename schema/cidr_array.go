@@ -61,7 +61,8 @@ func (dst *CIDRArray) Equal(src CQType) bool {
 func (dst *CIDRArray) fromString(value string) error {
 	// this is basically back from string encoding
 	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
-		return fmt.Errorf("cannot decode %v into InetArray", value)
+		// return
+		return &ValidationError{Type: TypeCIDRArray, msg: "cannot decode from string"}
 	}
 	// remove the curly braces
 	value = value[1 : len(value)-1]
@@ -198,7 +199,7 @@ func (dst *CIDRArray) Set(src any) error {
 
 		dimensions, elementsLength, ok := findDimensionsFromValue(reflectedValue, nil, 0)
 		if !ok {
-			return fmt.Errorf("cannot find dimensions of %v for CIDRArray", src)
+			return &ValidationError{Type: TypeCIDRArray, msg: "cannot find dimensions of value"}
 		}
 		if elementsLength == 0 {
 			*dst = CIDRArray{Status: Present}
@@ -208,7 +209,7 @@ func (dst *CIDRArray) Set(src any) error {
 			if originalSrc, ok := underlyingSliceType(src); ok {
 				return dst.Set(originalSrc)
 			}
-			return fmt.Errorf("cannot convert %v to CIDRArray", src)
+			return &ValidationError{Type: TypeCIDRArray, msg: "value is not a slice"}
 		}
 
 		*dst = CIDRArray{
@@ -239,7 +240,7 @@ func (dst *CIDRArray) Set(src any) error {
 			}
 		}
 		if elementCount != len(dst.Elements) {
-			return fmt.Errorf("cannot convert %v to CIDRArray, expected %d dst.Elements, but got %d instead", src, len(dst.Elements), elementCount)
+			return &ValidationError{Type: TypeCIDRArray, msg: fmt.Sprintf("elements mismatch, expected %d dst.Elements, but got %d instead", len(dst.Elements), elementCount)}
 		}
 	}
 
@@ -257,7 +258,7 @@ func (dst *CIDRArray) setRecursive(value reflect.Value, index, dimension int) (i
 
 		valueLen := value.Len()
 		if int32(valueLen) != dst.Dimensions[dimension].Length {
-			return 0, fmt.Errorf("multidimensional arrays must have array expressions with matching dimensions")
+			return 0, &ValidationError{Type: TypeCIDRArray, msg: "multidimensional arrays must have array expressions with matching dimensions"}
 		}
 		for i := 0; i < valueLen; i++ {
 			var err error
@@ -270,10 +271,10 @@ func (dst *CIDRArray) setRecursive(value reflect.Value, index, dimension int) (i
 		return index, nil
 	}
 	if !value.CanInterface() {
-		return 0, fmt.Errorf("cannot convert all values to CIDRArray")
+		return 0, &ValidationError{Type: TypeCIDRArray, msg: "value is not addressable"}
 	}
 	if err := dst.Elements[index].Set(value.Interface()); err != nil {
-		return 0, fmt.Errorf("%v in CIDRArray", err)
+		return 0, &ValidationError{Type: TypeCIDRArray, msg: fmt.Sprintf("cannot set index %d", index), err: err}
 	}
 	index++
 
