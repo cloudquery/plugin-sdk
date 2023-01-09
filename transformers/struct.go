@@ -3,8 +3,10 @@ package transformers
 import (
 	"fmt"
 	"reflect"
+	"strings"
+	"time"
 
-	"github.com/cloudquery/plugin-sdk/codegen"
+	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"golang.org/x/exp/slices"
 )
@@ -104,8 +106,8 @@ func WithIgnoreInTestsTransformer(transformer IgnoreInTestsTransformer) StructTr
 
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
-		nameTransformer:          codegen.DefaultNameTransformer,
-		typeTransformer:          codegen.DefaultTypeTransformer,
+		nameTransformer:          DefaultNameTransformer,
+		typeTransformer:          DefaultTypeTransformer,
 		resolverTransformer:      DefaultResolverTransformer,
 		ignoreInTestsTransformer: DefaultIgnoreInTestsTransformer,
 	}
@@ -215,7 +217,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	}
 
 	if columnType == schema.TypeInvalid {
-		columnType, err = codegen.DefaultTypeTransformer(field)
+		columnType, err = DefaultTypeTransformer(field)
 		if err != nil {
 			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
 		}
@@ -269,4 +271,58 @@ func isTypeIgnored(t reflect.Type) bool {
 	default:
 		return false
 	}
+}
+
+
+func DefaultTypeTransformer(v reflect.StructField) (schema.ValueType, error) {
+	return defaultGoTypeToSchemaType(v.Type)
+}
+
+func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
+	k := v.Kind()
+	switch k {
+	case reflect.Pointer:
+		return defaultGoTypeToSchemaType(v.Elem())
+	case reflect.String:
+		return schema.TypeString, nil
+	case reflect.Bool:
+		return schema.TypeBool, nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return schema.TypeInt, nil
+	case reflect.Float32, reflect.Float64:
+		return schema.TypeFloat, nil
+	case reflect.Map:
+		return schema.TypeJSON, nil
+	case reflect.Struct:
+		if v == reflect.TypeOf(time.Time{}) {
+			return schema.TypeTimestamp, nil
+		}
+		return schema.TypeJSON, nil
+	case reflect.Slice:
+		switch elemValueType, _ := defaultGoTypeToSchemaType(v.Elem()); elemValueType {
+		case schema.TypeString:
+			return schema.TypeStringArray, nil
+		case schema.TypeInt:
+			return schema.TypeIntArray, nil
+		default:
+			return schema.TypeJSON, nil
+		}
+	default:
+		return schema.TypeInvalid, fmt.Errorf("unsupported type: %s", k)
+	}
+}
+
+var defaultCaser = caser.New()
+
+func DefaultNameTransformer(field reflect.StructField) (string, error) {
+	name := field.Name
+	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
+		// return empty string if the field is not related api response
+		if jsonTag == "-" {
+			return "", nil
+		}
+		name = jsonTag
+	}
+	return defaultCaser.ToSnake(name), nil
 }
