@@ -12,13 +12,14 @@ import (
 type WriteMode int
 
 type Destination struct {
-	Name      string    `json:"name,omitempty"`
-	Version   string    `json:"version,omitempty"`
-	Path      string    `json:"path,omitempty"`
-	Registry  Registry  `json:"registry,omitempty"`
-	WriteMode WriteMode `json:"write_mode,omitempty"`
-	BatchSize int       `json:"batch_size,omitempty"`
-	Spec      any       `json:"spec,omitempty"`
+	Name           string    `json:"name,omitempty"`
+	Version        string    `json:"version,omitempty"`
+	Path           string    `json:"path,omitempty"`
+	Registry       Registry  `json:"registry,omitempty"`
+	WriteMode      WriteMode `json:"write_mode,omitempty"`
+	BatchSize      int       `json:"batch_size,omitempty"`
+	BatchSizeBytes int       `json:"batch_size_bytes,omitempty"`
+	Spec           any       `json:"spec,omitempty"`
 }
 
 const (
@@ -31,12 +32,15 @@ var (
 	writeModeStrings = []string{"overwrite-delete-stale", "overwrite", "append"}
 )
 
-func (d *Destination) SetDefaults(defaultBatchSize int) {
+func (d *Destination) SetDefaults(defaultBatchSize, defaultBatchSizeBytes int) {
 	if d.Registry.String() == "" {
 		d.Registry = RegistryGithub
 	}
 	if d.BatchSize == 0 {
 		d.BatchSize = defaultBatchSize
+	}
+	if d.BatchSizeBytes == 0 {
+		d.BatchSizeBytes = defaultBatchSizeBytes
 	}
 }
 

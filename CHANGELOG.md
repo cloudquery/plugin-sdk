@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.23.0](https://github.com/cloudquery/plugin-sdk/compare/v1.22.0...v1.23.0) (2023-01-09)
+
+
+### Features
+
+* Add batch size bytes as additional option ([#582](https://github.com/cloudquery/plugin-sdk/issues/582)) ([bdd76e0](https://github.com/cloudquery/plugin-sdk/commit/bdd76e04402d6da551c964a47a2bcbecd634be24))
+
+## [1.22.0](https://github.com/cloudquery/plugin-sdk/compare/v1.21.0...v1.22.0) (2023-01-06)
+
+
+### Features
+
+* Add size in bytes to CQ types ([#510](https://github.com/cloudquery/plugin-sdk/issues/510)) ([7c15d9a](https://github.com/cloudquery/plugin-sdk/commit/7c15d9a157ef895077ac749acf4adb57deb43fd8))
+* Add WithIgnoreInTestsTransformer ([#579](https://github.com/cloudquery/plugin-sdk/issues/579)) ([f836abd](https://github.com/cloudquery/plugin-sdk/commit/f836abd5addad71f3a4fa389730c4a9cdba1c219))
+* Add WithResolverTransformer ([#578](https://github.com/cloudquery/plugin-sdk/issues/578)) ([5aeba0e](https://github.com/cloudquery/plugin-sdk/commit/5aeba0e1bec90a28190fae38ebc6194fa27f7653))
+
 ## [1.21.0](https://github.com/cloudquery/plugin-sdk/compare/v1.20.0...v1.21.0) (2023-01-05)
 
 
