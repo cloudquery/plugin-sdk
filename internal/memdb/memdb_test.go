@@ -23,6 +23,22 @@ func TestPluginManagedClient(t *testing.T) {
 		destination.PluginTestSuiteTests{})
 }
 
+func TestPluginManagedClientWithSmallBatchSize(t *testing.T) {
+	p := destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter(),
+		destination.WithDefaultBatchSize(1),
+		destination.WithDefaultBatchSizeBytes(1))
+	destination.PluginTestSuiteRunner(t, p, nil,
+		destination.PluginTestSuiteTests{})
+}
+
+func TestPluginManagedClientWithLargeBatchSize(t *testing.T) {
+	p := destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter(),
+		destination.WithDefaultBatchSize(100000000),
+		destination.WithDefaultBatchSizeBytes(100000000))
+	destination.PluginTestSuiteRunner(t, p, nil,
+		destination.PluginTestSuiteTests{})
+}
+
 func TestPluginOnNewError(t *testing.T) {
 	ctx := context.Background()
 	p := destination.NewPlugin("test", "development", NewClientErrOnNew)

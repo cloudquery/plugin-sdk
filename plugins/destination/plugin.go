@@ -17,7 +17,11 @@ const (
 	managed
 )
 
-const defaultBatchTimeoutSeconds = 20
+const (
+	defaultBatchTimeoutSeconds = 20
+	defaultBatchSize           = 10000
+	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
+)
 
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
@@ -86,8 +90,9 @@ type Plugin struct {
 	workers     map[string]*worker
 	workersLock *sync.Mutex
 
-	batchTimeout     time.Duration
-	defaultBatchSize int
+	batchTimeout          time.Duration
+	defaultBatchSize      int
+	defaultBatchSizeBytes int
 }
 
 func WithManagedWriter() Option {
@@ -108,18 +113,25 @@ func WithDefaultBatchSize(defaultBatchSize int) Option {
 	}
 }
 
+func WithDefaultBatchSizeBytes(defaultBatchSizeBytes int) Option {
+	return func(p *Plugin) {
+		p.defaultBatchSizeBytes = defaultBatchSizeBytes
+	}
+}
+
 // NewPlugin creates a new destination plugin
 func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ...Option) *Plugin {
 	p := &Plugin{
-		name:             name,
-		version:          version,
-		newClient:        newClientFunc,
-		metrics:          make(map[string]*Metrics),
-		metricsLock:      &sync.RWMutex{},
-		workers:          make(map[string]*worker),
-		workersLock:      &sync.Mutex{},
-		batchTimeout:     time.Duration(defaultBatchTimeoutSeconds) * time.Second,
-		defaultBatchSize: 10000,
+		name:                  name,
+		version:               version,
+		newClient:             newClientFunc,
+		metrics:               make(map[string]*Metrics),
+		metricsLock:           &sync.RWMutex{},
+		workers:               make(map[string]*worker),
+		workersLock:           &sync.Mutex{},
+		batchTimeout:          time.Duration(defaultBatchTimeoutSeconds) * time.Second,
+		defaultBatchSize:      defaultBatchSize,
+		defaultBatchSizeBytes: defaultBatchSizeBytes,
 	}
 	if newClientFunc == nil {
 		// we do this check because we only call this during runtime later on so it can fail
@@ -163,7 +175,7 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 	var err error
 	p.logger = logger
 	p.spec = spec
-	p.spec.SetDefaults(p.defaultBatchSize)
+	p.spec.SetDefaults(p.defaultBatchSize, p.defaultBatchSizeBytes)
 	p.client, err = p.newClient(ctx, logger, spec)
 	if err != nil {
 		return err
