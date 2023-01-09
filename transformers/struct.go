@@ -273,7 +273,6 @@ func isTypeIgnored(t reflect.Type) bool {
 	}
 }
 
-
 func DefaultTypeTransformer(v reflect.StructField) (schema.ValueType, error) {
 	return defaultGoTypeToSchemaType(v.Type)
 }
