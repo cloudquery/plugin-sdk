@@ -16,6 +16,10 @@ type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resourc
 // ColumnCreationOptions allow modification of how column is defined when table is created
 type ColumnCreationOptions struct {
 	PrimaryKey bool `json:"primary_key,omitempty"`
+	// IncrementalKey is a flag that indicates if the column is used as part of an incremental key.
+	// It is mainly used for documentation purposes, but may also be used as part of ensuring that
+	// migrations are done correctly.
+	IncrementalKey bool `json:"incremental_key"`
 }
 
 // Column definition for Table
@@ -26,7 +30,7 @@ type Column struct {
 	Type ValueType `json:"type,omitempty"`
 	// Description about column, this description is added as a comment in the database
 	Description string `json:"-"`
-	// Column Resolver allows to set you own data based on resolving this can be an API call or setting multiple embedded values etc'
+	// Column Resolver allows to set your own data for a column; this can be an API call, setting multiple embedded values, etc
 	Resolver ColumnResolver `json:"-"`
 	// Creation options allow modifying how column is defined when table is created
 	CreationOptions ColumnCreationOptions `json:"creation_options,omitempty"`

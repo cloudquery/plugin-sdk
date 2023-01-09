@@ -121,5 +121,43 @@
         "relations": []
       }
     ]
+  },
+  {
+    "name": "incremental_table",
+    "description": "Description for incremental table",
+    "columns": [
+      {
+        "name": "_cq_source_name",
+        "type": "TypeString"
+      },
+      {
+        "name": "_cq_sync_time",
+        "type": "TypeTimestamp"
+      },
+      {
+        "name": "_cq_id",
+        "type": "TypeUUID"
+      },
+      {
+        "name": "_cq_parent_id",
+        "type": "TypeUUID"
+      },
+      {
+        "name": "int_col",
+        "type": "TypeInt"
+      },
+      {
+        "name": "id_col",
+        "type": "TypeInt",
+        "is_primary_key": true,
+        "is_incremental_key": true
+      },
+      {
+        "name": "id_col2",
+        "type": "TypeInt",
+        "is_incremental_key": true
+      }
+    ],
+    "relations": []
   }
 ]

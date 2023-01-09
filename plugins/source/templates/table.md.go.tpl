@@ -1,4 +1,4 @@
-# Table: {{.Name}}
+# Table: {{$.Name}}
 
 {{ $.Description }}
 {{ $length := len $.PrimaryKeys -}}
@@ -10,6 +10,16 @@ The composite primary key for this table is ({{ range $index, $pk := $.PrimaryKe
 		**{{$pk}}**
 	{{- end -}}).
 {{ end }}
+{{- if $.IsIncremental -}}
+It supports incremental syncs
+{{- $ikLength := len $.IncrementalKeys -}}
+{{- if eq $ikLength 1 }} based on the **{{ index $.IncrementalKeys 0 }}** column
+{{- else if gt $ikLength 1 }} based on the ({{ range $index, $pk := $.IncrementalKeys -}}
+	{{- if $index -}}, {{end -}}
+		**{{$pk}}**
+	{{- end -}}) columns
+{{- end -}}.
+{{- end -}}
 
 {{- if or ($.Relations) ($.Parent) }}
 ## Relations
@@ -28,5 +38,5 @@ The following tables depend on {{.Name}}:
 | Name          | Type          |
 | ------------- | ------------- |
 {{- range $column := $.Columns }}
-|{{$column.Name}}{{if $column.CreationOptions.PrimaryKey}} (PK){{end}}|{{$column.Type | formatType}}|
+|{{$column.Name}}{{if $column.CreationOptions.PrimaryKey}} (PK){{end}}{{if $column.CreationOptions.IncrementalKey}} (Incremental Key){{end}}|{{$column.Type | formatType}}|
 {{- end }}

@@ -67,6 +67,27 @@ var testTables = []*schema.Table{
 			},
 		},
 	},
+	{
+		Name:          "incremental_table",
+		Description:   "Description for incremental table",
+		IsIncremental: true,
+		Columns: []schema.Column{
+			{
+				Name: "int_col",
+				Type: schema.TypeInt,
+			},
+			{
+				Name:            "id_col",
+				Type:            schema.TypeInt,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true, IncrementalKey: true},
+			},
+			{
+				Name:            "id_col2",
+				Type:            schema.TypeInt,
+				CreationOptions: schema.ColumnCreationOptions{IncrementalKey: true},
+			},
+		},
+	},
 }
 
 func TestGeneratePluginDocs(t *testing.T) {
@@ -80,7 +101,7 @@ func TestGeneratePluginDocs(t *testing.T) {
 			t.Fatalf("unexpected error calling GeneratePluginDocs: %v", err)
 		}
 
-		expectFiles := []string{"test_table.md", "relation_table.md", "relation_relation_table.md", "README.md"}
+		expectFiles := []string{"test_table.md", "relation_table.md", "relation_relation_table.md", "incremental_table.md", "README.md"}
 		for _, exp := range expectFiles {
 			t.Run(exp, func(t *testing.T) {
 				output := path.Join(tmpdir, exp)

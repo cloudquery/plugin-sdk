@@ -27,6 +27,8 @@ type (
 		PostResourceResolver string
 		PreResourceResolver  string
 
+		IsIncremental bool
+
 		nameTransformer     NameTransformer
 		typeTransformer     TypeTransformer
 		resolverTransformer ResolverTransformer

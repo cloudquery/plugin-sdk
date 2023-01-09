@@ -36,9 +36,13 @@ type Source struct {
 	SkipTables []string `json:"skip_tables,omitempty"`
 	// Destinations are the names of destination plugins to send sync data to
 	Destinations []string `json:"destinations,omitempty"`
+
+	// Backend is the name of the state backend to use
+	Backend Backend `json:"backend,omitempty"`
+	// BackendSpec contains any backend-specific configuration
+	BackendSpec any `json:"backend_spec,omitempty"`
 	// Scheduler defines the scheduling algorithm that should be used to sync data
 	Scheduler Scheduler `json:"scheduler,omitempty"`
-
 	// Spec defines plugin specific configuration
 	// This is different in every source plugin.
 	Spec any `json:"spec,omitempty"`
@@ -47,6 +51,9 @@ type Source struct {
 func (s *Source) SetDefaults() {
 	if s.Registry.String() == "" {
 		s.Registry = RegistryGithub
+	}
+	if s.Backend.String() == "" {
+		s.Backend = BackendLocal
 	}
 	if s.Scheduler.String() == "" {
 		s.Scheduler = SchedulerDFS
@@ -68,6 +75,18 @@ func (s *Source) SetDefaults() {
 // UnmarshalSpec unmarshals the internal spec into the given interface
 func (s *Source) UnmarshalSpec(out any) error {
 	b, err := json.Marshal(s.Spec)
+	if err != nil {
+		return err
+	}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	dec.DisallowUnknownFields()
+	return dec.Decode(out)
+}
+
+// UnmarshalBackendSpec unmarshals the backend spec into the given interface
+func (s *Source) UnmarshalBackendSpec(out any) error {
+	b, err := json.Marshal(s.BackendSpec)
 	if err != nil {
 		return err
 	}
