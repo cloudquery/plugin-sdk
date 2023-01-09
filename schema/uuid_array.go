@@ -60,7 +60,7 @@ func (dst *UUIDArray) Equal(src CQType) bool {
 func (dst *UUIDArray) fromString(value string) error {
 	// this is basically back from string encoding
 	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
-		return &ValidationError{Type: TypeUUIDArray, msg: "cannot decode from string", Value: value}
+		return &ValidationError{Type: TypeUUIDArray, Msg: cannotDecodeString, Value: value}
 	}
 
 	value = value[1 : len(value)-1]
@@ -222,7 +222,7 @@ func (dst *UUIDArray) Set(src any) error {
 
 		dimensions, elementsLength, ok := findDimensionsFromValue(reflectedValue, nil, 0)
 		if !ok {
-			return &ValidationError{Type: TypeUUIDArray, msg: "cannot find dimensions", Value: value}
+			return &ValidationError{Type: TypeUUIDArray, Msg: cannotFindDimensions, Value: value}
 		}
 		if elementsLength == 0 {
 			*dst = UUIDArray{Status: Present}
@@ -232,7 +232,7 @@ func (dst *UUIDArray) Set(src any) error {
 			if originalSrc, ok := underlyingSliceType(src); ok {
 				return dst.Set(originalSrc)
 			}
-			return &ValidationError{Type: TypeUUIDArray, msg: "not a slice", Value: value}
+			return &ValidationError{Type: TypeUUIDArray, Msg: noConversion, Value: value}
 		}
 
 		*dst = UUIDArray{
@@ -263,7 +263,7 @@ func (dst *UUIDArray) Set(src any) error {
 			}
 		}
 		if elementCount != len(dst.Elements) {
-			return &ValidationError{Type: TypeUUIDArray, msg: fmt.Sprintf("expected %d dst.Elements, but got %d instead", len(dst.Elements), elementCount), Value: value}
+			return &ValidationError{Type: TypeUUIDArray, Msg: fmt.Sprintf(expectedElements, len(dst.Elements), elementCount), Value: value}
 		}
 	}
 
@@ -281,7 +281,7 @@ func (dst *UUIDArray) setRecursive(value reflect.Value, index, dimension int) (i
 
 		valueLen := value.Len()
 		if int32(valueLen) != dst.Dimensions[dimension].Length {
-			return 0, &ValidationError{Type: TypeUUIDArray, msg: fmt.Sprintf("expected %d elements in dimension %d, but got %d instead", dst.Dimensions[dimension].Length, dimension, valueLen), Value: value}
+			return 0, &ValidationError{Type: TypeUUIDArray, Msg: fmt.Sprintf(expectedElementsInDimension, dst.Dimensions[dimension].Length, dimension, valueLen), Value: value}
 		}
 		for i := 0; i < valueLen; i++ {
 			var err error
@@ -294,10 +294,10 @@ func (dst *UUIDArray) setRecursive(value reflect.Value, index, dimension int) (i
 		return index, nil
 	}
 	if !value.CanInterface() {
-		return 0, &ValidationError{Type: TypeUUIDArray, msg: "cannot create interface from value", Value: value}
+		return 0, &ValidationError{Type: TypeUUIDArray, Msg: notInterface, Value: value}
 	}
 	if err := dst.Elements[index].Set(value.Interface()); err != nil {
-		return 0, &ValidationError{Type: TypeUUIDArray, msg: fmt.Sprintf("cannot set element %d", index), Value: value, err: err}
+		return 0, &ValidationError{Type: TypeUUIDArray, Msg: fmt.Sprintf(cannotSetIndex, index), Value: value, Err: err}
 	}
 	index++
 

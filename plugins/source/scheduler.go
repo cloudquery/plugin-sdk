@@ -32,6 +32,7 @@ func (p *Plugin) logTablesMetrics(tables schema.Tables, client schema.ClientMeta
 }
 
 func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item any) *schema.Resource {
+	var validationErr *schema.ValidationError
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	resource := schema.NewResourceData(table, parent, item)
@@ -42,25 +43,24 @@ func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, clien
 	defer func() {
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
+			logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("resource resolver finished with panic")
+			atomic.AddUint64(&tableMetrics.Panics, 1)
 			sentry.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("table", table.Name)
 				sentry.CurrentHub().CaptureMessage(stack)
 			})
-			logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("resource resolver finished with panic")
-			atomic.AddUint64(&tableMetrics.Panics, 1)
 		}
 	}()
 	if table.PreResourceResolver != nil {
 		if err := table.PreResourceResolver(ctx, client, resource); err != nil {
 			logger.Error().Err(err).Msg("pre resource resolver failed")
-			var validationErr *schema.ValidationError
+			atomic.AddUint64(&tableMetrics.Errors, 1)
 			if errors.As(err, &validationErr) {
 				sentry.WithScope(func(scope *sentry.Scope) {
 					scope.SetTag("table", table.Name)
-					sentry.CurrentHub().CaptureMessage(validationErr.Error())
+					sentry.CurrentHub().CaptureMessage(validationErr.MaskedError())
 				})
 			}
-			atomic.AddUint64(&tableMetrics.Errors, 1)
 			return nil
 		}
 	}
@@ -71,15 +71,14 @@ func (p *Plugin) resolveResource(ctx context.Context, table *schema.Table, clien
 
 	if table.PostResourceResolver != nil {
 		if err := table.PostResourceResolver(ctx, client, resource); err != nil {
-			var validationErr *schema.ValidationError
+			logger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
+			atomic.AddUint64(&tableMetrics.Errors, 1)
 			if errors.As(err, &validationErr) {
 				sentry.WithScope(func(scope *sentry.Scope) {
 					scope.SetTag("table", table.Name)
-					sentry.CurrentHub().CaptureMessage(validationErr.Error())
+					sentry.CurrentHub().CaptureMessage(validationErr.MaskedError())
 				})
 			}
-			logger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
-			atomic.AddUint64(&tableMetrics.Errors, 1)
 		}
 	}
 	atomic.AddUint64(&tableMetrics.Resources, 1)
@@ -92,27 +91,27 @@ func (p *Plugin) resolveColumn(ctx context.Context, logger zerolog.Logger, table
 	defer func() {
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
+			logger.Error().Str("column", c.Name).Interface("error", err).TimeDiff("duration", time.Now(), columnStartTime).Str("stack", stack).Msg("column resolver finished with panic")
+			atomic.AddUint64(&tableMetrics.Panics, 1)
 			sentry.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("table", resource.Table.Name)
 				scope.SetTag("column", c.Name)
 				sentry.CurrentHub().CaptureMessage(stack)
 			})
-			logger.Error().Str("column", c.Name).Interface("error", err).TimeDiff("duration", time.Now(), columnStartTime).Str("stack", stack).Msg("column resolver finished with panic")
-			atomic.AddUint64(&tableMetrics.Panics, 1)
 		}
 	}()
 
 	if c.Resolver != nil {
 		if err := c.Resolver(ctx, client, resource, c); err != nil {
+			logger.Error().Err(err).Msg("column resolver finished with error")
+			atomic.AddUint64(&tableMetrics.Errors, 1)
 			if errors.As(err, &validationErr) {
 				sentry.WithScope(func(scope *sentry.Scope) {
 					scope.SetTag("table", resource.Table.Name)
 					scope.SetTag("column", c.Name)
-					sentry.CurrentHub().CaptureMessage(validationErr.Error())
+					sentry.CurrentHub().CaptureMessage(validationErr.MaskedError())
 				})
 			}
-			logger.Error().Err(err).Msg("column resolver finished with error")
-			atomic.AddUint64(&tableMetrics.Errors, 1)
 		}
 	} else {
 		// base use case: try to get column with CamelCase name
@@ -120,15 +119,15 @@ func (p *Plugin) resolveColumn(ctx context.Context, logger zerolog.Logger, table
 		if v != nil {
 			err := resource.Set(c.Name, v)
 			if err != nil {
+				logger.Error().Err(err).Msg("column resolver finished with error")
+				atomic.AddUint64(&tableMetrics.Errors, 1)
 				if errors.As(err, &validationErr) {
 					sentry.WithScope(func(scope *sentry.Scope) {
 						scope.SetTag("table", resource.Table.Name)
 						scope.SetTag("column", c.Name)
-						sentry.CurrentHub().CaptureMessage(validationErr.Error())
+						sentry.CurrentHub().CaptureMessage(validationErr.MaskedError())
 					})
 				}
-				logger.Error().Err(err).Msg("column resolver finished with error")
-				atomic.AddUint64(&tableMetrics.Errors, 1)
 			}
 		}
 	}

@@ -86,28 +86,28 @@ func (dst *Float8) Set(src any) error {
 		if int64(f64) == value {
 			*dst = Float8{Float: f64, Status: Present}
 		} else {
-			return &ValidationError{Type: TypeFloat, msg: "int64 value cannot be exactly represented as float64"}
+			return &ValidationError{Type: TypeFloat, Msg: "int64 value cannot be exactly represented as float64", Value: value}
 		}
 	case uint64:
 		f64 := float64(value)
 		if uint64(f64) == value {
 			*dst = Float8{Float: f64, Status: Present}
 		} else {
-			return &ValidationError{Type: TypeFloat, msg: "uint64 value cannot be exactly represented as float64"}
+			return &ValidationError{Type: TypeFloat, Msg: "uint64 value cannot be exactly represented as float64", Value: value}
 		}
 	case int:
 		f64 := float64(value)
 		if int(f64) == value {
 			*dst = Float8{Float: f64, Status: Present}
 		} else {
-			return &ValidationError{Type: TypeFloat, msg: "int value cannot be exactly represented as float64"}
+			return &ValidationError{Type: TypeFloat, Msg: "int value cannot be exactly represented as float64", Value: value}
 		}
 	case uint:
 		f64 := float64(value)
 		if uint(f64) == value {
 			*dst = Float8{Float: f64, Status: Present}
 		} else {
-			return &ValidationError{Type: TypeFloat, msg: "uint value cannot be exactly represented as float64"}
+			return &ValidationError{Type: TypeFloat, Msg: "uint value cannot be exactly represented as float64", Value: value}
 		}
 	case string:
 		num, err := strconv.ParseFloat(value, 64)
@@ -197,7 +197,7 @@ func (dst *Float8) Set(src any) error {
 		if originalSrc, ok := underlyingNumberType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return &ValidationError{Type: TypeFloat, msg: "value is not a number", Value: src}
+		return &ValidationError{Type: TypeFloat, Msg: noConversion, Value: src}
 	}
 
 	return nil

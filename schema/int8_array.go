@@ -56,7 +56,7 @@ func (dst *Int8Array) Equal(src CQType) bool {
 func (dst *Int8Array) fromString(value string) error {
 	// this is basically back from string encoding
 	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
-		return &ValidationError{Type: TypeIntArray, msg: "cannot decode from string", Value: value}
+		return &ValidationError{Type: TypeIntArray, Msg: cannotDecodeString, Value: value}
 	}
 
 	value = value[1 : len(value)-1]
@@ -451,7 +451,7 @@ func (dst *Int8Array) Set(src any) error {
 
 		dimensions, elementsLength, ok := findDimensionsFromValue(reflectedValue, nil, 0)
 		if !ok {
-			return &ValidationError{Type: TypeIntArray, msg: "cannot find dimensions", Value: src}
+			return &ValidationError{Type: TypeIntArray, Msg: cannotFindDimensions, Value: src}
 		}
 		if elementsLength == 0 {
 			*dst = Int8Array{Status: Present}
@@ -461,7 +461,7 @@ func (dst *Int8Array) Set(src any) error {
 			if originalSrc, ok := underlyingSliceType(src); ok {
 				return dst.Set(originalSrc)
 			}
-			return &ValidationError{Type: TypeIntArray, msg: "value is not a slice", Value: src}
+			return &ValidationError{Type: TypeIntArray, Msg: noConversion, Value: src}
 		}
 
 		*dst = Int8Array{
@@ -492,7 +492,7 @@ func (dst *Int8Array) Set(src any) error {
 			}
 		}
 		if elementCount != len(dst.Elements) {
-			return &ValidationError{Type: TypeIntArray, msg: fmt.Sprintf("expected %d dst.Elements, but got %d instead", len(dst.Elements), elementCount), Value: src}
+			return &ValidationError{Type: TypeIntArray, Msg: fmt.Sprintf(expectedElements, len(dst.Elements), elementCount), Value: src}
 		}
 	}
 
@@ -510,7 +510,7 @@ func (dst *Int8Array) setRecursive(value reflect.Value, index, dimension int) (i
 
 		valueLen := value.Len()
 		if int32(valueLen) != dst.Dimensions[dimension].Length {
-			return 0, &ValidationError{Type: TypeIntArray, msg: fmt.Sprintf("expected %d elements in dimension %d, but got %d instead", dst.Dimensions[dimension].Length, dimension, valueLen), Value: value.Interface()}
+			return 0, &ValidationError{Type: TypeIntArray, Msg: fmt.Sprintf(expectedElementsInDimension, dst.Dimensions[dimension].Length, dimension, valueLen), Value: value}
 		}
 		for i := 0; i < valueLen; i++ {
 			var err error
@@ -523,10 +523,10 @@ func (dst *Int8Array) setRecursive(value reflect.Value, index, dimension int) (i
 		return index, nil
 	}
 	if !value.CanInterface() {
-		return 0, &ValidationError{Type: TypeIntArray, msg: "cannot interface value", Value: value.Interface()}
+		return 0, &ValidationError{Type: TypeIntArray, Msg: notInterface, Value: value}
 	}
 	if err := dst.Elements[index].Set(value.Interface()); err != nil {
-		return 0, &ValidationError{Type: TypeIntArray, msg: fmt.Sprintf("cannot set element %d", index), Value: value.Interface(), err: err}
+		return 0, &ValidationError{Type: TypeIntArray, Msg: fmt.Sprintf(cannotSetIndex, index), Value: value.Interface(), Err: err}
 	}
 	index++
 

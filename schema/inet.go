@@ -84,7 +84,7 @@ func (dst *Inet) Set(src any) error {
 		if err != nil {
 			ip := net.ParseIP(value)
 			if ip == nil {
-				return &ValidationError{Type: TypeInet, msg: "cannot parse string as IP"}
+				return &ValidationError{Type: TypeInet, Msg: "cannot parse string as IP", Value: value}
 			}
 
 			if ipv4 := maybeGetIPv4(value, ip); ipv4 != nil {
@@ -125,7 +125,7 @@ func (dst *Inet) Set(src any) error {
 		if tv, ok := src.(encoding.TextMarshaler); ok {
 			text, err := tv.MarshalText()
 			if err != nil {
-				return &ValidationError{Type: TypeInet, msg: "cannot marshal text", err: err}
+				return &ValidationError{Type: TypeInet, Msg: "cannot marshal text", Err: err, Value: src}
 			}
 			return dst.Set(string(text))
 		}
@@ -135,7 +135,7 @@ func (dst *Inet) Set(src any) error {
 		if originalSrc, ok := underlyingPtrType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return &ValidationError{Type: TypeInet, msg: "no available conversion for value"}
+		return &ValidationError{Type: TypeInet, Msg: noConversion, Value: src}
 	}
 
 	return nil

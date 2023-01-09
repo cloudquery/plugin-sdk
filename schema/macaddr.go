@@ -85,7 +85,7 @@ func (dst *Macaddr) Set(src any) error {
 		if originalSrc, ok := underlyingPtrType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return &ValidationError{Type: TypeMacAddr, msg: "type mismatch", Value: value}
+		return &ValidationError{Type: TypeMacAddr, Msg: noConversion, Value: value}
 	}
 
 	return nil

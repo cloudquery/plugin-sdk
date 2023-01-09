@@ -60,7 +60,7 @@ func (dst *TextArray) Equal(src CQType) bool {
 func (dst *TextArray) fromString(value string) error {
 	// this is basically back from string encoding
 	if !strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
-		return &ValidationError{Type: TypeStringArray, msg: "cannot decode from string", Value: value}
+		return &ValidationError{Type: TypeStringArray, Msg: cannotDecodeString, Value: value}
 	}
 
 	value = value[1 : len(value)-1]
@@ -177,7 +177,7 @@ func (dst *TextArray) Set(src any) error {
 
 		dimensions, elementsLength, ok := findDimensionsFromValue(reflectedValue, nil, 0)
 		if !ok {
-			return &ValidationError{Type: TypeStringArray, msg: "cannot find dimensions of source", Value: src}
+			return &ValidationError{Type: TypeStringArray, Msg: cannotFindDimensions, Value: src}
 		}
 		if elementsLength == 0 {
 			*dst = TextArray{Status: Present}
@@ -187,7 +187,7 @@ func (dst *TextArray) Set(src any) error {
 			if originalSrc, ok := underlyingSliceType(src); ok {
 				return dst.Set(originalSrc)
 			}
-			return &ValidationError{Type: TypeStringArray, msg: "value not a slice", Value: src}
+			return &ValidationError{Type: TypeStringArray, Msg: noConversion, Value: src}
 		}
 
 		*dst = TextArray{
@@ -219,7 +219,7 @@ func (dst *TextArray) Set(src any) error {
 			}
 		}
 		if elementCount != len(dst.Elements) {
-			return &ValidationError{Type: TypeStringArray, msg: fmt.Sprintf("expected %d dst.Elements, but got %d instead", len(dst.Elements), elementCount), Value: src}
+			return &ValidationError{Type: TypeStringArray, Msg: fmt.Sprintf(expectedElements, len(dst.Elements), elementCount), Value: src}
 		}
 	}
 
@@ -237,7 +237,7 @@ func (dst *TextArray) setRecursive(value reflect.Value, index, dimension int) (i
 
 		valueLen := value.Len()
 		if int32(valueLen) != dst.Dimensions[dimension].Length {
-			return 0, &ValidationError{Type: TypeStringArray, msg: fmt.Sprintf("expected %d elements in dimension %d, but got %d instead", dst.Dimensions[dimension].Length, dimension, valueLen), Value: value}
+			return 0, &ValidationError{Type: TypeStringArray, Msg: fmt.Sprintf(expectedElementsInDimension, dst.Dimensions[dimension].Length, dimension, valueLen), Value: value}
 		}
 		for i := 0; i < valueLen; i++ {
 			var err error
@@ -250,10 +250,10 @@ func (dst *TextArray) setRecursive(value reflect.Value, index, dimension int) (i
 		return index, nil
 	}
 	if !value.CanInterface() {
-		return 0, &ValidationError{Type: TypeStringArray, msg: "not an interface", Value: value}
+		return 0, &ValidationError{Type: TypeStringArray, Msg: notInterface, Value: value}
 	}
 	if err := dst.Elements[index].Set(value.Interface()); err != nil {
-		return 0, &ValidationError{Type: TypeStringArray, msg: fmt.Sprintf("cannot set element %d", index), Value: value, err: err}
+		return 0, &ValidationError{Type: TypeStringArray, Msg: fmt.Sprintf(cannotSetIndex, index), Value: value, Err: err}
 	}
 	index++
 

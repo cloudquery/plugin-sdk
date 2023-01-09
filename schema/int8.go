@@ -76,14 +76,14 @@ func (dst *Int8) Set(src any) error {
 		*dst = Int8{Int: value, Status: Present}
 	case uint64:
 		if value > math.MaxInt64 {
-			return &ValidationError{Type: TypeInt, msg: "uint64 bigger than MaxInt64", Value: value}
+			return &ValidationError{Type: TypeInt, Msg: "uint64 bigger than MaxInt64", Value: value}
 		}
 		*dst = Int8{Int: int64(value), Status: Present}
 	case int:
 		*dst = Int8{Int: int64(value), Status: Present}
 	case uint:
 		if uint64(value) > math.MaxInt64 {
-			return &ValidationError{Type: TypeInt, msg: "uint bigger than MaxInt64", Value: value}
+			return &ValidationError{Type: TypeInt, Msg: "uint bigger than MaxInt64", Value: value}
 		}
 		*dst = Int8{Int: int64(value), Status: Present}
 	case string:
@@ -94,12 +94,12 @@ func (dst *Int8) Set(src any) error {
 		*dst = Int8{Int: num, Status: Present}
 	case float32:
 		if value > math.MaxInt64 {
-			return &ValidationError{Type: TypeInt, msg: "float32 bigger than MaxInt64", Value: value}
+			return &ValidationError{Type: TypeInt, Msg: "float32 bigger than MaxInt64", Value: value}
 		}
 		*dst = Int8{Int: int64(value), Status: Present}
 	case float64:
 		if value > math.MaxInt64 {
-			return &ValidationError{Type: TypeInt, msg: "float64 bigger than MaxInt64", Value: value}
+			return &ValidationError{Type: TypeInt, Msg: "float64 bigger than MaxInt64", Value: value}
 		}
 		*dst = Int8{Int: int64(value), Status: Present}
 	case *int8:
@@ -184,7 +184,7 @@ func (dst *Int8) Set(src any) error {
 		if originalSrc, ok := underlyingNumberType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return &ValidationError{Type: TypeInt, msg: "value is not a number", Value: value}
+		return &ValidationError{Type: TypeInt, Msg: noConversion, Value: value}
 	}
 
 	return nil

@@ -72,7 +72,7 @@ func (dst *Bytea) Set(src any) error {
 			b := make([]byte, hex.DecodedLen(len(value)))
 			_, err := hex.Decode(b, []byte(value))
 			if err != nil {
-				return &ValidationError{Type: TypeByteArray, msg: "hex decode failed", err: err}
+				return &ValidationError{Type: TypeByteArray, Msg: "hex decode failed", Err: err, Value: err}
 			}
 			*dst = Bytea{Status: Present, Bytes: b}
 		} else {
@@ -82,7 +82,7 @@ func (dst *Bytea) Set(src any) error {
 		if originalSrc, ok := underlyingBytesType(src); ok {
 			return dst.Set(originalSrc)
 		}
-		return &ValidationError{Type: TypeByteArray, msg: "value is not byte array"}
+		return &ValidationError{Type: TypeByteArray, Msg: noConversion, Value: src}
 	}
 
 	return nil

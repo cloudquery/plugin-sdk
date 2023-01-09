@@ -86,7 +86,7 @@ func (dst *JSON) Set(src any) error {
 			return nil
 		}
 		if !json.Valid([]byte(value)) {
-			return &ValidationError{Type: TypeJSON, msg: "invalid json string", Value: value}
+			return &ValidationError{Type: TypeJSON, Msg: "invalid json string", Value: value}
 		}
 		*dst = JSON{Bytes: []byte(value), Status: Present}
 	case *string:
@@ -98,7 +98,7 @@ func (dst *JSON) Set(src any) error {
 				return nil
 			}
 			if !json.Valid([]byte(*value)) {
-				return &ValidationError{Type: TypeJSON, msg: "invalid json string pointer", Value: value}
+				return &ValidationError{Type: TypeJSON, Msg: "invalid json string pointer", Value: value}
 			}
 			*dst = JSON{Bytes: []byte(*value), Status: Present}
 		}
@@ -112,7 +112,7 @@ func (dst *JSON) Set(src any) error {
 			}
 
 			if !json.Valid(value) {
-				return &ValidationError{Type: TypeJSON, msg: "invalid json byte array", Value: value}
+				return &ValidationError{Type: TypeJSON, Msg: "invalid json byte array", Value: value}
 			}
 			*dst = JSON{Bytes: value, Status: Present}
 		}
@@ -121,7 +121,7 @@ func (dst *JSON) Set(src any) error {
 	// struct itself would be encoded instead of Bytes. This is clearly a footgun
 	// so detect and return an error. See https://github.com/jackc/pgx/issues/350.
 	case JSON:
-		return &ValidationError{Type: TypeJSON, msg: "use pointer to JSON instead of value", Value: value}
+		return &ValidationError{Type: TypeJSON, Msg: "use pointer to JSON instead of value", Value: value}
 
 	default:
 		buf, err := json.Marshal(value)
