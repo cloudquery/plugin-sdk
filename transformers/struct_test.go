@@ -31,6 +31,8 @@ type (
 		StringArrayCol        []string  `json:"string_array_col,omitempty"`
 		StringPointerArrayCol []*string `json:"string_pointer_array_col,omitempty"`
 
+		ByteArrayCol []byte `json:"byte_array_col,omitempty"`
+
 		TimeCol        time.Time  `json:"time_col,omitempty"`
 		TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
 		JSONTag        *string    `json:"json_tag"`
@@ -93,6 +95,10 @@ var (
 		{
 			Name: "string_pointer_array_col",
 			Type: schema.TypeStringArray,
+		},
+		{
+			Name: "byte_array_col",
+			Type: schema.TypeByteArray,
 		},
 		{
 			Name: "time_col",
