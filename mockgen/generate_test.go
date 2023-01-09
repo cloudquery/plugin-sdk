@@ -52,6 +52,7 @@ func TestGenerateInterfaces(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open file: %v", err)
 	}
+	defer f.Close()
 	b, err := io.ReadAll(f)
 	if err != nil {
 		t.Fatalf("failed to read file: %v", err)
