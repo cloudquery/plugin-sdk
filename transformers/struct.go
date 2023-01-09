@@ -299,8 +299,7 @@ func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 		}
 		return schema.TypeJSON, nil
 	case reflect.Slice:
-		switch v.Elem().Kind() {
-		case reflect.Uint8:
+		if v.Elem().Kind() == reflect.Uint8 {
 			return schema.TypeByteArray, nil
 		}
 
