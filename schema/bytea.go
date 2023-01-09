@@ -72,7 +72,7 @@ func (dst *Bytea) Set(src any) error {
 			b := make([]byte, hex.DecodedLen(len(value)))
 			_, err := hex.Decode(b, []byte(value))
 			if err != nil {
-				return &ValidationError{Type: TypeByteArray, Msg: "hex decode failed", Err: err, Value: err}
+				return &ValidationError{Type: TypeByteArray, Msg: "hex decode failed", Err: err, Value: value}
 			}
 			*dst = Bytea{Status: Present, Bytes: b}
 		} else {

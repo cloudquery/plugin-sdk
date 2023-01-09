@@ -94,7 +94,7 @@ func (dst *Text) Set(src any) error {
 			} else {
 				v, err := value.Value()
 				if err != nil {
-					return &ValidationError{Type: TypeString, Msg: "driver.Valuer Value() method failed", Err: err}
+					return &ValidationError{Type: TypeString, Msg: "driver.Valuer Value() method failed", Err: err, Value: src}
 				}
 
 				// Handles also v == nil case.
