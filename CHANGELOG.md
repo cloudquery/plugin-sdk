@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.0](https://github.com/cloudquery/plugin-sdk/compare/v1.23.0...v1.24.0) (2023-01-09)
+
+
+### Features
+
+* Add local backend for storing cursor state ([#569](https://github.com/cloudquery/plugin-sdk/issues/569)) ([3b07885](https://github.com/cloudquery/plugin-sdk/commit/3b07885a57595b96dc1db5b786a6f1c22f0a5149))
+* Remove codegen ([#589](https://github.com/cloudquery/plugin-sdk/issues/589)) ([1c5943a](https://github.com/cloudquery/plugin-sdk/commit/1c5943a3f1fcdd77eac89763ef3650f20f75df03))
+
+
+### Bug Fixes
+
+* **destinations:** Log correct size of batch ([#588](https://github.com/cloudquery/plugin-sdk/issues/588)) ([9cebafe](https://github.com/cloudquery/plugin-sdk/commit/9cebafef0b46c674df3027886649676cbf6c933f))
+
 ## [1.23.0](https://github.com/cloudquery/plugin-sdk/compare/v1.22.0...v1.23.0) (2023-01-09)
 
 
