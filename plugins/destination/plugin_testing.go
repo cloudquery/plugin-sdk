@@ -13,6 +13,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 type PluginTestSuite struct {
@@ -395,6 +396,15 @@ func (*PluginTestSuite) destinationPluginTestMigrateAppend(ctx context.Context, 
 	return nil
 }
 
+func checkMetrics(t *testing.T, p *Plugin) {
+	t.Helper()
+
+	mx := p.Metrics()
+
+	require.NotNil(t, mx)
+	require.NotZero(t, mx.Errors+mx.Writes)
+}
+
 func getTestLogger(t *testing.T) zerolog.Logger {
 	t.Helper()
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
@@ -421,9 +431,8 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 			t.Skip("skipping TestWriteOverwrite")
 			return
 		}
-		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec))
+		checkMetrics(t, p)
 	})
 
 	t.Run("TestWriteOverwriteDeleteStale", func(t *testing.T) {
@@ -443,9 +452,8 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 			t.Skip("skipping TestWriteAppend")
 			return
 		}
-		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec))
+		checkMetrics(t, p)
 	})
 
 	t.Run("TestMigrateAppend", func(t *testing.T) {
@@ -454,9 +462,8 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 			t.Skip("skipping TestMigrateAppend")
 			return
 		}
-		if err := suite.destinationPluginTestMigrateAppend(ctx, p, logger, destSpec); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, suite.destinationPluginTestMigrateAppend(ctx, p, logger, destSpec))
+		checkMetrics(t, p)
 	})
 }
 

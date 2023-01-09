@@ -3,7 +3,6 @@ package destination
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -12,25 +11,38 @@ import (
 
 type worker struct {
 	count int
-	wg    *sync.WaitGroup
+	wg    sync.WaitGroup // implies usage by pointer
 	ch    chan schema.CQTypes
 	flush chan chan bool
+	table *schema.Table
 }
 
-func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan schema.CQTypes, flush <-chan chan bool) {
+func newWorker(table *schema.Table) *worker {
+	return &worker{
+		count: 1,
+		ch:    make(chan schema.CQTypes),
+		flush: make(chan chan bool),
+		table: table,
+	}
+}
+
+func (p *Plugin) worker(ctx context.Context, w *worker) {
+	w.wg.Add(1)
+	defer w.wg.Done()
+
 	resources := make([][]any, 0)
 	sizeBytes := 0
 	for {
 		select {
-		case r, ok := <-ch:
+		case r, ok := <-w.ch:
 			if !ok {
 				if len(resources) > 0 {
-					p.flush(ctx, metrics, table, resources)
+					p.flush(ctx, w, resources)
 				}
 				return
 			}
 			if len(resources) == p.spec.BatchSize || sizeBytes+r.Size() > p.spec.BatchSizeBytes {
-				p.flush(ctx, metrics, table, resources)
+				p.flush(ctx, w, resources)
 				resources = make([][]any, 0)
 				sizeBytes = 0
 			}
@@ -38,13 +50,13 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 			sizeBytes += r.Size()
 		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
-				p.flush(ctx, metrics, table, resources)
+				p.flush(ctx, w, resources)
 				resources = make([][]any, 0)
 				sizeBytes = 0
 			}
-		case done := <-flush:
+		case done := <-w.flush:
 			if len(resources) > 0 {
-				p.flush(ctx, metrics, table, resources)
+				p.flush(ctx, w, resources)
 				resources = make([][]any, 0)
 				sizeBytes = 0
 			}
@@ -53,17 +65,28 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 	}
 }
 
-func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources [][]any) {
+func (p *Plugin) flush(ctx context.Context, w *worker, resources [][]any) {
 	start := time.Now()
+	err := p.client.WriteTableBatch(ctx, w.table, resources)
+	dur := time.Since(start)
 	batchSize := len(resources)
-	if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
-		p.logger.Err(err).Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
-		// we don't return an error as we need to continue until channel is closed otherwise there will be a deadlock
-		atomic.AddUint64(&metrics.Errors, uint64(batchSize))
-	} else {
-		p.logger.Info().Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
-		atomic.AddUint64(&metrics.Writes, uint64(batchSize))
+
+	if err != nil {
+		p.errors.Add(uint64(batchSize))
+		p.logger.Err(err).
+			Str("table", w.table.Name).
+			Int("len", batchSize).
+			Dur("duration", dur).
+			Msg("failed to write batch")
+		return
 	}
+
+	p.writes.Add(uint64(batchSize))
+	p.logger.Info().
+		Str("table", w.table.Name).
+		Int("len", batchSize).
+		Dur("duration", dur).
+		Msg("batch written successfully")
 }
 
 func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
@@ -71,32 +94,19 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.So
 	SetDestinationManagedCqColumns(tables)
 
 	workers := make(map[string]*worker, len(tables))
-	metrics := &Metrics{}
 
 	p.workersLock.Lock()
 	for _, table := range tables.FlattenTables() {
-		table := table
-		if p.workers[table.Name] == nil {
-			ch := make(chan schema.CQTypes)
-			flush := make(chan chan bool)
-			wg := &sync.WaitGroup{}
-			p.workers[table.Name] = &worker{
-				count: 1,
-				ch:    ch,
-				flush: flush,
-				wg:    wg,
-			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				p.worker(ctx, metrics, table, ch, flush)
-			}()
-		} else {
-			p.workers[table.Name].count++
+		if w, ok := p.workers[table.Name]; ok {
+			w.count++
+			continue
 		}
+		w := newWorker(table)
+		p.workers[table.Name] = w
 		// we save this locally because we don't want to access the map after that so we can
 		// keep the workersLock for as short as possible
-		workers[table.Name] = p.workers[table.Name]
+		workers[table.Name] = w
+		go p.worker(ctx, w)
 	}
 	p.workersLock.Unlock()
 
@@ -115,22 +125,21 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.So
 
 	// flush and wait for all workers to finish flush before finish and calling delete stale
 	// This is because destinations can be longed lived and called from multiple sources
-	flushChannels := make(map[string]chan bool, len(workers))
-	for tableName, w := range workers {
+	flushChannels := make([]chan bool, 0, len(workers))
+	for _, w := range workers {
 		flushCh := make(chan bool)
-		flushChannels[tableName] = flushCh
+		flushChannels = append(flushChannels, flushCh)
 		w.flush <- flushCh
 	}
-	for tableName := range flushChannels {
-		<-flushChannels[tableName]
+	for _, ch := range flushChannels {
+		<-ch
 	}
 
 	p.workersLock.Lock()
-	for tableName := range workers {
-		p.workers[tableName].count--
-		if p.workers[tableName].count == 0 {
-			close(p.workers[tableName].ch)
-			p.workers[tableName].wg.Wait()
+	for tableName, w := range p.workers {
+		if w.count--; w.count == 0 {
+			close(w.ch)
+			w.wg.Wait()
 			delete(p.workers, tableName)
 		}
 	}
