@@ -299,11 +299,24 @@ func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 		}
 		return schema.TypeJSON, nil
 	case reflect.Slice:
+		switch v.Elem().Kind() {
+		case reflect.Uint8:
+			return schema.TypeByteArray, nil
+		}
+
 		switch elemValueType, _ := defaultGoTypeToSchemaType(v.Elem()); elemValueType {
 		case schema.TypeString:
 			return schema.TypeStringArray, nil
 		case schema.TypeInt:
 			return schema.TypeIntArray, nil
+		case schema.TypeCIDR:
+			return schema.TypeCIDRArray, nil
+		case schema.TypeUUID:
+			return schema.TypeUUIDArray, nil
+		case schema.TypeInet:
+			return schema.TypeInetArray, nil
+		case schema.TypeMacAddr:
+			return schema.TypeMacAddrArray, nil
 		default:
 			return schema.TypeJSON, nil
 		}
