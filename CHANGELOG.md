@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.1](https://github.com/cloudquery/plugin-sdk/compare/v1.24.0...v1.24.1) (2023-01-09)
+
+
+### Bug Fixes
+
+* Array types ([#587](https://github.com/cloudquery/plugin-sdk/issues/587)) ([73ea82c](https://github.com/cloudquery/plugin-sdk/commit/73ea82cc4abd697d428df0072f6b2ecf7002b4d1))
+* Sentry errors not sent ([#592](https://github.com/cloudquery/plugin-sdk/issues/592)) ([9f1e373](https://github.com/cloudquery/plugin-sdk/commit/9f1e373b516be958f0594e84fbbbcd43951f14ad))
+
 ## [1.24.0](https://github.com/cloudquery/plugin-sdk/compare/v1.23.0...v1.24.0) (2023-01-09)
 
 
