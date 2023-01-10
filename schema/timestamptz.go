@@ -106,7 +106,11 @@ func (dst *Timestamptz) Set(src any) error {
 		*dst = Timestamptz{InfinityModifier: value, Status: Present}
 	default:
 		if originalSrc, ok := underlyingTimeType(src); ok {
-			return dst.Set(originalSrc)
+			err := dst.Set(originalSrc)
+			// We want to fall through to the TextMarshaler/Stringer interface if there was an error on the underlying type
+			if err == nil {
+				return nil
+			}
 		}
 		if value, ok := value.(encoding.TextMarshaler); ok {
 			s, err := value.MarshalText()

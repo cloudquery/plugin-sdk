@@ -9,6 +9,13 @@ type Timestamp struct {
 	time.Time
 }
 
+type TimestampPointer struct {
+}
+
+func (*TimestampPointer) String() string {
+	return "2150-10-15 07:25:09.75007611 +0000 UTC"
+}
+
 func TestTimestamptzSet(t *testing.T) {
 	type _time time.Time
 
@@ -36,6 +43,7 @@ func TestTimestamptzSet(t *testing.T) {
 		{source: timeInstance.String(), result: Timestamptz{Time: time.Date(2105, 7, 23, 22, 23, 37, 750076110, time.UTC), Status: Present}},
 		{source: Timestamp{timeInstance}, result: Timestamptz{Time: time.Date(2105, 7, 23, 22, 23, 37, 750076110, time.UTC), Status: Present}},
 		{source: "", result: Timestamptz{Status: Null}},
+		{source: &TimestampPointer{}, result: Timestamptz{Time: time.Date(2150, 10, 15, 7, 25, 9, 750076110, time.UTC), Status: Present}},
 	}
 
 	for i, tt := range successfulTests {
