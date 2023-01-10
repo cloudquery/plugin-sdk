@@ -35,6 +35,10 @@ type Timestamptz struct {
 	InfinityModifier InfinityModifier
 }
 
+type asTime interface {
+	AsTime() time.Time
+}
+
 func (*Timestamptz) Type() ValueType {
 	return TypeTimestamp
 }
@@ -111,6 +115,11 @@ func (dst *Timestamptz) Set(src any) error {
 			if err == nil {
 				return nil
 			}
+		}
+		// Needed to support protobuf timestamps
+		if value, ok := value.(asTime); ok {
+			s := value.AsTime()
+			return dst.Set(s)
 		}
 		if value, ok := value.(encoding.TextMarshaler); ok {
 			s, err := value.MarshalText()
