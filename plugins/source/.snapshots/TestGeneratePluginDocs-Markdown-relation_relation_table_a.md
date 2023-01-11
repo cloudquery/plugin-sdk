@@ -1,4 +1,4 @@
-# Table: relation_relation_table
+# Table: relation_relation_table_a
 
 Description for relational table's relation
 
