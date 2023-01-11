@@ -260,7 +260,7 @@ func (p *Plugin) Write(ctx context.Context, tables schema.Tables, sourceName str
 		if err != nil {
 			return err
 		}
-		if err := p.DeleteStale(ctx, nonIncrementalTables, sourceName, syncTime); err != nil {
+		if err := p.DeleteStale(ctx, tables, sourceName, syncTime); err != nil {
 			return err
 		}
 	}

@@ -53,7 +53,7 @@ func (s *Source) SetDefaults() {
 		s.Registry = RegistryGithub
 	}
 	if s.Backend.String() == "" {
-		s.Backend = BackendLocal
+		s.Backend = BackendNone
 	}
 	if s.Scheduler.String() == "" {
 		s.Scheduler = SchedulerDFS

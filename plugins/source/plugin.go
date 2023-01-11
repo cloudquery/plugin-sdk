@@ -15,7 +15,7 @@ import (
 )
 
 type Options struct {
-	Backend *backend.Backend
+	Backend backend.Backend
 }
 
 type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, Options) (schema.ClientMeta, error)
@@ -180,6 +180,8 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 
 	var be backend.Backend
 	switch spec.Backend {
+	case specs.BackendNone:
+		// do nothing
 	case specs.BackendLocal:
 		be, err = local.New(spec)
 		if err != nil {
@@ -197,7 +199,7 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 		}
 	}()
 
-	c, err := p.newExecutionClient(ctx, p.logger, spec, Options{Backend: &be})
+	c, err := p.newExecutionClient(ctx, p.logger, spec, Options{Backend: be})
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
