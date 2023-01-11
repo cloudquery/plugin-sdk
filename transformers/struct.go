@@ -2,6 +2,7 @@ package transformers
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 	"strings"
 	"time"
@@ -293,6 +294,11 @@ func DefaultTypeTransformer(v reflect.StructField) (schema.ValueType, error) {
 }
 
 func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
+	// Non primitive types
+	if v == reflect.TypeOf(net.IP{}) {
+		return schema.TypeInet, nil
+	}
+
 	k := v.Kind()
 	switch k {
 	case reflect.Pointer:

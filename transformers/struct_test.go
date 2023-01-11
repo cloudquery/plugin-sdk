@@ -1,6 +1,7 @@
 package transformers
 
 import (
+	"net"
 	"testing"
 	"time"
 
@@ -30,6 +31,9 @@ type (
 
 		StringArrayCol        []string  `json:"string_array_col,omitempty"`
 		StringPointerArrayCol []*string `json:"string_pointer_array_col,omitempty"`
+
+		InetCol        net.IP  `json:"inet_col,omitempty"`
+		InetPointerCol *net.IP `json:"inet_pointer_col,omitempty"`
 
 		ByteArrayCol []byte `json:"byte_array_col,omitempty"`
 
@@ -101,6 +105,14 @@ var (
 		{
 			Name: "string_pointer_array_col",
 			Type: schema.TypeStringArray,
+		},
+		{
+			Name: "inet_col",
+			Type: schema.TypeInet,
+		},
+		{
+			Name: "inet_pointer_col",
+			Type: schema.TypeInet,
 		},
 		{
 			Name: "byte_array_col",
