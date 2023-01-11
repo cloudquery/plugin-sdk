@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -21,6 +22,16 @@ var templatesFS embed.FS
 var reMatchNewlines = regexp.MustCompile(`\n{3,}`)
 var reMatchHeaders = regexp.MustCompile(`(#{1,6}.+)\n+`)
 
+func sortTables(tables schema.Tables) {
+	sort.SliceStable(tables, func(i, j int) bool {
+		return tables[i].Name < tables[j].Name
+	})
+
+	for _, table := range tables {
+		sortTables(table.Relations)
+	}
+}
+
 // GeneratePluginDocs creates table documentation for the source plugin based on its list of tables
 func (p *Plugin) GeneratePluginDocs(dir, format string) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
@@ -28,6 +39,7 @@ func (p *Plugin) GeneratePluginDocs(dir, format string) error {
 	}
 
 	destination.SetDestinationManagedCqColumns(p.Tables())
+	sortTables(p.Tables())
 
 	switch format {
 	case "markdown":
