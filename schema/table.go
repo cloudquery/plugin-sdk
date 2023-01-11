@@ -72,6 +72,18 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
+func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool) (Tables, error) {
+	filteredTables := make(Tables, 0, len(tt))
+	for _, t := range tt {
+		filteredTable := t.Copy(nil)
+		filteredTable = filteredTable.filterDfs(false, include, exclude)
+		if filteredTable != nil {
+			filteredTables = append(filteredTables, filteredTable)
+		}
+	}
+	return filteredTables, nil
+}
+
 func (tt Tables) FilterDfs(tables, skipTables []string) (Tables, error) {
 	flattenedTables := tt.FlattenTables()
 	for _, includePattern := range tables {
@@ -98,16 +110,23 @@ func (tt Tables) FilterDfs(tables, skipTables []string) (Tables, error) {
 			return nil, fmt.Errorf("skip_tables include a pattern %s with no matches", excludePattern)
 		}
 	}
-
-	filteredTables := make(Tables, 0, len(tt))
-	for _, t := range tt {
-		filteredTable := t.Copy(nil)
-		filteredTable = filteredTable.filterDfs(false, tables, skipTables)
-		if filteredTable != nil {
-			filteredTables = append(filteredTables, filteredTable)
+	include := func(t *Table) bool {
+		for _, includePattern := range tables {
+			if glob.Glob(includePattern, t.Name) {
+				return true
+			}
 		}
+		return false
 	}
-	return filteredTables, nil
+	exclude := func(t *Table) bool {
+		for _, skipPattern := range skipTables {
+			if glob.Glob(skipPattern, t.Name) {
+				return true
+			}
+		}
+		return false
+	}
+	return tt.FilterDfsFunc(include, exclude)
 }
 
 func (tt Tables) FlattenTables() Tables {
@@ -196,22 +215,17 @@ func (tt Tables) ValidateColumnNames() error {
 }
 
 // this will filter the tree in-place
-func (t *Table) filterDfs(parentMatched bool, tables []string, skipTables []string) *Table {
-	matched := parentMatched
-	for _, includeTable := range tables {
-		if glob.Glob(includeTable, t.Name) {
-			matched = true
-			break
-		}
+func (t *Table) filterDfs(parentMatched bool, include, exclude func(*Table) bool) *Table {
+	if exclude(t) {
+		return nil
 	}
-	for _, skipTable := range skipTables {
-		if glob.Glob(skipTable, t.Name) {
-			return nil
-		}
+	matched := parentMatched
+	if include(t) {
+		matched = true
 	}
 	filteredRelations := make([]*Table, 0, len(t.Relations))
 	for _, r := range t.Relations {
-		filteredChild := r.filterDfs(matched, tables, skipTables)
+		filteredChild := r.filterDfs(matched, include, exclude)
 		if filteredChild != nil {
 			matched = true
 			filteredRelations = append(filteredRelations, r)

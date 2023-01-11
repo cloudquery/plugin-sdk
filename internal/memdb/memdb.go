@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ type client struct {
 	schema.DefaultTransformer
 	spec          specs.Destination
 	memoryDB      map[string][][]any
+	memoryDBLock  sync.RWMutex
 	errOnWrite    bool
 	blockingWrite bool
 }
@@ -38,7 +40,8 @@ func WithBlockingWrite() Option {
 
 func GetNewClient(options ...Option) destination.NewClientFunc {
 	c := &client{
-		memoryDB: make(map[string][][]any),
+		memoryDB:     make(map[string][][]any),
+		memoryDBLock: sync.RWMutex{},
 	}
 	for _, opt := range options {
 		opt(c)
@@ -111,11 +114,13 @@ func (c *client) Read(_ context.Context, table *schema.Table, source string, res
 	}
 	sourceColIndex := table.Columns.Index(schema.CqSourceNameColumn.Name)
 	var sortedRes [][]any
+	c.memoryDBLock.RLock()
 	for _, row := range c.memoryDB[table.Name] {
 		if row[sourceColIndex].(*schema.Text).Str == source {
 			sortedRes = append(sortedRes, row)
 		}
 	}
+	c.memoryDBLock.RUnlock()
 
 	for _, row := range sortedRes {
 		res <- row
@@ -134,12 +139,15 @@ func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-ch
 		}
 		return nil
 	}
+
 	for resource := range resources {
+		c.memoryDBLock.Lock()
 		if c.spec.WriteMode == specs.WriteModeAppend {
 			c.memoryDB[resource.TableName] = append(c.memoryDB[resource.TableName], resource.Data)
 		} else {
 			c.overwrite(tables.Get(resource.TableName), resource.Data)
 		}
+		c.memoryDBLock.Unlock()
 	}
 	return nil
 }
@@ -156,11 +164,13 @@ func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resou
 		return nil
 	}
 	for _, resource := range resources {
+		c.memoryDBLock.Lock()
 		if c.spec.WriteMode == specs.WriteModeAppend {
 			c.memoryDB[table.Name] = append(c.memoryDB[table.Name], resource)
 		} else {
 			c.overwrite(table, resource)
 		}
+		c.memoryDBLock.Unlock()
 	}
 	return nil
 }
