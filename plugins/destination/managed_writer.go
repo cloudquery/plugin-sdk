@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/cloudquery/plugin-sdk/specs"
 )
 
 type worker struct {
@@ -135,11 +134,5 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, tables schema.Table
 		}
 	}
 	p.workersLock.Unlock()
-
-	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
-		if err := p.DeleteStale(ctx, tables, sourceName, syncTime); err != nil {
-			return err
-		}
-	}
 	return nil
 }

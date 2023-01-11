@@ -254,7 +254,13 @@ func (p *Plugin) Write(ctx context.Context, tables schema.Tables, sourceName str
 		panic("unknown client type")
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
-		if err := p.DeleteStale(ctx, tables, sourceName, syncTime); err != nil {
+		include := func(t *schema.Table) bool { return true }
+		exclude := func(t *schema.Table) bool { return t.IsIncremental }
+		nonIncrementalTables, err := tables.FilterDfsFunc(include, exclude)
+		if err != nil {
+			return err
+		}
+		if err := p.DeleteStale(ctx, nonIncrementalTables, sourceName, syncTime); err != nil {
 			return err
 		}
 	}
