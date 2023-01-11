@@ -280,8 +280,7 @@ func DefaultTypeTransformer(v reflect.StructField) (schema.ValueType, error) {
 
 func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	// Non primitive types
-	switch v {
-	case reflect.TypeOf(net.IP{}):
+	if v == reflect.TypeOf(net.IP{}) {
 		return schema.TypeInet, nil
 	}
 
