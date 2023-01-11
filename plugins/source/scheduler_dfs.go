@@ -161,6 +161,10 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 				if err := resolvedResource.Validate(); err != nil {
 					tableMetrics := p.metrics.TableClient[table.Name][client.ID()]
 					p.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
+					sentry.WithScope(func(scope *sentry.Scope) {
+						scope.SetTag("table", table.Name)
+						sentry.CurrentHub().CaptureMessage(err.Error())
+					})
 					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
 				}
