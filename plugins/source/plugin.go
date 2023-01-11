@@ -18,7 +18,6 @@ type Options struct {
 	Backend *backend.Backend
 }
 
-
 type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, Options) (schema.ClientMeta, error)
 
 // Plugin is the base structure required to pass to sdk.serve
