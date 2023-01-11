@@ -21,6 +21,7 @@ type structTransformer struct {
 	ignoreInTestsTransformer      IgnoreInTestsTransformer
 	unwrapAllEmbeddedStructFields bool
 	structFieldsToUnwrap          []string
+	pkFields                      []string
 }
 
 type NameTransformer func(reflect.StructField) (string, error)
@@ -105,6 +106,13 @@ func WithIgnoreInTestsTransformer(transformer IgnoreInTestsTransformer) StructTr
 	}
 }
 
+// WithPrimaryKeys allows to specify what struct fields should be used as primary keys
+func WithPrimaryKeys(fields ...string) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.pkFields = fields
+	}
+}
+
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
 		nameTransformer:          DefaultNameTransformer,
@@ -143,6 +151,7 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 				}
 			}
 		}
+
 		return nil
 	}
 }
@@ -250,14 +259,20 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		resolver = DefaultResolverTransformer(field, path)
 	}
 
-	t.table.Columns = append(t.table.Columns,
-		schema.Column{
-			Name:          name,
-			Type:          columnType,
-			Resolver:      resolver,
-			IgnoreInTests: t.ignoreInTestsTransformer(field),
-		},
-	)
+	column := schema.Column{
+		Name:          name,
+		Type:          columnType,
+		Resolver:      resolver,
+		IgnoreInTests: t.ignoreInTestsTransformer(field),
+	}
+
+	for _, pk := range t.pkFields {
+		if pk == field.Name {
+			column.CreationOptions.PrimaryKey = true
+		}
+	}
+
+	t.table.Columns = append(t.table.Columns, column)
 
 	return nil
 }

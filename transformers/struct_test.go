@@ -56,6 +56,12 @@ type (
 	testSliceStruct []struct {
 		IntCol int
 	}
+
+	testPKStruct struct {
+		Parent  string `json:"parent"`
+		Name    string `json:"name"`
+		Version int    `json:"version"`
+	}
 )
 
 var (
@@ -175,6 +181,26 @@ var (
 			},
 		},
 	}
+
+	expectedTableWithPKs = schema.Table{
+		Name: "test_pk_struct",
+		Columns: schema.ColumnList{
+			{
+				Name:            "parent",
+				Type:            schema.TypeString,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+			},
+			{
+				Name:            "name",
+				Type:            schema.TypeString,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+			},
+			{
+				Name: "version",
+				Type: schema.TypeInt,
+			},
+		},
+	}
 )
 
 func TestTableFromGoStruct(t *testing.T) {
@@ -222,6 +248,16 @@ func TestTableFromGoStruct(t *testing.T) {
 				testStruct: testSliceStruct{},
 			},
 			want: expectedTestSliceStruct,
+		},
+		{
+			name: "Should configure primary keys when options are set",
+			args: args{
+				testStruct: testPKStruct{},
+				options: []StructTransformerOption{
+					WithPrimaryKeys("Parent", "Name"),
+				},
+			},
+			want: expectedTableWithPKs,
 		},
 	}
 

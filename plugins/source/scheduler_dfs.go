@@ -141,6 +141,7 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 	go func() {
 		defer close(resourcesChan)
 		var wg sync.WaitGroup
+		sentValidationErrors := sync.Map{}
 		for i := range resourcesSlice {
 			i := i
 			if err := p.resourceSem.Acquire(ctx, 1); err != nil {
@@ -161,6 +162,14 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 				if err := resolvedResource.Validate(); err != nil {
 					tableMetrics := p.metrics.TableClient[table.Name][client.ID()]
 					p.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
+					if _, found := sentValidationErrors.LoadOrStore(table.Name, struct{}{}); !found {
+						// send resource validation errors to Sentry only once per table,
+						// to avoid sending too many duplicate messages
+						sentry.WithScope(func(scope *sentry.Scope) {
+							scope.SetTag("table", table.Name)
+							sentry.CurrentHub().CaptureMessage(err.Error())
+						})
+					}
 					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
 				}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -21,6 +22,21 @@ var templatesFS embed.FS
 var reMatchNewlines = regexp.MustCompile(`\n{3,}`)
 var reMatchHeaders = regexp.MustCompile(`(#{1,6}.+)\n+`)
 
+func sortTables(tables schema.Tables) {
+	sort.SliceStable(tables, func(i, j int) bool {
+		return tables[i].Name < tables[j].Name
+	})
+
+	for _, table := range tables {
+		sortTables(table.Relations)
+	}
+}
+
+type templateData struct {
+	PluginName string
+	Tables     schema.Tables
+}
+
 // GeneratePluginDocs creates table documentation for the source plugin based on its list of tables
 func (p *Plugin) GeneratePluginDocs(dir, format string) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
@@ -28,12 +44,17 @@ func (p *Plugin) GeneratePluginDocs(dir, format string) error {
 	}
 
 	destination.SetDestinationManagedCqColumns(p.Tables())
+	sortedTables := make(schema.Tables, 0, len(p.Tables()))
+	for _, t := range p.Tables() {
+		sortedTables = append(sortedTables, t.Copy(nil))
+	}
+	sortTables(sortedTables)
 
 	switch format {
 	case "markdown":
-		return p.renderTablesAsMarkdown(dir)
+		return renderTablesAsMarkdown(dir, p.name, sortedTables)
 	case "json":
-		return p.renderTablesAsJSON(dir)
+		return renderTablesAsJSON(dir, sortedTables)
 	default:
 		return fmt.Errorf("unsupported format: %v", format)
 	}
@@ -53,9 +74,9 @@ type jsonColumn struct {
 	IsIncrementalKey bool   `json:"is_incremental_key,omitempty"`
 }
 
-func (p *Plugin) renderTablesAsJSON(dir string) error {
-	tables := p.jsonifyTables(p.Tables())
-	b, err := json.MarshalIndent(tables, "", "  ")
+func renderTablesAsJSON(dir string, tables schema.Tables) error {
+	jsonTables := jsonifyTables(tables)
+	b, err := json.MarshalIndent(jsonTables, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal tables as json: %v", err)
 	}
@@ -63,7 +84,7 @@ func (p *Plugin) renderTablesAsJSON(dir string) error {
 	return os.WriteFile(outputPath, b, 0644)
 }
 
-func (p *Plugin) jsonifyTables(tables schema.Tables) []jsonTable {
+func jsonifyTables(tables schema.Tables) []jsonTable {
 	jsonTables := make([]jsonTable, len(tables))
 	for i, table := range tables {
 		jsonColumns := make([]jsonColumn, len(table.Columns))
@@ -79,14 +100,14 @@ func (p *Plugin) jsonifyTables(tables schema.Tables) []jsonTable {
 			Name:        table.Name,
 			Description: table.Description,
 			Columns:     jsonColumns,
-			Relations:   p.jsonifyTables(table.Relations),
+			Relations:   jsonifyTables(table.Relations),
 		}
 	}
 	return jsonTables
 }
 
-func (p *Plugin) renderTablesAsMarkdown(dir string) error {
-	for _, table := range p.Tables() {
+func renderTablesAsMarkdown(dir string, pluginName string, tables schema.Tables) error {
+	for _, table := range tables {
 		if err := renderAllTables(table, dir); err != nil {
 			return err
 		}
@@ -99,7 +120,7 @@ func (p *Plugin) renderTablesAsMarkdown(dir string) error {
 	}
 
 	var b bytes.Buffer
-	if err := t.Execute(&b, p); err != nil {
+	if err := t.Execute(&b, templateData{PluginName: pluginName, Tables: tables}); err != nil {
 		return fmt.Errorf("failed to execute template: %v", err)
 	}
 	content := formatMarkdown(b.String())
