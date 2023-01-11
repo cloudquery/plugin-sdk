@@ -15,18 +15,11 @@ import (
 )
 
 type Options struct {
-	Backend backend.Backend
+	Backend *backend.Backend
 }
 
-type Option func(o *Options)
 
-func WithBackend(b backend.Backend) Option {
-	return func(o *Options) {
-		o.Backend = b
-	}
-}
-
-type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, ...Option) (schema.ClientMeta, error)
+type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, Options) (schema.ClientMeta, error)
 
 // Plugin is the base structure required to pass to sdk.serve
 // We take a declarative approach to API here similar to Cobra
@@ -205,7 +198,7 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 		}
 	}()
 
-	c, err := p.newExecutionClient(ctx, p.logger, spec, WithBackend(be))
+	c, err := p.newExecutionClient(ctx, p.logger, spec, Options{Backend: &be})
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}

@@ -61,11 +61,11 @@ func (*testExecutionClient) ID() string {
 	return "testExecutionClient"
 }
 
-func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source, ...source.Option) (schema.ClientMeta, error) {
+func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source, source.Options) (schema.ClientMeta, error) {
 	return &testExecutionClient{}, nil
 }
 
-func newTestExecutionClientErr(context.Context, zerolog.Logger, specs.Source, ...source.Option) (schema.ClientMeta, error) {
+func newTestExecutionClientErr(context.Context, zerolog.Logger, specs.Source, source.Options) (schema.ClientMeta, error) {
 	return nil, errTestExecutionClientErr
 }
 
