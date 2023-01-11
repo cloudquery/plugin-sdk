@@ -191,13 +191,15 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 		return fmt.Errorf("unknown backend: %s", spec.Backend)
 	}
 
-	defer func() {
-		p.logger.Info().Msg("closing backend")
-		err := be.Close(ctx)
-		if err != nil {
-			p.logger.Error().Err(err).Msg("failed to close backend")
-		}
-	}()
+	if be != nil {
+		defer func() {
+			p.logger.Info().Msg("closing backend")
+			err := be.Close(ctx)
+			if err != nil {
+				p.logger.Error().Err(err).Msg("failed to close backend")
+			}
+		}()
+	}
 
 	c, err := p.newExecutionClient(ctx, p.logger, spec, Options{Backend: be})
 	if err != nil {
