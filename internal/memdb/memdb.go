@@ -22,6 +22,7 @@ type client struct {
 	memoryDBLock  sync.RWMutex
 	errOnWrite    bool
 	blockingWrite bool
+	mx            *destination.Metrics
 }
 
 type Option func(*client)
@@ -42,6 +43,7 @@ func GetNewClient(options ...Option) destination.NewClientFunc {
 	c := &client{
 		memoryDB:     make(map[string][][]any),
 		memoryDBLock: sync.RWMutex{},
+		mx:           new(destination.Metrics),
 	}
 	for _, opt := range options {
 		opt(c)
@@ -63,6 +65,7 @@ func NewClient(_ context.Context, _ zerolog.Logger, spec specs.Destination) (des
 	return &client{
 		memoryDB: make(map[string][][]any),
 		spec:     spec,
+		mx:       new(destination.Metrics),
 	}, nil
 }
 
@@ -93,6 +96,7 @@ func (c *client) overwrite(table *schema.Table, data []any) {
 		if found {
 			c.memoryDB[table.Name] = append(c.memoryDB[table.Name][:i], c.memoryDB[table.Name][i+1:]...)
 			c.memoryDB[table.Name] = append(c.memoryDB[table.Name], data)
+			c.mx.Writes++
 			return
 		}
 	}
@@ -135,6 +139,7 @@ func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-ch
 	if c.blockingWrite {
 		<-ctx.Done()
 		if c.errOnWrite {
+			c.mx.Errors++
 			return fmt.Errorf("errOnWrite")
 		}
 		return nil
@@ -144,6 +149,7 @@ func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-ch
 		c.memoryDBLock.Lock()
 		if c.spec.WriteMode == specs.WriteModeAppend {
 			c.memoryDB[resource.TableName] = append(c.memoryDB[resource.TableName], resource.Data)
+			c.mx.Writes++
 		} else {
 			c.overwrite(tables.Get(resource.TableName), resource.Data)
 		}
@@ -159,6 +165,7 @@ func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resou
 	if c.blockingWrite {
 		<-ctx.Done()
 		if c.errOnWrite {
+			c.mx.Errors++
 			return fmt.Errorf("errOnWrite")
 		}
 		return nil
@@ -167,6 +174,7 @@ func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resou
 		c.memoryDBLock.Lock()
 		if c.spec.WriteMode == specs.WriteModeAppend {
 			c.memoryDB[table.Name] = append(c.memoryDB[table.Name], resource)
+			c.mx.Writes++
 		} else {
 			c.overwrite(table, resource)
 		}
@@ -175,8 +183,8 @@ func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resou
 	return nil
 }
 
-func (*client) Metrics() destination.Metrics {
-	return destination.Metrics{}
+func (c *client) Metrics() destination.Metrics {
+	return *c.mx
 }
 
 func (c *client) Close(context.Context) error {
