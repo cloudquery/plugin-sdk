@@ -77,7 +77,12 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 		return status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
 	var sourceSpec specs.Source
-	if r.SourceSpec != nil {
+	if r.SourceSpec == nil {
+		// this is for backward compatability
+		sourceSpec = specs.Source{
+			Name: r.Source,
+		}
+	} else {
 		if err := json.Unmarshal(r.SourceSpec, &sourceSpec); err != nil {
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal source spec: %v", err)
 		}
