@@ -87,11 +87,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal source spec: %v", err)
 		}
 	}
-	sourceName := r.Source
 	syncTime := r.Timestamp.AsTime()
-	sourceSpec = specs.Source{
-		Name: sourceName,
-	}
 
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
