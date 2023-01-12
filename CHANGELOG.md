@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.0](https://github.com/cloudquery/plugin-sdk/compare/v1.24.2...v1.25.0) (2023-01-11)
+
+
+### Features
+
+* **docs:** Sort tables ([#599](https://github.com/cloudquery/plugin-sdk/issues/599)) ([8a3bfad](https://github.com/cloudquery/plugin-sdk/commit/8a3bfaddabec395cc4105ae7d2f2e99c5d31eab6))
+* **transformers:** Add support for `net.IP` ([#595](https://github.com/cloudquery/plugin-sdk/issues/595)) ([a420645](https://github.com/cloudquery/plugin-sdk/commit/a420645377943939278e5d8b4a7969db957d08bf))
+* **transformers:** Add WithPrimaryKeys option ([#598](https://github.com/cloudquery/plugin-sdk/issues/598)) ([107006c](https://github.com/cloudquery/plugin-sdk/commit/107006cac82e3635470bec93b086b68d0f92edf1))
+
+
+### Bug Fixes
+
+* Send resource validation errors to Sentry ([#601](https://github.com/cloudquery/plugin-sdk/issues/601)) ([5916516](https://github.com/cloudquery/plugin-sdk/commit/5916516fa9d112ba5ac146c54d02a4a1fd8850b3))
+
 ## [1.24.2](https://github.com/cloudquery/plugin-sdk/compare/v1.24.1...v1.24.2) (2023-01-11)
 
 
