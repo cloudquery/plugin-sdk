@@ -11,15 +11,18 @@ import (
 
 type WriteMode int
 
+type MigrateMode int
+
 type Destination struct {
-	Name           string    `json:"name,omitempty"`
-	Version        string    `json:"version,omitempty"`
-	Path           string    `json:"path,omitempty"`
-	Registry       Registry  `json:"registry,omitempty"`
-	WriteMode      WriteMode `json:"write_mode,omitempty"`
-	BatchSize      int       `json:"batch_size,omitempty"`
-	BatchSizeBytes int       `json:"batch_size_bytes,omitempty"`
-	Spec           any       `json:"spec,omitempty"`
+	Name           string      `json:"name,omitempty"`
+	Version        string      `json:"version,omitempty"`
+	Path           string      `json:"path,omitempty"`
+	Registry       Registry    `json:"registry,omitempty"`
+	WriteMode      WriteMode   `json:"write_mode,omitempty"`
+	MigrateMode    MigrateMode `json:"migrate_mode,omitempty"`
+	BatchSize      int         `json:"batch_size,omitempty"`
+	BatchSizeBytes int         `json:"batch_size_bytes,omitempty"`
+	Spec           any         `json:"spec,omitempty"`
 }
 
 const (
@@ -28,8 +31,17 @@ const (
 	WriteModeAppend
 )
 
+const (
+	MigrateModeSafe MigrateMode = iota
+	MigrateModeForced
+)
+
 var (
 	writeModeStrings = []string{"overwrite-delete-stale", "overwrite", "append"}
+)
+
+var (
+	migrateModeStrings = []string{"safe", "forced"}
 )
 
 func (d *Destination) SetDefaults(defaultBatchSize, defaultBatchSizeBytes int) {
@@ -115,4 +127,36 @@ func WriteModeFromString(s string) (WriteMode, error) {
 		return WriteModeOverwriteDeleteStale, nil
 	}
 	return 0, fmt.Errorf("invalid write mode: %s", s)
+}
+
+func (m MigrateMode) String() string {
+	return migrateModeStrings[m]
+}
+
+func (m MigrateMode) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	buffer.WriteString(m.String())
+	buffer.WriteString(`"`)
+	return buffer.Bytes(), nil
+}
+
+func (m *MigrateMode) UnmarshalJSON(data []byte) (err error) {
+	var migrateMode string
+	if err := json.Unmarshal(data, &migrateMode); err != nil {
+		return err
+	}
+	if *m, err = MigrateModeFromString(migrateMode); err != nil {
+		return err
+	}
+	return nil
+}
+
+func MigrateModeFromString(s string) (MigrateMode, error) {
+	switch s {
+	case "safe":
+		return MigrateModeSafe, nil
+	case "forced":
+		return MigrateModeForced, nil
+	}
+	return 0, fmt.Errorf("invalid migrate mode: %s", s)
 }
