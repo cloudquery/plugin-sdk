@@ -78,7 +78,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 	}
 	var sourceSpec specs.Source
 	if r.SourceSpec == nil {
-		// this is for backward compatability
+		// this is for backward compatibility
 		sourceSpec = specs.Source{
 			Name: r.Source,
 		}
