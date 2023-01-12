@@ -86,7 +86,7 @@ func TestDestinationClientWriteReturnsCorrectError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	name, err := c.Name(ctx)
+	_, err = c.Name(ctx)
 	if err != nil {
 		t.Fatal("failed to get name", err)
 	}
@@ -108,7 +108,9 @@ func TestDestinationClientWriteReturnsCorrectError(t *testing.T) {
 			resourcesChannel <- destResource2
 		}
 	}()
-
-	err = c.Write2(ctx, tables, name, time.Now().UTC(), resourcesChannel)
+	sourceSpec := specs.Source{
+		Name: "TestDestinationClientWriteReturnsCorrectError",
+	}
+	err = c.Write2(ctx, sourceSpec, tables, time.Now().UTC(), resourcesChannel)
 	require.ErrorContains(t, err, "context canceled")
 }

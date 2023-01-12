@@ -174,6 +174,10 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 	if err != nil {
 		return fmt.Errorf("failed to filter tables: %w", err)
 	}
+	if spec.Incremental == specs.IncrementalTablesOnly {
+		tables = tables.FilterDfsFunc(func(t *schema.Table) bool { return true }, func(t *schema.Table) bool { return !t.IsIncremental })
+	}
+
 	if len(tables) == 0 {
 		return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
 	}

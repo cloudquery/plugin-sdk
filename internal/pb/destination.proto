@@ -61,6 +61,8 @@ message Write2 {
     bytes tables = 3;
     // marshalled *schema.Resources
     bytes resource = 4;
+    // marshalled specs.Source
+    bytes source_spec = 5;
   }
   message Response {
   }

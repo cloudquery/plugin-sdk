@@ -6,17 +6,18 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/specs"
 	"golang.org/x/sync/errgroup"
 )
 
-func (p *Plugin) writeUnmanaged(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan schema.DestinationResource) error {
+func (p *Plugin) writeUnmanaged(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
 	ch := make(chan *ClientResource)
 	eg, gctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
 		return p.client.Write(gctx, tables, ch)
 	})
 	sourceColumn := &schema.Text{}
-	_ = sourceColumn.Set(sourceName)
+	_ = sourceColumn.Set(sourceSpec.Name)
 	syncTimeColumn := &schema.Timestamptz{}
 	_ = syncTimeColumn.Set(syncTime)
 	for r := range res {

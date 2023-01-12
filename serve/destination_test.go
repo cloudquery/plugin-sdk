@@ -99,6 +99,9 @@ func TestDestination(t *testing.T) {
 	syncTime := time.Now()
 	table := testdata.TestTable(tableName)
 	tables := schema.Tables{table}
+	sourceSpec := specs.Source{
+		Name: sourceName,
+	}
 	if err := c.Migrate(ctx, tables); err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +120,7 @@ func TestDestination(t *testing.T) {
 	resources := make(chan []byte, 1)
 	resources <- b
 	close(resources)
-	if err := c.Write2(ctx, tables, sourceName, syncTime, resources); err != nil {
+	if err := c.Write2(ctx, sourceSpec, tables, syncTime, resources); err != nil {
 		t.Fatal(err)
 	}
 

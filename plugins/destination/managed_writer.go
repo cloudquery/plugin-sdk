@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/specs"
 )
 
 type worker struct {
@@ -65,7 +66,7 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Tabl
 	}
 }
 
-func (p *Plugin) writeManagedTableBatch(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan schema.DestinationResource) error {
+func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
 	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
 
@@ -100,7 +101,7 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, tables schema.Table
 	p.workersLock.Unlock()
 
 	sourceColumn := &schema.Text{}
-	_ = sourceColumn.Set(sourceName)
+	_ = sourceColumn.Set(sourceSpec.Name)
 	syncTimeColumn := &schema.Timestamptz{}
 	_ = syncTimeColumn.Set(syncTime)
 	for r := range res {
