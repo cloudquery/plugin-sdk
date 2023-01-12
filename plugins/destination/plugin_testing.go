@@ -144,7 +144,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	sourceName := "testOverwriteSource" + uuid.NewString()
 	sourceSpec := specs.Source{
 		Name:        sourceName,
-		Incremental: specs.IncrementalBoth,
+		Backend: specs.BackendLocal,
 	}
 
 	resources := createTestResources(table, sourceName, syncTime, 2)

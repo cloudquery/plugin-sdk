@@ -39,8 +39,6 @@ type Source struct {
 
 	// Backend is the name of the state backend to use
 	Backend Backend `json:"backend,omitempty"`
-	// Enable incremental syncing for tables that supports that
-	Incremental Incremental `json:"incremental,omitempty"`
 	// Sync on
 	OnlyIncrementalTables bool `json:"only_incremental_tables,omitempty"`
 	// BackendSpec contains any backend-specific configuration
@@ -127,9 +125,6 @@ func (s *Source) Validate() error {
 	}
 	if !funk.Contains(AllSchedulers, s.Scheduler) {
 		return fmt.Errorf("unknown scheduler %v. Must be one of: %v", s.Scheduler, AllSchedulers.String())
-	}
-	if s.Incremental != IncrementalNone && s.Backend == BackendNone {
-		return fmt.Errorf("incremental syncing requires a state backend")
 	}
 	return nil
 }
