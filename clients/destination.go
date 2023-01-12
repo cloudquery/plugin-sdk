@@ -276,7 +276,7 @@ func (c *DestinationClient) Write(ctx context.Context, source string, syncTime t
 	return res.FailedWrites, nil
 }
 
-func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, source string, syncTime time.Time, resources <-chan []byte) error {
+func (c *DestinationClient) Write2(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, resources <-chan []byte) error {
 	saveClient, err := c.pbClient.Write2(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to call Write2: %w", err)
@@ -285,10 +285,15 @@ func (c *DestinationClient) Write2(ctx context.Context, tables schema.Tables, so
 	if err != nil {
 		return fmt.Errorf("failed to marshal tables: %w", err)
 	}
+	sourceSpecBytes, err := json.Marshal(sourceSpec)
+	if err != nil {
+		return fmt.Errorf("failed to marshal source spec: %w", err)
+	}
 	if err := saveClient.Send(&pb.Write2_Request{
-		Tables:    b,
-		Source:    source,
-		Timestamp: timestamppb.New(syncTime),
+		Tables:     b,
+		Source:     sourceSpec.Name,
+		Timestamp:  timestamppb.New(syncTime),
+		SourceSpec: sourceSpecBytes,
 	}); err != nil {
 		return fmt.Errorf("failed to send tables: %w", err)
 	}

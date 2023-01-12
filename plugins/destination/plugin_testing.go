@@ -59,9 +59,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	}
 
 	sourceName := "testOverwriteSource" + uuid.NewString()
+	sourceSpec := specs.Source{
+		Name: sourceName,
+	}
 
 	resources := createTestResources(table, sourceName, syncTime, 2)
-	if err := p.writeAll(ctx, tables, sourceName, syncTime, resources); err != nil {
+	if err := p.writeAll(ctx, sourceSpec, tables, syncTime, resources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
 	sortResources(table, resources)
@@ -95,7 +98,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	_ = updatedResource.Data[1].Set(secondSyncTime)
 
 	// write second time
-	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, updatedResource); err != nil {
+	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
@@ -139,10 +142,14 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	sourceName := "testOverwriteSource" + uuid.NewString()
+	sourceSpec := specs.Source{
+		Name:    sourceName,
+		Backend: specs.BackendLocal,
+	}
 
 	resources := createTestResources(table, sourceName, syncTime, 2)
 	incResources := createTestResources(incTable, sourceName, syncTime, 2)
-	if err := p.writeAll(ctx, tables, sourceName, syncTime, append(resources, incResources...)); err != nil {
+	if err := p.writeAll(ctx, sourceSpec, tables, syncTime, append(resources, incResources...)); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
 	sortResources(table, resources)
@@ -185,7 +192,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	_ = updatedResource.Data[1].Set(secondSyncTime)
 
 	// write second time
-	if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, updatedResource); err != nil {
+	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
@@ -245,8 +252,11 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 
 	resources := make([]schema.DestinationResource, 2)
 	sourceName := "testAppendSource" + uuid.NewString()
+	specSource := specs.Source{
+		Name: sourceName,
+	}
 	resources[0] = createTestResources(table, sourceName, syncTime, 1)[0]
-	if err := p.writeOne(ctx, tables, sourceName, syncTime, resources[0]); err != nil {
+	if err := p.writeOne(ctx, specSource, tables, syncTime, resources[0]); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
@@ -256,7 +266,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 
 	if !s.tests.SkipSecondAppend {
 		// write second time
-		if err := p.writeOne(ctx, tables, sourceName, secondSyncTime, resources[1]); err != nil {
+		if err := p.writeOne(ctx, specSource, tables, secondSyncTime, resources[1]); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
@@ -301,9 +311,12 @@ func (*PluginTestSuite) destinationPluginTestMigrateAppend(ctx context.Context, 
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 	sourceName := "testMigrateAppendSource" + uuid.NewString()
+	sourceSpec := specs.Source{
+		Name: sourceName,
+	}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	resource1 := createTestResources(table, sourceName, syncTime, 1)[0]
-	if err := p.writeOne(ctx, []*schema.Table{table}, "test_source", syncTime, resource1); err != nil {
+	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{table}, syncTime, resource1); err != nil {
 		return fmt.Errorf("failed to write one: %w", err)
 	}
 
@@ -315,7 +328,7 @@ func (*PluginTestSuite) destinationPluginTestMigrateAppend(ctx context.Context, 
 		return fmt.Errorf("failed to migrate table with changed column ordering: %w", err)
 	}
 	resource2 := createTestResources(table, sourceName, syncTime, 1)[0]
-	if err := p.writeOne(ctx, []*schema.Table{table}, "test_source", syncTime, resource2); err != nil {
+	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{table}, syncTime, resource2); err != nil {
 		return fmt.Errorf("failed to write one after column order change: %w", err)
 	}
 
@@ -336,7 +349,7 @@ func (*PluginTestSuite) destinationPluginTestMigrateAppend(ctx context.Context, 
 		return fmt.Errorf("failed to migrate table with new column: %w", err)
 	}
 	resource3 := createTestResources(table, sourceName, syncTime, 1)[0]
-	if err := p.writeOne(ctx, []*schema.Table{table}, "test_source", syncTime, resource3); err != nil {
+	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{table}, syncTime, resource3); err != nil {
 		return fmt.Errorf("failed to write one after column order change: %w", err)
 	}
 	resourcesRead, err = p.readAll(ctx, table, sourceName)
@@ -354,7 +367,7 @@ func (*PluginTestSuite) destinationPluginTestMigrateAppend(ctx context.Context, 
 		return fmt.Errorf("failed to migrate table with extra column in destination: %w", err)
 	}
 	resource4 := createTestResources(oldTable, sourceName, syncTime, 1)[0]
-	if err := p.writeOne(ctx, []*schema.Table{oldTable}, "test_source", syncTime, resource4); err != nil {
+	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{oldTable}, syncTime, resource4); err != nil {
 		return fmt.Errorf("failed to write one after column order change: %w", err)
 	}
 	resourcesRead, err = p.readAll(ctx, oldTable, sourceName)

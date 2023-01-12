@@ -76,12 +76,22 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 	if err := json.Unmarshal(r.Tables, &tables); err != nil {
 		return status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
-	sourceName := r.Source
+	var sourceSpec specs.Source
+	if r.SourceSpec == nil {
+		// this is for backward compatibility
+		sourceSpec = specs.Source{
+			Name: r.Source,
+		}
+	} else {
+		if err := json.Unmarshal(r.SourceSpec, &sourceSpec); err != nil {
+			return status.Errorf(codes.InvalidArgument, "failed to unmarshal source spec: %v", err)
+		}
+	}
 	syncTime := r.Timestamp.AsTime()
 
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, tables, sourceName, syncTime, resources)
+		return s.Plugin.Write(ctx, sourceSpec, tables, syncTime, resources)
 	})
 
 	for {

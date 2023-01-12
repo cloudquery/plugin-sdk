@@ -18,15 +18,7 @@ type Options struct {
 	Backend backend.Backend
 }
 
-type Option func(o *Options)
-
-func WithBackend(b backend.Backend) Option {
-	return func(o *Options) {
-		o.Backend = b
-	}
-}
-
-type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, ...Option) (schema.ClientMeta, error)
+type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, Options) (schema.ClientMeta, error)
 
 // Plugin is the base structure required to pass to sdk.serve
 // We take a declarative approach to API here similar to Cobra
@@ -182,12 +174,15 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 	if err != nil {
 		return fmt.Errorf("failed to filter tables: %w", err)
 	}
+
 	if len(tables) == 0 {
 		return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
 	}
 
 	var be backend.Backend
 	switch spec.Backend {
+	case specs.BackendNone:
+		// do nothing
 	case specs.BackendLocal:
 		be, err = local.New(spec)
 		if err != nil {
@@ -197,15 +192,17 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 		return fmt.Errorf("unknown backend: %s", spec.Backend)
 	}
 
-	defer func() {
-		p.logger.Info().Msg("closing backend")
-		err := be.Close(ctx)
-		if err != nil {
-			p.logger.Error().Err(err).Msg("failed to close backend")
-		}
-	}()
+	if be != nil {
+		defer func() {
+			p.logger.Info().Msg("closing backend")
+			err := be.Close(ctx)
+			if err != nil {
+				p.logger.Error().Err(err).Msg("failed to close backend")
+			}
+		}()
+	}
 
-	c, err := p.newExecutionClient(ctx, p.logger, spec, WithBackend(be))
+	c, err := p.newExecutionClient(ctx, p.logger, spec, Options{Backend: be})
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}

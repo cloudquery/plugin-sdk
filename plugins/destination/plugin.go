@@ -223,44 +223,44 @@ func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName strin
 }
 
 // this function is currently used mostly for testing so it's not a public api
-func (p *Plugin) writeOne(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, resource schema.DestinationResource) error {
+func (p *Plugin) writeOne(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, resource schema.DestinationResource) error {
 	resources := []schema.DestinationResource{resource}
-	return p.writeAll(ctx, tables, sourceName, syncTime, resources)
+	return p.writeAll(ctx, sourceSpec, tables, syncTime, resources)
 }
 
 // this function is currently used mostly for testing so it's not a public api
-func (p *Plugin) writeAll(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, resources []schema.DestinationResource) error {
+func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, resources []schema.DestinationResource) error {
 	ch := make(chan schema.DestinationResource, len(resources))
 	for _, resource := range resources {
 		ch <- resource
 	}
 	close(ch)
-	return p.Write(ctx, tables, sourceName, syncTime, ch)
+	return p.Write(ctx, sourceSpec, tables, syncTime, ch)
 }
 
-func (p *Plugin) Write(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time, res <-chan schema.DestinationResource) error {
+func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
 	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
 	switch p.writerType {
 	case unmanaged:
-		if err := p.writeUnmanaged(ctx, tables, sourceName, syncTime, res); err != nil {
+		if err := p.writeUnmanaged(ctx, sourceSpec, tables, syncTime, res); err != nil {
 			return err
 		}
 	case managed:
-		if err := p.writeManagedTableBatch(ctx, tables, sourceName, syncTime, res); err != nil {
+		if err := p.writeManagedTableBatch(ctx, sourceSpec, tables, syncTime, res); err != nil {
 			return err
 		}
 	default:
 		panic("unknown client type")
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
-		include := func(t *schema.Table) bool { return true }
-		exclude := func(t *schema.Table) bool { return t.IsIncremental }
-		nonIncrementalTables, err := tables.FilterDfsFunc(include, exclude)
-		if err != nil {
-			return err
+		tablesToDelete := tables
+		if sourceSpec.Backend != specs.BackendNone {
+			include := func(t *schema.Table) bool { return true }
+			exclude := func(t *schema.Table) bool { return t.IsIncremental }
+			tablesToDelete = tables.FilterDfsFunc(include, exclude)
 		}
-		if err := p.DeleteStale(ctx, nonIncrementalTables, sourceName, syncTime); err != nil {
+		if err := p.DeleteStale(ctx, tablesToDelete, sourceSpec.Name, syncTime); err != nil {
 			return err
 		}
 	}

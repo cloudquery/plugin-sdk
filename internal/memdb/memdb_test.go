@@ -62,13 +62,16 @@ func TestOnWriteError(t *testing.T) {
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
+	sourceSpec := specs.Source{
+		Name: sourceName,
+	}
 	ch := make(chan schema.DestinationResource, 1)
 	ch <- schema.DestinationResource{
 		TableName: "test",
 		Data:      testdata.GenTestData(table),
 	}
 	close(ch)
-	err := p.Write(ctx, tables, sourceName, syncTime, ch)
+	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -90,6 +93,9 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
+	sourceSpec := specs.Source{
+		Name: sourceName,
+	}
 	ch := make(chan schema.DestinationResource, 1)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	ch <- schema.DestinationResource{
@@ -97,7 +103,7 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 		Data:      testdata.GenTestData(table),
 	}
 	defer cancel()
-	err := p.Write(ctx, tables, sourceName, syncTime, ch)
+	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
 	if err != nil {
 		t.Fatal(err)
 	}

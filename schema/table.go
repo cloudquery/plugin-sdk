@@ -72,7 +72,7 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
-func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool) (Tables, error) {
+func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool) Tables {
 	filteredTables := make(Tables, 0, len(tt))
 	for _, t := range tt {
 		filteredTable := t.Copy(nil)
@@ -81,7 +81,7 @@ func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool) (Tables, erro
 			filteredTables = append(filteredTables, filteredTable)
 		}
 	}
-	return filteredTables, nil
+	return filteredTables
 }
 
 func (tt Tables) FilterDfs(tables, skipTables []string) (Tables, error) {
@@ -126,7 +126,7 @@ func (tt Tables) FilterDfs(tables, skipTables []string) (Tables, error) {
 		}
 		return false
 	}
-	return tt.FilterDfsFunc(include, exclude)
+	return tt.FilterDfsFunc(include, exclude), nil
 }
 
 func (tt Tables) FlattenTables() Tables {

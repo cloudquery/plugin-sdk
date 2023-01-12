@@ -9,11 +9,13 @@ import (
 type Backend int
 
 const (
-	BackendLocal Backend = iota
+	BackendNone Backend = iota
+	BackendLocal
 )
 
 var AllBackends = Backends{BackendLocal}
 var AllBackendNames = [...]string{
+	BackendNone:  "none",
 	BackendLocal: "local",
 }
 
@@ -54,5 +56,5 @@ func BackendFromString(s string) (Backend, error) {
 			return Backend(i), nil
 		}
 	}
-	return BackendLocal, fmt.Errorf("unknown backend %s", s)
+	return BackendNone, fmt.Errorf("unknown backend %s", s)
 }
