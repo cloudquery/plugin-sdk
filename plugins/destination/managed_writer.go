@@ -25,7 +25,7 @@ func newWorker(table *schema.Table) *worker {
 	}
 }
 
-func (p *Plugin) worker(ctx context.Context, w *worker, mx *Metrics) {
+func (p *Plugin) worker(ctx context.Context, w *worker) {
 	w.wg.Add(1)
 	defer w.wg.Done()
 
@@ -36,12 +36,12 @@ func (p *Plugin) worker(ctx context.Context, w *worker, mx *Metrics) {
 		case r, ok := <-w.ch:
 			if !ok {
 				if len(resources) > 0 {
-					p.flush(ctx, w, mx, resources)
+					p.flush(ctx, w, resources)
 				}
 				return
 			}
 			if len(resources) == p.spec.BatchSize || sizeBytes+r.Size() > p.spec.BatchSizeBytes {
-				p.flush(ctx, w, mx, resources)
+				p.flush(ctx, w, resources)
 				resources = make([][]any, 0)
 				sizeBytes = 0
 			}
@@ -49,13 +49,13 @@ func (p *Plugin) worker(ctx context.Context, w *worker, mx *Metrics) {
 			sizeBytes += r.Size()
 		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
-				p.flush(ctx, w, mx, resources)
+				p.flush(ctx, w, resources)
 				resources = make([][]any, 0)
 				sizeBytes = 0
 			}
 		case done := <-w.flush:
 			if len(resources) > 0 {
-				p.flush(ctx, w, mx, resources)
+				p.flush(ctx, w, resources)
 				resources = make([][]any, 0)
 				sizeBytes = 0
 			}
@@ -64,14 +64,14 @@ func (p *Plugin) worker(ctx context.Context, w *worker, mx *Metrics) {
 	}
 }
 
-func (p *Plugin) flush(ctx context.Context, w *worker, mx *Metrics, resources [][]any) {
+func (p *Plugin) flush(ctx context.Context, w *worker, resources [][]any) {
 	start := time.Now()
 	err := p.client.WriteTableBatch(ctx, w.table, resources)
 	dur := time.Since(start)
 	batchSize := len(resources)
 
 	if err != nil {
-		mx.Failed(batchSize)
+		p.errors.Add(uint64(batchSize))
 		p.logger.Err(err).
 			Str("table", w.table.Name).
 			Int("len", batchSize).
@@ -80,7 +80,7 @@ func (p *Plugin) flush(ctx context.Context, w *worker, mx *Metrics, resources []
 		return
 	}
 
-	mx.Wrote(batchSize)
+	p.writes.Add(uint64(batchSize))
 	p.logger.Info().
 		Str("table", w.table.Name).
 		Int("len", batchSize).
@@ -105,7 +105,7 @@ func (p *Plugin) writeManaged(ctx context.Context, tables schema.Tables, sourceN
 		// we save this locally because we don't want to access the map after that so we can
 		// keep the workersLock for as short as possible
 		workers[table.Name] = w
-		go p.worker(ctx, w, p.metrics)
+		go p.worker(ctx, w)
 	}
 	p.workersLock.Unlock()
 

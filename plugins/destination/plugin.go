@@ -3,6 +3,7 @@ package destination
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -90,7 +91,9 @@ type Plugin struct {
 	workers     map[string]*worker
 	workersLock sync.RWMutex // implies usage by pointer
 
-	metrics *Metrics
+	// the errors and writes imply usage by pointer only
+	errors atomic.Uint64
+	writes atomic.Uint64
 
 	batchTimeout          time.Duration
 	defaultBatchSize      int
@@ -127,7 +130,6 @@ func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ..
 		name:                  name,
 		version:               version,
 		newClient:             newClientFunc,
-		metrics:               new(Metrics),
 		workers:               make(map[string]*worker),
 		batchTimeout:          time.Duration(defaultBatchTimeoutSeconds) * time.Second,
 		defaultBatchSize:      defaultBatchSize,
@@ -157,7 +159,10 @@ func (p *Plugin) Metrics() Metrics {
 	case unmanaged:
 		return p.client.Metrics()
 	case managed:
-		return p.metrics.Get()
+		return Metrics{
+			Errors: p.errors.Load(),
+			Writes: p.writes.Load(),
+		}
 	default:
 		panic("unknown client type")
 	}
