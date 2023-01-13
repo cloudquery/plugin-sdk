@@ -176,7 +176,7 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 	p.logger = logger
 	p.spec = spec
 	p.spec.SetDefaults(p.defaultBatchSize, p.defaultBatchSizeBytes)
-	p.client, err = p.newClient(ctx, logger, spec)
+	p.client, err = p.newClient(ctx, logger, p.spec)
 	if err != nil {
 		return err
 	}
