@@ -36,11 +36,19 @@ func TestSourceTable(name string) *schema.Table {
 				Type: schema.TypeString,
 			},
 			{
+				Name: "text_with_null",
+				Type: schema.TypeString,
+			},
+			{
 				Name: "bytea",
 				Type: schema.TypeByteArray,
 			},
 			{
 				Name: "text_array",
+				Type: schema.TypeStringArray,
+			},
+			{
+				Name: "text_array_with_null",
 				Type: schema.TypeStringArray,
 			},
 			{
@@ -91,9 +99,9 @@ func TestSourceTable(name string) *schema.Table {
 func TestTable(name string) *schema.Table {
 	sourceTable := TestSourceTable(name)
 	sourceTable.Columns = append(schema.ColumnList{
-			schema.CqSourceNameColumn,
-			schema.CqSyncTimeColumn,
-		}, sourceTable.Columns...)
+		schema.CqSourceNameColumn,
+		schema.CqSyncTimeColumn,
+	}, sourceTable.Columns...)
 	return sourceTable
 }
 
@@ -123,9 +131,16 @@ func GenTestData(table *schema.Table) schema.CQTypes {
 			}
 			data[i] = uuidColumn
 		case schema.TypeString:
-			data[i] = &schema.Text{
-				Str:    "test",
-				Status: schema.Present,
+			if c.Name == "text_with_null" {
+				data[i] = &schema.Text{
+					Str:    "AStringWith\x00NullBytes",
+					Status: schema.Present,
+				}
+			} else {
+				data[i] = &schema.Text{
+					Str:    "test",
+					Status: schema.Present,
+				}
 			}
 		case schema.TypeByteArray:
 			data[i] = &schema.Bytea{
@@ -133,14 +148,22 @@ func GenTestData(table *schema.Table) schema.CQTypes {
 				Status: schema.Present,
 			}
 		case schema.TypeStringArray:
-			data[i] = &schema.TextArray{
-				Elements: []schema.Text{{Str: "test1", Status: schema.Present}, {Str: "test2", Status: schema.Present}},
-				Status: schema.Present,
+			if c.Name == "text_array_with_null" {
+				data[i] = &schema.TextArray{
+					Elements: []schema.Text{{Str: "test1", Status: schema.Present}, {Str: "test2\x00WithNull", Status: schema.Present}},
+					Status:   schema.Present,
+				}
+			} else {
+				data[i] = &schema.TextArray{
+					Elements: []schema.Text{{Str: "test1", Status: schema.Present}, {Str: "test2", Status: schema.Present}},
+					Status:   schema.Present,
+				}
 			}
+
 		case schema.TypeIntArray:
 			data[i] = &schema.Int8Array{
-				Elements:   []schema.Int8{{Int: 1, Status: schema.Present}, {Int: 2, Status: schema.Present}},
-				Status: schema.Present,
+				Elements: []schema.Int8{{Int: 1, Status: schema.Present}, {Int: 2, Status: schema.Present}},
+				Status:   schema.Present,
 			}
 		case schema.TypeTimestamp:
 			data[i] = &schema.Timestamptz{
@@ -149,7 +172,7 @@ func GenTestData(table *schema.Table) schema.CQTypes {
 			}
 		case schema.TypeJSON:
 			data[i] = &schema.JSON{
-				Bytes:   []byte(`{"test": "test"}`),
+				Bytes:  []byte(`{"test": "test"}`),
 				Status: schema.Present,
 			}
 		case schema.TypeUUIDArray:
