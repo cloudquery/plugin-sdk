@@ -9,6 +9,8 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPluginUnmanagedClient(t *testing.T) {
@@ -107,4 +109,31 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestPluginInit(t *testing.T) {
+	const (
+		batchSize      = 100
+		batchSizeBytes = 1000
+	)
+
+	var (
+		batchSizeObserved      int
+		batchSizeBytesObserved int
+	)
+	p := destination.NewPlugin(
+		"test",
+		"development",
+		func(ctx context.Context, logger zerolog.Logger, s specs.Destination) (destination.Client, error) {
+			batchSizeObserved = s.BatchSize
+			batchSizeBytesObserved = s.BatchSizeBytes
+			return NewClient(ctx, logger, s)
+		},
+		destination.WithDefaultBatchSize(batchSize),
+		destination.WithDefaultBatchSizeBytes(batchSizeBytes),
+	)
+	require.NoError(t, p.Init(context.TODO(), getTestLogger(t), specs.Destination{}))
+
+	require.Equal(t, batchSize, batchSizeObserved)
+	require.Equal(t, batchSizeBytes, batchSizeBytesObserved)
 }
