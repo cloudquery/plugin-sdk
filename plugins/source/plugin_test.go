@@ -6,9 +6,11 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/cloudquery/plugin-sdk/transformers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -315,4 +317,40 @@ func TestIgnoredColumns(t *testing.T) {
 			},
 		},
 	}})
+}
+
+var testTable struct {
+	PrimaryKey   string
+	SecondaryKey string
+	TertiaryKey  string
+	Quaternary   string
+}
+
+func TestNewPlugin(t *testing.T) {
+	testTransforms := []struct {
+		transformerOptions []transformers.StructTransformerOption
+		resultKeys         []string
+	}{
+		{
+			transformerOptions: []transformers.StructTransformerOption{transformers.WithPrimaryKeys("PrimaryKey")},
+			resultKeys:         []string{"primary_key"},
+		},
+		{
+			transformerOptions: []transformers.StructTransformerOption{},
+			resultKeys:         []string{"_cq_id"},
+		},
+	}
+	for _, tc := range testTransforms {
+		tables := []*schema.Table{
+			{
+				Name: "test_table",
+				Transform: transformers.TransformWithStruct(
+					&testTable, tc.transformerOptions...,
+				),
+			},
+		}
+
+		plugin := NewPlugin("testSourcePlugin", "1.0.0", tables, newTestExecutionClient)
+		assert.Equal(t, tc.resultKeys, plugin.tables[0].PrimaryKeys())
+	}
 }
