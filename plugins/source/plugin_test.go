@@ -326,7 +326,7 @@ var testTable struct {
 	Quaternary   string
 }
 
-func TestNewPlugin(t *testing.T) {
+func TestNewPluginPrimaryKeys(t *testing.T) {
 	testTransforms := []struct {
 		transformerOptions []transformers.StructTransformerOption
 		resultKeys         []string
