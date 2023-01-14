@@ -112,11 +112,11 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 		metrics:            &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:              caser.New(),
 	}
-	addInternalColumns(p.tables)
 	setParents(p.tables, nil)
 	if err := transformTables(p.tables); err != nil {
 		panic(err)
 	}
+	addInternalColumns(p.tables)
 	if err := p.validate(); err != nil {
 		panic(err)
 	}
