@@ -9,10 +9,6 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-type WriteMode int
-
-type MigrateMode int
-
 type Destination struct {
 	Name           string      `json:"name,omitempty"`
 	Version        string      `json:"version,omitempty"`
@@ -24,25 +20,6 @@ type Destination struct {
 	BatchSizeBytes int         `json:"batch_size_bytes,omitempty"`
 	Spec           any         `json:"spec,omitempty"`
 }
-
-const (
-	WriteModeOverwriteDeleteStale WriteMode = iota
-	WriteModeOverwrite
-	WriteModeAppend
-)
-
-const (
-	MigrateModeSafe MigrateMode = iota
-	MigrateModeForced
-)
-
-var (
-	writeModeStrings = []string{"overwrite-delete-stale", "overwrite", "append"}
-)
-
-var (
-	migrateModeStrings = []string{"safe", "forced"}
-)
 
 func (d *Destination) SetDefaults(defaultBatchSize, defaultBatchSizeBytes int) {
 	if d.Registry.String() == "" {
@@ -93,70 +70,4 @@ func (d *Destination) Validate() error {
 		return fmt.Errorf("batch_size must be greater than 0")
 	}
 	return nil
-}
-
-func (m WriteMode) String() string {
-	return writeModeStrings[m]
-}
-
-func (m WriteMode) MarshalJSON() ([]byte, error) {
-	buffer := bytes.NewBufferString(`"`)
-	buffer.WriteString(m.String())
-	buffer.WriteString(`"`)
-	return buffer.Bytes(), nil
-}
-
-func (m *WriteMode) UnmarshalJSON(data []byte) (err error) {
-	var writeMode string
-	if err := json.Unmarshal(data, &writeMode); err != nil {
-		return err
-	}
-	if *m, err = WriteModeFromString(writeMode); err != nil {
-		return err
-	}
-	return nil
-}
-
-func WriteModeFromString(s string) (WriteMode, error) {
-	switch s {
-	case "append":
-		return WriteModeAppend, nil
-	case "overwrite":
-		return WriteModeOverwrite, nil
-	case "overwrite-delete-stale":
-		return WriteModeOverwriteDeleteStale, nil
-	}
-	return 0, fmt.Errorf("invalid write mode: %s", s)
-}
-
-func (m MigrateMode) String() string {
-	return migrateModeStrings[m]
-}
-
-func (m MigrateMode) MarshalJSON() ([]byte, error) {
-	buffer := bytes.NewBufferString(`"`)
-	buffer.WriteString(m.String())
-	buffer.WriteString(`"`)
-	return buffer.Bytes(), nil
-}
-
-func (m *MigrateMode) UnmarshalJSON(data []byte) (err error) {
-	var migrateMode string
-	if err := json.Unmarshal(data, &migrateMode); err != nil {
-		return err
-	}
-	if *m, err = MigrateModeFromString(migrateMode); err != nil {
-		return err
-	}
-	return nil
-}
-
-func MigrateModeFromString(s string) (MigrateMode, error) {
-	switch s {
-	case "safe":
-		return MigrateModeSafe, nil
-	case "forced":
-		return MigrateModeForced, nil
-	}
-	return 0, fmt.Errorf("invalid migrate mode: %s", s)
 }
