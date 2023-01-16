@@ -200,9 +200,10 @@ func TestDestinationUnmarshalSpecValidate(t *testing.T) {
 
 func TestDestination_String(t *testing.T) {
 	type fields struct {
-		Name    string
-		Version string
-		Path    string
+		Name     string
+		Version  string
+		Path     string
+		Registry Registry
 	}
 	tests := []struct {
 		name   string
@@ -212,18 +213,40 @@ func TestDestination_String(t *testing.T) {
 		{
 			name: "should use short version without name part in path when those are the same",
 			fields: fields{
-				Name:    "aws",
-				Version: "v10.0.0",
-				Path:    "cloudquery/aws",
+				Name:     "aws",
+				Version:  "v10.0.0",
+				Path:     "cloudquery/aws",
+				Registry: RegistryGithub,
 			},
 			want: "aws (v10.0.0)",
 		},
 		{
 			name: "should use long version with path when name doesn't match path",
 			fields: fields{
-				Name:    "my-aws-spec",
-				Version: "v10.0.0",
-				Path:    "cloudquery/aws",
+				Name:     "my-aws-spec",
+				Version:  "v10.0.0",
+				Path:     "cloudquery/aws",
+				Registry: RegistryGithub,
+			},
+			want: "my-aws-spec (aws@v10.0.0)",
+		},
+		{
+			name: "should handle non GitHub registry",
+			fields: fields{
+				Name:     "my-aws-spec",
+				Version:  "v10.0.0",
+				Path:     "localhost:7777",
+				Registry: RegistryGrpc,
+			},
+			want: "my-aws-spec (grpc@localhost:7777)",
+		},
+		{
+			name: "should handle malformed path",
+			fields: fields{
+				Name:     "my-aws-spec",
+				Version:  "v10.0.0",
+				Path:     "aws",
+				Registry: RegistryGithub,
 			},
 			want: "my-aws-spec (aws@v10.0.0)",
 		},
@@ -231,9 +254,10 @@ func TestDestination_String(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := Destination{
-				Name:    tt.fields.Name,
-				Version: tt.fields.Version,
-				Path:    tt.fields.Path,
+				Name:     tt.fields.Name,
+				Version:  tt.fields.Version,
+				Path:     tt.fields.Path,
+				Registry: tt.fields.Registry,
 			}
 			if got := d.String(); got != tt.want {
 				t.Errorf("Destination.String() = %v, want %v", got, tt.want)
