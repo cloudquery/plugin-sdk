@@ -269,12 +269,15 @@ func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler) {
 		Concurrency:  1, // choose a very low value to check that we don't run into deadlocks
 		Scheduler:    scheduler,
 	}
+	if err := plugin.Init(ctx, spec); err != nil {
+		t.Fatal(err)
+	}
+
 	resources := make(chan *schema.Resource)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(resources)
 		return plugin.Sync(ctx,
-			spec,
 			resources)
 	})
 

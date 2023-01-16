@@ -8,7 +8,8 @@ lint:
 
 .PHONY: gen-proto
 gen-proto:
-	protoc --proto_path=. --go_out . --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative internal/pb/base.proto internal/pb/source.proto internal/pb/destination.proto
+	protoc --proto_path=. --go_out . --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative internal/pb/source/v0/source.proto internal/pb/destination/v0/destination.proto internal/pb/base/v0/base.proto
+	protoc --proto_path=. --go_out . --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative internal/pb/source/v1/source.proto
 
 .PHONY: benchmark
 benchmark:

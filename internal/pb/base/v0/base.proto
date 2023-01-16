@@ -1,0 +1,35 @@
+syntax = "proto3";
+package proto;
+option go_package = "github.com/cloudquery/plugin-sdk/internal/pb/base/v0;base";
+
+message GetName {
+  message Request {}
+  message Response {
+    string name = 1;
+  }
+}
+
+message GetVersion {
+  message Request {}
+  message Response {
+    string version = 1;
+  }
+}
+
+message GetProtocolVersion {
+  message Request {}
+  message Response {
+    uint64 version = 1;
+  }
+}
+
+message Configure {
+  message Request {
+    // Holds information such as credentials, regions, accounts, etc'
+    // Marshalled spec.SourceSpec or spec.DestinationSpec
+    bytes config = 1;
+  }
+  message Response {
+    string error = 1;
+  }
+}

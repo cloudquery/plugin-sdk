@@ -1,0 +1,93 @@
+syntax = "proto3";
+package proto;
+option go_package = "github.com/cloudquery/plugin-sdk/internal/pb/destination/v0;destination";
+import "google/protobuf/timestamp.proto";
+import "internal/pb/base/v0/base.proto";
+
+service Destination {
+  // Get the current protocol version of the plugin. This helps
+  // get the right message about upgrade/downgrade of cli and/or plugin.
+  // Also, on the cli side it can try to upgrade/downgrade the protocol if cli supports it.
+  rpc GetProtocolVersion(GetProtocolVersion.Request) returns (GetProtocolVersion.Response);
+  // Get the name of the plugin
+  rpc GetName(GetName.Request) returns (GetName.Response);
+  // Get the current version of the plugin
+  rpc GetVersion(GetVersion.Request) returns (GetVersion.Response);
+  // Configure the plugin with the given credentials and mode
+  rpc Configure(Configure.Request) returns (Configure.Response);
+  // Migrate tables to the given plugin version
+  rpc Migrate(Migrate.Request) returns (Migrate.Response);
+  // Write resources
+  rpc Write(stream Write.Request) returns (Write.Response);
+  // Write2 resources
+  rpc Write2(stream Write2.Request) returns (Write2.Response);
+  // Send signal to flush and close open connections
+  rpc Close(Close.Request) returns (Close.Response);
+  // DeleteStale deletes stale data that was inserted by a given source
+  // and is older than the given timestamp
+  rpc DeleteStale(DeleteStale.Request) returns (DeleteStale.Response);
+  // Get metrics for the source plugin
+  rpc GetMetrics(GetDestinationMetrics.Request) returns (GetDestinationMetrics.Response);
+}
+
+
+message Migrate {
+  message Request {
+    string name = 1;
+    string version = 2;
+    bytes tables = 3;
+  }
+  message Response {
+  }
+}
+
+message Write {
+  message Request {
+    // marshalled *schema.Resources
+    bytes resource = 1;
+    string source = 2;
+    google.protobuf.Timestamp timestamp = 3;
+  }
+  message Response {
+    uint64 failed_writes = 1;
+  }
+}
+
+message Write2 {
+  message Request {
+    string source = 1;
+    google.protobuf.Timestamp timestamp = 2;
+    // marshaled schema.Tables
+    bytes tables = 3;
+    // marshalled *schema.Resources
+    bytes resource = 4;
+    // marshalled specs.Source
+    bytes source_spec = 5;
+  }
+  message Response {
+  }
+}
+
+message Close {
+  message Request {}
+  message Response {}
+}
+
+message DeleteStale {
+  message Request {
+    string source = 1;
+    google.protobuf.Timestamp timestamp = 2;
+    bytes tables = 3;
+  }
+  message Response {
+    uint64 failed_deletes = 1;
+  }
+}
+
+message GetDestinationMetrics {
+  message Request {}
+  message Response {
+    // marshalled json of plugins.DestinationMetrics
+    bytes metrics = 1;
+  }
+}

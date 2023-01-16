@@ -8,8 +8,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/servers"
+	pbv0 "github.com/cloudquery/plugin-sdk/internal/pb/source/v0"
+	pbv1 "github.com/cloudquery/plugin-sdk/internal/pb/source/v1"
+	serversv0 "github.com/cloudquery/plugin-sdk/internal/servers/source/v0"
+	serversv1 "github.com/cloudquery/plugin-sdk/internal/servers/source/v1"
 	"github.com/cloudquery/plugin-sdk/plugins/source"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
@@ -111,11 +113,15 @@ func newCmdSourceServe(serve *sourceServe) *cobra.Command {
 				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
-				grpc.MaxRecvMsgSize(servers.MaxMsgSize),
-				grpc.MaxSendMsgSize(servers.MaxMsgSize),
+				grpc.MaxRecvMsgSize(pbv1.MaxMsgSize),
+				grpc.MaxSendMsgSize(pbv1.MaxMsgSize),
 			)
 			serve.plugin.SetLogger(logger)
-			pb.RegisterSourceServer(s, &servers.SourceServer{
+			pbv0.RegisterSourceServer(s, &serversv0.Server{
+				Plugin: serve.plugin,
+				Logger: logger,
+			})
+			pbv1.RegisterSourceServer(s, &serversv1.Server{
 				Plugin: serve.plugin,
 				Logger: logger,
 			})

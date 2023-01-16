@@ -24,9 +24,13 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 	resourcesChannel := make(chan *schema.Resource)
 	var syncErr error
 
+	if err := plugin.Init(context.Background(), spec); err != nil {
+		t.Fatal(err)
+	}
+
 	go func() {
 		defer close(resourcesChannel)
-		syncErr = plugin.Sync(context.Background(), spec, resourcesChannel)
+		syncErr = plugin.Sync(context.Background(), resourcesChannel)
 	}()
 
 	syncedResources := make([]*schema.Resource, 0)

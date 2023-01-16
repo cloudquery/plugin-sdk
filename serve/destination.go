@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cloudquery/plugin-sdk/internal/pb"
-	"github.com/cloudquery/plugin-sdk/internal/servers"
+	pbv0 "github.com/cloudquery/plugin-sdk/internal/pb/destination/v0"
+	servers "github.com/cloudquery/plugin-sdk/internal/servers/destination/v0"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
@@ -105,10 +105,10 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
-				grpc.MaxRecvMsgSize(servers.MaxMsgSize),
-				grpc.MaxSendMsgSize(servers.MaxMsgSize),
+				grpc.MaxRecvMsgSize(pbv0.MaxMsgSize),
+				grpc.MaxSendMsgSize(pbv0.MaxMsgSize),
 			)
-			pb.RegisterDestinationServer(s, &servers.DestinationServer{
+			pbv0.RegisterDestinationServer(s, &servers.DestinationServer{
 				Plugin: serve.plugin,
 				Logger: logger,
 			})
