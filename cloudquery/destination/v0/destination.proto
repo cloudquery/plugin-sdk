@@ -1,8 +1,10 @@
 syntax = "proto3";
 package proto;
-option go_package = "github.com/cloudquery/plugin-sdk/internal/pb/destination/v0;destination";
+
+import "cloudquery/base/v0/base.proto";
 import "google/protobuf/timestamp.proto";
-import "internal/pb/base/v0/base.proto";
+
+option go_package = "github.com/cloudquery/plugin-sdk/internal/pb/destination/v0;destination";
 
 service Destination {
   // Get the current protocol version of the plugin. This helps
@@ -30,15 +32,13 @@ service Destination {
   rpc GetMetrics(GetDestinationMetrics.Request) returns (GetDestinationMetrics.Response);
 }
 
-
 message Migrate {
   message Request {
     string name = 1;
     string version = 2;
     bytes tables = 3;
   }
-  message Response {
-  }
+  message Response {}
 }
 
 message Write {
@@ -64,8 +64,7 @@ message Write2 {
     // marshalled specs.Source
     bytes source_spec = 5;
   }
-  message Response {
-  }
+  message Response {}
 }
 
 message Close {

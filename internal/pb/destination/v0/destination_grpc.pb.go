@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.12
-// source: internal/pb/destination/v0/destination.proto
+// source: cloudquery/destination/v0/destination.proto
 
 package destination
 
@@ -521,5 +521,5 @@ var Destination_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "internal/pb/destination/v0/destination.proto",
+	Metadata: "cloudquery/destination/v0/destination.proto",
 }

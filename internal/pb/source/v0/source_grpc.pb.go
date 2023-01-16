@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.12
-// source: internal/pb/source/v0/source.proto
+// source: cloudquery/source/v0/source.proto
 
 package source
 
@@ -473,5 +473,5 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "internal/pb/source/v0/source.proto",
+	Metadata: "cloudquery/source/v0/source.proto",
 }

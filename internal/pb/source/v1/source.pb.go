@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.28.1
 // 	protoc        v3.21.12
-// source: internal/pb/source/v1/source.proto
+// source: cloudquery/source/v1/source.proto
 
 package source
 
@@ -29,7 +29,7 @@ type GetName struct {
 func (x *GetName) Reset() {
 	*x = GetName{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[0]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -42,7 +42,7 @@ func (x *GetName) String() string {
 func (*GetName) ProtoMessage() {}
 
 func (x *GetName) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[0]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +55,7 @@ func (x *GetName) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetName.ProtoReflect.Descriptor instead.
 func (*GetName) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{0}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{0}
 }
 
 type GetVersion struct {
@@ -67,7 +67,7 @@ type GetVersion struct {
 func (x *GetVersion) Reset() {
 	*x = GetVersion{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[1]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -80,7 +80,7 @@ func (x *GetVersion) String() string {
 func (*GetVersion) ProtoMessage() {}
 
 func (x *GetVersion) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[1]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -93,7 +93,7 @@ func (x *GetVersion) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVersion.ProtoReflect.Descriptor instead.
 func (*GetVersion) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{1}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{1}
 }
 
 type Init struct {
@@ -105,7 +105,7 @@ type Init struct {
 func (x *Init) Reset() {
 	*x = Init{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[2]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -118,7 +118,7 @@ func (x *Init) String() string {
 func (*Init) ProtoMessage() {}
 
 func (x *Init) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[2]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -131,7 +131,7 @@ func (x *Init) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Init.ProtoReflect.Descriptor instead.
 func (*Init) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{2}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{2}
 }
 
 type GetDynamicTables struct {
@@ -143,7 +143,7 @@ type GetDynamicTables struct {
 func (x *GetDynamicTables) Reset() {
 	*x = GetDynamicTables{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[3]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -156,7 +156,7 @@ func (x *GetDynamicTables) String() string {
 func (*GetDynamicTables) ProtoMessage() {}
 
 func (x *GetDynamicTables) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[3]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +169,7 @@ func (x *GetDynamicTables) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDynamicTables.ProtoReflect.Descriptor instead.
 func (*GetDynamicTables) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{3}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{3}
 }
 
 type Sync struct {
@@ -181,7 +181,7 @@ type Sync struct {
 func (x *Sync) Reset() {
 	*x = Sync{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[4]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -194,7 +194,7 @@ func (x *Sync) String() string {
 func (*Sync) ProtoMessage() {}
 
 func (x *Sync) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[4]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -207,7 +207,7 @@ func (x *Sync) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sync.ProtoReflect.Descriptor instead.
 func (*Sync) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{4}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{4}
 }
 
 type GetTables struct {
@@ -219,7 +219,7 @@ type GetTables struct {
 func (x *GetTables) Reset() {
 	*x = GetTables{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[5]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -232,7 +232,7 @@ func (x *GetTables) String() string {
 func (*GetTables) ProtoMessage() {}
 
 func (x *GetTables) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[5]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -245,7 +245,7 @@ func (x *GetTables) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTables.ProtoReflect.Descriptor instead.
 func (*GetTables) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{5}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{5}
 }
 
 type GetMetrics struct {
@@ -257,7 +257,7 @@ type GetMetrics struct {
 func (x *GetMetrics) Reset() {
 	*x = GetMetrics{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[6]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -270,7 +270,7 @@ func (x *GetMetrics) String() string {
 func (*GetMetrics) ProtoMessage() {}
 
 func (x *GetMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[6]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -283,7 +283,7 @@ func (x *GetMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMetrics.ProtoReflect.Descriptor instead.
 func (*GetMetrics) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{6}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{6}
 }
 
 type GetName_Request struct {
@@ -295,7 +295,7 @@ type GetName_Request struct {
 func (x *GetName_Request) Reset() {
 	*x = GetName_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[7]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -308,7 +308,7 @@ func (x *GetName_Request) String() string {
 func (*GetName_Request) ProtoMessage() {}
 
 func (x *GetName_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[7]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -321,7 +321,7 @@ func (x *GetName_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetName_Request.ProtoReflect.Descriptor instead.
 func (*GetName_Request) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{0, 0}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{0, 0}
 }
 
 type GetName_Response struct {
@@ -335,7 +335,7 @@ type GetName_Response struct {
 func (x *GetName_Response) Reset() {
 	*x = GetName_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[8]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -348,7 +348,7 @@ func (x *GetName_Response) String() string {
 func (*GetName_Response) ProtoMessage() {}
 
 func (x *GetName_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[8]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -361,7 +361,7 @@ func (x *GetName_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetName_Response.ProtoReflect.Descriptor instead.
 func (*GetName_Response) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{0, 1}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{0, 1}
 }
 
 func (x *GetName_Response) GetName() string {
@@ -380,7 +380,7 @@ type GetVersion_Request struct {
 func (x *GetVersion_Request) Reset() {
 	*x = GetVersion_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[9]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -393,7 +393,7 @@ func (x *GetVersion_Request) String() string {
 func (*GetVersion_Request) ProtoMessage() {}
 
 func (x *GetVersion_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[9]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -406,7 +406,7 @@ func (x *GetVersion_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVersion_Request.ProtoReflect.Descriptor instead.
 func (*GetVersion_Request) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{1, 0}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{1, 0}
 }
 
 type GetVersion_Response struct {
@@ -420,7 +420,7 @@ type GetVersion_Response struct {
 func (x *GetVersion_Response) Reset() {
 	*x = GetVersion_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[10]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -433,7 +433,7 @@ func (x *GetVersion_Response) String() string {
 func (*GetVersion_Response) ProtoMessage() {}
 
 func (x *GetVersion_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[10]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -446,7 +446,7 @@ func (x *GetVersion_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVersion_Response.ProtoReflect.Descriptor instead.
 func (*GetVersion_Response) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{1, 1}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{1, 1}
 }
 
 func (x *GetVersion_Response) GetVersion() string {
@@ -468,7 +468,7 @@ type Init_Request struct {
 func (x *Init_Request) Reset() {
 	*x = Init_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[11]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -481,7 +481,7 @@ func (x *Init_Request) String() string {
 func (*Init_Request) ProtoMessage() {}
 
 func (x *Init_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[11]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -494,7 +494,7 @@ func (x *Init_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Init_Request.ProtoReflect.Descriptor instead.
 func (*Init_Request) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{2, 0}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{2, 0}
 }
 
 func (x *Init_Request) GetSpec() []byte {
@@ -513,7 +513,7 @@ type Init_Response struct {
 func (x *Init_Response) Reset() {
 	*x = Init_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[12]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -526,7 +526,7 @@ func (x *Init_Response) String() string {
 func (*Init_Response) ProtoMessage() {}
 
 func (x *Init_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[12]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -539,7 +539,7 @@ func (x *Init_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Init_Response.ProtoReflect.Descriptor instead.
 func (*Init_Response) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{2, 1}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{2, 1}
 }
 
 type GetDynamicTables_Request struct {
@@ -551,7 +551,7 @@ type GetDynamicTables_Request struct {
 func (x *GetDynamicTables_Request) Reset() {
 	*x = GetDynamicTables_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[13]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -564,7 +564,7 @@ func (x *GetDynamicTables_Request) String() string {
 func (*GetDynamicTables_Request) ProtoMessage() {}
 
 func (x *GetDynamicTables_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[13]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -577,7 +577,7 @@ func (x *GetDynamicTables_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDynamicTables_Request.ProtoReflect.Descriptor instead.
 func (*GetDynamicTables_Request) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{3, 0}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{3, 0}
 }
 
 type GetDynamicTables_Response struct {
@@ -592,7 +592,7 @@ type GetDynamicTables_Response struct {
 func (x *GetDynamicTables_Response) Reset() {
 	*x = GetDynamicTables_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[14]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -605,7 +605,7 @@ func (x *GetDynamicTables_Response) String() string {
 func (*GetDynamicTables_Response) ProtoMessage() {}
 
 func (x *GetDynamicTables_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[14]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -618,7 +618,7 @@ func (x *GetDynamicTables_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDynamicTables_Response.ProtoReflect.Descriptor instead.
 func (*GetDynamicTables_Response) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{3, 1}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{3, 1}
 }
 
 func (x *GetDynamicTables_Response) GetTables() []byte {
@@ -637,7 +637,7 @@ type Sync_Request struct {
 func (x *Sync_Request) Reset() {
 	*x = Sync_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[15]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -650,7 +650,7 @@ func (x *Sync_Request) String() string {
 func (*Sync_Request) ProtoMessage() {}
 
 func (x *Sync_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[15]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -663,7 +663,7 @@ func (x *Sync_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sync_Request.ProtoReflect.Descriptor instead.
 func (*Sync_Request) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{4, 0}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{4, 0}
 }
 
 type Sync_Response struct {
@@ -678,7 +678,7 @@ type Sync_Response struct {
 func (x *Sync_Response) Reset() {
 	*x = Sync_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[16]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -691,7 +691,7 @@ func (x *Sync_Response) String() string {
 func (*Sync_Response) ProtoMessage() {}
 
 func (x *Sync_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[16]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -704,7 +704,7 @@ func (x *Sync_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sync_Response.ProtoReflect.Descriptor instead.
 func (*Sync_Response) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{4, 1}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{4, 1}
 }
 
 func (x *Sync_Response) GetResource() []byte {
@@ -723,7 +723,7 @@ type GetTables_Request struct {
 func (x *GetTables_Request) Reset() {
 	*x = GetTables_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[17]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -736,7 +736,7 @@ func (x *GetTables_Request) String() string {
 func (*GetTables_Request) ProtoMessage() {}
 
 func (x *GetTables_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[17]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -749,7 +749,7 @@ func (x *GetTables_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTables_Request.ProtoReflect.Descriptor instead.
 func (*GetTables_Request) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{5, 0}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{5, 0}
 }
 
 type GetTables_Response struct {
@@ -766,7 +766,7 @@ type GetTables_Response struct {
 func (x *GetTables_Response) Reset() {
 	*x = GetTables_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[18]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -779,7 +779,7 @@ func (x *GetTables_Response) String() string {
 func (*GetTables_Response) ProtoMessage() {}
 
 func (x *GetTables_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[18]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -792,7 +792,7 @@ func (x *GetTables_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTables_Response.ProtoReflect.Descriptor instead.
 func (*GetTables_Response) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{5, 1}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{5, 1}
 }
 
 func (x *GetTables_Response) GetName() string {
@@ -825,7 +825,7 @@ type GetMetrics_Request struct {
 func (x *GetMetrics_Request) Reset() {
 	*x = GetMetrics_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[19]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -838,7 +838,7 @@ func (x *GetMetrics_Request) String() string {
 func (*GetMetrics_Request) ProtoMessage() {}
 
 func (x *GetMetrics_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[19]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -851,7 +851,7 @@ func (x *GetMetrics_Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMetrics_Request.ProtoReflect.Descriptor instead.
 func (*GetMetrics_Request) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{6, 0}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{6, 0}
 }
 
 type GetMetrics_Response struct {
@@ -866,7 +866,7 @@ type GetMetrics_Response struct {
 func (x *GetMetrics_Response) Reset() {
 	*x = GetMetrics_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_pb_source_v1_source_proto_msgTypes[20]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -879,7 +879,7 @@ func (x *GetMetrics_Response) String() string {
 func (*GetMetrics_Response) ProtoMessage() {}
 
 func (x *GetMetrics_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_pb_source_v1_source_proto_msgTypes[20]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -892,7 +892,7 @@ func (x *GetMetrics_Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMetrics_Response.ProtoReflect.Descriptor instead.
 func (*GetMetrics_Response) Descriptor() ([]byte, []int) {
-	return file_internal_pb_source_v1_source_proto_rawDescGZIP(), []int{6, 1}
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{6, 1}
 }
 
 func (x *GetMetrics_Response) GetMetrics() []byte {
@@ -902,155 +902,142 @@ func (x *GetMetrics_Response) GetMetrics() []byte {
 	return nil
 }
 
-var File_internal_pb_source_v1_source_proto protoreflect.FileDescriptor
+var File_cloudquery_source_v1_source_proto protoreflect.FileDescriptor
 
-var file_internal_pb_source_v1_source_proto_rawDesc = []byte{
-	0x0a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x70, 0x62, 0x2f, 0x73, 0x6f,
-	0x75, 0x72, 0x63, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x12, 0x22, 0x69, 0x6f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75,
-	0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73,
-	0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x22, 0x34, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x4e,
-	0x61, 0x6d, 0x65, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1e,
-	0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61,
-	0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3d,
-	0x0a, 0x0a, 0x47, 0x65, 0x74, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x1a, 0x09, 0x0a, 0x07,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x22, 0x31, 0x0a,
-	0x04, 0x49, 0x6e, 0x69, 0x74, 0x1a, 0x1d, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x12, 0x12, 0x0a, 0x04, 0x73, 0x70, 0x65, 0x63, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04,
-	0x73, 0x70, 0x65, 0x63, 0x1a, 0x0a, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x22, 0x41, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x54, 0x61,
-	0x62, 0x6c, 0x65, 0x73, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
-	0x22, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x74,
-	0x61, 0x62, 0x6c, 0x65, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x74, 0x61, 0x62,
-	0x6c, 0x65, 0x73, 0x22, 0x39, 0x0a, 0x04, 0x53, 0x79, 0x6e, 0x63, 0x1a, 0x09, 0x0a, 0x07, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x0c, 0x52, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22, 0x68,
-	0x0a, 0x09, 0x47, 0x65, 0x74, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x1a, 0x09, 0x0a, 0x07, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x50, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f,
-	0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
-	0x12, 0x16, 0x0a, 0x06, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0c,
-	0x52, 0x06, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x22, 0x3d, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x4d,
-	0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x24, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a,
-	0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07,
-	0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x32, 0xe6, 0x06, 0x0a, 0x06, 0x53, 0x6f, 0x75, 0x72,
-	0x63, 0x65, 0x12, 0x74, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x33, 0x2e,
-	0x69, 0x6f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c,
-	0x75, 0x67, 0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e,
-	0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x1a, 0x34, 0x2e, 0x69, 0x6f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
-	0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f,
-	0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x2e,
-	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x7d, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x56,
-	0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x36, 0x2e, 0x69, 0x6f, 0x2e, 0x63, 0x6c, 0x6f, 0x75,
-	0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x73, 0x64,
-	0x6b, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x56,
-	0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x37,
-	0x2e, 0x69, 0x6f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x70,
-	0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
-	0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x7a, 0x0a, 0x09, 0x47, 0x65, 0x74, 0x54, 0x61,
-	0x62, 0x6c, 0x65, 0x73, 0x12, 0x35, 0x2e, 0x69, 0x6f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71,
-	0x75, 0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e,
-	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x54, 0x61, 0x62,
-	0x6c, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x36, 0x2e, 0x69, 0x6f,
-	0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67,
-	0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31,
-	0x2e, 0x47, 0x65, 0x74, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x7d, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63,
-	0x73, 0x12, 0x36, 0x2e, 0x69, 0x6f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72,
-	0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f, 0x75,
-	0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63,
-	0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x37, 0x2e, 0x69, 0x6f, 0x2e, 0x63,
-	0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e,
-	0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47,
-	0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x12, 0x6b, 0x0a, 0x04, 0x49, 0x6e, 0x69, 0x74, 0x12, 0x30, 0x2e, 0x69, 0x6f, 0x2e,
-	0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67, 0x69,
-	0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e,
-	0x49, 0x6e, 0x69, 0x74, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x31, 0x2e, 0x69,
-	0x6f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75,
-	0x67, 0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76,
-	0x31, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
-	0x8f, 0x01, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x54, 0x61,
-	0x62, 0x6c, 0x65, 0x73, 0x12, 0x3c, 0x2e, 0x69, 0x6f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71,
-	0x75, 0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e,
-	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x79, 0x6e,
-	0x61, 0x6d, 0x69, 0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x1a, 0x3d, 0x2e, 0x69, 0x6f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
-	0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f,
-	0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d,
-	0x69, 0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x12, 0x6d, 0x0a, 0x04, 0x53, 0x79, 0x6e, 0x63, 0x12, 0x30, 0x2e, 0x69, 0x6f, 0x2e, 0x63,
-	0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e,
-	0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x53,
-	0x79, 0x6e, 0x63, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x31, 0x2e, 0x69, 0x6f,
-	0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x70, 0x6c, 0x75, 0x67,
-	0x69, 0x6e, 0x5f, 0x73, 0x64, 0x6b, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31,
-	0x2e, 0x53, 0x79, 0x6e, 0x63, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x30, 0x01,
-	0x42, 0x3f, 0x5a, 0x3d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x63,
-	0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2f, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e,
-	0x2d, 0x73, 0x64, 0x6b, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x70, 0x62,
-	0x2f, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2f, 0x76, 0x31, 0x3b, 0x73, 0x6f, 0x75, 0x72, 0x63,
-	0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+var file_cloudquery_source_v1_source_proto_rawDesc = []byte{
+	0x0a, 0x21, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2f, 0x73, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x12, 0x14, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x22, 0x34, 0x0a, 0x07, 0x47, 0x65, 0x74,
+	0x4e, 0x61, 0x6d, 0x65, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x1e, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e,
+	0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x22,
+	0x3d, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x1a, 0x09, 0x0a,
+	0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x22, 0x31,
+	0x0a, 0x04, 0x49, 0x6e, 0x69, 0x74, 0x1a, 0x1d, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x12, 0x0a, 0x04, 0x73, 0x70, 0x65, 0x63, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52,
+	0x04, 0x73, 0x70, 0x65, 0x63, 0x1a, 0x0a, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x22, 0x41, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x54,
+	0x61, 0x62, 0x6c, 0x65, 0x73, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x22, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x16, 0x0a, 0x06,
+	0x74, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x74, 0x61,
+	0x62, 0x6c, 0x65, 0x73, 0x22, 0x39, 0x0a, 0x04, 0x53, 0x79, 0x6e, 0x63, 0x1a, 0x09, 0x0a, 0x07,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22,
+	0x68, 0x0a, 0x09, 0x47, 0x65, 0x74, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x1a, 0x09, 0x0a, 0x07,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x50, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69,
+	0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f,
+	0x6e, 0x12, 0x16, 0x0a, 0x06, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x0c, 0x52, 0x06, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x22, 0x3d, 0x0a, 0x0a, 0x47, 0x65, 0x74,
+	0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x24, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18,
+	0x0a, 0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52,
+	0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x32, 0xa1, 0x05, 0x0a, 0x06, 0x53, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x12, 0x58, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x25,
+	0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72,
+	0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x2e, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
+	0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74,
+	0x4e, 0x61, 0x6d, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x61, 0x0a,
+	0x0a, 0x47, 0x65, 0x74, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x28, 0x2e, 0x63, 0x6c,
+	0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e,
+	0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x29, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
+	0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74,
+	0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x12, 0x5e, 0x0a, 0x09, 0x47, 0x65, 0x74, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x12, 0x27, 0x2e,
+	0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x2e, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x28, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75,
+	0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65,
+	0x74, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x12, 0x61, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x12, 0x28,
+	0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72,
+	0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73,
+	0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x29, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64,
+	0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e,
+	0x47, 0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x12, 0x4f, 0x0a, 0x04, 0x49, 0x6e, 0x69, 0x74, 0x12, 0x22, 0x2e, 0x63, 0x6c,
+	0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e,
+	0x76, 0x31, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x23, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x2e, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x73, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d,
+	0x69, 0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x12, 0x2e, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64,
+	0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e,
+	0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73,
+	0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64,
+	0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e,
+	0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73,
+	0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x51, 0x0a, 0x04, 0x53, 0x79, 0x6e,
+	0x63, 0x12, 0x22, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x79, 0x6e, 0x63, 0x2e, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
+	0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x79, 0x6e,
+	0x63, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x30, 0x01, 0x42, 0x3f, 0x5a, 0x3d,
+	0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6c, 0x6f, 0x75, 0x64,
+	0x71, 0x75, 0x65, 0x72, 0x79, 0x2f, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x2d, 0x73, 0x64, 0x6b,
+	0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x70, 0x62, 0x2f, 0x73, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x2f, 0x76, 0x31, 0x3b, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x62, 0x06, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
-	file_internal_pb_source_v1_source_proto_rawDescOnce sync.Once
-	file_internal_pb_source_v1_source_proto_rawDescData = file_internal_pb_source_v1_source_proto_rawDesc
+	file_cloudquery_source_v1_source_proto_rawDescOnce sync.Once
+	file_cloudquery_source_v1_source_proto_rawDescData = file_cloudquery_source_v1_source_proto_rawDesc
 )
 
-func file_internal_pb_source_v1_source_proto_rawDescGZIP() []byte {
-	file_internal_pb_source_v1_source_proto_rawDescOnce.Do(func() {
-		file_internal_pb_source_v1_source_proto_rawDescData = protoimpl.X.CompressGZIP(file_internal_pb_source_v1_source_proto_rawDescData)
+func file_cloudquery_source_v1_source_proto_rawDescGZIP() []byte {
+	file_cloudquery_source_v1_source_proto_rawDescOnce.Do(func() {
+		file_cloudquery_source_v1_source_proto_rawDescData = protoimpl.X.CompressGZIP(file_cloudquery_source_v1_source_proto_rawDescData)
 	})
-	return file_internal_pb_source_v1_source_proto_rawDescData
+	return file_cloudquery_source_v1_source_proto_rawDescData
 }
 
-var file_internal_pb_source_v1_source_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
-var file_internal_pb_source_v1_source_proto_goTypes = []interface{}{
-	(*GetName)(nil),                   // 0: io.cloudquery.plugin_sdk.source.v1.GetName
-	(*GetVersion)(nil),                // 1: io.cloudquery.plugin_sdk.source.v1.GetVersion
-	(*Init)(nil),                      // 2: io.cloudquery.plugin_sdk.source.v1.Init
-	(*GetDynamicTables)(nil),          // 3: io.cloudquery.plugin_sdk.source.v1.GetDynamicTables
-	(*Sync)(nil),                      // 4: io.cloudquery.plugin_sdk.source.v1.Sync
-	(*GetTables)(nil),                 // 5: io.cloudquery.plugin_sdk.source.v1.GetTables
-	(*GetMetrics)(nil),                // 6: io.cloudquery.plugin_sdk.source.v1.GetMetrics
-	(*GetName_Request)(nil),           // 7: io.cloudquery.plugin_sdk.source.v1.GetName.Request
-	(*GetName_Response)(nil),          // 8: io.cloudquery.plugin_sdk.source.v1.GetName.Response
-	(*GetVersion_Request)(nil),        // 9: io.cloudquery.plugin_sdk.source.v1.GetVersion.Request
-	(*GetVersion_Response)(nil),       // 10: io.cloudquery.plugin_sdk.source.v1.GetVersion.Response
-	(*Init_Request)(nil),              // 11: io.cloudquery.plugin_sdk.source.v1.Init.Request
-	(*Init_Response)(nil),             // 12: io.cloudquery.plugin_sdk.source.v1.Init.Response
-	(*GetDynamicTables_Request)(nil),  // 13: io.cloudquery.plugin_sdk.source.v1.GetDynamicTables.Request
-	(*GetDynamicTables_Response)(nil), // 14: io.cloudquery.plugin_sdk.source.v1.GetDynamicTables.Response
-	(*Sync_Request)(nil),              // 15: io.cloudquery.plugin_sdk.source.v1.Sync.Request
-	(*Sync_Response)(nil),             // 16: io.cloudquery.plugin_sdk.source.v1.Sync.Response
-	(*GetTables_Request)(nil),         // 17: io.cloudquery.plugin_sdk.source.v1.GetTables.Request
-	(*GetTables_Response)(nil),        // 18: io.cloudquery.plugin_sdk.source.v1.GetTables.Response
-	(*GetMetrics_Request)(nil),        // 19: io.cloudquery.plugin_sdk.source.v1.GetMetrics.Request
-	(*GetMetrics_Response)(nil),       // 20: io.cloudquery.plugin_sdk.source.v1.GetMetrics.Response
+var file_cloudquery_source_v1_source_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_cloudquery_source_v1_source_proto_goTypes = []interface{}{
+	(*GetName)(nil),                   // 0: cloudquery.source.v1.GetName
+	(*GetVersion)(nil),                // 1: cloudquery.source.v1.GetVersion
+	(*Init)(nil),                      // 2: cloudquery.source.v1.Init
+	(*GetDynamicTables)(nil),          // 3: cloudquery.source.v1.GetDynamicTables
+	(*Sync)(nil),                      // 4: cloudquery.source.v1.Sync
+	(*GetTables)(nil),                 // 5: cloudquery.source.v1.GetTables
+	(*GetMetrics)(nil),                // 6: cloudquery.source.v1.GetMetrics
+	(*GetName_Request)(nil),           // 7: cloudquery.source.v1.GetName.Request
+	(*GetName_Response)(nil),          // 8: cloudquery.source.v1.GetName.Response
+	(*GetVersion_Request)(nil),        // 9: cloudquery.source.v1.GetVersion.Request
+	(*GetVersion_Response)(nil),       // 10: cloudquery.source.v1.GetVersion.Response
+	(*Init_Request)(nil),              // 11: cloudquery.source.v1.Init.Request
+	(*Init_Response)(nil),             // 12: cloudquery.source.v1.Init.Response
+	(*GetDynamicTables_Request)(nil),  // 13: cloudquery.source.v1.GetDynamicTables.Request
+	(*GetDynamicTables_Response)(nil), // 14: cloudquery.source.v1.GetDynamicTables.Response
+	(*Sync_Request)(nil),              // 15: cloudquery.source.v1.Sync.Request
+	(*Sync_Response)(nil),             // 16: cloudquery.source.v1.Sync.Response
+	(*GetTables_Request)(nil),         // 17: cloudquery.source.v1.GetTables.Request
+	(*GetTables_Response)(nil),        // 18: cloudquery.source.v1.GetTables.Response
+	(*GetMetrics_Request)(nil),        // 19: cloudquery.source.v1.GetMetrics.Request
+	(*GetMetrics_Response)(nil),       // 20: cloudquery.source.v1.GetMetrics.Response
 }
-var file_internal_pb_source_v1_source_proto_depIdxs = []int32{
-	7,  // 0: io.cloudquery.plugin_sdk.source.v1.Source.GetName:input_type -> io.cloudquery.plugin_sdk.source.v1.GetName.Request
-	9,  // 1: io.cloudquery.plugin_sdk.source.v1.Source.GetVersion:input_type -> io.cloudquery.plugin_sdk.source.v1.GetVersion.Request
-	17, // 2: io.cloudquery.plugin_sdk.source.v1.Source.GetTables:input_type -> io.cloudquery.plugin_sdk.source.v1.GetTables.Request
-	19, // 3: io.cloudquery.plugin_sdk.source.v1.Source.GetMetrics:input_type -> io.cloudquery.plugin_sdk.source.v1.GetMetrics.Request
-	11, // 4: io.cloudquery.plugin_sdk.source.v1.Source.Init:input_type -> io.cloudquery.plugin_sdk.source.v1.Init.Request
-	13, // 5: io.cloudquery.plugin_sdk.source.v1.Source.GetDynamicTables:input_type -> io.cloudquery.plugin_sdk.source.v1.GetDynamicTables.Request
-	15, // 6: io.cloudquery.plugin_sdk.source.v1.Source.Sync:input_type -> io.cloudquery.plugin_sdk.source.v1.Sync.Request
-	8,  // 7: io.cloudquery.plugin_sdk.source.v1.Source.GetName:output_type -> io.cloudquery.plugin_sdk.source.v1.GetName.Response
-	10, // 8: io.cloudquery.plugin_sdk.source.v1.Source.GetVersion:output_type -> io.cloudquery.plugin_sdk.source.v1.GetVersion.Response
-	18, // 9: io.cloudquery.plugin_sdk.source.v1.Source.GetTables:output_type -> io.cloudquery.plugin_sdk.source.v1.GetTables.Response
-	20, // 10: io.cloudquery.plugin_sdk.source.v1.Source.GetMetrics:output_type -> io.cloudquery.plugin_sdk.source.v1.GetMetrics.Response
-	12, // 11: io.cloudquery.plugin_sdk.source.v1.Source.Init:output_type -> io.cloudquery.plugin_sdk.source.v1.Init.Response
-	14, // 12: io.cloudquery.plugin_sdk.source.v1.Source.GetDynamicTables:output_type -> io.cloudquery.plugin_sdk.source.v1.GetDynamicTables.Response
-	16, // 13: io.cloudquery.plugin_sdk.source.v1.Source.Sync:output_type -> io.cloudquery.plugin_sdk.source.v1.Sync.Response
+var file_cloudquery_source_v1_source_proto_depIdxs = []int32{
+	7,  // 0: cloudquery.source.v1.Source.GetName:input_type -> cloudquery.source.v1.GetName.Request
+	9,  // 1: cloudquery.source.v1.Source.GetVersion:input_type -> cloudquery.source.v1.GetVersion.Request
+	17, // 2: cloudquery.source.v1.Source.GetTables:input_type -> cloudquery.source.v1.GetTables.Request
+	19, // 3: cloudquery.source.v1.Source.GetMetrics:input_type -> cloudquery.source.v1.GetMetrics.Request
+	11, // 4: cloudquery.source.v1.Source.Init:input_type -> cloudquery.source.v1.Init.Request
+	13, // 5: cloudquery.source.v1.Source.GetDynamicTables:input_type -> cloudquery.source.v1.GetDynamicTables.Request
+	15, // 6: cloudquery.source.v1.Source.Sync:input_type -> cloudquery.source.v1.Sync.Request
+	8,  // 7: cloudquery.source.v1.Source.GetName:output_type -> cloudquery.source.v1.GetName.Response
+	10, // 8: cloudquery.source.v1.Source.GetVersion:output_type -> cloudquery.source.v1.GetVersion.Response
+	18, // 9: cloudquery.source.v1.Source.GetTables:output_type -> cloudquery.source.v1.GetTables.Response
+	20, // 10: cloudquery.source.v1.Source.GetMetrics:output_type -> cloudquery.source.v1.GetMetrics.Response
+	12, // 11: cloudquery.source.v1.Source.Init:output_type -> cloudquery.source.v1.Init.Response
+	14, // 12: cloudquery.source.v1.Source.GetDynamicTables:output_type -> cloudquery.source.v1.GetDynamicTables.Response
+	16, // 13: cloudquery.source.v1.Source.Sync:output_type -> cloudquery.source.v1.Sync.Response
 	7,  // [7:14] is the sub-list for method output_type
 	0,  // [0:7] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
@@ -1058,13 +1045,13 @@ var file_internal_pb_source_v1_source_proto_depIdxs = []int32{
 	0,  // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_internal_pb_source_v1_source_proto_init() }
-func file_internal_pb_source_v1_source_proto_init() {
-	if File_internal_pb_source_v1_source_proto != nil {
+func init() { file_cloudquery_source_v1_source_proto_init() }
+func file_cloudquery_source_v1_source_proto_init() {
+	if File_cloudquery_source_v1_source_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_internal_pb_source_v1_source_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetName); i {
 			case 0:
 				return &v.state
@@ -1076,7 +1063,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetVersion); i {
 			case 0:
 				return &v.state
@@ -1088,7 +1075,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Init); i {
 			case 0:
 				return &v.state
@@ -1100,7 +1087,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetDynamicTables); i {
 			case 0:
 				return &v.state
@@ -1112,7 +1099,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Sync); i {
 			case 0:
 				return &v.state
@@ -1124,7 +1111,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetTables); i {
 			case 0:
 				return &v.state
@@ -1136,7 +1123,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetMetrics); i {
 			case 0:
 				return &v.state
@@ -1148,7 +1135,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetName_Request); i {
 			case 0:
 				return &v.state
@@ -1160,7 +1147,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetName_Response); i {
 			case 0:
 				return &v.state
@@ -1172,7 +1159,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetVersion_Request); i {
 			case 0:
 				return &v.state
@@ -1184,7 +1171,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetVersion_Response); i {
 			case 0:
 				return &v.state
@@ -1196,7 +1183,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Init_Request); i {
 			case 0:
 				return &v.state
@@ -1208,7 +1195,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Init_Response); i {
 			case 0:
 				return &v.state
@@ -1220,7 +1207,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetDynamicTables_Request); i {
 			case 0:
 				return &v.state
@@ -1232,7 +1219,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetDynamicTables_Response); i {
 			case 0:
 				return &v.state
@@ -1244,7 +1231,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Sync_Request); i {
 			case 0:
 				return &v.state
@@ -1256,7 +1243,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Sync_Response); i {
 			case 0:
 				return &v.state
@@ -1268,7 +1255,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetTables_Request); i {
 			case 0:
 				return &v.state
@@ -1280,7 +1267,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetTables_Response); i {
 			case 0:
 				return &v.state
@@ -1292,7 +1279,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetMetrics_Request); i {
 			case 0:
 				return &v.state
@@ -1304,7 +1291,7 @@ func file_internal_pb_source_v1_source_proto_init() {
 				return nil
 			}
 		}
-		file_internal_pb_source_v1_source_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+		file_cloudquery_source_v1_source_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetMetrics_Response); i {
 			case 0:
 				return &v.state
@@ -1321,18 +1308,18 @@ func file_internal_pb_source_v1_source_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_internal_pb_source_v1_source_proto_rawDesc,
+			RawDescriptor: file_cloudquery_source_v1_source_proto_rawDesc,
 			NumEnums:      0,
 			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_pb_source_v1_source_proto_goTypes,
-		DependencyIndexes: file_internal_pb_source_v1_source_proto_depIdxs,
-		MessageInfos:      file_internal_pb_source_v1_source_proto_msgTypes,
+		GoTypes:           file_cloudquery_source_v1_source_proto_goTypes,
+		DependencyIndexes: file_cloudquery_source_v1_source_proto_depIdxs,
+		MessageInfos:      file_cloudquery_source_v1_source_proto_msgTypes,
 	}.Build()
-	File_internal_pb_source_v1_source_proto = out.File
-	file_internal_pb_source_v1_source_proto_rawDesc = nil
-	file_internal_pb_source_v1_source_proto_goTypes = nil
-	file_internal_pb_source_v1_source_proto_depIdxs = nil
+	File_cloudquery_source_v1_source_proto = out.File
+	file_cloudquery_source_v1_source_proto_rawDesc = nil
+	file_cloudquery_source_v1_source_proto_goTypes = nil
+	file_cloudquery_source_v1_source_proto_depIdxs = nil
 }

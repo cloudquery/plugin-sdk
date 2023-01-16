@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.12
-// source: internal/pb/source/v1/source.proto
+// source: cloudquery/source/v1/source.proto
 
 package source
 
@@ -48,7 +48,7 @@ func NewSourceClient(cc grpc.ClientConnInterface) SourceClient {
 
 func (c *sourceClient) GetName(ctx context.Context, in *GetName_Request, opts ...grpc.CallOption) (*GetName_Response, error) {
 	out := new(GetName_Response)
-	err := c.cc.Invoke(ctx, "/io.cloudquery.plugin_sdk.source.v1.Source/GetName", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.source.v1.Source/GetName", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (c *sourceClient) GetName(ctx context.Context, in *GetName_Request, opts ..
 
 func (c *sourceClient) GetVersion(ctx context.Context, in *GetVersion_Request, opts ...grpc.CallOption) (*GetVersion_Response, error) {
 	out := new(GetVersion_Response)
-	err := c.cc.Invoke(ctx, "/io.cloudquery.plugin_sdk.source.v1.Source/GetVersion", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.source.v1.Source/GetVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (c *sourceClient) GetVersion(ctx context.Context, in *GetVersion_Request, o
 
 func (c *sourceClient) GetTables(ctx context.Context, in *GetTables_Request, opts ...grpc.CallOption) (*GetTables_Response, error) {
 	out := new(GetTables_Response)
-	err := c.cc.Invoke(ctx, "/io.cloudquery.plugin_sdk.source.v1.Source/GetTables", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.source.v1.Source/GetTables", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (c *sourceClient) GetTables(ctx context.Context, in *GetTables_Request, opt
 
 func (c *sourceClient) GetMetrics(ctx context.Context, in *GetMetrics_Request, opts ...grpc.CallOption) (*GetMetrics_Response, error) {
 	out := new(GetMetrics_Response)
-	err := c.cc.Invoke(ctx, "/io.cloudquery.plugin_sdk.source.v1.Source/GetMetrics", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.source.v1.Source/GetMetrics", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (c *sourceClient) GetMetrics(ctx context.Context, in *GetMetrics_Request, o
 
 func (c *sourceClient) Init(ctx context.Context, in *Init_Request, opts ...grpc.CallOption) (*Init_Response, error) {
 	out := new(Init_Response)
-	err := c.cc.Invoke(ctx, "/io.cloudquery.plugin_sdk.source.v1.Source/Init", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.source.v1.Source/Init", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (c *sourceClient) Init(ctx context.Context, in *Init_Request, opts ...grpc.
 
 func (c *sourceClient) GetDynamicTables(ctx context.Context, in *GetDynamicTables_Request, opts ...grpc.CallOption) (*GetDynamicTables_Response, error) {
 	out := new(GetDynamicTables_Response)
-	err := c.cc.Invoke(ctx, "/io.cloudquery.plugin_sdk.source.v1.Source/GetDynamicTables", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cloudquery.source.v1.Source/GetDynamicTables", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (c *sourceClient) GetDynamicTables(ctx context.Context, in *GetDynamicTable
 }
 
 func (c *sourceClient) Sync(ctx context.Context, in *Sync_Request, opts ...grpc.CallOption) (Source_SyncClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Source_ServiceDesc.Streams[0], "/io.cloudquery.plugin_sdk.source.v1.Source/Sync", opts...)
+	stream, err := c.cc.NewStream(ctx, &Source_ServiceDesc.Streams[0], "/cloudquery.source.v1.Source/Sync", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func _Source_GetName_Handler(srv interface{}, ctx context.Context, dec func(inte
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.cloudquery.plugin_sdk.source.v1.Source/GetName",
+		FullMethod: "/cloudquery.source.v1.Source/GetName",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetName(ctx, req.(*GetName_Request))
@@ -219,7 +219,7 @@ func _Source_GetVersion_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.cloudquery.plugin_sdk.source.v1.Source/GetVersion",
+		FullMethod: "/cloudquery.source.v1.Source/GetVersion",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetVersion(ctx, req.(*GetVersion_Request))
@@ -237,7 +237,7 @@ func _Source_GetTables_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.cloudquery.plugin_sdk.source.v1.Source/GetTables",
+		FullMethod: "/cloudquery.source.v1.Source/GetTables",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetTables(ctx, req.(*GetTables_Request))
@@ -255,7 +255,7 @@ func _Source_GetMetrics_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.cloudquery.plugin_sdk.source.v1.Source/GetMetrics",
+		FullMethod: "/cloudquery.source.v1.Source/GetMetrics",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetMetrics(ctx, req.(*GetMetrics_Request))
@@ -273,7 +273,7 @@ func _Source_Init_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.cloudquery.plugin_sdk.source.v1.Source/Init",
+		FullMethod: "/cloudquery.source.v1.Source/Init",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).Init(ctx, req.(*Init_Request))
@@ -291,7 +291,7 @@ func _Source_GetDynamicTables_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/io.cloudquery.plugin_sdk.source.v1.Source/GetDynamicTables",
+		FullMethod: "/cloudquery.source.v1.Source/GetDynamicTables",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SourceServer).GetDynamicTables(ctx, req.(*GetDynamicTables_Request))
@@ -324,7 +324,7 @@ func (x *sourceSyncServer) Send(m *Sync_Response) error {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Source_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "io.cloudquery.plugin_sdk.source.v1.Source",
+	ServiceName: "cloudquery.source.v1.Source",
 	HandlerType: (*SourceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -359,5 +359,5 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "internal/pb/source/v1/source.proto",
+	Metadata: "cloudquery/source/v1/source.proto",
 }

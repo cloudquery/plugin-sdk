@@ -4,4 +4,9 @@ breaking:
     - FILE
 lint:
   use:
-    - DEFAULT
+    - BASIC
+  ignore:
+    # We are ignoring those as this is an old version and we are not doing any changes here anymore
+    - cloudquery/destination/v0/destination.proto
+    - cloudquery/source/v0/source.proto
+    - cloudquery/base/v0/base.proto

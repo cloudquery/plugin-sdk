@@ -1,5 +1,6 @@
 syntax = "proto3";
 package proto;
+
 option go_package = "github.com/cloudquery/plugin-sdk/internal/pb/base/v0;base";
 
 message GetName {

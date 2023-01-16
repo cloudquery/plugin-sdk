@@ -1,8 +1,10 @@
 syntax = "proto3";
 package proto;
-option go_package = "github.com/cloudquery/plugin-sdk/internal/pb/source/v0;source";
+
+import "cloudquery/base/v0/base.proto";
 import "google/protobuf/timestamp.proto";
-import "internal/pb/base/v0/base.proto";
+
+option go_package = "github.com/cloudquery/plugin-sdk/internal/pb/source/v0;source";
 
 service Source {
   // Get the current protocol version of the plugin. This helps
@@ -29,7 +31,6 @@ service Source {
   // Get metrics for the source plugin
   rpc GetMetrics(GetSourceMetrics.Request) returns (GetSourceMetrics.Response);
 }
-
 
 message Sync {
   message Request {
