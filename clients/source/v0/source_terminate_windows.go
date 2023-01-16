@@ -2,7 +2,7 @@
 
 package source
 
-func (c *SourceClient) terminateProcess() error {
+func (c *Client) terminateProcess() error {
 	if err := c.cmd.Process.Kill(); err != nil {
 		c.logger.Error().Err(err).Msg("failed to kill source plugin")
 	}
