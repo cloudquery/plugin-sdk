@@ -7,7 +7,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
-	type Metrics struct {
+type Metrics struct {
 	TableClient map[string]map[string]*TableClientMetrics
 }
 
