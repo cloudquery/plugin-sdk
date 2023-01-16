@@ -189,3 +189,47 @@ func TestSourceUnmarshalSpecValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestSpec_String(t *testing.T) {
+	type fields struct {
+		Name    string
+		Version string
+		Path    string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "should use short version without name part in path when those are the same",
+			fields: fields{
+				Name:    "aws",
+				Version: "v10.0.0",
+				Path:    "cloudquery/aws",
+			},
+			want: "aws (v10.0.0)",
+		},
+		{
+			name: "should use long version with path when name doesn't match path",
+			fields: fields{
+				Name:    "my-aws-spec",
+				Version: "v10.0.0",
+				Path:    "cloudquery/aws",
+			},
+			want: "my-aws-spec (aws@v10.0.0)",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := Source{
+				Name:    tt.fields.Name,
+				Version: tt.fields.Version,
+				Path:    tt.fields.Path,
+			}
+			if got := s.String(); got != tt.want {
+				t.Errorf("Source.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

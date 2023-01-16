@@ -128,3 +128,11 @@ func (s *Source) Validate() error {
 	}
 	return nil
 }
+
+func (s Source) String() string {
+	pathParts := strings.Split(s.Path, "/")
+	if s.Name == pathParts[1] {
+		return fmt.Sprintf("%s (%s)", s.Name, s.Version)
+	}
+	return fmt.Sprintf("%s (%s@%s)", s.Name, pathParts[1], s.Version)
+}

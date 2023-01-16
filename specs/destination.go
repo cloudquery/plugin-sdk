@@ -71,3 +71,11 @@ func (d *Destination) Validate() error {
 	}
 	return nil
 }
+
+func (d Destination) String() string {
+	pathParts := strings.Split(d.Path, "/")
+	if d.Name == pathParts[1] {
+		return fmt.Sprintf("%s (%s)", d.Name, d.Version)
+	}
+	return fmt.Sprintf("%s (%s@%s)", d.Name, pathParts[1], d.Version)
+}
