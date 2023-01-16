@@ -253,6 +253,11 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 		if p.maxDepth > maxAllowedDepth {
 			return fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth)
 		}
+	} else {
+		tables, err = tables.FilterDfs(spec.Tables, spec.SkipTables)
+		if err != nil {
+			return fmt.Errorf("failed to filter tables: %w", err)
+		}
 	}
 
 	p.sessionTables = tables

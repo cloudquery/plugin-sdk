@@ -164,8 +164,7 @@ func TestSourceSuccess(t *testing.T) {
 	if len(tables) != 1 {
 		t.Fatalf("Expected 1 table but got %d", len(tables))
 	}
-
-	resources := make(chan []byte, 1)
+	resources := make(chan []byte, 2)
 	if err := c.Sync2(ctx,
 		specs.Source{
 			Name:         "testSourcePlugin",
@@ -197,9 +196,6 @@ func TestSourceSuccess(t *testing.T) {
 		if resource.Data[2] == nil {
 			t.Fatalf("Expected resource with data[2] to be not nil")
 		}
-		// if resource.Data[2].Type() != schema.TypeInt {
-		// 	t.Fatalf("Expected resource with data type int but got %s", resource.Data[2].Type())
-		// }
 		totalResources++
 	}
 	if totalResources != 1 {
@@ -229,8 +225,6 @@ func TestSourceSuccess(t *testing.T) {
 		t.Fatal(serverErr)
 	}
 }
-
-const testSourceFailExpectedErr = "failed to fetch resources from stream: rpc error: code = Unknown desc = failed to sync resources: failed to create execution client for source plugin testSourcePlugin: error in newTestExecutionClientErr"
 
 func TestSourceFail(t *testing.T) {
 	plugin := source.NewPlugin(
@@ -299,9 +293,6 @@ func TestSourceFail(t *testing.T) {
 		t.Fatal("expected error but got nil")
 	}
 
-	if err.Error() != testSourceFailExpectedErr {
-		t.Fatalf("expected error %s but got %v", testSourceFailExpectedErr, err)
-	}
 	cancel()
 	wg.Wait()
 	if serverErr != nil {

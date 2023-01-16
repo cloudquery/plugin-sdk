@@ -126,7 +126,6 @@ func (s *Server) Sync2(req *pb.Sync2_Request, stream pb.Source_Sync2Server) erro
 			syncErr = fmt.Errorf("failed to sync resources: %w", err)
 		}
 	}()
-
 	for resource := range resources {
 		destResource := resource.ToDestinationResource()
 		b, err := json.Marshal(destResource)
