@@ -10,22 +10,6 @@ type testDestinationSpec struct {
 	ConnectionString string `json:"connection_string"`
 }
 
-func TestWriteModeFromString(t *testing.T) {
-	var writeMode WriteMode
-	if err := writeMode.UnmarshalJSON([]byte(`"append"`)); err != nil {
-		t.Fatal(err)
-	}
-	if writeMode != WriteModeAppend {
-		t.Fatalf("expected WriteModeAppend, got %v", writeMode)
-	}
-	if err := writeMode.UnmarshalJSON([]byte(`"overwrite"`)); err != nil {
-		t.Fatal(err)
-	}
-	if writeMode != WriteModeOverwrite {
-		t.Fatalf("expected WriteModeOverwrite, got %v", writeMode)
-	}
-}
-
 func TestDestinationSpecUnmarshalSpec(t *testing.T) {
 	destination := Destination{
 		Spec: map[string]any{
@@ -214,14 +198,70 @@ func TestDestinationUnmarshalSpecValidate(t *testing.T) {
 	}
 }
 
-func TestWriteMode(t *testing.T) {
-	for _, writeModeStr := range writeModeStrings {
-		writeMode, err := WriteModeFromString(writeModeStr)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if writeModeStr != writeMode.String() {
-			t.Fatalf("expected:%s got:%s", writeModeStr, writeMode.String())
-		}
+func TestDestination_VersionString(t *testing.T) {
+	type fields struct {
+		Name     string
+		Version  string
+		Path     string
+		Registry Registry
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "should use short version without name part in path when those are the same",
+			fields: fields{
+				Name:     "aws",
+				Version:  "v10.0.0",
+				Path:     "cloudquery/aws",
+				Registry: RegistryGithub,
+			},
+			want: "aws (v10.0.0)",
+		},
+		{
+			name: "should use long version with path when name doesn't match path",
+			fields: fields{
+				Name:     "my-aws-spec",
+				Version:  "v10.0.0",
+				Path:     "cloudquery/aws",
+				Registry: RegistryGithub,
+			},
+			want: "my-aws-spec (aws@v10.0.0)",
+		},
+		{
+			name: "should handle non GitHub registry",
+			fields: fields{
+				Name:     "my-aws-spec",
+				Version:  "v10.0.0",
+				Path:     "localhost:7777",
+				Registry: RegistryGrpc,
+			},
+			want: "my-aws-spec (grpc@localhost:7777)",
+		},
+		{
+			name: "should handle malformed path",
+			fields: fields{
+				Name:     "my-aws-spec",
+				Version:  "v10.0.0",
+				Path:     "aws",
+				Registry: RegistryGithub,
+			},
+			want: "my-aws-spec (aws@v10.0.0)",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := Destination{
+				Name:     tt.fields.Name,
+				Version:  tt.fields.Version,
+				Path:     tt.fields.Path,
+				Registry: tt.fields.Registry,
+			}
+			if got := d.VersionString(); got != tt.want {
+				t.Errorf("Destination.String() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
