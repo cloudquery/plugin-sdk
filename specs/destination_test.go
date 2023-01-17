@@ -198,7 +198,7 @@ func TestDestinationUnmarshalSpecValidate(t *testing.T) {
 	}
 }
 
-func TestDestination_String(t *testing.T) {
+func TestDestination_VersionString(t *testing.T) {
 	type fields struct {
 		Name     string
 		Version  string
@@ -259,7 +259,7 @@ func TestDestination_String(t *testing.T) {
 				Path:     tt.fields.Path,
 				Registry: tt.fields.Registry,
 			}
-			if got := d.String(); got != tt.want {
+			if got := d.VersionString(); got != tt.want {
 				t.Errorf("Destination.String() = %v, want %v", got, tt.want)
 			}
 		})

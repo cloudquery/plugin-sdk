@@ -190,7 +190,7 @@ func TestSourceUnmarshalSpecValidate(t *testing.T) {
 	}
 }
 
-func TestSpec_String(t *testing.T) {
+func TestSpec_VersionString(t *testing.T) {
 	type fields struct {
 		Name     string
 		Version  string
@@ -251,7 +251,7 @@ func TestSpec_String(t *testing.T) {
 				Path:     tt.fields.Path,
 				Registry: tt.fields.Registry,
 			}
-			if got := s.String(); got != tt.want {
+			if got := s.VersionString(); got != tt.want {
 				t.Errorf("Source.String() = %v, want %v", got, tt.want)
 			}
 		})

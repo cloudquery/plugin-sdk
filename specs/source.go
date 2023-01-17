@@ -129,7 +129,7 @@ func (s *Source) Validate() error {
 	return nil
 }
 
-func (s Source) String() string {
+func (s Source) VersionString() string {
 	if s.Registry != RegistryGithub {
 		return fmt.Sprintf("%s (%s@%s)", s.Name, s.Registry, s.Path)
 	}
