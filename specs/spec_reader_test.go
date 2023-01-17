@@ -1,11 +1,12 @@
 package specs
 
 import (
-	"bytes"
 	"os"
 	"path"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type specLoaderTestCase struct {
@@ -116,7 +117,7 @@ spec:
 		otherstuff: 2
 		credentials1: [${file:./testdata/creds.txt}, ${file:./testdata/creds1.txt}]
 	`)
-	expectedCfg := []byte(`
+	expectedCfg := `
 kind: source
 spec:
 	name: test
@@ -125,14 +126,10 @@ spec:
 		credentials: mytestcreds
 		otherstuff: 2
 		credentials1: [mytestcreds, anothercredtest]
-	`)
-	expandedCfg, err := expandFileConfig(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(expandedCfg, expectedCfg) {
-		t.Fatalf("got: %s expected: %s", expandedCfg, expectedCfg)
-	}
+	`
+	expandedCfg, errs := expandConfig(cfg)
+	require.Empty(t, errs)
+	require.Equal(t, expectedCfg, expandedCfg)
 
 	badCfg := []byte(`
 kind: source
@@ -143,10 +140,9 @@ spec:
 		credentials: ${file:./testdata/creds2.txt}
 		otherstuff: 2
 	`)
-	_, err = expandFileConfig(badCfg)
-	if !os.IsNotExist(err) {
-		t.Fatalf("expected error: %s, got: %s", os.ErrNotExist, err)
-	}
+	_, errs = expandConfig(badCfg)
+	require.NotEmpty(t, errs)
+	require.ErrorIs(t, errs[0], os.ErrNotExist)
 }
 
 func TestExpandEnv(t *testing.T) {
@@ -162,7 +158,7 @@ spec:
 		otherstuff: 2
 		credentials1: [${TEST_ENV_CREDS}, ${TEST_ENV_CREDS2}]
 	`)
-	expectedCfg := []byte(`
+	expectedCfg := `
 kind: source
 spec:
 	name: test
@@ -171,14 +167,10 @@ spec:
 		credentials: mytestcreds
 		otherstuff: 2
 		credentials1: [mytestcreds, anothercredtest]
-	`)
-	expandedCfg, err := expandEnv(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(expandedCfg, expectedCfg) {
-		t.Fatalf("got: %s expected: %s", expandedCfg, expectedCfg)
-	}
+	`
+	expandedCfg, errs := expandConfig(cfg)
+	require.Empty(t, errs)
+	require.Equal(t, expectedCfg, expandedCfg)
 
 	badCfg := []byte(`
 kind: source
@@ -189,8 +181,7 @@ spec:
 		credentials: ${TEST_ENV_CREDS1}
 		otherstuff: 2
 	`)
-	_, err = expandEnv(badCfg)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
+	_, errs = expandConfig(badCfg)
+	require.NotEmpty(t, errs)
+	require.ErrorContains(t, errs[0], "env variable TEST_ENV_CREDS1 not found")
 }

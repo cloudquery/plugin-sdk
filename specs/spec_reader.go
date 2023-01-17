@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -13,37 +12,26 @@ type SpecReader struct {
 	Destinations map[string]*Destination
 }
 
-var fileRegex = regexp.MustCompile(`\$\{file:([^}]+)\}`)
-var envRegex = regexp.MustCompile(`\$\{([^}]+)\}`)
-
-func expandFileConfig(cfg []byte) ([]byte, error) {
-	var expandErr error
-	cfg = fileRegex.ReplaceAllFunc(cfg, func(match []byte) []byte {
-		filename := fileRegex.FindSubmatch(match)[1]
-		content, err := os.ReadFile(string(filename))
-		if err != nil {
-			expandErr = err
-			return nil
+func expandConfig(config []byte) (string, []error) {
+	errors := []error{}
+	expanded := os.Expand(string(config), func(s string) string {
+		if strings.HasPrefix(s, "file:") {
+			filename := strings.TrimPrefix(s, "file:")
+			content, err := os.ReadFile(filename)
+			if err != nil {
+				errors = append(errors, err)
+				return ""
+			}
+			return string(content)
+		}
+		content, ok := os.LookupEnv(s)
+		if !ok {
+			errors = append(errors, fmt.Errorf("env variable %s not found", s))
+			return ""
 		}
 		return content
 	})
-	return cfg, expandErr
-}
-
-// expand environment variables in the format ${ENV_VAR}
-func expandEnv(cfg []byte) ([]byte, error) {
-	var expandErr error
-	cfg = envRegex.ReplaceAllFunc(cfg, func(match []byte) []byte {
-		envVar := envRegex.FindSubmatch(match)[1]
-		content, ok := os.LookupEnv(string(envVar))
-		if !ok {
-			expandErr = fmt.Errorf("env variable %s not found", envVar)
-			return nil
-		}
-		return []byte(content)
-	})
-
-	return cfg, expandErr
+	return expanded, errors
 }
 
 func (r *SpecReader) loadSpecsFromFile(path string) error {
@@ -51,18 +39,19 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read file %s: %w", path, err)
 	}
-	data, err = expandFileConfig(data)
-	if err != nil {
-		return fmt.Errorf("failed to expand file variable in file %s: %w", path, err)
-	}
-	data, err = expandEnv(data)
-	if err != nil {
-		return fmt.Errorf("failed to expand environment variable in file %s: %w", path, err)
+
+	expanded, errors := expandConfig(data)
+	if len(errors) > 0 {
+		errorsStrings := make([]string, 0, len(errors))
+		for _, err := range errors {
+			errorsStrings = append(errorsStrings, err.Error())
+		}
+		return fmt.Errorf("failed to expand file %s:\n%s", path, strings.Join(errorsStrings, "\n"))
 	}
 
 	// support multiple yamls in one file
 	// this should work both on Windows and Unix
-	normalizedConfig := strings.ReplaceAll(string(data), "\r\n", "\n")
+	normalizedConfig := strings.ReplaceAll(expanded, "\r\n", "\n")
 	for _, doc := range strings.Split(normalizedConfig, "\n---\n") {
 		var s Spec
 		if err := SpecUnmarshalYamlStrict([]byte(doc), &s); err != nil {
