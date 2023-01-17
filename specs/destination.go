@@ -71,3 +71,17 @@ func (d *Destination) Validate() error {
 	}
 	return nil
 }
+
+func (d Destination) VersionString() string {
+	if d.Registry != RegistryGithub {
+		return fmt.Sprintf("%s (%s@%s)", d.Name, d.Registry, d.Path)
+	}
+	pathParts := strings.Split(d.Path, "/")
+	if len(pathParts) != 2 {
+		return fmt.Sprintf("%s (%s@%s)", d.Name, d.Path, d.Version)
+	}
+	if d.Name == pathParts[1] {
+		return fmt.Sprintf("%s (%s)", d.Name, d.Version)
+	}
+	return fmt.Sprintf("%s (%s@%s)", d.Name, pathParts[1], d.Version)
+}
