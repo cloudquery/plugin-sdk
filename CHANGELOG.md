@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.27.0](https://github.com/cloudquery/plugin-sdk/compare/v1.26.0...v1.27.0) (2023-01-17)
+
+
+### Features
+
+* **spec:** Add source, destination String methods ([#609](https://github.com/cloudquery/plugin-sdk/issues/609)) ([604b9ef](https://github.com/cloudquery/plugin-sdk/commit/604b9efe5608e60936e87114e0fbf776ea6253ea))
+
 ## [1.26.0](https://github.com/cloudquery/plugin-sdk/compare/v1.25.1...v1.26.0) (2023-01-16)
 
 
