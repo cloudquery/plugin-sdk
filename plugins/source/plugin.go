@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/backend"
@@ -29,6 +30,8 @@ type Plugin struct {
 	version string
 	// Called upon configure call to validate and init configuration
 	newExecutionClient NewExecutionClientFunc
+	// dynamic table function if specified
+	getDynamicTables GetTables
 	// Tables is all tables supported by this source plugin
 	tables schema.Tables
 	// status sync metrics
@@ -43,6 +46,17 @@ type Plugin struct {
 	maxDepth uint64
 	// caser
 	caser *caser.Caser
+	// mu is a mutex that limits the number of concurrent init/syncs (can only be one at a time)
+	mu sync.Mutex
+
+	// client is the initialized session client
+	client schema.ClientMeta
+	// sessionTables are the
+	sessionTables schema.Tables
+	// backend is the backend used to store the cursor state
+	backend backend.Backend
+	// spec is the spec the client was initialized with
+	spec specs.Source
 }
 
 const (
@@ -50,18 +64,21 @@ const (
 )
 
 // Add internal columns
-func addInternalColumns(tables []*schema.Table) {
+func addInternalColumns(tables []*schema.Table) error {
 	for _, table := range tables {
 		if c := table.Column("_cq_id"); c != nil {
-			panic(fmt.Sprintf("table %s already has column _cq_id", table.Name))
+			return fmt.Errorf("table %s already has column _cq_id", table.Name)
 		}
 		cqID := schema.CqIDColumn
 		if len(table.PrimaryKeys()) == 0 {
 			cqID.CreationOptions.PrimaryKey = true
 		}
 		table.Columns = append([]schema.Column{cqID, schema.CqParentIDColumn}, table.Columns...)
-		addInternalColumns(table.Relations)
+		if err := addInternalColumns(table.Relations); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // Set parent links on relational tables
@@ -103,7 +120,7 @@ func maxDepth(tables schema.Tables) uint64 {
 
 // NewPlugin returns a new plugin with a given name, version, tables, newExecutionClient
 // and additional options.
-func NewPlugin(name string, version string, tables []*schema.Table, newExecutionClient NewExecutionClientFunc) *Plugin {
+func NewPlugin(name string, version string, tables []*schema.Table, newExecutionClient NewExecutionClientFunc, options ...Option) *Plugin {
 	p := Plugin{
 		name:               name,
 		version:            version,
@@ -112,11 +129,16 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 		metrics:            &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:              caser.New(),
 	}
+	for _, opt := range options {
+		opt(&p)
+	}
 	setParents(p.tables, nil)
 	if err := transformTables(p.tables); err != nil {
 		panic(err)
 	}
-	addInternalColumns(p.tables)
+	if err := addInternalColumns(p.tables); err != nil {
+		panic(err)
+	}
 	if err := p.validate(); err != nil {
 		panic(err)
 	}
@@ -136,8 +158,17 @@ func (p *Plugin) Tables() schema.Tables {
 	return p.tables
 }
 
+func (p *Plugin) HasDynamicTables() bool {
+	return p.getDynamicTables != nil
+}
+
+func (p *Plugin) GetDynamicTables() schema.Tables {
+	return p.sessionTables
+}
+
 // TablesForSpec returns all tables supported by this source plugin that match the given spec.
 // It validates the tables part of the spec and will return an error if it is found to be invalid.
+// This is deprecated method
 func (p *Plugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
@@ -164,27 +195,24 @@ func (p *Plugin) Metrics() *Metrics {
 	return p.metrics
 }
 
-// Sync is syncing data from the requested tables in spec to the given channel
-func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema.Resource) error {
+func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
+	if !p.mu.TryLock() {
+		return fmt.Errorf("plugin already in use")
+	}
+	defer p.mu.Unlock()
+
+	var err error
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
 		return fmt.Errorf("invalid spec: %w", err)
 	}
-	tables, err := p.tables.FilterDfs(spec.Tables, spec.SkipTables)
-	if err != nil {
-		return fmt.Errorf("failed to filter tables: %w", err)
-	}
+	p.spec = spec
 
-	if len(tables) == 0 {
-		return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
-	}
-
-	var be backend.Backend
 	switch spec.Backend {
 	case specs.BackendNone:
 		// do nothing
 	case specs.BackendLocal:
-		be, err = local.New(spec)
+		p.backend, err = local.New(spec)
 		if err != nil {
 			return fmt.Errorf("failed to initialize local backend: %w", err)
 		}
@@ -192,30 +220,82 @@ func (p *Plugin) Sync(ctx context.Context, spec specs.Source, res chan<- *schema
 		return fmt.Errorf("unknown backend: %s", spec.Backend)
 	}
 
-	if be != nil {
-		defer func() {
-			p.logger.Info().Msg("closing backend")
-			err := be.Close(ctx)
-			if err != nil {
-				p.logger.Error().Err(err).Msg("failed to close backend")
-			}
-		}()
-	}
-
-	c, err := p.newExecutionClient(ctx, p.logger, spec, Options{Backend: be})
+	p.client, err = p.newExecutionClient(ctx, p.logger, spec, Options{Backend: p.backend})
 	if err != nil {
 		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 	}
+	tables := p.tables
+	if p.getDynamicTables != nil {
+		tables, err = p.getDynamicTables(ctx, p.client)
+		if err != nil {
+			return fmt.Errorf("failed to get dynamic tables: %w", err)
+		}
+
+		tables, err = tables.FilterDfs(spec.Tables, spec.SkipTables)
+		if err != nil {
+			return fmt.Errorf("failed to filter tables: %w", err)
+		}
+		if len(tables) == 0 {
+			return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
+		}
+
+		setParents(tables, nil)
+		if err := transformTables(tables); err != nil {
+			return err
+		}
+		if err := addInternalColumns(tables); err != nil {
+			return err
+		}
+		if err := p.validate(); err != nil {
+			return err
+		}
+		p.maxDepth = maxDepth(tables)
+		if p.maxDepth > maxAllowedDepth {
+			return fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth)
+		}
+	} else {
+		tables, err = tables.FilterDfs(spec.Tables, spec.SkipTables)
+		if err != nil {
+			return fmt.Errorf("failed to filter tables: %w", err)
+		}
+	}
+
+	p.sessionTables = tables
+	return nil
+}
+
+// Sync is syncing data from the requested tables in spec to the given channel
+func (p *Plugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
+	if !p.mu.TryLock() {
+		return fmt.Errorf("plugin already in use")
+	}
+	defer p.mu.Unlock()
+
 	startTime := time.Now()
-	switch spec.Scheduler {
+	switch p.spec.Scheduler {
 	case specs.SchedulerDFS:
-		p.syncDfs(ctx, spec, c, tables, res)
+		p.syncDfs(ctx, p.spec, p.client, p.sessionTables, res)
 	case specs.SchedulerRoundRobin:
-		p.syncRoundRobin(ctx, spec, c, tables, res)
+		p.syncRoundRobin(ctx, p.spec, p.client, p.sessionTables, res)
 	default:
-		return fmt.Errorf("unknown scheduler %s. Options are: %v", spec.Scheduler, specs.AllSchedulers.String())
+		return fmt.Errorf("unknown scheduler %s. Options are: %v", p.spec.Scheduler, specs.AllSchedulers.String())
 	}
 
 	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
+	return nil
+}
+
+func (p *Plugin) Close(ctx context.Context) error {
+	if !p.mu.TryLock() {
+		return fmt.Errorf("plugin already in use")
+	}
+	defer p.mu.Unlock()
+	if p.backend != nil {
+		err := p.backend.Close(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to close backend: %w", err)
+		}
+		p.backend = nil
+	}
 	return nil
 }

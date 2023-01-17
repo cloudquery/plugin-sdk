@@ -195,12 +195,14 @@ func (s *Benchmark) Run() {
 			Concurrency:  s.Concurrency,
 			Scheduler:    s.Scheduler,
 		}
+		if err := s.plugin.Init(ctx, spec); err != nil {
+			s.b.Fatal(err)
+		}
 		resources := make(chan *schema.Resource)
 		g, ctx := errgroup.WithContext(ctx)
 		g.Go(func() error {
 			defer close(resources)
 			return s.plugin.Sync(ctx,
-				spec,
 				resources)
 		})
 		s.b.StartTimer()

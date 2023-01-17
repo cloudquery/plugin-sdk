@@ -256,8 +256,12 @@ func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables sche
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
 		tablesToDelete := tables
 		if sourceSpec.Backend != specs.BackendNone {
-			include := func(t *schema.Table) bool { return true }
-			exclude := func(t *schema.Table) bool { return t.IsIncremental }
+			include := func(t *schema.Table) bool {
+				return true
+			}
+			exclude := func(t *schema.Table) bool {
+				return t.IsIncremental
+			}
 			tablesToDelete = tables.FilterDfsFunc(include, exclude)
 		}
 		if err := p.DeleteStale(ctx, tablesToDelete, sourceSpec.Name, syncTime); err != nil {
