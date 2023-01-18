@@ -9,7 +9,10 @@ import (
 // logReaderPrefixLen is used when returning a partial line as context in NextLine
 const logReaderPrefixLen = 1000
 
-var ErrLogLineToLong = errors.New("log line too long, discarding")
+var (
+	ErrLogLineToLong = errors.New("log line too long, discarding")
+	ellipsis         = []byte("...")
+)
 
 // logReader is a custom implementation similar to bufio.Scanner, but provides a way to handle lines
 // (or tokens) that exceed the buffer size.
@@ -52,5 +55,5 @@ func (r *LogReader) NextLine() ([]byte, error) {
 			return nil, err
 		}
 	}
-	return prefix, ErrLogLineToLong
+	return append(prefix, ellipsis...), ErrLogLineToLong
 }
