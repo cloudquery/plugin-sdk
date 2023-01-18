@@ -44,26 +44,26 @@ type Client struct {
 
 type ClientOption func(*Client)
 
-func WithDestinationLogger(logger zerolog.Logger) func(*Client) {
+func WithLogger(logger zerolog.Logger) func(*Client) {
 	return func(c *Client) {
 		c.logger = logger
 	}
 }
 
-func WithDestinationDirectory(directory string) func(*Client) {
+func WithDirectory(directory string) func(*Client) {
 	return func(c *Client) {
 		c.directory = directory
 	}
 }
 
-func WithDestinationGrpcConn(userConn *grpc.ClientConn) func(*Client) {
+func WithGrpcConn(userConn *grpc.ClientConn) func(*Client) {
 	return func(c *Client) {
 		// we use a different variable here because we don't want to close a connection that wasn't created by us.
 		c.userConn = userConn
 	}
 }
 
-func WithDestinationNoSentry() func(*Client) {
+func WithNoSentry() func(*Client) {
 	return func(c *Client) {
 		c.noSentry = true
 	}
