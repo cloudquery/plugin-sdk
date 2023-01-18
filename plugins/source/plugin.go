@@ -9,6 +9,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/backend"
 	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/internal/backends/local"
+	"github.com/cloudquery/plugin-sdk/internal/backends/nop"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -210,7 +211,7 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 
 	switch spec.Backend {
 	case specs.BackendNone:
-		// do nothing
+		p.backend = nop.New()
 	case specs.BackendLocal:
 		p.backend, err = local.New(spec)
 		if err != nil {
