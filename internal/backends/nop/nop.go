@@ -10,14 +10,14 @@ func New() *Backend {
 // pointers in all resolvers.
 type Backend struct{}
 
-func (*Backend) Set(ctx context.Context, table, clientID, value string) error {
+func (*Backend) Set(_ context.Context, _, _, _ string) error {
 	return nil
 }
 
-func (*Backend) Get(ctx context.Context, table, clientID string) (string, error) {
+func (*Backend) Get(_ context.Context, _, _ string) (string, error) {
 	return "", nil
 }
 
-func (*Backend) Close(ctx context.Context) error {
+func (*Backend) Close(_ context.Context) error {
 	return nil
 }
