@@ -33,7 +33,7 @@ func TestSourceClient(t *testing.T) {
 	for _, tc := range newSourceClientTestCases {
 		t.Run(tc.Path+"_"+tc.Version, func(t *testing.T) {
 			dirName := t.TempDir()
-			c, err := NewClient(ctx, tc.Registry, tc.Path, tc.Version, WithSourceLogger(l), WithSourceDirectory(dirName))
+			c, err := NewClient(ctx, tc.Registry, tc.Path, tc.Version, WithLogger(l), WithDirectory(dirName))
 			if err != nil {
 				if strings.HasPrefix(err.Error(), "source plugin protocol version") {
 					// this also means success as in this tests we just want to make sure we were able to download and spawn the plugin
