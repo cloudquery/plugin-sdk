@@ -150,16 +150,16 @@ func (c *Client) newManagedClient(ctx context.Context, path string) error {
 				break
 			}
 			if errors.Is(err, logging.ErrLogLineToLong) {
-				c.logger.Err(err).Str("line", string(line)).Msg("skipping too long log line")
+				c.logger.Info().Str("line", string(line)).Msg("truncated source plugin log line")
 				continue
 			}
 			if err != nil {
-				c.logger.Err(err).Msg("failed to read log line from plugin")
+				c.logger.Err(err).Msg("failed to read log line from source plugin")
 				break
 			}
 			var structuredLogLine map[string]any
 			if err := json.Unmarshal(line, &structuredLogLine); err != nil {
-				c.logger.Err(err).Str("line", string(line)).Msg("failed to unmarshal log line from plugin")
+				c.logger.Err(err).Str("line", string(line)).Msg("failed to unmarshal log line from source plugin")
 			} else {
 				logging.JSONToLog(c.logger, structuredLogLine)
 			}

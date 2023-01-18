@@ -45,7 +45,7 @@ func Test_LogReader(t *testing.T) {
 			name: "very long line",
 			text: longStr(10000000),
 			wantLines: []string{
-				longStr(logReaderPrefixLen),
+				longStr(logReaderPrefixLen) + "...",
 			},
 			wantErr: true,
 		},
