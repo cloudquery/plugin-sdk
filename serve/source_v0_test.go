@@ -56,7 +56,7 @@ func TestSourceSuccessV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
-	c, err := clients.NewClient(ctx, specs.RegistryGrpc, "", "", clients.WithSourceGRPCConnection(conn), clients.WithSourceNoSentry())
+	c, err := clients.NewClient(ctx, specs.RegistryGrpc, "", "", clients.WithGRPCConnection(conn), clients.WithNoSentry())
 	if err != nil {
 		t.Fatal(err)
 	}

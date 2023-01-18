@@ -38,7 +38,7 @@ func TestDestinationClient(t *testing.T) {
 	for _, tc := range newDestinationClientTestCases {
 		t.Run(tc.Path+"_"+tc.Version, func(t *testing.T) {
 			dirName := t.TempDir()
-			c, err := NewClient(ctx, tc.Registry, tc.Path, tc.Version, WithDestinationLogger(l), WithDestinationDirectory(dirName))
+			c, err := NewClient(ctx, tc.Registry, tc.Path, tc.Version, WithLogger(l), WithDirectory(dirName))
 			if err != nil {
 				if strings.HasPrefix(err.Error(), "destination plugin protocol version") {
 					// this also means success as in this tests we just want to make sure we were able to download and spawn the plugin
@@ -69,7 +69,7 @@ func TestDestinationClientWriteReturnsCorrectError(t *testing.T) {
 	ctx := context.Background()
 	l := zerolog.New(zerolog.NewTestWriter(t)).Output(zerolog.ConsoleWriter{Out: os.Stderr}).Level(zerolog.DebugLevel)
 	dirName := t.TempDir()
-	c, err := NewClient(ctx, specs.RegistryGithub, "cloudquery/sqlite", "v1.0.11", WithDestinationLogger(l), WithDestinationDirectory(dirName))
+	c, err := NewClient(ctx, specs.RegistryGithub, "cloudquery/sqlite", "v1.0.11", WithLogger(l), WithDirectory(dirName))
 	if err != nil {
 		t.Fatal(err)
 	}
