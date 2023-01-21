@@ -10,11 +10,11 @@ import (
 
 func (c *Client) terminateProcess() error {
 	if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
-		c.logger.Error().Err(err).Msg("failed to send interrupt signal to destination plugin")
+		c.logger.Error().Err(err).Msg("failed to send interrupt signal to plugin")
 	}
 	timer := time.AfterFunc(5*time.Second, func() {
 		if err := c.cmd.Process.Kill(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to kill destination plugin")
+			c.logger.Error().Err(err).Msg("failed to kill plugin")
 		}
 	})
 	st, err := c.cmd.Process.Wait()
@@ -23,7 +23,7 @@ func (c *Client) terminateProcess() error {
 		return err
 	}
 	if !st.Success() {
-		return fmt.Errorf("destination plugin process exited with status %s", st.String())
+		return fmt.Errorf("plugin process exited with status %s", st.String())
 	}
 
 	return nil
