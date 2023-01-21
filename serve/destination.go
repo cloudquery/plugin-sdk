@@ -9,7 +9,9 @@ import (
 	"sync"
 
 	pbv0 "github.com/cloudquery/plugin-sdk/internal/pb/destination/v0"
+	pbdiscoveryv0 "github.com/cloudquery/plugin-sdk/internal/pb/discovery/v0"
 	servers "github.com/cloudquery/plugin-sdk/internal/servers/destination/v0"
+	discoveryServerV0 "github.com/cloudquery/plugin-sdk/internal/servers/discovery/v0"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
@@ -111,6 +113,9 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 			pbv0.RegisterDestinationServer(s, &servers.DestinationServer{
 				Plugin: serve.plugin,
 				Logger: logger,
+			})
+			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.DiscoveryServer{
+				Versions: []string{"v0"},
 			})
 			version := serve.plugin.Version()
 
