@@ -110,11 +110,11 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 				grpc.MaxRecvMsgSize(pbv0.MaxMsgSize),
 				grpc.MaxSendMsgSize(pbv0.MaxMsgSize),
 			)
-			pbv0.RegisterDestinationServer(s, &servers.DestinationServer{
+			pbv0.RegisterDestinationServer(s, &servers.Server{
 				Plugin: serve.plugin,
 				Logger: logger,
 			})
-			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.DiscoveryServer{
+			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.Server{
 				Versions: []string{"v0"},
 			})
 			version := serve.plugin.Version()

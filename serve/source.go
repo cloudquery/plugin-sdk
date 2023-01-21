@@ -127,11 +127,10 @@ func newCmdSourceServe(serve *sourceServe) *cobra.Command {
 				Plugin: serve.plugin,
 				Logger: logger,
 			})
-			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.DiscoveryServer{
+			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.Server{
 				Versions: []string{"v0", "v1"},
 			})
-			
-			
+
 			version := serve.plugin.Version()
 
 			if serve.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {

@@ -17,19 +17,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type DestinationServer struct {
+type Server struct {
 	pb.UnimplementedDestinationServer
 	Plugin *destination.Plugin
 	Logger zerolog.Logger
 }
 
-func (*DestinationServer) GetProtocolVersion(context.Context, *pbBase.GetProtocolVersion_Request) (*pbBase.GetProtocolVersion_Response, error) {
+func (*Server) GetProtocolVersion(context.Context, *pbBase.GetProtocolVersion_Request) (*pbBase.GetProtocolVersion_Response, error) {
 	return &pbBase.GetProtocolVersion_Response{
 		Version: 2,
 	}, nil
 }
 
-func (s *DestinationServer) Configure(ctx context.Context, req *pbBase.Configure_Request) (*pbBase.Configure_Response, error) {
+func (s *Server) Configure(ctx context.Context, req *pbBase.Configure_Request) (*pbBase.Configure_Response, error) {
 	var spec specs.Destination
 	if err := json.Unmarshal(req.Config, &spec); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
@@ -37,19 +37,19 @@ func (s *DestinationServer) Configure(ctx context.Context, req *pbBase.Configure
 	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, s.Logger, spec)
 }
 
-func (s *DestinationServer) GetName(context.Context, *pbBase.GetName_Request) (*pbBase.GetName_Response, error) {
+func (s *Server) GetName(context.Context, *pbBase.GetName_Request) (*pbBase.GetName_Response, error) {
 	return &pbBase.GetName_Response{
 		Name: s.Plugin.Name(),
 	}, nil
 }
 
-func (s *DestinationServer) GetVersion(context.Context, *pbBase.GetVersion_Request) (*pbBase.GetVersion_Response, error) {
+func (s *Server) GetVersion(context.Context, *pbBase.GetVersion_Request) (*pbBase.GetVersion_Response, error) {
 	return &pbBase.GetVersion_Response{
 		Version: s.Plugin.Version(),
 	}, nil
 }
 
-func (s *DestinationServer) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migrate_Response, error) {
+func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migrate_Response, error) {
 	var tables []*schema.Table
 	if err := json.Unmarshal(req.Tables, &tables); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
@@ -57,13 +57,13 @@ func (s *DestinationServer) Migrate(ctx context.Context, req *pb.Migrate_Request
 	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
 }
 
-func (*DestinationServer) Write(pb.Destination_WriteServer) error {
+func (*Server) Write(pb.Destination_WriteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Write is deprecated please upgrade client")
 }
 
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
-func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
+func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	resources := make(chan schema.DestinationResource)
 
 	r, err := msg.Recv()
@@ -131,7 +131,7 @@ func (s *DestinationServer) Write2(msg pb.Destination_Write2Server) error {
 	}
 }
 
-func (s *DestinationServer) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) (*pb.GetDestinationMetrics_Response, error) {
+func (s *Server) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) (*pb.GetDestinationMetrics_Response, error) {
 	stats := s.Plugin.Metrics()
 	b, err := json.Marshal(stats)
 	if err != nil {
@@ -142,7 +142,7 @@ func (s *DestinationServer) GetMetrics(context.Context, *pb.GetDestinationMetric
 	}, nil
 }
 
-func (s *DestinationServer) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (*pb.DeleteStale_Response, error) {
+func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (*pb.DeleteStale_Response, error) {
 	var tables schema.Tables
 	if err := json.Unmarshal(req.Tables, &tables); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
@@ -154,6 +154,6 @@ func (s *DestinationServer) DeleteStale(ctx context.Context, req *pb.DeleteStale
 	return &pb.DeleteStale_Response{}, nil
 }
 
-func (s *DestinationServer) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {
+func (s *Server) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {
 	return &pb.Close_Response{}, s.Plugin.Close(ctx)
 }

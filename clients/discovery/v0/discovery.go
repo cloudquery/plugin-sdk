@@ -165,7 +165,7 @@ func (c *Client) newManagedClient(ctx context.Context, path string) error {
 	return nil
 }
 
-func (c *Client) GetVersions(ctx context.Context) ([]string, error){
+func (c *Client) GetVersions(ctx context.Context) ([]string, error) {
 	res, err := c.pbClient.GetVersions(ctx, &pb.GetVersions_Request{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call GetVersions: %w", err)
