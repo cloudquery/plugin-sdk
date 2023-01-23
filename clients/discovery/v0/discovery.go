@@ -102,7 +102,7 @@ func NewClient(ctx context.Context, registrySpec specs.Registry, pluginType regi
 	return c, nil
 }
 
-// newManagedClient starts a new destination plugin process from local file, connects to it via gRPC server
+// newManagedClient starts a new discovery plugin process from local file, connects to it via gRPC server
 // and returns a new Client
 func (c *Client) newManagedClient(ctx context.Context, path string) error {
 	c.grpcSocketName = random.GenerateRandomUnixSocketName()
