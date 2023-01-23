@@ -8,8 +8,10 @@ import (
 	"strings"
 	"sync"
 
+	pbdiscoveryv0 "github.com/cloudquery/plugin-sdk/internal/pb/discovery/v0"
 	pbv0 "github.com/cloudquery/plugin-sdk/internal/pb/source/v0"
 	pbv1 "github.com/cloudquery/plugin-sdk/internal/pb/source/v1"
+	discoveryServerV0 "github.com/cloudquery/plugin-sdk/internal/servers/discovery/v0"
 	serversv0 "github.com/cloudquery/plugin-sdk/internal/servers/source/v0"
 	serversv1 "github.com/cloudquery/plugin-sdk/internal/servers/source/v1"
 	"github.com/cloudquery/plugin-sdk/plugins/source"
@@ -125,6 +127,10 @@ func newCmdSourceServe(serve *sourceServe) *cobra.Command {
 				Plugin: serve.plugin,
 				Logger: logger,
 			})
+			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.Server{
+				Versions: []string{"v0", "v1"},
+			})
+
 			version := serve.plugin.Version()
 
 			if serve.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {

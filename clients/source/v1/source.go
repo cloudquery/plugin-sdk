@@ -226,12 +226,12 @@ func (c *Client) GetTables(ctx context.Context) ([]*schema.Table, error) {
 	return tables, nil
 }
 
-func (c *Client) GetDynamicTables(ctx context.Context) ([]*schema.Table, error) {
+func (c *Client) GetDynamicTables(ctx context.Context) (schema.Tables, error) {
 	res, err := c.pbClient.GetDynamicTables(ctx, &pb.GetDynamicTables_Request{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call GetDynamicTables: %w", err)
 	}
-	var tables []*schema.Table
+	var tables schema.Tables
 	if err := json.Unmarshal(res.Tables, &tables); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal tables: %w", err)
 	}
