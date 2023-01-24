@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.29.0](https://github.com/cloudquery/plugin-sdk/compare/v1.28.0...v1.29.0) (2023-01-24)
+
+
+### Features
+
+* Add NopBackend ([#616](https://github.com/cloudquery/plugin-sdk/issues/616)) ([79f5395](https://github.com/cloudquery/plugin-sdk/commit/79f5395c5ba489564239ace9e29157d851c63158))
+
 ## [1.28.0](https://github.com/cloudquery/plugin-sdk/compare/v1.27.0...v1.28.0) (2023-01-23)
 
 
