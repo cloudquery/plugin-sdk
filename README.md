@@ -1,6 +1,6 @@
 # CloudQuery Plugin SDK
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/cloudquery/plugin-sdk#section-readme.svg)](https://pkg.go.dev/github.com/cloudquery/plugin-sdk#section-readme) 
+[![Go Reference](https://pkg.go.dev/badge/github.com/cloudquery/plugin-sdk#section-readme.svg)](https://pkg.go.dev/github.com/cloudquery/plugin-sdk#section-readme)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cloudquery/plugin-sdk)](https://goreportcard.com/report/github.com/cloudquery/plugin-sdk)
 [![Unit tests](https://github.com/cloudquery/plugin-sdk/actions/workflows/unittest.yml/badge.svg)](https://github.com/cloudquery/plugin-sdk/actions/workflows/unittest.yml)
 
