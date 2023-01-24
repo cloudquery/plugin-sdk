@@ -9,7 +9,9 @@ import (
 	"sync"
 
 	pbv0 "github.com/cloudquery/plugin-sdk/internal/pb/destination/v0"
+	pbdiscoveryv0 "github.com/cloudquery/plugin-sdk/internal/pb/discovery/v0"
 	servers "github.com/cloudquery/plugin-sdk/internal/servers/destination/v0"
+	discoveryServerV0 "github.com/cloudquery/plugin-sdk/internal/servers/discovery/v0"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
@@ -108,9 +110,12 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 				grpc.MaxRecvMsgSize(pbv0.MaxMsgSize),
 				grpc.MaxSendMsgSize(pbv0.MaxMsgSize),
 			)
-			pbv0.RegisterDestinationServer(s, &servers.DestinationServer{
+			pbv0.RegisterDestinationServer(s, &servers.Server{
 				Plugin: serve.plugin,
 				Logger: logger,
+			})
+			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.Server{
+				Versions: []string{"v0"},
 			})
 			version := serve.plugin.Version()
 

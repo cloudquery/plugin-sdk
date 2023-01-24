@@ -62,7 +62,7 @@ func TestDestination(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
-	c, err := clients.NewClient(ctx, specs.RegistryGrpc, "", "", clients.WithDestinationGrpcConn(conn), clients.WithDestinationNoSentry())
+	c, err := clients.NewClient(ctx, specs.RegistryGrpc, "", "", clients.WithGrpcConn(conn), clients.WithNoSentry())
 	if err != nil {
 		t.Fatal(err)
 	}

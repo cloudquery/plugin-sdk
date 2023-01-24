@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.28.0](https://github.com/cloudquery/plugin-sdk/compare/v1.27.0...v1.28.0) (2023-01-23)
+
+
+### Features
+
+* Add version discovery service ([#619](https://github.com/cloudquery/plugin-sdk/issues/619)) ([33ab32a](https://github.com/cloudquery/plugin-sdk/commit/33ab32a690e99c00cf412097960a1d14efcff281))
+* Dynamic tables and introduce proto versioning ([#610](https://github.com/cloudquery/plugin-sdk/issues/610)) ([448232c](https://github.com/cloudquery/plugin-sdk/commit/448232c8789350c8fb071902d33a5c5f07d2b82c))
+
+
+### Bug Fixes
+
+* **clients:** Update `log line too long` message ([#611](https://github.com/cloudquery/plugin-sdk/issues/611)) ([0d3ff48](https://github.com/cloudquery/plugin-sdk/commit/0d3ff48d4a8ce324b5685c3df9196943d09b2eba))
+* Simplify client naming conventions ([#617](https://github.com/cloudquery/plugin-sdk/issues/617)) ([38b136b](https://github.com/cloudquery/plugin-sdk/commit/38b136b9aa15dc049f9b66dcd4ceca60fa7bdca6))
+
 ## [1.27.0](https://github.com/cloudquery/plugin-sdk/compare/v1.26.0...v1.27.0) (2023-01-17)
 
 

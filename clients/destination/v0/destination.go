@@ -44,26 +44,26 @@ type Client struct {
 
 type ClientOption func(*Client)
 
-func WithDestinationLogger(logger zerolog.Logger) func(*Client) {
+func WithLogger(logger zerolog.Logger) func(*Client) {
 	return func(c *Client) {
 		c.logger = logger
 	}
 }
 
-func WithDestinationDirectory(directory string) func(*Client) {
+func WithDirectory(directory string) func(*Client) {
 	return func(c *Client) {
 		c.directory = directory
 	}
 }
 
-func WithDestinationGrpcConn(userConn *grpc.ClientConn) func(*Client) {
+func WithGrpcConn(userConn *grpc.ClientConn) func(*Client) {
 	return func(c *Client) {
 		// we use a different variable here because we don't want to close a connection that wasn't created by us.
 		c.userConn = userConn
 	}
 }
 
-func WithDestinationNoSentry() func(*Client) {
+func WithNoSentry() func(*Client) {
 	return func(c *Client) {
 		c.noSentry = true
 	}
@@ -153,16 +153,16 @@ func (c *Client) newManagedClient(ctx context.Context, path string) error {
 				break
 			}
 			if errors.Is(err, logging.ErrLogLineToLong) {
-				c.logger.Err(err).Str("line", string(line)).Msg("skipping too long log line")
+				c.logger.Info().Str("line", string(line)).Msg("truncated destination plugin log line")
 				continue
 			}
 			if err != nil {
-				c.logger.Err(err).Msg("failed to read log line from plugin")
+				c.logger.Err(err).Msg("failed to read log line from destination plugin")
 				break
 			}
 			var structuredLogLine map[string]any
 			if err := json.Unmarshal(line, &structuredLogLine); err != nil {
-				c.logger.Err(err).Str("line", string(line)).Msg("failed to unmarshal log line from plugin")
+				c.logger.Err(err).Str("line", string(line)).Msg("failed to unmarshal log line from destination plugin")
 			} else {
 				logging.JSONToLog(c.logger, structuredLogLine)
 			}
