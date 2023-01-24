@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
@@ -37,10 +39,15 @@ type PluginTestSuiteTests struct {
 	// existing object after the file has been closed.
 	SkipSecondAppend bool
 
-	// destinationPluginTestMigrateAppend skips a test for the migrate function where a column is added,
+	// SkipMigrateAppend skips a test for the migrate function where a column is added,
 	// data is appended, then the column is removed and more data appended, checking that the migrations handle
 	// this correctly.
 	SkipMigrateAppend bool
+
+	// SkipMigrateOverwrite skips a test for the migrate function where a column is added,
+	// data is appended, then the column is removed and more data overwritten, checking that the migrations handle
+	// this correctly.
+	SkipMigrateOverwrite bool
 }
 
 func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
@@ -299,18 +306,26 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	return nil
 }
 
-func (*PluginTestSuite) destinationPluginTestMigrateAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
-	spec.WriteMode = specs.WriteModeAppend
+func (*PluginTestSuite) destinationPluginTestMigrate(
+	ctx context.Context,
+	p *Plugin,
+	logger zerolog.Logger,
+	spec specs.Destination,
+	mode specs.WriteMode,
+) error {
+	spec.WriteMode = mode
 	spec.BatchSize = 1
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
-	tableName := "cq_test_migrate_append"
+	suffix := strings.ToLower(strings.ReplaceAll(mode.String(), "-", "_"))
+	tableName := "cq_test_migrate_" + suffix
 	table := testdata.TestTable(tableName)
 	if err := p.Migrate(ctx, []*schema.Table{table}); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
-	sourceName := "testMigrateAppendSource" + uuid.NewString()
+
+	sourceName := "testMigrate" + caser.New().ToPascal(suffix) + "Source" + uuid.NewString()
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
@@ -418,8 +433,7 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 	t.Run("TestWriteOverwrite", func(t *testing.T) {
 		t.Helper()
 		if suite.tests.SkipOverwrite {
-			t.Skip("skipping TestWriteOverwrite")
-			return
+			t.Skip("skipping " + t.Name())
 		}
 		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
@@ -429,10 +443,19 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 	t.Run("TestWriteOverwriteDeleteStale", func(t *testing.T) {
 		t.Helper()
 		if suite.tests.SkipOverwrite || suite.tests.SkipDeleteStale {
-			t.Skip("skipping TestWriteOverwriteDeleteStale")
-			return
+			t.Skip("skipping " + t.Name())
 		}
 		if err := suite.destinationPluginTestWriteOverwriteDeleteStale(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("TestWriteMigrateOverwrite", func(t *testing.T) {
+		t.Helper()
+		if suite.tests.SkipMigrateOverwrite {
+			t.Skip("skipping " + t.Name())
+		}
+		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec, specs.WriteModeOverwrite); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -440,8 +463,7 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 	t.Run("TestWriteAppend", func(t *testing.T) {
 		t.Helper()
 		if suite.tests.SkipAppend {
-			t.Skip("skipping TestWriteAppend")
-			return
+			t.Skip("skipping " + t.Name())
 		}
 		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
@@ -451,10 +473,9 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 	t.Run("TestMigrateAppend", func(t *testing.T) {
 		t.Helper()
 		if suite.tests.SkipMigrateAppend {
-			t.Skip("skipping TestMigrateAppend")
-			return
+			t.Skip("skipping " + t.Name())
 		}
-		if err := suite.destinationPluginTestMigrateAppend(ctx, p, logger, destSpec); err != nil {
+		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec, specs.WriteModeAppend); err != nil {
 			t.Fatal(err)
 		}
 	})
