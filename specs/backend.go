@@ -13,7 +13,7 @@ const (
 	BackendLocal
 )
 
-var AllBackends = Backends{BackendLocal}
+var AllBackends = Backends{BackendNone, BackendLocal}
 var AllBackendNames = [...]string{
 	BackendNone:  "none",
 	BackendLocal: "local",
