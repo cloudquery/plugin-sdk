@@ -6,14 +6,16 @@ import (
 	"path"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type specLoaderTestCase struct {
 	name         string
 	path         []string
 	err          func() string
-	sources      int
-	destinations int
+	sources      []*Source
+	destinations []*Destination
 	envVariables map[string]string
 }
 
@@ -28,8 +30,14 @@ var specLoaderTestCases = []specLoaderTestCase{
 		err: func() string {
 			return ""
 		},
-		sources:      2,
-		destinations: 2,
+		sources: []*Source{
+			{Name: "gcp", Path: "cloudquery/gcp", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresqlv2"}, TableConcurrency: 10},
+			{Name: "aws", Path: "cloudquery/aws", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresql"}, TableConcurrency: 10},
+		},
+		destinations: []*Destination{
+			{Name: "postgresqlv2", Path: "cloudquery/postgresql", Version: "v1.0.0", Registry: RegistryGrpc, WriteMode: WriteModeOverwrite, Spec: map[string]any{"credentials": "mytestcreds"}},
+			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1.0.0", Registry: RegistryGrpc, WriteMode: WriteModeOverwrite},
+		},
 	},
 	{
 		name: "success_yaml_extension",
@@ -37,8 +45,14 @@ var specLoaderTestCases = []specLoaderTestCase{
 		err: func() string {
 			return ""
 		},
-		sources:      2,
-		destinations: 2,
+		sources: []*Source{
+			{Name: "gcp", Path: "cloudquery/gcp", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresqlv2"}, TableConcurrency: 10},
+			{Name: "aws", Path: "cloudquery/aws", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresql"}, TableConcurrency: 10},
+		},
+		destinations: []*Destination{
+			{Name: "postgresqlv2", Path: "cloudquery/postgresql", Version: "v1.0.0", Registry: RegistryGrpc, WriteMode: WriteModeOverwrite, Spec: map[string]any{"credentials": "mytestcreds"}},
+			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1.0.0", Registry: RegistryGrpc, WriteMode: WriteModeOverwrite},
+		},
 	},
 	{
 		name: "duplicate_source",
@@ -77,8 +91,13 @@ var specLoaderTestCases = []specLoaderTestCase{
 		err: func() string {
 			return ""
 		},
-		sources:      2,
-		destinations: 1,
+		sources: []*Source{
+			{Name: "aws", Path: "cloudquery/aws", Version: "v4.6.1", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
+			{Name: "azure", Path: "cloudquery/azure", Version: "v1.3.3", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
+		},
+		destinations: []*Destination{
+			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1.6.3", Registry: RegistryGithub, Spec: map[string]any{"connection_string": "postgresql://postgres:pass@localhost:5432/postgres"}},
+		},
 	},
 	{
 		name: "environment variables",
@@ -86,8 +105,13 @@ var specLoaderTestCases = []specLoaderTestCase{
 		err: func() string {
 			return ""
 		},
-		sources:      2,
-		destinations: 1,
+		sources: []*Source{
+			{Name: "aws", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
+			{Name: "azure", Path: "cloudquery/azure", Version: "v1.3.3", Registry: RegistryGithub, Destinations: []string{"postgresql", "postgresql"}},
+		},
+		destinations: []*Destination{
+			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1.6.3", Registry: RegistryGithub, Spec: map[string]any{"connection_string": "postgresql://localhost:5432/cloudquery?sslmode=disable", "version": "#v1"}},
+		},
 		envVariables: map[string]string{
 			"VERSION":           "v1",
 			"DESTINATIONS":      "postgresql",
@@ -100,8 +124,13 @@ var specLoaderTestCases = []specLoaderTestCase{
 		err: func() string {
 			return "failed to expand environment variable in file testdata/env_variables.yml (section 3): env variable CONNECTION_STRING not found"
 		},
-		sources:      2,
-		destinations: 1,
+		sources: []*Source{
+			{Name: "aws", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
+			{Name: "azure", Path: "cloudquery/azure", Version: "v1.3.3", Registry: RegistryGithub, Destinations: []string{"postgresql", "postgresql"}},
+		},
+		destinations: []*Destination{
+			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1.6.3", Registry: RegistryGithub, Spec: map[string]any{}},
+		},
 		envVariables: map[string]string{
 			"VERSION":      "v1",
 			"DESTINATIONS": "postgresql",
@@ -113,8 +142,12 @@ var specLoaderTestCases = []specLoaderTestCase{
 		err: func() string {
 			return ""
 		},
-		sources:      1,
-		destinations: 1,
+		sources: []*Source{
+			{Name: "test", Path: "cloudquery/test", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
+		},
+		destinations: []*Destination{
+			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1", Registry: RegistryGithub, Spec: map[string]any{"custom_version": "#v1"}},
+		},
 		envVariables: map[string]string{
 			"VERSION": "v1",
 		},
@@ -125,8 +158,12 @@ var specLoaderTestCases = []specLoaderTestCase{
 		err: func() string {
 			return "failed to expand environment variable in file testdata/env_variable_in_string.yml (section 2): env variable VERSION not found"
 		},
-		sources:      1,
-		destinations: 1,
+		sources: []*Source{
+			{Name: "test", Path: "cloudquery/test", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
+		},
+		destinations: []*Destination{
+			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1", Registry: RegistryGithub, Spec: map[string]any{}},
+		},
 		envVariables: map[string]string{},
 	},
 	{
@@ -160,12 +197,17 @@ func TestLoadSpecs(t *testing.T) {
 			if expectedErr != "" {
 				t.Fatalf("expected error: %s, got nil", expectedErr)
 			}
-			if len(specReader.Sources) != tc.sources {
-				t.Fatalf("got: %d expected: %d", len(specReader.Sources), tc.sources)
+
+			for _, s := range tc.sources {
+				s.SetDefaults()
 			}
-			if len(specReader.Destinations) != tc.destinations {
-				t.Fatalf("got: %d expected: %d", len(specReader.Destinations), tc.destinations)
+
+			for _, d := range tc.destinations {
+				d.SetDefaults(0, 0)
 			}
+
+			require.Equal(t, tc.sources, specReader.Sources)
+			require.Equal(t, tc.destinations, specReader.Destinations)
 		})
 	}
 }

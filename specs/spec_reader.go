@@ -13,8 +13,11 @@ import (
 )
 
 type SpecReader struct {
-	Sources      map[string]*Source
-	Destinations map[string]*Destination
+	sourcesMap      map[string]*Source
+	destinationsMap map[string]*Destination
+
+	Sources      []*Source
+	Destinations []*Destination
 }
 
 var fileRegex = regexp.MustCompile(`\$\{file:([^}]+)\}`)
@@ -81,17 +84,18 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 		switch s.Kind {
 		case KindSource:
 			source := s.Spec.(*Source)
-			if r.Sources[source.Name] != nil {
+			if r.sourcesMap[source.Name] != nil {
 				return fmt.Errorf("duplicate source name %s", source.Name)
 			}
 			source.SetDefaults()
 			if err := source.Validate(); err != nil {
 				return fmt.Errorf("failed to validate source %s: %w", source.Name, err)
 			}
-			r.Sources[source.Name] = source
+			r.sourcesMap[source.Name] = source
+			r.Sources = append(r.Sources, source)
 		case KindDestination:
 			destination := s.Spec.(*Destination)
-			if r.Destinations[destination.Name] != nil {
+			if r.destinationsMap[destination.Name] != nil {
 				return fmt.Errorf("duplicate destination name %s", destination.Name)
 			}
 			// We set the default value to 0, so it can be overridden later by plugins' defaults
@@ -99,7 +103,8 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 			if err := destination.Validate(); err != nil {
 				return fmt.Errorf("failed to validate destination %s: %w", destination.Name, err)
 			}
-			r.Destinations[destination.Name] = destination
+			r.destinationsMap[destination.Name] = destination
+			r.Destinations = append(r.Destinations, destination)
 		default:
 			return fmt.Errorf("unknown kind %s", s.Kind)
 		}
@@ -135,7 +140,7 @@ func (r *SpecReader) validate() error {
 	var destinationSourceMap = make(map[string]string)
 	for _, source := range r.Sources {
 		for _, destination := range source.Destinations {
-			if r.Destinations[destination] == nil {
+			if r.destinationsMap[destination] == nil {
 				return fmt.Errorf("source %s references unknown destination %s", source.Name, destination)
 			}
 			destinationToSourceKey := fmt.Sprintf("%s-%s", destination, source.Path)
@@ -150,10 +155,16 @@ func (r *SpecReader) validate() error {
 	return nil
 }
 
+func (r *SpecReader) GetDestinationByName(name string) *Destination {
+	return r.destinationsMap[name]
+}
+
 func NewSpecReader(paths []string) (*SpecReader, error) {
 	reader := &SpecReader{
-		Sources:      make(map[string]*Source),
-		Destinations: make(map[string]*Destination),
+		sourcesMap:      make(map[string]*Source),
+		destinationsMap: make(map[string]*Destination),
+		Sources:         make([]*Source, 0),
+		Destinations:    make([]*Destination, 0),
 	}
 	for _, path := range paths {
 		file, err := os.Open(path)
