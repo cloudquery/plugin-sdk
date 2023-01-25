@@ -14,6 +14,7 @@ type specLoaderTestCase struct {
 	err          func() string
 	sources      int
 	destinations int
+	envVariables map[string]string
 }
 
 func getPath(pathParts ...string) string {
@@ -79,11 +80,41 @@ var specLoaderTestCases = []specLoaderTestCase{
 		sources:      2,
 		destinations: 1,
 	},
+	{
+		name: "environment variables",
+		path: []string{getPath("env_variables.yml")},
+		err: func() string {
+			return ""
+		},
+		sources:      2,
+		destinations: 1,
+		envVariables: map[string]string{
+			"VERSION":           "v1",
+			"DESTINATIONS":      "postgresql",
+			"CONNECTION_STRING": "postgresql://localhost:5432/cloudquery?sslmode=disable",
+		},
+	},
+	{
+		name: "environment variables with error",
+		path: []string{getPath("env_variables.yml")},
+		err: func() string {
+			return "failed to expand environment variable in file testdata/env_variables.yml (section 3): env variable CONNECTION_STRING not found"
+		},
+		sources:      2,
+		destinations: 1,
+		envVariables: map[string]string{
+			"VERSION":      "v1",
+			"DESTINATIONS": "postgresql",
+		},
+	},
 }
 
 func TestLoadSpecs(t *testing.T) {
 	for _, tc := range specLoaderTestCases {
 		t.Run(tc.name, func(t *testing.T) {
+			for k, v := range tc.envVariables {
+				t.Setenv(k, v)
+			}
 			specReader, err := NewSpecReader(tc.path)
 			expectedErr := tc.err()
 			if err != nil {
