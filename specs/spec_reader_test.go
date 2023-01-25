@@ -107,6 +107,28 @@ var specLoaderTestCases = []specLoaderTestCase{
 			"DESTINATIONS": "postgresql",
 		},
 	},
+	{
+		name: "environment variables in string without error",
+		path: []string{getPath("env_variable_in_string.yml")},
+		err: func() string {
+			return ""
+		},
+		sources:      1,
+		destinations: 1,
+		envVariables: map[string]string{
+			"VERSION": "v1",
+		},
+	},
+	{
+		name: "environment variables in string with error",
+		path: []string{getPath("env_variable_in_string.yml")},
+		err: func() string {
+			return "failed to expand environment variable in file testdata/env_variable_in_string.yml (section 2): env variable VERSION not found"
+		},
+		sources:      1,
+		destinations: 1,
+		envVariables: map[string]string{},
+	},
 }
 
 func TestLoadSpecs(t *testing.T) {

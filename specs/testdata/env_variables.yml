@@ -20,3 +20,4 @@ spec:
   version: v1.6.3 # or ${ENV_VARIABLE}
   spec:
     connection_string: ${CONNECTION_STRING}
+    version: "#${VERSION}"
