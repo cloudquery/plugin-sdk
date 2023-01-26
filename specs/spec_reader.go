@@ -1,11 +1,14 @@
 package specs
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/ghodss/yaml"
 )
 
 type SpecReader struct {
@@ -51,21 +54,27 @@ func (r *SpecReader) loadSpecsFromFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read file %s: %w", path, err)
 	}
-	data, err = expandFileConfig(data)
-	if err != nil {
-		return fmt.Errorf("failed to expand file variable in file %s: %w", path, err)
-	}
-	data, err = expandEnv(data)
-	if err != nil {
-		return fmt.Errorf("failed to expand environment variable in file %s: %w", path, err)
-	}
 
 	// support multiple yamls in one file
 	// this should work both on Windows and Unix
-	normalizedConfig := strings.ReplaceAll(string(data), "\r\n", "\n")
-	for _, doc := range strings.Split(normalizedConfig, "\n---\n") {
+	normalizedConfig := bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+
+	sections := bytes.Split(normalizedConfig, []byte("\n---\n"))
+	for i, doc := range sections {
+		doc, err = stripYamlComments(doc)
+		if err != nil {
+			return fmt.Errorf("failed to strip yaml comments in file %s (section %d): %w", path, i+1, err)
+		}
+		doc, err = expandFileConfig(doc)
+		if err != nil {
+			return fmt.Errorf("failed to expand file variable in file %s (section %d): %w", path, i+1, err)
+		}
+		doc, err = expandEnv(doc)
+		if err != nil {
+			return fmt.Errorf("failed to expand environment variable in file %s (section %d): %w", path, i+1, err)
+		}
 		var s Spec
-		if err := SpecUnmarshalYamlStrict([]byte(doc), &s); err != nil {
+		if err := SpecUnmarshalYamlStrict(doc, &s); err != nil {
 			return fmt.Errorf("failed to unmarshal file %s: %w", path, err)
 		}
 		switch s.Kind {
@@ -172,4 +181,35 @@ func NewSpecReader(paths []string) (*SpecReader, error) {
 	}
 
 	return reader, nil
+}
+
+// strip yaml comments from the given yaml document by converting to JSON and back :)
+func stripYamlComments(b []byte) ([]byte, error) {
+	const openPlaceholder = "$$$OPEN$$$"
+	const closePlaceholder = "$$$CLOSE$$$"
+
+	// return an error if the yaml already contains our temporary placeholder for env variables by some unlucky coincidence
+	if bytes.Contains(b, []byte(openPlaceholder)) || bytes.Contains(b, []byte(closePlaceholder)) {
+		return nil, fmt.Errorf("%s and %s are reserved words in CloudQuery config", openPlaceholder, closePlaceholder)
+	}
+
+	// replace placeholder variables with valid yaml, otherwise it cannot be parsed
+	// in some cases. Short of writing our own yaml parser to remove comments,
+	// this seems like the best we can do.
+	b = envRegex.ReplaceAllFunc(b, func(match []byte) []byte {
+		content := envRegex.FindSubmatch(match)[1]
+		return []byte(openPlaceholder + string(content) + closePlaceholder)
+	})
+	j, err := yaml.YAMLToJSON(b)
+	if err != nil {
+		return nil, err
+	}
+	b, err = yaml.JSONToYAML(j)
+	if err != nil {
+		return nil, err
+	}
+	// place back placeholder variables
+	b = bytes.ReplaceAll(b, []byte(openPlaceholder), []byte("${"))
+	b = bytes.ReplaceAll(b, []byte(closePlaceholder), []byte("}"))
+	return b, nil
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/thoas/go-funk"
 	"golang.org/x/exp/slices"
 )
 
@@ -22,6 +23,7 @@ type structTransformer struct {
 	unwrapAllEmbeddedStructFields bool
 	structFieldsToUnwrap          []string
 	pkFields                      []string
+	pkFieldsFound                 []string
 }
 
 type NameTransformer func(reflect.StructField) (string, error)
@@ -151,7 +153,10 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 				}
 			}
 		}
-
+		// Validate that all expected PK fields were found
+		if diff := funk.SubtractString(t.pkFields, t.pkFieldsFound); len(diff) > 0 {
+			return fmt.Errorf("failed to create all of the desired primary keys: %v", diff)
+		}
 		return nil
 	}
 }
@@ -269,6 +274,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	for _, pk := range t.pkFields {
 		if pk == field.Name {
 			column.CreationOptions.PrimaryKey = true
+			t.pkFieldsFound = append(t.pkFieldsFound, field.Name)
 		}
 	}
 
