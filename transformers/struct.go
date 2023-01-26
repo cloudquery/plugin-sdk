@@ -151,7 +151,11 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 				}
 			}
 		}
-
+		// PKs can be defined in the struct tags or via the WithPrimaryKeys option, so the only heuristic we can apply
+		// is to validate that the total number of created PKs is not less than the total number of created PKs
+		if len(t.table.PrimaryKeys()) < len(t.pkFields) {
+			return fmt.Errorf("failed to create all of the desired primary keys: %v", t.pkFields)
+		}
 		return nil
 	}
 }
