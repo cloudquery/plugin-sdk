@@ -221,12 +221,12 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 		return fmt.Errorf("unknown backend: %s", spec.Backend)
 	}
 
-	p.client, err = p.newExecutionClient(ctx, p.logger, spec, Options{Backend: p.backend})
-	if err != nil {
-		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
-	}
 	tables := p.tables
 	if p.getDynamicTables != nil {
+		p.client, err = p.newExecutionClient(ctx, p.logger, spec, Options{Backend: p.backend})
+		if err != nil {
+			return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
+		}
 		tables, err = p.getDynamicTables(ctx, p.client)
 		if err != nil {
 			return fmt.Errorf("failed to get dynamic tables: %w", err)
@@ -271,6 +271,14 @@ func (p *Plugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
+
+	if p.client == nil {
+		var err error
+		p.client, err = p.newExecutionClient(ctx, p.logger, p.spec, Options{Backend: p.backend})
+		if err != nil {
+			return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
+		}
+	}
 
 	startTime := time.Now()
 	switch p.spec.Scheduler {
