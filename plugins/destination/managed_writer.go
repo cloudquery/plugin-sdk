@@ -57,7 +57,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 }
 
 func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources [][]any) {
-	resources = p.filterByPK(table, resources)
+	resources = p.removeDuplicatesByPK(table, resources)
 
 	start := time.Now()
 	batchSize := len(resources)
@@ -71,16 +71,16 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Tabl
 	}
 }
 
-func (p *Plugin) filterByPK(table *schema.Table, resources [][]any) [][]any {
+func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) [][]any {
 	pks := make(map[string]struct{}, len(resources))
 	res := make([][]any, 0, len(resources))
 	var reported bool
 	for _, r := range resources {
-		k := pk.Convert(table, r)
-		_, ok := pks[k]
+		key := pk.String(table, r)
+		_, ok := pks[key]
 		switch {
 		case !ok:
-			pks[k] = struct{}{}
+			pks[key] = struct{}{}
 			res = append(res, r)
 			continue
 		case reported:
@@ -94,7 +94,7 @@ func (p *Plugin) filterByPK(table *schema.Table, resources [][]any) [][]any {
 		p.logger.Error().
 			Str("table", table.Name).
 			Str("pk", pkSpec).
-			Str("value", pk.Convert(table, r)).
+			Str("value", key).
 			Msg("duplicate primary key")
 
 		// send to Sentry only once per table,

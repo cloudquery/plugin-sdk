@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConvert(t *testing.T) {
+func TestString(t *testing.T) {
 	type testCase struct {
 		table    *schema.Table
 		resource []any
@@ -51,7 +51,7 @@ func TestConvert(t *testing.T) {
 		},
 	} {
 		t.Run(tc.table.Name, func(t *testing.T) {
-			require.Equal(t, tc.expected, pk.Convert(tc.table, tc.resource))
+			require.Equal(t, tc.expected, pk.String(tc.table, tc.resource))
 		})
 	}
 }

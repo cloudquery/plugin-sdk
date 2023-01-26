@@ -7,7 +7,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
-func Convert(table *schema.Table, resource []any) string {
+func String(table *schema.Table, resource []any) string {
 	parts := make([]string, 0, len(table.PrimaryKeys()))
 	for i, col := range table.Columns {
 		if !col.CreationOptions.PrimaryKey {
