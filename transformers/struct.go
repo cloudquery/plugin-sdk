@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/thoas/go-funk"
 	"golang.org/x/exp/slices"
 )
 
@@ -152,10 +153,9 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 				}
 			}
 		}
-		// PKs can be defined in the struct tags or via the WithPrimaryKeys option, so the only heuristic we can apply
-		// is to validate that the total number of created PKs is not less than the total number of created PKs
-		if len(t.pkFieldsFound) != len(t.pkFields) {
-			return fmt.Errorf("failed to create all of the desired primary keys: %v", t.pkFields)
+		// Validate that all expected PK fields were found
+		if diff := funk.SubtractString(t.pkFields, t.pkFieldsFound); len(diff) > 0 {
+			return fmt.Errorf("failed to create all of the desired primary keys: %v", diff)
 		}
 		return nil
 	}
