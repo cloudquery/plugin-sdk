@@ -2,12 +2,15 @@ package destination
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/internal/pk"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/getsentry/sentry-go"
 )
 
 type worker struct {
@@ -54,6 +57,8 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 }
 
 func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources [][]any) {
+	resources = p.filterByPK(table, resources)
+
 	start := time.Now()
 	batchSize := len(resources)
 	if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
@@ -64,6 +69,46 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Tabl
 		p.logger.Info().Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 		atomic.AddUint64(&metrics.Writes, uint64(batchSize))
 	}
+}
+
+func (p *Plugin) filterByPK(table *schema.Table, resources [][]any) [][]any {
+	pks := make(map[string]bool, len(resources)) // value = reported already
+	res := make([][]any, 0, len(resources))
+
+	for _, r := range resources {
+		k := pk.Convert(table, r)
+		switch reported, ok := pks[k]; ok {
+		case true:
+			if reported {
+				// already reported
+				continue
+			}
+			pks[k] = true
+
+			pkSpec := "(" + strings.Join(table.PrimaryKeys(), ",") + ")"
+			// log err
+			p.logger.Error().
+				Str("table", table.Name).
+				Str("pk", pkSpec).
+				Str("value", pk.Convert(table, r)).
+				Msg("duplicate primary key")
+
+			// send to Sentry only once per table,
+			// to avoid sending too many duplicate messages
+			sentry.WithScope(func(scope *sentry.Scope) {
+				scope.SetTag("plugin", p.name)
+				scope.SetTag("version", p.version)
+				scope.SetTag("table", table.Name)
+				scope.SetExtra("pk", pkSpec)
+				sentry.CurrentHub().CaptureMessage("duplicate primary key")
+			})
+		default:
+			pks[k] = false
+			res = append(res, r)
+		}
+	}
+
+	return res
 }
 
 func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
