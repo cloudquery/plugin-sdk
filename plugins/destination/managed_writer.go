@@ -72,40 +72,40 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Tabl
 }
 
 func (p *Plugin) filterByPK(table *schema.Table, resources [][]any) [][]any {
-	pks := make(map[string]bool, len(resources)) // value = reported already
+	pks := make(map[string]struct{}, len(resources))
 	res := make([][]any, 0, len(resources))
-
+	var reported bool
 	for _, r := range resources {
 		k := pk.Convert(table, r)
-		switch reported, ok := pks[k]; ok {
-		case true:
-			if reported {
-				// already reported
-				continue
-			}
-			pks[k] = true
-
-			pkSpec := "(" + strings.Join(table.PrimaryKeys(), ",") + ")"
-			// log err
-			p.logger.Error().
-				Str("table", table.Name).
-				Str("pk", pkSpec).
-				Str("value", pk.Convert(table, r)).
-				Msg("duplicate primary key")
-
-			// send to Sentry only once per table,
-			// to avoid sending too many duplicate messages
-			sentry.WithScope(func(scope *sentry.Scope) {
-				scope.SetTag("plugin", p.name)
-				scope.SetTag("version", p.version)
-				scope.SetTag("table", table.Name)
-				scope.SetExtra("pk", pkSpec)
-				sentry.CurrentHub().CaptureMessage("duplicate primary key")
-			})
-		default:
-			pks[k] = false
+		_, ok := pks[k]
+		switch {
+		case !ok:
+			pks[k] = struct{}{}
 			res = append(res, r)
+			continue
+		case reported:
+			continue
 		}
+
+		reported = true
+		pkSpec := "(" + strings.Join(table.PrimaryKeys(), ",") + ")"
+
+		// log err
+		p.logger.Error().
+			Str("table", table.Name).
+			Str("pk", pkSpec).
+			Str("value", pk.Convert(table, r)).
+			Msg("duplicate primary key")
+
+		// send to Sentry only once per table,
+		// to avoid sending too many duplicate messages
+		sentry.WithScope(func(scope *sentry.Scope) {
+			scope.SetTag("plugin", p.name)
+			scope.SetTag("version", p.version)
+			scope.SetTag("table", table.Name)
+			scope.SetExtra("pk", pkSpec)
+			sentry.CurrentHub().CaptureMessage("duplicate primary key")
+		})
 	}
 
 	return res
