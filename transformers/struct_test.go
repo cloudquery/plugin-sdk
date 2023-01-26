@@ -259,6 +259,17 @@ func TestTableFromGoStruct(t *testing.T) {
 			},
 			want: expectedTableWithPKs,
 		},
+		{
+			name: "Should return an error when a PK Field is not found",
+			args: args{
+				testStruct: testPKStruct{},
+				options: []StructTransformerOption{
+					WithPrimaryKeys("Parent", "Name", "InvalidColumns"),
+				},
+			},
+			want:    expectedTableWithPKs,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -268,18 +279,18 @@ func TestTableFromGoStruct(t *testing.T) {
 				Columns: schema.ColumnList{},
 			}
 			transformer := TransformWithStruct(tt.args.testStruct, tt.args.options...)
-			if err := transformer(&table); err != nil {
+			err := transformer(&table)
+			if err != nil {
+				if tt.wantErr {
+					return
+				}
 				t.Fatal(err)
 			}
-			// table, err := NewTableFromStruct("test_struct", tt.args.testStruct, tt.args.options...)
-			// if (err != nil) != tt.wantErr {
-			// 	t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			// }
-			// if tt.wantErr {
-			// 	return
-			// }
 			if diff := cmp.Diff(table.Columns, tt.want.Columns,
 				cmpopts.IgnoreFields(schema.Column{}, "Resolver")); diff != "" {
+				t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
+			}
+			if diff := cmp.Diff(table.PrimaryKeys(), tt.want.PrimaryKeys()); diff != "" {
 				t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
 			}
 		})
