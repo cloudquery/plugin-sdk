@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.0](https://github.com/cloudquery/plugin-sdk/compare/v1.29.0...v1.30.0) (2023-01-26)
+
+
+### Features
+
+* **destination:** Filter the duplicate primary keys prior to writing batch ([#629](https://github.com/cloudquery/plugin-sdk/issues/629)) ([505709e](https://github.com/cloudquery/plugin-sdk/commit/505709eb25cee540a67bf4c55925a4ff5466a4b9)), closes [#627](https://github.com/cloudquery/plugin-sdk/issues/627)
+
+
+### Bug Fixes
+
+* Ignore env variables in comments ([#625](https://github.com/cloudquery/plugin-sdk/issues/625)) ([08bace8](https://github.com/cloudquery/plugin-sdk/commit/08bace89c708ca7f20490ce9756f8276b7e5d6f2))
+* Only call `newExecutionClient` if needed ([#630](https://github.com/cloudquery/plugin-sdk/issues/630)) ([ece947f](https://github.com/cloudquery/plugin-sdk/commit/ece947f82c62be7c6bfb2f241b4644f0e2a8ae82))
+
 ## [1.29.0](https://github.com/cloudquery/plugin-sdk/compare/v1.28.0...v1.29.0) (2023-01-24)
 
 
