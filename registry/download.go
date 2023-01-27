@@ -29,19 +29,16 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	downloadDir := filepath.Dir(localPath)
 	pluginZipPath := localPath + ".zip"
 	// https://github.com/cloudquery/cloudquery/releases/download/plugins-source-test-v1.1.5/test_darwin_amd64.zip
-	var urls []string
+	urls := []string{
+		// community plugin format
+		fmt.Sprintf("https://github.com/%s/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", org, typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH),
+	}
 	if org == "cloudquery" {
 		urls = []string{
-			// monorepo plugin
+			// CloudQuery monorepo plugin
 			fmt.Sprintf("https://github.com/cloudquery/cloudquery/releases/download/plugins-%s-%s-%s/%s_%s_%s.zip", typ, name, version, name, runtime.GOOS, runtime.GOARCH),
-			// community plugin under CloudQuery org
-			fmt.Sprintf("https://github.com/cloudquery/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH),
-		}
-	} else {
-		// https://github.com/yevgenypats/cq-source-test/releases/download/v1.0.1/cq-source-test_darwin_amd64.zip
-		urls = []string{
-			// community plugin under user org
-			fmt.Sprintf("https://github.com/%s/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", org, typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH),
+			// fall back to community plugin format if the plugin is not found in the monorepo
+			urls[0],
 		}
 	}
 
