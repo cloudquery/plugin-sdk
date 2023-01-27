@@ -50,10 +50,10 @@ func WithGrpcConn(userConn *grpc.ClientConn) func(*Client) {
 	}
 }
 
-func NewClient(ctx context.Context, registrySpec specs.Registry, pluginType registry.PluginType, path string, version string, opts ...ClientOption) (*Client, error) {
+func NewClient(ctx context.Context, cqDir string, registrySpec specs.Registry, pluginType registry.PluginType, path string, version string, opts ...ClientOption) (*Client, error) {
 	var err error
 	c := &Client{
-		directory: registry.DefaultDownloadDir,
+		directory: cqDir,
 		wg:        &sync.WaitGroup{},
 	}
 	for _, opt := range opts {
