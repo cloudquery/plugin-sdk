@@ -26,18 +26,23 @@ const (
 	RetryWaitTime                    = 1 * time.Second
 )
 
+type pluginUrl struct {
+	url      string
+	monorepo bool
+}
+
 func DownloadPluginFromGithub(ctx context.Context, localPath string, org string, name string, version string, typ PluginType) error {
 	downloadDir := filepath.Dir(localPath)
 	pluginZipPath := localPath + ".zip"
 	// https://github.com/cloudquery/cloudquery/releases/download/plugins-source-test-v1.1.5/test_darwin_amd64.zip
-	urls := []string{
+	urls := []pluginUrl{
 		// community plugin format
-		fmt.Sprintf("https://github.com/%s/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", org, typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH),
+		pluginUrl{url: fmt.Sprintf("https://github.com/%s/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", org, typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH)},
 	}
 	if org == "cloudquery" {
 		urls = append(
 			// CloudQuery monorepo plugin
-			[]string{fmt.Sprintf("https://github.com/cloudquery/cloudquery/releases/download/plugins-%s-%s-%s/%s_%s_%s.zip", typ, name, version, name, runtime.GOOS, runtime.GOARCH)},
+			[]pluginUrl{{url: fmt.Sprintf("https://github.com/cloudquery/cloudquery/releases/download/plugins-%s-%s-%s/%s_%s_%s.zip", typ, name, version, name, runtime.GOOS, runtime.GOARCH), monorepo: true}},
 			// fall back to community plugin format if the plugin is not found in the monorepo
 			urls...,
 		)
@@ -51,7 +56,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 		return fmt.Errorf("failed to create plugin directory %s: %w", downloadDir, err)
 	}
 
-	urlIndex, err := downloadFile(ctx, pluginZipPath, urls...)
+	used, err := downloadFile(ctx, pluginZipPath, urls...)
 	if err != nil {
 		return fmt.Errorf("failed to download plugin: %w", err)
 	}
@@ -63,7 +68,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	defer archive.Close()
 
 	var pathInArchive string
-	if org == "cloudquery" && urlIndex == 0 {
+	if used.monorepo {
 		pathInArchive = fmt.Sprintf("plugins/%s/%s", typ, name)
 	} else {
 		pathInArchive = fmt.Sprintf("cq-%s-%s", typ, name)
@@ -89,17 +94,17 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	return nil
 }
 
-func downloadFile(ctx context.Context, localPath string, urls ...string) (urlIndex int, err error) {
+func downloadFile(ctx context.Context, localPath string, urls ...pluginUrl) (used pluginUrl, err error) {
 	// Create the file
 	out, err := os.Create(localPath)
 	if err != nil {
-		return -1, fmt.Errorf("failed to create file %s: %w", localPath, err)
+		return pluginUrl{}, fmt.Errorf("failed to create file %s: %w", localPath, err)
 	}
 	defer out.Close()
 
 urlLoop:
-	for i, url := range urls {
-		err = downloadFileFromURL(ctx, out, url)
+	for _, url := range urls {
+		err = downloadFileFromURL(ctx, out, url.url)
 		if err != nil {
 			for _, e := range err.(retry.Error) {
 				if e.Error() == "not found" {
@@ -107,10 +112,10 @@ urlLoop:
 				}
 			}
 		}
-		return i, err
+		return url, err
 	}
 
-	return -1, errors.New("failed to download plugin")
+	return pluginUrl{}, errors.New("failed to download plugin")
 }
 
 func downloadFileFromURL(ctx context.Context, out *os.File, url string) (err error) {
