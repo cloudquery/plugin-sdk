@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -92,49 +93,63 @@ func downloadFile(ctx context.Context, localPath string, urls ...string) (urlInd
 	// Create the file
 	out, err := os.Create(localPath)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create file %s: %w", localPath, err)
+		return -1, fmt.Errorf("failed to create file %s: %w", localPath, err)
 	}
 	defer out.Close()
 
-	for r := 0; r < RetryAttempts; r++ {
-		for i, url := range urls {
-			// Get the data
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-			if err != nil {
-				return 0, fmt.Errorf("failed create request %s: %w", url, err)
+urlLoop:
+	for i, url := range urls {
+		err = downloadFileFromURL(ctx, out, url)
+		if err != nil {
+			for _, e := range err.(retry.Error) {
+				if e.Error() == "not found" {
+					continue urlLoop
+				}
 			}
-
-			// Do http request
-			resp, err := http.DefaultClient.Do(req)
-			if err != nil {
-				return 0, fmt.Errorf("failed to get url %s: %w", url, err)
-			}
-			// Check server response
-			if resp.StatusCode == http.StatusNotFound && i < len(urls)-1 {
-				// check alternative url
-				resp.Body.Close()
-				continue
-			} else if resp.StatusCode != http.StatusOK {
-				fmt.Printf("Failed downloading %s with status code %d. Retrying\n", url, resp.StatusCode)
-				resp.Body.Close()
-				break
-			}
-
-			fmt.Printf("Downloading %s\n", url)
-			bar := downloadProgressBar(resp.ContentLength, "Downloading")
-
-			// Writer the body to file
-			_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
-			if err != nil {
-				return 0, fmt.Errorf("failed to copy body to file %s: %w", localPath, err)
-			}
-			resp.Body.Close()
-			return i, nil
 		}
-		time.Sleep(RetryWaitTime)
+		return i, err
 	}
 
-	return 0, errors.New("failed to download plugin")
+	return -1, errors.New("failed to download plugin")
+}
+
+func downloadFileFromURL(ctx context.Context, out *os.File, url string) (err error) {
+	return retry.Do(func() error {
+		// Get the data
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return fmt.Errorf("failed create request %s: %w", url, err)
+		}
+
+		// Do http request
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to get url %s: %w", url, err)
+		}
+		defer resp.Body.Close()
+		// Check server response
+		if resp.StatusCode == http.StatusNotFound {
+			return errors.New("not found")
+		} else if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Failed downloading %s with status code %d. Retrying\n", url, resp.StatusCode)
+			return errors.New("statusCode != 200")
+		}
+
+		fmt.Printf("Downloading %s\n", url)
+		bar := downloadProgressBar(resp.ContentLength, "Downloading")
+
+		// Writer the body to file
+		_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to copy body to file %s: %w", out.Name(), err)
+		}
+		return nil
+	}, retry.RetryIf(func(err error) bool {
+		return err.Error() == "statusCode != 200"
+	}),
+		retry.Attempts(RetryAttempts),
+		retry.Delay(RetryWaitTime),
+	)
 }
 
 func downloadProgressBar(maxBytes int64, description ...string) *progressbar.ProgressBar {
