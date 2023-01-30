@@ -128,7 +128,7 @@ func downloadFile(ctx context.Context, localPath string, url string) (err error)
 	)
 
 	if err != nil {
-		return fmt.Errorf("failed downloading: %s", url)
+		return fmt.Errorf("failed downloading URL %q. Error %w", url, err)
 	}
 
 	return nil
