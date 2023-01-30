@@ -35,12 +35,12 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 		fmt.Sprintf("https://github.com/%s/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", org, typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH),
 	}
 	if org == "cloudquery" {
-		urls = []string{
+		urls = append(
 			// CloudQuery monorepo plugin
-			fmt.Sprintf("https://github.com/cloudquery/cloudquery/releases/download/plugins-%s-%s-%s/%s_%s_%s.zip", typ, name, version, name, runtime.GOOS, runtime.GOARCH),
+			[]string{fmt.Sprintf("https://github.com/cloudquery/cloudquery/releases/download/plugins-%s-%s-%s/%s_%s_%s.zip", typ, name, version, name, runtime.GOOS, runtime.GOARCH)},
 			// fall back to community plugin format if the plugin is not found in the monorepo
-			urls[0],
-		}
+			urls...,
+		)
 	}
 
 	if _, err := os.Stat(localPath); err == nil {
