@@ -26,7 +26,7 @@ const (
 	RetryWaitTime                    = 1 * time.Second
 )
 
-type pluginUrl struct {
+type pluginURL struct {
 	url      string
 	monorepo bool
 }
@@ -35,14 +35,14 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	downloadDir := filepath.Dir(localPath)
 	pluginZipPath := localPath + ".zip"
 	// https://github.com/cloudquery/cloudquery/releases/download/plugins-source-test-v1.1.5/test_darwin_amd64.zip
-	urls := []pluginUrl{
+	urls := []pluginURL{
 		// community plugin format
-		pluginUrl{url: fmt.Sprintf("https://github.com/%s/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", org, typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH)},
+		{url: fmt.Sprintf("https://github.com/%s/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", org, typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH)},
 	}
 	if org == "cloudquery" {
 		urls = append(
 			// CloudQuery monorepo plugin
-			[]pluginUrl{{url: fmt.Sprintf("https://github.com/cloudquery/cloudquery/releases/download/plugins-%s-%s-%s/%s_%s_%s.zip", typ, name, version, name, runtime.GOOS, runtime.GOARCH), monorepo: true}},
+			[]pluginURL{{url: fmt.Sprintf("https://github.com/cloudquery/cloudquery/releases/download/plugins-%s-%s-%s/%s_%s_%s.zip", typ, name, version, name, runtime.GOOS, runtime.GOARCH), monorepo: true}},
 			// fall back to community plugin format if the plugin is not found in the monorepo
 			urls...,
 		)
@@ -94,11 +94,11 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	return nil
 }
 
-func downloadFile(ctx context.Context, localPath string, urls ...pluginUrl) (used pluginUrl, err error) {
+func downloadFile(ctx context.Context, localPath string, urls ...pluginURL) (used pluginURL, err error) {
 	// Create the file
 	out, err := os.Create(localPath)
 	if err != nil {
-		return pluginUrl{}, fmt.Errorf("failed to create file %s: %w", localPath, err)
+		return pluginURL{}, fmt.Errorf("failed to create file %s: %w", localPath, err)
 	}
 	defer out.Close()
 
@@ -109,7 +109,7 @@ func downloadFile(ctx context.Context, localPath string, urls ...pluginUrl) (use
 		}
 		return url, err
 	}
-	return pluginUrl{}, fmt.Errorf("failed downloading from URL %v. Error %w", urls, err)
+	return pluginURL{}, fmt.Errorf("failed downloading from URL %v. Error %w", urls, err)
 }
 
 func downloadFileFromURL(ctx context.Context, out *os.File, url string) error {
