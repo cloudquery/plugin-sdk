@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.32.0](https://github.com/cloudquery/plugin-sdk/compare/v1.31.0...v1.32.0) (2023-01-30)
+
+
+### Features
+
+* Return error message when download fails ([#636](https://github.com/cloudquery/plugin-sdk/issues/636)) ([0eb39af](https://github.com/cloudquery/plugin-sdk/commit/0eb39af7a294a2a9de4c81ee9950d4443e168224))
+
+
+### Bug Fixes
+
+* Add cq-dir param to discovery ([#633](https://github.com/cloudquery/plugin-sdk/issues/633)) ([13d633a](https://github.com/cloudquery/plugin-sdk/commit/13d633a6b2f1e1633325c94f7a965835e8604e88))
+
 ## [1.31.0](https://github.com/cloudquery/plugin-sdk/compare/v1.30.0...v1.31.0) (2023-01-26)
 
 

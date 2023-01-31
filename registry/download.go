@@ -102,24 +102,18 @@ func downloadFile(ctx context.Context, localPath string, urls ...pluginUrl) (use
 	}
 	defer out.Close()
 
-urlLoop:
 	for _, url := range urls {
 		err = downloadFileFromURL(ctx, out, url.url)
-		if err != nil {
-			for _, e := range err.(retry.Error) {
-				if e.Error() == "not found" {
-					continue urlLoop
-				}
-			}
+		if err != nil && err.Error() == "not found" {
+			continue
 		}
 		return url, err
 	}
-
-	return pluginUrl{}, errors.New("failed to download plugin")
+	return pluginUrl{}, fmt.Errorf("failed downloading from URL %v. Error %w", urls, err)
 }
 
-func downloadFileFromURL(ctx context.Context, out *os.File, url string) (err error) {
-	return retry.Do(func() error {
+func downloadFileFromURL(ctx context.Context, out *os.File, url string) error {
+	err := retry.Do(func() error {
 		// Get the data
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
@@ -155,6 +149,15 @@ func downloadFileFromURL(ctx context.Context, out *os.File, url string) (err err
 		retry.Attempts(RetryAttempts),
 		retry.Delay(RetryWaitTime),
 	)
+	if err != nil {
+		for _, e := range err.(retry.Error) {
+			if e.Error() == "not found" {
+				return e
+			}
+		}
+		return fmt.Errorf("failed downloading URL %q. Error %w", url, err)
+	}
+	return nil
 }
 
 func downloadProgressBar(maxBytes int64, description ...string) *progressbar.ProgressBar {
