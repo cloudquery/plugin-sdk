@@ -111,7 +111,7 @@ func (p *Plugin) removeDuplicatesByPK(w *worker, resources [][]any) [][]any {
 			scope.SetTag("source_version", w.srcSpec.Version)
 			scope.SetTag("table", w.table.Name)
 			scope.SetExtra("pk", pkSpec)
-			sentry.CurrentHub().CaptureMessage("duplicate primary key")
+			sentry.CurrentHub().CaptureMessage("duplicate primary key in " + w.table.Name)
 		})
 	}
 
