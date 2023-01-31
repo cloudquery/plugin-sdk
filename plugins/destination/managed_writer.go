@@ -15,25 +15,30 @@ import (
 
 type worker struct {
 	count int
-	wg    *sync.WaitGroup
+	wg    sync.WaitGroup // implies usage by pointer only
+
 	ch    chan schema.CQTypes
 	flush chan chan bool
+
+	table   *schema.Table
+	srcSpec *specs.Source
 }
 
-func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan schema.CQTypes, flush <-chan chan bool) {
+func (p *Plugin) worker(ctx context.Context, metrics *Metrics, w *worker) {
+	defer w.wg.Done()
 	resources := make([][]any, 0)
 	sizeBytes := 0
 	for {
 		select {
-		case r, ok := <-ch:
+		case r, ok := <-w.ch:
 			if !ok {
 				if len(resources) > 0 {
-					p.flush(ctx, metrics, table, resources)
+					p.flush(ctx, metrics, w, resources)
 				}
 				return
 			}
 			if len(resources) == p.spec.BatchSize || sizeBytes+r.Size() > p.spec.BatchSizeBytes {
-				p.flush(ctx, metrics, table, resources)
+				p.flush(ctx, metrics, w, resources)
 				resources = make([][]any, 0)
 				sizeBytes = 0
 			}
@@ -41,13 +46,13 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 			sizeBytes += r.Size()
 		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
-				p.flush(ctx, metrics, table, resources)
+				p.flush(ctx, metrics, w, resources)
 				resources = make([][]any, 0)
 				sizeBytes = 0
 			}
-		case done := <-flush:
+		case done := <-w.flush:
 			if len(resources) > 0 {
-				p.flush(ctx, metrics, table, resources)
+				p.flush(ctx, metrics, w, resources)
 				resources = make([][]any, 0)
 				sizeBytes = 0
 			}
@@ -56,27 +61,27 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 	}
 }
 
-func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources [][]any) {
-	resources = p.removeDuplicatesByPK(table, resources)
+func (p *Plugin) flush(ctx context.Context, metrics *Metrics, w *worker, resources [][]any) {
+	resources = p.removeDuplicatesByPK(w, resources)
 
 	start := time.Now()
 	batchSize := len(resources)
-	if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
-		p.logger.Err(err).Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
+	if err := p.client.WriteTableBatch(ctx, w.table, resources); err != nil {
+		p.logger.Err(err).Str("table", w.table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 		// we don't return an error as we need to continue until channel is closed otherwise there will be a deadlock
 		atomic.AddUint64(&metrics.Errors, uint64(batchSize))
 	} else {
-		p.logger.Info().Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+		p.logger.Info().Str("table", w.table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 		atomic.AddUint64(&metrics.Writes, uint64(batchSize))
 	}
 }
 
-func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) [][]any {
+func (p *Plugin) removeDuplicatesByPK(w *worker, resources [][]any) [][]any {
 	pks := make(map[string]struct{}, len(resources))
 	res := make([][]any, 0, len(resources))
 	var reported bool
 	for _, r := range resources {
-		key := pk.String(table, r)
+		key := pk.String(w.table, r)
 		_, ok := pks[key]
 		switch {
 		case !ok:
@@ -88,11 +93,13 @@ func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) []
 		}
 
 		reported = true
-		pkSpec := "(" + strings.Join(table.PrimaryKeys(), ",") + ")"
+		pkSpec := "(" + strings.Join(w.table.PrimaryKeys(), ",") + ")"
 
 		// log err
 		p.logger.Error().
-			Str("table", table.Name).
+			Str("source_plugin", w.srcSpec.Name).
+			Str("source_version", w.srcSpec.Version).
+			Str("table", w.table.Name).
 			Str("pk", pkSpec).
 			Str("value", key).
 			Msg("duplicate primary key")
@@ -100,9 +107,9 @@ func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) []
 		// send to Sentry only once per table,
 		// to avoid sending too many duplicate messages
 		sentry.WithScope(func(scope *sentry.Scope) {
-			scope.SetTag("plugin", p.name)
-			scope.SetTag("version", p.version)
-			scope.SetTag("table", table.Name)
+			scope.SetTag("source_plugin", w.srcSpec.Name)
+			scope.SetTag("source_version", w.srcSpec.Version)
+			scope.SetTag("table", w.table.Name)
 			scope.SetExtra("pk", pkSpec)
 			sentry.CurrentHub().CaptureMessage("duplicate primary key")
 		})
@@ -122,20 +129,16 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.So
 	for _, table := range tables.FlattenTables() {
 		table := table
 		if p.workers[table.Name] == nil {
-			ch := make(chan schema.CQTypes)
-			flush := make(chan chan bool)
-			wg := &sync.WaitGroup{}
-			p.workers[table.Name] = &worker{
-				count: 1,
-				ch:    ch,
-				flush: flush,
-				wg:    wg,
+			w := &worker{
+				count:   1,
+				ch:      make(chan schema.CQTypes),
+				flush:   make(chan chan bool),
+				table:   table,
+				srcSpec: &sourceSpec,
 			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				p.worker(ctx, metrics, table, ch, flush)
-			}()
+			p.workers[table.Name] = w
+			w.wg.Add(1)
+			go p.worker(ctx, metrics, w)
 		} else {
 			p.workers[table.Name].count++
 		}
