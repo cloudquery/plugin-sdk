@@ -170,6 +170,32 @@ func TestLoadSpecs(t *testing.T) {
 	}
 }
 
+func TestLoadSpecWithAccountNumbers(t *testing.T) {
+	t.Setenv("ACCOUNT_ID", "0123456789")
+	specReader, err := NewSpecReader([]string{getPath("numbers.yml")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(specReader.Sources) != 2 {
+		t.Fatalf("got: %d expected: %d", len(specReader.Sources), 2)
+	}
+	if len(specReader.Destinations) != 1 {
+		t.Fatalf("got: %d expected: %d", len(specReader.Destinations), 1)
+	}
+	if _, ok := specReader.Sources["0123456789"]; !ok {
+		t.Fatalf("expected source with account id 0123456789")
+	}
+	if specReader.Sources["0123456789"].Name != "0123456789" {
+		t.Fatalf("got: %s expected: %s", specReader.Sources["0123456789"].Name, "0123456789")
+	}
+	if _, ok := specReader.Destinations["0987654321"]; !ok {
+		t.Fatalf("expected destination with account id 0987654321")
+	}
+	if specReader.Destinations["0987654321"].Name != "0987654321" {
+		t.Fatalf("got: %s expected: %s", specReader.Destinations["0987654321"].Name, "0987654321")
+	}
+}
+
 func TestExpandFile(t *testing.T) {
 	cfg := []byte(`
 kind: source
