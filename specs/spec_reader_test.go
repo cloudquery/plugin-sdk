@@ -129,6 +129,18 @@ var specLoaderTestCases = []specLoaderTestCase{
 		destinations: 1,
 		envVariables: map[string]string{},
 	},
+	{
+		name: "number in name field",
+		path: []string{getPath("numbers.yml")},
+		err: func() string {
+			return ""
+		},
+		sources:      2,
+		destinations: 1,
+		envVariables: map[string]string{
+			"ACCOUNT_ID": "123456789",
+		},
+	},
 }
 
 func TestLoadSpecs(t *testing.T) {
