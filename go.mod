@@ -3,7 +3,7 @@ module github.com/cloudquery/plugin-sdk
 go 1.19
 
 require (
-	github.com/avast/retry-go/v4 v4.3.1
+	github.com/avast/retry-go/v4 v4.3.2
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/getsentry/sentry-go v0.17.0
 	github.com/ghodss/yaml v1.0.0
