@@ -44,7 +44,6 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 	for _, validator := range o.validators {
 		validator(t, plugin.Tables(), syncedResources)
 	}
-
 }
 
 type TestPluginOption func(*testPluginOptions)
