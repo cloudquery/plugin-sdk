@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.33.1](https://github.com/cloudquery/plugin-sdk/compare/v1.33.0...v1.33.1) (2023-02-01)
+
+
+### Bug Fixes
+
+* Handle numbers in env variables ([#651](https://github.com/cloudquery/plugin-sdk/issues/651)) ([0aa8f68](https://github.com/cloudquery/plugin-sdk/commit/0aa8f685e5f4c6796ef20941ed9fe7185bc44340))
+
 ## [1.33.0](https://github.com/cloudquery/plugin-sdk/compare/v1.32.0...v1.33.0) (2023-02-01)
 
 
