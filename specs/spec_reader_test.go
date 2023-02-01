@@ -138,7 +138,7 @@ var specLoaderTestCases = []specLoaderTestCase{
 		sources:      2,
 		destinations: 1,
 		envVariables: map[string]string{
-			"ACCOUNT_ID": "123456789",
+			"ACCOUNT_ID": "0123456789",
 		},
 	},
 }
