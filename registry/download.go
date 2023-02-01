@@ -37,7 +37,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	// https://github.com/cloudquery/cloudquery/releases/download/plugins-source-test-v1.1.5/test_darwin_amd64.zip
 	urls := []pluginURL{
 		// community plugin format
-		{url: fmt.Sprintf("https://github.com/%s/cq-%s-%s/releases/download/%s/cq-%s-%s_%s_%s.zip", org, typ, name, version, typ, name, runtime.GOOS, runtime.GOARCH)},
+		{url: fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s_%s_%s.zip", org, name, version, name, runtime.GOOS, runtime.GOARCH)},
 	}
 	if org == "cloudquery" {
 		urls = append(
@@ -71,7 +71,7 @@ func DownloadPluginFromGithub(ctx context.Context, localPath string, org string,
 	if used.monorepo {
 		pathInArchive = fmt.Sprintf("plugins/%s/%s", typ, name)
 	} else {
-		pathInArchive = fmt.Sprintf("cq-%s-%s", typ, name)
+		pathInArchive = name
 	}
 	pathInArchive = WithBinarySuffix(pathInArchive)
 

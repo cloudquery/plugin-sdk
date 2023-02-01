@@ -17,9 +17,9 @@ func TestDownloadPluginFromGithubIntegration(t *testing.T) {
 		wantErr    bool
 	}{
 		{name: "monorepo source", org: "cloudquery", plugin: "hackernews", version: "v1.1.4", pluginType: PluginTypeSource},
-		{name: "many repo source", org: "cloudquery", plugin: "simple-analytics", version: "v1.0.0", pluginType: PluginTypeSource},
+		{name: "many repo source", org: "cloudquery", plugin: "cq-source-simple-analytics", version: "v1.0.0", pluginType: PluginTypeSource},
 		{name: "monorepo destination", org: "cloudquery", plugin: "postgresql", version: "v2.0.7", pluginType: PluginTypeDestination},
-		{name: "community source", org: "hermanschaaf", plugin: "simple-analytics", version: "v1.0.0", pluginType: PluginTypeSource},
+		{name: "community source", org: "hermanschaaf", plugin: "cq-source-simple-analytics", version: "v1.0.0", pluginType: PluginTypeSource},
 		{name: "invalid community source", org: "cloudquery", plugin: "invalid-plugin", version: "v0.0.x", pluginType: PluginTypeSource, wantErr: true},
 		{name: "invalid monorepo source", org: "not-cloudquery", plugin: "invalid-plugin", version: "v0.0.x", pluginType: PluginTypeSource, wantErr: true},
 	}

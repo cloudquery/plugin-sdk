@@ -25,7 +25,7 @@ var newDestinationClientTestCases = []specs.Source{
 	{
 		Name:     "test",
 		Registry: specs.RegistryGithub,
-		Path:     "yevgenypats/test",
+		Path:     "yevgenypats/cq-destination-test",
 		Version:  "v1.0.1",
 	},
 }
