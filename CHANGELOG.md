@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.33.0](https://github.com/cloudquery/plugin-sdk/compare/v1.32.0...v1.33.0) (2023-02-01)
+
+
+### Features
+
+* Support downloading plugins from other cloudquery repos ([#632](https://github.com/cloudquery/plugin-sdk/issues/632)) ([9e1501e](https://github.com/cloudquery/plugin-sdk/commit/9e1501e3db928fc283b9be43fe4b115adb6aa140))
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to f062dba ([#641](https://github.com/cloudquery/plugin-sdk/issues/641)) ([c6ec154](https://github.com/cloudquery/plugin-sdk/commit/c6ec154ab4ba263b6a103f31e6e425307a6fa104))
+* **deps:** Update google.golang.org/genproto digest to 1c01626 ([#642](https://github.com/cloudquery/plugin-sdk/issues/642)) ([fc9f338](https://github.com/cloudquery/plugin-sdk/commit/fc9f338804a071478ed253541cd4aff6aefd822a))
+* **deps:** Update module github.com/avast/retry-go/v4 to v4.3.2 ([#643](https://github.com/cloudquery/plugin-sdk/issues/643)) ([2f6a2e8](https://github.com/cloudquery/plugin-sdk/commit/2f6a2e81cc9d687b05af21cdf96d3a29b8dfb2b4))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.17.0 ([#644](https://github.com/cloudquery/plugin-sdk/issues/644)) ([fb33f8c](https://github.com/cloudquery/plugin-sdk/commit/fb33f8cd3eaf426f2194c94145bd7646b355b1af))
+* **deps:** Update module github.com/rs/zerolog to v1.29.0 ([#645](https://github.com/cloudquery/plugin-sdk/issues/645)) ([e864963](https://github.com/cloudquery/plugin-sdk/commit/e86496367046990d3eaf67e211225b7d3c6a9226))
+* **deps:** Update module github.com/schollz/progressbar/v3 to v3.13.0 ([#646](https://github.com/cloudquery/plugin-sdk/issues/646)) ([c2146d3](https://github.com/cloudquery/plugin-sdk/commit/c2146d3cc5fba5a24041393fe5653e740e7423f2))
+* **deps:** Update module golang.org/x/net to v0.5.0 ([#647](https://github.com/cloudquery/plugin-sdk/issues/647)) ([417c99d](https://github.com/cloudquery/plugin-sdk/commit/417c99d6657133312a3accd1a0e994fdab18af0a))
+* **deps:** Update module golang.org/x/text to v0.6.0 ([#649](https://github.com/cloudquery/plugin-sdk/issues/649)) ([a91c7dc](https://github.com/cloudquery/plugin-sdk/commit/a91c7dc20e56c8e5858a04a74c765cc4acc2c1eb))
+* **deps:** Update module google.golang.org/grpc to v1.52.3 ([#650](https://github.com/cloudquery/plugin-sdk/issues/650)) ([48d96ee](https://github.com/cloudquery/plugin-sdk/commit/48d96ee530166ae732ee34a50929eb73b8b16f2b))
+
 ## [1.32.0](https://github.com/cloudquery/plugin-sdk/compare/v1.31.0...v1.32.0) (2023-01-30)
 
 
