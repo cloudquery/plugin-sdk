@@ -12,7 +12,8 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 	t.Helper()
 
 	o := &testPluginOptions{
-		parallel: true,
+		parallel:   true,
+		validators: []func(t *testing.T, tables schema.Tables, resources []*schema.Resource){validateTables},
 	}
 	for _, opt := range opts {
 		opt(o)
@@ -40,8 +41,10 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 	if syncErr != nil {
 		t.Fatal(syncErr)
 	}
+	for _, validator := range o.validators {
+		validator(t, plugin.Tables(), syncedResources)
+	}
 
-	validateTables(t, plugin.Tables(), syncedResources)
 }
 
 type TestPluginOption func(*testPluginOptions)
@@ -52,8 +55,15 @@ func WithTestPluginNoParallel() TestPluginOption {
 	}
 }
 
+func WithTestPluginAdditionalValidators(v func(t *testing.T, tables schema.Tables, resources []*schema.Resource)) TestPluginOption {
+	return func(f *testPluginOptions) {
+		f.validators = append(f.validators, v)
+	}
+}
+
 type testPluginOptions struct {
-	parallel bool
+	parallel   bool
+	validators []func(t *testing.T, tables schema.Tables, resources []*schema.Resource)
 }
 
 func getTableResources(t *testing.T, table *schema.Table, resources []*schema.Resource) []*schema.Resource {
