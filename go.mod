@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/avast/retry-go/v4 v4.3.1
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/getsentry/sentry-go v0.16.0
+	github.com/getsentry/sentry-go v0.17.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
@@ -17,7 +17,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.1
 	github.com/thoas/go-funk v0.9.3
-	golang.org/x/exp v0.0.0-20221230185412-738e83a70c30
+	golang.org/x/exp v0.0.0-20230131160201-f062dba9d201
 	golang.org/x/net v0.4.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/text v0.5.0
