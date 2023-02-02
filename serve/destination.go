@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 
 	pbv0 "github.com/cloudquery/plugin-sdk/internal/pb/destination/v0"
 	pbdiscoveryv0 "github.com/cloudquery/plugin-sdk/internal/pb/discovery/v0"
@@ -145,15 +146,15 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 			}
 			ctx := cmd.Context()
 			c := make(chan os.Signal, 1)
-			signal.Notify(c, os.Interrupt)
+			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			defer func() {
 				signal.Stop(c)
 			}()
 
 			go func() {
 				select {
-				case <-c:
-					logger.Info().Str("address", listener.Addr().String()).Msg("Got interrupt. Destination plugin server shutting down")
+				case sig := <-c:
+					logger.Info().Str("address", listener.Addr().String()).Str("signal", sig.String()).Msg("Got stop signal. Source plugin server shutting down")
 					s.Stop()
 				case <-ctx.Done():
 					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Destination plugin server shutting down")
