@@ -5,6 +5,7 @@ package destination
 import (
 	"fmt"
 	"os"
+	"syscall"
 	"time"
 )
 
@@ -23,12 +24,15 @@ func (c *Client) terminateProcess() error {
 		return err
 	}
 	if !st.Success() {
-		additionalInfo := ""
-		if st.ExitCode() == 137 {
-			additionalInfo = " (Out of Memory, killed by OOM killer)"
+		var additionalInfo string
+		status := st.Sys().(syscall.WaitStatus)
+		if status.Signaled() && st.ExitCode() != -1 {
+			additionalInfo += fmt.Sprintf(" (exit code: %d)", st.ExitCode())
 		}
-		return fmt.Errorf("destination plugin process exited with status %s (%d)%s", st.String(), st.ExitCode(), additionalInfo)
+		if st.ExitCode() == 137 {
+			additionalInfo = " (Out of Memory)"
+		}
+		return fmt.Errorf("destination plugin process failed with %s%s", st.String(), additionalInfo)
 	}
-
 	return nil
 }
