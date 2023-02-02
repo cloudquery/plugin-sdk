@@ -23,7 +23,11 @@ func (c *Client) terminateProcess() error {
 		return err
 	}
 	if !st.Success() {
-		return fmt.Errorf("destination plugin process exited with status %s", st.String())
+		additionalInfo := ""
+		if st.ExitCode() == 137 {
+			additionalInfo = " (Out of Memory, killed by OOM killer)"
+		}
+		return fmt.Errorf("destination plugin process exited with status %s (%d)%s", st.String(), st.ExitCode(), additionalInfo)
 	}
 
 	return nil
