@@ -154,7 +154,7 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 			go func() {
 				select {
 				case sig := <-c:
-					logger.Info().Str("address", listener.Addr().String()).Str("signal", sig.String()).Msg("Got stop signal. Source plugin server shutting down")
+					logger.Info().Str("address", listener.Addr().String()).Str("signal", sig.String()).Msg("Got stop signal. Destination plugin server shutting down")
 					s.Stop()
 				case <-ctx.Done():
 					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Destination plugin server shutting down")
