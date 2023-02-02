@@ -6,7 +6,7 @@ func (c *Client) terminateProcess() error {
 	if err := c.cmd.Process.Kill(); err != nil {
 		c.logger.Error().Err(err).Msg("failed to kill destination plugin")
 	}
-	c.logger.Info().Msg("waiting for source plugin to terminate")
+	c.logger.Info().Msg("waiting for destination plugin to terminate")
 	st, err := c.cmd.Process.Wait()
 	if err != nil {
 		return err
