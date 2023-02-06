@@ -8,12 +8,14 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 )
 
+type Validator func(t *testing.T, tables schema.Tables, resources []*schema.Resource)
+
 func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...TestPluginOption) {
 	t.Helper()
 
 	o := &testPluginOptions{
 		parallel:   true,
-		validators: []func(t *testing.T, tables schema.Tables, resources []*schema.Resource){validateTables},
+		validators: []Validator{validateTables},
 	}
 	for _, opt := range opts {
 		opt(o)
@@ -54,7 +56,7 @@ func WithTestPluginNoParallel() TestPluginOption {
 	}
 }
 
-func WithTestPluginAdditionalValidators(v func(t *testing.T, tables schema.Tables, resources []*schema.Resource)) TestPluginOption {
+func WithTestPluginAdditionalValidators(v Validator) TestPluginOption {
 	return func(f *testPluginOptions) {
 		f.validators = append(f.validators, v)
 	}
@@ -62,7 +64,7 @@ func WithTestPluginAdditionalValidators(v func(t *testing.T, tables schema.Table
 
 type testPluginOptions struct {
 	parallel   bool
-	validators []func(t *testing.T, tables schema.Tables, resources []*schema.Resource)
+	validators []Validator
 }
 
 func getTableResources(t *testing.T, table *schema.Table, resources []*schema.Resource) []*schema.Resource {
