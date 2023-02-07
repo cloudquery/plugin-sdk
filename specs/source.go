@@ -41,8 +41,6 @@ type Source struct {
 
 	// Backend is the name of the state backend to use
 	Backend Backend `json:"backend,omitempty"`
-	// Sync on
-	OnlyIncrementalTables bool `json:"only_incremental_tables,omitempty"`
 	// BackendSpec contains any backend-specific configuration
 	BackendSpec any `json:"backend_spec,omitempty"`
 	// Scheduler defines the scheduling algorithm that should be used to sync data
