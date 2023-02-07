@@ -34,6 +34,8 @@ type Source struct {
 	Tables []string `json:"tables,omitempty"`
 	// SkipTables defines tables to skip when syncing data. Useful if a glob pattern is used in Tables
 	SkipTables []string `json:"skip_tables,omitempty"`
+	// SkipDependentTables changes the matching behavior with regard to dependent tables. If set to true, dependent tables will not be synced unless they are explicitly matched by Tables.
+	SkipDependentTables bool `json:"skip_dependent_tables,omitempty"`
 	// Destinations are the names of destination plugins to send sync data to
 	Destinations []string `json:"destinations,omitempty"`
 
