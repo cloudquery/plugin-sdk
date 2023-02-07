@@ -100,7 +100,7 @@ func validatePlugin(t *testing.T, plugin *Plugin, resources []*schema.Resource) 
 }
 
 func extractTables(tables schema.Tables) []*schema.Table {
-	var result []*schema.Table
+	result := make([]*schema.Table, 0)
 	for _, table := range tables {
 		result = append(result, table)
 		result = append(result, extractTables(table.Relations)...)
