@@ -10,6 +10,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/internal/backends/local"
 	"github.com/cloudquery/plugin-sdk/internal/backends/nop"
+	"github.com/cloudquery/plugin-sdk/internal/backends/postgresql"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -216,6 +217,11 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 		p.backend, err = local.New(spec)
 		if err != nil {
 			return fmt.Errorf("failed to initialize local backend: %w", err)
+		}
+	case specs.BackendPostgres:
+		p.backend, err = postgresql.New(ctx, p.logger, spec)
+		if err != nil {
+			return fmt.Errorf("failed to initialize postgres backend: %w", err)
 		}
 	default:
 		return fmt.Errorf("unknown backend: %s", spec.Backend)

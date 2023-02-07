@@ -11,12 +11,14 @@ type Backend int
 const (
 	BackendNone Backend = iota
 	BackendLocal
+	BackendPostgres
 )
 
 var AllBackends = Backends{BackendNone, BackendLocal}
 var AllBackendNames = [...]string{
-	BackendNone:  "none",
-	BackendLocal: "local",
+	BackendNone:     "none",
+	BackendLocal:    "local",
+	BackendPostgres: "postgresql",
 }
 
 type Backends []Backend
