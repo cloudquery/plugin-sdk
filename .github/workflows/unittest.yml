@@ -11,7 +11,7 @@ jobs:
   unitests:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     services:
       # Label used to access the service container

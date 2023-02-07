@@ -31,6 +31,9 @@ func randSeq(n int) string {
 }
 
 func TestBackend(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	ctx := context.Background()
 	spec := specs.Source{
 		Name:    "test_" + t.Name() + "_" + randSeq(10),
@@ -60,6 +63,12 @@ func TestBackend(t *testing.T) {
 		t.Fatalf("expected empty value, but got %s", got)
 	}
 
+	err = b.Set(ctx, tableName, clientID, "test_value_to_overwrite")
+	if err != nil {
+		t.Fatalf("failed to set value: %v", err)
+	}
+
+	// Set again with different value, should not error
 	err = b.Set(ctx, tableName, clientID, "test_value")
 	if err != nil {
 		t.Fatalf("failed to set value: %v", err)

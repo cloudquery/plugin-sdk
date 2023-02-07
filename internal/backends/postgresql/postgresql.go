@@ -80,13 +80,15 @@ func New(ctx context.Context, logger zerolog.Logger, sourceSpec specs.Source) (*
 
 func (b *Backend) createTable(ctx context.Context) error {
 	var sb strings.Builder
-	sb.WriteString("CREATE TABLE IF NOT EXISTS ")
+	sb.WriteString("create table if not exists ")
 	sb.WriteString(pgx.Identifier{b.table.Name}.Sanitize())
 	sb.WriteString(" (")
 	for _, col := range b.table.Columns {
-		sb.WriteString(pgx.Identifier{col.Name}.Sanitize() + " TEXT,")
+		sb.WriteString(pgx.Identifier{col.Name}.Sanitize() + " text not null,")
 	}
-	sb.WriteString("PRIMARY KEY (")
+	sb.WriteString("constraint ")
+	sb.WriteString(pgx.Identifier{b.table.Name + "_cqpk"}.Sanitize())
+	sb.WriteString(" primary key (")
 	pks := b.table.PrimaryKeys()
 	for i, col := range pks {
 		sb.WriteString(pgx.Identifier{col}.Sanitize())
@@ -123,6 +125,25 @@ func (b *Backend) Set(ctx context.Context, table, clientID, value string) error 
 			sb.WriteString(")")
 		}
 	}
+
+	constraintName := fmt.Sprintf("%s_cqpk", b.table.Name)
+	sb.WriteString(" on conflict on constraint ")
+	sb.WriteString(constraintName)
+	sb.WriteString(" do update set ")
+	for i, column := range b.table.Columns {
+		if column.Name == schema.CqIDColumn.Name || column.Name == schema.CqParentIDColumn.Name {
+			continue
+		}
+		sb.WriteString(pgx.Identifier{column.Name}.Sanitize())
+		sb.WriteString("=excluded.") // excluded references the new values
+		sb.WriteString(pgx.Identifier{column.Name}.Sanitize())
+		if i < columnsLen-1 {
+			sb.WriteString(",")
+		} else {
+			sb.WriteString("")
+		}
+	}
+
 	_, err := b.conn.Exec(ctx, sb.String(), b.sourceName, table, clientID, value)
 	return err
 }
