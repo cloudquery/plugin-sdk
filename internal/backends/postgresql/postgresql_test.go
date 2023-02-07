@@ -2,8 +2,10 @@ package postgresql
 
 import (
 	"context"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -17,15 +19,27 @@ func getTestConnection() string {
 	return testConn
 }
 
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := range b {
+		b[i] = letters[r.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 func TestBackend(t *testing.T) {
 	ctx := context.Background()
 	spec := specs.Source{
-		Name:    "test",
+		Name:    "test_" + t.Name() + "_" + randSeq(10),
 		Version: "v1",
 		Path:    "/tmp/test",
-		Backend: 0,
+		Backend: specs.BackendPostgres,
 		BackendSpec: Spec{
 			ConnectionString: getTestConnection(),
+			TableName:        "cloudquery_state_test",
 		},
 	}
 	b, err := New(ctx, zerolog.Logger{}, spec)
