@@ -175,7 +175,7 @@ func (p *Plugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
 	if err := spec.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid spec: %w", err)
 	}
-	tables, err := p.tables.FilterDfs(spec.Tables, spec.SkipTables)
+	tables, err := p.tables.FilterDfs(spec.Tables, spec.SkipTables, spec.SkipDependentTables)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter tables: %w", err)
 	}
@@ -232,7 +232,7 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 			return fmt.Errorf("failed to get dynamic tables: %w", err)
 		}
 
-		tables, err = tables.FilterDfs(spec.Tables, spec.SkipTables)
+		tables, err = tables.FilterDfs(spec.Tables, spec.SkipTables, spec.SkipDependentTables)
 		if err != nil {
 			return fmt.Errorf("failed to filter tables: %w", err)
 		}
@@ -255,7 +255,7 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 			return fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth)
 		}
 	} else {
-		tables, err = tables.FilterDfs(spec.Tables, spec.SkipTables)
+		tables, err = tables.FilterDfs(spec.Tables, spec.SkipTables, spec.SkipDependentTables)
 		if err != nil {
 			return fmt.Errorf("failed to filter tables: %w", err)
 		}

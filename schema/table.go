@@ -72,11 +72,11 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
-func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool) Tables {
+func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool, skipDependentTables bool) Tables {
 	filteredTables := make(Tables, 0, len(tt))
 	for _, t := range tt {
 		filteredTable := t.Copy(nil)
-		filteredTable = filteredTable.filterDfs(false, include, exclude)
+		filteredTable = filteredTable.filterDfs(false, include, exclude, skipDependentTables)
 		if filteredTable != nil {
 			filteredTables = append(filteredTables, filteredTable)
 		}
@@ -84,7 +84,7 @@ func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool) Tables {
 	return filteredTables
 }
 
-func (tt Tables) FilterDfs(tables, skipTables []string) (Tables, error) {
+func (tt Tables) FilterDfs(tables, skipTables []string, skipDependentTables bool) (Tables, error) {
 	flattenedTables := tt.FlattenTables()
 	for _, includePattern := range tables {
 		matched := false
@@ -126,7 +126,7 @@ func (tt Tables) FilterDfs(tables, skipTables []string) (Tables, error) {
 		}
 		return false
 	}
-	return tt.FilterDfsFunc(include, exclude), nil
+	return tt.FilterDfsFunc(include, exclude, skipDependentTables), nil
 }
 
 func (tt Tables) FlattenTables() Tables {
@@ -215,17 +215,17 @@ func (tt Tables) ValidateColumnNames() error {
 }
 
 // this will filter the tree in-place
-func (t *Table) filterDfs(parentMatched bool, include, exclude func(*Table) bool) *Table {
+func (t *Table) filterDfs(parentMatched bool, include, exclude func(*Table) bool, skipDependentTables bool) *Table {
 	if exclude(t) {
 		return nil
 	}
-	matched := parentMatched
+	matched := parentMatched && !skipDependentTables
 	if include(t) {
 		matched = true
 	}
 	filteredRelations := make([]*Table, 0, len(t.Relations))
 	for _, r := range t.Relations {
-		filteredChild := r.filterDfs(matched, include, exclude)
+		filteredChild := r.filterDfs(matched, include, exclude, skipDependentTables)
 		if filteredChild != nil {
 			matched = true
 			filteredRelations = append(filteredRelations, r)
