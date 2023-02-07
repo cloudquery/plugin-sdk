@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/internal/logging"
@@ -138,10 +137,7 @@ func (c *Client) newManagedClient(ctx context.Context, path string) error {
 		return fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 	cmd.Stderr = os.Stderr
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		// launch as new process group so that signals (ex: SIGINT) are not sent to the child process
-		Setpgid: true, // linux
-	}
+	cmd.SysProcAttr = getSysProcAttr()
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start destination plugin %s: %w", path, err)
 	}

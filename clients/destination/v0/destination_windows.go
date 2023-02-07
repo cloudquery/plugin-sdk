@@ -2,6 +2,13 @@
 
 package destination
 
+func getSysProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{
+		// launch as new process group so that signals are not sent to the child process
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP, // windows
+	}
+}
+
 func (c *Client) terminateProcess() error {
 	if err := c.cmd.Process.Kill(); err != nil {
 		c.logger.Error().Err(err).Msg("failed to kill destination plugin")
