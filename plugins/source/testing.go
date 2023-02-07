@@ -93,18 +93,19 @@ func validateTable(t *testing.T, table *schema.Table, resources []*schema.Resour
 
 func validatePlugin(t *testing.T, plugin *Plugin, resources []*schema.Resource) {
 	t.Helper()
-	for _, table := range plugin.tables {
+	tables := extractTables(plugin.tables)
+	for _, table := range tables {
 		validateTable(t, table, resources)
-		validateTables(t, table.Relations, resources)
 	}
 }
 
-func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Resource) {
-	t.Helper()
+func extractTables(tables schema.Tables) []*schema.Table {
+	var result []*schema.Table
 	for _, table := range tables {
-		validateTable(t, table, resources)
-		validateTables(t, table.Relations, resources)
+		result = append(result, table)
+		result = append(result, extractTables(table.Relations)...)
 	}
+	return result
 }
 
 // Validates that every column has at least one non-nil value.
