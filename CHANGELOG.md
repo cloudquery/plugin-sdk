@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.34.0](https://github.com/cloudquery/plugin-sdk/compare/v1.33.1...v1.34.0) (2023-02-07)
+
+
+### Features
+
+* Add skip_dependent_tables option ([#662](https://github.com/cloudquery/plugin-sdk/issues/662)) ([bf34943](https://github.com/cloudquery/plugin-sdk/commit/bf349439b419b79d833a85d52073592d6ef3ba3a))
+
+
+### Bug Fixes
+
+* **logging:** Log more explicit message when OOM and other status codes occur ([#659](https://github.com/cloudquery/plugin-sdk/issues/659)) ([45c637b](https://github.com/cloudquery/plugin-sdk/commit/45c637b1127ed16ce39a471142427d19fb28fe0c))
+* **logging:** Send more info logs when plugins are being terminated ([#657](https://github.com/cloudquery/plugin-sdk/issues/657)) ([6f44e1c](https://github.com/cloudquery/plugin-sdk/commit/6f44e1c597b5ca2a31e21bd099c1f556d21bf2cf))
+* Remove unused `OnlyIncrementalTables` spec property ([#661](https://github.com/cloudquery/plugin-sdk/issues/661)) ([f88ba7d](https://github.com/cloudquery/plugin-sdk/commit/f88ba7d55d7644cd37a44a64719ba705e9878456))
+* Trap terminate signal, log which signal we received ([#658](https://github.com/cloudquery/plugin-sdk/issues/658)) ([bb39830](https://github.com/cloudquery/plugin-sdk/commit/bb39830ff9bde75e409967f85f85f95d8919672a))
+
 ## [1.33.1](https://github.com/cloudquery/plugin-sdk/compare/v1.33.0...v1.33.1) (2023-02-01)
 
 
