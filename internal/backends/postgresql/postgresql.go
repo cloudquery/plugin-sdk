@@ -145,7 +145,7 @@ func (b *Backend) Get(ctx context.Context, table, clientID string) (string, erro
 }
 
 // Close closes the backend.
-func (b *Backend) Close(ctx context.Context) error {
+func (b *Backend) Close(_ context.Context) error {
 	var err error
 	if b.conn == nil {
 		return fmt.Errorf("backend already closed or not initialized")
