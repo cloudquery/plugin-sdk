@@ -277,7 +277,7 @@ func (t *Table) GetChangedColumns(other *Table) []Column {
 	return changed
 }
 
-func (t *Table) IsPkEqual(other *Table) bool {
+func (t *Table) IsPrimaryKeyEqual(other *Table) bool {
 	for _, c := range t.Columns {
 		if c.CreationOptions.PrimaryKey {
 			otherCol := other.Columns.Get(c.Name)
