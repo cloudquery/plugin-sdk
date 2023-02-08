@@ -22,7 +22,7 @@ func validateColumnsHaveData(t *testing.T, plugin *Plugin, resources []*schema.R
 	return nil
 }
 
-func validateTableNamePlural(t *testing.T, plugin *Plugin, resources []*schema.Resource) error {
+func validateTableNamePlural(t *testing.T, plugin *Plugin, _ []*schema.Resource) error {
 	t.Helper()
 	tables := extractTables(plugin.tables)
 	for _, table := range tables {
