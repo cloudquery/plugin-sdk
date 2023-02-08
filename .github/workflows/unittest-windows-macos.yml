@@ -1,4 +1,4 @@
-name: "Unit tests"
+name: "Unit tests (Other OS)"
 on:
   push:
     branches:
