@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.35.0](https://github.com/cloudquery/plugin-sdk/compare/v1.34.0...v1.35.0) (2023-02-08)
+
+
+### Features
+
+* Enable Custom Validators ([#654](https://github.com/cloudquery/plugin-sdk/issues/654)) ([6b7b5de](https://github.com/cloudquery/plugin-sdk/commit/6b7b5de46f62b3a2dbbd98fba31b790c6a170dbe))
+
+
+### Bug Fixes
+
+* **deps:** Update module golang.org/x/term to v0.5.0 ([#648](https://github.com/cloudquery/plugin-sdk/issues/648)) ([3a02bed](https://github.com/cloudquery/plugin-sdk/commit/3a02bedccb902e03ff6101ff4913dfd631977280))
+* Handle null bytes in text fields ([8597f08](https://github.com/cloudquery/plugin-sdk/commit/8597f088d35b1ceb8f2f48888cb6edcbbe58a2e3))
+
 ## [1.34.0](https://github.com/cloudquery/plugin-sdk/compare/v1.33.1...v1.34.0) (2023-02-07)
 
 
