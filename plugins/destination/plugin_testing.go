@@ -421,8 +421,8 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSuiteTests) {
 	t.Helper()
 	destSpec := specs.Destination{
-		Name: "testsuite",
-		Spec: spec,
+		Name:        "testsuite",
+		Spec:        spec,
 		MigrateMode: specs.MigrateModeForced,
 	}
 	suite := &PluginTestSuite{
