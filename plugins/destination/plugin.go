@@ -50,14 +50,10 @@ func (*UnimplementedUnmanagedWriter) Metrics() Metrics {
 	panic("Metrics not implemented")
 }
 
-type MigrateOptions struct {
-	Force bool
-}
-
 type Client interface {
 	schema.CQTypeTransformer
 	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
-	Migrate(ctx context.Context, tables schema.Tables, options MigrateOptions) error
+	Migrate(ctx context.Context, tables schema.Tables) error
 	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []any) error
 	ManagedWriter
 	UnmanagedWriter
@@ -188,9 +184,9 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 }
 
 // we implement all DestinationClient functions so we can hook into pre-post behavior
-func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables, options MigrateOptions) error {
+func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
 	SetDestinationManagedCqColumns(tables)
-	return p.client.Migrate(ctx, tables, options)
+	return p.client.Migrate(ctx, tables)
 }
 
 func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]schema.CQTypes, error) {
