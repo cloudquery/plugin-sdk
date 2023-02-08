@@ -37,7 +37,6 @@ message Migrate {
     string name = 1;
     string version = 2;
     bytes tables = 3;
-    bytes options = 4;
   }
   message Response {}
 }

@@ -54,14 +54,8 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	if err := json.Unmarshal(req.Tables, &tables); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
-	var options destination.MigrateOptions
-	if len(req.Options) > 0 {
-		if err := json.Unmarshal(req.Options, &options); err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal options: %v", err)
-		}
-	}
 
-	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables, options)
+	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
 }
 
 func (*Server) Write(pb.Destination_WriteServer) error {
