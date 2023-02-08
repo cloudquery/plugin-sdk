@@ -219,14 +219,14 @@ func TestTablesFilterDFS(t *testing.T) {
 }
 
 var testTable1 = &Table{
-	Name:    "test",
+	Name: "test",
 	Columns: []Column{
 		{Name: "bool", Type: TypeBool},
 	},
 }
 
 var testTable2 = &Table{
-	Name:    "test",
+	Name: "test",
 	Columns: []Column{
 		{Name: "bool", Type: TypeBool},
 		{Name: "bool1", Type: TypeBool},
@@ -234,14 +234,14 @@ var testTable2 = &Table{
 }
 
 var testTable3 = &Table{
-	Name:    "test",
+	Name: "test",
 	Columns: []Column{
 		{Name: "bool", Type: TypeString},
 	},
 }
 
 var testTable4 = &Table{
-	Name:    "test",
+	Name: "test",
 	Columns: []Column{
 		{Name: "bool", Type: TypeBool, CreationOptions: ColumnCreationOptions{PrimaryKey: true, NotNull: true}},
 	},

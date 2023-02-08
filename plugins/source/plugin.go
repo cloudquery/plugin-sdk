@@ -134,7 +134,7 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 		newExecutionClient: newExecutionClient,
 		metrics:            &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:              caser.New(),
-		internalColumns: 	true,
+		internalColumns:    true,
 	}
 	for _, opt := range options {
 		opt(&p)
