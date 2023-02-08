@@ -308,7 +308,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler) {
 }
 
 func TestIgnoredColumns(t *testing.T) {
-	validateResources(t, schema.Resources{{
+	err := validateResources(t, schema.Resources{{
 		Item: struct{ A *string }{},
 		Table: &schema.Table{
 			Columns: schema.ColumnList{
@@ -320,6 +320,7 @@ func TestIgnoredColumns(t *testing.T) {
 			},
 		},
 	}})
+	assert.Nil(t, err)
 }
 
 var testTable struct {
