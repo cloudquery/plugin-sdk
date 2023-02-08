@@ -259,7 +259,7 @@ func (t *Table) GetAddedColumns(other *Table) []Column {
 	return added
 }
 
-// GetMissingColumns returns a list of columns that are in this table but have different type in the other table.
+// GetChangedColumns returns a list of columns that are in this table but have different type in the other table.
 func (t *Table) GetChangedColumns(other *Table) []Column {
 	var changed []Column
 	for _, c := range t.Columns {
