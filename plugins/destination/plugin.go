@@ -266,7 +266,7 @@ func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables sche
 			exclude := func(t *schema.Table) bool {
 				return t.IsIncremental
 			}
-			tablesToDelete = tables.FilterDfsFunc(include, exclude)
+			tablesToDelete = tables.FilterDfsFunc(include, exclude, sourceSpec.SkipDependentTables)
 		}
 		if err := p.DeleteStale(ctx, tablesToDelete, sourceSpec.Name, syncTime); err != nil {
 			return err

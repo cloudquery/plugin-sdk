@@ -3,6 +3,7 @@ package specs
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -185,20 +186,22 @@ func NewSpecReader(paths []string) (*SpecReader, error) {
 
 // strip yaml comments from the given yaml document by converting to JSON and back :)
 func stripYamlComments(b []byte) ([]byte, error) {
-	const openPlaceholder = "$$$OPEN$$$"
-	const closePlaceholder = "$$$CLOSE$$$"
-
-	// return an error if the yaml already contains our temporary placeholder for env variables by some unlucky coincidence
-	if bytes.Contains(b, []byte(openPlaceholder)) || bytes.Contains(b, []byte(closePlaceholder)) {
-		return nil, fmt.Errorf("%s and %s are reserved words in CloudQuery config", openPlaceholder, closePlaceholder)
-	}
-
 	// replace placeholder variables with valid yaml, otherwise it cannot be parsed
 	// in some cases. Short of writing our own yaml parser to remove comments,
 	// this seems like the best we can do.
+	// We replace placeholder variables with random numbers, because numbers in quotes
+	// will then remain quoted in the final yaml. If we replace with strings, they will
+	// be unquoted in the final yaml.
+	r := rand.New(rand.NewSource(1))
+	placeholders := map[string]string{}
 	b = envRegex.ReplaceAllFunc(b, func(match []byte) []byte {
 		content := envRegex.FindSubmatch(match)[1]
-		return []byte(openPlaceholder + string(content) + closePlaceholder)
+		k := fmt.Sprintf("%d", r.Int())
+		for bytes.Contains(content, []byte(k)) {
+			k = fmt.Sprintf("%d", r.Int())
+		}
+		placeholders[k] = string(content)
+		return []byte(k)
 	})
 	j, err := yaml.YAMLToJSON(b)
 	if err != nil {
@@ -209,7 +212,8 @@ func stripYamlComments(b []byte) ([]byte, error) {
 		return nil, err
 	}
 	// place back placeholder variables
-	b = bytes.ReplaceAll(b, []byte(openPlaceholder), []byte("${"))
-	b = bytes.ReplaceAll(b, []byte(closePlaceholder), []byte("}"))
+	for k, v := range placeholders {
+		b = bytes.ReplaceAll(b, []byte(k), []byte(fmt.Sprintf("${%s}", v)))
+	}
 	return b, nil
 }

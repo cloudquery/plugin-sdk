@@ -8,11 +8,14 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 )
 
+type Validator func(t *testing.T, plugin *Plugin, resources []*schema.Resource)
+
 func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...TestPluginOption) {
 	t.Helper()
 
 	o := &testPluginOptions{
-		parallel: true,
+		parallel:   true,
+		validators: []Validator{validatePlugin},
 	}
 	for _, opt := range opts {
 		opt(o)
@@ -40,8 +43,9 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 	if syncErr != nil {
 		t.Fatal(syncErr)
 	}
-
-	validateTables(t, plugin.Tables(), syncedResources)
+	for _, validator := range o.validators {
+		validator(t, plugin, syncedResources)
+	}
 }
 
 type TestPluginOption func(*testPluginOptions)
@@ -52,8 +56,15 @@ func WithTestPluginNoParallel() TestPluginOption {
 	}
 }
 
+func WithTestPluginAdditionalValidators(v Validator) TestPluginOption {
+	return func(f *testPluginOptions) {
+		f.validators = append(f.validators, v)
+	}
+}
+
 type testPluginOptions struct {
-	parallel bool
+	parallel   bool
+	validators []Validator
 }
 
 func getTableResources(t *testing.T, table *schema.Table, resources []*schema.Resource) []*schema.Resource {
@@ -80,12 +91,21 @@ func validateTable(t *testing.T, table *schema.Table, resources []*schema.Resour
 	validateResources(t, tableResources)
 }
 
-func validateTables(t *testing.T, tables schema.Tables, resources []*schema.Resource) {
+func validatePlugin(t *testing.T, plugin *Plugin, resources []*schema.Resource) {
 	t.Helper()
+	tables := extractTables(plugin.tables)
 	for _, table := range tables {
 		validateTable(t, table, resources)
-		validateTables(t, table.Relations, resources)
 	}
+}
+
+func extractTables(tables schema.Tables) []*schema.Table {
+	result := make([]*schema.Table, 0)
+	for _, table := range tables {
+		result = append(result, table)
+		result = append(result, extractTables(table.Relations)...)
+	}
+	return result
 }
 
 // Validates that every column has at least one non-nil value.

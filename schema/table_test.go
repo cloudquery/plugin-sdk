@@ -30,6 +30,7 @@ func TestTablesFilterDFS(t *testing.T) {
 		tables                  Tables
 		configurationTables     []string
 		configurationSkipTables []string
+		skipDependentTables     bool
 		want                    []string
 		err                     string
 	}{
@@ -193,11 +194,36 @@ func TestTablesFilterDFS(t *testing.T) {
 			configurationSkipTables: []string{"sub_table_2"},
 			want:                    []string{"main_table", "sub_table_1"},
 		},
+		{
+			name: "skip child tables if skip_dependent_tables is true",
+			tables: []*Table{
+				{Name: "main_table", Relations: []*Table{
+					{Name: "sub_table_1", Parent: &Table{Name: "main_table"}},
+					{Name: "sub_table_2", Parent: &Table{Name: "main_table"}}}}},
+			configurationTables:     []string{"main_table"},
+			configurationSkipTables: []string{},
+			skipDependentTables:     true,
+			want:                    []string{"main_table"},
+		},
+		{
+			name: "skip child tables if skip_dependent_tables is true, but not if explicitly included",
+			tables: []*Table{
+				{Name: "main_table_1", Relations: []*Table{
+					{Name: "sub_table_1"},
+				}},
+				{Name: "main_table_2", Relations: []*Table{
+					{Name: "sub_table_2", Parent: &Table{Name: "main_table"}},
+					{Name: "sub_table_3", Parent: &Table{Name: "main_table"}}}}},
+			configurationTables:     []string{"main_table_1", "sub_table_2"},
+			configurationSkipTables: []string{},
+			skipDependentTables:     true,
+			want:                    []string{"main_table_1", "main_table_2", "sub_table_2"},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotTables, err := tt.tables.FilterDfs(tt.configurationTables, tt.configurationSkipTables)
+			gotTables, err := tt.tables.FilterDfs(tt.configurationTables, tt.configurationSkipTables, tt.skipDependentTables)
 			//nolint:gocritic
 			if err != nil && tt.err == "" {
 				t.Errorf("got error %v, want nil", err)

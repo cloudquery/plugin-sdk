@@ -5,6 +5,73 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.35.0](https://github.com/cloudquery/plugin-sdk/compare/v1.34.0...v1.35.0) (2023-02-08)
+
+
+### Features
+
+* Enable Custom Validators ([#654](https://github.com/cloudquery/plugin-sdk/issues/654)) ([6b7b5de](https://github.com/cloudquery/plugin-sdk/commit/6b7b5de46f62b3a2dbbd98fba31b790c6a170dbe))
+
+
+### Bug Fixes
+
+* **deps:** Update module golang.org/x/term to v0.5.0 ([#648](https://github.com/cloudquery/plugin-sdk/issues/648)) ([3a02bed](https://github.com/cloudquery/plugin-sdk/commit/3a02bedccb902e03ff6101ff4913dfd631977280))
+* Handle null bytes in text fields ([8597f08](https://github.com/cloudquery/plugin-sdk/commit/8597f088d35b1ceb8f2f48888cb6edcbbe58a2e3))
+
+## [1.34.0](https://github.com/cloudquery/plugin-sdk/compare/v1.33.1...v1.34.0) (2023-02-07)
+
+
+### Features
+
+* Add skip_dependent_tables option ([#662](https://github.com/cloudquery/plugin-sdk/issues/662)) ([bf34943](https://github.com/cloudquery/plugin-sdk/commit/bf349439b419b79d833a85d52073592d6ef3ba3a))
+
+
+### Bug Fixes
+
+* **logging:** Log more explicit message when OOM and other status codes occur ([#659](https://github.com/cloudquery/plugin-sdk/issues/659)) ([45c637b](https://github.com/cloudquery/plugin-sdk/commit/45c637b1127ed16ce39a471142427d19fb28fe0c))
+* **logging:** Send more info logs when plugins are being terminated ([#657](https://github.com/cloudquery/plugin-sdk/issues/657)) ([6f44e1c](https://github.com/cloudquery/plugin-sdk/commit/6f44e1c597b5ca2a31e21bd099c1f556d21bf2cf))
+* Remove unused `OnlyIncrementalTables` spec property ([#661](https://github.com/cloudquery/plugin-sdk/issues/661)) ([f88ba7d](https://github.com/cloudquery/plugin-sdk/commit/f88ba7d55d7644cd37a44a64719ba705e9878456))
+* Trap terminate signal, log which signal we received ([#658](https://github.com/cloudquery/plugin-sdk/issues/658)) ([bb39830](https://github.com/cloudquery/plugin-sdk/commit/bb39830ff9bde75e409967f85f85f95d8919672a))
+
+## [1.33.1](https://github.com/cloudquery/plugin-sdk/compare/v1.33.0...v1.33.1) (2023-02-01)
+
+
+### Bug Fixes
+
+* Handle numbers in env variables ([#651](https://github.com/cloudquery/plugin-sdk/issues/651)) ([0aa8f68](https://github.com/cloudquery/plugin-sdk/commit/0aa8f685e5f4c6796ef20941ed9fe7185bc44340))
+
+## [1.33.0](https://github.com/cloudquery/plugin-sdk/compare/v1.32.0...v1.33.0) (2023-02-01)
+
+
+### Features
+
+* Support downloading plugins from other cloudquery repos ([#632](https://github.com/cloudquery/plugin-sdk/issues/632)) ([9e1501e](https://github.com/cloudquery/plugin-sdk/commit/9e1501e3db928fc283b9be43fe4b115adb6aa140))
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to f062dba ([#641](https://github.com/cloudquery/plugin-sdk/issues/641)) ([c6ec154](https://github.com/cloudquery/plugin-sdk/commit/c6ec154ab4ba263b6a103f31e6e425307a6fa104))
+* **deps:** Update google.golang.org/genproto digest to 1c01626 ([#642](https://github.com/cloudquery/plugin-sdk/issues/642)) ([fc9f338](https://github.com/cloudquery/plugin-sdk/commit/fc9f338804a071478ed253541cd4aff6aefd822a))
+* **deps:** Update module github.com/avast/retry-go/v4 to v4.3.2 ([#643](https://github.com/cloudquery/plugin-sdk/issues/643)) ([2f6a2e8](https://github.com/cloudquery/plugin-sdk/commit/2f6a2e81cc9d687b05af21cdf96d3a29b8dfb2b4))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.17.0 ([#644](https://github.com/cloudquery/plugin-sdk/issues/644)) ([fb33f8c](https://github.com/cloudquery/plugin-sdk/commit/fb33f8cd3eaf426f2194c94145bd7646b355b1af))
+* **deps:** Update module github.com/rs/zerolog to v1.29.0 ([#645](https://github.com/cloudquery/plugin-sdk/issues/645)) ([e864963](https://github.com/cloudquery/plugin-sdk/commit/e86496367046990d3eaf67e211225b7d3c6a9226))
+* **deps:** Update module github.com/schollz/progressbar/v3 to v3.13.0 ([#646](https://github.com/cloudquery/plugin-sdk/issues/646)) ([c2146d3](https://github.com/cloudquery/plugin-sdk/commit/c2146d3cc5fba5a24041393fe5653e740e7423f2))
+* **deps:** Update module golang.org/x/net to v0.5.0 ([#647](https://github.com/cloudquery/plugin-sdk/issues/647)) ([417c99d](https://github.com/cloudquery/plugin-sdk/commit/417c99d6657133312a3accd1a0e994fdab18af0a))
+* **deps:** Update module golang.org/x/text to v0.6.0 ([#649](https://github.com/cloudquery/plugin-sdk/issues/649)) ([a91c7dc](https://github.com/cloudquery/plugin-sdk/commit/a91c7dc20e56c8e5858a04a74c765cc4acc2c1eb))
+* **deps:** Update module google.golang.org/grpc to v1.52.3 ([#650](https://github.com/cloudquery/plugin-sdk/issues/650)) ([48d96ee](https://github.com/cloudquery/plugin-sdk/commit/48d96ee530166ae732ee34a50929eb73b8b16f2b))
+
+## [1.32.0](https://github.com/cloudquery/plugin-sdk/compare/v1.31.0...v1.32.0) (2023-01-30)
+
+
+### Features
+
+* Return error message when download fails ([#636](https://github.com/cloudquery/plugin-sdk/issues/636)) ([0eb39af](https://github.com/cloudquery/plugin-sdk/commit/0eb39af7a294a2a9de4c81ee9950d4443e168224))
+
+
+### Bug Fixes
+
+* Add cq-dir param to discovery ([#633](https://github.com/cloudquery/plugin-sdk/issues/633)) ([13d633a](https://github.com/cloudquery/plugin-sdk/commit/13d633a6b2f1e1633325c94f7a965835e8604e88))
+
 ## [1.31.0](https://github.com/cloudquery/plugin-sdk/compare/v1.30.0...v1.31.0) (2023-01-26)
 
 
