@@ -256,6 +256,20 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		path = parent.Name + `.` + path
 	}
 	if t.table.Columns.Get(name) != nil {
+		if t.table.Columns.Get(name).RetainOrder {
+			return nil
+		}
+		if t.table.Columns.Get(name).CreationOptions.PrimaryKey {
+			return nil
+		}
+
+		t.table.Columns = moveColumn(t.table.Columns, name)
+		for i, pk := range t.pkFields {
+			if pk == name {
+				t.pkFields = append(t.pkFields[:i], t.pkFields[i+1:]...)
+				t.pkFields = append(t.pkFields, pk)
+			}
+		}
 		return nil
 	}
 
@@ -281,6 +295,18 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	t.table.Columns = append(t.table.Columns, column)
 
 	return nil
+}
+
+// Move column to the end of the list
+func moveColumn(columns schema.ColumnList, name string) schema.ColumnList {
+	for i, c := range columns {
+		if c.Name == name {
+			columns = append(columns[:i], columns[i+1:]...)
+			columns = append(columns, c)
+			return columns
+		}
+	}
+	return columns
 }
 
 func isTypeIgnored(t reflect.Type) bool {

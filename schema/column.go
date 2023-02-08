@@ -41,6 +41,9 @@ type Column struct {
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
 	IgnoreInTests bool `json:"-"`
+
+	// Column definition should be merged into struct or kept in order
+	RetainOrder bool `json:"retain_order,omitempty"`
 }
 
 func (c *ColumnList) UnmarshalJSON(data []byte) (err error) {
