@@ -210,6 +210,7 @@ type CQType interface {
 	Set(v any) error
 	Get() any
 	String() string
+	// Used only in testing
 	Equal(CQType) bool
 	Type() ValueType
 	Size() int
@@ -271,6 +272,7 @@ func (c CQTypes) Len() int {
 	return len(c)
 }
 
+// Used in testing only.
 func (c CQTypes) Diff(other CQTypes) string {
 	var diff strings.Builder
 	if other == nil {
