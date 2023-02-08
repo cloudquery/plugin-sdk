@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+func getSysProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{
+		// launch as new process group so that signals (ex: SIGINT) are not sent to the child process
+		Setpgid: true, // UNIX systems
+	}
+}
+
 func (c *Client) terminateProcess() error {
 	if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
 		c.logger.Error().Err(err).Msg("failed to send interrupt signal to source plugin")

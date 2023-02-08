@@ -137,6 +137,7 @@ func (c *Client) newManagedClient(ctx context.Context, path string) error {
 		return fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 	cmd.Stderr = os.Stderr
+	cmd.SysProcAttr = getSysProcAttr()
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start destination plugin %s: %w", path, err)
 	}
