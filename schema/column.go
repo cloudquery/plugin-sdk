@@ -16,6 +16,7 @@ type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resourc
 // ColumnCreationOptions allow modification of how column is defined when table is created
 type ColumnCreationOptions struct {
 	PrimaryKey bool `json:"primary_key,omitempty"`
+	NotNull 	bool `json:"not_null,omitempty"`
 	// IncrementalKey is a flag that indicates if the column is used as part of an incremental key.
 	// It is mainly used for documentation purposes, but may also be used as part of ensuring that
 	// migrations are done correctly.

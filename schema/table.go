@@ -65,6 +65,8 @@ type Table struct {
 
 	// Parent is the parent table in case this table is called via parent table (i.e. relation)
 	Parent *Table `json:"-"`
+
+	PkConstraintName string `json:"pk_constraint_name"`
 }
 
 var (
@@ -244,6 +246,55 @@ func (t *Table) ValidateName() error {
 		return fmt.Errorf("table name %q is not valid: table names must contain only lower-case letters, numbers and underscores, and must start with a lower-case letter or underscore", t.Name)
 	}
 	return nil
+}
+
+// GetAddedColumns returns a list of columns that are in this table but not in the other table.
+func (t *Table) GetAddedColumns(other *Table) []Column {
+	var added []Column
+	for _, c := range t.Columns {
+		if other.Columns.Get(c.Name) == nil {
+			added = append(added, c)
+		}
+	}
+	return added
+}
+
+// GetMissingColumns returns a list of columns that are in this table but have different type in the other table.
+func (t *Table) GetChangedColumns(other *Table) []Column {
+	var changed []Column
+	for _, c := range t.Columns {
+		otherCol := other.Columns.Get(c.Name)
+		if otherCol == nil {
+			continue
+		}
+		if c.Type != otherCol.Type {
+			changed = append(changed, c)
+		}
+		if c.CreationOptions.NotNull != otherCol.CreationOptions.NotNull {
+			changed = append(changed, c)
+		}
+	}
+	return changed
+}
+
+func (t *Table) IsPkEqual(other *Table) bool {
+	for _, c := range t.Columns {
+		if c.CreationOptions.PrimaryKey {
+			otherCol := other.Columns.Get(c.Name)
+			if otherCol == nil || !otherCol.CreationOptions.PrimaryKey {
+				return false
+			}
+		}
+	}
+	for _, c := range other.Columns {
+		if c.CreationOptions.PrimaryKey {
+			otherCol := t.Columns.Get(c.Name)
+			if otherCol == nil || !otherCol.CreationOptions.PrimaryKey {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (t *Table) ValidateDuplicateColumns() error {

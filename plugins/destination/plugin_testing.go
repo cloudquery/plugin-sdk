@@ -51,6 +51,7 @@ type PluginTestSuiteTests struct {
 }
 
 func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+	var options MigrateOptions
 	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -61,7 +62,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	tables := []*schema.Table{
 		table,
 	}
-	if err := p.Migrate(ctx, tables); err != nil {
+	if err := p.Migrate(ctx, tables, options); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
@@ -131,6 +132,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 }
 
 func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+	var options MigrateOptions
 	spec.WriteMode = specs.WriteModeOverwriteDeleteStale
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -144,7 +146,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		table,
 		incTable,
 	}
-	if err := p.Migrate(ctx, tables); err != nil {
+	if err := p.Migrate(ctx, tables, options); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
@@ -243,6 +245,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 }
 
 func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+	var options MigrateOptions
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -253,7 +256,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	tables := []*schema.Table{
 		table,
 	}
-	if err := p.Migrate(ctx, tables); err != nil {
+	if err := p.Migrate(ctx, tables, options); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
@@ -315,13 +318,14 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 ) error {
 	spec.WriteMode = mode
 	spec.BatchSize = 1
+	var options MigrateOptions
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	suffix := strings.ToLower(strings.ReplaceAll(mode.String(), "-", "_"))
 	tableName := "cq_test_migrate_" + suffix
 	table := testdata.TestTable(tableName)
-	if err := p.Migrate(ctx, []*schema.Table{table}); err != nil {
+	if err := p.Migrate(ctx, []*schema.Table{table}, options); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
@@ -339,7 +343,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	a := table.Columns.Index("uuid")
 	b := table.Columns.Index("float")
 	table.Columns[a], table.Columns[b] = table.Columns[b], table.Columns[a]
-	if err := p.Migrate(ctx, []*schema.Table{table}); err != nil {
+	if err := p.Migrate(ctx, []*schema.Table{table}, options); err != nil {
 		return fmt.Errorf("failed to migrate table with changed column ordering: %w", err)
 	}
 	resource2 := createTestResources(table, sourceName, syncTime, 1)[0]
@@ -360,7 +364,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 		Name: "new_column",
 		Type: schema.TypeInt,
 	})
-	if err := p.Migrate(ctx, []*schema.Table{table}); err != nil {
+	if err := p.Migrate(ctx, []*schema.Table{table}, options); err != nil {
 		return fmt.Errorf("failed to migrate table with new column: %w", err)
 	}
 	resource3 := createTestResources(table, sourceName, syncTime, 1)[0]
@@ -378,7 +382,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	// check that migration still succeeds when there is an extra column in the destination table,
 	// which should be ignored
 	oldTable := testdata.TestTable(tableName)
-	if err := p.Migrate(ctx, []*schema.Table{oldTable}); err != nil {
+	if err := p.Migrate(ctx, []*schema.Table{oldTable}, options); err != nil {
 		return fmt.Errorf("failed to migrate table with extra column in destination: %w", err)
 	}
 	resource4 := createTestResources(oldTable, sourceName, syncTime, 1)[0]

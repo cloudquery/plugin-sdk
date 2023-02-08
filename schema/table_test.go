@@ -217,3 +217,79 @@ func TestTablesFilterDFS(t *testing.T) {
 		})
 	}
 }
+
+var testTable1 = &Table{
+	Name:    "test",
+	Columns: []Column{
+		{Name: "bool", Type: TypeBool},
+	},
+}
+
+var testTable2 = &Table{
+	Name:    "test",
+	Columns: []Column{
+		{Name: "bool", Type: TypeBool},
+		{Name: "bool1", Type: TypeBool},
+	},
+}
+
+var testTable3 = &Table{
+	Name:    "test",
+	Columns: []Column{
+		{Name: "bool", Type: TypeString},
+	},
+}
+
+var testTable4 = &Table{
+	Name:    "test",
+	Columns: []Column{
+		{Name: "bool", Type: TypeBool, CreationOptions: ColumnCreationOptions{PrimaryKey: true, NotNull: true}},
+	},
+}
+
+func TestGetAddedColumns(t *testing.T) {
+	columns := testTable1.GetAddedColumns(testTable1)
+	if columns != nil {
+		t.Fatalf("got %v want nil", columns)
+	}
+
+	columns = testTable2.GetAddedColumns(testTable1)
+	if len(columns) != 1 {
+		t.Fatalf("got %v want 1", columns)
+	}
+	if columns[0].Name != "bool1" {
+		t.Fatalf("got %v want bool1", columns[0].Name)
+	}
+}
+
+func TestGetChangedColumns(t *testing.T) {
+	columns := testTable1.GetChangedColumns(testTable1)
+	if columns != nil {
+		t.Fatalf("got %v want nil", columns)
+	}
+
+	columns = testTable3.GetChangedColumns(testTable2)
+	if len(columns) != 1 {
+		t.Fatalf("got %v want 1", columns)
+	}
+	if columns[0].Name != "bool" {
+		t.Fatalf("got %v want bool", columns[0].Name)
+	}
+
+	columns = testTable4.GetChangedColumns(testTable2)
+	if len(columns) != 1 {
+		t.Fatalf("got %v want 1", columns)
+	}
+	if columns[0].Name != "bool" {
+		t.Fatalf("got %v want bool", columns[0].Name)
+	}
+}
+
+func TestIsPkEqual(t *testing.T) {
+	if !testTable1.IsPkEqual(testTable1) {
+		t.Fatalf("got false want true")
+	}
+	if testTable4.IsPkEqual(testTable2) {
+		t.Fatalf("got true want false")
+	}
+}
