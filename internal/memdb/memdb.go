@@ -99,7 +99,7 @@ func (c *client) overwrite(table *schema.Table, data []any) {
 	c.memoryDB[table.Name] = append(c.memoryDB[table.Name], data)
 }
 
-func (c *client) Migrate(_ context.Context, tables schema.Tables) error {
+func (c *client) Migrate(_ context.Context, tables schema.Tables, _ destination.MigrateOptions) error {
 	for _, table := range tables {
 		if c.memoryDB[table.Name] == nil {
 			c.memoryDB[table.Name] = make([][]any, 0)

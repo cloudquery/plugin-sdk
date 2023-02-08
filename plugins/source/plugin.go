@@ -281,6 +281,7 @@ func (p *Plugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
 	}
 
 	startTime := time.Now()
+
 	switch p.spec.Scheduler {
 	case specs.SchedulerDFS:
 		p.syncDfs(ctx, p.spec, p.client, p.sessionTables, res)
