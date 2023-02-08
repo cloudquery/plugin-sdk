@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.36.0](https://github.com/cloudquery/plugin-sdk/compare/v1.35.0...v1.36.0) (2023-02-08)
+
+
+### Features
+
+* Add table diff methods ([#668](https://github.com/cloudquery/plugin-sdk/issues/668)) ([f6baa82](https://github.com/cloudquery/plugin-sdk/commit/f6baa82d7d1db6d28a47bf3d206306f98aa84bd4))
+* Use Setpgid=true on Unix systems so that signals are not sent to the child process ([#664](https://github.com/cloudquery/plugin-sdk/issues/664)) ([2883487](https://github.com/cloudquery/plugin-sdk/commit/28834871facfe5004618362840a910c2120b11d1))
+
+
+### Bug Fixes
+
+* Remove duplicate force implementation ([#670](https://github.com/cloudquery/plugin-sdk/issues/670)) ([fe34554](https://github.com/cloudquery/plugin-sdk/commit/fe345545de1613da904f0d52c97376ab70151df4))
+
 ## [1.35.0](https://github.com/cloudquery/plugin-sdk/compare/v1.34.0...v1.35.0) (2023-02-08)
 
 
