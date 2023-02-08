@@ -286,10 +286,10 @@ func TestGetChangedColumns(t *testing.T) {
 }
 
 func TestIsPkEqual(t *testing.T) {
-	if !testTable1.IsPkEqual(testTable1) {
+	if !testTable1.IsPrimaryKeyEqual(testTable1) {
 		t.Fatalf("got false want true")
 	}
-	if testTable4.IsPkEqual(testTable2) {
+	if testTable4.IsPrimaryKeyEqual(testTable2) {
 		t.Fatalf("got true want false")
 	}
 }
