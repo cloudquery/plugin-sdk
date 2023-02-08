@@ -423,6 +423,7 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 	destSpec := specs.Destination{
 		Name: "testsuite",
 		Spec: spec,
+		MigrateMode: specs.MigrateModeForced,
 	}
 	suite := &PluginTestSuite{
 		tests: tests,
