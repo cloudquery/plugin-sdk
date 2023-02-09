@@ -17,6 +17,7 @@ func getSysProcAttr() *syscall.SysProcAttr {
 }
 
 func (c *Client) terminateProcess() error {
+	c.logger.Debug().Msg("sending interrupt signal to source plugin")
 	if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
 		c.logger.Error().Err(err).Msg("failed to send interrupt signal to source plugin")
 	}
@@ -41,7 +42,7 @@ func (c *Client) terminateProcess() error {
 		if st.ExitCode() == 137 {
 			additionalInfo = " (Out of Memory)"
 		}
-		return fmt.Errorf("destination plugin process failed with %s%s", st.String(), additionalInfo)
+		return fmt.Errorf("source plugin process failed with %s%s", st.String(), additionalInfo)
 	}
 
 	return nil

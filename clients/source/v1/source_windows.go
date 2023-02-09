@@ -14,6 +14,7 @@ func getSysProcAttr() *syscall.SysProcAttr {
 }
 
 func (c *Client) terminateProcess() error {
+	c.logger.Debug().Msg("sending kill signal to destination plugin")
 	if err := c.cmd.Process.Kill(); err != nil {
 		c.logger.Error().Err(err).Msg("failed to kill source plugin")
 	}
