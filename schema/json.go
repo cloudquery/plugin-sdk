@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"reflect"
+	"strings"
 )
 
 type JSONTransformer interface {
@@ -39,6 +40,7 @@ func jsonBytesEqual(a, b []byte) (bool, error) {
 	return reflect.DeepEqual(j2, j), nil
 }
 
+// Used only in tests.
 func (dst *JSON) Equal(src CQType) bool {
 	if src == nil {
 		return false
@@ -59,6 +61,20 @@ func (dst *JSON) Equal(src CQType) bool {
 	if err != nil {
 		return false
 	}
+	if equal {
+		return true
+	}
+
+	// Some destinations (like postgresql) strip nulls from JSON's, so we need to allow it in the tests.
+	// This is not the 100% correct algorithm to strip nulls from a JSON, but it's good enough for the tests.
+	// context on why this is not 100% accurate: https://github.com/cloudquery/cloudquery/issues/5256.
+	equal, err = jsonBytesEqual(
+		[]byte(strings.ReplaceAll(string(dst.Bytes), `\u0000`, ``)),
+		[]byte(strings.ReplaceAll(string(s.Bytes), `\u0000`, ``)))
+	if err != nil {
+		return false
+	}
+
 	return equal
 }
 

@@ -64,6 +64,10 @@ func TestSourceTable(name string) *schema.Table {
 				Type: schema.TypeJSON,
 			},
 			{
+				Name: "json_with_null",
+				Type: schema.TypeJSON,
+			},
+			{
 				Name: "uuid_array",
 				Type: schema.TypeUUIDArray,
 			},
@@ -171,9 +175,16 @@ func GenTestData(table *schema.Table) schema.CQTypes {
 				Status: schema.Present,
 			}
 		case schema.TypeJSON:
-			data[i] = &schema.JSON{
-				Bytes:  []byte(`{"test": "test"}`),
-				Status: schema.Present,
+			if c.Name == "json_with_null" {
+				data[i] = &schema.JSON{
+					Bytes:  []byte(`{"test": "withnull\u0000!"}`),
+					Status: schema.Present,
+				}
+			} else {
+				data[i] = &schema.JSON{
+					Bytes:  []byte(`{"test": "test"}`),
+					Status: schema.Present,
+				}
 			}
 		case schema.TypeUUIDArray:
 			uuidArrayColumn := &schema.UUIDArray{}
