@@ -101,7 +101,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 		if err := p.writeOne(ctx, sourceSpec, []*schema.Table{table}, syncTime, resource5); err != nil {
 			return fmt.Errorf("failed to write one after column type change: %w", err)
 		}
-		totalExpectedResources += 1
+		totalExpectedResources++
 	}
 
 	resourcesRead, err = p.readAll(ctx, oldTable, sourceName)

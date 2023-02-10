@@ -261,9 +261,7 @@ func (t *Table) GetAddedColumns(other *Table) []Column {
 
 // GetChangedColumns returns a list of columns that are in this table but have different type in the other table.
 // returns got, want
-func (t *Table) GetChangedColumns(other *Table) (ColumnList, ColumnList) {
-	var got []Column
-	var want []Column
+func (t *Table) GetChangedColumns(other *Table) (got ColumnList, want ColumnList) {
 	for _, c := range t.Columns {
 		otherCol := other.Columns.Get(c.Name)
 		if otherCol == nil {

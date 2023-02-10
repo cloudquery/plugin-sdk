@@ -289,20 +289,26 @@ func TestGetAddedColumns(t *testing.T) {
 }
 
 func TestGetChangedColumns(t *testing.T) {
-	columns := testTable1.GetChangedColumns(testTable1)
+	columns, _ := testTable1.GetChangedColumns(testTable1)
 	if columns != nil {
 		t.Fatalf("got %v want nil", columns)
 	}
 
-	columns = testTable3.GetChangedColumns(testTable2)
+	columns, got := testTable3.GetChangedColumns(testTable2)
 	if len(columns) != 1 {
 		t.Fatalf("got %v want 1", columns)
 	}
 	if columns[0].Name != "bool" {
 		t.Fatalf("got %v want bool", columns[0].Name)
 	}
+	if columns[0].Type != TypeString {
+		t.Fatalf("got %v want TypeString", columns[0].Type)
+	}
+	if got[0].Type != TypeBool {
+		t.Fatalf("got %v want TypeBool", got[0].Type)
+	}
 
-	columns = testTable4.GetChangedColumns(testTable2)
+	columns, _ = testTable4.GetChangedColumns(testTable2)
 	if len(columns) != 1 {
 		t.Fatalf("got %v want 1", columns)
 	}
