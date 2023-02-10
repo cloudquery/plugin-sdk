@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 type ColumnList []Column
@@ -41,6 +42,20 @@ type Column struct {
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
 	IgnoreInTests bool `json:"-"`
+}
+
+func (c *Column) String() string {
+	var sb strings.Builder
+	sb.WriteString(c.Name)
+	sb.WriteString(":")
+	sb.WriteString(c.Type.String())
+	if c.CreationOptions.PrimaryKey {
+		sb.WriteString(":PK")
+	}
+	if c.CreationOptions.NotNull {
+		sb.WriteString(":NotNull")
+	}
+	return sb.String()
 }
 
 func (c *ColumnList) UnmarshalJSON(data []byte) (err error) {
@@ -82,4 +97,17 @@ func (c ColumnList) Get(name string) *Column {
 		}
 	}
 	return nil
+}
+
+func (c ColumnList) String() string {
+	var sb strings.Builder
+	sb.WriteString("[")
+	for i, col := range c {
+		sb.WriteString(col.String())
+		if i != len(c)-1 {
+			sb.WriteString(", ")
+		}
+	}
+	sb.WriteString("]")
+	return sb.String()
 }

@@ -260,21 +260,25 @@ func (t *Table) GetAddedColumns(other *Table) []Column {
 }
 
 // GetChangedColumns returns a list of columns that are in this table but have different type in the other table.
-func (t *Table) GetChangedColumns(other *Table) []Column {
-	var changed []Column
+// returns got, want
+func (t *Table) GetChangedColumns(other *Table) (ColumnList, ColumnList) {
+	var got []Column
+	var want []Column
 	for _, c := range t.Columns {
 		otherCol := other.Columns.Get(c.Name)
 		if otherCol == nil {
 			continue
 		}
 		if c.Type != otherCol.Type {
-			changed = append(changed, c)
+			got = append(got, c)
+			want = append(want, *otherCol)
 		}
 		if c.CreationOptions.NotNull != otherCol.CreationOptions.NotNull {
-			changed = append(changed, c)
+			got = append(got, c)
+			want = append(want, *otherCol)
 		}
 	}
-	return changed
+	return got, want
 }
 
 func (t *Table) IsPrimaryKeyEqual(other *Table) bool {
