@@ -17,6 +17,7 @@ func getSysProcAttr() *syscall.SysProcAttr {
 }
 
 func (c *Client) terminateProcess() error {
+	c.logger.Debug().Msg("sending interrupt signal to destination plugin")
 	if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
 		c.logger.Error().Err(err).Msg("failed to send interrupt signal to destination plugin")
 	}
