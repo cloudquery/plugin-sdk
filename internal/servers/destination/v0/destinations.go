@@ -11,6 +11,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
@@ -93,7 +94,12 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceSpec, tables, syncTime, resources)
+		err := s.Plugin.Write(ctx, sourceSpec, tables, syncTime, resources)
+		// We only want to send to sentry if the error isn't a context-canceled error.
+		if ctx.Err() == nil && err != nil {
+			sentry.CurrentHub().CaptureException(err)
+		}
+		return err
 	})
 
 	for {
