@@ -24,9 +24,10 @@ func validateColumnsHaveData(t *testing.T, plugin *Plugin, resources []*schema.R
 
 func validateTableNamePlural(t *testing.T, plugin *Plugin, _ []*schema.Resource) error {
 	t.Helper()
+	pluralizeClient := pluralize.NewClient()
 	tables := extractTables(plugin.tables)
 	for _, table := range tables {
-		if !pluralize.IsPlural(table.Name) {
+		if !pluralizeClient.IsPlural(table.Name) {
 			return fmt.Errorf("invalid table name: %s. must be plural", table.Name)
 		}
 	}
