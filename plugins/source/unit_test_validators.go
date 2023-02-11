@@ -2,10 +2,10 @@ package source
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/schema"
+	pluralize "github.com/gertd/go-pluralize"
 )
 
 type Validator func(t *testing.T, plugin *Plugin, resources []*schema.Resource) error
@@ -26,7 +26,7 @@ func validateTableNamePlural(t *testing.T, plugin *Plugin, _ []*schema.Resource)
 	t.Helper()
 	tables := extractTables(plugin.tables)
 	for _, table := range tables {
-		if !strings.HasSuffix(table.Name, "s") {
+		if !pluralize.IsPlural(table.Name) {
 			return fmt.Errorf("invalid table name: %s. must be plural", table.Name)
 		}
 	}
