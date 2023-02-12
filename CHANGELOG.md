@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.36.3](https://github.com/cloudquery/plugin-sdk/compare/v1.36.2...v1.36.3) (2023-02-12)
+
+
+### Bug Fixes
+
+* Take2 of fixing race in destination testing ([#680](https://github.com/cloudquery/plugin-sdk/issues/680)) ([77b74b2](https://github.com/cloudquery/plugin-sdk/commit/77b74b2cd4c28ee5f570b008105a41d0b7e8afc8))
+
 ## [1.36.2](https://github.com/cloudquery/plugin-sdk/compare/v1.36.1...v1.36.2) (2023-02-12)
 
 
