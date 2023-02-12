@@ -10,6 +10,8 @@ type ClientMeta interface {
 	ID() string
 }
 
+
+
 // These columns are managed and populated by the source plugins
 var CqIDColumn = Column{
 	Name:        "_cq_id",
