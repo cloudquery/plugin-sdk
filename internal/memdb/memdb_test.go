@@ -36,18 +36,18 @@ func TestPluginManagedClientWithSmallBatchSize(t *testing.T) {
 	destination.PluginTestSuiteRunner(t,
 		func() *destination.Plugin {
 			return destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter(),
-			destination.WithDefaultBatchSize(1),
-			destination.WithDefaultBatchSizeBytes(1))
+				destination.WithDefaultBatchSize(1),
+				destination.WithDefaultBatchSizeBytes(1))
 		}, nil,
 		destination.PluginTestSuiteTests{})
 }
 
 func TestPluginManagedClientWithLargeBatchSize(t *testing.T) {
-		destination.PluginTestSuiteRunner(t,
+	destination.PluginTestSuiteRunner(t,
 		func() *destination.Plugin {
 			return destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter(),
-			destination.WithDefaultBatchSize(100000000),
-			destination.WithDefaultBatchSizeBytes(100000000))
+				destination.WithDefaultBatchSize(100000000),
+				destination.WithDefaultBatchSizeBytes(100000000))
 		},
 		nil,
 		destination.PluginTestSuiteTests{})
