@@ -82,6 +82,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
 		}
+		if err := p.Close(ctx); err != nil {
+			t.Fatal(err)
+		}
 	})
 
 	t.Run("TestWriteOverwriteDeleteStale", func(t *testing.T) {
@@ -92,6 +95,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		destSpec.Name = "test_write_overwrite_delete_stale"
 		p := newPlugin()
 		if err := suite.destinationPluginTestWriteOverwriteDeleteStale(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -105,6 +111,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		destSpec.Name = "test_migrate_overwrite"
 		p := newPlugin()
 		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -121,6 +130,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
 		}
+		if err := p.Close(ctx); err != nil {
+			t.Fatal(err)
+		}
 	})
 
 	t.Run("TestWriteAppend", func(t *testing.T) {
@@ -131,6 +143,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		destSpec.Name = "test_write_append"
 		p := newPlugin()
 		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -146,6 +161,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
 		}
+		if err := p.Close(ctx); err != nil {
+			t.Fatal(err)
+		}
 	})
 
 	t.Run("TestMigrateAppendForce", func(t *testing.T) {
@@ -158,6 +176,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		destSpec.Name = "test_migrate_append_force"
 		p := newPlugin()
 		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
