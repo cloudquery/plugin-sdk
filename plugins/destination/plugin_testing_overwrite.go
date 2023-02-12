@@ -17,7 +17,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
-	tableName := fmt.Sprintf("cq_test_write_overwrite_%d", time.Now().Unix())
+	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
 	table := testdata.TestTable(tableName)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*schema.Table{

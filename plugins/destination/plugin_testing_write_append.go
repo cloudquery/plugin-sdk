@@ -17,7 +17,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
-	tableName := "cq_test_write_append"
+	tableName := spec.Name
 	table := testdata.TestTable(tableName)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*schema.Table{

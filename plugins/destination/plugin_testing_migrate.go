@@ -3,14 +3,11 @@ package destination
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -24,14 +21,13 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
-	suffix := strings.ToLower(strings.ReplaceAll(spec.WriteMode.String(), "-", "_"))
-	tableName := fmt.Sprintf("cq_test_migrate_%s_%d", suffix, time.Now().Unix())
+	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
 	table := testdata.TestTable(tableName)
 	if err := p.Migrate(ctx, []*schema.Table{table}); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
-	sourceName := "testMigrate" + caser.New().ToPascal(suffix) + "Source" + uuid.NewString()
+	sourceName := tableName
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
