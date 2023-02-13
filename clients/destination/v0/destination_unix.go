@@ -1,6 +1,6 @@
 //go:build !windows
 
-package source
+package destination
 
 import (
 	"fmt"
@@ -9,17 +9,25 @@ import (
 	"time"
 )
 
+func getSysProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{
+		// launch as new process group so that signals (ex: SIGINT) are not sent to the child process
+		Setpgid: true, // UNIX systems
+	}
+}
+
 func (c *Client) terminateProcess() error {
+	c.logger.Debug().Msg("sending interrupt signal to destination plugin")
 	if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
-		c.logger.Error().Err(err).Msg("failed to send interrupt signal to source plugin")
+		c.logger.Error().Err(err).Msg("failed to send interrupt signal to destination plugin")
 	}
 	timer := time.AfterFunc(5*time.Second, func() {
-		c.logger.Info().Msg("sending kill signal to source plugin")
+		c.logger.Info().Msg("sending kill signal to destination plugin")
 		if err := c.cmd.Process.Kill(); err != nil {
-			c.logger.Error().Err(err).Msg("failed to kill source plugin")
+			c.logger.Error().Err(err).Msg("failed to kill destination plugin")
 		}
 	})
-	c.logger.Info().Msg("waiting for source plugin to terminate")
+	c.logger.Info().Msg("waiting for destination plugin to terminate")
 	st, err := c.cmd.Process.Wait()
 	timer.Stop()
 	if err != nil {
@@ -36,6 +44,5 @@ func (c *Client) terminateProcess() error {
 		}
 		return fmt.Errorf("destination plugin process failed with %s%s", st.String(), additionalInfo)
 	}
-
 	return nil
 }

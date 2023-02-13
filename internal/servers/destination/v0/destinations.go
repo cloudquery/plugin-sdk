@@ -54,6 +54,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	if err := json.Unmarshal(req.Tables, &tables); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
+
 	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
 }
 

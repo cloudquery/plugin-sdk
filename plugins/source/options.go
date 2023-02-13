@@ -16,3 +16,16 @@ func WithDynamicTableOption(getDynamicTables GetTables) Option {
 		p.getDynamicTables = getDynamicTables
 	}
 }
+
+// WithNoInternalColumns won't add internal columns (_cq_id, _cq_parent_cq_id) to the plugin tables
+func WithNoInternalColumns() Option {
+	return func(p *Plugin) {
+		p.internalColumns = false
+	}
+}
+
+func WithUnmanaged() Option {
+	return func(p *Plugin) {
+		p.unmanaged = true
+	}
+}

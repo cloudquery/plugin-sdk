@@ -22,6 +22,11 @@ type Options struct {
 
 type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, Options) (schema.ClientMeta, error)
 
+type UnmanagedClient interface {
+	schema.ClientMeta
+	Sync(ctx context.Context, metrics *Metrics, res chan<- *schema.Resource) error
+}
+
 // Plugin is the base structure required to pass to sdk.serve
 // We take a declarative approach to API here similar to Cobra
 type Plugin struct {
@@ -58,6 +63,11 @@ type Plugin struct {
 	backend backend.Backend
 	// spec is the spec the client was initialized with
 	spec specs.Source
+	// NoInternalColumns if set to true will not add internal columns to tables such as _cq_id and _cq_parent_id
+	// useful for sources such as PostgreSQL and other databases
+	internalColumns bool
+	// unmanaged if set to true then the plugin will call Sync directly and not use the scheduler
+	unmanaged bool
 }
 
 const (
@@ -129,6 +139,7 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 		newExecutionClient: newExecutionClient,
 		metrics:            &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:              caser.New(),
+		internalColumns:    true,
 	}
 	for _, opt := range options {
 		opt(&p)
@@ -137,8 +148,10 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 	if err := transformTables(p.tables); err != nil {
 		panic(err)
 	}
-	if err := addInternalColumns(p.tables); err != nil {
-		panic(err)
+	if p.internalColumns {
+		if err := addInternalColumns(p.tables); err != nil {
+			panic(err)
+		}
 	}
 	if err := p.validate(); err != nil {
 		panic(err)
@@ -244,8 +257,10 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 		if err := transformTables(tables); err != nil {
 			return err
 		}
-		if err := addInternalColumns(tables); err != nil {
-			return err
+		if p.internalColumns {
+			if err := addInternalColumns(tables); err != nil {
+				return err
+			}
 		}
 		if err := p.validate(); err != nil {
 			return err
@@ -281,13 +296,20 @@ func (p *Plugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
 	}
 
 	startTime := time.Now()
-	switch p.spec.Scheduler {
-	case specs.SchedulerDFS:
-		p.syncDfs(ctx, p.spec, p.client, p.sessionTables, res)
-	case specs.SchedulerRoundRobin:
-		p.syncRoundRobin(ctx, p.spec, p.client, p.sessionTables, res)
-	default:
-		return fmt.Errorf("unknown scheduler %s. Options are: %v", p.spec.Scheduler, specs.AllSchedulers.String())
+	if p.unmanaged {
+		unmanagedClient := p.client.(UnmanagedClient)
+		if err := unmanagedClient.Sync(ctx, p.metrics, res); err != nil {
+			return fmt.Errorf("failed to sync unmanaged client: %w", err)
+		}
+	} else {
+		switch p.spec.Scheduler {
+		case specs.SchedulerDFS:
+			p.syncDfs(ctx, p.spec, p.client, p.sessionTables, res)
+		case specs.SchedulerRoundRobin:
+			p.syncRoundRobin(ctx, p.spec, p.client, p.sessionTables, res)
+		default:
+			return fmt.Errorf("unknown scheduler %s. Options are: %v", p.spec.Scheduler, specs.AllSchedulers.String())
+		}
 	}
 
 	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
