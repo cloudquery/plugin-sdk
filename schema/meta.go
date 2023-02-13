@@ -16,6 +16,9 @@ var CqIDColumn = Column{
 	Type:        TypeUUID,
 	Description: "Internal CQ ID of the row",
 	Resolver:    cqUUIDResolver(),
+	CreationOptions: ColumnCreationOptions{
+		NotNull: true,
+	},
 }
 var CqParentIDColumn = Column{
 	Name:          "_cq_parent_id",

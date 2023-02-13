@@ -3,7 +3,6 @@ package schema
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 	"testing"
@@ -59,7 +58,6 @@ func TestCQTypesMarshal(t *testing.T) {
 		&Bool{Bool: true, Status: Present},
 	}
 	b, err := json.Marshal(cqTypes)
-	fmt.Println(string(b))
 	if err != nil {
 		t.Fatal(err)
 	}
