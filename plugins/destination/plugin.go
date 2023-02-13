@@ -285,7 +285,7 @@ func SetDestinationManagedCqColumns(tables []*schema.Table) {
 	for _, table := range tables {
 		table.OverwriteOrAddColumn(&schema.CqSyncTimeColumn)
 		table.OverwriteOrAddColumn(&schema.CqSourceNameColumn)
-		// This is for backward compatiblity for sources that didn't update the SDK yet
+		// This is for backward compatibility for sources that didn't update the SDK yet
 		table.OverwriteOrAddColumn(&schema.CqIDColumn)
 
 		SetDestinationManagedCqColumns(table.Relations)
