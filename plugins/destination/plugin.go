@@ -186,6 +186,7 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 // we implement all DestinationClient functions so we can hook into pre-post behavior
 func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
 	SetDestinationManagedCqColumns(tables)
+	setCqIDNotNullColumnForTables(tables)
 	return p.client.Migrate(ctx, tables)
 }
 
@@ -285,7 +286,20 @@ func SetDestinationManagedCqColumns(tables []*schema.Table) {
 	for _, table := range tables {
 		table.OverwriteOrAddColumn(&schema.CqSyncTimeColumn)
 		table.OverwriteOrAddColumn(&schema.CqSourceNameColumn)
-
 		SetDestinationManagedCqColumns(table.Relations)
+	}
+}
+
+// this is for backward compatibility for sources that didn't update the SDK yet
+// TODO: remove this in the future once all sources have updated the SDK
+func setCqIDNotNullColumnForTables(tables []*schema.Table) {
+	for _, table := range tables {
+		for i, c := range table.Columns {
+			if c.Name == schema.CqIDColumn.Name {
+				table.Columns[i].CreationOptions.NotNull = true
+				return
+			}
+		}
+		setCqIDNotNullColumnForTables(table.Relations)
 	}
 }
