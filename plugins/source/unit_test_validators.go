@@ -2,19 +2,17 @@ package source
 
 import (
 	"fmt"
-	"testing"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	pluralize "github.com/gertd/go-pluralize"
 )
 
-type Validator func(t *testing.T, plugin *Plugin, resources []*schema.Resource) error
+type Validator func(plugin *Plugin, resources []*schema.Resource) error
 
-func validateColumnsHaveData(t *testing.T, plugin *Plugin, resources []*schema.Resource) error {
-	t.Helper()
+func validateColumnsHaveData(plugin *Plugin, resources []*schema.Resource) error {
 	tables := extractTables(plugin.tables)
 	for _, table := range tables {
-		err := validateTable(t, table, resources)
+		err := validateTable(table, resources)
 		if err != nil {
 			return err
 		}
@@ -22,8 +20,7 @@ func validateColumnsHaveData(t *testing.T, plugin *Plugin, resources []*schema.R
 	return nil
 }
 
-func validateTableNamePlural(t *testing.T, plugin *Plugin, _ []*schema.Resource) error {
-	t.Helper()
+func validateTableNamePlural(plugin *Plugin, _ []*schema.Resource) error {
 	pluralizeClient := pluralize.NewClient()
 	tables := extractTables(plugin.tables)
 	for _, table := range tables {
@@ -34,9 +31,7 @@ func validateTableNamePlural(t *testing.T, plugin *Plugin, _ []*schema.Resource)
 	return nil
 }
 
-func getTableResources(t *testing.T, table *schema.Table, resources []*schema.Resource) []*schema.Resource {
-	t.Helper()
-
+func getTableResources(table *schema.Table, resources []*schema.Resource) []*schema.Resource {
 	tableResources := make([]*schema.Resource, 0)
 
 	for _, resource := range resources {
@@ -48,13 +43,12 @@ func getTableResources(t *testing.T, table *schema.Table, resources []*schema.Re
 	return tableResources
 }
 
-func validateTable(t *testing.T, table *schema.Table, resources []*schema.Resource) error {
-	t.Helper()
-	tableResources := getTableResources(t, table, resources)
+func validateTable(table *schema.Table, resources []*schema.Resource) error {
+	tableResources := getTableResources(table, resources)
 	if len(tableResources) == 0 {
 		return fmt.Errorf("expected table %s to be synced but it was not found", table.Name)
 	}
-	return validateResources(t, tableResources)
+	return validateResources(tableResources)
 }
 
 func extractTables(tables schema.Tables) []*schema.Table {
@@ -68,9 +62,7 @@ func extractTables(tables schema.Tables) []*schema.Table {
 
 // Validates that every column has at least one non-nil value.
 // Also does some additional validations.
-func validateResources(t *testing.T, resources []*schema.Resource) error {
-	t.Helper()
-
+func validateResources(resources []*schema.Resource) error {
 	table := resources[0].Table
 
 	// A set of column-names that have values in at least one of the resources.

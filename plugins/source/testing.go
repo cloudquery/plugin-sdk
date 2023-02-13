@@ -42,7 +42,7 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 		t.Fatal(syncErr)
 	}
 	for _, validator := range o.validators {
-		err := validator(t, plugin, syncedResources)
+		err := validator(plugin, syncedResources)
 		if err != nil {
 			t.Fatal(err)
 		}
