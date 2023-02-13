@@ -22,7 +22,7 @@ type Options struct {
 
 type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, Options) (schema.ClientMeta, error)
 
-type SourceUnmanagedClient interface {
+type UnmanagedClient interface {
 	schema.ClientMeta
 	Sync(ctx context.Context, metrics *Metrics, res chan<- *schema.Resource) error
 }
