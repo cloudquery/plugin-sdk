@@ -17,7 +17,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
-	tableName := fmt.Sprintf("cq_test_write_overwrite_delete_stale_%d", time.Now().Unix())
+	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
 	table := testdata.TestTable(tableName)
 	incTable := testdata.TestTable(tableName + "_incremental")
 	incTable.IsIncremental = true

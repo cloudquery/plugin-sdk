@@ -58,7 +58,9 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 	).Level(zerolog.TraceLevel).With().Timestamp().Logger()
 }
 
-func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSuiteTests) {
+type NewPluginFunc func() *Plugin
+
+func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, tests PluginTestSuiteTests) {
 	t.Helper()
 	destSpec := specs.Destination{
 		Name: "testsuite",
@@ -75,7 +77,12 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 		if suite.tests.SkipOverwrite {
 			t.Skip("skipping " + t.Name())
 		}
+		destSpec.Name = "test_write_overwrite"
+		p := newPlugin()
 		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -85,30 +92,45 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 		if suite.tests.SkipOverwrite || suite.tests.SkipDeleteStale {
 			t.Skip("skipping " + t.Name())
 		}
+		destSpec.Name = "test_write_overwrite_delete_stale"
+		p := newPlugin()
 		if err := suite.destinationPluginTestWriteOverwriteDeleteStale(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
 
-	t.Run("TestWriteMigrateOverwrite", func(t *testing.T) {
+	t.Run("TestMigrateOverwrite", func(t *testing.T) {
 		t.Helper()
 		if suite.tests.SkipMigrateOverwrite {
 			t.Skip("skipping " + t.Name())
 		}
 		destSpec.WriteMode = specs.WriteModeOverwrite
+		destSpec.Name = "test_migrate_overwrite"
+		p := newPlugin()
 		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
 
-	t.Run("TestWriteMigrateOverwriteForce", func(t *testing.T) {
+	t.Run("TestMigrateOverwriteForce", func(t *testing.T) {
 		t.Helper()
 		if suite.tests.SkipMigrateOverwriteForce {
 			t.Skip("skipping " + t.Name())
 		}
 		destSpec.WriteMode = specs.WriteModeOverwrite
 		destSpec.MigrateMode = specs.MigrateModeForced
+		destSpec.Name = "test_migrate_overwrite_force"
+		p := newPlugin()
 		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -118,7 +140,12 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 		if suite.tests.SkipAppend {
 			t.Skip("skipping " + t.Name())
 		}
+		destSpec.Name = "test_write_append"
+		p := newPlugin()
 		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -129,7 +156,12 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 			t.Skip("skipping " + t.Name())
 		}
 		destSpec.WriteMode = specs.WriteModeAppend
+		destSpec.Name = "test_migrate_append"
+		p := newPlugin()
 		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -141,7 +173,12 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, spec any, tests PluginTestSu
 		}
 		destSpec.WriteMode = specs.WriteModeAppend
 		destSpec.MigrateMode = specs.MigrateModeForced
+		destSpec.Name = "test_migrate_append_force"
+		p := newPlugin()
 		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
