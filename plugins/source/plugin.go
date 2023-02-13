@@ -139,7 +139,7 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 		newExecutionClient: newExecutionClient,
 		metrics:            &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:              caser.New(),
-		internalColumns: 	true,
+		internalColumns:    true,
 	}
 	for _, opt := range options {
 		opt(&p)
@@ -297,7 +297,7 @@ func (p *Plugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
 
 	startTime := time.Now()
 	if p.unmanaged {
-		unmanagedClient := p.client.(SourceUnmanagedClient)
+		unmanagedClient := p.client.(UnmanagedClient)
 		if err := unmanagedClient.Sync(ctx, p.metrics, res); err != nil {
 			return fmt.Errorf("failed to sync unmanaged client: %w", err)
 		}
