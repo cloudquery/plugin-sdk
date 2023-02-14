@@ -297,7 +297,6 @@ func setCqIDNotNullColumnForTables(tables []*schema.Table) {
 		for i, c := range table.Columns {
 			if c.Name == schema.CqIDColumn.Name {
 				table.Columns[i].CreationOptions.NotNull = true
-				return
 			}
 		}
 		setCqIDNotNullColumnForTables(table.Relations)
