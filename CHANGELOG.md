@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.37.1](https://github.com/cloudquery/plugin-sdk/compare/v1.37.0...v1.37.1) (2023-02-14)
+
+
+### Bug Fixes
+
+* Set _cq_id not null for all tables ([#686](https://github.com/cloudquery/plugin-sdk/issues/686)) ([ff5f1d4](https://github.com/cloudquery/plugin-sdk/commit/ff5f1d423299a5bc44da635d26210ef088722234))
+
 ## [1.37.0](https://github.com/cloudquery/plugin-sdk/compare/v1.36.3...v1.37.0) (2023-02-13)
 
 
