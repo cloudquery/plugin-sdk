@@ -11,36 +11,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var tableTest1 = &schema.Table{
-	Name: "test1",
-	Columns: []schema.Column{
-		{
-			Name: "id",
-			Type: schema.TypeUUID,
-			CreationOptions: schema.ColumnCreationOptions{
-				PrimaryKey: true,
-			},
-		},
-	},
-}
-
-var tableTest2 = &schema.Table{
-	Name: "test1",
-	Columns: []schema.Column{
-		{
-			Name: "id",
-			Type: schema.TypeUUID,
-			CreationOptions: schema.ColumnCreationOptions{
-				PrimaryKey: true,
-			},
-		},
-		{
-			Name: "bool",
-			Type: schema.TypeBool,
-		},
-	},
-}
-
 func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schema.Table, source *schema.Table, mode specs.MigrateMode) error {
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -94,13 +64,13 @@ func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec s
 }
 
 func (*PluginTestSuite) destinationPluginTestMigrate(
-	t *testing.T,
 	ctx context.Context,
+	t *testing.T,
 	newPlugin NewPluginFunc,
 	logger zerolog.Logger,
 	spec specs.Destination,
 	strategy MigrateStrategy,
-) error {
+) {
 	spec.BatchSize = 1
 
 	t.Run("add_column", func(t *testing.T) {
@@ -292,6 +262,4 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			t.Fatal(err)
 		}
 	})
-
-	return nil
 }

@@ -129,9 +129,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		}
 		destSpec.WriteMode = specs.WriteModeOverwrite
 		destSpec.Name = "test_migrate_overwrite"
-		if err := suite.destinationPluginTestMigrate(t, ctx, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite); err != nil {
-			t.Fatal(err)
-		}
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
 	})
 
 	t.Run("TestMigrateOverwriteForce", func(t *testing.T) {
@@ -142,9 +140,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		destSpec.WriteMode = specs.WriteModeOverwrite
 		destSpec.MigrateMode = specs.MigrateModeForced
 		destSpec.Name = "test_migrate_overwrite_force"
-		if err := suite.destinationPluginTestMigrate(t, ctx, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite); err != nil {
-			t.Fatal(err)
-		}
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
 	})
 
 	t.Run("TestWriteAppend", func(t *testing.T) {
@@ -169,9 +165,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		}
 		destSpec.WriteMode = specs.WriteModeAppend
 		destSpec.Name = "test_migrate_append"
-		if err := suite.destinationPluginTestMigrate(t, ctx, newPlugin, logger, destSpec, tests.MigrateStrategyAppend); err != nil {
-			t.Fatal(err)
-		}
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
 	})
 
 	t.Run("TestMigrateAppendForce", func(t *testing.T) {
@@ -182,9 +176,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		destSpec.WriteMode = specs.WriteModeAppend
 		destSpec.MigrateMode = specs.MigrateModeForced
 		destSpec.Name = "test_migrate_append_force"
-		if err := suite.destinationPluginTestMigrate(t, ctx, newPlugin, logger, destSpec, tests.MigrateStrategyAppend); err != nil {
-			t.Fatal(err)
-		}
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
 	})
 }
 

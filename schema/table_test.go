@@ -246,8 +246,8 @@ func TestTablesFilterDFS(t *testing.T) {
 
 type testTableGetChangeTestCase struct {
 	name            string
-	target           *Table
-	source           *Table
+	target          *Table
+	source          *Table
 	expectedChanges []TableColumnChange
 }
 
