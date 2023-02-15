@@ -13,6 +13,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var migrateStrategyOverwrite = destination.MigrateStrategy{
+	AddColumn:           specs.MigrateModeForced,
+	AddColumnNotNull:    specs.MigrateModeForced,
+	RemoveColumn:        specs.MigrateModeForced,
+	RemoveColumnNotNull: specs.MigrateModeForced,
+	ChangeColumn:        specs.MigrateModeForced,
+}
+
+var migrateStrategyAppend = destination.MigrateStrategy{
+	AddColumn:           specs.MigrateModeForced,
+	AddColumnNotNull:    specs.MigrateModeForced,
+	RemoveColumn:        specs.MigrateModeForced,
+	RemoveColumnNotNull: specs.MigrateModeForced,
+	ChangeColumn:        specs.MigrateModeForced,
+}
+
 func TestPluginUnmanagedClient(t *testing.T) {
 	destination.PluginTestSuiteRunner(
 		t,
@@ -20,7 +36,11 @@ func TestPluginUnmanagedClient(t *testing.T) {
 			return destination.NewPlugin("test", "development", NewClient)
 		},
 		nil,
-		destination.PluginTestSuiteTests{})
+		destination.PluginTestSuiteTests{
+			MigrateStrategyOverwrite: migrateStrategyOverwrite,
+			MigrateStrategyAppend:    migrateStrategyOverwrite,
+		},
+	)
 }
 
 func TestPluginManagedClient(t *testing.T) {
@@ -29,7 +49,10 @@ func TestPluginManagedClient(t *testing.T) {
 			return destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter())
 		},
 		nil,
-		destination.PluginTestSuiteTests{})
+		destination.PluginTestSuiteTests{
+			MigrateStrategyOverwrite: migrateStrategyOverwrite,
+			MigrateStrategyAppend:    migrateStrategyOverwrite,
+		})
 }
 
 func TestPluginManagedClientWithSmallBatchSize(t *testing.T) {
@@ -39,7 +62,10 @@ func TestPluginManagedClientWithSmallBatchSize(t *testing.T) {
 				destination.WithDefaultBatchSize(1),
 				destination.WithDefaultBatchSizeBytes(1))
 		}, nil,
-		destination.PluginTestSuiteTests{})
+		destination.PluginTestSuiteTests{
+			MigrateStrategyOverwrite: migrateStrategyOverwrite,
+			MigrateStrategyAppend:    migrateStrategyOverwrite,
+		})
 }
 
 func TestPluginManagedClientWithLargeBatchSize(t *testing.T) {
@@ -50,7 +76,10 @@ func TestPluginManagedClientWithLargeBatchSize(t *testing.T) {
 				destination.WithDefaultBatchSizeBytes(100000000))
 		},
 		nil,
-		destination.PluginTestSuiteTests{})
+		destination.PluginTestSuiteTests{
+			MigrateStrategyOverwrite: migrateStrategyOverwrite,
+			MigrateStrategyAppend:    migrateStrategyOverwrite,
+		})
 }
 
 func TestPluginOnNewError(t *testing.T) {
