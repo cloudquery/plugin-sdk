@@ -3,13 +3,19 @@ package destination
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
+
+func tableUUIDSuffix() string {
+	return strings.ReplaceAll(uuid.NewString(), "-", "_")
+}
 
 func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schema.Table, source *schema.Table, mode specs.MigrateMode) error {
 	if err := p.Init(ctx, logger, spec); err != nil {
@@ -78,8 +84,9 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
+		tableName := "add_column_" + tableUUIDSuffix()
 		source := &schema.Table{
-			Name: "add_column",
+			Name: tableName,
 			Columns: []schema.Column{
 				{
 					Name: "id",
@@ -88,7 +95,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		target := &schema.Table{
-			Name: "add_column",
+			Name: tableName,
 			Columns: []schema.Column{
 				{
 					Name: "id",
@@ -102,7 +109,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 		}
 		p := newPlugin()
 		if err := testMigration(ctx, p, logger, spec, target, source, strategy.AddColumn); err != nil {
-			t.Fatalf("failed to migrate add_column: %v", err)
+			t.Fatalf("failed to migrate %s: %v", tableName, err)
 		}
 		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
@@ -114,8 +121,9 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
+		tableName := "add_column_not_null_" + tableUUIDSuffix()
 		source := &schema.Table{
-			Name: "add_column_not_null",
+			Name: tableName,
 			Columns: []schema.Column{
 				{
 					Name: "id",
@@ -124,7 +132,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		target := &schema.Table{
-			Name: "add_column_not_null",
+			Name: tableName,
 			Columns: []schema.Column{
 				{
 					Name: "id",
@@ -153,8 +161,9 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
+		tableName := "remove_column_" + tableUUIDSuffix()
 		source := &schema.Table{
-			Name: "remove_column",
+			Name: tableName,
 			Columns: []schema.Column{
 				{
 					Name: "id",
@@ -167,7 +176,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		target := &schema.Table{
-			Name: "remove_column",
+			Name: tableName,
 			Columns: []schema.Column{
 				{
 					Name: "id",
@@ -189,8 +198,9 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
+		tableName := "remove_column_not_null_" + tableUUIDSuffix()
 		source := &schema.Table{
-			Name: "remove_column_not_null",
+			Name: tableName,
 			Columns: []schema.Column{
 				{
 					Name: "id",
@@ -206,7 +216,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		target := &schema.Table{
-			Name: "remove_column_not_null",
+			Name: tableName,
 			Columns: []schema.Column{
 				{
 					Name: "id",
@@ -215,7 +225,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.RemoveColumn); err != nil {
+		if err := testMigration(ctx, p, logger, spec, target, source, strategy.RemoveColumnNotNull); err != nil {
 			t.Fatalf("failed to migrate add_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -228,8 +238,9 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
+		tableName := "change_column_" + tableUUIDSuffix()
 		source := &schema.Table{
-			Name: "change_column",
+			Name: tableName,
 			Columns: []schema.Column{
 				{
 					Name: "id",
@@ -242,7 +253,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		target := &schema.Table{
-			Name: "change_column",
+			Name: tableName,
 			Columns: []schema.Column{
 				{
 					Name: "id",
@@ -255,7 +266,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.RemoveColumn); err != nil {
+		if err := testMigration(ctx, p, logger, spec, target, source, strategy.ChangeColumn); err != nil {
 			t.Fatalf("failed to migrate add_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
