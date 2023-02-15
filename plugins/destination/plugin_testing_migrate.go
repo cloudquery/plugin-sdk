@@ -28,7 +28,7 @@ func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec s
 	}, source.Columns...)
 	target.Columns = append(schema.ColumnList{
 		schema.CqSourceNameColumn,
-		schema.CqSyncTimeColumn,	
+		schema.CqSyncTimeColumn,
 	}, target.Columns...)
 
 	if err := p.Migrate(ctx, []*schema.Table{source}); err != nil {
