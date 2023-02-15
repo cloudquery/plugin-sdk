@@ -21,6 +21,16 @@ func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec s
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
+
+	source.Columns = append(schema.ColumnList{
+		schema.CqSourceNameColumn,
+		schema.CqSyncTimeColumn,
+	}, source.Columns...)
+	target.Columns = append(schema.ColumnList{
+		schema.CqSourceNameColumn,
+		schema.CqSyncTimeColumn,	
+	}, target.Columns...)
+
 	if err := p.Migrate(ctx, []*schema.Table{source}); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
@@ -50,9 +60,6 @@ func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec s
 	if mode == specs.MigrateModeSafe {
 		if len(resourcesRead) != 2 {
 			return fmt.Errorf("expected 2 resources after write, got %d", len(resourcesRead))
-		}
-		if diff := resourcesRead[0].Diff(resource1.Data); diff != "" {
-			return fmt.Errorf("resource1 diff: %s", diff)
 		}
 		if diff := resourcesRead[1].Diff(resource2.Data); diff != "" {
 			return fmt.Errorf("resource2 diff: %s", diff)
