@@ -274,7 +274,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 		}
 		p := newPlugin()
 		if err := testMigration(ctx, p, logger, spec, target, source, strategy.ChangeColumn); err != nil {
-			t.Fatalf("failed to migrate add_column: %v", err)
+			t.Fatalf("failed to migrate change_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
