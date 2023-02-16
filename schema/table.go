@@ -104,7 +104,16 @@ func (t TableColumnChangeType) String() string {
 }
 
 func (t TableColumnChange) String() string {
-	return fmt.Sprintf("column: %s, type: %s, current: %s, previous: %s", t.ColumnName, t.Type, t.Current, t.Previous)
+	switch t.Type {
+	case TableColumnChangeTypeAdd:
+		return fmt.Sprintf("column: %s, type: %s, current: %s", t.ColumnName, t.Type, t.Current)
+	case TableColumnChangeTypeUpdate:
+		return fmt.Sprintf("column: %s, type: %s, current: %s, previous: %s", t.ColumnName, t.Type, t.Current, t.Previous)
+	case TableColumnChangeTypeRemove:
+		return fmt.Sprintf("column: %s, type: %s, previous: %s", t.ColumnName, t.Type, t.Previous)
+	default:
+		return fmt.Sprintf("column: %s, type: %s, current: %s, previous: %s", t.ColumnName, t.Type, t.Current, t.Previous)
+	}
 }
 
 func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool, skipDependentTables bool) Tables {
