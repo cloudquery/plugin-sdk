@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.38.0](https://github.com/cloudquery/plugin-sdk/compare/v1.37.1...v1.38.0) (2023-02-16)
+
+
+### Features
+
+* Improve migration detection APIs ([#688](https://github.com/cloudquery/plugin-sdk/issues/688)) ([dc3bedf](https://github.com/cloudquery/plugin-sdk/commit/dc3bedf7af75c834882753a10499162da626a876))
+
+
+### Bug Fixes
+
+* Better string methods for TableColumnChange ([#690](https://github.com/cloudquery/plugin-sdk/issues/690)) ([a0ec52c](https://github.com/cloudquery/plugin-sdk/commit/a0ec52ca2c161cd6f77bca1285d47ae2d7616e30))
+
 ## [1.37.1](https://github.com/cloudquery/plugin-sdk/compare/v1.37.0...v1.37.1) (2023-02-14)
 
 
