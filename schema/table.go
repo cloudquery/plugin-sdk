@@ -31,6 +31,22 @@ type SyncSummary struct {
 	Panics    uint64
 }
 
+type TableColumnChangeType int
+
+const (
+	TableColumnChangeTypeUnknown TableColumnChangeType = iota
+	TableColumnChangeTypeAdd
+	TableColumnChangeTypeUpdate
+	TableColumnChangeTypeRemove
+)
+
+type TableColumnChange struct {
+	Type       TableColumnChangeType
+	ColumnName string
+	Current    Column
+	Previous   Column
+}
+
 type Table struct {
 	// Name of table
 	Name string `json:"name"`
@@ -73,6 +89,23 @@ var (
 	reValidTableName  = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
+
+func (t TableColumnChangeType) String() string {
+	switch t {
+	case TableColumnChangeTypeAdd:
+		return "add"
+	case TableColumnChangeTypeUpdate:
+		return "update"
+	case TableColumnChangeTypeRemove:
+		return "remove"
+	default:
+		return "unknown"
+	}
+}
+
+func (t TableColumnChange) String() string {
+	return fmt.Sprintf("column: %s, type: %s, current: %s, previous: %s", t.ColumnName, t.Type, t.Current, t.Previous)
+}
 
 func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool, skipDependentTables bool) Tables {
 	filteredTables := make(Tables, 0, len(tt))
@@ -248,55 +281,38 @@ func (t *Table) ValidateName() error {
 	return nil
 }
 
-// GetAddedColumns returns a list of columns that are in this table but not in the other table.
-func (t *Table) GetAddedColumns(other *Table) []Column {
-	var added []Column
+// Get Changes returns changes between two tables when t is the new one and old is the old one.
+func (t *Table) GetChanges(old *Table) []TableColumnChange {
+	var changes []TableColumnChange
 	for _, c := range t.Columns {
-		if other.Columns.Get(c.Name) == nil {
-			added = append(added, c)
-		}
-	}
-	return added
-}
-
-// GetChangedColumns returns a list of columns that are in this table but have different type in the other table.
-// returns got, want
-func (t *Table) GetChangedColumns(other *Table) (got ColumnList, want ColumnList) {
-	for _, c := range t.Columns {
-		otherCol := other.Columns.Get(c.Name)
-		if otherCol == nil {
+		otherColumn := old.Columns.Get(c.Name)
+		if otherColumn == nil {
+			changes = append(changes, TableColumnChange{
+				Type:       TableColumnChangeTypeAdd,
+				ColumnName: c.Name,
+				Current:    c,
+			})
 			continue
 		}
-		if c.Type != otherCol.Type {
-			got = append(got, c)
-			want = append(want, *otherCol)
-		}
-		if c.CreationOptions.NotNull != otherCol.CreationOptions.NotNull {
-			got = append(got, c)
-			want = append(want, *otherCol)
-		}
-	}
-	return got, want
-}
-
-func (t *Table) IsPrimaryKeyEqual(other *Table) bool {
-	for _, c := range t.Columns {
-		if c.CreationOptions.PrimaryKey {
-			otherCol := other.Columns.Get(c.Name)
-			if otherCol == nil || !otherCol.CreationOptions.PrimaryKey {
-				return false
-			}
+		if c.Type != otherColumn.Type || c.CreationOptions.NotNull != otherColumn.CreationOptions.NotNull || c.CreationOptions.PrimaryKey != otherColumn.CreationOptions.PrimaryKey {
+			changes = append(changes, TableColumnChange{
+				Type:       TableColumnChangeTypeUpdate,
+				ColumnName: c.Name,
+				Current:    c,
+				Previous:   *otherColumn,
+			})
 		}
 	}
-	for _, c := range other.Columns {
-		if c.CreationOptions.PrimaryKey {
-			otherCol := t.Columns.Get(c.Name)
-			if otherCol == nil || !otherCol.CreationOptions.PrimaryKey {
-				return false
-			}
+	for _, c := range old.Columns {
+		if t.Columns.Get(c.Name) == nil {
+			changes = append(changes, TableColumnChange{
+				Type:       TableColumnChangeTypeRemove,
+				ColumnName: c.Name,
+				Previous:   c,
+			})
 		}
 	}
-	return true
+	return changes
 }
 
 func (t *Table) ValidateDuplicateColumns() error {

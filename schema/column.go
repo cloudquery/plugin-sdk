@@ -44,7 +44,7 @@ type Column struct {
 	IgnoreInTests bool `json:"-"`
 }
 
-func (c *Column) String() string {
+func (c Column) String() string {
 	var sb strings.Builder
 	sb.WriteString(c.Name)
 	sb.WriteString(":")

@@ -19,6 +19,7 @@ type client struct {
 	schema.DefaultTransformer
 	spec          specs.Destination
 	memoryDB      map[string][][]any
+	tables        map[string]*schema.Table
 	memoryDBLock  sync.RWMutex
 	errOnWrite    bool
 	blockingWrite bool
@@ -62,6 +63,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 func NewClient(_ context.Context, _ zerolog.Logger, spec specs.Destination) (destination.Client, error) {
 	return &client{
 		memoryDB: make(map[string][][]any),
+		tables:   make(map[string]*schema.Table),
 		spec:     spec,
 	}, nil
 }
@@ -101,9 +103,19 @@ func (c *client) overwrite(table *schema.Table, data []any) {
 
 func (c *client) Migrate(_ context.Context, tables schema.Tables) error {
 	for _, table := range tables {
-		if c.memoryDB[table.Name] == nil {
+		memTable := c.memoryDB[table.Name]
+		if memTable == nil {
 			c.memoryDB[table.Name] = make([][]any, 0)
+			c.tables[table.Name] = table
+			continue
 		}
+		changes := table.GetChanges(c.tables[table.Name])
+		// memdb doesn't support any auto-migrate
+		if changes == nil {
+			continue
+		}
+		c.memoryDB[table.Name] = make([][]any, 0)
+		c.tables[table.Name] = table
 	}
 	return nil
 }
