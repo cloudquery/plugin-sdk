@@ -18,7 +18,6 @@ type PluginTestSuite struct {
 }
 
 // MigrateStrategy defines which tests we should include
-// true means test should succeed for either automigrate
 type MigrateStrategy struct {
 	AddColumn           specs.MigrateMode
 	AddColumnNotNull    specs.MigrateMode
