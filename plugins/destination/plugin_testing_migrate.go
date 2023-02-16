@@ -233,7 +233,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 		}
 		p := newPlugin()
 		if err := testMigration(ctx, p, logger, spec, target, source, strategy.RemoveColumnNotNull); err != nil {
-			t.Fatalf("failed to migrate add_column: %v", err)
+			t.Fatalf("failed to migrate remove_column_not_null: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
