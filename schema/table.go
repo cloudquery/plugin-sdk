@@ -281,23 +281,11 @@ func (t *Table) ValidateName() error {
 	return nil
 }
 
-// added columns with no constraints - migrate // table.GetAddedColumns(other)
-// added columns with not null - drop table // table.GetAddedConstraintColumns(other)
-// added columns with unique - drop table
-
-// changed columns: change type - drop table or drop/add column? // table.GetChangedColumns(other)
-// changed columns: added constraint not null or unique - drop table // table.GetChangedColumnsWithAddedConstraints
-// changed columns: removed constraint: not null, removed unique - drop constraint? do nothing? what if a user is adding a unique constraint? we will drop it? // table.GetChangedColumnsWithRemovedConstraints
-
-// removed columns: with no constraints - do nothing?
-// removed columns: with constraints not null or unique - drop column? drop table ? // table.RemovedColumnsWithConstraints(other)
-
-// changed pks: drop table // table.IsPrimaryKeyEqual(other)
-
-func (t *Table) GetChanges(other *Table) []TableColumnChange {
+// Get Changes returns changes between two tables when t is the new one and old is the old one.
+func (t *Table) GetChanges(old *Table) []TableColumnChange {
 	var changes []TableColumnChange
 	for _, c := range t.Columns {
-		otherColumn := other.Columns.Get(c.Name)
+		otherColumn := old.Columns.Get(c.Name)
 		if otherColumn == nil {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeAdd,
@@ -315,7 +303,7 @@ func (t *Table) GetChanges(other *Table) []TableColumnChange {
 			})
 		}
 	}
-	for _, c := range other.Columns {
+	for _, c := range old.Columns {
 		if t.Columns.Get(c.Name) == nil {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeRemove,
