@@ -38,7 +38,7 @@ func TestPluginUnmanagedClient(t *testing.T) {
 		nil,
 		destination.PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
-			MigrateStrategyAppend:    migrateStrategyOverwrite,
+			MigrateStrategyAppend:    migrateStrategyAppend,
 		},
 	)
 }
