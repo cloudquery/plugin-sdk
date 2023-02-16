@@ -17,13 +17,6 @@ type PluginTestSuite struct {
 	tests PluginTestSuiteTests
 }
 
-// type MigrateResult int
-
-// const (
-// 	MigrateResultSuccess MigrateResult = iota
-// 	MigrateResultDropTable
-// )
-
 // MigrateStrategy defines which tests we should include
 // true means test should succeed for either automigrate
 type MigrateStrategy struct {
