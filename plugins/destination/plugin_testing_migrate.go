@@ -66,7 +66,7 @@ func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec s
 		}
 	} else {
 		if len(resourcesRead) != 1 {
-			return fmt.Errorf("expected 1 resources after write, got %d", len(resourcesRead))
+			return fmt.Errorf("expected 1 resource after write, got %d", len(resourcesRead))
 		}
 		if diff := resourcesRead[0].Diff(resource2.Data); diff != "" {
 			return fmt.Errorf("resource1 diff: %s", diff)
