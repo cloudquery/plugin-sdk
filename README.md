@@ -10,11 +10,14 @@ Source plugins allows developers to extract information from third party APIs an
 
 Destinations plugins allows writing the data from any of the source plugins to an additional database, message queue, storage or any other destination without recompiling any of the source plugins.
 
+The plugin SDK is imported as a dependency by CloudQuery plugins. When starting a new plugin, you should use the Scaffold tool.
+
 ## Getting Started & Documentation
 
-* [Homepage](https://www.cloudquery.io)
-* [Releases](https://github.com/cloudquery/cloudquery/releases?q=cli%2F&expanded=true)
-* [Documentation](https://www.cloudquery.io/docs)
+* [CloudQuery Homepage](https://www.cloudquery.io)
+* [CloudQuery Releases](https://github.com/cloudquery/cloudquery/releases?q=cli%2F&expanded=true)
+* [Creating a new Plugin](https://www.cloudquery.io/docs/developers/creating-new-plugin) (Docs)
+* [How to Write a CloudQuery Plugin](https://www.youtube.com/watch?v=3Ka_Ob8E6P8) (Video 🎥)
 
 ## Supported plugins
 
