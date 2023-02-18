@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.38.0](https://github.com/cloudquery/plugin-sdk/compare/v1.37.1...v1.38.0) (2023-02-16)
+
+
+### Features
+
+* Improve migration detection APIs ([#688](https://github.com/cloudquery/plugin-sdk/issues/688)) ([dc3bedf](https://github.com/cloudquery/plugin-sdk/commit/dc3bedf7af75c834882753a10499162da626a876))
+
+
+### Bug Fixes
+
+* Better string methods for TableColumnChange ([#690](https://github.com/cloudquery/plugin-sdk/issues/690)) ([a0ec52c](https://github.com/cloudquery/plugin-sdk/commit/a0ec52ca2c161cd6f77bca1285d47ae2d7616e30))
+
+## [1.37.1](https://github.com/cloudquery/plugin-sdk/compare/v1.37.0...v1.37.1) (2023-02-14)
+
+
+### Bug Fixes
+
+* Set _cq_id not null for all tables ([#686](https://github.com/cloudquery/plugin-sdk/issues/686)) ([ff5f1d4](https://github.com/cloudquery/plugin-sdk/commit/ff5f1d423299a5bc44da635d26210ef088722234))
+
+## [1.37.0](https://github.com/cloudquery/plugin-sdk/compare/v1.36.3...v1.37.0) (2023-02-13)
+
+
+### Features
+
+* Add unmanaged sources ([#677](https://github.com/cloudquery/plugin-sdk/issues/677)) ([f3e2b1d](https://github.com/cloudquery/plugin-sdk/commit/f3e2b1d982268ce9fa3c23a5cad5b853119c49e6))
+
+
+### Bug Fixes
+
+* Fix race in dest testing try 3 ([#683](https://github.com/cloudquery/plugin-sdk/issues/683)) ([8e8f5fe](https://github.com/cloudquery/plugin-sdk/commit/8e8f5fe75892a3c154e4ad9a809e6132f0674b8f))
+* Make sure _cq_id unique across all dest plugins ([#685](https://github.com/cloudquery/plugin-sdk/issues/685)) ([a9a1173](https://github.com/cloudquery/plugin-sdk/commit/a9a1173335273858aa7baed566ec8644a059dbbf))
+
 ## [1.36.3](https://github.com/cloudquery/plugin-sdk/compare/v1.36.2...v1.36.3) (2023-02-12)
 
 

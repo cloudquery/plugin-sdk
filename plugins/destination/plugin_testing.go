@@ -17,9 +17,18 @@ type PluginTestSuite struct {
 	tests PluginTestSuiteTests
 }
 
+// MigrateStrategy defines which tests we should include
+type MigrateStrategy struct {
+	AddColumn           specs.MigrateMode
+	AddColumnNotNull    specs.MigrateMode
+	RemoveColumn        specs.MigrateMode
+	RemoveColumnNotNull specs.MigrateMode
+	ChangeColumn        specs.MigrateMode
+}
+
 type PluginTestSuiteTests struct {
 	// SkipOverwrite skips testing for "overwrite" mode. Use if the destination
-	//	// plugin doesn't support this feature.
+	// plugin doesn't support this feature.
 	SkipOverwrite bool
 
 	// SkipDeleteStale skips testing "delete-stale" mode. Use if the destination
@@ -48,6 +57,9 @@ type PluginTestSuiteTests struct {
 	SkipMigrateOverwrite bool
 	// SkipMigrateOverwriteForce skips a test for the migrate function where a column is changed in force mode
 	SkipMigrateOverwriteForce bool
+
+	MigrateStrategyOverwrite MigrateStrategy
+	MigrateStrategyAppend    MigrateStrategy
 }
 
 func getTestLogger(t *testing.T) zerolog.Logger {
@@ -109,13 +121,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		}
 		destSpec.WriteMode = specs.WriteModeOverwrite
 		destSpec.Name = "test_migrate_overwrite"
-		p := newPlugin()
-		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
-			t.Fatal(err)
-		}
-		if err := p.Close(ctx); err != nil {
-			t.Fatal(err)
-		}
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
 	})
 
 	t.Run("TestMigrateOverwriteForce", func(t *testing.T) {
@@ -126,13 +132,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		destSpec.WriteMode = specs.WriteModeOverwrite
 		destSpec.MigrateMode = specs.MigrateModeForced
 		destSpec.Name = "test_migrate_overwrite_force"
-		p := newPlugin()
-		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
-			t.Fatal(err)
-		}
-		if err := p.Close(ctx); err != nil {
-			t.Fatal(err)
-		}
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
 	})
 
 	t.Run("TestWriteAppend", func(t *testing.T) {
@@ -157,13 +157,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		}
 		destSpec.WriteMode = specs.WriteModeAppend
 		destSpec.Name = "test_migrate_append"
-		p := newPlugin()
-		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
-			t.Fatal(err)
-		}
-		if err := p.Close(ctx); err != nil {
-			t.Fatal(err)
-		}
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
 	})
 
 	t.Run("TestMigrateAppendForce", func(t *testing.T) {
@@ -174,13 +168,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		destSpec.WriteMode = specs.WriteModeAppend
 		destSpec.MigrateMode = specs.MigrateModeForced
 		destSpec.Name = "test_migrate_append_force"
-		p := newPlugin()
-		if err := suite.destinationPluginTestMigrate(ctx, p, logger, destSpec); err != nil {
-			t.Fatal(err)
-		}
-		if err := p.Close(ctx); err != nil {
-			t.Fatal(err)
-		}
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
 	})
 }
 
