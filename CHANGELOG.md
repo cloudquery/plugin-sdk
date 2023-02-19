@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.38.1](https://github.com/cloudquery/plugin-sdk/compare/v1.38.0...v1.38.1) (2023-02-18)
+
+
+### Bug Fixes
+
+* **deps:** Update module golang.org/x/net to v0.7.0 [SECURITY] ([#692](https://github.com/cloudquery/plugin-sdk/issues/692)) ([47566c9](https://github.com/cloudquery/plugin-sdk/commit/47566c93f0ce88f6e76f1fcbe261ac14a56f77d3))
+
 ## [1.38.0](https://github.com/cloudquery/plugin-sdk/compare/v1.37.1...v1.38.0) (2023-02-16)
 
 
