@@ -29,14 +29,29 @@ type MigrateStrategy struct {
 type PluginTestSuiteTests struct {
 	// SkipOverwrite skips testing for "overwrite" mode. Use if the destination
 	// plugin doesn't support this feature.
+	// Enabling this option will mean that the following options are also enabled:
+	// - SkipDeleteStale
+	// - SkipMigrateOverwrite
+	// - SkipMigrateOverwriteForce
 	SkipOverwrite bool
 
 	// SkipDeleteStale skips testing "delete-stale" mode. Use if the destination
 	// plugin doesn't support this feature.
 	SkipDeleteStale bool
 
+	// SkipMigrateOverwrite skips a test for the migrate function where a column is added,
+	// data is appended, then the column is removed and more data overwritten, checking that the migrations handle
+	// this correctly.
+	SkipMigrateOverwrite bool
+	// SkipMigrateOverwriteForce skips a test for the migrate function where a column is changed in force mode
+	SkipMigrateOverwriteForce bool
+
 	// SkipAppend skips testing for "append" mode. Use if the destination
 	// plugin doesn't support this feature.
+	// Enabling this option will mean that the following options are also enabled:
+	// - SkipSecondAppend
+	// - SkipMigrateAppend
+	// - SkipMigrateAppendForce
 	SkipAppend bool
 
 	// SkipSecondAppend skips the second append step in the test.
@@ -51,15 +66,26 @@ type PluginTestSuiteTests struct {
 	// SkipMigrateAppendForce skips a test for the migrate function where a column is changed in force mode
 	SkipMigrateAppendForce bool
 
-	// SkipMigrateOverwrite skips a test for the migrate function where a column is added,
-	// data is appended, then the column is removed and more data overwritten, checking that the migrations handle
-	// this correctly.
-	SkipMigrateOverwrite bool
-	// SkipMigrateOverwriteForce skips a test for the migrate function where a column is changed in force mode
-	SkipMigrateOverwriteForce bool
-
 	MigrateStrategyOverwrite MigrateStrategy
 	MigrateStrategyAppend    MigrateStrategy
+}
+
+func (p PluginTestSuiteTests) sanitized() PluginTestSuiteTests {
+	res := p
+
+	if res.SkipOverwrite {
+		res.SkipDeleteStale = true
+		res.SkipMigrateOverwrite = true
+		res.SkipMigrateOverwriteForce = true
+	}
+
+	if res.SkipAppend {
+		res.SkipSecondAppend = true
+		res.SkipMigrateAppend = true
+		res.SkipMigrateAppendForce = true
+	}
+
+	return res
 }
 
 func getTestLogger(t *testing.T) zerolog.Logger {
@@ -78,9 +104,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		Name: "testsuite",
 		Spec: spec,
 	}
-	suite := &PluginTestSuite{
-		tests: tests,
-	}
+	suite := &PluginTestSuite{tests: tests.sanitized()}
 	ctx := context.Background()
 	logger := getTestLogger(t)
 
@@ -101,7 +125,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 
 	t.Run("TestWriteOverwriteDeleteStale", func(t *testing.T) {
 		t.Helper()
-		if suite.tests.SkipOverwrite || suite.tests.SkipDeleteStale {
+		if suite.tests.SkipDeleteStale {
 			t.Skip("skipping " + t.Name())
 		}
 		destSpec.Name = "test_write_overwrite_delete_stale"
