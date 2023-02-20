@@ -11,13 +11,14 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 func tableUUIDSuffix() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "_")
 }
 
-func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schema.Table, source *schema.Table, mode specs.MigrateMode) error {
+func testMigration(t *testing.T, ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schema.Table, source *schema.Table, mode DataLossMode) error {
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
@@ -25,10 +26,12 @@ func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec s
 	source.Columns = append(schema.ColumnList{
 		schema.CqSourceNameColumn,
 		schema.CqSyncTimeColumn,
+		schema.CqIDColumn,
 	}, source.Columns...)
 	target.Columns = append(schema.ColumnList{
 		schema.CqSourceNameColumn,
 		schema.CqSyncTimeColumn,
+		schema.CqIDColumn,
 	}, target.Columns...)
 
 	if err := p.Migrate(ctx, []*schema.Table{source}); err != nil {
@@ -57,14 +60,15 @@ func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec s
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
-	if mode == specs.MigrateModeSafe {
+
+	switch mode {
+	case DataLossNone, DataLossColumn:
 		if len(resourcesRead) != 2 {
 			return fmt.Errorf("expected 2 resources after write, got %d", len(resourcesRead))
 		}
-		if diff := resourcesRead[1].Diff(resource2.Data); diff != "" {
-			return fmt.Errorf("resource2 diff: %s", diff)
-		}
-	} else {
+		// readAll does not guarantee order
+		require.Contains(t, resourcesRead, resource2.Data)
+	case DataLossTable:
 		if len(resourcesRead) != 1 {
 			return fmt.Errorf("expected 1 resource after write, got %d", len(resourcesRead))
 		}
@@ -87,7 +91,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	spec.BatchSize = 1
 
 	t.Run("add_column", func(t *testing.T) {
-		if strategy.AddColumn == specs.MigrateModeForced && spec.MigrateMode == specs.MigrateModeSafe {
+		if strategy.AddColumn != DataLossNone && spec.MigrateMode == specs.MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -115,7 +119,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.AddColumn); err != nil {
+		if err := testMigration(t, ctx, p, logger, spec, target, source, strategy.AddColumn); err != nil {
 			t.Fatalf("failed to migrate %s: %v", tableName, err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -124,7 +128,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("add_column_not_null", func(t *testing.T) {
-		if strategy.AddColumnNotNull == specs.MigrateModeForced && spec.MigrateMode == specs.MigrateModeSafe {
+		if strategy.AddColumnNotNull != DataLossNone && spec.MigrateMode == specs.MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -155,7 +159,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.AddColumnNotNull); err != nil {
+		if err := testMigration(t, ctx, p, logger, spec, target, source, strategy.AddColumnNotNull); err != nil {
 			t.Fatalf("failed to migrate add_column_not_null: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -164,7 +168,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("remove_column", func(t *testing.T) {
-		if strategy.RemoveColumn == specs.MigrateModeForced && spec.MigrateMode == specs.MigrateModeSafe {
+		if strategy.RemoveColumn != DataLossNone && spec.MigrateMode == specs.MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -192,7 +196,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.RemoveColumn); err != nil {
+		if err := testMigration(t, ctx, p, logger, spec, target, source, strategy.RemoveColumn); err != nil {
 			t.Fatalf("failed to migrate remove_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -201,7 +205,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("remove_column_not_null", func(t *testing.T) {
-		if strategy.RemoveColumnNotNull == specs.MigrateModeForced && spec.MigrateMode == specs.MigrateModeSafe {
+		if strategy.RemoveColumnNotNull != DataLossNone && spec.MigrateMode == specs.MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -232,7 +236,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.RemoveColumnNotNull); err != nil {
+		if err := testMigration(t, ctx, p, logger, spec, target, source, strategy.RemoveColumnNotNull); err != nil {
 			t.Fatalf("failed to migrate remove_column_not_null: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -241,7 +245,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("change_column", func(t *testing.T) {
-		if strategy.ChangeColumn == specs.MigrateModeForced && spec.MigrateMode == specs.MigrateModeSafe {
+		if strategy.ChangeColumn != DataLossNone && spec.MigrateMode == specs.MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -273,7 +277,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.ChangeColumn); err != nil {
+		if err := testMigration(t, ctx, p, logger, spec, target, source, strategy.ChangeColumn); err != nil {
 			t.Fatalf("failed to migrate change_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {

@@ -17,13 +17,21 @@ type PluginTestSuite struct {
 	tests PluginTestSuiteTests
 }
 
+type DataLossMode int
+
+const (
+	DataLossNone DataLossMode = iota
+	DataLossColumn
+	DataLossTable
+)
+
 // MigrateStrategy defines which tests we should include
 type MigrateStrategy struct {
-	AddColumn           specs.MigrateMode
-	AddColumnNotNull    specs.MigrateMode
-	RemoveColumn        specs.MigrateMode
-	RemoveColumnNotNull specs.MigrateMode
-	ChangeColumn        specs.MigrateMode
+	AddColumn           DataLossMode
+	AddColumnNotNull    DataLossMode
+	RemoveColumn        DataLossMode
+	RemoveColumnNotNull DataLossMode
+	ChangeColumn        DataLossMode
 }
 
 type PluginTestSuiteTests struct {
