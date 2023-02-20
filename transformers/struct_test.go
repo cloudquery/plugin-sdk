@@ -39,7 +39,7 @@ type (
 
 		TimeCol        time.Time  `json:"time_col,omitempty"`
 		TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
-		UseJSONTag     *string    `json:"json_tag"`
+		JSONTag        *string    `json:"json_tag"`
 		SkipJSONTag    *string    `json:"-"`
 		NoJSONTag      *string
 		*embeddedStruct
@@ -156,6 +156,19 @@ var (
 			schema.Column{
 				Name: "non_embedded_embedded_string",
 				Type: schema.TypeString,
+			},
+		},
+	}
+	expectedTestTableStructForCustomResolvers = schema.Table{
+		Name: "test_struct",
+		Columns: schema.ColumnList{
+			{
+				Name: "time_col",
+				Type: schema.TypeTimestamp,
+			},
+			{
+				Name: "custom",
+				Type: schema.TypeTimestamp,
 			},
 		},
 	}
