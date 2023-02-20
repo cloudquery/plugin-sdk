@@ -28,17 +28,6 @@ var _ schema.ClientMeta = &testExecutionClient{}
 
 var errTestExecutionClientErr = fmt.Errorf("error in newTestExecutionClientErr")
 
-var expectedExampleSpecConfig = specs.Spec{
-	Kind: specs.KindSource,
-	Spec: &specs.Source{
-		Name:    "testSourcePlugin",
-		Path:    "cloudquery/testSourcePlugin",
-		Version: "v1.0.0",
-		Tables:  []string{"*"},
-		Spec:    map[string]any{"accounts": []any{"all"}},
-	},
-}
-
 func testTable(name string) *schema.Table {
 	return &schema.Table{
 		Name: name,
