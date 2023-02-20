@@ -14,19 +14,19 @@ import (
 )
 
 var migrateStrategyOverwrite = destination.MigrateStrategy{
-	AddColumn:           specs.MigrateModeForced,
-	AddColumnNotNull:    specs.MigrateModeForced,
-	RemoveColumn:        specs.MigrateModeForced,
-	RemoveColumnNotNull: specs.MigrateModeForced,
-	ChangeColumn:        specs.MigrateModeForced,
+	AddColumn:           destination.DataLossModeTable,
+	AddColumnNotNull:    destination.DataLossModeTable,
+	RemoveColumn:        destination.DataLossModeTable,
+	RemoveColumnNotNull: destination.DataLossModeTable,
+	ChangeColumn:        destination.DataLossModeTable,
 }
 
 var migrateStrategyAppend = destination.MigrateStrategy{
-	AddColumn:           specs.MigrateModeForced,
-	AddColumnNotNull:    specs.MigrateModeForced,
-	RemoveColumn:        specs.MigrateModeForced,
-	RemoveColumnNotNull: specs.MigrateModeForced,
-	ChangeColumn:        specs.MigrateModeForced,
+	AddColumn:           destination.DataLossModeTable,
+	AddColumnNotNull:    destination.DataLossModeTable,
+	RemoveColumn:        destination.DataLossModeTable,
+	RemoveColumnNotNull: destination.DataLossModeTable,
+	ChangeColumn:        destination.DataLossModeTable,
 }
 
 func TestPluginUnmanagedClient(t *testing.T) {
