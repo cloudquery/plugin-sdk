@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.38.2](https://github.com/cloudquery/plugin-sdk/compare/v1.38.1...v1.38.2) (2023-02-20)
+
+
+### Bug Fixes
+
+* **test-migrate:** Add CqId to migrate tests tables ([#695](https://github.com/cloudquery/plugin-sdk/issues/695)) ([e996a11](https://github.com/cloudquery/plugin-sdk/commit/e996a11571d7039343a74e780024f60b79ca965c))
+* **test-migrate:** Ignore order when comparing resources read ([#696](https://github.com/cloudquery/plugin-sdk/issues/696)) ([aea1b82](https://github.com/cloudquery/plugin-sdk/commit/aea1b82cf269a88b371bd81ee56523b79fbb5cdf))
+
 ## [1.38.1](https://github.com/cloudquery/plugin-sdk/compare/v1.38.0...v1.38.1) (2023-02-18)
 
 
