@@ -18,6 +18,7 @@ var CqIDColumn = Column{
 	Resolver:    cqUUIDResolver(),
 	CreationOptions: ColumnCreationOptions{
 		NotNull: true,
+		Unique:  true,
 	},
 }
 var CqParentIDColumn = Column{
