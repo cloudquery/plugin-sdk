@@ -22,6 +22,7 @@ type ColumnCreationOptions struct {
 	// It is mainly used for documentation purposes, but may also be used as part of ensuring that
 	// migrations are done correctly.
 	IncrementalKey bool `json:"incremental_key"`
+	Unique         bool `json:"unique,omitempty"`
 }
 
 // Column definition for Table
