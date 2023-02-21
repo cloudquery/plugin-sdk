@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.39.0](https://github.com/cloudquery/plugin-sdk/compare/v1.38.2...v1.39.0) (2023-02-21)
+
+
+### Features
+
+* **schema:** Add Unique column option, set it for CqID ([#702](https://github.com/cloudquery/plugin-sdk/issues/702)) ([d5c7636](https://github.com/cloudquery/plugin-sdk/commit/d5c763666c6e758fa39c26a362952a96de5105fa))
+
 ## [1.38.2](https://github.com/cloudquery/plugin-sdk/compare/v1.38.1...v1.38.2) (2023-02-20)
 
 
