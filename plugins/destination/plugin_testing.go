@@ -9,7 +9,6 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/rs/zerolog"
 )
 
@@ -177,7 +176,7 @@ func createTestResources(table *schema.Table, sourceName string, syncTime time.T
 	for i := 0; i < count; i++ {
 		resource := schema.DestinationResource{
 			TableName: table.Name,
-			Data:      testdata.GenTestData(table),
+			Data:      schema.GenTestData(table),
 		}
 		_ = resource.Data[0].Set(sourceName)
 		_ = resource.Data[1].Set(syncTime)

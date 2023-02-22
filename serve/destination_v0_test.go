@@ -13,7 +13,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -97,7 +96,7 @@ func TestDestination(t *testing.T) {
 	tableName := "test_destination_serve"
 	sourceName := "test_destination_serve_source"
 	syncTime := time.Now()
-	table := testdata.TestTable(tableName)
+	table := schema.TestTable(tableName)
 	tables := schema.Tables{table}
 	sourceSpec := specs.Source{
 		Name: sourceName,
@@ -108,7 +107,7 @@ func TestDestination(t *testing.T) {
 
 	destResource := schema.DestinationResource{
 		TableName: tableName,
-		Data:      testdata.GenTestData(table),
+		Data:      schema.GenTestData(table),
 	}
 	_ = destResource.Data[0].Set(sourceName)
 	_ = destResource.Data[1].Set(syncTime)
@@ -116,7 +115,7 @@ func TestDestination(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// testdata.GenTestData(table)
+	// schema.GenTestData(table)
 	resources := make(chan []byte, 1)
 	resources <- b
 	close(resources)

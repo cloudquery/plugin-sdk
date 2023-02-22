@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/apache/arrow/go/arrow/array"
+	"github.com/apache/arrow/go/arrow/memory"
 )
 
 type Status byte
@@ -335,6 +338,22 @@ func (c CQTypes) String() string {
 	}
 	sb.WriteString("]")
 	return sb.String()
+}
+
+func (c CQTypes) ToArrow(table *Table) {
+	pool := memory.NewGoAllocator()
+	arrowSchema := CQSchemaToArrow(table)
+	tbl := array.NewTable(arrowSchema, nil, int64(len(c)))
+	array.NewTableFromRecords()
+	// builder := array.NewRecordBuilder(pool, arrowSchema)
+	// fields := builder.Fields()
+	// array.NewBoolean()
+	// for j := range fields {
+		// fields[j].(*arr
+	// }
+	// for i := range c {
+
+	// }
 }
 
 func NewCqTypeFromValueType(typ ValueType) CQType {

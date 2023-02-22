@@ -27,6 +27,25 @@ require (
 )
 
 require (
+	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
+	github.com/apache/arrow/go/v12 v12.0.0-20230222193104-67fa416d89ec // indirect
+	github.com/apache/thrift v0.16.0 // indirect
+	github.com/goccy/go-json v0.9.11 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/flatbuffers v2.0.8+incompatible // indirect
+	github.com/klauspost/asmfmt v1.3.2 // indirect
+	github.com/klauspost/compress v1.15.11 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
+	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
+	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
+	github.com/zeebo/xxh3 v1.0.2 // indirect
+	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/tools v0.6.0 // indirect
+	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
+)
+
+require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect; indirect // indirect

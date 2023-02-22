@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/internal/pk"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -111,7 +112,7 @@ func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) []
 	return res
 }
 
-func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
+func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
 	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
 

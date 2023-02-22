@@ -8,6 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/helpers"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -15,7 +16,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
+func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.ClientMeta, tables schema.Tables, resolvedResources chan<- arrow.Record) {
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree.
 	tableConcurrency := max(spec.Concurrency/minResourceConcurrency, minTableConcurrency)
@@ -84,7 +85,7 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 	logWg.Wait()
 }
 
-func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- arrow.Record, depth int) {
 	var validationErr *schema.ValidationError
 	clientName := client.ID()
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
@@ -132,12 +133,12 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	}
 }
 
-func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- arrow.Record, depth int) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
 	}
-	resourcesChan := make(chan *schema.Resource, len(resourcesSlice))
+	resourcesChan := make(chan arrow.Record, len(resourcesSlice))
 	go func() {
 		defer close(resourcesChan)
 		var wg sync.WaitGroup

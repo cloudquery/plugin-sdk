@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/backend"
 	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/internal/backends/local"
@@ -24,7 +25,7 @@ type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, 
 
 type UnmanagedClient interface {
 	schema.ClientMeta
-	Sync(ctx context.Context, metrics *Metrics, res chan<- *schema.Resource) error
+	Sync(ctx context.Context, metrics *Metrics, res chan<- arrow.Record) error
 }
 
 // Plugin is the base structure required to pass to sdk.serve
@@ -281,7 +282,7 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 }
 
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *Plugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
+func (p *Plugin) Sync(ctx context.Context, res chan<- arrow.Record) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}

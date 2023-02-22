@@ -7,7 +7,6 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -18,7 +17,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := spec.Name
-	table := testdata.TestTable(tableName)
+	table := schema.TestTable(tableName)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*schema.Table{
 		table,

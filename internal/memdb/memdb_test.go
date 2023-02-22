@@ -8,7 +8,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
@@ -99,7 +98,7 @@ func TestOnWriteError(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := testdata.TestTable("test")
+	table := schema.TestTable("test")
 	tables := []*schema.Table{
 		table,
 	}
@@ -111,7 +110,7 @@ func TestOnWriteError(t *testing.T) {
 	ch := make(chan schema.DestinationResource, 1)
 	ch <- schema.DestinationResource{
 		TableName: "test",
-		Data:      testdata.GenTestData(table),
+		Data:      schema.GenTestData(table),
 	}
 	close(ch)
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
@@ -130,9 +129,9 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := testdata.TestTable("test")
+	table := schema.TestTable("test")
 	tables := []*schema.Table{
-		testdata.TestTable("test"),
+		schema.TestTable("test"),
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
@@ -143,7 +142,7 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	ch <- schema.DestinationResource{
 		TableName: "test",
-		Data:      testdata.GenTestData(table),
+		Data:      schema.GenTestData(table),
 	}
 	defer cancel()
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)

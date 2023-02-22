@@ -7,7 +7,6 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -18,8 +17,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := testdata.TestTable(tableName)
-	incTable := testdata.TestTable(tableName + "_incremental")
+	table := schema.TestTable(tableName)
+	incTable := schema.TestTable(tableName + "_incremental")
 	incTable.IsIncremental = true
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*schema.Table{
