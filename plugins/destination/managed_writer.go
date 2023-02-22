@@ -69,7 +69,7 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Tabl
 	}
 }
 
-func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) [][]any {
+func (*Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) [][]any {
 	pks := make(map[string]struct{}, len(resources))
 	res := make([][]any, 0, len(resources))
 	for _, r := range resources {
