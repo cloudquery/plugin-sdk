@@ -2,7 +2,6 @@ package destination
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/internal/pk"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/getsentry/sentry-go"
 )
 
 type worker struct {
@@ -74,38 +72,13 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Tabl
 func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) [][]any {
 	pks := make(map[string]struct{}, len(resources))
 	res := make([][]any, 0, len(resources))
-	var reported bool
 	for _, r := range resources {
 		key := pk.String(table, r)
 		_, ok := pks[key]
-		switch {
-		case !ok:
+		if !ok {
 			pks[key] = struct{}{}
 			res = append(res, r)
-			continue
-		case reported:
-			continue
 		}
-
-		reported = true
-		pkSpec := "(" + strings.Join(table.PrimaryKeys(), ",") + ")"
-
-		// log err
-		p.logger.Error().
-			Str("table", table.Name).
-			Str("pk", pkSpec).
-			Str("value", key).
-			Msg("duplicate primary key")
-
-		// send to Sentry only once per table,
-		// to avoid sending too many duplicate messages
-		sentry.WithScope(func(scope *sentry.Scope) {
-			scope.SetTag("plugin", p.name)
-			scope.SetTag("version", p.version)
-			scope.SetTag("table", table.Name)
-			scope.SetExtra("pk", pkSpec)
-			sentry.CurrentHub().CaptureMessage("duplicate primary key in " + table.Name)
-		})
 	}
 
 	return res
