@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.39.1](https://github.com/cloudquery/plugin-sdk/compare/v1.39.0...v1.39.1) (2023-02-22)
+
+
+### Bug Fixes
+
+* **destination:** Set CqID to unique at the destination level ([#704](https://github.com/cloudquery/plugin-sdk/issues/704)) ([1a97cb8](https://github.com/cloudquery/plugin-sdk/commit/1a97cb8d39c7236c72842f61f95ff514bc01cf11))
+
 ## [1.39.0](https://github.com/cloudquery/plugin-sdk/compare/v1.38.2...v1.39.0) (2023-02-21)
 
 
