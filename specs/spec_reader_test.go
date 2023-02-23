@@ -172,8 +172,13 @@ var specLoaderTestCases = []specLoaderTestCase{
 		err: func() string {
 			return ""
 		},
-		sources:      2,
-		destinations: 1,
+		sources: []*Source{
+			{Name: "0123456789", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"0987654321"}},
+			{Name: "012345", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"0987654321"}},
+		},
+		destinations: []*Destination{
+			{Name: "0987654321", Path: "cloudquery/postgresql", Version: "v1", Registry: RegistryGithub, Spec: map[string]any{"connection_string": "postgresql://localhost:5432/cloudquery?sslmode=disable"}},
+		},
 		envVariables: map[string]string{
 			"ACCOUNT_ID": "0123456789",
 		},
@@ -224,17 +229,17 @@ func TestLoadSpecWithAccountNumbers(t *testing.T) {
 	if len(specReader.Destinations) != 1 {
 		t.Fatalf("got: %d expected: %d", len(specReader.Destinations), 1)
 	}
-	if _, ok := specReader.Sources["0123456789"]; !ok {
+	if specReader.GetSourceByName("0123456789") == nil {
 		t.Fatalf("expected source with account id 0123456789")
 	}
-	if specReader.Sources["0123456789"].Name != "0123456789" {
-		t.Fatalf("got: %s expected: %s", specReader.Sources["0123456789"].Name, "0123456789")
+	if specReader.GetSourceByName("0123456789").Name != "0123456789" {
+		t.Fatalf("got: %s expected: %s", specReader.GetSourceByName("0123456789").Name, "0123456789")
 	}
-	if _, ok := specReader.Destinations["0987654321"]; !ok {
+	if specReader.GetDestinationByName("0987654321") == nil {
 		t.Fatalf("expected destination with account id 0987654321")
 	}
-	if specReader.Destinations["0987654321"].Name != "0987654321" {
-		t.Fatalf("got: %s expected: %s", specReader.Destinations["0987654321"].Name, "0987654321")
+	if specReader.GetDestinationByName("0987654321").Name != "0987654321" {
+		t.Fatalf("got: %s expected: %s", specReader.GetDestinationByName("0987654321").Name, "0987654321")
 	}
 }
 

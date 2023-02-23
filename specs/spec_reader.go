@@ -155,6 +155,10 @@ func (r *SpecReader) validate() error {
 	return nil
 }
 
+func (r *SpecReader) GetSourceByName(name string) *Source {
+	return r.sourcesMap[name]
+}
+
 func (r *SpecReader) GetDestinationByName(name string) *Destination {
 	return r.destinationsMap[name]
 }
