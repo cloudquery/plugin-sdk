@@ -2,8 +2,6 @@ package schema
 
 import (
 	"fmt"
-
-	"github.com/google/uuid"
 )
 
 type Resources []*Resource
@@ -89,14 +87,6 @@ func (r *Resource) GetValues() CQTypes {
 	return r.data
 }
 
-func (r *Resource) ID() uuid.UUID {
-	index := r.Table.Columns.Index(CqIDColumn.Name)
-	if index == -1 {
-		return uuid.UUID{}
-	}
-	return uuid.UUID{}
-}
-
 func (r *Resource) Columns() []string {
 	return r.Table.Columns.Names()
 }
@@ -117,13 +107,6 @@ func (r *Resource) Validate() error {
 	return nil
 }
 
-func (rr Resources) GetIds() []uuid.UUID {
-	rids := make([]uuid.UUID, len(rr))
-	for i, r := range rr {
-		rids[i] = r.ID()
-	}
-	return rids
-}
 func (rr Resources) TableName() string {
 	if len(rr) == 0 {
 		return ""
