@@ -2,6 +2,10 @@ package schema
 
 import (
 	"fmt"
+
+	"github.com/google/uuid"
+	"github.com/mitchellh/hashstructure/v2"
+	"golang.org/x/exp/slices"
 )
 
 type Resources []*Resource
@@ -89,6 +93,32 @@ func (r *Resource) GetValues() CQTypes {
 
 func (r *Resource) Columns() []string {
 	return r.Table.Columns.Names()
+}
+
+func (r *Resource) CalculateUniqueValue() error {
+	names := r.Table.PrimaryKeys()
+	if len(names) == 0 {
+		names = r.Table.Columns.Names()
+	}
+	slices.Sort(names)
+	value := make([]any, len(names))
+	for i, name := range names {
+		value[i] = r.Get(name)
+	}
+
+	hashVal, err := hashstructure.Hash(value, hashstructure.FormatV2, nil)
+	if err != nil {
+		return err
+	}
+	var uuidVal uuid.UUID
+	cqIDVal := uuid.NewSHA1(uuidVal, []byte(fmt.Sprintf("%d", hashVal)))
+
+	cqIDValMarshalled, err := cqIDVal.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	return r.Set(CqIDColumn.Name, cqIDValMarshalled)
 }
 
 // Validates that all primary keys have values.
