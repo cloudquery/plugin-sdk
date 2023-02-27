@@ -2,7 +2,9 @@ package schema
 
 import (
 	"context"
+	"net/netip"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -310,6 +312,130 @@ var calculateUniqueValueTestCases = []struct {
 			"PathResolver": []string{"test3", "test2", "test"},
 		},
 		ExpectedValue: &UUID{Bytes: [16]uint8{0x30, 0x55, 0x9c, 0x58, 0xfe, 0x8, 0x5f, 0x2a, 0xb9, 0x2f, 0xb3, 0x2d, 0x35, 0x4d, 0x31, 0xca}, Status: 0x2},
+	},
+
+	{
+		Name: "All CQ Types",
+		Table: &Table{
+			Name: "test_table",
+			Columns: []Column{
+				CqIDColumn,
+				{
+					Name:     "bool_column",
+					Type:     TypeBool,
+					Resolver: PathResolver("BooleanValue"),
+				},
+				{
+					Name:     "int_column",
+					Type:     TypeInt,
+					Resolver: PathResolver("IntValue"),
+				},
+				{
+					Name:     "float_column",
+					Type:     TypeFloat,
+					Resolver: PathResolver("FloatValue"),
+				},
+				{
+					Name:     "uuid_column",
+					Type:     TypeUUID,
+					Resolver: PathResolver("UUIDValue"),
+				},
+				{
+					Name:     "string_column",
+					Type:     TypeString,
+					Resolver: PathResolver("StringValue"),
+				},
+				{
+					Name:     "byte_array_column",
+					Type:     TypeByteArray,
+					Resolver: PathResolver("ByteArrayValue"),
+				},
+				{
+					Name:     "string_array_column",
+					Type:     TypeStringArray,
+					Resolver: PathResolver("StringArrayValue"),
+				},
+				{
+					Name:     "int_array_column",
+					Type:     TypeIntArray,
+					Resolver: PathResolver("IntArrayValue"),
+				},
+				{
+					Name:     "timestamp_column",
+					Type:     TypeTimestamp,
+					Resolver: PathResolver("TimestampValue"),
+				},
+				{
+					Name:     "json_map_column",
+					Type:     TypeJSON,
+					Resolver: PathResolver("JSONMapValue"),
+				},
+				{
+					Name:     "json_array_column",
+					Type:     TypeJSON,
+					Resolver: PathResolver("JSONArrayValue"),
+				},
+				{
+					Name:     "uuid_array_column",
+					Type:     TypeUUIDArray,
+					Resolver: PathResolver("UUIDArrayValue"),
+				},
+				{
+					Name:     "inet_column",
+					Type:     TypeInet,
+					Resolver: PathResolver("InetValue"),
+				},
+				{
+					Name:     "inet_array_column",
+					Type:     TypeInetArray,
+					Resolver: PathResolver("InetArrayValue"),
+				},
+				{
+					Name:     "cidr_column",
+					Type:     TypeCIDR,
+					Resolver: PathResolver("CidrValue"),
+				},
+				{
+					Name:     "cidr_array_column",
+					Type:     TypeCIDRArray,
+					Resolver: PathResolver("CidrArrayValue"),
+				},
+				{
+					Name:     "mac_address_column",
+					Type:     TypeMacAddr,
+					Resolver: PathResolver("MacAddressValue"),
+				},
+				{
+					Name:     "mac_address_array_column",
+					Type:     TypeMacAddrArray,
+					Resolver: PathResolver("MacAddressArrayValue"),
+				},
+			},
+		},
+		Resource: map[string]any{
+			"BooleanValue":     true,
+			"IntValue":         1456,
+			"FloatValue":       1456.12,
+			"UUIDValue":        "14625e33-4c0a-44e6-909c-0f9865c1b0f9",
+			"StringValue":      "test",
+			"ByteArrayValue":   []byte{'G', 'O', 'L', 'A', 'N', 'G'},
+			"StringArrayValue": []string{"test", "test2", "test3"},
+			"IntArrayValue":    []int{1, 2, 3},
+			"TimestampValue":   time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC),
+			"JSONArrayValue":   []string{"test3", "test2", "test"},
+			"JSONMapValue": map[string]any{
+				"testValInt": 1,
+				"test":       "test",
+			},
+			"UUIDArrayValue":       []string{"14625e33-4c0a-44e6-909c-0f9865c1b0f9", "14525e33-4c0a-44e6-909c-0f9865c1b0f0"},
+			"InetValue":            netip.MustParseAddr("192.0.2.1"),
+			"InetArrayValue":       []netip.Addr{netip.MustParseAddr("192.0.2.1"), netip.MustParseAddr("192.0.2.1")},
+			"CidrValue":            "192.0.2.1/24",
+			"CidrArrayValue":       []string{"192.0.2.1/24", "192.0.2.1/16"},
+			"MacAddressValue":      "aa:bb:cc:dd:ee:ff",
+			"MacAddressArrayValue": []string{"aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"},
+		},
+		ExpectedValue: &UUID{Bytes: [16]uint8{0xea, 0x45, 0xb4, 0xba, 0xd1, 0x6e, 0x5c, 0xae, 0x8f, 0x71, 0x5, 0xfb, 0xbc, 0x83, 0xfb, 0x22}, Status: 0x2},
 	},
 }
 
