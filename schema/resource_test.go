@@ -233,6 +233,84 @@ var calculateUniqueValueTestCases = []struct {
 		},
 		ExpectedValue: &UUID{Bytes: [16]uint8{0x9b, 0x8e, 0x13, 0x41, 0xa7, 0x23, 0x5c, 0x35, 0x81, 0x8b, 0x58, 0x2e, 0xed, 0x43, 0xfc, 0xb}, Status: 0x2},
 	},
+	{
+		Name: "Singular JSON Map",
+		Table: &Table{
+			Name: "test_table",
+			Columns: []Column{
+				CqIDColumn,
+				{
+					Name:     "json_column",
+					Type:     TypeJSON,
+					Resolver: PathResolver("PathResolver"),
+				},
+			},
+		},
+		Resource: map[string]any{
+			"PathResolver": map[string]any{
+				"test":       "test",
+				"testValInt": 1,
+			},
+		},
+		ExpectedValue: &UUID{Bytes: [16]uint8{0x3f, 0xb7, 0xc3, 0xac, 0x6b, 0x9a, 0x54, 0xa2, 0xb4, 0xd5, 0xd, 0x73, 0x11, 0xc0, 0x76, 0x6c}, Status: 0x2},
+	},
+	{
+		Name: "Singular JSON Map- Values Change order",
+		Table: &Table{
+			Name: "test_table",
+			Columns: []Column{
+				CqIDColumn,
+				{
+					Name:     "json_column",
+					Type:     TypeJSON,
+					Resolver: PathResolver("PathResolver"),
+				},
+			},
+		},
+		Resource: map[string]any{
+			"PathResolver": map[string]any{
+				"testValInt": 1,
+				"test":       "test",
+			},
+		},
+		ExpectedValue: &UUID{Bytes: [16]uint8{0x3f, 0xb7, 0xc3, 0xac, 0x6b, 0x9a, 0x54, 0xa2, 0xb4, 0xd5, 0xd, 0x73, 0x11, 0xc0, 0x76, 0x6c}, Status: 0x2},
+	},
+	{
+		Name: "Singular JSON Array",
+		Table: &Table{
+			Name: "test_table",
+			Columns: []Column{
+				CqIDColumn,
+				{
+					Name:     "json_column",
+					Type:     TypeJSON,
+					Resolver: PathResolver("PathResolver"),
+				},
+			},
+		},
+		Resource: map[string]any{
+			"PathResolver": []string{"test", "test2", "test3"},
+		},
+		ExpectedValue: &UUID{Bytes: [16]uint8{0x28, 0xac, 0xa0, 0xec, 0xb, 0x34, 0x5b, 0xe5, 0xb7, 0x9d, 0xc, 0xae, 0xcc, 0x19, 0xa4, 0xeb}, Status: 0x2},
+	},
+	{
+		Name: "Singular JSON Array- Values Changes order- And CQ_ID",
+		Table: &Table{
+			Name: "test_table",
+			Columns: []Column{
+				CqIDColumn,
+				{
+					Name:     "json_column",
+					Type:     TypeJSON,
+					Resolver: PathResolver("PathResolver"),
+				},
+			},
+		},
+		Resource: map[string]any{
+			"PathResolver": []string{"test3", "test2", "test"},
+		},
+		ExpectedValue: &UUID{Bytes: [16]uint8{0x30, 0x55, 0x9c, 0x58, 0xfe, 0x8, 0x5f, 0x2a, 0xb9, 0x2f, 0xb3, 0x2d, 0x35, 0x4d, 0x31, 0xca}, Status: 0x2},
+	},
 }
 
 func resolveColumns(t *testing.T, resource *Resource, table *Table) {
