@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var CalculateCQIDTestCases = []struct {
+var calculateCQIDTestCases = []struct {
 	Name          string
 	Resource      any
 	ExpectedValue *UUID

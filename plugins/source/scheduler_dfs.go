@@ -160,7 +160,7 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 					return
 				}
 
-				if err := resolvedResource.CalculateUniqueValue(p.spec.ConsistentID); err != nil {
+				if err := resolvedResource.CalculateCQID(p.spec.ConsistentID); err != nil {
 					tableMetrics := p.metrics.TableClient[table.Name][client.ID()]
 					p.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
 					if _, found := sentValidationErrors.LoadOrStore(table.Name, struct{}{}); !found {
