@@ -48,6 +48,9 @@ type Source struct {
 	// Spec defines plugin specific configuration
 	// This is different in every source plugin.
 	Spec any `json:"spec,omitempty"`
+
+	// ConsistentID is a flag that indicates whether the source plugin should generate consistent IDs for resources.
+	ConsistentID bool `json:"consistent_id,omitempty"`
 }
 
 func (s *Source) SetDefaults() {
