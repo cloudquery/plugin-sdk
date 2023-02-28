@@ -95,7 +95,15 @@ func (r *Resource) Columns() []string {
 	return r.Table.Columns.Names()
 }
 
-func (r *Resource) CalculateUniqueValue() error {
+func (r *Resource) CalculateUniqueValue(consistentID bool) error {
+	if !consistentID {
+		uuidGen := uuid.New()
+		b, err := uuidGen.MarshalBinary()
+		if err != nil {
+			return err
+		}
+		return r.Set(CqIDColumn.Name, b)
+	}
 	names := r.Table.PrimaryKeys()
 	if len(names) == 0 {
 		names = r.Table.Columns.Names()
