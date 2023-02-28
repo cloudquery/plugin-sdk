@@ -95,6 +95,7 @@ func (r *Resource) Columns() []string {
 	return r.Table.Columns.Names()
 }
 
+//nolint:revive
 func (r *Resource) CalculateUniqueValue(consistentID bool) error {
 	if !consistentID {
 		uuidGen := uuid.New()
