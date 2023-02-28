@@ -123,10 +123,10 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source, Optio
 }
 
 type syncTestCase struct {
-	table      *schema.Table
-	stats      Metrics
-	data       []schema.CQTypes
-	stableUUID bool
+	table             *schema.Table
+	stats             Metrics
+	data              []schema.CQTypes
+	deterministicCQID bool
 }
 
 var syncTestCases = []syncTestCase{
@@ -223,7 +223,7 @@ var syncTestCases = []syncTestCase{
 				&schema.Int8{Int: 3, Status: schema.Present},
 			},
 		},
-		stableUUID: true,
+		deterministicCQID: true,
 	},
 	{
 		table: testTableColumnResolverPanic(),
@@ -245,7 +245,7 @@ var syncTestCases = []syncTestCase{
 				&schema.Int8{Status: schema.Undefined},
 			},
 		},
-		stableUUID: true,
+		deterministicCQID: true,
 	},
 	{
 		table: testTableRelationSuccess(),
@@ -275,7 +275,7 @@ var syncTestCases = []syncTestCase{
 				&schema.Int8{Int: 3, Status: schema.Present},
 			},
 		},
-		stableUUID: true,
+		deterministicCQID: true,
 	},
 }
 
@@ -295,13 +295,13 @@ func TestSync(t *testing.T) {
 			tc := tc
 			tc.table = tc.table.Copy(nil)
 			t.Run(tc.table.Name+"_"+scheduler.String(), func(t *testing.T) {
-				testSyncTable(t, tc, scheduler, tc.stableUUID)
+				testSyncTable(t, tc, scheduler, tc.deterministicCQID)
 			})
 		}
 	}
 }
 
-func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler, stableUUID bool) {
+func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler, deterministicCQID bool) {
 	ctx := context.Background()
 	tables := []*schema.Table{
 		tc.table,
@@ -315,14 +315,14 @@ func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler, sta
 	)
 	plugin.SetLogger(zerolog.New(zerolog.NewTestWriter(t)))
 	spec := specs.Source{
-		Name:         "testSource",
-		Path:         "cloudquery/testSource",
-		Tables:       []string{"*"},
-		Version:      "v1.0.0",
-		Destinations: []string{"test"},
-		Concurrency:  1, // choose a very low value to check that we don't run into deadlocks
-		Scheduler:    scheduler,
-		ConsistentID: stableUUID,
+		Name:              "testSource",
+		Path:              "cloudquery/testSource",
+		Tables:            []string{"*"},
+		Version:           "v1.0.0",
+		Destinations:      []string{"test"},
+		Concurrency:       1, // choose a very low value to check that we don't run into deadlocks
+		Scheduler:         scheduler,
+		DeterministicCQID: deterministicCQID,
 	}
 	if err := plugin.Init(ctx, spec); err != nil {
 		t.Fatal(err)

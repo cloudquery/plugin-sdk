@@ -49,8 +49,9 @@ type Source struct {
 	// This is different in every source plugin.
 	Spec any `json:"spec,omitempty"`
 
-	// ConsistentID is a flag that indicates whether the source plugin should generate consistent IDs for resources.
-	ConsistentID bool `json:"consistent_id,omitempty"`
+	// DeterministicCQID is a flag that indicates whether the source plugin should generate a random UUID as the value of _cq_id
+	// or whether it should calculate a UUID that is a hash of the primary keys (if they exist) or the entire resource.
+	DeterministicCQID bool `json:"deterministic_cq_id,omitempty"`
 }
 
 func (s *Source) SetDefaults() {

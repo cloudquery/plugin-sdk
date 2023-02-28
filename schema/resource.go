@@ -96,8 +96,8 @@ func (r *Resource) Columns() []string {
 }
 
 //nolint:revive
-func (r *Resource) CalculateCQID(consistentID bool) error {
-	if !consistentID {
+func (r *Resource) CalculateCQID(deterministicCQID bool) error {
+	if !deterministicCQID {
 		uuidGen := uuid.New()
 		b, err := uuidGen.MarshalBinary()
 		if err != nil {
