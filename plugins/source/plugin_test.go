@@ -18,7 +18,8 @@ type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
-var stableUUID = uuid.MustParse("5cdb0df90f0a5215adc56f15aa74a902")
+var deterministicStableUUID = uuid.MustParse("5cdb0df90f0a5215adc56f15aa74a902")
+var randomStableUUID = uuid.MustParse("00000000000040008000000000000000")
 
 func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 	res <- map[string]any{
@@ -122,9 +123,10 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source, Optio
 }
 
 type syncTestCase struct {
-	table *schema.Table
-	stats Metrics
-	data  []schema.CQTypes
+	table      *schema.Table
+	stats      Metrics
+	data       []schema.CQTypes
+	stableUUID bool
 }
 
 var syncTestCases = []syncTestCase{
@@ -141,7 +143,7 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []schema.CQTypes{
 			{
-				&schema.UUID{Bytes: stableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
 				&schema.UUID{Status: schema.Null},
 				&schema.Int8{Int: 3, Status: schema.Present},
 			},
@@ -173,6 +175,56 @@ var syncTestCases = []syncTestCase{
 		},
 		data: nil,
 	},
+
+	{
+		table: testTableRelationSuccess(),
+		stats: Metrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
+				"test_table_relation_success": {
+					"testExecutionClient": {
+						Resources: 1,
+					},
+				},
+				"test_table_success": {
+					"testExecutionClient": {
+						Resources: 1,
+					},
+				},
+			},
+		},
+		data: []schema.CQTypes{
+			{
+				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
+				&schema.UUID{Status: schema.Null},
+				&schema.Int8{Int: 3, Status: schema.Present},
+			},
+			{
+				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
+				&schema.Int8{Int: 3, Status: schema.Present},
+			},
+		},
+	},
+	{
+		table: testTableSuccess(),
+		stats: Metrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
+				"test_table_success": {
+					"testExecutionClient": {
+						Resources: 1,
+					},
+				},
+			},
+		},
+		data: []schema.CQTypes{
+			{
+				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
+				&schema.UUID{Status: schema.Null},
+				&schema.Int8{Int: 3, Status: schema.Present},
+			},
+		},
+		stableUUID: true,
+	},
 	{
 		table: testTableColumnResolverPanic(),
 		stats: Metrics{
@@ -187,12 +239,13 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []schema.CQTypes{
 			{
-				&schema.UUID{Bytes: stableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
 				&schema.UUID{Status: schema.Null},
 				&schema.Int8{Int: 3, Status: schema.Present},
 				&schema.Int8{Status: schema.Undefined},
 			},
 		},
+		stableUUID: true,
 	},
 	{
 		table: testTableRelationSuccess(),
@@ -212,16 +265,17 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []schema.CQTypes{
 			{
-				&schema.UUID{Bytes: stableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
 				&schema.UUID{Status: schema.Null},
 				&schema.Int8{Int: 3, Status: schema.Present},
 			},
 			{
-				&schema.UUID{Bytes: stableUUID, Status: schema.Present},
-				&schema.UUID{Bytes: stableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
 				&schema.Int8{Int: 3, Status: schema.Present},
 			},
 		},
+		stableUUID: true,
 	},
 }
 
@@ -241,13 +295,13 @@ func TestSync(t *testing.T) {
 			tc := tc
 			tc.table = tc.table.Copy(nil)
 			t.Run(tc.table.Name+"_"+scheduler.String(), func(t *testing.T) {
-				testSyncTable(t, tc, scheduler)
+				testSyncTable(t, tc, scheduler, tc.stableUUID)
 			})
 		}
 	}
 }
 
-func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler) {
+func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler, stableUUID bool) {
 	ctx := context.Background()
 	tables := []*schema.Table{
 		tc.table,
@@ -268,6 +322,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler) {
 		Destinations: []string{"test"},
 		Concurrency:  1, // choose a very low value to check that we don't run into deadlocks
 		Scheduler:    scheduler,
+		ConsistentID: stableUUID,
 	}
 	if err := plugin.Init(ctx, spec); err != nil {
 		t.Fatal(err)
