@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var calculateUniqueValueTestCases = []struct {
+var CalculateCQIDTestCases = []struct {
 	Name          string
 	Resource      any
 	ExpectedValue *UUID
@@ -467,13 +467,13 @@ func resolveColumns(t *testing.T, resource *Resource, table *Table) {
 	}
 }
 
-func TestCalculateUniqueValue(t *testing.T) {
-	for _, tc := range calculateUniqueValueTestCases {
+func TestCalculateCQID(t *testing.T) {
+	for _, tc := range calculateCQIDTestCases {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			resource := NewResourceData(tc.Table, nil, tc.Resource)
 			resolveColumns(t, resource, tc.Table)
-			err := resource.CalculateUniqueValue(tc.ConsistentID)
+			err := resource.CalculateCQID(tc.ConsistentID)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
