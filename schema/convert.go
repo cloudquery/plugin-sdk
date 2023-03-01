@@ -6,12 +6,6 @@ import (
 	"time"
 )
 
-const (
-	maxUint = ^uint(0)
-	maxInt  = int(maxUint >> 1)
-	minInt  = -maxInt - 1
-)
-
 // underlyingNumberType gets the underlying type that can be converted to Int2, Int4, Int8, Float4, or Float8
 func underlyingNumberType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
