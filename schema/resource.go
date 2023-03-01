@@ -105,14 +105,13 @@ func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 		names = r.Table.Columns.Names()
 	}
 	slices.Sort(names)
-	byteRepresentation := make([]byte, 0)
+	h := sha256.New()
 	for _, name := range names {
-		byteRepresentation = append(byteRepresentation, []byte(r.Get(name).String())...)
+		// We need to include the column name in the hash because the same value can be present in multiple columns and therefore lead to the same hash
+		h.Write([]byte(name))
+		h.Write([]byte(r.Get(name).String()))
 	}
-	hsha256 := sha256.Sum256(byteRepresentation)
-	var uuidVal uuid.UUID
-	cqIDVal := uuid.NewSHA1(uuidVal, []byte(fmt.Sprintf("%s", hsha256)))
-	return r.storeCQID(cqIDVal)
+	return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, h.Sum(nil)))
 }
 
 func (r *Resource) storeCQID(value uuid.UUID) error {
