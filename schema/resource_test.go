@@ -83,6 +83,32 @@ var calculateCQIDTestCases = []struct {
 		DeterministicCQID: true,
 	},
 	{
+		Name: "Multiple Identical Values- In Different Columns",
+		Table: &Table{
+			Name: "test_table",
+			Columns: []Column{
+				CqIDColumn,
+				{
+					Name:     "string_column2",
+					Type:     TypeString,
+					Resolver: PathResolver("PathResolver"),
+				},
+				{
+					Name:     "string_column3",
+					Type:     TypeString,
+					Resolver: PathResolver("PathResolver2"),
+				},
+			},
+		},
+		Resource: map[string]any{
+			"PathResolver":  "test",
+			"PathResolver2": "test",
+		},
+		// This should be a different value than the previous test case ("Multiple Identical Values") because the column names are different
+		ExpectedValue:     &UUID{Bytes: [16]uint8{0x1f, 0x95, 0x6a, 0xe8, 0xb7, 0x4c, 0x58, 0x33, 0xac, 0x90, 0x67, 0x3b, 0x1, 0xd4, 0xf8, 0x8d}, Status: 0x2},
+		DeterministicCQID: true,
+	},
+	{
 		Name: "Singular Value",
 		Table: &Table{
 			Name: "test_table",
