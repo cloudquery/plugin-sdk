@@ -159,19 +159,6 @@ var (
 			},
 		},
 	}
-	expectedTestTableStructForCustomResolvers = schema.Table{
-		Name: "test_struct",
-		Columns: schema.ColumnList{
-			{
-				Name: "time_col",
-				Type: schema.TypeTimestamp,
-			},
-			{
-				Name: "custom",
-				Type: schema.TypeTimestamp,
-			},
-		},
-	}
 	expectedTestSliceStruct = schema.Table{
 		Name: "test_struct",
 		Columns: schema.ColumnList{
