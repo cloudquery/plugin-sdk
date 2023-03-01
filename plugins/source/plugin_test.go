@@ -18,7 +18,7 @@ type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
-var deterministicStableUUID = uuid.MustParse("5cdb0df90f0a5215adc56f15aa74a902")
+var deterministicStableUUID = uuid.MustParse("c25c481db0f05865b6d8f07acab8515f")
 var randomStableUUID = uuid.MustParse("00000000000040008000000000000000")
 
 func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
