@@ -102,7 +102,7 @@ func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 	}
 	names := r.Table.PrimaryKeys()
 	if len(names) == 0 {
-		names = r.Table.Columns.Names()
+		return r.storeCQID(uuid.New())
 	}
 	slices.Sort(names)
 	h := sha256.New()
