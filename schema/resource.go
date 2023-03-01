@@ -1,10 +1,10 @@
 package schema
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/mitchellh/hashstructure/v2"
 	"golang.org/x/exp/slices"
 )
 
@@ -98,36 +98,29 @@ func (r *Resource) Columns() []string {
 //nolint:revive
 func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 	if !deterministicCQID {
-		uuidGen := uuid.New()
-		b, err := uuidGen.MarshalBinary()
-		if err != nil {
-			return err
-		}
-		return r.Set(CqIDColumn.Name, b)
+		return r.storeCQID(uuid.New())
 	}
 	names := r.Table.PrimaryKeys()
 	if len(names) == 0 {
 		names = r.Table.Columns.Names()
 	}
 	slices.Sort(names)
-	value := make([]any, len(names))
-	for i, name := range names {
-		value[i] = r.Get(name)
+	byteRepresentation := make([]byte, 0)
+	for _, name := range names {
+		byteRepresentation = append(byteRepresentation, []byte(r.Get(name).String())...)
 	}
-
-	hashVal, err := hashstructure.Hash(value, hashstructure.FormatV2, nil)
-	if err != nil {
-		return err
-	}
+	hsha256 := sha256.Sum256(byteRepresentation)
 	var uuidVal uuid.UUID
-	cqIDVal := uuid.NewSHA1(uuidVal, []byte(fmt.Sprintf("%d", hashVal)))
+	cqIDVal := uuid.NewSHA1(uuidVal, []byte(fmt.Sprintf("%s", hsha256)))
+	return r.storeCQID(cqIDVal)
+}
 
-	cqIDValMarshalled, err := cqIDVal.MarshalBinary()
+func (r *Resource) storeCQID(value uuid.UUID) error {
+	b, err := value.MarshalBinary()
 	if err != nil {
 		return err
 	}
-
-	return r.Set(CqIDColumn.Name, cqIDValMarshalled)
+	return r.Set(CqIDColumn.Name, b)
 }
 
 // Validates that all primary keys have values.

@@ -26,8 +26,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/mitchellh/hashstructure/v2 v2.0.2
-
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
