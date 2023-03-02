@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.41.0](https://github.com/cloudquery/plugin-sdk/compare/v1.40.0...v1.41.0) (2023-03-02)
+
+
+### Features
+
+* Deterministic _cq_id ([#712](https://github.com/cloudquery/plugin-sdk/issues/712)) ([2e7ad2c](https://github.com/cloudquery/plugin-sdk/commit/2e7ad2c03e9817ea00de31774a8869ef77b60325))
+* **multiplex:** Detect duplicated clients ([#723](https://github.com/cloudquery/plugin-sdk/issues/723)) ([dfb039d](https://github.com/cloudquery/plugin-sdk/commit/dfb039d76c6976749c001bd7f12fcb32fa052e9d))
+
+
+### Bug Fixes
+
+* Cleanup code ([#710](https://github.com/cloudquery/plugin-sdk/issues/710)) ([963f03c](https://github.com/cloudquery/plugin-sdk/commit/963f03cd3d12a6ebdc091a5a555472abec858c00))
+* **deps:** Update golang.org/x/exp digest to c95f2b4 ([#718](https://github.com/cloudquery/plugin-sdk/issues/718)) ([de52c10](https://github.com/cloudquery/plugin-sdk/commit/de52c10aa43132b2ceb08486722bb5fdd2acf8a1))
+* **deps:** Update google.golang.org/genproto digest to 9b19f0b ([#719](https://github.com/cloudquery/plugin-sdk/issues/719)) ([ecfddea](https://github.com/cloudquery/plugin-sdk/commit/ecfddeaff6a6ffcc4cc9c454ae3906bd7e9e01f7))
+* **deps:** Update module github.com/rivo/uniseg to v0.4.4 ([#720](https://github.com/cloudquery/plugin-sdk/issues/720)) ([0da69b6](https://github.com/cloudquery/plugin-sdk/commit/0da69b6a488fbbc6010cecea26522836a2ddba65))
+* **deps:** Update module github.com/stretchr/testify to v1.8.2 ([#721](https://github.com/cloudquery/plugin-sdk/issues/721)) ([19c0742](https://github.com/cloudquery/plugin-sdk/commit/19c07425eb1c82a2ef962ed411742291557db2b8))
+* **pk:** Skip filter for no PK ([#709](https://github.com/cloudquery/plugin-sdk/issues/709)) ([d0c2e26](https://github.com/cloudquery/plugin-sdk/commit/d0c2e2682b164707a0c15bfc5173ca7461cbf175))
+* **types-json:** Disable HTML escaping during JSON marshalling ([#714](https://github.com/cloudquery/plugin-sdk/issues/714)) ([2f6f1d8](https://github.com/cloudquery/plugin-sdk/commit/2f6f1d8c65653d2816c263851b07fa455c3cb5d1))
+* **types-timestamp:** Ensure timestamp is UTC ([#716](https://github.com/cloudquery/plugin-sdk/issues/716)) ([bb33629](https://github.com/cloudquery/plugin-sdk/commit/bb33629678bb01ee74da49296b0b14e024ce94af))
+
 ## [1.40.0](https://github.com/cloudquery/plugin-sdk/compare/v1.39.1...v1.40.0) (2023-02-23)
 
 
