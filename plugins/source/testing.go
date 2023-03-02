@@ -13,7 +13,7 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 
 	o := &testPluginOptions{
 		parallel:   true,
-		validators: []Validator{validateColumnsHaveData, validateTableNamePlural},
+		validators: []Validator{validateColumnsHaveData},
 	}
 	for _, opt := range opts {
 		opt(o)

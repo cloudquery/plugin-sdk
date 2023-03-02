@@ -20,7 +20,7 @@ func validateColumnsHaveData(plugin *Plugin, resources []*schema.Resource) error
 	return nil
 }
 
-func validateTableNamePlural(plugin *Plugin, _ []*schema.Resource) error {
+func ValidateTableNamePlural(plugin *Plugin, _ []*schema.Resource) error {
 	pluralizeClient := pluralize.NewClient()
 	tables := extractTables(plugin.tables)
 	for _, table := range tables {

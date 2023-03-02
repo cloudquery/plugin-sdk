@@ -32,7 +32,7 @@ func TestPluralNamesValidator(t *testing.T) {
 		}
 
 		plugin := NewPlugin("testSourcePlugin", "1.0.0", tables, newTestExecutionClient)
-		err := validateTableNamePlural(plugin, nil)
+		err := ValidateTableNamePlural(plugin, nil)
 		assert.Equal(t, tc.err, err)
 	}
 }
