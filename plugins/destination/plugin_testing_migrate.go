@@ -11,13 +11,14 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 func tableUUIDSuffix() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "_")
 }
 
-func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schema.Table, source *schema.Table, mode specs.MigrateMode) error {
+func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schema.Table, source *schema.Table, mode specs.MigrateMode) error {
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
@@ -25,10 +26,12 @@ func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec s
 	source.Columns = append(schema.ColumnList{
 		schema.CqSourceNameColumn,
 		schema.CqSyncTimeColumn,
+		schema.CqIDColumn,
 	}, source.Columns...)
 	target.Columns = append(schema.ColumnList{
 		schema.CqSourceNameColumn,
 		schema.CqSyncTimeColumn,
+		schema.CqIDColumn,
 	}, target.Columns...)
 
 	if err := p.Migrate(ctx, []*schema.Table{source}); err != nil {
@@ -61,9 +64,7 @@ func testMigration(ctx context.Context, p *Plugin, logger zerolog.Logger, spec s
 		if len(resourcesRead) != 2 {
 			return fmt.Errorf("expected 2 resources after write, got %d", len(resourcesRead))
 		}
-		if diff := resourcesRead[1].Diff(resource2.Data); diff != "" {
-			return fmt.Errorf("resource2 diff: %s", diff)
-		}
+		require.Contains(t, resourcesRead, resource2.Data)
 	} else {
 		if len(resourcesRead) != 1 {
 			return fmt.Errorf("expected 1 resource after write, got %d", len(resourcesRead))
@@ -115,7 +116,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.AddColumn); err != nil {
+		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.AddColumn); err != nil {
 			t.Fatalf("failed to migrate %s: %v", tableName, err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -155,7 +156,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.AddColumnNotNull); err != nil {
+		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.AddColumnNotNull); err != nil {
 			t.Fatalf("failed to migrate add_column_not_null: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -192,7 +193,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.RemoveColumn); err != nil {
+		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.RemoveColumn); err != nil {
 			t.Fatalf("failed to migrate remove_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -232,7 +233,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.RemoveColumnNotNull); err != nil {
+		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.RemoveColumnNotNull); err != nil {
 			t.Fatalf("failed to migrate remove_column_not_null: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -273,7 +274,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, p, logger, spec, target, source, strategy.ChangeColumn); err != nil {
+		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.ChangeColumn); err != nil {
 			t.Fatalf("failed to migrate change_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
