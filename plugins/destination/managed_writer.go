@@ -72,6 +72,11 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Tabl
 }
 
 func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) [][]any {
+	// special case where there's no PK at all
+	if len(table.PrimaryKeys()) == 0 {
+		return resources
+	}
+
 	pks := make(map[string]struct{}, len(resources))
 	res := make([][]any, 0, len(resources))
 	var reported bool
