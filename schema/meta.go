@@ -2,8 +2,6 @@ package schema
 
 import (
 	"context"
-
-	"github.com/google/uuid"
 )
 
 type ClientMeta interface {
@@ -15,7 +13,6 @@ var CqIDColumn = Column{
 	Name:        "_cq_id",
 	Type:        TypeUUID,
 	Description: "Internal CQ ID of the row",
-	Resolver:    cqUUIDResolver(),
 	CreationOptions: ColumnCreationOptions{
 		NotNull: true,
 		Unique:  true,
@@ -39,14 +36,6 @@ var CqSourceNameColumn = Column{
 	Name:        "_cq_source_name",
 	Type:        TypeString,
 	Description: "Internal CQ row that references the source plugin name data was retrieved",
-}
-
-func cqUUIDResolver() ColumnResolver {
-	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
-		uuidGen := uuid.New()
-		b, _ := uuidGen.MarshalBinary()
-		return r.Set(c.Name, b)
-	}
 }
 
 func parentCqUUIDResolver() ColumnResolver {
