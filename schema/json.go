@@ -124,11 +124,16 @@ func (dst *JSON) Set(src any) error {
 		return &ValidationError{Type: TypeJSON, Msg: "use pointer to JSON instead of value", Value: value}
 
 	default:
-		buf, err := json.Marshal(value)
+		buffer := &bytes.Buffer{}
+		encoder := json.NewEncoder(buffer)
+		encoder.SetEscapeHTML(false)
+		err := encoder.Encode(value)
 		if err != nil {
 			return err
 		}
 
+		// JSON encoder adds a newline to the end of the output that we don't want.
+		buf := bytes.TrimSuffix(buffer.Bytes(), []byte("\n"))
 		// For map and slice jsons, it is easier for users to work with '[]' or '{}' instead of JSON's 'null'.
 		if bytes.Equal(buf, []byte(`null`)) {
 			if isEmptyStringMap(value) {

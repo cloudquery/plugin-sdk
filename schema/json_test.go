@@ -43,6 +43,8 @@ func TestJSONSet(t *testing.T) {
 		{source: map[string]Foo{}, result: JSON{Bytes: []byte(`{}`), Status: Present}},
 
 		{source: nil, result: JSON{Status: Null}},
+
+		{source: map[string]any{"test1": "a&b", "test2": "😀"}, result: JSON{Bytes: []byte(`{"test1": "a&b", "test2": "😀"}`), Status: Present}},
 	}
 
 	for i, tt := range successfulTests {
