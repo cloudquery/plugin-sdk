@@ -81,13 +81,13 @@ func (dst *Timestamptz) Set(src any) error {
 
 	switch value := src.(type) {
 	case int:
-		*dst = Timestamptz{Time: time.Unix(int64(value), 0), Status: Present}
+		*dst = Timestamptz{Time: time.Unix(int64(value), 0).UTC(), Status: Present}
 	case int64:
-		*dst = Timestamptz{Time: time.Unix(value, 0), Status: Present}
+		*dst = Timestamptz{Time: time.Unix(value, 0).UTC(), Status: Present}
 	case uint64:
-		*dst = Timestamptz{Time: time.Unix(int64(value), 0), Status: Present}
+		*dst = Timestamptz{Time: time.Unix(int64(value), 0).UTC(), Status: Present}
 	case time.Time:
-		*dst = Timestamptz{Time: value, Status: Present}
+		*dst = Timestamptz{Time: value.UTC(), Status: Present}
 	case *time.Time:
 		if value == nil {
 			*dst = Timestamptz{Status: Null}
@@ -162,31 +162,16 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 		// there is no good way of detecting format so we just try few of them
 		tim, err = time.Parse(time.RFC3339, sbuf)
 		if err == nil {
-			*dst = Timestamptz{Time: normalizePotentialUTC(tim), Status: Present}
+			*dst = Timestamptz{Time: tim.UTC(), Status: Present}
 			return nil
 		}
 		tim, err = time.Parse(defaultStringFormat, sbuf)
 		if err == nil {
-			*dst = Timestamptz{Time: normalizePotentialUTC(tim), Status: Present}
+			*dst = Timestamptz{Time: tim.UTC(), Status: Present}
 			return nil
 		}
 		return &ValidationError{Type: TypeTimestamp, Msg: "cannot parse timestamp", Value: sbuf, Err: err}
 	}
 
 	return nil
-}
-
-// Normalize timestamps in UTC location to behave similarly to how the Golang
-// standard library does it: UTC timestamps lack a .loc value.
-//
-// Reason for this: when comparing two timestamps with reflect.DeepEqual (generally
-// speaking not a good idea, but several testing libraries (for example testify)
-// does this), their location data needs to be equal for them to be considered
-// equal.
-func normalizePotentialUTC(timestamp time.Time) time.Time {
-	if timestamp.Location().String() != time.UTC.String() {
-		return timestamp
-	}
-
-	return timestamp.UTC()
 }
