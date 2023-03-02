@@ -1,9 +1,11 @@
 package schema
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/google/uuid"
+	"golang.org/x/exp/slices"
 )
 
 type Resources []*Resource
@@ -89,16 +91,35 @@ func (r *Resource) GetValues() CQTypes {
 	return r.data
 }
 
-func (r *Resource) ID() uuid.UUID {
-	index := r.Table.Columns.Index(CqIDColumn.Name)
-	if index == -1 {
-		return uuid.UUID{}
-	}
-	return uuid.UUID{}
-}
-
 func (r *Resource) Columns() []string {
 	return r.Table.Columns.Names()
+}
+
+//nolint:revive
+func (r *Resource) CalculateCQID(deterministicCQID bool) error {
+	if !deterministicCQID {
+		return r.storeCQID(uuid.New())
+	}
+	names := r.Table.PrimaryKeys()
+	if len(names) == 0 {
+		return r.storeCQID(uuid.New())
+	}
+	slices.Sort(names)
+	h := sha256.New()
+	for _, name := range names {
+		// We need to include the column name in the hash because the same value can be present in multiple columns and therefore lead to the same hash
+		h.Write([]byte(name))
+		h.Write([]byte(r.Get(name).String()))
+	}
+	return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, h.Sum(nil)))
+}
+
+func (r *Resource) storeCQID(value uuid.UUID) error {
+	b, err := value.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	return r.Set(CqIDColumn.Name, b)
 }
 
 // Validates that all primary keys have values.
@@ -117,13 +138,6 @@ func (r *Resource) Validate() error {
 	return nil
 }
 
-func (rr Resources) GetIds() []uuid.UUID {
-	rids := make([]uuid.UUID, len(rr))
-	for i, r := range rr {
-		rids[i] = r.ID()
-	}
-	return rids
-}
 func (rr Resources) TableName() string {
 	if len(rr) == 0 {
 		return ""

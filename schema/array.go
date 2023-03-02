@@ -24,7 +24,7 @@ func findDimensionsFromValue(value reflect.Value, dimensions []ArrayDimension, e
 		fallthrough
 	case reflect.Slice:
 		length := value.Len()
-		if 0 == elementsLength {
+		if elementsLength == 0 {
 			elementsLength = length
 		} else {
 			elementsLength *= length

@@ -85,8 +85,7 @@ func TestInetMarshalUnmarshal(t *testing.T) {
 	if !bytes.Equal(r.IPNet.Mask, r2.IPNet.Mask) {
 		t.Errorf("%v != %v", r.IPNet.Mask, r2.IPNet.Mask)
 	}
-	//nolint:all
-	if !bytes.Equal(r.IPNet.IP, r2.IPNet.IP) {
+	if !net.IP.Equal(r.IPNet.IP, r2.IPNet.IP) {
 		t.Errorf("%v != %v", r.IPNet.IP, r2.IPNet.IP)
 	}
 }
