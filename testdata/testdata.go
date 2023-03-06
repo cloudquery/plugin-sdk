@@ -183,7 +183,7 @@ func GenTestData(table *schema.Table) schema.CQTypes {
 			data[i] = uuidArrayColumn
 		case schema.TypeInet:
 			inetColumn := &schema.Inet{}
-			if err := inetColumn.Set("192.0.2.1/24"); err != nil {
+			if err := inetColumn.Set("192.0.2.0/24"); err != nil {
 				panic(err)
 			}
 			data[i] = inetColumn
