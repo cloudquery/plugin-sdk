@@ -3,6 +3,7 @@ package schema
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 )
 
@@ -41,7 +42,7 @@ func (dst *Bytea) Equal(src CQType) bool {
 
 func (dst *Bytea) String() string {
 	if dst.Status == Present {
-		return hex.EncodeToString(dst.Bytes)
+		return base64.StdEncoding.EncodeToString(dst.Bytes)
 	} else {
 		return ""
 	}
@@ -72,7 +73,11 @@ func (dst *Bytea) Set(src any) error {
 			b := make([]byte, hex.DecodedLen(len(value)))
 			_, err := hex.Decode(b, []byte(value))
 			if err != nil {
-				return &ValidationError{Type: TypeByteArray, Msg: "hex decode failed", Err: err, Value: value}
+				b = make([]byte, base64.StdEncoding.DecodedLen(len(value)))
+				_, err := base64.StdEncoding.Decode(b, []byte(value))
+				if err != nil {
+					return &ValidationError{Type: TypeByteArray, Msg: "base64 and hex decode failed", Err: err, Value: value}
+				}
 			}
 			*dst = Bytea{Status: Present, Bytes: b}
 		} else {

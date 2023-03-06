@@ -14,6 +14,9 @@ import (
 // this is the default format used by time.Time.String()
 const defaultStringFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
 
+// this is used by arrow string format (time is in UTC)
+const arrowStringFormat = "2006-01-02 15:04:05.999999999"
+
 // const microsecFromUnixEpochToY2K = 946684800 * 1000000
 
 const (
@@ -166,6 +169,11 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 			return nil
 		}
 		tim, err = time.Parse(defaultStringFormat, sbuf)
+		if err == nil {
+			*dst = Timestamptz{Time: tim.UTC(), Status: Present}
+			return nil
+		}
+		tim, err = time.Parse(arrowStringFormat, sbuf)
 		if err == nil {
 			*dst = Timestamptz{Time: tim.UTC(), Status: Present}
 			return nil
