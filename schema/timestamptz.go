@@ -16,6 +16,7 @@ const defaultStringFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
 
 // this is used by arrow string format (time is in UTC)
 const arrowStringFormat = "2006-01-02 15:04:05.999999999"
+
 // const microsecFromUnixEpochToY2K = 946684800 * 1000000
 
 const (
@@ -174,7 +175,7 @@ func (dst *Timestamptz) DecodeText(src []byte) error {
 		}
 		tim, err = time.Parse(arrowStringFormat, sbuf)
 		if err == nil {
-			*dst = Timestamptz{Time: normalizePotentialUTC(tim), Status: Present}
+			*dst = Timestamptz{Time: tim.UTC(), Status: Present}
 			return nil
 		}
 		return &ValidationError{Type: TypeTimestamp, Msg: "cannot parse timestamp", Value: sbuf, Err: err}
