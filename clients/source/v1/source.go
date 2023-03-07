@@ -1,6 +1,7 @@
 package source
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -36,6 +37,8 @@ type Client struct {
 	grpcSocketName string
 	noSentry       bool
 	wg             *sync.WaitGroup
+
+	localPath string
 }
 
 type FetchResultMessage struct {
@@ -120,6 +123,7 @@ func NewClient(ctx context.Context, registrySpec specs.Registry, path string, ve
 // and returns a new Client
 func (c *Client) newManagedClient(ctx context.Context, path string) error {
 	c.grpcSocketName = random.GenerateRandomUnixSocketName()
+	c.localPath = path
 	// spawn the plugin first and then connect
 	args := []string{"serve", "--network", "unix", "--address", c.grpcSocketName,
 		"--log-level", c.logger.GetLevel().String(), "--log-format", "json"}
@@ -272,6 +276,34 @@ func (c *Client) Sync(ctx context.Context, res chan<- []byte) error {
 		case res <- r.Resource:
 		}
 	}
+}
+
+func (c *Client) GenDocs(ctx context.Context, path string, format string) error {
+	f, ok := pb.GenDocs_FORMAT_value[format]
+	if !ok {
+		return fmt.Errorf("invalid format %s", format)
+	}
+	_, err := c.pbClient.GenDocs(ctx, &pb.GenDocs_Request{Path: path, Format: pb.GenDocs_FORMAT(f)})
+	if err == nil {
+		return nil
+	}
+	// If we have a local path, we can fallback to running the docs command
+	if err != nil && c.localPath == "" {
+		return fmt.Errorf("failed to call GenDocs: %w", err)
+	}
+
+	args := []string{"doc", "--format", format, path}
+	if c.noSentry {
+		args = append(args, "--no-sentry")
+	}
+	cmd := exec.CommandContext(ctx, c.localPath, args...)
+	var outb, errb bytes.Buffer
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run source plugin %s: %w. Output: %s. Error: %s", c.localPath, err, outb.String(), errb.String())
+	}
+	return nil
 }
 
 // Terminate is used only in conjunction with NewManagedClient.
