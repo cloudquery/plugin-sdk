@@ -50,6 +50,8 @@ type TableColumnChange struct {
 type Table struct {
 	// Name of table
 	Name string `json:"name"`
+	// Title to be used in documentation (optional: will be generated from name if not set)
+	Title string `json:"title"`
 	// table description
 	Description string `json:"description"`
 	// Columns are the set of fields that are part of this table

@@ -29,3 +29,11 @@ func WithUnmanaged() Option {
 		p.unmanaged = true
 	}
 }
+
+// WithTitleTransformer allows the plugin to control how table names get turned into titles for the
+// generated documentation.
+func WithTitleTransformer(t func(*schema.Table) string) Option {
+	return func(p *Plugin) {
+		p.titleTransformer = t
+	}
+}

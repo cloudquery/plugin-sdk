@@ -1,5 +1,7 @@
 # Table: relation_relation_table_b
 
+This table shows data for Relation Relation Table B.
+
 Description for relational table's relation
 
 The primary key for this table is **_cq_id**.

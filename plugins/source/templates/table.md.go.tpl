@@ -1,5 +1,7 @@
 # Table: {{$.Name}}
 
+This table shows data for {{.|title}}.
+
 {{ $.Description }}
 {{ $length := len $.PrimaryKeys -}}
 {{ if eq $length 1 }}

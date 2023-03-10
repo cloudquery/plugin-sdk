@@ -66,6 +66,36 @@ func Test_ToCamel(t *testing.T) {
 	}
 }
 
+func Test_ToTitle(t *testing.T) {
+	type test struct {
+		Title string
+		Snake string
+	}
+
+	generatorTests := []test{
+		{Title: "Test Camel Case", Snake: "test_camel_case"},
+		{Title: "Account ID", Snake: "account_id"},
+		{Title: "ARNs", Snake: "arns"},
+		{Title: "Postgre SQL", Snake: "postgre_sql"},
+		{Title: "Query Store Retention", Snake: "query_store_retention"},
+		{Title: "Test Camel Case Long String", Snake: "test_camel_case_long_string"},
+		{Title: "Test Camel Case Long String", Snake: "test_camel_case_long_string"},
+		{Title: "Test IPv4", Snake: "test_ipv4"},
+		{Title: "AWS Test Table", Snake: "aws_test_table"},
+		{Title: "Gcp Test Table", Snake: "gcp_test_table"}, // no exception specified
+	}
+	t.Parallel()
+	c := New(WithCustomExceptions(map[string]string{
+		"arns": "ARNs",
+		"aws":  "AWS",
+	}))
+	for _, tc := range generatorTests {
+		t.Run(tc.Title, func(t *testing.T) {
+			assert.Equal(t, tc.Title, c.ToTitle(tc.Snake))
+		})
+	}
+}
+
 func Test_ToPascal(t *testing.T) {
 	type test struct {
 		Pascal string

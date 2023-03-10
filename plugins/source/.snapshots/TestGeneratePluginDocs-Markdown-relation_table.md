@@ -1,5 +1,7 @@
 # Table: relation_table
 
+This table shows data for Relation Table.
+
 Description for relational table
 
 The primary key for this table is **_cq_id**.

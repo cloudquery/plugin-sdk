@@ -12,6 +12,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/cloudquery/plugin-sdk/caser"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 )
@@ -21,6 +22,47 @@ var templatesFS embed.FS
 
 var reMatchNewlines = regexp.MustCompile(`\n{3,}`)
 var reMatchHeaders = regexp.MustCompile(`(#{1,6}.+)\n+`)
+
+var DefaultTitleExceptions = map[string]string{
+	// common abbreviations
+	"acl":   "ACL",
+	"acls":  "ACLs",
+	"api":   "API",
+	"apis":  "APIs",
+	"ca":    "CA",
+	"cidr":  "CIDR",
+	"cidrs": "CIDRs",
+	"db":    "DB",
+	"dbs":   "DBs",
+	"dhcp":  "DHCP",
+	"iam":   "IAM",
+	"iot":   "IOT",
+	"ip":    "IP",
+	"ips":   "IPs",
+	"ipv4":  "IPv4",
+	"ipv6":  "IPv6",
+	"mfa":   "MFA",
+	"ml":    "ML",
+	"oauth": "OAuth",
+	"vpc":   "VPC",
+	"vpcs":  "VPCs",
+	"vpn":   "VPN",
+	"vpns":  "VPNs",
+	"waf":   "WAF",
+	"wafs":  "WAFs",
+
+	// cloud providers
+	"aws": "AWS",
+	"gcp": "GCP",
+}
+
+func DefaultTitleTransformer(table *schema.Table) string {
+	if table.Title != "" {
+		return table.Title
+	}
+	csr := caser.New(caser.WithCustomExceptions(DefaultTitleExceptions))
+	return csr.ToTitle(table.Name)
+}
 
 func sortTables(tables schema.Tables) {
 	sort.SliceStable(tables, func(i, j int) bool {
@@ -52,9 +94,9 @@ func (p *Plugin) GeneratePluginDocs(dir, format string) error {
 
 	switch format {
 	case "markdown":
-		return renderTablesAsMarkdown(dir, p.name, sortedTables)
+		return p.renderTablesAsMarkdown(dir, p.name, sortedTables)
 	case "json":
-		return renderTablesAsJSON(dir, sortedTables)
+		return p.renderTablesAsJSON(dir, sortedTables)
 	default:
 		return fmt.Errorf("unsupported format: %v", format)
 	}
@@ -62,6 +104,7 @@ func (p *Plugin) GeneratePluginDocs(dir, format string) error {
 
 type jsonTable struct {
 	Name        string       `json:"name"`
+	Title       string       `json:"title"`
 	Description string       `json:"description"`
 	Columns     []jsonColumn `json:"columns"`
 	Relations   []jsonTable  `json:"relations"`
@@ -74,8 +117,8 @@ type jsonColumn struct {
 	IsIncrementalKey bool   `json:"is_incremental_key,omitempty"`
 }
 
-func renderTablesAsJSON(dir string, tables schema.Tables) error {
-	jsonTables := jsonifyTables(tables)
+func (p *Plugin) renderTablesAsJSON(dir string, tables schema.Tables) error {
+	jsonTables := p.jsonifyTables(tables)
 	b, err := json.MarshalIndent(jsonTables, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal tables as json: %v", err)
@@ -84,7 +127,7 @@ func renderTablesAsJSON(dir string, tables schema.Tables) error {
 	return os.WriteFile(outputPath, b, 0644)
 }
 
-func jsonifyTables(tables schema.Tables) []jsonTable {
+func (p *Plugin) jsonifyTables(tables schema.Tables) []jsonTable {
 	jsonTables := make([]jsonTable, len(tables))
 	for i, table := range tables {
 		jsonColumns := make([]jsonColumn, len(table.Columns))
@@ -98,17 +141,18 @@ func jsonifyTables(tables schema.Tables) []jsonTable {
 		}
 		jsonTables[i] = jsonTable{
 			Name:        table.Name,
+			Title:       p.titleTransformer(table),
 			Description: table.Description,
 			Columns:     jsonColumns,
-			Relations:   jsonifyTables(table.Relations),
+			Relations:   p.jsonifyTables(table.Relations),
 		}
 	}
 	return jsonTables
 }
 
-func renderTablesAsMarkdown(dir string, pluginName string, tables schema.Tables) error {
+func (p *Plugin) renderTablesAsMarkdown(dir string, pluginName string, tables schema.Tables) error {
 	for _, table := range tables {
-		if err := renderAllTables(table, dir); err != nil {
+		if err := p.renderAllTables(table, dir); err != nil {
 			return err
 		}
 	}
@@ -133,21 +177,22 @@ func renderTablesAsMarkdown(dir string, pluginName string, tables schema.Tables)
 	return nil
 }
 
-func renderAllTables(t *schema.Table, dir string) error {
-	if err := renderTable(t, dir); err != nil {
+func (p *Plugin) renderAllTables(t *schema.Table, dir string) error {
+	if err := p.renderTable(t, dir); err != nil {
 		return err
 	}
 	for _, r := range t.Relations {
-		if err := renderAllTables(r, dir); err != nil {
+		if err := p.renderAllTables(r, dir); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func renderTable(table *schema.Table, dir string) error {
+func (p *Plugin) renderTable(table *schema.Table, dir string) error {
 	t := template.New("").Funcs(map[string]any{
 		"formatType": formatType,
+		"title":      p.titleTransformer,
 	})
 	t, err := t.New("table.md.go.tpl").ParseFS(templatesFS, "templates/table.md.go.tpl")
 	if err != nil {

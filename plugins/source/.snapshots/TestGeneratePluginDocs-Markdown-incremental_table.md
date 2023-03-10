@@ -1,5 +1,7 @@
 # Table: incremental_table
 
+This table shows data for Incremental Table.
+
 Description for incremental table
 
 The primary key for this table is **id_col**.
