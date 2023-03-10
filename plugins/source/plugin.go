@@ -333,10 +333,3 @@ func (p *Plugin) Close(ctx context.Context) error {
 	}
 	return nil
 }
-
-func (p *Plugin) tableTitle(table *schema.Table) string {
-	if table.Title != "" {
-		return table.Title
-	}
-	return p.titleTransformer(table)
-}
