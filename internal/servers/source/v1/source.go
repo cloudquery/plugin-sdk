@@ -133,6 +133,14 @@ func (s *Server) GetMetrics(context.Context, *pb.GetMetrics_Request) (*pb.GetMet
 	}, nil
 }
 
+func (s *Server) GenDocs(_ context.Context, req *pb.GenDocs_Request) (*pb.GenDocs_Response, error) {
+	err := s.Plugin.GeneratePluginDocs(req.Path, req.Format.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate docs: %w", err)
+	}
+	return &pb.GenDocs_Response{}, nil
+}
+
 func checkMessageSize(msg proto.Message, resource *schema.Resource) error {
 	size := proto.Size(msg)
 	// log error to Sentry if row exceeds half of the max size

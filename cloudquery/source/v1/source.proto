@@ -18,6 +18,8 @@ service Source {
   rpc GetDynamicTables(GetDynamicTables.Request) returns (GetDynamicTables.Response);
   // Start the sync the source plugin
   rpc Sync(Sync.Request) returns (stream Sync.Response);
+  // Generate documentation for the source plugin
+  rpc GenDocs(GenDocs.Request) returns (GenDocs.Response);
 }
 
 message GetName {
@@ -74,4 +76,16 @@ message GetMetrics {
     // marshalled json of plugins.SourceMetrics
     bytes metrics = 1;
   }
+}
+
+message GenDocs {
+  enum FORMAT{
+    markdown = 0;
+    json = 1;
+ }
+  message Request {
+    string path = 1;
+    FORMAT format = 2;
+  }
+  message Response {}
 }
