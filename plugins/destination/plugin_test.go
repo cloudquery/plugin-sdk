@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSetCQIDAsPrimaryKeysForTables(t *testing.T) {
+func setupTables() schema.Table {
 	topLevelTable := schema.Table{
 		Name: "test_table",
 		Columns: []schema.Column{
@@ -38,6 +38,11 @@ func TestSetCQIDAsPrimaryKeysForTables(t *testing.T) {
 		Parent: &topLevelTable,
 	}
 	topLevelTable.Relations = []*schema.Table{&nestedTable}
+	return topLevelTable
+}
+
+func TestSetCQIDAsPrimaryKeysForTables(t *testing.T) {
+	topLevelTable := setupTables()
 	// Prior to executing setCQIDAsPrimaryKeysForTables only the id column should be a primary key
 	require.False(t, topLevelTable.Columns[0].CreationOptions.PrimaryKey)
 	require.False(t, topLevelTable.Columns[1].CreationOptions.PrimaryKey)
