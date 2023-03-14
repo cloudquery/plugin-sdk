@@ -320,5 +320,6 @@ func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 			}
 			table.Columns[i].CreationOptions.PrimaryKey = false
 		}
+		setCQIDAsPrimaryKeysForTables(table.Relations)
 	}
 }
