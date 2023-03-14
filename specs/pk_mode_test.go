@@ -20,7 +20,7 @@ func TestPKModeFromString(t *testing.T) {
 	}
 }
 
-func TestTestPKMode(t *testing.T) {
+func TestPKMode(t *testing.T) {
 	for _, pkModeStr := range pkModeStrings {
 		pkMode, err := PKModeFromString(pkModeStr)
 		if err != nil {
@@ -30,4 +30,21 @@ func TestTestPKMode(t *testing.T) {
 			t.Fatalf("expected:%s got:%s", pkModeStr, pkMode.String())
 		}
 	}
+}
+
+func TestPKModeMarshalJSON(t *testing.T) {
+	pkMode := PKModeCQID
+	if pkModeStr, err := pkMode.MarshalJSON(); err != nil {
+		t.Fatal(err)
+	} else if string(pkModeStr) != `"cq-id"` {
+		t.Fatalf("expected:\"cq-id\" got:%s", string(pkModeStr))
+	}
+
+	pkMode = PKModeCompositeKeys
+	if pkModeStr, err := pkMode.MarshalJSON(); err != nil {
+		t.Fatal(err)
+	} else if string(pkModeStr) != `"composite-keys"` {
+		t.Fatalf("expected:\"cq-id\" got:%s", string(pkModeStr))
+	}
+
 }
