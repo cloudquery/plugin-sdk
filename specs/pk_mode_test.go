@@ -46,5 +46,4 @@ func TestPKModeMarshalJSON(t *testing.T) {
 	} else if string(pkModeStr) != `"composite-keys"` {
 		t.Fatalf("expected:\"cq-id\" got:%s", string(pkModeStr))
 	}
-
 }
