@@ -292,10 +292,10 @@ func (t *Table) ValidateName() error {
 	return nil
 }
 
-// Get Changes returns changes between two tables when new is the new one and old is the old one.
-func (new *Table) GetChanges(old *Table) []TableColumnChange {
+// Get Changes returns changes between two tables when t is the new one and old is the old one.
+func (t *Table) GetChanges(old *Table) []TableColumnChange {
 	var changes []TableColumnChange
-	for _, c := range new.Columns {
+	for _, c := range t.Columns {
 		otherColumn := old.Columns.Get(c.Name)
 		// Add in a column that didn't exist before.
 		if otherColumn == nil {
@@ -318,7 +318,7 @@ func (new *Table) GetChanges(old *Table) []TableColumnChange {
 	}
 	// Remove columns that have been deleted from table definition.
 	for _, c := range old.Columns {
-		if new.Columns.Get(c.Name) == nil {
+		if t.Columns.Get(c.Name) == nil {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeRemove,
 				ColumnName: c.Name,
