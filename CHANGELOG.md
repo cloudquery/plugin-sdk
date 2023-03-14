@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.43.0](https://github.com/cloudquery/plugin-sdk/compare/v1.42.0...v1.43.0) (2023-03-14)
+
+
+### Features
+
+* Add ability to store table titles and render them in documentation ([#729](https://github.com/cloudquery/plugin-sdk/issues/729)) ([a0a58c4](https://github.com/cloudquery/plugin-sdk/commit/a0a58c4d523eee6d48e3500f3f8d1b571eef2a43))
+* **source:** Expose docs generation ([#726](https://github.com/cloudquery/plugin-sdk/issues/726)) ([3360aa6](https://github.com/cloudquery/plugin-sdk/commit/3360aa6cbb9e7d383debc257a937fde0a58b4fa3))
+
 ## [1.42.0](https://github.com/cloudquery/plugin-sdk/compare/v1.41.0...v1.42.0) (2023-03-06)
 
 
