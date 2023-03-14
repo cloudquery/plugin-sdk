@@ -187,6 +187,9 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
 	SetDestinationManagedCqColumns(tables)
 	setCqIDColumnOptionsForTables(tables)
+	if p.spec.PKMode == specs.PKModeCQID {
+		setCQIDAsPrimaryKeysForTables(tables)
+	}
 	return p.client.Migrate(ctx, tables)
 }
 
@@ -301,5 +304,21 @@ func setCqIDColumnOptionsForTables(tables []*schema.Table) {
 			}
 		}
 		setCqIDColumnOptionsForTables(table.Relations)
+	}
+}
+
+func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
+	for _, table := range tables {
+		for i, col := range table.Columns {
+			if col.Name == schema.CqIDColumn.Name {
+				table.Columns[i].CreationOptions.PrimaryKey = true
+				continue
+			}
+			if table.Parent != nil && col.Name == schema.CqParentIDColumn.Name {
+				table.Columns[i].CreationOptions.PrimaryKey = true
+				continue
+			}
+			table.Columns[i].CreationOptions.PrimaryKey = false
+		}
 	}
 }
