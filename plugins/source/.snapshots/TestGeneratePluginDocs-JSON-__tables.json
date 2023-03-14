@@ -1,6 +1,7 @@
 [
   {
     "name": "incremental_table",
+    "title": "Incremental Table",
     "description": "Description for incremental table",
     "columns": [
       {
@@ -39,6 +40,7 @@
   },
   {
     "name": "test_table",
+    "title": "Test Table",
     "description": "Description for test table",
     "columns": [
       {
@@ -75,6 +77,7 @@
     "relations": [
       {
         "name": "relation_table",
+        "title": "Relation Table",
         "description": "Description for relational table",
         "columns": [
           {
@@ -102,6 +105,7 @@
         "relations": [
           {
             "name": "relation_relation_table_a",
+            "title": "Relation Relation Table A",
             "description": "Description for relational table's relation",
             "columns": [
               {
@@ -130,6 +134,7 @@
           },
           {
             "name": "relation_relation_table_b",
+            "title": "Relation Relation Table B",
             "description": "Description for relational table's relation",
             "columns": [
               {
@@ -160,6 +165,7 @@
       },
       {
         "name": "relation_table2",
+        "title": "Relation Table2",
         "description": "Description for second relational table",
         "columns": [
           {

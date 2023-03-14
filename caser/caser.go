@@ -26,7 +26,7 @@ func WithCustomInitialisms(fields map[string]bool) Option {
 }
 
 // WithCustomExceptions allows to specify custom exceptions for caser.
-// The parameter is a map of camel:snake values like map[string]string{"oauth":"OAuth"}
+// The parameter is a map of snake:camel values like map[string]string{"oauth":"OAuth"}
 func WithCustomExceptions(fields map[string]string) Option {
 	return func(c *Caser) {
 		for k, v := range fields {
@@ -142,22 +142,43 @@ func (c *Caser) ToPascal(s string) string {
 
 // ToCamel returns a string converted from snake case to camel case
 func (c *Caser) ToCamel(s string) string {
-	if s == "" {
+	if len(s) == 0 {
 		return s
 	}
-	var result string
-
 	words := strings.Split(s, "_")
+	return strings.Join(c.capitalize(words), "")
+}
+
+// ToTitle returns a string converted from snake case to title case.
+// Title case is similar to camel case, but spaces are used in between words.
+func (c *Caser) ToTitle(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	words := strings.Split(s, "_")
+	if _, isException := c.snakeToCamelException[strings.ToLower(words[0])]; !isException {
+		csr := cases.Title(language.Und, cases.NoLower)
+		words[0] = csr.String(words[0])
+	}
+	return strings.Join(c.capitalize(words), " ")
+}
+
+func (c *Caser) capitalize(words []string) []string {
+	n := 0
+	for _, w := range words {
+		n += len(w)
+	}
+	var result []string
 	for i, word := range words {
 		if exception, ok := c.snakeToCamelException[word]; ok {
-			result += exception
+			result = append(result, exception)
 			continue
 		}
 
 		if i > 0 {
 			upper := strings.ToUpper(word)
-			if len(s) > i-1 && c.initialisms[upper] {
-				result += upper
+			if n > i-1 && c.initialisms[upper] {
+				result = append(result, upper)
 				continue
 			}
 		}
@@ -165,12 +186,11 @@ func (c *Caser) ToCamel(s string) string {
 		if (i > 0) && len(word) > 0 {
 			w := []rune(word)
 			w[0] = unicode.ToUpper(w[0])
-			result += string(w)
+			result = append(result, string(w))
 		} else {
-			result += word
+			result = append(result, word)
 		}
 	}
-
 	return result
 }
 

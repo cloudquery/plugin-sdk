@@ -1,5 +1,7 @@
 # Table: test_table
 
+This table shows data for Test Table.
+
 Description for test table
 
 The composite primary key for this table is (**id_col**, **id_col2**).

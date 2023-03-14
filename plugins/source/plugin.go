@@ -68,6 +68,8 @@ type Plugin struct {
 	internalColumns bool
 	// unmanaged if set to true then the plugin will call Sync directly and not use the scheduler
 	unmanaged bool
+	// titleTransformer allows the plugin to control how table names get turned into titles for generated documentation
+	titleTransformer func(*schema.Table) string
 }
 
 const (
@@ -139,6 +141,7 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 		newExecutionClient: newExecutionClient,
 		metrics:            &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:              caser.New(),
+		titleTransformer:   DefaultTitleTransformer,
 		internalColumns:    true,
 	}
 	for _, opt := range options {
