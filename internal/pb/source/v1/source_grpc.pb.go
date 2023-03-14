@@ -36,6 +36,8 @@ type SourceClient interface {
 	GetDynamicTables(ctx context.Context, in *GetDynamicTables_Request, opts ...grpc.CallOption) (*GetDynamicTables_Response, error)
 	// Start the sync the source plugin
 	Sync(ctx context.Context, in *Sync_Request, opts ...grpc.CallOption) (Source_SyncClient, error)
+	// Generate documentation for the source plugin
+	GenDocs(ctx context.Context, in *GenDocs_Request, opts ...grpc.CallOption) (*GenDocs_Response, error)
 }
 
 type sourceClient struct {
@@ -132,6 +134,15 @@ func (x *sourceSyncClient) Recv() (*Sync_Response, error) {
 	return m, nil
 }
 
+func (c *sourceClient) GenDocs(ctx context.Context, in *GenDocs_Request, opts ...grpc.CallOption) (*GenDocs_Response, error) {
+	out := new(GenDocs_Response)
+	err := c.cc.Invoke(ctx, "/cloudquery.source.v1.Source/GenDocs", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SourceServer is the server API for Source service.
 // All implementations must embed UnimplementedSourceServer
 // for forward compatibility
@@ -150,6 +161,8 @@ type SourceServer interface {
 	GetDynamicTables(context.Context, *GetDynamicTables_Request) (*GetDynamicTables_Response, error)
 	// Start the sync the source plugin
 	Sync(*Sync_Request, Source_SyncServer) error
+	// Generate documentation for the source plugin
+	GenDocs(context.Context, *GenDocs_Request) (*GenDocs_Response, error)
 	mustEmbedUnimplementedSourceServer()
 }
 
@@ -177,6 +190,9 @@ func (UnimplementedSourceServer) GetDynamicTables(context.Context, *GetDynamicTa
 }
 func (UnimplementedSourceServer) Sync(*Sync_Request, Source_SyncServer) error {
 	return status.Errorf(codes.Unimplemented, "method Sync not implemented")
+}
+func (UnimplementedSourceServer) GenDocs(context.Context, *GenDocs_Request) (*GenDocs_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenDocs not implemented")
 }
 func (UnimplementedSourceServer) mustEmbedUnimplementedSourceServer() {}
 
@@ -320,6 +336,24 @@ func (x *sourceSyncServer) Send(m *Sync_Response) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Source_GenDocs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenDocs_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SourceServer).GenDocs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cloudquery.source.v1.Source/GenDocs",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SourceServer).GenDocs(ctx, req.(*GenDocs_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Source_ServiceDesc is the grpc.ServiceDesc for Source service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -350,6 +384,10 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDynamicTables",
 			Handler:    _Source_GetDynamicTables_Handler,
+		},
+		{
+			MethodName: "GenDocs",
+			Handler:    _Source_GenDocs_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

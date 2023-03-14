@@ -20,6 +20,52 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type GenDocs_FORMAT int32
+
+const (
+	GenDocs_markdown GenDocs_FORMAT = 0
+	GenDocs_json     GenDocs_FORMAT = 1
+)
+
+// Enum value maps for GenDocs_FORMAT.
+var (
+	GenDocs_FORMAT_name = map[int32]string{
+		0: "markdown",
+		1: "json",
+	}
+	GenDocs_FORMAT_value = map[string]int32{
+		"markdown": 0,
+		"json":     1,
+	}
+)
+
+func (x GenDocs_FORMAT) Enum() *GenDocs_FORMAT {
+	p := new(GenDocs_FORMAT)
+	*p = x
+	return p
+}
+
+func (x GenDocs_FORMAT) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (GenDocs_FORMAT) Descriptor() protoreflect.EnumDescriptor {
+	return file_cloudquery_source_v1_source_proto_enumTypes[0].Descriptor()
+}
+
+func (GenDocs_FORMAT) Type() protoreflect.EnumType {
+	return &file_cloudquery_source_v1_source_proto_enumTypes[0]
+}
+
+func (x GenDocs_FORMAT) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use GenDocs_FORMAT.Descriptor instead.
+func (GenDocs_FORMAT) EnumDescriptor() ([]byte, []int) {
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{7, 0}
+}
+
 type GetName struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -286,6 +332,44 @@ func (*GetMetrics) Descriptor() ([]byte, []int) {
 	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{6}
 }
 
+type GenDocs struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *GenDocs) Reset() {
+	*x = GenDocs{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GenDocs) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenDocs) ProtoMessage() {}
+
+func (x *GenDocs) ProtoReflect() protoreflect.Message {
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenDocs.ProtoReflect.Descriptor instead.
+func (*GenDocs) Descriptor() ([]byte, []int) {
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{7}
+}
+
 type GetName_Request struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -295,7 +379,7 @@ type GetName_Request struct {
 func (x *GetName_Request) Reset() {
 	*x = GetName_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[7]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -308,7 +392,7 @@ func (x *GetName_Request) String() string {
 func (*GetName_Request) ProtoMessage() {}
 
 func (x *GetName_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[7]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -335,7 +419,7 @@ type GetName_Response struct {
 func (x *GetName_Response) Reset() {
 	*x = GetName_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[8]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -348,7 +432,7 @@ func (x *GetName_Response) String() string {
 func (*GetName_Response) ProtoMessage() {}
 
 func (x *GetName_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[8]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -380,7 +464,7 @@ type GetVersion_Request struct {
 func (x *GetVersion_Request) Reset() {
 	*x = GetVersion_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[9]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -393,7 +477,7 @@ func (x *GetVersion_Request) String() string {
 func (*GetVersion_Request) ProtoMessage() {}
 
 func (x *GetVersion_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[9]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -420,7 +504,7 @@ type GetVersion_Response struct {
 func (x *GetVersion_Response) Reset() {
 	*x = GetVersion_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[10]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -433,7 +517,7 @@ func (x *GetVersion_Response) String() string {
 func (*GetVersion_Response) ProtoMessage() {}
 
 func (x *GetVersion_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[10]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -468,7 +552,7 @@ type Init_Request struct {
 func (x *Init_Request) Reset() {
 	*x = Init_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[11]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -481,7 +565,7 @@ func (x *Init_Request) String() string {
 func (*Init_Request) ProtoMessage() {}
 
 func (x *Init_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[11]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -513,7 +597,7 @@ type Init_Response struct {
 func (x *Init_Response) Reset() {
 	*x = Init_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[12]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -526,7 +610,7 @@ func (x *Init_Response) String() string {
 func (*Init_Response) ProtoMessage() {}
 
 func (x *Init_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[12]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -551,7 +635,7 @@ type GetDynamicTables_Request struct {
 func (x *GetDynamicTables_Request) Reset() {
 	*x = GetDynamicTables_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[13]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -564,7 +648,7 @@ func (x *GetDynamicTables_Request) String() string {
 func (*GetDynamicTables_Request) ProtoMessage() {}
 
 func (x *GetDynamicTables_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[13]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -592,7 +676,7 @@ type GetDynamicTables_Response struct {
 func (x *GetDynamicTables_Response) Reset() {
 	*x = GetDynamicTables_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[14]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -605,7 +689,7 @@ func (x *GetDynamicTables_Response) String() string {
 func (*GetDynamicTables_Response) ProtoMessage() {}
 
 func (x *GetDynamicTables_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[14]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -637,7 +721,7 @@ type Sync_Request struct {
 func (x *Sync_Request) Reset() {
 	*x = Sync_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[15]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -650,7 +734,7 @@ func (x *Sync_Request) String() string {
 func (*Sync_Request) ProtoMessage() {}
 
 func (x *Sync_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[15]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -678,7 +762,7 @@ type Sync_Response struct {
 func (x *Sync_Response) Reset() {
 	*x = Sync_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[16]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -691,7 +775,7 @@ func (x *Sync_Response) String() string {
 func (*Sync_Response) ProtoMessage() {}
 
 func (x *Sync_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[16]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -723,7 +807,7 @@ type GetTables_Request struct {
 func (x *GetTables_Request) Reset() {
 	*x = GetTables_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[17]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -736,7 +820,7 @@ func (x *GetTables_Request) String() string {
 func (*GetTables_Request) ProtoMessage() {}
 
 func (x *GetTables_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[17]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -766,7 +850,7 @@ type GetTables_Response struct {
 func (x *GetTables_Response) Reset() {
 	*x = GetTables_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[18]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -779,7 +863,7 @@ func (x *GetTables_Response) String() string {
 func (*GetTables_Response) ProtoMessage() {}
 
 func (x *GetTables_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[18]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -825,7 +909,7 @@ type GetMetrics_Request struct {
 func (x *GetMetrics_Request) Reset() {
 	*x = GetMetrics_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[19]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -838,7 +922,7 @@ func (x *GetMetrics_Request) String() string {
 func (*GetMetrics_Request) ProtoMessage() {}
 
 func (x *GetMetrics_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[19]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -866,7 +950,7 @@ type GetMetrics_Response struct {
 func (x *GetMetrics_Response) Reset() {
 	*x = GetMetrics_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cloudquery_source_v1_source_proto_msgTypes[20]
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -879,7 +963,7 @@ func (x *GetMetrics_Response) String() string {
 func (*GetMetrics_Response) ProtoMessage() {}
 
 func (x *GetMetrics_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_cloudquery_source_v1_source_proto_msgTypes[20]
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -900,6 +984,99 @@ func (x *GetMetrics_Response) GetMetrics() []byte {
 		return x.Metrics
 	}
 	return nil
+}
+
+type GenDocs_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Path   string         `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Format GenDocs_FORMAT `protobuf:"varint,2,opt,name=format,proto3,enum=cloudquery.source.v1.GenDocs_FORMAT" json:"format,omitempty"`
+}
+
+func (x *GenDocs_Request) Reset() {
+	*x = GenDocs_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[22]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GenDocs_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenDocs_Request) ProtoMessage() {}
+
+func (x *GenDocs_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[22]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenDocs_Request.ProtoReflect.Descriptor instead.
+func (*GenDocs_Request) Descriptor() ([]byte, []int) {
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{7, 0}
+}
+
+func (x *GenDocs_Request) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *GenDocs_Request) GetFormat() GenDocs_FORMAT {
+	if x != nil {
+		return x.Format
+	}
+	return GenDocs_markdown
+}
+
+type GenDocs_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *GenDocs_Response) Reset() {
+	*x = GenDocs_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_cloudquery_source_v1_source_proto_msgTypes[23]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GenDocs_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenDocs_Response) ProtoMessage() {}
+
+func (x *GenDocs_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_cloudquery_source_v1_source_proto_msgTypes[23]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenDocs_Response.ProtoReflect.Descriptor instead.
+func (*GenDocs_Response) Descriptor() ([]byte, []int) {
+	return file_cloudquery_source_v1_source_proto_rawDescGZIP(), []int{7, 1}
 }
 
 var File_cloudquery_source_v1_source_proto protoreflect.FileDescriptor
@@ -937,54 +1114,69 @@ var file_cloudquery_source_v1_source_proto_rawDesc = []byte{
 	0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65,
 	0x73, 0x74, 0x1a, 0x24, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18,
 	0x0a, 0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52,
-	0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x32, 0xa1, 0x05, 0x0a, 0x06, 0x53, 0x6f, 0x75,
-	0x72, 0x63, 0x65, 0x12, 0x58, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x25,
-	0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72,
-	0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x2e, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
+	0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x22, 0x94, 0x01, 0x0a, 0x07, 0x47, 0x65, 0x6e,
+	0x44, 0x6f, 0x63, 0x73, 0x1a, 0x5b, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
+	0x12, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x70,
+	0x61, 0x74, 0x68, 0x12, 0x3c, 0x0a, 0x06, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0e, 0x32, 0x24, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79,
+	0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x6e, 0x44, 0x6f,
+	0x63, 0x73, 0x2e, 0x46, 0x4f, 0x52, 0x4d, 0x41, 0x54, 0x52, 0x06, 0x66, 0x6f, 0x72, 0x6d, 0x61,
+	0x74, 0x1a, 0x0a, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x20, 0x0a,
+	0x06, 0x46, 0x4f, 0x52, 0x4d, 0x41, 0x54, 0x12, 0x0c, 0x0a, 0x08, 0x6d, 0x61, 0x72, 0x6b, 0x64,
+	0x6f, 0x77, 0x6e, 0x10, 0x00, 0x12, 0x08, 0x0a, 0x04, 0x6a, 0x73, 0x6f, 0x6e, 0x10, 0x01, 0x32,
+	0xfb, 0x05, 0x0a, 0x06, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x58, 0x0a, 0x07, 0x47, 0x65,
+	0x74, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x25, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
 	0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74,
-	0x4e, 0x61, 0x6d, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x61, 0x0a,
-	0x0a, 0x47, 0x65, 0x74, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x28, 0x2e, 0x63, 0x6c,
-	0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e,
-	0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x29, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
-	0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74,
-	0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x12, 0x5e, 0x0a, 0x09, 0x47, 0x65, 0x74, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x12, 0x27, 0x2e,
+	0x4e, 0x61, 0x6d, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x63,
+	0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x61, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x56, 0x65, 0x72, 0x73, 0x69,
+	0x6f, 0x6e, 0x12, 0x28, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x56, 0x65, 0x72,
+	0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x29, 0x2e, 0x63,
+	0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x5e, 0x0a, 0x09, 0x47, 0x65, 0x74, 0x54, 0x61,
+	0x62, 0x6c, 0x65, 0x73, 0x12, 0x27, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72,
+	0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x54,
+	0x61, 0x62, 0x6c, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x28, 0x2e,
 	0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63,
 	0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x2e, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x28, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75,
-	0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65,
-	0x74, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x12, 0x61, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x12, 0x28,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x61, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x4d, 0x65,
+	0x74, 0x72, 0x69, 0x63, 0x73, 0x12, 0x28, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
+	0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74,
+	0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x29, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63,
+	0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x4f, 0x0a, 0x04, 0x49, 0x6e,
+	0x69, 0x74, 0x12, 0x22, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x2e, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75,
+	0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x6e,
+	0x69, 0x74, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x73, 0x0a, 0x10, 0x47,
+	0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x12,
+	0x2e, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69,
+	0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x2f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69,
+	0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x12, 0x51, 0x0a, 0x04, 0x53, 0x79, 0x6e, 0x63, 0x12, 0x22, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64,
+	0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e,
+	0x53, 0x79, 0x6e, 0x63, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x63,
+	0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x2e, 0x76, 0x31, 0x2e, 0x53, 0x79, 0x6e, 0x63, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x30, 0x01, 0x12, 0x58, 0x0a, 0x07, 0x47, 0x65, 0x6e, 0x44, 0x6f, 0x63, 0x73, 0x12, 0x25,
 	0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72,
-	0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73,
-	0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x29, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64,
-	0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e,
-	0x47, 0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x4f, 0x0a, 0x04, 0x49, 0x6e, 0x69, 0x74, 0x12, 0x22, 0x2e, 0x63, 0x6c,
-	0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e,
-	0x76, 0x31, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
-	0x23, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75,
-	0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x2e, 0x52, 0x65, 0x73, 0x70,
-	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x73, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d,
-	0x69, 0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73, 0x12, 0x2e, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64,
-	0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e,
-	0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73,
-	0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2f, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64,
-	0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e,
-	0x47, 0x65, 0x74, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x54, 0x61, 0x62, 0x6c, 0x65, 0x73,
-	0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x51, 0x0a, 0x04, 0x53, 0x79, 0x6e,
-	0x63, 0x12, 0x22, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x73,
-	0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x79, 0x6e, 0x63, 0x2e, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
-	0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x79, 0x6e,
-	0x63, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x30, 0x01, 0x42, 0x3f, 0x5a, 0x3d,
-	0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6c, 0x6f, 0x75, 0x64,
-	0x71, 0x75, 0x65, 0x72, 0x79, 0x2f, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x2d, 0x73, 0x64, 0x6b,
-	0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x70, 0x62, 0x2f, 0x73, 0x6f, 0x75,
-	0x72, 0x63, 0x65, 0x2f, 0x76, 0x31, 0x3b, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x6e, 0x44, 0x6f, 0x63, 0x73, 0x2e, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x71, 0x75, 0x65,
+	0x72, 0x79, 0x2e, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x6e,
+	0x44, 0x6f, 0x63, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x3f, 0x5a,
+	0x3d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6c, 0x6f, 0x75,
+	0x64, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2f, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x2d, 0x73, 0x64,
+	0x6b, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x70, 0x62, 0x2f, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x2f, 0x76, 0x31, 0x3b, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -999,50 +1191,58 @@ func file_cloudquery_source_v1_source_proto_rawDescGZIP() []byte {
 	return file_cloudquery_source_v1_source_proto_rawDescData
 }
 
-var file_cloudquery_source_v1_source_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_cloudquery_source_v1_source_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_cloudquery_source_v1_source_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_cloudquery_source_v1_source_proto_goTypes = []interface{}{
-	(*GetName)(nil),                   // 0: cloudquery.source.v1.GetName
-	(*GetVersion)(nil),                // 1: cloudquery.source.v1.GetVersion
-	(*Init)(nil),                      // 2: cloudquery.source.v1.Init
-	(*GetDynamicTables)(nil),          // 3: cloudquery.source.v1.GetDynamicTables
-	(*Sync)(nil),                      // 4: cloudquery.source.v1.Sync
-	(*GetTables)(nil),                 // 5: cloudquery.source.v1.GetTables
-	(*GetMetrics)(nil),                // 6: cloudquery.source.v1.GetMetrics
-	(*GetName_Request)(nil),           // 7: cloudquery.source.v1.GetName.Request
-	(*GetName_Response)(nil),          // 8: cloudquery.source.v1.GetName.Response
-	(*GetVersion_Request)(nil),        // 9: cloudquery.source.v1.GetVersion.Request
-	(*GetVersion_Response)(nil),       // 10: cloudquery.source.v1.GetVersion.Response
-	(*Init_Request)(nil),              // 11: cloudquery.source.v1.Init.Request
-	(*Init_Response)(nil),             // 12: cloudquery.source.v1.Init.Response
-	(*GetDynamicTables_Request)(nil),  // 13: cloudquery.source.v1.GetDynamicTables.Request
-	(*GetDynamicTables_Response)(nil), // 14: cloudquery.source.v1.GetDynamicTables.Response
-	(*Sync_Request)(nil),              // 15: cloudquery.source.v1.Sync.Request
-	(*Sync_Response)(nil),             // 16: cloudquery.source.v1.Sync.Response
-	(*GetTables_Request)(nil),         // 17: cloudquery.source.v1.GetTables.Request
-	(*GetTables_Response)(nil),        // 18: cloudquery.source.v1.GetTables.Response
-	(*GetMetrics_Request)(nil),        // 19: cloudquery.source.v1.GetMetrics.Request
-	(*GetMetrics_Response)(nil),       // 20: cloudquery.source.v1.GetMetrics.Response
+	(GenDocs_FORMAT)(0),               // 0: cloudquery.source.v1.GenDocs.FORMAT
+	(*GetName)(nil),                   // 1: cloudquery.source.v1.GetName
+	(*GetVersion)(nil),                // 2: cloudquery.source.v1.GetVersion
+	(*Init)(nil),                      // 3: cloudquery.source.v1.Init
+	(*GetDynamicTables)(nil),          // 4: cloudquery.source.v1.GetDynamicTables
+	(*Sync)(nil),                      // 5: cloudquery.source.v1.Sync
+	(*GetTables)(nil),                 // 6: cloudquery.source.v1.GetTables
+	(*GetMetrics)(nil),                // 7: cloudquery.source.v1.GetMetrics
+	(*GenDocs)(nil),                   // 8: cloudquery.source.v1.GenDocs
+	(*GetName_Request)(nil),           // 9: cloudquery.source.v1.GetName.Request
+	(*GetName_Response)(nil),          // 10: cloudquery.source.v1.GetName.Response
+	(*GetVersion_Request)(nil),        // 11: cloudquery.source.v1.GetVersion.Request
+	(*GetVersion_Response)(nil),       // 12: cloudquery.source.v1.GetVersion.Response
+	(*Init_Request)(nil),              // 13: cloudquery.source.v1.Init.Request
+	(*Init_Response)(nil),             // 14: cloudquery.source.v1.Init.Response
+	(*GetDynamicTables_Request)(nil),  // 15: cloudquery.source.v1.GetDynamicTables.Request
+	(*GetDynamicTables_Response)(nil), // 16: cloudquery.source.v1.GetDynamicTables.Response
+	(*Sync_Request)(nil),              // 17: cloudquery.source.v1.Sync.Request
+	(*Sync_Response)(nil),             // 18: cloudquery.source.v1.Sync.Response
+	(*GetTables_Request)(nil),         // 19: cloudquery.source.v1.GetTables.Request
+	(*GetTables_Response)(nil),        // 20: cloudquery.source.v1.GetTables.Response
+	(*GetMetrics_Request)(nil),        // 21: cloudquery.source.v1.GetMetrics.Request
+	(*GetMetrics_Response)(nil),       // 22: cloudquery.source.v1.GetMetrics.Response
+	(*GenDocs_Request)(nil),           // 23: cloudquery.source.v1.GenDocs.Request
+	(*GenDocs_Response)(nil),          // 24: cloudquery.source.v1.GenDocs.Response
 }
 var file_cloudquery_source_v1_source_proto_depIdxs = []int32{
-	7,  // 0: cloudquery.source.v1.Source.GetName:input_type -> cloudquery.source.v1.GetName.Request
-	9,  // 1: cloudquery.source.v1.Source.GetVersion:input_type -> cloudquery.source.v1.GetVersion.Request
-	17, // 2: cloudquery.source.v1.Source.GetTables:input_type -> cloudquery.source.v1.GetTables.Request
-	19, // 3: cloudquery.source.v1.Source.GetMetrics:input_type -> cloudquery.source.v1.GetMetrics.Request
-	11, // 4: cloudquery.source.v1.Source.Init:input_type -> cloudquery.source.v1.Init.Request
-	13, // 5: cloudquery.source.v1.Source.GetDynamicTables:input_type -> cloudquery.source.v1.GetDynamicTables.Request
-	15, // 6: cloudquery.source.v1.Source.Sync:input_type -> cloudquery.source.v1.Sync.Request
-	8,  // 7: cloudquery.source.v1.Source.GetName:output_type -> cloudquery.source.v1.GetName.Response
-	10, // 8: cloudquery.source.v1.Source.GetVersion:output_type -> cloudquery.source.v1.GetVersion.Response
-	18, // 9: cloudquery.source.v1.Source.GetTables:output_type -> cloudquery.source.v1.GetTables.Response
-	20, // 10: cloudquery.source.v1.Source.GetMetrics:output_type -> cloudquery.source.v1.GetMetrics.Response
-	12, // 11: cloudquery.source.v1.Source.Init:output_type -> cloudquery.source.v1.Init.Response
-	14, // 12: cloudquery.source.v1.Source.GetDynamicTables:output_type -> cloudquery.source.v1.GetDynamicTables.Response
-	16, // 13: cloudquery.source.v1.Source.Sync:output_type -> cloudquery.source.v1.Sync.Response
-	7,  // [7:14] is the sub-list for method output_type
-	0,  // [0:7] is the sub-list for method input_type
-	0,  // [0:0] is the sub-list for extension type_name
-	0,  // [0:0] is the sub-list for extension extendee
-	0,  // [0:0] is the sub-list for field type_name
+	0,  // 0: cloudquery.source.v1.GenDocs.Request.format:type_name -> cloudquery.source.v1.GenDocs.FORMAT
+	9,  // 1: cloudquery.source.v1.Source.GetName:input_type -> cloudquery.source.v1.GetName.Request
+	11, // 2: cloudquery.source.v1.Source.GetVersion:input_type -> cloudquery.source.v1.GetVersion.Request
+	19, // 3: cloudquery.source.v1.Source.GetTables:input_type -> cloudquery.source.v1.GetTables.Request
+	21, // 4: cloudquery.source.v1.Source.GetMetrics:input_type -> cloudquery.source.v1.GetMetrics.Request
+	13, // 5: cloudquery.source.v1.Source.Init:input_type -> cloudquery.source.v1.Init.Request
+	15, // 6: cloudquery.source.v1.Source.GetDynamicTables:input_type -> cloudquery.source.v1.GetDynamicTables.Request
+	17, // 7: cloudquery.source.v1.Source.Sync:input_type -> cloudquery.source.v1.Sync.Request
+	23, // 8: cloudquery.source.v1.Source.GenDocs:input_type -> cloudquery.source.v1.GenDocs.Request
+	10, // 9: cloudquery.source.v1.Source.GetName:output_type -> cloudquery.source.v1.GetName.Response
+	12, // 10: cloudquery.source.v1.Source.GetVersion:output_type -> cloudquery.source.v1.GetVersion.Response
+	20, // 11: cloudquery.source.v1.Source.GetTables:output_type -> cloudquery.source.v1.GetTables.Response
+	22, // 12: cloudquery.source.v1.Source.GetMetrics:output_type -> cloudquery.source.v1.GetMetrics.Response
+	14, // 13: cloudquery.source.v1.Source.Init:output_type -> cloudquery.source.v1.Init.Response
+	16, // 14: cloudquery.source.v1.Source.GetDynamicTables:output_type -> cloudquery.source.v1.GetDynamicTables.Response
+	18, // 15: cloudquery.source.v1.Source.Sync:output_type -> cloudquery.source.v1.Sync.Response
+	24, // 16: cloudquery.source.v1.Source.GenDocs:output_type -> cloudquery.source.v1.GenDocs.Response
+	9,  // [9:17] is the sub-list for method output_type
+	1,  // [1:9] is the sub-list for method input_type
+	1,  // [1:1] is the sub-list for extension type_name
+	1,  // [1:1] is the sub-list for extension extendee
+	0,  // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_cloudquery_source_v1_source_proto_init() }
@@ -1136,7 +1336,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetName_Request); i {
+			switch v := v.(*GenDocs); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1148,7 +1348,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetName_Response); i {
+			switch v := v.(*GetName_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1160,7 +1360,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetVersion_Request); i {
+			switch v := v.(*GetName_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1172,7 +1372,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetVersion_Response); i {
+			switch v := v.(*GetVersion_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1184,7 +1384,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Init_Request); i {
+			switch v := v.(*GetVersion_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1196,7 +1396,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Init_Response); i {
+			switch v := v.(*Init_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1208,7 +1408,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetDynamicTables_Request); i {
+			switch v := v.(*Init_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1220,7 +1420,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetDynamicTables_Response); i {
+			switch v := v.(*GetDynamicTables_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1232,7 +1432,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Sync_Request); i {
+			switch v := v.(*GetDynamicTables_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1244,7 +1444,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Sync_Response); i {
+			switch v := v.(*Sync_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1256,7 +1456,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetTables_Request); i {
+			switch v := v.(*Sync_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1268,7 +1468,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetTables_Response); i {
+			switch v := v.(*GetTables_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1280,7 +1480,7 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetMetrics_Request); i {
+			switch v := v.(*GetTables_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1292,7 +1492,43 @@ func file_cloudquery_source_v1_source_proto_init() {
 			}
 		}
 		file_cloudquery_source_v1_source_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetMetrics_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_cloudquery_source_v1_source_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetMetrics_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_cloudquery_source_v1_source_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GenDocs_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_cloudquery_source_v1_source_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GenDocs_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1309,13 +1545,14 @@ func file_cloudquery_source_v1_source_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_cloudquery_source_v1_source_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   21,
+			NumEnums:      1,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_cloudquery_source_v1_source_proto_goTypes,
 		DependencyIndexes: file_cloudquery_source_v1_source_proto_depIdxs,
+		EnumInfos:         file_cloudquery_source_v1_source_proto_enumTypes,
 		MessageInfos:      file_cloudquery_source_v1_source_proto_msgTypes,
 	}.Build()
 	File_cloudquery_source_v1_source_proto = out.File
