@@ -308,7 +308,7 @@ spec:
   table_concurrency: 10
   registry: local
   destinations: [postgresql]
-  service_account_key_json: "{\"key\": \"foo\", \"secret\": \"bar\"}\n"
+  service_account_key_json: "{\"key\": \"foo\", \"secret\": \"bar\"}"
 	`)
 	expandedCfg, err := expandFileConfig(cfg)
 	if err != nil {
