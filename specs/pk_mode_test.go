@@ -6,13 +6,13 @@ import (
 
 func TestPKModeFromString(t *testing.T) {
 	var pkMode PKMode
-	if err := pkMode.UnmarshalJSON([]byte(`"cq-id"`)); err != nil {
+	if err := pkMode.UnmarshalJSON([]byte(`"cq-ids-only"`)); err != nil {
 		t.Fatal(err)
 	}
 	if pkMode != PKModeCQID {
 		t.Fatalf("expected PKModeCQID, got %v", pkMode)
 	}
-	if err := pkMode.UnmarshalJSON([]byte(`"composite-keys"`)); err != nil {
+	if err := pkMode.UnmarshalJSON([]byte(`"default"`)); err != nil {
 		t.Fatal(err)
 	}
 	if pkMode != PKModeCompositeKeys {
@@ -36,14 +36,14 @@ func TestPKModeMarshalJSON(t *testing.T) {
 	pkMode := PKModeCQID
 	if pkModeStr, err := pkMode.MarshalJSON(); err != nil {
 		t.Fatal(err)
-	} else if string(pkModeStr) != `"cq-id"` {
+	} else if string(pkModeStr) != `"cq-ids-only"` {
 		t.Fatalf("expected:\"cq-id\" got:%s", string(pkModeStr))
 	}
 
 	pkMode = PKModeCompositeKeys
 	if pkModeStr, err := pkMode.MarshalJSON(); err != nil {
 		t.Fatal(err)
-	} else if string(pkModeStr) != `"composite-keys"` {
+	} else if string(pkModeStr) != `"default"` {
 		t.Fatalf("expected:\"cq-id\" got:%s", string(pkModeStr))
 	}
 }

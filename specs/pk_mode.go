@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	pkModeStrings = []string{"composite-keys", "cq-id"}
+	pkModeStrings = []string{"default", "cq-ids-only"}
 )
 
 func (m PKMode) String() string {
@@ -41,9 +41,9 @@ func (m *PKMode) UnmarshalJSON(data []byte) (err error) {
 
 func PKModeFromString(s string) (PKMode, error) {
 	switch s {
-	case "composite-keys":
+	case "default":
 		return PKModeCompositeKeys, nil
-	case "cq-id":
+	case "cq-ids-only":
 		return PKModeCQID, nil
 	}
 	return 0, fmt.Errorf("invalid pk mode: %s", s)
