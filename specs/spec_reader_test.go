@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -308,15 +309,13 @@ spec:
   table_concurrency: 10
   registry: local
   destinations: [postgresql]
-  service_account_key_json: "{\"key\": \"foo\", \"secret\": \"bar\"}"
+  service_account_key_json: "{\n  \"key\": \"foo\",\n  \"secret\": \"bar<baz>\"\n}\n"
 	`)
 	expandedCfg, err := expandFileConfig(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(expandedCfg, expectedCfg) {
-		t.Fatalf("got: %s expected: %s", expandedCfg, expectedCfg)
-	}
+	assert.Equal(t, expectedCfg, expandedCfg)
 }
 
 func TestExpandEnv(t *testing.T) {

@@ -38,7 +38,15 @@ func expandFileConfig(cfg []byte) ([]byte, error) {
 		if err := json.Unmarshal(content, &isJSON); err == nil {
 			k := reflect.TypeOf(isJSON).Kind()
 			if k == reflect.Map || k == reflect.Slice {
-				content, _ = json.Marshal(string(content))
+				buffer := &bytes.Buffer{}
+				encoder := json.NewEncoder(buffer)
+				encoder.SetEscapeHTML(false)
+				expandErr = encoder.Encode(string(content))
+				b := buffer.Bytes()
+				if l := len(b); l > 0 && b[l-1] == '\n' {
+					b = b[:l-1]
+				}
+				return b
 			}
 		}
 
