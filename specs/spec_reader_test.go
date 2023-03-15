@@ -287,6 +287,38 @@ spec:
 	}
 }
 
+func TestExpandFileJSON(t *testing.T) {
+	cfg := []byte(`
+kind: source
+spec:
+  name: gcp
+  path: cloudquery/gcp
+  version: v1.0.0
+  table_concurrency: 10
+  registry: local
+  destinations: [postgresql]
+  service_account_key_json: ${file:./testdata/creds2.json}
+	`)
+	expectedCfg := []byte(`
+kind: source
+spec:
+  name: gcp
+  path: cloudquery/gcp
+  version: v1.0.0
+  table_concurrency: 10
+  registry: local
+  destinations: [postgresql]
+  service_account_key_json: "{\"key\": \"foo\", \"secret\": \"bar\"}\n"
+	`)
+	expandedCfg, err := expandFileConfig(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(expandedCfg, expectedCfg) {
+		t.Fatalf("got: %s expected: %s", expandedCfg, expectedCfg)
+	}
+}
+
 func TestExpandEnv(t *testing.T) {
 	os.Setenv("TEST_ENV_CREDS", "mytestcreds")
 	os.Setenv("TEST_ENV_CREDS2", "anothercredtest")

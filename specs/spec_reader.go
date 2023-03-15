@@ -2,10 +2,12 @@ package specs
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -32,6 +34,14 @@ func expandFileConfig(cfg []byte) ([]byte, error) {
 			expandErr = err
 			return nil
 		}
+		var isJSON any
+		if err := json.Unmarshal(content, &isJSON); err == nil {
+			k := reflect.TypeOf(isJSON).Kind()
+			if k == reflect.Map || k == reflect.Slice {
+				content, _ = json.Marshal(string(content))
+			}
+		}
+
 		return content
 	})
 	return cfg, expandErr
