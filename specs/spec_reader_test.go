@@ -315,6 +315,9 @@ spec:
 	if err != nil {
 		t.Fatal(err)
 	}
+	if runtime.GOOS == "windows" {
+		expectedCfg = bytes.ReplaceAll(expectedCfg, []byte(`\n`), []byte(`\r\n`))
+	}
 	assert.Equal(t, expectedCfg, expandedCfg)
 }
 
