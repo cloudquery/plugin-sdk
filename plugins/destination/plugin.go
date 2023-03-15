@@ -310,15 +310,14 @@ func setCqIDColumnOptionsForTables(tables []*schema.Table) {
 func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 	for _, table := range tables {
 		for i, col := range table.Columns {
-			if col.Name == schema.CqIDColumn.Name {
+			switch col.Name {
+			case schema.CqIDColumn.Name:
 				table.Columns[i].CreationOptions.PrimaryKey = true
-				continue
+			case schema.CqParentIDColumn.Name:
+				table.Columns[i].CreationOptions.PrimaryKey = table.Parent != nil
+			default:
+				table.Columns[i].CreationOptions.PrimaryKey = false
 			}
-			if table.Parent != nil && col.Name == schema.CqParentIDColumn.Name {
-				table.Columns[i].CreationOptions.PrimaryKey = true
-				continue
-			}
-			table.Columns[i].CreationOptions.PrimaryKey = false
 		}
 		setCQIDAsPrimaryKeysForTables(table.Relations)
 	}
