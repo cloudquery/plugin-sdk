@@ -297,7 +297,7 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 	var changes []TableColumnChange
 	for _, c := range t.Columns {
 		otherColumn := old.Columns.Get(c.Name)
-		// Add in a column that didn't exist before.
+		// A column was added to the table definition
 		if otherColumn == nil {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeAdd,
@@ -306,7 +306,7 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 			})
 			continue
 		}
-		// column type changed or other column options changed (not null or PK)
+		// Column type or options (e.g. PK, Not Null) changed in the new table definition
 		if c.Type != otherColumn.Type || c.CreationOptions.NotNull != otherColumn.CreationOptions.NotNull || c.CreationOptions.PrimaryKey != otherColumn.CreationOptions.PrimaryKey {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeUpdate,
@@ -316,7 +316,7 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 			})
 		}
 	}
-	// Remove columns that have been deleted from table definition.
+	// A column was removed from the table definition
 	for _, c := range old.Columns {
 		if t.Columns.Get(c.Name) == nil {
 			changes = append(changes, TableColumnChange{
