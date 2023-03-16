@@ -6,7 +6,7 @@ import (
 
 func TestPKModeFromString(t *testing.T) {
 	var pkMode PKMode
-	if err := pkMode.UnmarshalJSON([]byte(`"cq-ids-only"`)); err != nil {
+	if err := pkMode.UnmarshalJSON([]byte(`"cq-id-only"`)); err != nil {
 		t.Fatal(err)
 	}
 	if pkMode != PKModeCQID {
@@ -36,7 +36,7 @@ func TestPKModeMarshalJSON(t *testing.T) {
 	pkMode := PKModeCQID
 	if pkModeStr, err := pkMode.MarshalJSON(); err != nil {
 		t.Fatal(err)
-	} else if string(pkModeStr) != `"cq-ids-only"` {
+	} else if string(pkModeStr) != `"cq-id-only"` {
 		t.Fatalf("expected:\"cq-id\" got:%s", string(pkModeStr))
 	}
 

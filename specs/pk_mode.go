@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	pkModeStrings = []string{"default", "cq-ids-only"}
+	pkModeStrings = []string{"default", "cq-id-only"}
 )
 
 func (m PKMode) String() string {
@@ -43,7 +43,7 @@ func PKModeFromString(s string) (PKMode, error) {
 	switch s {
 	case "default":
 		return PKModeCompositeKeys, nil
-	case "cq-ids-only":
+	case "cq-id-only":
 		return PKModeCQID, nil
 	}
 	return 0, fmt.Errorf("invalid pk mode: %s", s)

@@ -317,8 +317,6 @@ func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 			switch col.Name {
 			case schema.CqIDColumn.Name:
 				table.Columns[i].CreationOptions.PrimaryKey = true
-			case schema.CqParentIDColumn.Name:
-				table.Columns[i].CreationOptions.PrimaryKey = table.Parent != nil
 			default:
 				table.Columns[i].CreationOptions.PrimaryKey = false
 			}
