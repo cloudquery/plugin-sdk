@@ -42,11 +42,7 @@ func expandFileConfig(cfg []byte) ([]byte, error) {
 				encoder := json.NewEncoder(buffer)
 				encoder.SetEscapeHTML(false)
 				expandErr = encoder.Encode(string(content))
-				b := buffer.Bytes()
-				if l := len(b); l > 0 && b[l-1] == '\n' {
-					b = b[:l-1]
-				}
-				return b
+				return bytes.TrimSuffix(b, []byte{'\n'})
 			}
 		}
 
