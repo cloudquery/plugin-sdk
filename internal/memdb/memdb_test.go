@@ -35,7 +35,7 @@ func TestPluginUnmanagedClient(t *testing.T) {
 		func() *destination.Plugin {
 			return destination.NewPlugin("test", "development", NewClient)
 		},
-		nil,
+		specs.Destination{},
 		destination.PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
@@ -48,7 +48,7 @@ func TestPluginManagedClient(t *testing.T) {
 		func() *destination.Plugin {
 			return destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter())
 		},
-		nil,
+		specs.Destination{},
 		destination.PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
@@ -61,7 +61,7 @@ func TestPluginManagedClientWithSmallBatchSize(t *testing.T) {
 			return destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter(),
 				destination.WithDefaultBatchSize(1),
 				destination.WithDefaultBatchSizeBytes(1))
-		}, nil,
+		}, specs.Destination{},
 		destination.PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
@@ -75,7 +75,19 @@ func TestPluginManagedClientWithLargeBatchSize(t *testing.T) {
 				destination.WithDefaultBatchSize(100000000),
 				destination.WithDefaultBatchSizeBytes(100000000))
 		},
-		nil,
+		specs.Destination{},
+		destination.PluginTestSuiteTests{
+			MigrateStrategyOverwrite: migrateStrategyOverwrite,
+			MigrateStrategyAppend:    migrateStrategyAppend,
+		})
+}
+
+func TestPluginManagedClientWithCQPKs(t *testing.T) {
+	destination.PluginTestSuiteRunner(t,
+		func() *destination.Plugin {
+			return destination.NewPlugin("test", "development", NewClient)
+		},
+		specs.Destination{PKMode: specs.PKModeCQID},
 		destination.PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
