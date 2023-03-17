@@ -72,12 +72,10 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 
 type NewPluginFunc func() *Plugin
 
-func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, tests PluginTestSuiteTests) {
+func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs.Destination, tests PluginTestSuiteTests) {
 	t.Helper()
-	destSpec := specs.Destination{
-		Name: "testsuite",
-		Spec: spec,
-	}
+	destSpec.Name = "testsuite"
+
 	suite := &PluginTestSuite{
 		tests: tests,
 	}

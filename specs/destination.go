@@ -19,6 +19,7 @@ type Destination struct {
 	BatchSize      int         `json:"batch_size,omitempty"`
 	BatchSizeBytes int         `json:"batch_size_bytes,omitempty"`
 	Spec           any         `json:"spec,omitempty"`
+	PKMode         PKMode      `json:"pk_mode,omitempty"`
 }
 
 func (d *Destination) SetDefaults(defaultBatchSize, defaultBatchSizeBytes int) {

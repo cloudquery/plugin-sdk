@@ -187,6 +187,7 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
 	SetDestinationManagedCqColumns(tables)
 	setCqIDColumnOptionsForTables(tables)
+	p.setPKsForTables(tables)
 	return p.client.Migrate(ctx, tables)
 }
 
@@ -242,6 +243,7 @@ func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, tables s
 func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
 	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
+	p.setPKsForTables(tables)
 	switch p.writerType {
 	case unmanaged:
 		if err := p.writeUnmanaged(ctx, sourceSpec, tables, syncTime, res); err != nil {
@@ -301,5 +303,19 @@ func setCqIDColumnOptionsForTables(tables []*schema.Table) {
 			}
 		}
 		setCqIDColumnOptionsForTables(table.Relations)
+	}
+}
+
+func (p *Plugin) setPKsForTables(tables schema.Tables) {
+	if p.spec.PKMode == specs.PKModeCQID {
+		setCQIDAsPrimaryKeysForTables(tables)
+	}
+}
+func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
+	for _, table := range tables {
+		for i, col := range table.Columns {
+			table.Columns[i].CreationOptions.PrimaryKey = col.Name == schema.CqIDColumn.Name
+		}
+		setCQIDAsPrimaryKeysForTables(table.Relations)
 	}
 }

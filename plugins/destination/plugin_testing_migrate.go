@@ -74,6 +74,17 @@ func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.
 		}
 	}
 
+	if p.spec.PKMode == specs.PKModeCQID {
+		for _, tColumn := range target.Columns {
+			if tColumn.Name != schema.CqIDColumn.Name && tColumn.CreationOptions.PrimaryKey {
+				return fmt.Errorf("unexpected primary key on %s", tColumn.Name)
+			}
+			if tColumn.Name == schema.CqIDColumn.Name && !tColumn.CreationOptions.PrimaryKey {
+				return fmt.Errorf("expected primary key on %s", tColumn.Name)
+			}
+		}
+	}
+
 	return nil
 }
 
