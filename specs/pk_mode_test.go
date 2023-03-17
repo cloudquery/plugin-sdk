@@ -15,7 +15,7 @@ func TestPKModeFromString(t *testing.T) {
 	if err := pkMode.UnmarshalJSON([]byte(`"default"`)); err != nil {
 		t.Fatal(err)
 	}
-	if pkMode != PKModeCompositeKeys {
+	if pkMode != PKModeDefaultKeys {
 		t.Fatalf("expected PKModeCompositeKeys, got %v", pkMode)
 	}
 }
@@ -40,7 +40,7 @@ func TestPKModeMarshalJSON(t *testing.T) {
 		t.Fatalf("expected:\"cq-id\" got:%s", string(pkModeStr))
 	}
 
-	pkMode = PKModeCompositeKeys
+	pkMode = PKModeDefaultKeys
 	if pkModeStr, err := pkMode.MarshalJSON(); err != nil {
 		t.Fatal(err)
 	} else if string(pkModeStr) != `"default"` {
