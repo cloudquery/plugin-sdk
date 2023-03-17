@@ -314,12 +314,7 @@ func (p *Plugin) setPKsForTables(tables schema.Tables) {
 func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 	for _, table := range tables {
 		for i, col := range table.Columns {
-			switch col.Name {
-			case schema.CqIDColumn.Name:
-				table.Columns[i].CreationOptions.PrimaryKey = true
-			default:
-				table.Columns[i].CreationOptions.PrimaryKey = false
-			}
+			table.Columns[i].CreationOptions.PrimaryKey = col.Name == schema.CqIDColumn.Name
 		}
 		setCQIDAsPrimaryKeysForTables(table.Relations)
 	}
