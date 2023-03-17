@@ -58,6 +58,6 @@ func TestSetCQIDAsPrimaryKeysForTables(t *testing.T) {
 	require.False(t, topLevelTable.Columns[1].CreationOptions.PrimaryKey)
 	require.False(t, topLevelTable.Columns[2].CreationOptions.PrimaryKey)
 	require.True(t, topLevelTable.Relations[0].Columns[0].CreationOptions.PrimaryKey)
-	require.True(t, topLevelTable.Relations[0].Columns[1].CreationOptions.PrimaryKey)
+	require.False(t, topLevelTable.Relations[0].Columns[1].CreationOptions.PrimaryKey)
 	require.False(t, topLevelTable.Relations[0].Columns[2].CreationOptions.PrimaryKey)
 }
