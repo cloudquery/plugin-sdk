@@ -9,7 +9,7 @@ import (
 type PKMode int
 
 const (
-	PKModeCompositeKeys PKMode = iota
+	PKModeDefaultKeys PKMode = iota
 	PKModeCQID
 )
 
@@ -42,7 +42,7 @@ func (m *PKMode) UnmarshalJSON(data []byte) (err error) {
 func PKModeFromString(s string) (PKMode, error) {
 	switch s {
 	case "default":
-		return PKModeCompositeKeys, nil
+		return PKModeDefaultKeys, nil
 	case "cq-id-only":
 		return PKModeCQID, nil
 	}
