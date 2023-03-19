@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.0](https://github.com/cloudquery/plugin-sdk/compare/v1.43.0...v1.44.0) (2023-03-17)
+
+
+### Features
+
+* Support for User Specifying Primary Key Scheme (default or cq-ids) ([#732](https://github.com/cloudquery/plugin-sdk/issues/732)) ([a41af50](https://github.com/cloudquery/plugin-sdk/commit/a41af50cca9529be77ca9c94114377dd0af006d6))
+
 ## [1.43.0](https://github.com/cloudquery/plugin-sdk/compare/v1.42.0...v1.43.0) (2023-03-14)
 
 
