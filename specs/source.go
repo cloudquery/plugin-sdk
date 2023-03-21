@@ -50,7 +50,7 @@ type Source struct {
 	Spec any `json:"spec,omitempty"`
 
 	// DeterministicCQID is a flag that indicates whether the source plugin should generate a random UUID as the value of _cq_id
-	// or whether it should calculate a UUID that is a hash of the primary keys (if they exist) or the entire resource.
+	// or whether it should calculate a UUID that is a hash of the primary keys (if they exist).
 	DeterministicCQID bool `json:"deterministic_cq_id,omitempty"`
 }
 
