@@ -162,7 +162,9 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 			}
 		}
 
-		t.addWholeItemHash()
+		if err := t.addWholeItemHash(); err != nil {
+			return err
+		}
 
 		// Validate that all expected PK fields were found
 		if diff := funk.SubtractString(t.pkFields, t.pkFieldsFound); len(diff) > 0 {
