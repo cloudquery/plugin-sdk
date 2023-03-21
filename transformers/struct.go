@@ -310,7 +310,7 @@ func (t *structTransformer) addWholeItemHash() error {
 	column := schema.Column{
 		Name:     t.hashFieldName,
 		Type:     schema.TypeString,
-		Resolver: schema.ObjectHashResolve(),
+		Resolver: schema.ObjectHashResolver(),
 		CreationOptions: schema.ColumnCreationOptions{
 			PrimaryKey: true,
 		},

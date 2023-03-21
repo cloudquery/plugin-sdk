@@ -27,7 +27,7 @@ func ParentColumnResolver(name string) ColumnResolver {
 	}
 }
 
-func ObjectHashResolve() ColumnResolver {
+func ObjectHashResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		hash, err := hashstructure.Hash(r.Item, hashstructure.FormatV2, nil)
 		if err != nil {
