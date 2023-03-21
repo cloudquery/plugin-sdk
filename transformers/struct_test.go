@@ -188,7 +188,7 @@ var (
 				Name:            "_pk_struct_hash",
 				Type:            schema.TypeString,
 				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
-				Resolver:        schema.ObjectHashResolve(),
+				Resolver:        schema.ObjectHashResolver(),
 			},
 		},
 	}
