@@ -169,6 +169,30 @@ var (
 		},
 	}
 
+	expectedTableWithHashItemPKs = schema.Table{
+		Name: "test_pk_struct",
+		Columns: schema.ColumnList{
+			{
+				Name: "parent",
+				Type: schema.TypeString,
+			},
+			{
+				Name: "name",
+				Type: schema.TypeString,
+			},
+			{
+				Name: "version",
+				Type: schema.TypeInt,
+			},
+			{
+				Name:            "_pk_struct_hash",
+				Type:            schema.TypeString,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Resolver:        schema.ObjectHashResolve(),
+			},
+		},
+	}
+
 	expectedTableWithPKs = schema.Table{
 		Name: "test_pk_struct",
 		Columns: schema.ColumnList{
@@ -255,6 +279,27 @@ func TestTableFromGoStruct(t *testing.T) {
 				},
 			},
 			want:    expectedTableWithPKs,
+			wantErr: true,
+		},
+		{
+			name: "Should properly configure PK when options are set",
+			args: args{
+				testStruct: testPKStruct{},
+				options: []StructTransformerOption{
+					WithWholeItemAsPK("_pk_struct_hash"),
+				},
+			},
+			want: expectedTableWithHashItemPKs,
+		},
+		{
+			name: "Should properly configure PK when options are set",
+			args: args{
+				testStruct: testPKStruct{},
+				options: []StructTransformerOption{
+					WithPrimaryKeys("Parent", "Name"),
+					WithWholeItemAsPK("_pk_struct_hash"),
+				},
+			},
 			wantErr: true,
 		},
 	}
