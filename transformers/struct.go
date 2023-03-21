@@ -20,6 +20,7 @@ type structTransformer struct {
 	typeTransformer               TypeTransformer
 	resolverTransformer           ResolverTransformer
 	ignoreInTestsTransformer      IgnoreInTestsTransformer
+	hashFieldName                 string
 	unwrapAllEmbeddedStructFields bool
 	structFieldsToUnwrap          []string
 	pkFields                      []string
@@ -52,6 +53,13 @@ func isFieldStruct(reflectType reflect.Type) bool {
 		return reflectType.Elem().Kind() == reflect.Struct
 	default:
 		return false
+	}
+}
+
+func WithWholeItemAsPK(fieldName string) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.hashFieldName = fieldName
+		t.pkFields = append(t.pkFields, fieldName)
 	}
 }
 
@@ -153,6 +161,9 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 				}
 			}
 		}
+
+		t.addWholeItemHash()
+
 		// Validate that all expected PK fields were found
 		if diff := funk.SubtractString(t.pkFields, t.pkFieldsFound); len(diff) > 0 {
 			return fmt.Errorf("failed to create all of the desired primary keys: %v", diff)
@@ -283,6 +294,30 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	return nil
 }
 
+func (t *structTransformer) addWholeItemHash() error {
+	if t.hashFieldName == "" {
+		return nil
+	}
+	if !strings.HasPrefix(t.hashFieldName, "_") || !strings.HasSuffix(t.hashFieldName, "_hash") {
+		return fmt.Errorf("hashEntireItem field name must be of the form _field_name_hash: %s", t.hashFieldName)
+	}
+	if len(t.pkFieldsFound) > 0 {
+		return fmt.Errorf("hashEntireItem field name cannot be used with primary keys: %s", t.pkFieldsFound)
+	}
+
+	column := schema.Column{
+		Name:     t.hashFieldName,
+		Type:     schema.TypeString,
+		Resolver: schema.ObjectHashResolve(),
+		CreationOptions: schema.ColumnCreationOptions{
+			PrimaryKey: true,
+		},
+	}
+	t.pkFieldsFound = append(t.pkFieldsFound, t.hashFieldName)
+	t.table.Columns = append(t.table.Columns, column)
+
+	return nil
+}
 func isTypeIgnored(t reflect.Type) bool {
 	switch t.Kind() {
 	case reflect.Interface,
