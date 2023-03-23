@@ -9,7 +9,7 @@ func InterfaceSlice(slice any) []any {
 		return nil
 	}
 	s := reflect.ValueOf(slice)
-	//handle slice behind pointer
+	// handle slice behind pointer
 	if s.Kind() == reflect.Ptr && s.Elem().Kind() == reflect.Slice {
 		// Keep the distinction between nil and empty slice input
 		if s.Elem().IsNil() {

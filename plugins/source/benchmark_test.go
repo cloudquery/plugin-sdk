@@ -222,9 +222,9 @@ func (s *Benchmark) Run() {
 		s.b.ReportMetric(float64(totalResources)/(end.Sub(start).Seconds()), "resources/s")
 
 		// Enable the below metrics for more verbose information about the scenario:
-		//s.b.ReportMetric(float64(s.apiCalls.Load())/(end.Sub(start).Seconds()), "api-calls/s")
-		//s.b.ReportMetric(float64(totalResources), "resources")
-		//s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
+		// s.b.ReportMetric(float64(s.apiCalls.Load())/(end.Sub(start).Seconds()), "api-calls/s")
+		//  s.b.ReportMetric(float64(totalResources), "resources")
+		// s.b.ReportMetric(float64(s.apiCalls.Load()), "apiCalls")
 	}
 }
 
