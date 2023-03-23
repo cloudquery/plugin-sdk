@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
@@ -33,7 +34,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		Name: sourceName,
 	}
 	resources[0] = createTestResources(table, sourceName, syncTime, 1)[0]
-	if err := p.writeOne(ctx, specSource, tables, syncTime, resources[0]); err != nil {
+	record := schema.CQTypesOneToRecord(memory.DefaultAllocator, resources[0].Data, schema.CQSchemaToArrow(table))
+	if err := p.writeOne(ctx, specSource, tables, syncTime, record); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
@@ -43,7 +45,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 
 	if !s.tests.SkipSecondAppend {
 		// write second time
-		if err := p.writeOne(ctx, specSource, tables, secondSyncTime, resources[1]); err != nil {
+		record := schema.CQTypesOneToRecord(memory.DefaultAllocator, resources[1].Data, schema.CQSchemaToArrow(table))
+		if err := p.writeOne(ctx, specSource, tables, secondSyncTime, record); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}

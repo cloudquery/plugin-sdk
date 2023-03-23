@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
@@ -81,7 +82,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	_ = updatedResource.Data[1].Set(secondSyncTime)
 
 	// write second time
-	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResource); err != nil {
+	record := schema.CQTypesOneToRecord(memory.DefaultAllocator, updatedResource.Data, schema.CQSchemaToArrow(table))
+	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, record); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 

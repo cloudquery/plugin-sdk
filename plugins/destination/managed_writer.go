@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/internal/pk"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -16,13 +17,12 @@ import (
 type worker struct {
 	count int
 	wg    *sync.WaitGroup
-	ch    chan schema.CQTypes
+	ch    chan arrow.Record
 	flush chan chan bool
 }
 
-func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan schema.CQTypes, flush <-chan chan bool) {
-	resources := make([][]any, 0)
-	sizeBytes := 0
+func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan arrow.Record, flush <-chan chan bool) {
+	resources := make([]arrow.Record, 0)
 	for {
 		select {
 		case r, ok := <-ch:
@@ -32,32 +32,28 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 				}
 				return
 			}
-			if len(resources) == p.spec.BatchSize || sizeBytes+r.Size() > p.spec.BatchSizeBytes {
+			if len(resources) == p.spec.BatchSize  {
 				p.flush(ctx, metrics, table, resources)
-				resources = make([][]any, 0)
-				sizeBytes = 0
+				resources = make([]arrow.Record, 0)
 			}
-			resources = append(resources, schema.TransformWithTransformer(p.client, r))
-			sizeBytes += r.Size()
+			resources = append(resources, r)
 		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
-				resources = make([][]any, 0)
-				sizeBytes = 0
+				resources = make([]arrow.Record, 0)
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
-				resources = make([][]any, 0)
-				sizeBytes = 0
+				resources = make([]arrow.Record, 0)
 			}
 			done <- true
 		}
 	}
 }
 
-func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources [][]any) {
-	resources = p.removeDuplicatesByPK(table, resources)
+func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources []arrow.Record) {
+	// resources = p.removeDuplicatesByPK(table, resources)
 
 	start := time.Now()
 	batchSize := len(resources)
@@ -116,7 +112,7 @@ func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) []
 	return res
 }
 
-func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
+func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
 	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
 
@@ -127,7 +123,7 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.So
 	for _, table := range tables.FlattenTables() {
 		table := table
 		if p.workers[table.Name] == nil {
-			ch := make(chan schema.CQTypes)
+			ch := make(chan arrow.Record)
 			flush := make(chan chan bool)
 			wg := &sync.WaitGroup{}
 			p.workers[table.Name] = &worker{
@@ -150,17 +146,9 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.So
 	}
 	p.workersLock.Unlock()
 
-	sourceColumn := &schema.Text{}
-	_ = sourceColumn.Set(sourceSpec.Name)
-	syncTimeColumn := &schema.Timestamptz{}
-	_ = syncTimeColumn.Set(syncTime)
 	for r := range res {
-		// this is a check to keep backward compatible for sources that are not adding
-		// source and sync time
-		if len(r.Data) < len(tables.Get(r.TableName).Columns) {
-			r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
-		}
-		workers[r.TableName].ch <- r.Data
+		tableName := r.Schema().Metadata().Values()[0]
+		workers[tableName].ch <- r
 	}
 
 	// flush and wait for all workers to finish flush before finish and calling delete stale

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
@@ -32,7 +34,9 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		Name: sourceName,
 	}
 
-	resources := createTestResources(table, sourceName, syncTime, 2)
+	resources := createTestResources(schema.CQSchemaToArrow(table), sourceName, syncTime, 2)
+	// st := array.RecordToStructArray(resources)
+	tbl := array.NewTableFromRecords(schema.CQSchemaToArrow(table), []arrow.Record{resources})
 	if err := p.writeAll(ctx, sourceSpec, tables, syncTime, resources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}

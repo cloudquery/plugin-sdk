@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -26,13 +27,13 @@ const (
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
 type ManagedWriter interface {
-	WriteTableBatch(ctx context.Context, table *schema.Table, data [][]any) error
+	WriteTableBatch(ctx context.Context, table *schema.Table, data []arrow.Record) error
 }
 
 type UnimplementedManagedWriter struct{}
 
 type UnmanagedWriter interface {
-	Write(ctx context.Context, tables schema.Tables, res <-chan *ClientResource) error
+	Write(ctx context.Context, tables schema.Tables, res <-chan arrow.Record) error
 	Metrics() Metrics
 }
 
@@ -225,14 +226,14 @@ func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName strin
 }
 
 // this function is currently used mostly for testing so it's not a public api
-func (p *Plugin) writeOne(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, resource schema.DestinationResource) error {
-	resources := []schema.DestinationResource{resource}
+func (p *Plugin) writeOne(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, resource arrow.Record) error {
+	resources := []arrow.Record{resource}
 	return p.writeAll(ctx, sourceSpec, tables, syncTime, resources)
 }
 
 // this function is currently used mostly for testing so it's not a public api
-func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, resources []schema.DestinationResource) error {
-	ch := make(chan schema.DestinationResource, len(resources))
+func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, resources []arrow.Record) error {
+	ch := make(chan arrow.Record, len(resources))
 	for _, resource := range resources {
 		ch <- resource
 	}
@@ -240,7 +241,7 @@ func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, tables s
 	return p.Write(ctx, sourceSpec, tables, syncTime, ch)
 }
 
-func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
+func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
 	syncTime = syncTime.UTC()
 	SetDestinationManagedCqColumns(tables)
 	p.setPKsForTables(tables)

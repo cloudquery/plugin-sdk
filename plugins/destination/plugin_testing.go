@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
@@ -170,18 +171,8 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 	})
 }
 
-func createTestResources(table *schema.Table, sourceName string, syncTime time.Time, count int) []schema.DestinationResource {
-	resources := make([]schema.DestinationResource, count)
-	for i := 0; i < count; i++ {
-		resource := schema.DestinationResource{
-			TableName: table.Name,
-			Data:      testdata.GenTestData(table),
-		}
-		_ = resource.Data[0].Set(sourceName)
-		_ = resource.Data[1].Set(syncTime)
-		resources[i] = resource
-	}
-	return resources
+func createTestResources(table *arrow.Schema, sourceName string, syncTime time.Time, count int) arrow.Record {
+	return testdata.GenTestData(table, sourceName, syncTime, count)
 }
 
 func sortResources(table *schema.Table, resources []schema.DestinationResource) {
