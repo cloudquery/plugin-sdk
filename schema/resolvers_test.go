@@ -34,13 +34,6 @@ var resolverTestCases = []struct {
 		Resource:             NewResourceData(resolverTestTable, nil, resolverTestItem),
 		ExpectedResourceData: CQTypes{&Text{Str: "test", Status: Present}},
 	},
-	{
-		Name:                 "ObjectHashResolver",
-		Column:               resolverTestTable.Columns[0],
-		ColumnResolver:       ObjectHashResolver(),
-		Resource:             NewResourceData(resolverTestTable, nil, resolverTestItem),
-		ExpectedResourceData: CQTypes{&Text{Str: "6869607948297714261", Status: Present}},
-	},
 }
 
 func TestResolvers(t *testing.T) {

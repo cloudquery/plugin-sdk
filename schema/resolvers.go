@@ -2,9 +2,7 @@ package schema
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/mitchellh/hashstructure/v2"
 	"github.com/thoas/go-funk"
 )
 
@@ -24,15 +22,5 @@ func PathResolver(path string) ColumnResolver {
 func ParentColumnResolver(name string) ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		return r.Set(c.Name, r.Parent.Get(name))
-	}
-}
-
-func ObjectHashResolver() ColumnResolver {
-	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
-		hash, err := hashstructure.Hash(r.Item, hashstructure.FormatV2, nil)
-		if err != nil {
-			return err
-		}
-		return r.Set(c.Name, fmt.Sprint(hash))
 	}
 }
