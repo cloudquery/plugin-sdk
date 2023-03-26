@@ -224,7 +224,7 @@ func TestTablesFilterDFS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotTables, err := tt.tables.FilterDfs(tt.configurationTables, tt.configurationSkipTables, tt.skipDependentTables)
-			//nolint:gocritic
+			// nolint:gocritic
 			if err != nil && tt.err == "" {
 				t.Errorf("got error %v, want nil", err)
 			} else if err != nil && tt.err != "" && err.Error() != tt.err {
