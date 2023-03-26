@@ -101,6 +101,16 @@ func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 		return r.storeCQID(uuid.New())
 	}
 	names := r.Table.PrimaryKeys()
+	if r.Table.WholeRecordAsPK {
+		for _, c := range r.Table.Columns.Names() {
+			switch c {
+			case CqSourceNameColumn.Name, CqIDColumn.Name, CqSyncTimeColumn.Name, CqSourceNameColumn.Name:
+				continue
+			default:
+				names = append(names, c)
+			}
+		}
+	}
 	if len(names) == 0 {
 		return r.storeCQID(uuid.New())
 	}
