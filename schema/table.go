@@ -85,6 +85,8 @@ type Table struct {
 	Parent *Table `json:"-"`
 
 	PkConstraintName string `json:"pk_constraint_name"`
+
+	WholeRecordAsPK bool `json:"whole_record_as_pk"`
 }
 
 var (
