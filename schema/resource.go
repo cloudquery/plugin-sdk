@@ -104,7 +104,7 @@ func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 	if r.Table.WholeRecordAsPK {
 		for _, c := range r.Table.Columns.Names() {
 			switch c {
-			case CqSourceNameColumn.Name, CqIDColumn.Name, CqSyncTimeColumn.Name, CqSourceNameColumn.Name:
+			case CqIDColumn.Name, CqParentIDColumn.Name, CqSourceNameColumn.Name, CqSyncTimeColumn.Name:
 				continue
 			default:
 				names = append(names, c)
