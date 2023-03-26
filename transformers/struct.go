@@ -20,7 +20,6 @@ type structTransformer struct {
 	typeTransformer               TypeTransformer
 	resolverTransformer           ResolverTransformer
 	ignoreInTestsTransformer      IgnoreInTestsTransformer
-	hashFieldName                 string
 	unwrapAllEmbeddedStructFields bool
 	structFieldsToUnwrap          []string
 	pkFields                      []string
@@ -53,13 +52,6 @@ func isFieldStruct(reflectType reflect.Type) bool {
 		return reflectType.Elem().Kind() == reflect.Struct
 	default:
 		return false
-	}
-}
-
-func WithWholeItemAsPK(fieldName string) StructTransformerOption {
-	return func(t *structTransformer) {
-		t.hashFieldName = fieldName
-		t.pkFields = append(t.pkFields, fieldName)
 	}
 }
 
