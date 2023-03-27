@@ -98,8 +98,12 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 }
 
 func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
-	var validationErr *schema.ValidationError
 	clientName := client.ID()
+
+	p.metrics.MarkStart(table, clientName)
+	defer p.Metrics().MarkEnd(table, clientName)
+
+	var validationErr *schema.ValidationError
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
 	if parent == nil { // Log only for root tables, otherwise we spam too much.

@@ -21,6 +21,7 @@ const (
 )
 
 const periodicMetricLoggerInterval = 30 * time.Second
+const periodicMetricLoggerLogTablesLimit = 30 // The max number of in_progress_tables to log in the periodic metric logger
 
 func (p *Plugin) logTablesMetrics(tables schema.Tables, client schema.ClientMeta) {
 	clientName := client.ID()
@@ -144,11 +145,19 @@ func (p *Plugin) periodicMetricLogger(ctx context.Context, wg *sync.WaitGroup) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			p.logger.Info().
+			inProgressTables := p.metrics.InProgressTables()
+
+			logLine := p.logger.Info().
 				Uint64("total_resources", p.metrics.TotalResourcesAtomic()).
 				Uint64("total_errors", p.metrics.TotalErrorsAtomic()).
 				Uint64("total_panics", p.metrics.TotalPanicsAtomic()).
-				Msg("Sync in progress")
+				Int("num_in_progress_tables", len(inProgressTables))
+
+			if len(inProgressTables) <= periodicMetricLoggerLogTablesLimit {
+				logLine.Strs("in_progress_tables", inProgressTables)
+			}
+
+			logLine.Msg("Sync in progress")
 		}
 	}
 }
