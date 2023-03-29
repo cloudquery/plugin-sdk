@@ -53,7 +53,7 @@ func TestSetCQIDAsPrimaryKeysForTables(t *testing.T) {
 
 	setPrimaryKeyForTables([]*schema.Table{&topLevelTable}, schema.CqIDColumn.Name)
 
-	// After executing setCQIDAsPrimaryKeysForTables all cq_id columns should be primary keys
+	// After executing setPrimaryKeyForTables all cq_id columns should be primary keys
 	require.True(t, topLevelTable.Columns[0].CreationOptions.PrimaryKey)
 	require.False(t, topLevelTable.Columns[1].CreationOptions.PrimaryKey)
 	require.False(t, topLevelTable.Columns[2].CreationOptions.PrimaryKey)

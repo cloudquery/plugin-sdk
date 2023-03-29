@@ -56,15 +56,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		return fmt.Errorf("expected second resource diff: %s", diff)
 	}
 
-	secondSyncTime := syncTime.Add(time.Second).UTC()
+	secondSyncTime := time.Now().UTC().Round(1 * time.Second).Add(time.Hour).UTC()
 
-	// copy first resource but update the sync time
-	updatedResource := schema.DestinationResource{
-		TableName: table.Name,
-		Data:      make(schema.CQTypes, len(resources[0].Data)),
+	updatedResource := createTestResources(table, sourceName, secondSyncTime, 1)[0]
+	for _, colIndex := range []int{2, 3, 7} {
+		old := resources[0].Data[colIndex].Get()
+		updatedResource.Data[colIndex].Set(old)
 	}
-	copy(updatedResource.Data, resources[0].Data)
-	_ = updatedResource.Data[1].Set(secondSyncTime)
 
 	// write second time
 	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResource); err != nil {
@@ -77,16 +75,33 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	}
 	sortCQTypes(table, resourcesRead)
 
-	if len(resourcesRead) != 2 {
-		return fmt.Errorf("after overwrite expected 2 resources, got %d", len(resourcesRead))
-	}
+	if p.spec.PartitionMinutes > 0 {
+		if len(resourcesRead) != 3 {
+			return fmt.Errorf("after overwrite with partitioning expected 3 resources, got %d", len(resourcesRead))
+		}
+		for i, val := range resources[0].Data {
+			if i == 1 {
+				if val.Equal(resourcesRead[2][i]) {
+					return fmt.Errorf("after overwrite with partitioning expected timestamp diff: %s", val.Get())
+				}
+				continue
+			}
+			if !val.Equal(resourcesRead[2][i]) {
+				return fmt.Errorf("after overwrite with partitioning expected resource diff: %s", val.Get())
+			}
 
-	if diff := resources[1].Data.Diff(resourcesRead[0]); diff != "" {
-		return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
-	}
+		}
+	} else {
+		if len(resourcesRead) != 2 {
+			return fmt.Errorf("after overwrite expected 2 resources, got %d", len(resourcesRead))
+		}
+		if diff := resources[1].Data.Diff(resourcesRead[0]); diff != "" {
+			return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
+		}
 
-	if diff := updatedResource.Data.Diff(resourcesRead[1]); diff != "" {
-		return fmt.Errorf("after overwrite expected second resource diff: %s", diff)
+		if diff := updatedResource.Data.Diff(resourcesRead[1]); diff != "" {
+			return fmt.Errorf("after overwrite expected second resource diff: %s", diff)
+		}
 	}
 
 	return nil

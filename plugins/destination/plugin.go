@@ -234,6 +234,10 @@ func (p *Plugin) writeOne(ctx context.Context, sourceSpec specs.Source, tables s
 func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, resources []schema.DestinationResource) error {
 	ch := make(chan schema.DestinationResource, len(resources))
 	for _, resource := range resources {
+		colIndex := tables.Get(resource.TableName).Columns.Index(schema.CqSyncTimeColumn.Name)
+		if p.spec.PartitionMinutes > 0 {
+			resource.Data[colIndex].Set(resource.Data[colIndex].Get().(time.Time).UTC().Round(time.Duration(p.spec.PartitionMinutes) * time.Minute))
+		}
 		ch <- resource
 	}
 	close(ch)

@@ -94,6 +94,34 @@ func TestPluginManagedClientWithCQPKs(t *testing.T) {
 		})
 }
 
+func TestPluginManagedClientWithPartitionAndCQID(t *testing.T) {
+	destination.PluginTestSuiteRunner(t,
+		func() *destination.Plugin {
+			return destination.NewPlugin("test", "development", NewClient)
+		},
+		specs.Destination{PKMode: specs.PKModeCQID, PartitionMinutes: 60, WriteMode: specs.WriteModeOverwrite},
+		destination.PluginTestSuiteTests{
+			SkipDeleteStale:          true,
+			SkipAppend:               true,
+			MigrateStrategyOverwrite: migrateStrategyOverwrite,
+			MigrateStrategyAppend:    migrateStrategyAppend,
+		})
+}
+
+func TestPluginManagedClientWithPartition(t *testing.T) {
+	destination.PluginTestSuiteRunner(t,
+		func() *destination.Plugin {
+			return destination.NewPlugin("test", "development", NewClient)
+		},
+		specs.Destination{PartitionMinutes: 10, WriteMode: specs.WriteModeOverwrite},
+		destination.PluginTestSuiteTests{
+			SkipDeleteStale:          true,
+			SkipAppend:               true,
+			MigrateStrategyOverwrite: migrateStrategyOverwrite,
+			MigrateStrategyAppend:    migrateStrategyAppend,
+		})
+}
+
 func TestPluginOnNewError(t *testing.T) {
 	ctx := context.Background()
 	p := destination.NewPlugin("test", "development", NewClientErrOnNew)
