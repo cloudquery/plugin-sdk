@@ -75,7 +75,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	updatedResource := createTestResources(table, sourceName, secondSyncTime, 1)[0]
 	for _, colIndex := range []int{2, 3, 7} {
 		old := resources[0].Data[colIndex].Get()
-		updatedResource.Data[colIndex].Set(old)
+		return updatedResource.Data[colIndex].Set(old)
 	}
 
 	// write second time
