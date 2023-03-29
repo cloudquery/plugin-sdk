@@ -10,16 +10,17 @@ import (
 )
 
 type Destination struct {
-	Name           string      `json:"name,omitempty"`
-	Version        string      `json:"version,omitempty"`
-	Path           string      `json:"path,omitempty"`
-	Registry       Registry    `json:"registry,omitempty"`
-	WriteMode      WriteMode   `json:"write_mode,omitempty"`
-	MigrateMode    MigrateMode `json:"migrate_mode,omitempty"`
-	BatchSize      int         `json:"batch_size,omitempty"`
-	BatchSizeBytes int         `json:"batch_size_bytes,omitempty"`
-	Spec           any         `json:"spec,omitempty"`
-	PKMode         PKMode      `json:"pk_mode,omitempty"`
+	Name             string      `json:"name,omitempty"`
+	Version          string      `json:"version,omitempty"`
+	Path             string      `json:"path,omitempty"`
+	Registry         Registry    `json:"registry,omitempty"`
+	WriteMode        WriteMode   `json:"write_mode,omitempty"`
+	MigrateMode      MigrateMode `json:"migrate_mode,omitempty"`
+	BatchSize        int         `json:"batch_size,omitempty"`
+	BatchSizeBytes   int         `json:"batch_size_bytes,omitempty"`
+	Spec             any         `json:"spec,omitempty"`
+	PKMode           PKMode      `json:"pk_mode,omitempty"`
+	PartitionMinutes int         `json:"partition_minutes,omitempty"`
 }
 
 func (d *Destination) SetDefaults(defaultBatchSize, defaultBatchSizeBytes int) {
@@ -69,6 +70,9 @@ func (d *Destination) Validate() error {
 	}
 	if d.BatchSize < 0 {
 		return fmt.Errorf("batch_size must be greater than 0")
+	}
+	if d.PartitionMinutes > 0 && d.WriteMode != WriteModeOverwrite {
+		return fmt.Errorf("partitioning is only supported when write_mode is set to overwrite")
 	}
 	return nil
 }

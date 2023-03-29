@@ -242,6 +242,10 @@ func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, tables s
 
 func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
 	syncTime = syncTime.UTC()
+	if p.spec.PartitionMinutes > 0 {
+		syncTime = syncTime.Round(time.Duration(p.spec.PartitionMinutes) * time.Minute)
+	}
+
 	SetDestinationManagedCqColumns(tables)
 	p.setPKsForTables(tables)
 	switch p.writerType {
@@ -308,14 +312,31 @@ func setCqIDColumnOptionsForTables(tables []*schema.Table) {
 
 func (p *Plugin) setPKsForTables(tables schema.Tables) {
 	if p.spec.PKMode == specs.PKModeCQID {
-		setCQIDAsPrimaryKeysForTables(tables)
+		setPrimaryKeyForTables(tables, schema.CqIDColumn.Name)
+	}
+	if p.spec.PartitionMinutes > 0 {
+		addPrimaryKeyForTables(tables, schema.CqSyncTimeColumn.Name)
 	}
 }
-func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
+
+// This function sets a specific column as the only primary key
+func setPrimaryKeyForTables(tables schema.Tables, fieldName string) {
 	for _, table := range tables {
 		for i, col := range table.Columns {
-			table.Columns[i].CreationOptions.PrimaryKey = col.Name == schema.CqIDColumn.Name
+			table.Columns[i].CreationOptions.PrimaryKey = col.Name == fieldName
 		}
-		setCQIDAsPrimaryKeysForTables(table.Relations)
+		setPrimaryKeyForTables(table.Relations, fieldName)
+	}
+}
+
+// This function adds an optional primary key
+func addPrimaryKeyForTables(tables schema.Tables, fieldName string) {
+	for _, table := range tables {
+		for i, col := range table.Columns {
+			if col.Name == fieldName {
+				table.Columns[i].CreationOptions.PrimaryKey = true
+			}
+		}
+		addPrimaryKeyForTables(table.Relations, fieldName)
 	}
 }
