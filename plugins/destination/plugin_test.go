@@ -51,7 +51,7 @@ func TestSetCQIDAsPrimaryKeysForTables(t *testing.T) {
 	require.False(t, topLevelTable.Relations[0].Columns[1].CreationOptions.PrimaryKey)
 	require.True(t, topLevelTable.Relations[0].Columns[2].CreationOptions.PrimaryKey)
 
-	setCQIDAsPrimaryKeysForTables([]*schema.Table{&topLevelTable})
+	setPrimaryKeyForTables([]*schema.Table{&topLevelTable}, schema.CqIDColumn.Name)
 
 	// After executing setCQIDAsPrimaryKeysForTables all cq_id columns should be primary keys
 	require.True(t, topLevelTable.Columns[0].CreationOptions.PrimaryKey)
