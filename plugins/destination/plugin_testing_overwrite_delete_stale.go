@@ -72,13 +72,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 
-	// copy first resource but update the sync time
-	updatedResource := schema.DestinationResource{
-		TableName: table.Name,
-		Data:      make(schema.CQTypes, len(resources[0].Data)),
+	updatedResource := createTestResources(table, sourceName, secondSyncTime, 1)[0]
+	for _, colIndex := range []int{2, 3, 7} {
+		old := resources[0].Data[colIndex].Get()
+		updatedResource.Data[colIndex].Set(old)
 	}
-	copy(updatedResource.Data, resources[0].Data)
-	_ = updatedResource.Data[1].Set(secondSyncTime)
 
 	// write second time
 	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResource); err != nil {
@@ -94,7 +92,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		return fmt.Errorf("after overwrite expected 1 resource, got %d", len(resourcesRead))
 	}
 
-	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
+	if diff := resources[0].Data.Diff(resourcesRead[0]); diff == "" {
 		return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
 	}
 
