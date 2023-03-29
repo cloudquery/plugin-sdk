@@ -61,7 +61,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	updatedResource := createTestResources(table, sourceName, secondSyncTime, 1)[0]
 	for _, colIndex := range []int{2, 3, 7} {
 		old := resources[0].Data[colIndex].Get()
-		updatedResource.Data[colIndex].Set(old)
+		_ = updatedResource.Data[colIndex].Set(old)
 	}
 
 	// write second time
@@ -89,7 +89,6 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 			if !val.Equal(resourcesRead[2][i]) {
 				return fmt.Errorf("after overwrite with partitioning expected resource diff: %s", val.Get())
 			}
-
 		}
 	} else {
 		if len(resourcesRead) != 2 {
@@ -103,6 +102,5 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 			return fmt.Errorf("after overwrite expected second resource diff: %s", diff)
 		}
 	}
-
 	return nil
 }

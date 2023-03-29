@@ -236,7 +236,7 @@ func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, tables s
 	for _, resource := range resources {
 		colIndex := tables.Get(resource.TableName).Columns.Index(schema.CqSyncTimeColumn.Name)
 		if p.spec.PartitionMinutes > 0 {
-			resource.Data[colIndex].Set(resource.Data[colIndex].Get().(time.Time).UTC().Round(time.Duration(p.spec.PartitionMinutes) * time.Minute))
+			_ = resource.Data[colIndex].Set(resource.Data[colIndex].Get().(time.Time).UTC().Round(time.Duration(p.spec.PartitionMinutes) * time.Minute))
 		}
 		ch <- resource
 	}
