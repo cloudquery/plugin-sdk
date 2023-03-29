@@ -13,6 +13,7 @@ import (
 type (
 	embeddedStruct struct {
 		EmbeddedString string
+		IntCol         int `json:"int_col,omitempty"`
 	}
 
 	testStruct struct {
@@ -140,11 +141,16 @@ var (
 		Columns: expectedColumns,
 	}
 	expectedTestTableEmbeddedStruct = schema.Table{
+		Name:    "test_struct",
+		Columns: append(expectedColumns, schema.Column{Name: "embedded_string", Type: schema.TypeString}),
+	}
+	expectedTestTableEmbeddedStructWithPK = schema.Table{
 		Name: "test_struct",
 		Columns: append(
 			expectedColumns, schema.Column{
-				Name: "embedded_string",
-				Type: schema.TypeString,
+				Name:            "embedded_string",
+				Type:            schema.TypeString,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
 			}),
 	}
 	expectedTestTableNonEmbeddedStruct = schema.Table{
@@ -153,9 +159,24 @@ var (
 			// Should not be unwrapped
 			schema.Column{Name: "test_struct", Type: schema.TypeJSON},
 			// Should be unwrapped
+			schema.Column{Name: "non_embedded_embedded_string", Type: schema.TypeString},
+			schema.Column{Name: "non_embedded_int_col", Type: schema.TypeInt},
+		},
+	}
+	expectedTestTableNonEmbeddedStructWithPK = schema.Table{
+		Name: "test_struct",
+		Columns: schema.ColumnList{
+			// Should not be unwrapped
+			schema.Column{Name: "test_struct", Type: schema.TypeJSON},
+			// Should be unwrapped
 			schema.Column{
 				Name: "non_embedded_embedded_string",
 				Type: schema.TypeString,
+			},
+			schema.Column{
+				Name:            "non_embedded_int_col",
+				Type:            schema.TypeInt,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
 			},
 		},
 	}
@@ -220,6 +241,17 @@ func TestTableFromGoStruct(t *testing.T) {
 			want: expectedTestTableEmbeddedStruct,
 		},
 		{
+			name: "should unwrap all embedded structs when option is set and use its field as PK",
+			args: args{
+				testStruct: testStructWithEmbeddedStruct{},
+				options: []StructTransformerOption{
+					WithUnwrapAllEmbeddedStructs(),
+					WithPrimaryKeys("EmbeddedString"),
+				},
+			},
+			want: expectedTestTableEmbeddedStructWithPK,
+		},
+		{
 			name: "should unwrap specific structs when option is set",
 			args: args{
 				testStruct: testStructWithNonEmbeddedStruct{},
@@ -228,6 +260,17 @@ func TestTableFromGoStruct(t *testing.T) {
 				},
 			},
 			want: expectedTestTableNonEmbeddedStruct,
+		},
+		{
+			name: "should unwrap specific structs when option is set and use its field as PK",
+			args: args{
+				testStruct: testStructWithNonEmbeddedStruct{},
+				options: []StructTransformerOption{
+					WithUnwrapStructFields("NonEmbedded"),
+					WithPrimaryKeys("NonEmbedded.IntCol"),
+				},
+			},
+			want: expectedTestTableNonEmbeddedStructWithPK,
 		},
 		{
 			name: "should generate table from slice struct",
