@@ -8,6 +8,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"golang.org/x/exp/slices"
 )
 
 type (
@@ -146,7 +147,16 @@ var (
 		Name:    "test_struct",
 		Columns: append(expectedColumns, schema.Column{Name: "embedded_string", Type: schema.TypeString}),
 	}
-	expectedTestTableEmbeddedStructWithPK = schema.Table{
+	expectedTestTableEmbeddedStructWithTopLevelPK = schema.Table{
+		Name: "test_struct",
+		Columns: func(base schema.ColumnList) schema.ColumnList {
+			cols := slices.Clone(base)
+			cols = append(cols, schema.Column{Name: "embedded_string", Type: schema.TypeString})
+			cols[cols.Index("int_col")].CreationOptions.PrimaryKey = true
+			return cols
+		}(expectedColumns),
+	}
+	expectedTestTableEmbeddedStructWithUnwrappedPK = schema.Table{
 		Name: "test_struct",
 		Columns: append(
 			expectedColumns, schema.Column{
@@ -265,6 +275,17 @@ func TestTableFromGoStruct(t *testing.T) {
 			want: expectedTestTableEmbeddedStruct,
 		},
 		{
+			name: "should unwrap all embedded structs when option is set and use top-level field as PK",
+			args: args{
+				testStruct: testStructWithEmbeddedStruct{},
+				options: []StructTransformerOption{
+					WithUnwrapAllEmbeddedStructs(),
+					WithPrimaryKeys("IntCol"),
+				},
+			},
+			want: expectedTestTableEmbeddedStructWithTopLevelPK,
+		},
+		{
 			name: "should unwrap all embedded structs when option is set and use its field as PK",
 			args: args{
 				testStruct: testStructWithEmbeddedStruct{},
@@ -273,7 +294,7 @@ func TestTableFromGoStruct(t *testing.T) {
 					WithPrimaryKeys("EmbeddedString"),
 				},
 			},
-			want: expectedTestTableEmbeddedStructWithPK,
+			want: expectedTestTableEmbeddedStructWithUnwrappedPK,
 		},
 		{
 			name: "should unwrap specific structs when option is set",
