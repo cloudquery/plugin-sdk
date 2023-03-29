@@ -24,6 +24,11 @@ func (p *Plugin) writeUnmanaged(ctx context.Context, sourceSpec specs.Source, ta
 		if len(r.Data) < len(tables.Get(r.TableName).Columns) {
 			r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
 		}
+		colIndex := tables.Get(r.TableName).Columns.Index(schema.CqSyncTimeColumn.Name)
+		if p.spec.PartitionMinutes > 0 && colIndex != -1 {
+			_ = r.Data[colIndex].Set(r.Data[colIndex].Get().(time.Time).UTC().Round(time.Duration(p.spec.PartitionMinutes) * time.Minute))
+		}
+
 		clientResource := &ClientResource{
 			TableName: r.TableName,
 			Data:      schema.TransformWithTransformer(p.client, r.Data),
