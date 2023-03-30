@@ -360,13 +360,12 @@ func (p *Plugin) roundSyncTime(tables schema.Tables, r schema.DestinationResourc
 	}
 	colIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
 	if colIndex != -1 {
-		syncData := r.Data[colIndex].Get()
-		syncTime, ok := syncData.(time.Time)
-		if !ok {
-			return fmt.Errorf("invalid type for sync time: %T", syncData)
-		}
-
-		return r.Data[colIndex].Set(syncTime.UTC().Round(time.Duration(p.spec.PartitionMinutes) * time.Minute))
+		return nil
 	}
-
+	syncData := r.Data[colIndex].Get()
+	syncTime, ok := syncData.(time.Time)
+	if !ok {
+		return fmt.Errorf("invalid type for sync time: %T", syncData)
+	}
+	return r.Data[colIndex].Set(syncTime.UTC().Round(time.Duration(p.spec.PartitionMinutes) * time.Minute))
 }
