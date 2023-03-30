@@ -73,7 +73,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 
 	updatedResource := createTestResources(table, sourceName, secondSyncTime, 1)[0]
-	for _, colIndex := range []int{2, 3, 7} {
+	for _, colName := range []string{schema.CqIDColumn.Name, schema.CqParentIDColumn.Name, "uuid"} {
+		colIndex := table.Columns.Index(colName)
 		old := resources[0].Data[colIndex].Get()
 		if err := updatedResource.Data[colIndex].Set(old); err != nil {
 			return err
