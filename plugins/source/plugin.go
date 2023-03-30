@@ -297,7 +297,7 @@ func (p *Plugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
 			return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 		}
 	}
-
+	defer func() { p.client = nil }()
 	startTime := time.Now()
 	if p.unmanaged {
 		unmanagedClient := p.client.(UnmanagedClient)
