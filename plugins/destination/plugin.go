@@ -2,6 +2,7 @@ package destination
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -237,9 +238,9 @@ func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, tables s
 	}
 	ch := make(chan schema.DestinationResource, len(resources))
 	for _, r := range resources {
-		colIndex := tables.Get(r.TableName).Columns.Index(schema.CqSyncTimeColumn.Name)
-		if p.spec.PartitionMinutes > 0 && colIndex != -1 {
-			_ = r.Data[colIndex].Set(r.Data[colIndex].Get().(time.Time).UTC().Round(time.Duration(p.spec.PartitionMinutes) * time.Minute))
+		err := p.roundSyncTime(tables, r)
+		if err != nil {
+			return err
 		}
 		ch <- r
 	}
@@ -346,4 +347,26 @@ func addPrimaryKeyForTables(tables schema.Tables, fieldName string) {
 		}
 		addPrimaryKeyForTables(table.Relations, fieldName)
 	}
+}
+
+// This function is used to properly round the sync time to the nearest partition for all resources
+func (p *Plugin) roundSyncTime(tables schema.Tables, r schema.DestinationResource) error {
+	if p.spec.PartitionMinutes == 0 {
+		return nil
+	}
+	table := tables.Get(r.TableName)
+	if table == nil {
+		return nil
+	}
+	colIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
+	if colIndex != -1 {
+		syncData := r.Data[colIndex].Get()
+		syncTime, ok := syncData.(time.Time)
+		if !ok {
+			return fmt.Errorf("invalid type for sync time: %T", syncData)
+		}
+
+		return r.Data[colIndex].Set(syncTime.UTC().Round(time.Duration(p.spec.PartitionMinutes) * time.Minute))
+	}
+
 }
