@@ -12,7 +12,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2 v2.0.0-rc.3
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.3
 	github.com/rs/zerolog v1.29.0
-	github.com/schollz/progressbar/v3 v3.13.0
+	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.2
