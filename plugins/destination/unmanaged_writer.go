@@ -9,6 +9,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/specs"
 )
 
-func (p *Plugin) writeUnmanaged(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
+func (p *Plugin) writeUnmanaged(ctx context.Context, _ specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
 	return p.client.Write(ctx, tables, res)
 }

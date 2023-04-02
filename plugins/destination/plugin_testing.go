@@ -204,15 +204,3 @@ func sortRecordsBySyncTime(table *schema.Table, records []arrow.Record) {
 		return records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond).Before(records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond))
 	})
 }
-
-func sortCQTypes(table *schema.Table, resources []schema.CQTypes) {
-	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
-	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
-	sort.Slice(resources, func(i, j int) bool {
-		// sort by sync time, then UUID
-		if !resources[i][syncTimeIndex].Equal(resources[j][syncTimeIndex]) {
-			return resources[i][syncTimeIndex].Get().(time.Time).Before(resources[j][syncTimeIndex].Get().(time.Time))
-		}
-		return resources[i][cqIDIndex].String() < resources[j][cqIDIndex].String()
-	})
-}

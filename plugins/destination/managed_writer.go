@@ -53,7 +53,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 }
 
 func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources []arrow.Record) {
-	// resources = p.removeDuplicatesByPK(table, resources)
+	resources = p.removeDuplicatesByPK(table, resources)
 
 	start := time.Now()
 	batchSize := len(resources)
@@ -67,14 +67,14 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Tabl
 	}
 }
 
-func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) [][]any {
+func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources []arrow.Record) []arrow.Record {
 	// special case where there's no PK at all
 	if len(table.PrimaryKeys()) == 0 {
 		return resources
 	}
 
 	pks := make(map[string]struct{}, len(resources))
-	res := make([][]any, 0, len(resources))
+	res := make([]arrow.Record, 0, len(resources))
 	var reported bool
 	for _, r := range resources {
 		key := pk.String(table, r)
@@ -112,8 +112,7 @@ func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) []
 	return res
 }
 
-func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
-	syncTime = syncTime.UTC()
+func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
 	SetDestinationManagedCqColumns(tables)
 
 	workers := make(map[string]*worker, len(tables))
