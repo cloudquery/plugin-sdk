@@ -199,7 +199,7 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName st
 		defer close(ch)
 		readErr = p.Read(ctx, table, sourceName, ch)
 	}()
-	//nolint:prealloc
+	// nolint:prealloc
 	var resources []arrow.Record
 	for resource := range ch {
 		resources = append(resources, resource)
