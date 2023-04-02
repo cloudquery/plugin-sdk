@@ -137,18 +137,15 @@ func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, count 
 				if c.Name == "text_array_with_null" {
 					bldr.Field(i).(*array.ListBuilder).Append(true)
 					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test1")
-					// bldr.Field(i).(*array.ListBuilder).Append(true)
 					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test2\x00WithNull")
 				} else {
 					bldr.Field(i).(*array.ListBuilder).Append(true)
 					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test1")
-					// bldr.Field(i).(*array.ListBuilder).Append(true)
 					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test2")
 				}
 			} else if arrow.TypeEqual(c.Type, arrow.ListOf(arrow.PrimitiveTypes.Int64)) {
 				bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(1)
-				// bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(2)
 			} else if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Timestamp_us) {
 				if c.Name == schema.CqSyncTimeColumn.Name {
@@ -161,7 +158,6 @@ func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, count 
 			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.UUID)) {
 				bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.UUIDBuilder).Append(uuid.MustParse("00000000-0000-0000-0000-000000000001"))
-				// bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.UUIDBuilder).Append(uuid.MustParse("00000000-0000-0000-0000-000000000002"))
 			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.Inet) {
 				_, ipnet, err := net.ParseCIDR("192.0.2.0/24")
@@ -176,7 +172,6 @@ func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, count 
 					panic(err)
 				}
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(*ipnet)
-				// bldr.Field(i).(*array.ListBuilder).Append(true)
 				_, ipnet, err = net.ParseCIDR("192.0.2.1/24")
 				if err != nil {
 					panic(err)
@@ -199,7 +194,6 @@ func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, count 
 				if err != nil {
 					panic(err)
 				}
-				// bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.MacBuilder).Append(mac)
 			} else {
 				panic("unknown type: " + c.Type.String() + " column: " + c.Name)
