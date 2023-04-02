@@ -10,6 +10,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v2/caser"
 	"github.com/cloudquery/plugin-sdk/v2/internal/backends/local"
 	"github.com/cloudquery/plugin-sdk/v2/internal/backends/nop"
+	"github.com/cloudquery/plugin-sdk/v2/internal/pk"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/rs/zerolog"
@@ -70,6 +71,8 @@ type Plugin struct {
 	unmanaged bool
 	// titleTransformer allows the plugin to control how table names get turned into titles for generated documentation
 	titleTransformer func(*schema.Table) string
+
+	pkCache *pk.Cache // reinitialized every Sync
 }
 
 const (
@@ -297,6 +300,8 @@ func (p *Plugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
 			return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
 		}
 	}
+
+	p.pkCache = new(pk.Cache)
 
 	startTime := time.Now()
 	if p.unmanaged {

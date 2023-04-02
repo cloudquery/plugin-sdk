@@ -272,6 +272,23 @@ func (c CQTypes) Len() int {
 	return len(c)
 }
 
+func (c CQTypes) String() string {
+	var sb strings.Builder
+	sb.WriteString("[")
+	for i, v := range c {
+		if i > 0 {
+			sb.WriteString(",")
+		}
+		if v == nil {
+			sb.WriteString("nil")
+		} else {
+			sb.WriteString(v.String())
+		}
+	}
+	sb.WriteString("]")
+	return sb.String()
+}
+
 // Used in testing only.
 func (c CQTypes) Diff(other CQTypes) string {
 	var diff strings.Builder
@@ -318,23 +335,6 @@ func (c CQTypes) Equal(other CQTypes) bool {
 		}
 	}
 	return true
-}
-
-func (c CQTypes) String() string {
-	var sb strings.Builder
-	sb.WriteString("[")
-	for i, v := range c {
-		if i > 0 {
-			sb.WriteString(", ")
-		}
-		if v == nil {
-			sb.WriteString("nil")
-		} else {
-			sb.WriteString(v.String())
-		}
-	}
-	sb.WriteString("]")
-	return sb.String()
 }
 
 func NewCqTypeFromValueType(typ ValueType) CQType {

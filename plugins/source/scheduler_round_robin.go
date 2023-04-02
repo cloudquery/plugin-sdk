@@ -50,6 +50,11 @@ func (p *Plugin) syncRoundRobin(ctx context.Context, spec specs.Source, client s
 
 	tableClients := roundRobinInterleave(tables, preInitialisedClients)
 
+	pkCacheWGs := make(map[string]*sync.WaitGroup)
+	for _, table := range tables.FlattenTables() {
+		pkCacheWGs[table.Name] = new(sync.WaitGroup)
+	}
+
 	var wg sync.WaitGroup
 	for _, tc := range tableClients {
 		table := tc.table
@@ -63,14 +68,25 @@ func (p *Plugin) syncRoundRobin(ctx context.Context, spec specs.Source, client s
 			return
 		}
 		wg.Add(1)
+		pkWG := pkCacheWGs[table.Name]
+		pkWG.Add(1)
 		go func() {
 			defer wg.Done()
+			defer pkWG.Done()
 			defer p.tableSems[0].Release(1)
 			// not checking for error here as nothing much to do.
 			// the error is logged and this happens when context is cancelled
 			// Round Robin currently uses the DFS algorithm to resolve the tables, but this
 			// may change in the future.
 			p.resolveTableDfs(ctx, table, cl, nil, resolvedResources, 1)
+		}()
+	}
+
+	for tableName, pkWG := range pkCacheWGs {
+		tableName, pkWG := tableName, pkWG
+		go func() {
+			pkWG.Wait()
+			p.pkCache.Done(tableName)
 		}()
 	}
 

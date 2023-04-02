@@ -2,6 +2,7 @@ package schema
 
 import (
 	"context"
+	"github.com/stretchr/testify/require"
 	"net/netip"
 	"testing"
 	"time"
@@ -525,5 +526,38 @@ func TestCalculateCQIDNoPrimaryKeys(t *testing.T) {
 			}
 			assert.NotEqual(t, initialCQID, resource.Get(CqIDColumn.Name).String())
 		})
+	}
+}
+
+func TestResource_PrimaryKeyValue(t *testing.T) {
+	type testCase struct {
+		r   *Resource
+		val string
+	}
+
+	for _, tc := range []testCase{
+		{r: &Resource{Table: &Table{}}, val: "[]"},
+		{r: &Resource{
+			Table: &Table{
+				Columns: ColumnList{
+					{Name: "a", CreationOptions: ColumnCreationOptions{PrimaryKey: true}},
+					{Name: "b"},
+					{Name: "c", CreationOptions: ColumnCreationOptions{PrimaryKey: true}},
+					{Name: "d"},
+					{Name: "e"},
+					{Name: "f", CreationOptions: ColumnCreationOptions{PrimaryKey: true}},
+				},
+			},
+			data: CQTypes{
+				&Text{Str: "aVal", Status: Present},
+				nil,
+				&Int8{Int: -1, Status: Present},
+				nil,
+				nil,
+				&Bool{Bool: true, Status: Present},
+			},
+		}, val: "[aVal,-1,true]"},
+	} {
+		require.Equal(t, tc.val, tc.r.PrimaryKeyValue().String())
 	}
 }

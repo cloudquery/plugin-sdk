@@ -3,7 +3,6 @@ package schema
 import (
 	"crypto/sha256"
 	"fmt"
-
 	"github.com/google/uuid"
 	"golang.org/x/exp/slices"
 )
@@ -136,6 +135,16 @@ func (r *Resource) Validate() error {
 		return fmt.Errorf("missing primary key on columns: %v", missingPks)
 	}
 	return nil
+}
+
+func (r *Resource) PrimaryKeyValue() (values CQTypes) {
+	for i, col := range r.Table.Columns {
+		if col.CreationOptions.PrimaryKey {
+			values = append(values, r.data[i])
+		}
+	}
+
+	return values
 }
 
 func (rr Resources) TableName() string {

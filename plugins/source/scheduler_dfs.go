@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -68,6 +69,12 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 	for i, table := range tables {
 		table := table
 		clients := preInitialisedClients[i]
+		pkCacheWG := new(sync.WaitGroup)
+		pkCacheWG.Add(len(clients))
+		go func() {
+			pkCacheWG.Wait()
+			p.pkCache.Done(table.Name)
+		}()
 		for _, client := range clients {
 			client := client
 			if err := p.tableSems[0].Acquire(ctx, 1); err != nil {
@@ -82,6 +89,7 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 			go func() {
 				defer wg.Done()
 				defer p.tableSems[0].Release(1)
+				defer pkCacheWG.Done()
 				// not checking for error here as nothing much todo.
 				// the error is logged and this happens when context is cancelled
 				p.resolveTableDfs(ctx, table, client, nil, resolvedResources, 1)
@@ -134,8 +142,29 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 		}
 	}()
 
+	// we also check for PK duplicates
+	reportedPK := false
 	for r := range res {
-		p.resolveResourcesDfs(ctx, table, client, parent, r, resolvedResources, depth)
+		pk := p.resolveResourcesDfs(ctx, table, client, parent, r, resolvedResources, depth)
+		if pk != nil && !reportedPK {
+			reportedPK = true
+			pkSpec := "(" + strings.Join(table.PrimaryKeys(), ",") + ")"
+
+			// log err
+			p.logger.Error().
+				Str("table", table.Name).
+				Str("pk", pkSpec).
+				Str("value", *pk).
+				Msg("duplicate primary key")
+
+			// send to Sentry only once per table,
+			// to avoid sending too many duplicate messages
+			sentry.WithScope(func(scope *sentry.Scope) {
+				scope.SetTag("table", table.Name)
+				scope.SetTag("pk", pkSpec)
+				sentry.CurrentHub().CaptureMessage("duplicate primary key " + pkSpec + " in " + table.Name)
+			})
+		}
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
@@ -145,10 +174,10 @@ func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, clien
 	}
 }
 
-func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) {
+func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) (duplicate *string) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
-		return
+		return nil
 	}
 	resourcesChan := make(chan *schema.Resource, len(resourcesSlice))
 	go func() {
@@ -207,16 +236,27 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 		wg.Wait()
 	}()
 
+	cache := p.pkCache.For(table.Name)
 	var wg sync.WaitGroup
 	for resource := range resourcesChan {
 		resource := resource
+
+		pk := resource.PrimaryKeyValue()
+		if pk.Len() > 0 {
+			val := pk.String()
+			present, _ := cache.ContainsOrAdd(val, struct{}{})
+			if present {
+				duplicate = &val
+			}
+		}
+
 		resolvedResources <- resource
 		for _, relation := range resource.Table.Relations {
 			relation := relation
 			if err := p.tableSems[depth].Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				wg.Wait()
-				return
+				return duplicate
 			}
 			wg.Add(1)
 			go func() {
@@ -227,4 +267,5 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 		}
 	}
 	wg.Wait()
+	return duplicate
 }
