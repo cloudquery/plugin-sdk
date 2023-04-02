@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/google/uuid"
@@ -43,7 +44,7 @@ func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.
 		Name: sourceName,
 	}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	resource1 := createTestResources(source, sourceName, syncTime, 1)[0]
+	resource1 := createTestResources(source.ToArrowSchema(), sourceName, syncTime, 1)[0]
 	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{source}, syncTime, resource1); err != nil {
 		return fmt.Errorf("failed to write one: %w", err)
 	}
@@ -51,7 +52,7 @@ func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.
 	if err := p.Migrate(ctx, []*schema.Table{target}); err != nil {
 		return fmt.Errorf("failed to migrate existing table: %w", err)
 	}
-	resource2 := createTestResources(target, sourceName, syncTime, 1)[0]
+	resource2 := createTestResources(target.ToArrowSchema(), sourceName, syncTime, 1)[0]
 	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{target}, syncTime, resource2); err != nil {
 		return fmt.Errorf("failed to write one after migration: %w", err)
 	}
@@ -64,13 +65,13 @@ func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.
 		if len(resourcesRead) != 2 {
 			return fmt.Errorf("expected 2 resources after write, got %d", len(resourcesRead))
 		}
-		require.Contains(t, resourcesRead, resource2.Data)
+		require.Contains(t, resourcesRead, resource2)
 	} else {
 		if len(resourcesRead) != 1 {
 			return fmt.Errorf("expected 1 resource after write, got %d", len(resourcesRead))
 		}
-		if diff := resourcesRead[0].Diff(resource2.Data); diff != "" {
-			return fmt.Errorf("resource1 diff: %s", diff)
+		if !array.RecordEqual(resourcesRead[0], resource2) {
+			return fmt.Errorf("resource1 and resource2 are not equal")
 		}
 	}
 

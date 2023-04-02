@@ -55,7 +55,7 @@ type Client interface {
 	schema.CQTypeTransformer
 	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Tables) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- []any) error
+	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error
 	ManagedWriter
 	UnmanagedWriter
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
@@ -192,37 +192,24 @@ func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]schema.CQTypes, error) {
+func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]arrow.Record, error) {
 	var readErr error
-	ch := make(chan schema.CQTypes)
+	ch := make(chan arrow.Record)
 	go func() {
 		defer close(ch)
 		readErr = p.Read(ctx, table, sourceName, ch)
 	}()
-	// nolint:prealloc
-	var resources []schema.CQTypes
+	//nolint:prealloc
+	var resources []arrow.Record
 	for resource := range ch {
 		resources = append(resources, resource)
 	}
 	return resources, readErr
 }
 
-func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- schema.CQTypes) error {
+func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error {
 	SetDestinationManagedCqColumns(schema.Tables{table})
-	ch := make(chan []any)
-	var err error
-	go func() {
-		defer close(ch)
-		err = p.client.Read(ctx, table, sourceName, ch)
-	}()
-	for resource := range ch {
-		r, err := p.client.ReverseTransformValues(table, resource)
-		if err != nil {
-			return err
-		}
-		res <- r
-	}
-	return err
+	return p.client.Read(ctx, table, sourceName, res)
 }
 
 // this function is currently used mostly for testing so it's not a public api

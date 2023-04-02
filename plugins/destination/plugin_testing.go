@@ -171,7 +171,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 	})
 }
 
-func createTestResources(table *arrow.Schema, sourceName string, syncTime time.Time, count int) arrow.Record {
+func createTestResources(table *arrow.Schema, sourceName string, syncTime time.Time, count int) []arrow.Record {
 	return testdata.GenTestData(table, sourceName, syncTime, count)
 }
 

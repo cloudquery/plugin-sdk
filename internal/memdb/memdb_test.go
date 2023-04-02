@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -120,11 +121,8 @@ func TestOnWriteError(t *testing.T) {
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
-	ch := make(chan schema.DestinationResource, 1)
-	ch <- schema.DestinationResource{
-		TableName: "test",
-		Data:      testdata.GenTestData(table),
-	}
+	ch := make(chan arrow.Record, 1)
+	ch <- testdata.GenTestData(table.ToArrowSchema(), "test", time.Now(), 1)[0]
 	close(ch)
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
 	if err == nil {
@@ -151,12 +149,9 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
-	ch := make(chan schema.DestinationResource, 1)
+	ch := make(chan arrow.Record, 1)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	ch <- schema.DestinationResource{
-		TableName: "test",
-		Data:      testdata.GenTestData(table),
-	}
+	ch <- testdata.GenTestData(table.ToArrowSchema(), "test", time.Now(), 1)[0]
 	defer cancel()
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
 	if err != nil {

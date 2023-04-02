@@ -110,105 +110,85 @@ func TestTable(name string) *schema.Table {
 	return sourceTable
 }
 
-func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, count int) arrow.Record {
-	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
-	defer bldr.Release()
+func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, count int) []arrow.Record {
+	var records []arrow.Record
 	for j := 0; j < count; j++ {
+		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		for i, c := range sc.Fields() {
-			switch c.Type {
-			case arrow.FixedWidthTypes.Boolean:
+			if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Boolean) {
 				bldr.Field(i).(*array.BooleanBuilder).Append(true)
-			case arrow.PrimitiveTypes.Int64:
+			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Int64) {
 				bldr.Field(i).(*array.Int64Builder).Append(1)
-			case arrow.PrimitiveTypes.Float64:
+			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Float64) {
 				bldr.Field(i).(*array.Float64Builder).Append(1.1)
-			case types.ExtensionTypes.UUID:
+			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.UUID) {
 				bldr.Field(i).(*types.UUIDBuilder).Append(uuid.New())
-			case arrow.BinaryTypes.String:
+			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.String) {
 				if c.Name == schema.CqSourceNameColumn.Name {
-					bldr.Field(i).(*array.BinaryBuilder).AppendString(sourceName)
+					bldr.Field(i).(*array.StringBuilder).AppendString(sourceName)
 				} else if c.Name == "text_with_null" {
-					bldr.Field(i).(*array.BinaryBuilder).AppendString("AStringWith\x00NullBytes")
+					bldr.Field(i).(*array.StringBuilder).AppendString("AStringWith\x00NullBytes")
 				} else {
-					bldr.Field(i).(*array.BinaryBuilder).AppendString("AString")
+					bldr.Field(i).(*array.StringBuilder).AppendString("AString")
 				}
-			case arrow.BinaryTypes.Binary:
+			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.Binary) {
 				bldr.Field(i).(*array.BinaryBuilder).Append([]byte{1, 2, 3})
-			case arrow.ListOf(arrow.BinaryTypes.String):
+			} else if arrow.TypeEqual(c.Type, arrow.ListOf(arrow.BinaryTypes.String)) {
 				if c.Name == "text_array_with_null" {
 					bldr.Field(i).(*array.ListBuilder).Append(true)
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.BinaryBuilder).AppendString("test1")
-					bldr.Field(i).(*array.ListBuilder).Append(true)
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.BinaryBuilder).AppendString("test2\x00WithNull")
+					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test1")
+					// bldr.Field(i).(*array.ListBuilder).Append(true)
+					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test2\x00WithNull")
 				} else {
 					bldr.Field(i).(*array.ListBuilder).Append(true)
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.BinaryBuilder).AppendString("test1")
-					bldr.Field(i).(*array.ListBuilder).Append(true)
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.BinaryBuilder).AppendString("test2")
+					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test1")
+					// bldr.Field(i).(*array.ListBuilder).Append(true)
+					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test2")
 				}
-			case arrow.ListOf(arrow.PrimitiveTypes.Int64):
+			} else if arrow.TypeEqual(c.Type, arrow.ListOf(arrow.PrimitiveTypes.Int64)) {
 				bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(1)
-				bldr.Field(i).(*array.ListBuilder).Append(true)
+				// bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(2)
-			case arrow.FixedWidthTypes.Timestamp_us:
+			} else if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Timestamp_us) {
 				if c.Name == schema.CqSyncTimeColumn.Name {
 					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(syncTime.UTC().UnixMicro()))
 				} else {
 					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(time.Now().UTC().UnixMicro()))
-				}
-			case types.ExtensionTypes.JSON:
+				}				
+			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.JSON) {
 				bldr.Field(i).(*types.JSONBuilder).Append(map[string]interface{}{"test": "test"})
-			case arrow.ListOf(types.ExtensionTypes.UUID):
+			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.UUID)) {
 				bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.UUIDBuilder).Append(uuid.MustParse("00000000-0000-0000-0000-000000000001"))
-				bldr.Field(i).(*array.ListBuilder).Append(true)
+				// bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.UUIDBuilder).Append(uuid.MustParse("00000000-0000-0000-0000-000000000002"))
-			case types.ExtensionTypes.Inet:
+			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.Inet) {
 				_, ipnet, err := net.ParseCIDR("192.0.2.0/24")
 				if err != nil {
 					panic(err)
 				}
-				bldr.Field(i).(*types.InetBuilder).Append(*ipnet)
-			case arrow.ListOf(types.ExtensionTypes.Inet):
+				bldr.Field(i).(*types.InetBuilder).Append(*ipnet)			
+			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.Inet)) {
 				bldr.Field(i).(*array.ListBuilder).Append(true)
 				_, ipnet, err := net.ParseCIDR("192.0.2.1/24")
 				if err != nil {
 					panic(err)
 				}
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(*ipnet)
-				bldr.Field(i).(*array.ListBuilder).Append(true)
+				// bldr.Field(i).(*array.ListBuilder).Append(true)
 				_, ipnet, err = net.ParseCIDR("192.0.2.1/24")
 				if err != nil {
 					panic(err)
 				}
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(*ipnet)
-			case types.ExtensionTypes.Inet:
-				_, ipnet, err := net.ParseCIDR("192.0.2.1")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*types.InetBuilder).Append(*ipnet)
-			case arrow.ListOf(types.ExtensionTypes.Inet):
-				bldr.Field(i).(*array.ListBuilder).Append(true)
-				_, ipnet, err := net.ParseCIDR("192.0.2.1")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(*ipnet)
-				bldr.Field(i).(*array.ListBuilder).Append(true)
-				_, ipnet, err = net.ParseCIDR("192.0.2.1")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(*ipnet)
-			case types.ExtensionTypes.Mac:
+			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.Mac) {
 				mac, err := net.ParseMAC("aa:bb:cc:dd:ee:ff")
 				if err != nil {
 					panic(err)
 				}
 				bldr.Field(i).(*types.MacBuilder).Append(mac)
-			case arrow.ListOf(types.ExtensionTypes.Mac):
+			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.Mac)) {
 				mac, err := net.ParseMAC("aa:bb:cc:dd:ee:ff")
 				if err != nil {
 					panic(err)
@@ -219,12 +199,14 @@ func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, count 
 				if err != nil {
 					panic(err)
 				}
-				bldr.Field(i).(*array.ListBuilder).Append(true)
+				// bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.MacBuilder).Append(mac)
-			default:
-				panic("unknown type" + c.Type.String())
+			} else {
+				panic("unknown type: " + c.Type.String() + " column: " + c.Name)
 			}
 		}
+		records = append(records, bldr.NewRecord())
+		bldr.Release()
 	}
-	return bldr.NewRecord()
+	return records
 }

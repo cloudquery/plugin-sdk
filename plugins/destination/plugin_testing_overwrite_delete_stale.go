@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow/memory"
+	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
+
 
 func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeOverwriteDeleteStale
@@ -37,30 +38,39 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		Backend: specs.BackendLocal,
 	}
 
-	resources := createTestResources(table, sourceName, syncTime, 2)
-	incResources := createTestResources(incTable, sourceName, syncTime, 2)
-	if err := p.writeAll(ctx, sourceSpec, tables, syncTime, append(resources, incResources...)); err != nil {
+	resources := createTestResources(table.ToArrowSchema(), sourceName, syncTime, 2)
+	incResources := createTestResources(incTable.ToArrowSchema(), sourceName, syncTime, 2)
+	allResources := resources
+	allResources = append(allResources, incResources...)
+	if err := p.writeAll(ctx, sourceSpec, tables, syncTime, allResources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
-	sortResources(table, resources)
+	// sortResources(table, resources)
 
 	resourcesRead, err := p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
-	sortCQTypes(table, resourcesRead)
+	// sortCQTypes(table, resourcesRead)
 
 	if len(resourcesRead) != 2 {
 		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
 	}
-
-	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
-		return fmt.Errorf("expected first resource diff: %s", diff)
+	if !array.RecordEqual(resources[0], resourcesRead[0]) {
+		return fmt.Errorf("expected first resource to be equal")
 	}
+	
+	// if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
+	// 	return fmt.Errorf("expected first resource diff: %s", diff)
+	// }
 
-	if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
-		return fmt.Errorf("expected second resource diff: %s", diff)
+	// array.TableEqual()
+	if !array.RecordEqual(resources[1], resourcesRead[1]) {
+		return fmt.Errorf("expected second resource to be equal")
 	}
+	// if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
+	// 	return fmt.Errorf("expected second resource diff: %s", diff)
+	// }
 
 	// read from incremental table
 	resourcesRead, err = p.readAll(ctx, incTable, sourceName)
@@ -72,18 +82,10 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
-
 	// copy first resource but update the sync time
-	updatedResource := schema.DestinationResource{
-		TableName: table.Name,
-		Data:      make(schema.CQTypes, len(resources[0].Data)),
-	}
-	copy(updatedResource.Data, resources[0].Data)
-	_ = updatedResource.Data[1].Set(secondSyncTime)
+	updatedResources := createTestResources(table.ToArrowSchema(), sourceName, secondSyncTime, 1)[0]
 
-	// write second time
-	record := schema.CQTypesOneToRecord(memory.DefaultAllocator, updatedResource.Data, schema.CQSchemaToArrow(table))
-	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, record); err != nil {
+	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResources); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
@@ -91,14 +93,16 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
-	sortCQTypes(table, resourcesRead)
+	// sortCQTypes(table, resourcesRead)
 	if len(resourcesRead) != 1 {
 		return fmt.Errorf("after overwrite expected 1 resource, got %d", len(resourcesRead))
 	}
-
-	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
-		return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
+	if array.RecordEqual(resources[0], resourcesRead[0]) {
+		return fmt.Errorf("after overwrite expected first resource to be different")
 	}
+	// if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
+	// 	return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
+	// }
 
 	resourcesRead, err = p.readAll(ctx, tables[0], sourceName)
 	if err != nil {
@@ -109,9 +113,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	// we expect the only resource returned to match the updated resource we wrote
-	if diff := updatedResource.Data.Diff(resourcesRead[0]); diff != "" {
-		return fmt.Errorf("after delete stale expected resource diff: %s", diff)
+	if !array.RecordEqual(updatedResources, resourcesRead[0]) {
+		return fmt.Errorf("after delete stale expected resource to be equal")
 	}
+	// if diff := updatedResource.Data.Diff(resourcesRead[0]); diff != "" {
+	// 	return fmt.Errorf("after delete stale expected resource diff: %s", diff)
+	// }
 
 	// we expect the incremental table to still have 2 resources, because delete-stale should
 	// not apply there

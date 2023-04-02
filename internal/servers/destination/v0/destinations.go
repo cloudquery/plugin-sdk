@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	pbBase "github.com/cloudquery/plugin-sdk/internal/pb/base/v0"
 	pb "github.com/cloudquery/plugin-sdk/internal/pb/destination/v0"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
@@ -65,7 +67,7 @@ func (*Server) Write(pb.Destination_WriteServer) error {
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *Server) Write2(msg pb.Destination_Write2Server) error {
-	resources := make(chan schema.DestinationResource)
+	resources := make(chan arrow.Record)
 
 	r, err := msg.Recv()
 	if err != nil {
@@ -112,16 +114,17 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
-		var resource schema.DestinationResource
-		if err := json.Unmarshal(r.Resource, &resource); err != nil {
+		var origResource schema.DestinationResource
+		if err := json.Unmarshal(r.Resource, &origResource); err != nil {
 			close(resources)
 			if wgErr := eg.Wait(); wgErr != nil {
 				return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v and write failed: %v", err, wgErr)
 			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
+		convertedResource := schema.CQTypesToRecord(memory.DefaultAllocator, []schema.CQTypes{origResource.Data}, schema.CQSchemaToArrow(tables.Get(origResource.TableName)))
 		select {
-		case resources <- resource:
+		case resources <- convertedResource:
 		case <-ctx.Done():
 			close(resources)
 			if err := eg.Wait(); err != nil {

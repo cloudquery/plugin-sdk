@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/internal/glob"
 )
 
@@ -290,6 +291,10 @@ func (t *Table) ValidateName() error {
 		return fmt.Errorf("table name %q is not valid: table names must contain only lower-case letters, numbers and underscores, and must start with a lower-case letter or underscore", t.Name)
 	}
 	return nil
+}
+
+func (t *Table) ToArrowSchema() *arrow.Schema {
+	return CQSchemaToArrow(t)
 }
 
 // Get Changes returns changes between two tables when t is the new one and old is the old one.

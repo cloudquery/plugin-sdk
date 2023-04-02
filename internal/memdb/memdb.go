@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -18,7 +20,7 @@ import (
 type client struct {
 	schema.DefaultTransformer
 	spec          specs.Destination
-	memoryDB      map[string][][]any
+	memoryDB      map[string][]arrow.Record
 	tables        map[string]*schema.Table
 	memoryDBLock  sync.RWMutex
 	errOnWrite    bool
@@ -41,7 +43,7 @@ func WithBlockingWrite() Option {
 
 func GetNewClient(options ...Option) destination.NewClientFunc {
 	c := &client{
-		memoryDB:     make(map[string][][]any),
+		memoryDB:     make(map[string][]arrow.Record),
 		memoryDBLock: sync.RWMutex{},
 	}
 	for _, opt := range options {
@@ -62,7 +64,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 
 func NewClient(_ context.Context, _ zerolog.Logger, spec specs.Destination) (destination.Client, error) {
 	return &client{
-		memoryDB: make(map[string][][]any),
+		memoryDB: make(map[string][]arrow.Record),
 		tables:   make(map[string]*schema.Table),
 		spec:     spec,
 	}, nil
@@ -79,7 +81,7 @@ func (*client) ReverseTransformValues(_ *schema.Table, values []any) (schema.CQT
 	}
 	return res, nil
 }
-func (c *client) overwrite(table *schema.Table, data []any) {
+func (c *client) overwrite(table *schema.Table, data arrow.Record) {
 	pks := table.PrimaryKeys()
 	pksIndex := make([]int, len(pks))
 	for i := range pks {
@@ -88,7 +90,7 @@ func (c *client) overwrite(table *schema.Table, data []any) {
 	for i, row := range c.memoryDB[table.Name] {
 		found := true
 		for _, pkIndex := range pksIndex {
-			if !row[pkIndex].(schema.CQType).Equal(data[pkIndex].(schema.CQType)) {
+			if data.Column(pkIndex).String() != row.Column(pkIndex).String() {
 				found = false
 			}
 		}
@@ -105,7 +107,7 @@ func (c *client) Migrate(_ context.Context, tables schema.Tables) error {
 	for _, table := range tables {
 		memTable := c.memoryDB[table.Name]
 		if memTable == nil {
-			c.memoryDB[table.Name] = make([][]any, 0)
+			c.memoryDB[table.Name] = make([]arrow.Record, 0)
 			c.tables[table.Name] = table
 			continue
 		}
@@ -114,21 +116,22 @@ func (c *client) Migrate(_ context.Context, tables schema.Tables) error {
 		if changes == nil {
 			continue
 		}
-		c.memoryDB[table.Name] = make([][]any, 0)
+		c.memoryDB[table.Name] = make([]arrow.Record, 0)
 		c.tables[table.Name] = table
 	}
 	return nil
 }
 
-func (c *client) Read(_ context.Context, table *schema.Table, source string, res chan<- []any) error {
+func (c *client) Read(_ context.Context, table *schema.Table, source string, res chan<- arrow.Record) error {
 	if c.memoryDB[table.Name] == nil {
 		return nil
 	}
 	sourceColIndex := table.Columns.Index(schema.CqSourceNameColumn.Name)
-	var sortedRes [][]any
+	var sortedRes []arrow.Record
 	c.memoryDBLock.RLock()
 	for _, row := range c.memoryDB[table.Name] {
-		if row[sourceColIndex].(*schema.Text).Str == source {
+		arr := row.Column(sourceColIndex)
+		if arr.(*array.String).Value(0) == source {
 			sortedRes = append(sortedRes, row)
 		}
 	}
@@ -140,7 +143,7 @@ func (c *client) Read(_ context.Context, table *schema.Table, source string, res
 	return nil
 }
 
-func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-chan *destination.ClientResource) error {
+func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-chan arrow.Record) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -154,17 +157,23 @@ func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-ch
 
 	for resource := range resources {
 		c.memoryDBLock.Lock()
+		tableName, err := schema.TableNameFromSchema(resource.Schema())
+		if err != nil {
+			return err
+		}
 		if c.spec.WriteMode == specs.WriteModeAppend {
-			c.memoryDB[resource.TableName] = append(c.memoryDB[resource.TableName], resource.Data)
+			c.memoryDB[tableName] = append(c.memoryDB[tableName], resource)
 		} else {
-			c.overwrite(tables.Get(resource.TableName), resource.Data)
+			c.overwrite(tables.Get(tableName), resource)
 		}
 		c.memoryDBLock.Unlock()
 	}
 	return nil
 }
 
-func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resources [][]any) error {
+func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resources []arrow.Record) error {
+	rdr, _ := array.NewRecordReader(nil, nil)
+	rdr.Next()
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -209,11 +218,11 @@ func (c *client) DeleteStale(ctx context.Context, tables schema.Tables, source s
 func (c *client) deleteStaleTable(_ context.Context, table *schema.Table, source string, syncTime time.Time) {
 	sourceColIndex := table.Columns.Index(schema.CqSourceNameColumn.Name)
 	syncColIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
-	var filteredTable [][]any
+	var filteredTable []arrow.Record
 	for i, row := range c.memoryDB[table.Name] {
-		if row[sourceColIndex].(*schema.Text).Str == source {
-			rowSyncTime := row[syncColIndex].(*schema.Timestamptz)
-			if !rowSyncTime.Time.UTC().Before(syncTime) {
+		if row.Column(sourceColIndex).(*array.String).Value(0) == source {
+			rowSyncTime := row.Column(syncColIndex).(*array.Timestamp).Value(0)
+			if !rowSyncTime.ToTime(arrow.Millisecond).UTC().Before(syncTime) {
 				filteredTable = append(filteredTable, c.memoryDB[table.Name][i])
 			}
 		}

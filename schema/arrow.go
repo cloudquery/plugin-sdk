@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"fmt"
+
 	"github.com/goccy/go-json"
 
 	"github.com/apache/arrow/go/v12/arrow"
@@ -12,6 +14,7 @@ import (
 const (
 	MetadataPrimaryKey     = "cq:extension:primary_key"
 	MetadataPrimaryKeyTrue = "true"
+	MetadataTableName = "cq:table_name"
 )
 
 func CQColumnToArrowField(col *Column) arrow.Field {
@@ -26,7 +29,7 @@ func CQColumnToArrowField(col *Column) arrow.Field {
 	case TypeFloat:
 		typ = arrow.PrimitiveTypes.Float64
 	case TypeUUID:
-		typ = types.NewUUIDType()
+		typ = types.ExtensionTypes.UUID
 	case TypeString:
 		typ = arrow.BinaryTypes.String
 	case TypeByteArray:
@@ -38,21 +41,21 @@ func CQColumnToArrowField(col *Column) arrow.Field {
 	case TypeTimestamp:
 		typ = arrow.FixedWidthTypes.Timestamp_us
 	case TypeJSON:
-		typ = types.NewJSONType()
+		typ = types.ExtensionTypes.JSON
 	case TypeUUIDArray:
-		typ = arrow.ListOf(types.NewUUIDType())
+		typ = arrow.ListOf(types.ExtensionTypes.UUID)
 	case TypeInet:
-		typ = types.NewInetType()
+		typ = types.ExtensionTypes.Inet
 	case TypeInetArray:
-		typ = arrow.ListOf(types.NewInetType())
+		typ = arrow.ListOf(types.ExtensionTypes.Inet)
 	case TypeCIDR:
-		typ = types.NewInetType()
+		typ = types.ExtensionTypes.Inet
 	case TypeCIDRArray:
-		typ = arrow.ListOf(types.NewInetType())
+		typ = arrow.ListOf(types.ExtensionTypes.Inet)
 	case TypeMacAddr:
-		typ = types.NewMacType()
+		typ = types.ExtensionTypes.Mac
 	case TypeMacAddrArray:
-		typ = arrow.ListOf(types.NewMacType())
+		typ = arrow.ListOf(types.ExtensionTypes.Mac)
 	default:
 		panic("unknown type " + typ.Name())
 	}
@@ -67,12 +70,21 @@ func CQColumnToArrowField(col *Column) arrow.Field {
 	}
 }
 
+func TableNameFromSchema(schema *arrow.Schema) (string, error) {
+	k := schema.Metadata().FindKey(MetadataTableName)
+	if k == -1 {
+		return "", fmt.Errorf("schema has no table name metadata")
+	}
+	return schema.Metadata().Values()[k], nil
+}
+
 func CQSchemaToArrow(table *Table) *arrow.Schema {
 	fields := make([]arrow.Field, 0, len(table.Columns))
 	for _, col := range table.Columns {
 		fields = append(fields, CQColumnToArrowField(&col))
 	}
-	return arrow.NewSchema(fields, nil)
+	metadata := arrow.NewMetadata([]string{MetadataTableName}, []string{table.Name})
+	return arrow.NewSchema(fields, &metadata)
 }
 
 func CQTypesOneToRecord(mem memory.Allocator, c CQTypes, arrowSchema *arrow.Schema) arrow.Record {

@@ -3,7 +3,7 @@ module github.com/cloudquery/plugin-sdk
 go 1.19
 
 require (
-	github.com/apache/arrow/go/v12 v12.0.0-20230322034051-928827515bfb
+	github.com/apache/arrow/go/v12 v12.0.0-20230401212133-adf33cc43010
 	github.com/avast/retry-go/v4 v4.3.3
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/getsentry/sentry-go v0.20.0
@@ -30,6 +30,7 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/apache/arrow v0.0.0-20230401212133-adf33cc43010 // indirect
 	github.com/apache/thrift v0.16.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v2.0.8+incompatible // indirect
