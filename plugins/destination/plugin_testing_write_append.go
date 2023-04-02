@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
@@ -27,23 +28,21 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
-	// resources := make([]schema.DestinationResource, 2)
 	sourceName := "testAppendSource" + uuid.NewString()
 	specSource := specs.Source{
 		Name: sourceName,
 	}
-	record := testdata.GenTestData(table.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)
-	if err := p.writeOne(ctx, specSource, tables, syncTime, record[0]); err != nil {
+	record1 := testdata.GenTestData(table.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
+	if err := p.writeOne(ctx, specSource, tables, syncTime, record1); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
-	record = testdata.GenTestData(table.ToArrowSchema(), sourceName, secondSyncTime, uuid.Nil, 1)
-	sortRecordsBySyncTime(table, record)
+	record2 := testdata.GenTestData(table.ToArrowSchema(), sourceName, secondSyncTime, uuid.Nil, 1)[0]
 
 	if !s.tests.SkipSecondAppend {
 		// write second time
-		if err := p.writeOne(ctx, specSource, tables, secondSyncTime, record[0]); err != nil {
+		if err := p.writeOne(ctx, specSource, tables, secondSyncTime, record2); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
@@ -63,16 +62,17 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
-	// if array.RecordEqual(resourcesRead[0], resources[0]) {}
-	// if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
-	// 	return fmt.Errorf("first expected resource diff: %s", diff)
-	// }
+	if !array.RecordEqual(record1, resourcesRead[0]) {
+		diff := RecordDiff(record1, resourcesRead[0])
+		return fmt.Errorf("first expected resource diff: %s", diff)
+	}
 
-	// if !s.tests.SkipSecondAppend {
-	// 	if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
-	// 		return fmt.Errorf("second expected resource diff: %s", diff)
-	// 	}
-	// }
+	if !s.tests.SkipSecondAppend {
+		if !array.RecordEqual(record2, resourcesRead[1]) {
+			diff := RecordDiff(record2, resourcesRead[1])
+			return fmt.Errorf("second expected resource diff: %s", diff)
+		}
+	}
 
 	return nil
 }
