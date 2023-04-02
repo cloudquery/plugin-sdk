@@ -166,7 +166,7 @@ func (a *UUIDArray) GetOneForMarshal(i int) any {
 	return nil
 }
 
-func (a *UUIDArray) Value(i int) *uuid.UUID  {
+func (a *UUIDArray) Value(i int) *uuid.UUID {
 	arr := a.Storage().(*array.FixedSizeBinary)
 	if a.IsValid(i) {
 		uuidObj, err := uuid.FromBytes(arr.Value(i))

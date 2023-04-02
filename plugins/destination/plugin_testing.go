@@ -197,7 +197,6 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 	})
 }
 
-
 func sortRecordsBySyncTime(table *schema.Table, records []arrow.Record) {
 	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
 	sort.Slice(records, func(i, j int) bool {

@@ -14,7 +14,7 @@ import (
 const (
 	MetadataPrimaryKey     = "cq:extension:primary_key"
 	MetadataPrimaryKeyTrue = "true"
-	MetadataTableName = "cq:table_name"
+	MetadataTableName      = "cq:table_name"
 )
 
 func CQColumnToArrowField(col *Column) arrow.Field {

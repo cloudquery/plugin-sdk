@@ -32,7 +32,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 				}
 				return
 			}
-			if len(resources) == p.spec.BatchSize  {
+			if len(resources) == p.spec.BatchSize {
 				p.flush(ctx, metrics, table, resources)
 				resources = make([]arrow.Record, 0)
 			}

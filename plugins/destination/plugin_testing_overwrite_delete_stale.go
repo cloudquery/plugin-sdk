@@ -14,7 +14,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-
 func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeOverwriteDeleteStale
 	if err := p.Init(ctx, logger, spec); err != nil {
@@ -61,7 +60,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		diff := RecordDiff(resources[0], resourcesRead[0])
 		return fmt.Errorf("expected first resource to be equal. diff: %s", diff)
 	}
-	
+
 	if !array.RecordEqual(resources[1], resourcesRead[1]) {
 		diff := RecordDiff(resources[1], resourcesRead[1])
 		return fmt.Errorf("expected second resource to be equal. diff: %s", diff)
