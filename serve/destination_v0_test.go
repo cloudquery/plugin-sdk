@@ -8,7 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	clients "github.com/cloudquery/plugin-sdk/clients/destination/v0"
+	"github.com/cloudquery/plugin-sdk/internal/deprecated"
 	"github.com/cloudquery/plugin-sdk/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -108,10 +112,11 @@ func TestDestination(t *testing.T) {
 
 	destResource := schema.DestinationResource{
 		TableName: tableName,
-		Data:      testdata.GenTestData(table),
+		Data:      deprecated.GenTestData(table),
 	}
 	_ = destResource.Data[0].Set(sourceName)
 	_ = destResource.Data[1].Set(syncTime)
+	destRecord := schema.CQTypesOneToRecord(memory.DefaultAllocator, destResource.Data, table.ToArrowSchema())
 	b, err := json.Marshal(destResource)
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +129,7 @@ func TestDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	readCh := make(chan schema.CQTypes, 1)
+	readCh := make(chan arrow.Record, 1)
 	if err := plugin.Read(ctx, table, sourceName, readCh); err != nil {
 		t.Fatal(err)
 	}
@@ -132,8 +137,9 @@ func TestDestination(t *testing.T) {
 	totalResources := 0
 	for resource := range readCh {
 		totalResources++
-		if !destResource.Data.Equal(resource) {
-			t.Fatalf("expected %v but got %v", destResource.Data, resource)
+		if !array.RecordEqual(destRecord, resource) {
+			diff := destination.RecordDiff(destRecord, resource)
+			t.Fatalf("expected %v but got %v. Diff: %v", destRecord, resource, diff)
 		}
 	}
 	if totalResources != 1 {
