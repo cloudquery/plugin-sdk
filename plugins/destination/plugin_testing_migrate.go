@@ -10,6 +10,7 @@ import (
 	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -44,7 +45,7 @@ func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.
 		Name: sourceName,
 	}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	resource1 := createTestResources(source.ToArrowSchema(), sourceName, syncTime, 1)[0]
+	resource1 := testdata.GenTestData(source.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
 	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{source}, syncTime, resource1); err != nil {
 		return fmt.Errorf("failed to write one: %w", err)
 	}
@@ -52,7 +53,7 @@ func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.
 	if err := p.Migrate(ctx, []*schema.Table{target}); err != nil {
 		return fmt.Errorf("failed to migrate existing table: %w", err)
 	}
-	resource2 := createTestResources(target.ToArrowSchema(), sourceName, syncTime, 1)[0]
+	resource2 := testdata.GenTestData(target.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
 	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{target}, syncTime, resource2); err != nil {
 		return fmt.Errorf("failed to write one after migration: %w", err)
 	}
@@ -71,7 +72,8 @@ func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.
 			return fmt.Errorf("expected 1 resource after write, got %d", len(resourcesRead))
 		}
 		if !array.RecordEqual(resourcesRead[0], resource2) {
-			return fmt.Errorf("resource1 and resource2 are not equal")
+			diff := RecordDiff(resourcesRead[0], resource2)
+			return fmt.Errorf("resource1 and resource2 are not equal. diff: %s", diff)
 		}
 	}
 

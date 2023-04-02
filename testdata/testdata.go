@@ -110,9 +110,13 @@ func TestTable(name string) *schema.Table {
 	return sourceTable
 }
 
-func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, count int) []arrow.Record {
+func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, stableUUID uuid.UUID, count int) []arrow.Record {
 	var records []arrow.Record
 	for j := 0; j < count; j++ {
+		u := uuid.New()
+		if stableUUID != uuid.Nil {
+			u = stableUUID
+		}
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		for i, c := range sc.Fields() {
 			if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Boolean) {
@@ -122,7 +126,7 @@ func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, count 
 			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Float64) {
 				bldr.Field(i).(*array.Float64Builder).Append(1.1)
 			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.UUID) {
-				bldr.Field(i).(*types.UUIDBuilder).Append(uuid.New())
+				bldr.Field(i).(*types.UUIDBuilder).Append(u)
 			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.String) {
 				if c.Name == schema.CqSourceNameColumn.Name {
 					bldr.Field(i).(*array.StringBuilder).AppendString(sourceName)

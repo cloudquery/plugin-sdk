@@ -30,7 +30,6 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
-	github.com/apache/arrow v0.0.0-20230401212133-adf33cc43010 // indirect
 	github.com/apache/thrift v0.16.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v2.0.8+incompatible // indirect
@@ -44,6 +43,8 @@ require (
 	golang.org/x/tools v0.6.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 )
+
+replace github.com/apache/arrow/go/v12 => github.com/cloudquery/arrow/go/v12 v12.0.0-20230402142045-7e60a05faae3
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

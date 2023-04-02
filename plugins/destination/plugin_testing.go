@@ -2,15 +2,18 @@ package destination
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/rs/zerolog"
 )
 
@@ -61,6 +64,29 @@ type PluginTestSuiteTests struct {
 
 	MigrateStrategyOverwrite MigrateStrategy
 	MigrateStrategyAppend    MigrateStrategy
+}
+
+func RecordDiff(l arrow.Record, r arrow.Record) string {
+	var sb strings.Builder
+	if l.NumCols() != r.NumCols() {
+		return fmt.Sprintf("different number of columns: %d vs %d", l.NumCols(), r.NumCols())
+	}
+	if l.NumRows() != r.NumRows() {
+		return fmt.Sprintf("different number of rows: %d vs %d", l.NumRows(), r.NumRows())
+	}
+	for i := 0; i < int(l.NumCols()); i++ {
+		s, err := array.DiffString(l.Column(i), r.Column(i), memory.DefaultAllocator)
+		if err != nil {
+			panic(err)
+		}
+		if s != "" {
+			sb.WriteString(l.Schema().Field(i).Name)
+			sb.WriteString(": ")
+			sb.WriteString(s)
+			sb.WriteString("\n")
+		}
+	}
+	return sb.String()
 }
 
 func getTestLogger(t *testing.T) zerolog.Logger {
@@ -171,19 +197,12 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 	})
 }
 
-func createTestResources(table *arrow.Schema, sourceName string, syncTime time.Time, count int) []arrow.Record {
-	return testdata.GenTestData(table, sourceName, syncTime, count)
-}
 
-func sortResources(table *schema.Table, resources []schema.DestinationResource) {
-	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
+func sortRecordsBySyncTime(table *schema.Table, records []arrow.Record) {
 	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
-	sort.Slice(resources, func(i, j int) bool {
+	sort.Slice(records, func(i, j int) bool {
 		// sort by sync time, then UUID
-		if !resources[i].Data[syncTimeIndex].Equal(resources[j].Data[syncTimeIndex]) {
-			return resources[i].Data[syncTimeIndex].Get().(time.Time).Before(resources[j].Data[syncTimeIndex].Get().(time.Time))
-		}
-		return resources[i].Data[cqIDIndex].String() < resources[j].Data[cqIDIndex].String()
+		return records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond).Before(records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond))
 	})
 }
 

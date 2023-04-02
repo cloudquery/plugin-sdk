@@ -32,19 +32,17 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	specSource := specs.Source{
 		Name: sourceName,
 	}
-	record := createTestResources(table.ToArrowSchema(), sourceName, syncTime, 1)
-	// record := schema.CQTypesOneToRecord(memory.DefaultAllocator, resources[0].Data, schema.CQSchemaToArrow(table))
+	record := testdata.GenTestData(table.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)
 	if err := p.writeOne(ctx, specSource, tables, syncTime, record[0]); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
-	record = createTestResources(table.ToArrowSchema(), sourceName, secondSyncTime, 1)
-	// sortResources(table, resources)
+	record = testdata.GenTestData(table.ToArrowSchema(), sourceName, secondSyncTime, uuid.Nil, 1)
+	sortRecordsBySyncTime(table, record)
 
 	if !s.tests.SkipSecondAppend {
 		// write second time
-		// record := schema.CQTypesOneToRecord(memory.DefaultAllocator, resources[1].Data, schema.CQSchemaToArrow(table))
 		if err := p.writeOne(ctx, specSource, tables, secondSyncTime, record[0]); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
@@ -54,7 +52,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
-	// sortCQTypes(table, resourcesRead)
+	sortRecordsBySyncTime(table, resourcesRead)
 
 	expectedResource := 2
 	if s.tests.SkipSecondAppend {

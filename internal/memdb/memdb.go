@@ -90,7 +90,9 @@ func (c *client) overwrite(table *schema.Table, data arrow.Record) {
 	for i, row := range c.memoryDB[table.Name] {
 		found := true
 		for _, pkIndex := range pksIndex {
-			if data.Column(pkIndex).String() != row.Column(pkIndex).String() {
+			s1 := data.Column(pkIndex).String()
+			s2 := row.Column(pkIndex).String()
+			if s1 != s2 {
 				found = false
 			}
 		}
@@ -172,8 +174,6 @@ func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-ch
 }
 
 func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resources []arrow.Record) error {
-	rdr, _ := array.NewRecordReader(nil, nil)
-	rdr.Next()
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -221,8 +221,8 @@ func (c *client) deleteStaleTable(_ context.Context, table *schema.Table, source
 	var filteredTable []arrow.Record
 	for i, row := range c.memoryDB[table.Name] {
 		if row.Column(sourceColIndex).(*array.String).Value(0) == source {
-			rowSyncTime := row.Column(syncColIndex).(*array.Timestamp).Value(0)
-			if !rowSyncTime.ToTime(arrow.Millisecond).UTC().Before(syncTime) {
+			rowSyncTime := row.Column(syncColIndex).(*array.Timestamp).Value(0).ToTime(arrow.Microsecond).UTC()
+			if !rowSyncTime.Before(syncTime) {
 				filteredTable = append(filteredTable, c.memoryDB[table.Name][i])
 			}
 		}

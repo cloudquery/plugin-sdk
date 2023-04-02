@@ -9,6 +9,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
+	"github.com/cloudquery/plugin-sdk/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -33,43 +34,39 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		Name: sourceName,
 	}
 
-	resources := createTestResources(schema.CQSchemaToArrow(table), sourceName, syncTime, 2)
-	// st := array.RecordToStructArray(resources)
-	// tbl := array.NewTableFromRecords(schema.CQSchemaToArrow(table), []arrow.Record{resources})
-	// array.NewRecord()
+	resources := testdata.GenTestData(schema.CQSchemaToArrow(table), sourceName, syncTime, uuid.Nil, 2)
 	if err := p.writeAll(ctx, sourceSpec, tables, syncTime, resources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
-	// sortResources(table, resources)
+	sortRecordsBySyncTime(table, resources)
 
 	resourcesRead, err := p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
-	// sortCQTypes(table, resourcesRead)
+	sortRecordsBySyncTime(table, resourcesRead)
 
 	if len(resourcesRead) != 2 {
 		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
 	}
 	
-	if array.RecordEqual(resources[0], resourcesRead[0]) {
-		return fmt.Errorf("expected first resource to be equal")
+	if !array.RecordEqual(resources[0], resourcesRead[0]) {
+		diff := RecordDiff(resources[0], resourcesRead[0])
+		return fmt.Errorf("expected first resource to be equal. diff=%s", diff)
 	}
-	// if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
-	// 	return fmt.Errorf("expected first resource diff: %s", diff)
-	// }
 	
-	if array.RecordEqual(resources[1], resourcesRead[1]) {
-		return fmt.Errorf("expected second resource to be equal")
+	if !array.RecordEqual(resources[1], resourcesRead[1]) {
+		diff := RecordDiff(resources[1], resourcesRead[1])
+		return fmt.Errorf("expected second resource to be equal. diff=%s", diff)
 	}
-	// if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
-	// 	return fmt.Errorf("expected second resource diff: %s", diff)
-	// }
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 
 	// copy first resource but update the sync time
-	updatedResource := createTestResources(schema.CQSchemaToArrow(table), sourceName, secondSyncTime, 1)[0]
+	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
+	us := u.String()
+	fmt.Println(us)
+	updatedResource := testdata.GenTestData(schema.CQSchemaToArrow(table), sourceName, secondSyncTime, *u, 1)[0]
 	// write second time
 	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
@@ -79,24 +76,19 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
-	// sortCQTypes(table, resourcesRead)
-
+	sortRecordsBySyncTime(table, resourcesRead)
 	if len(resourcesRead) != 2 {
 		return fmt.Errorf("after overwrite expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if array.RecordEqual(resources[1], resourcesRead[0]) {
-		return fmt.Errorf("after overwrite expected first resource to be equal")
+	if !array.RecordEqual(resources[1], resourcesRead[0]) {
+		diff := RecordDiff(resources[1], resourcesRead[0])
+		return fmt.Errorf("after overwrite expected first resource to be equal. diff=%s", diff)
 	}
-	// if diff := resources[1].Data.Diff(resourcesRead[0]); diff != "" {
-	// 	return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
-	// }
-	if array.RecordEqual(updatedResource, resourcesRead[1]) {
-		return fmt.Errorf("after overwrite expected second resource to be equal")
+	if !array.RecordEqual(updatedResource, resourcesRead[1]) {
+		diff := RecordDiff(updatedResource, resourcesRead[1])
+		return fmt.Errorf("after overwrite expected second resource to be equal. diff=%s", diff)
 	}
-	// if diff := updatedResource.Data.Diff(resourcesRead[1]); diff != "" {
-	// 	return fmt.Errorf("after overwrite expected second resource diff: %s", diff)
-	// }
 
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
@@ -122,7 +123,7 @@ func TestOnWriteError(t *testing.T) {
 		Name: sourceName,
 	}
 	ch := make(chan arrow.Record, 1)
-	ch <- testdata.GenTestData(table.ToArrowSchema(), "test", time.Now(), 1)[0]
+	ch <- testdata.GenTestData(table.ToArrowSchema(), "test", time.Now(), uuid.Nil, 1)[0]
 	close(ch)
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
 	if err == nil {
@@ -151,7 +152,7 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	}
 	ch := make(chan arrow.Record, 1)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	ch <- testdata.GenTestData(table.ToArrowSchema(), "test", time.Now(), 1)[0]
+	ch <- testdata.GenTestData(table.ToArrowSchema(), "test", time.Now(), uuid.Nil, 1)[0]
 	defer cancel()
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
 	if err != nil {

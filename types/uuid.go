@@ -166,6 +166,18 @@ func (a *UUIDArray) GetOneForMarshal(i int) any {
 	return nil
 }
 
+func (a *UUIDArray) Value(i int) *uuid.UUID  {
+	arr := a.Storage().(*array.FixedSizeBinary)
+	if a.IsValid(i) {
+		uuidObj, err := uuid.FromBytes(arr.Value(i))
+		if err != nil {
+			panic(fmt.Errorf("invalid uuid: %w", err))
+		}
+		return &uuidObj
+	}
+	return nil
+}
+
 // UUIDType is a simple extension type that represents a FixedSizeBinary(16)
 // to be used for representing UUIDs
 type UUIDType struct {
