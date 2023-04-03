@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/util"
 	"github.com/cloudquery/plugin-sdk/internal/pk"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -22,6 +23,7 @@ type worker struct {
 }
 
 func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan arrow.Record, flush <-chan chan bool) {
+	sizeBytes := int64(0)
 	resources := make([]arrow.Record, 0)
 	for {
 		select {
@@ -32,20 +34,24 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 				}
 				return
 			}
-			if len(resources) == p.spec.BatchSize {
+			if len(resources) == p.spec.BatchSize || sizeBytes + util.TotalRecordSize(r) > int64(p.spec.BatchSizeBytes) {
 				p.flush(ctx, metrics, table, resources)
 				resources = make([]arrow.Record, 0)
+				sizeBytes = 0
 			}
 			resources = append(resources, r)
+			sizeBytes += util.TotalRecordSize(r)
 		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
 				resources = make([]arrow.Record, 0)
+				sizeBytes = 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
 				resources = make([]arrow.Record, 0)
+				sizeBytes = 0
 			}
 			done <- true
 		}
