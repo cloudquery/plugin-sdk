@@ -67,6 +67,20 @@ func (b *JSONBuilder) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (b *JSONBuilder) UnmarshalOne(dec *json.Decoder) error {
+	var buf any
+	err := dec.Decode(&buf)
+	if err != nil {
+		return err
+	}
+	if buf == nil {
+		b.AppendNull()
+	} else {
+		b.Append(buf)
+	}
+	return nil
+}
+
 // JSONArray is a simple array which is a Binary
 type JSONArray struct {
 	array.ExtensionArrayBase
