@@ -65,7 +65,6 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	// copy first resource but update the sync time
 	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
 	us := u.String()
-	fmt.Println(us)
 	updatedResource := testdata.GenTestData(schema.CQSchemaToArrow(table), sourceName, secondSyncTime, *u, 1)[0]
 	// write second time
 	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResource); err != nil {
