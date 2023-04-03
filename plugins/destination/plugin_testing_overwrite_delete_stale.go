@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
@@ -14,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, mem memory.Allocator, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeOverwriteDeleteStale
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -38,10 +39,15 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		Backend: specs.BackendLocal,
 	}
 
-	resources := testdata.GenTestData(table.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 2)
-	incResources := testdata.GenTestData(incTable.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 2)
+	resources := testdata.GenTestData(mem, table.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 2)
+	incResources := testdata.GenTestData(mem, incTable.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 2)
 	allResources := resources
 	allResources = append(allResources, incResources...)
+	defer func() {
+		for _, r := range allResources {
+			r.Release()
+		}
+	}()
 	if err := p.writeAll(ctx, sourceSpec, tables, syncTime, allResources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
@@ -78,7 +84,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 	// copy first resource but update the sync time
 	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
-	updatedResources := testdata.GenTestData(table.ToArrowSchema(), sourceName, secondSyncTime, *u, 1)[0]
+	updatedResources := testdata.GenTestData(mem, table.ToArrowSchema(), sourceName, secondSyncTime, *u, 1)[0]
+	defer updatedResources.Release()
 
 	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResources); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)

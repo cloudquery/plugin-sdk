@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
@@ -20,7 +21,7 @@ func tableUUIDSuffix() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "_")
 }
 
-func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schema.Table, source *schema.Table, mode specs.MigrateMode) error {
+func testMigration(ctx context.Context, mem memory.Allocator, t *testing.T, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schema.Table, source *schema.Table, mode specs.MigrateMode) error {
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
@@ -45,7 +46,8 @@ func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.
 		Name: sourceName,
 	}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	resource1 := testdata.GenTestData(source.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
+	resource1 := testdata.GenTestData(mem, source.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
+	defer resource1.Release()
 	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{source}, syncTime, resource1); err != nil {
 		return fmt.Errorf("failed to write one: %w", err)
 	}
@@ -53,7 +55,8 @@ func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.
 	if err := p.Migrate(ctx, []*schema.Table{target}); err != nil {
 		return fmt.Errorf("failed to migrate existing table: %w", err)
 	}
-	resource2 := testdata.GenTestData(target.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
+	resource2 := testdata.GenTestData(mem, target.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
+	defer resource2.Release()
 	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{target}, syncTime, resource2); err != nil {
 		return fmt.Errorf("failed to write one after migration: %w", err)
 	}
@@ -93,6 +96,7 @@ func testMigration(ctx context.Context, t *testing.T, p *Plugin, logger zerolog.
 
 func (*PluginTestSuite) destinationPluginTestMigrate(
 	ctx context.Context,
+	mem memory.Allocator,
 	t *testing.T,
 	newPlugin NewPluginFunc,
 	logger zerolog.Logger,
@@ -130,7 +134,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.AddColumn); err != nil {
+		if err := testMigration(ctx, mem, t, p, logger, spec, target, source, strategy.AddColumn); err != nil {
 			t.Fatalf("failed to migrate %s: %v", tableName, err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -170,7 +174,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.AddColumnNotNull); err != nil {
+		if err := testMigration(ctx, mem, t, p, logger, spec, target, source, strategy.AddColumnNotNull); err != nil {
 			t.Fatalf("failed to migrate add_column_not_null: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -207,7 +211,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.RemoveColumn); err != nil {
+		if err := testMigration(ctx, mem, t, p, logger, spec, target, source, strategy.RemoveColumn); err != nil {
 			t.Fatalf("failed to migrate remove_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -247,7 +251,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.RemoveColumnNotNull); err != nil {
+		if err := testMigration(ctx, mem, t, p, logger, spec, target, source, strategy.RemoveColumnNotNull); err != nil {
 			t.Fatalf("failed to migrate remove_column_not_null: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -288,7 +292,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			},
 		}
 		p := newPlugin()
-		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.ChangeColumn); err != nil {
+		if err := testMigration(ctx, mem, t, p, logger, spec, target, source, strategy.ChangeColumn); err != nil {
 			t.Fatalf("failed to migrate change_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
@@ -13,7 +14,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, mem memory.Allocator, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -32,13 +33,15 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	specSource := specs.Source{
 		Name: sourceName,
 	}
-	record1 := testdata.GenTestData(table.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
+	record1 := testdata.GenTestData(mem, table.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
+	defer record1.Release()
 	if err := p.writeOne(ctx, specSource, tables, syncTime, record1); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
-	record2 := testdata.GenTestData(table.ToArrowSchema(), sourceName, secondSyncTime, uuid.Nil, 1)[0]
+	record2 := testdata.GenTestData(mem, table.ToArrowSchema(), sourceName, secondSyncTime, uuid.Nil, 1)[0]
+	defer record2.Release()
 
 	if !s.tests.SkipSecondAppend {
 		// write second time

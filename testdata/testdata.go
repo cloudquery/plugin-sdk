@@ -110,14 +110,14 @@ func TestTable(name string) *schema.Table {
 	return sourceTable
 }
 
-func GenTestData(sc *arrow.Schema, sourceName string, syncTime time.Time, stableUUID uuid.UUID, count int) []arrow.Record {
+func GenTestData(mem memory.Allocator, sc *arrow.Schema, sourceName string, syncTime time.Time, stableUUID uuid.UUID, count int) []arrow.Record {
 	var records []arrow.Record
 	for j := 0; j < count; j++ {
 		u := uuid.New()
 		if stableUUID != uuid.Nil {
 			u = stableUUID
 		}
-		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+		bldr := array.NewRecordBuilder(mem, sc)
 		for i, c := range sc.Fields() {
 			if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Boolean) {
 				bldr.Field(i).(*array.BooleanBuilder).Append(true)

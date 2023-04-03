@@ -97,10 +97,8 @@ func (c *client) overwrite(table *schema.Table, data arrow.Record) {
 			}
 		}
 		if found {
-			tmp := c.memoryDB[table.Name][i]
 			c.memoryDB[table.Name] = append(c.memoryDB[table.Name][:i], c.memoryDB[table.Name][i+1:]...)
 			c.memoryDB[table.Name] = append(c.memoryDB[table.Name], data)
-			tmp.Release()
 			return
 		}
 	}
@@ -161,7 +159,6 @@ func (c *client) Write(ctx context.Context, tables schema.Tables, resources <-ch
 
 	for resource := range resources {
 		c.memoryDBLock.Lock()
-		resource.Retain()
 		tableName, err := schema.TableNameFromSchema(resource.Schema())
 		if err != nil {
 			return err
@@ -189,7 +186,6 @@ func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resou
 	}
 	for _, resource := range resources {
 		c.memoryDBLock.Lock()
-		resource.Retain()
 		if c.spec.WriteMode == specs.WriteModeAppend {
 			c.memoryDB[table.Name] = append(c.memoryDB[table.Name], resource)
 		} else {
@@ -228,8 +224,6 @@ func (c *client) deleteStaleTable(_ context.Context, table *schema.Table, source
 			rowSyncTime := row.Column(syncColIndex).(*array.Timestamp).Value(0).ToTime(arrow.Microsecond).UTC()
 			if !rowSyncTime.Before(syncTime) {
 				filteredTable = append(filteredTable, c.memoryDB[table.Name][i])
-			} else {
-				c.memoryDB[table.Name][i].Release()
 			}
 		}
 	}

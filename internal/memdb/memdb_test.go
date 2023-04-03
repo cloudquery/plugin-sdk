@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
@@ -122,8 +123,12 @@ func TestOnWriteError(t *testing.T) {
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
 	ch := make(chan arrow.Record, 1)
-	ch <- testdata.GenTestData(table.ToArrowSchema(), "test", time.Now(), uuid.Nil, 1)[0]
+	record := testdata.GenTestData(mem, table.ToArrowSchema(), "test", time.Now(), uuid.Nil, 1)[0]
+	defer record.Release()
+	ch <- record
 	close(ch)
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
 	if err == nil {
@@ -150,9 +155,13 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
 	ch := make(chan arrow.Record, 1)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	ch <- testdata.GenTestData(table.ToArrowSchema(), "test", time.Now(), uuid.Nil, 1)[0]
+	record := testdata.GenTestData(mem, table.ToArrowSchema(), "test", time.Now(), uuid.Nil, 1)[0]
+	defer record.Release()
+	ch <- record
 	defer cancel()
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
 	if err != nil {

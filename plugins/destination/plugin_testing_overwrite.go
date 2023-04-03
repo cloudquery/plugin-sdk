@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
@@ -14,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, mem memory.Allocator, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -34,7 +35,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		Name: sourceName,
 	}
 
-	resources := testdata.GenTestData(schema.CQSchemaToArrow(table), sourceName, syncTime, uuid.Nil, 2)
+	resources := testdata.GenTestData(mem, schema.CQSchemaToArrow(table), sourceName, syncTime, uuid.Nil, 2)
+	defer func() {
+		for _, r := range resources {
+			r.Release()
+		}
+	}()
 	if err := p.writeAll(ctx, sourceSpec, tables, syncTime, resources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
@@ -64,7 +70,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 
 	// copy first resource but update the sync time
 	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
-	updatedResource := testdata.GenTestData(schema.CQSchemaToArrow(table), sourceName, secondSyncTime, *u, 1)[0]
+	updatedResource := testdata.GenTestData(mem, schema.CQSchemaToArrow(table), sourceName, secondSyncTime, *u, 1)[0]
+	defer updatedResource.Release()
 	// write second time
 	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
