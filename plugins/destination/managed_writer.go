@@ -2,6 +2,7 @@ package destination
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -152,7 +153,10 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tab
 	p.workersLock.Unlock()
 
 	for r := range res {
-		tableName := r.Schema().Metadata().Values()[0]
+		tableName, ok := r.Schema().Metadata().GetValue(schema.MetadataTableName)
+		if !ok {
+			return fmt.Errorf("missing table name in record metadata")
+		}
 		workers[tableName].ch <- r
 	}
 

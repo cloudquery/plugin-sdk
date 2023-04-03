@@ -44,7 +44,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 )
 
-replace github.com/apache/arrow/go/v12 => github.com/cloudquery/arrow/go/v12 v12.0.0-20230403105614-89d63f4f4cb0
+replace github.com/apache/arrow/go/v12 => github.com/cloudquery/arrow/go/v12 v12.0.0-20230403113355-afc433992be2
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
