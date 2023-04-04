@@ -111,7 +111,7 @@ func (a *JSONArray) ValueString(i int) string {
 	case a.IsNull(i):
 		return "(null)"
 	default:
-		return fmt.Sprintf("\"%s\"", arr.Value(i))
+		return fmt.Sprintf(`"%s"`, arr.Value(i))
 	}
 }
 

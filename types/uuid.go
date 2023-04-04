@@ -144,7 +144,7 @@ func (a *UUIDArray) ValueString(i int) string {
 		return "(null)"
 	default:
 		uuidStr, _ := uuid.FromBytes(arr.Value(i))
-		return fmt.Sprintf("%q", uuidStr)
+		return fmt.Sprintf("%v", uuidStr)
 	}
 }
 

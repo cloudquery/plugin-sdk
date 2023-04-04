@@ -126,7 +126,13 @@ func TestOnWriteError(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
 	ch := make(chan arrow.Record, 1)
-	record := testdata.GenTestData(mem, table.ToArrowSchema(), "test", time.Now(), uuid.Nil, 1)[0]
+	opts := testdata.GenTestDataOptions{
+		SourceName: "test",
+		SyncTime:   time.Now(),
+		MaxRows:    1,
+		StableUUID: uuid.Nil,
+	}
+	record := testdata.GenTestData(mem, table.ToArrowSchema(), opts)[0]
 	defer record.Release()
 	ch <- record
 	close(ch)
@@ -159,7 +165,13 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	defer mem.AssertSize(t, 0)
 	ch := make(chan arrow.Record, 1)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	record := testdata.GenTestData(mem, table.ToArrowSchema(), "test", time.Now(), uuid.Nil, 1)[0]
+	opts := testdata.GenTestDataOptions{
+		SourceName: "test",
+		SyncTime:   time.Now(),
+		MaxRows:    1,
+		StableUUID: uuid.Nil,
+	}
+	record := testdata.GenTestData(mem, table.ToArrowSchema(), opts)[0]
 	defer record.Release()
 	ch <- record
 	defer cancel()

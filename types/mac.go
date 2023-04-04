@@ -126,7 +126,7 @@ func (a *MacArray) ValueString(i int) string {
 		return "(null)"
 	default:
 		mac := net.HardwareAddr(arr.Value(i))
-		return fmt.Sprintf("\"%s\"", mac)
+		return fmt.Sprintf("%s", mac)
 	}
 }
 

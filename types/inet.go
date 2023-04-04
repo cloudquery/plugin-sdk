@@ -124,10 +124,12 @@ func (a InetArray) String() string {
 
 func (a *InetArray) ValueString(i int) string {
 	arr := a.Storage().(*array.String)
-	if a.IsValid(i) {
+	switch {
+	case a.IsNull(i):
+		return "(null)"
+	default:
 		return arr.Value(i)
 	}
-	return "(null)"
 }
 
 func (a *InetArray) GetOneForMarshal(i int) any {
