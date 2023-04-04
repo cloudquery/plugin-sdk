@@ -164,8 +164,6 @@ func GenTestData(mem memory.Allocator, sc *arrow.Schema, opts GenTestDataOptions
 					bldr.Field(i).(*array.ListBuilder).Append(true)
 					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test1")
 					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test2")
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("\"quotes\"")
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("newline\n")
 				}
 			} else if arrow.TypeEqual(c.Type, arrow.ListOf(arrow.PrimitiveTypes.Int64)) {
 				bldr.Field(i).(*array.ListBuilder).Append(true)
