@@ -46,7 +46,12 @@ func testMigration(ctx context.Context, mem memory.Allocator, t *testing.T, p *P
 		Name: sourceName,
 	}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	resource1 := testdata.GenTestData(mem, source.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
+	opts := testdata.GenTestDataOptions{
+		SourceName: sourceName,
+		SyncTime:   syncTime,
+		MaxRows:    1,
+	}
+	resource1 := testdata.GenTestData(mem, source.ToArrowSchema(), opts)[0]
 	defer resource1.Release()
 	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{source}, syncTime, resource1); err != nil {
 		return fmt.Errorf("failed to write one: %w", err)
@@ -55,7 +60,7 @@ func testMigration(ctx context.Context, mem memory.Allocator, t *testing.T, p *P
 	if err := p.Migrate(ctx, []*schema.Table{target}); err != nil {
 		return fmt.Errorf("failed to migrate existing table: %w", err)
 	}
-	resource2 := testdata.GenTestData(mem, target.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
+	resource2 := testdata.GenTestData(mem, target.ToArrowSchema(), opts)[0]
 	defer resource2.Release()
 	if err := p.writeOne(ctx, sourceSpec, []*schema.Table{target}, syncTime, resource2); err != nil {
 		return fmt.Errorf("failed to write one after migration: %w", err)

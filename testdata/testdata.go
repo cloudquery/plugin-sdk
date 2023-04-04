@@ -110,15 +110,33 @@ func TestTable(name string) *schema.Table {
 	return sourceTable
 }
 
-func GenTestData(mem memory.Allocator, sc *arrow.Schema, sourceName string, syncTime time.Time, stableUUID uuid.UUID, count int) []arrow.Record {
+type GenTestDataOptions struct {
+	// SourceName is the name of the source to set in the source_name column.
+	SourceName string
+	// SyncTime is the time to set in the sync_time column.
+	SyncTime time.Time
+	// MaxRows is the number of rows to generate.
+	// Rows alternate between not containing null values and containing only null values.
+	// (Only columns that are nullable according to the schema will be null)
+	MaxRows int
+	// StableUUID is the UUID to use for all rows. If set to uuid.Nil, a new UUID will be generated
+	StableUUID uuid.UUID
+}
+
+func GenTestData(mem memory.Allocator, sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 	var records []arrow.Record
-	for j := 0; j < count; j++ {
+	for j := 0; j < opts.MaxRows; j++ {
 		u := uuid.New()
-		if stableUUID != uuid.Nil {
-			u = stableUUID
+		if opts.StableUUID != uuid.Nil {
+			u = opts.StableUUID
 		}
+		nullRow := j%2 == 0
 		bldr := array.NewRecordBuilder(mem, sc)
 		for i, c := range sc.Fields() {
+			if nullRow && c.Nullable {
+				bldr.Field(i).AppendNull()
+				continue
+			}
 			if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Boolean) {
 				bldr.Field(i).(*array.BooleanBuilder).Append(true)
 			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Int64) {
@@ -129,7 +147,7 @@ func GenTestData(mem memory.Allocator, sc *arrow.Schema, sourceName string, sync
 				bldr.Field(i).(*types.UUIDBuilder).Append(u)
 			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.String) {
 				if c.Name == schema.CqSourceNameColumn.Name {
-					bldr.Field(i).(*array.StringBuilder).AppendString(sourceName)
+					bldr.Field(i).(*array.StringBuilder).AppendString(opts.SourceName)
 				} else if c.Name == "text_with_null" {
 					bldr.Field(i).(*array.StringBuilder).AppendString("AStringWith\x00NullBytes")
 				} else {
@@ -153,10 +171,10 @@ func GenTestData(mem memory.Allocator, sc *arrow.Schema, sourceName string, sync
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(2)
 			} else if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Timestamp_us) {
 				if c.Name == schema.CqSyncTimeColumn.Name {
-					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(syncTime.UTC().UnixMicro()))
+					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(opts.SyncTime.UTC().UnixMicro()))
 				} else {
 					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(time.Now().UTC().UnixMicro()))
-				}				
+				}
 			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.JSON) {
 				bldr.Field(i).(*types.JSONBuilder).Append(map[string]interface{}{"test": "test"})
 			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.UUID)) {
@@ -168,7 +186,7 @@ func GenTestData(mem memory.Allocator, sc *arrow.Schema, sourceName string, sync
 				if err != nil {
 					panic(err)
 				}
-				bldr.Field(i).(*types.InetBuilder).Append(*ipnet)			
+				bldr.Field(i).(*types.InetBuilder).Append(*ipnet)
 			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.Inet)) {
 				bldr.Field(i).(*array.ListBuilder).Append(true)
 				_, ipnet, err := net.ParseCIDR("192.0.2.1/24")

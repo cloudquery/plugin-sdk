@@ -33,14 +33,21 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	specSource := specs.Source{
 		Name: sourceName,
 	}
-	record1 := testdata.GenTestData(mem, table.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 1)[0]
+
+	opts := testdata.GenTestDataOptions{
+		SourceName: sourceName,
+		SyncTime:   syncTime,
+		MaxRows:    1,
+	}
+	record1 := testdata.GenTestData(mem, table.ToArrowSchema(), opts)[0]
 	defer record1.Release()
 	if err := p.writeOne(ctx, specSource, tables, syncTime, record1); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
-	record2 := testdata.GenTestData(mem, table.ToArrowSchema(), sourceName, secondSyncTime, uuid.Nil, 1)[0]
+	opts.SyncTime = secondSyncTime
+	record2 := testdata.GenTestData(mem, table.ToArrowSchema(), opts)[0]
 	defer record2.Release()
 
 	if !s.tests.SkipSecondAppend {

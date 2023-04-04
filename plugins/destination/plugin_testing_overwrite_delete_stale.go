@@ -39,8 +39,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		Backend: specs.BackendLocal,
 	}
 
-	resources := testdata.GenTestData(mem, table.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 2)
-	incResources := testdata.GenTestData(mem, incTable.ToArrowSchema(), sourceName, syncTime, uuid.Nil, 2)
+	opts := testdata.GenTestDataOptions{
+		SourceName: sourceName,
+		SyncTime:   syncTime,
+		MaxRows:    2,
+	}
+	resources := testdata.GenTestData(mem, table.ToArrowSchema(), opts)
+	incResources := testdata.GenTestData(mem, incTable.ToArrowSchema(), opts)
 	allResources := resources
 	allResources = append(allResources, incResources...)
 	defer func() {
@@ -84,7 +89,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 	// copy first resource but update the sync time
 	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
-	updatedResources := testdata.GenTestData(mem, table.ToArrowSchema(), sourceName, secondSyncTime, *u, 1)[0]
+	opts = testdata.GenTestDataOptions{
+		SourceName: sourceName,
+		SyncTime:   secondSyncTime,
+		StableUUID: *u,
+		MaxRows:    1,
+	}
+	updatedResources := testdata.GenTestData(mem, table.ToArrowSchema(), opts)[0]
 	defer updatedResources.Release()
 
 	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResources); err != nil {
