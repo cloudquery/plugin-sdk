@@ -105,6 +105,16 @@ func (a JSONArray) String() string {
 	return o.String()
 }
 
+func (a *JSONArray) ValueString(i int) string {
+	arr := a.Storage().(*array.Binary)
+	switch {
+	case a.IsNull(i):
+		return "(null)"
+	default:
+		return fmt.Sprintf(`"%s"`, arr.Value(i))
+	}
+}
+
 func (a *JSONArray) MarshalJSON() ([]byte, error) {
 	arr := a.Storage().(*array.Binary)
 	vals := make([]any, a.Len())
