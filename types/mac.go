@@ -119,17 +119,6 @@ func (a MacArray) String() string {
 	return o.String()
 }
 
-func (a *MacArray) ValueString(i int) string {
-	arr := a.Storage().(*array.Binary)
-	switch {
-	case a.IsNull(i):
-		return "(null)"
-	default:
-		mac := net.HardwareAddr(arr.Value(i))
-		return fmt.Sprintf("%s", mac)
-	}
-}
-
 func (a *MacArray) MarshalJSON() ([]byte, error) {
 	arr := a.Storage().(*array.Binary)
 	vals := make([]any, a.Len())
