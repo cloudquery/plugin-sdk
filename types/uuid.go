@@ -137,6 +137,17 @@ func (a UUIDArray) String() string {
 	return o.String()
 }
 
+func (a *UUIDArray) ValueString(i int) string {
+	arr := a.Storage().(*array.FixedSizeBinary)
+	switch {
+	case a.IsNull(i):
+		return "(null)"
+	default:
+		uuidStr, _ := uuid.FromBytes(arr.Value(i))
+		return fmt.Sprintf("%q", uuidStr)
+	}
+}
+
 func (a *UUIDArray) MarshalJSON() ([]byte, error) {
 	arr := a.Storage().(*array.FixedSizeBinary)
 	vals := make([]any, a.Len())

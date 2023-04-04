@@ -122,6 +122,14 @@ func (a InetArray) String() string {
 	return o.String()
 }
 
+func (a *InetArray) ValueString(i int) string {
+	arr := a.Storage().(*array.String)
+	if a.IsValid(i) {
+		return arr.Value(i)
+	}
+	return "(null)"
+}
+
 func (a *InetArray) GetOneForMarshal(i int) any {
 	arr := a.Storage().(*array.String)
 	if a.IsValid(i) {
