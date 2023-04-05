@@ -130,7 +130,7 @@ func GenTestData(mem memory.Allocator, sc *arrow.Schema, opts GenTestDataOptions
 		if opts.StableUUID != uuid.Nil {
 			u = opts.StableUUID
 		}
-		nullRow := j%2 == 0
+		nullRow := j%2 == 1
 		bldr := array.NewRecordBuilder(mem, sc)
 		for i, c := range sc.Fields() {
 			if nullRow && c.Nullable {
