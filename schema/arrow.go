@@ -12,8 +12,10 @@ import (
 )
 
 const (
+	MetadataUnique     		 = "cq:extension:unique"
 	MetadataPrimaryKey     = "cq:extension:primary_key"
 	MetadataPrimaryKeyTrue = "true"
+	MetadataTrue = "true"
 	MetadataTableName      = "cq:table_name"
 )
 
@@ -62,7 +64,7 @@ func GetSchemaChanges(target *arrow.Schema, source *arrow.Schema) []FieldChange{
 		}
 		if !t.Equal(sourceField[0]) {
 			changes = append(changes, FieldChange{
-				Type: TableColumnChangeTypeRemove,
+				Type: TableColumnChangeTypeUpdate,
 				ColumnName: t.Name,
 				Current: t,
 				Previous: sourceField[0],

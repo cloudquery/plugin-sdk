@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/cloudquery/plugin-sdk/types"
 )
 
 type ClientMeta interface {
@@ -40,6 +41,13 @@ var CqSourceNameColumn = Column{
 	Description: "Internal CQ row that references the source plugin name data was retrieved",
 }
 
+var CqIDField = arrow.Field{
+	Name:        "_cq_id",
+	Type:        types.ExtensionTypes.UUID,
+	Metadata:    arrow.MetadataFrom(map[string]string{
+		MetadataUnique: MetadataTrue,
+	}),
+}
 var CqSyncTimeField = arrow.Field{
 	Name:        "_cq_sync_time",
 	Type:        arrow.FixedWidthTypes.Timestamp_us,
