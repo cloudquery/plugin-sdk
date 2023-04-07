@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/apache/arrow/go/v12/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/google/uuid"
@@ -22,8 +22,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	tableName := spec.Name
 	table := testdata.TestTable(tableName)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	tables := []*schema.Table{
-		table,
+	tables := []*arrow.Schema{
+		table.ToArrowSchema(),
 	}
 	if err := p.Migrate(ctx, tables); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
@@ -41,7 +41,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 	record1 := testdata.GenTestData(mem, table.ToArrowSchema(), opts)[0]
 	defer record1.Release()
-	if err := p.writeOne(ctx, specSource, tables, syncTime, record1); err != nil {
+	if err := p.writeOne(ctx, specSource, syncTime, record1); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
@@ -52,7 +52,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 
 	if !s.tests.SkipSecondAppend {
 		// write second time
-		if err := p.writeOne(ctx, specSource, tables, secondSyncTime, record2); err != nil {
+		if err := p.writeOne(ctx, specSource, secondSyncTime, record2); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}

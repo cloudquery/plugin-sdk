@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/schema"
@@ -23,8 +24,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
 	table := testdata.TestTable(tableName)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	tables := []*schema.Table{
-		table,
+	tables := []*arrow.Schema{
+		table.ToArrowSchema(),
 	}
 	if err := p.Migrate(ctx, tables); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
@@ -46,12 +47,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 			r.Release()
 		}
 	}()
-	if err := p.writeAll(ctx, sourceSpec, tables, syncTime, resources); err != nil {
+	if err := p.writeAll(ctx, sourceSpec, syncTime, resources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
 	sortRecordsBySyncTime(table, resources)
 
-	resourcesRead, err := p.readAll(ctx, table, sourceName)
+	resourcesRead, err := p.readAll(ctx, table.ToArrowSchema(), sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
@@ -84,11 +85,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	updatedResource := testdata.GenTestData(mem, schema.CQSchemaToArrow(table), opts)[0]
 	defer updatedResource.Release()
 	// write second time
-	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResource); err != nil {
+	if err := p.writeOne(ctx, sourceSpec, secondSyncTime, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
-	resourcesRead, err = p.readAll(ctx, table, sourceName)
+	resourcesRead, err = p.readAll(ctx, table.ToArrowSchema(), sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}

@@ -131,6 +131,14 @@ func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool, skipDependent
 	return filteredTables
 }
 
+func (tt Tables) ToArrowSchemas() Schemas {
+	schemas := make(Schemas, 0, len(tt.FlattenTables()))
+	for _, t := range tt.FlattenTables() {
+		schemas = append(schemas, t.ToArrowSchema())
+	}
+	return schemas
+}
+
 func (tt Tables) FilterDfs(tables, skipTables []string, skipDependentTables bool) (Tables, error) {
 	flattenedTables := tt.FlattenTables()
 	for _, includePattern := range tables {

@@ -54,6 +54,16 @@ func (b *JSONBuilder) AppendValues(v []any, valid []bool) {
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).AppendValues(data, valid)
 }
 
+func (b *JSONBuilder) UnmarshalOne(dec *json.Decoder) error {
+	var val interface{}
+	if err := dec.Decode(&val); err != nil {
+		return err
+	}
+
+	b.Append(val)
+	return nil
+}
+
 func (b *JSONBuilder) UnmarshalJSON(data []byte) error {
 	var a []any
 	if err := json.Unmarshal(data, &a); err != nil {

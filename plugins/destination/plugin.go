@@ -27,19 +27,19 @@ const (
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
 type ManagedWriter interface {
-	WriteTableBatch(ctx context.Context, table *schema.Table, data []arrow.Record) error
+	WriteTableBatch(ctx context.Context, table *arrow.Schema, data []arrow.Record) error
 }
 
 type UnimplementedManagedWriter struct{}
 
 type UnmanagedWriter interface {
-	Write(ctx context.Context, tables schema.Tables, res <-chan arrow.Record) error
+	Write(ctx context.Context, tables schema.Schemas, res <-chan arrow.Record) error
 	Metrics() Metrics
 }
 
 type UnimplementedUnmanagedWriter struct{}
 
-func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, [][]any) error {
+func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *arrow.Schema, []arrow.Record) error {
 	panic("WriteTableBatch not implemented")
 }
 
@@ -52,13 +52,13 @@ func (*UnimplementedUnmanagedWriter) Metrics() Metrics {
 }
 
 type Client interface {
-	schema.CQTypeTransformer
+	// schema.CQTypeTransformer
 	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
-	Migrate(ctx context.Context, tables schema.Tables) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error
+	Migrate(ctx context.Context, tables schema.Schemas) error
+	Read(ctx context.Context, table *arrow.Schema, sourceName string, res chan<- arrow.Record) error
 	ManagedWriter
 	UnmanagedWriter
-	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
+	DeleteStale(ctx context.Context, tables schema.Schemas, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
 }
 
@@ -185,14 +185,14 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 }
 
 // we implement all DestinationClient functions so we can hook into pre-post behavior
-func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
-	SetDestinationManagedCqColumns(tables)
-	setCqIDColumnOptionsForTables(tables)
-	p.setPKsForTables(tables)
+func (p *Plugin) Migrate(ctx context.Context, tables schema.Schemas) error {
+	// SetDestinationManagedCqColumns(tables)
+	// setCqIDColumnOptionsForTables(tables)
+	// p.setPKsForTables(tables)
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]arrow.Record, error) {
+func (p *Plugin) readAll(ctx context.Context, table *arrow.Schema, sourceName string) ([]arrow.Record, error) {
 	var readErr error
 	ch := make(chan arrow.Record)
 	go func() {
@@ -207,31 +207,40 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName st
 	return resources, readErr
 }
 
-func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error {
-	SetDestinationManagedCqColumns(schema.Tables{table})
+func (p *Plugin) Read(ctx context.Context, table *arrow.Schema, sourceName string, res chan<- arrow.Record) error {
+	// SetDestinationManagedCqColumns(schema.Tables{table})
 	return p.client.Read(ctx, table, sourceName, res)
 }
 
 // this function is currently used mostly for testing so it's not a public api
-func (p *Plugin) writeOne(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, resource arrow.Record) error {
+func (p *Plugin) writeOne(ctx context.Context, sourceSpec specs.Source, syncTime time.Time, resource arrow.Record) error {
 	resources := []arrow.Record{resource}
-	return p.writeAll(ctx, sourceSpec, tables, syncTime, resources)
+	return p.writeAll(ctx, sourceSpec, syncTime, resources)
 }
 
 // this function is currently used mostly for testing so it's not a public api
-func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, resources []arrow.Record) error {
+func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, syncTime time.Time, resources []arrow.Record) error {
 	ch := make(chan arrow.Record, len(resources))
 	for _, resource := range resources {
 		ch <- resource
 	}
 	close(ch)
+	tables := make(schema.Schemas, 0)
+	tableNames := make(map[string]struct{})
+	for _, resource := range resources {
+		if _, ok := tableNames[schema.TableName(resource.Schema())]; ok {
+			continue
+		}
+		tables = append(tables, resource.Schema())
+		tableNames[schema.TableName(resource.Schema())] = struct{}{}
+	}
 	return p.Write(ctx, sourceSpec, tables, syncTime, ch)
 }
 
-func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
+func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Schemas, syncTime time.Time, res <-chan arrow.Record) error {
 	syncTime = syncTime.UTC()
-	SetDestinationManagedCqColumns(tables)
-	p.setPKsForTables(tables)
+	// SetDestinationManagedCqColumns(tables)
+	// p.setPKsForTables(tables)
 	switch p.writerType {
 	case unmanaged:
 		if err := p.writeUnmanaged(ctx, sourceSpec, tables, syncTime, res); err != nil {
@@ -245,24 +254,24 @@ func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables sche
 		panic("unknown client type")
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
-		tablesToDelete := tables
-		if sourceSpec.Backend != specs.BackendNone {
-			include := func(t *schema.Table) bool {
-				return true
-			}
-			exclude := func(t *schema.Table) bool {
-				return t.IsIncremental
-			}
-			tablesToDelete = tables.FilterDfsFunc(include, exclude, sourceSpec.SkipDependentTables)
-		}
-		if err := p.DeleteStale(ctx, tablesToDelete, sourceSpec.Name, syncTime); err != nil {
+		// tablesToDelete := tables
+		// if sourceSpec.Backend != specs.BackendNone {
+		// 	include := func(t *schema.Table) bool {
+		// 		return true
+		// 	}
+		// 	exclude := func(t *schema.Table) bool {
+		// 		return t.IsIncremental
+		// 	}
+		// 	tablesToDelete = tables.FilterDfsFunc(include, exclude, sourceSpec.SkipDependentTables)
+		// }
+		if err := p.DeleteStale(ctx, tables, sourceSpec.Name, syncTime); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (p *Plugin) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
+func (p *Plugin) DeleteStale(ctx context.Context, tables schema.Schemas, sourceName string, syncTime time.Time) error {
 	syncTime = syncTime.UTC()
 	return p.client.DeleteStale(ctx, tables, sourceName, syncTime)
 }

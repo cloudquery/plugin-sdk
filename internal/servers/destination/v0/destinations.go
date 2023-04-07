@@ -52,12 +52,12 @@ func (s *Server) GetVersion(context.Context, *pbBase.GetVersion_Request) (*pbBas
 }
 
 func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migrate_Response, error) {
-	var tables []*schema.Table
+	var tables schema.Tables
 	if err := json.Unmarshal(req.Tables, &tables); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
 
-	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
+	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables.ToArrowSchemas())
 }
 
 func (*Server) Write(pb.Destination_WriteServer) error {
@@ -92,10 +92,13 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 		}
 	}
 	syncTime := r.Timestamp.AsTime()
-
+	schemas := make(schema.Schemas, 0)
+	for _, table := range tables {
+		schemas = append(schemas, table.ToArrowSchema())
+	}
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceSpec, tables, syncTime, resources)
+		return s.Plugin.Write(ctx, sourceSpec, schemas, syncTime, resources)
 	})
 
 	for {
@@ -151,7 +154,11 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 	if err := json.Unmarshal(req.Tables, &tables); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
-	if err := s.Plugin.DeleteStale(ctx, tables, req.Source, req.Timestamp.AsTime()); err != nil {
+	schemas := make(schema.Schemas, len(tables.FlattenTables()))
+	for i, table := range tables.FlattenTables() {
+		schemas[i] = table.ToArrowSchema()
+	}
+	if err := s.Plugin.DeleteStale(ctx, schemas, req.Source, req.Timestamp.AsTime()); err != nil {
 		return nil, err
 	}
 
