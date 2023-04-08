@@ -42,22 +42,20 @@ var CqSourceNameColumn = Column{
 }
 
 var CqIDField = arrow.Field{
-	Name:        "_cq_id",
-	Type:        types.ExtensionTypes.UUID,
-	Metadata:    arrow.MetadataFrom(map[string]string{
+	Name: "_cq_id",
+	Type: types.ExtensionTypes.UUID,
+	Metadata: arrow.MetadataFrom(map[string]string{
 		MetadataUnique: MetadataTrue,
 	}),
 }
 var CqSyncTimeField = arrow.Field{
-	Name:        "_cq_sync_time",
-	Type:        arrow.FixedWidthTypes.Timestamp_us,
+	Name: "_cq_sync_time",
+	Type: arrow.FixedWidthTypes.Timestamp_us,
 }
 var CqSourceNameField = arrow.Field{
-	Name:        "_cq_source_name",
-	Type:        arrow.BinaryTypes.String,
+	Name: "_cq_source_name",
+	Type: arrow.BinaryTypes.String,
 }
-
-
 
 func parentCqUUIDResolver() ColumnResolver {
 	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {

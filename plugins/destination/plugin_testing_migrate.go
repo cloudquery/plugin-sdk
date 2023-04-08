@@ -124,7 +124,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
 			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
 		}, &md)
-		
+
 		p := newPlugin()
 		if err := testMigration(ctx, mem, t, p, logger, spec, target, source, strategy.AddColumn); err != nil {
 			t.Fatalf("failed to migrate %s: %v", tableName, err)
@@ -184,7 +184,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			schema.CqIDField,
 			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
 		}, &md)
-		
+
 		p := newPlugin()
 		if err := testMigration(ctx, mem, t, p, logger, spec, target, source, strategy.RemoveColumn); err != nil {
 			t.Fatalf("failed to migrate remove_column: %v", err)
@@ -245,7 +245,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
 			{Name: "bool", Type: arrow.BinaryTypes.String},
 		}, &md)
-		
+
 		p := newPlugin()
 		if err := testMigration(ctx, mem, t, p, logger, spec, target, source, strategy.ChangeColumn); err != nil {
 			t.Fatalf("failed to migrate change_column: %v", err)

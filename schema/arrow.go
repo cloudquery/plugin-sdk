@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	MetadataUnique     		 = "cq:extension:unique"
+	MetadataUnique         = "cq:extension:unique"
 	MetadataPrimaryKey     = "cq:extension:primary_key"
 	MetadataPrimaryKeyTrue = "true"
-	MetadataTrue = "true"
+	MetadataTrue           = "true"
 	MetadataTableName      = "cq:table_name"
 )
 
@@ -28,7 +28,7 @@ type FieldChange struct {
 
 type MetadataFieldOptions struct {
 	PrimaryKey bool
-	Unique 	 bool
+	Unique     bool
 }
 
 type MetadataSchemaOptions struct {
@@ -56,7 +56,7 @@ func NewFieldMetadataFromOptions(opts MetadataFieldOptions) arrow.Metadata {
 		keys = append(keys, MetadataUnique)
 		values = append(values, MetadataTrue)
 	}
-	
+
 	return arrow.NewMetadata(keys, values)
 }
 
@@ -94,34 +94,34 @@ func TableName(sc *arrow.Schema) string {
 }
 
 // Get changes return changes between two schemas
-func GetSchemaChanges(target *arrow.Schema, source *arrow.Schema) []FieldChange{
+func GetSchemaChanges(target *arrow.Schema, source *arrow.Schema) []FieldChange {
 	var changes []FieldChange
 	for _, t := range target.Fields() {
-		sourceField, ok := source.FieldsByName(t.Name)	
+		sourceField, ok := source.FieldsByName(t.Name)
 		if !ok {
 			changes = append(changes, FieldChange{
-				Type: TableColumnChangeTypeAdd,
+				Type:       TableColumnChangeTypeAdd,
 				ColumnName: t.Name,
-				Current: t,
+				Current:    t,
 			})
 			continue
 		}
 		if !t.Equal(sourceField[0]) {
 			changes = append(changes, FieldChange{
-				Type: TableColumnChangeTypeUpdate,
+				Type:       TableColumnChangeTypeUpdate,
 				ColumnName: t.Name,
-				Current: t,
-				Previous: sourceField[0],
+				Current:    t,
+				Previous:   sourceField[0],
 			})
 		}
 	}
 	for _, s := range source.Fields() {
-		_, ok := target.FieldsByName(s.Name)	
+		_, ok := target.FieldsByName(s.Name)
 		if !ok {
 			changes = append(changes, FieldChange{
-				Type: TableColumnChangeTypeRemove,
+				Type:       TableColumnChangeTypeRemove,
 				ColumnName: s.Name,
-				Previous: s,
+				Previous:   s,
 			})
 		}
 	}

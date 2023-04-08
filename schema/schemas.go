@@ -2,7 +2,6 @@ package schema
 
 import "github.com/apache/arrow/go/v12/arrow"
 
-
 type Schemas []*arrow.Schema
 
 func (s Schemas) Len() int {

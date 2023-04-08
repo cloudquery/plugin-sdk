@@ -122,7 +122,6 @@ func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources []arrow.Rec
 func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Schemas, _ time.Time, res <-chan arrow.Record) error {
 	// SetDestinationManagedCqColumns(tables)
 
-	
 	workers := make(map[string]*worker, len(tables))
 	metrics := &Metrics{}
 
