@@ -218,7 +218,6 @@ func (c *client) DeleteStale(ctx context.Context, tables schema.Schemas, source 
 }
 
 func (c *client) deleteStaleTable(_ context.Context, table *arrow.Schema, source string, syncTime time.Time) {
-	// sc.FieldIndices()
 	sourceColIndex := table.FieldIndices(schema.CqSourceNameColumn.Name)[0]
 	syncColIndex := table.FieldIndices(schema.CqSyncTimeColumn.Name)[0]
 	tableName := schema.TableName(table)
