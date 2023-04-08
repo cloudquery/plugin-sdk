@@ -8,7 +8,6 @@ import (
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/cloudquery/plugin-sdk/testdata"
 	"github.com/google/uuid"
@@ -115,8 +114,8 @@ func TestOnWriteError(t *testing.T) {
 		t.Fatal(err)
 	}
 	table := testdata.TestTable("test")
-	tables := []*schema.Table{
-		table,
+	tables := []*arrow.Schema{
+		table.ToArrowSchema(),
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
@@ -153,8 +152,8 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 		t.Fatal(err)
 	}
 	table := testdata.TestTable("test")
-	tables := []*schema.Table{
-		testdata.TestTable("test"),
+	tables := []*arrow.Schema{
+		table.ToArrowSchema(),
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()

@@ -12,10 +12,121 @@ import (
 )
 
 const (
+	MetadataUnique     		 = "cq:extension:unique"
 	MetadataPrimaryKey     = "cq:extension:primary_key"
 	MetadataPrimaryKeyTrue = "true"
+	MetadataTrue = "true"
 	MetadataTableName      = "cq:table_name"
 )
+
+type FieldChange struct {
+	Type       TableColumnChangeType
+	ColumnName string
+	Current    arrow.Field
+	Previous   arrow.Field
+}
+
+type MetadataFieldOptions struct {
+	PrimaryKey bool
+	Unique 	 bool
+}
+
+type MetadataSchemaOptions struct {
+	TableName string
+}
+
+func NewSchemaMetadataFromOptions(opts MetadataSchemaOptions) arrow.Metadata {
+	keys := make([]string, 0)
+	values := make([]string, 0)
+	if opts.TableName != "" {
+		keys = append(keys, MetadataTableName)
+		values = append(values, opts.TableName)
+	}
+	return arrow.NewMetadata(keys, values)
+}
+
+func NewFieldMetadataFromOptions(opts MetadataFieldOptions) arrow.Metadata {
+	keys := make([]string, 0)
+	values := make([]string, 0)
+	if opts.PrimaryKey {
+		keys = append(keys, MetadataPrimaryKey)
+		values = append(values, MetadataTrue)
+	}
+	if opts.Unique {
+		keys = append(keys, MetadataUnique)
+		values = append(values, MetadataTrue)
+	}
+	
+	return arrow.NewMetadata(keys, values)
+}
+
+func MdIsPk(md arrow.Metadata) bool {
+	pk, ok := md.GetValue(MetadataPrimaryKey)
+	return ok && pk == MetadataTrue || pk == MetadataPrimaryKeyTrue
+}
+
+func MdIsUnique(md arrow.Metadata) bool {
+	pk, ok := md.GetValue(MetadataUnique)
+	return ok && pk == MetadataTrue
+}
+
+func IsPk(f arrow.Field) bool {
+	pk, ok := f.Metadata.GetValue(MetadataPrimaryKey)
+	return ok && pk == MetadataPrimaryKeyTrue
+}
+
+func PrimaryKeyIndices(sc *arrow.Schema) []int {
+	var indices []int
+	for i, f := range sc.Fields() {
+		if IsPk(f) {
+			indices = append(indices, i)
+		}
+	}
+	return indices
+}
+
+func TableName(sc *arrow.Schema) string {
+	name, ok := sc.Metadata().GetValue(MetadataTableName)
+	if !ok {
+		return ""
+	}
+	return name
+}
+
+// Get changes return changes between two schemas
+func GetSchemaChanges(target *arrow.Schema, source *arrow.Schema) []FieldChange{
+	var changes []FieldChange
+	for _, t := range target.Fields() {
+		sourceField, ok := source.FieldsByName(t.Name)	
+		if !ok {
+			changes = append(changes, FieldChange{
+				Type: TableColumnChangeTypeAdd,
+				ColumnName: t.Name,
+				Current: t,
+			})
+			continue
+		}
+		if !t.Equal(sourceField[0]) {
+			changes = append(changes, FieldChange{
+				Type: TableColumnChangeTypeUpdate,
+				ColumnName: t.Name,
+				Current: t,
+				Previous: sourceField[0],
+			})
+		}
+	}
+	for _, s := range source.Fields() {
+		_, ok := target.FieldsByName(s.Name)	
+		if !ok {
+			changes = append(changes, FieldChange{
+				Type: TableColumnChangeTypeRemove,
+				ColumnName: s.Name,
+				Previous: s,
+			})
+		}
+	}
+	return changes
+}
 
 func CQColumnToArrowField(col *Column) arrow.Field {
 	var typ arrow.DataType

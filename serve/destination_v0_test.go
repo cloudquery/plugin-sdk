@@ -130,7 +130,7 @@ func TestDestination(t *testing.T) {
 	}
 
 	readCh := make(chan arrow.Record, 1)
-	if err := plugin.Read(ctx, table, sourceName, readCh); err != nil {
+	if err := plugin.Read(ctx, table.ToArrowSchema(), sourceName, readCh); err != nil {
 		t.Fatal(err)
 	}
 	close(readCh)
