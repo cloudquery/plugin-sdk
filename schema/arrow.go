@@ -26,6 +26,50 @@ type FieldChange struct {
 	Previous   arrow.Field
 }
 
+type MetadataFieldOptions struct {
+	PrimaryKey bool
+	Unique 	 bool
+}
+
+type MetadataSchemaOptions struct {
+	TableName string
+}
+
+func NewSchemaMetadataFromOptions(opts MetadataSchemaOptions) arrow.Metadata {
+	keys := make([]string, 0)
+	values := make([]string, 0)
+	if opts.TableName != "" {
+		keys = append(keys, MetadataTableName)
+		values = append(values, opts.TableName)
+	}
+	return arrow.NewMetadata(keys, values)
+}
+
+func NewFieldMetadataFromOptions(opts MetadataFieldOptions) arrow.Metadata {
+	keys := make([]string, 0)
+	values := make([]string, 0)
+	if opts.PrimaryKey {
+		keys = append(keys, MetadataPrimaryKey)
+		values = append(values, MetadataTrue)
+	}
+	if opts.Unique {
+		keys = append(keys, MetadataUnique)
+		values = append(values, MetadataTrue)
+	}
+	
+	return arrow.NewMetadata(keys, values)
+}
+
+func MdIsPk(md arrow.Metadata) bool {
+	pk, ok := md.GetValue(MetadataPrimaryKey)
+	return ok && pk == MetadataTrue || pk == MetadataPrimaryKeyTrue
+}
+
+func MdIsUnique(md arrow.Metadata) bool {
+	pk, ok := md.GetValue(MetadataUnique)
+	return ok && pk == MetadataTrue
+}
+
 func IsPk(f arrow.Field) bool {
 	pk, ok := f.Metadata.GetValue(MetadataPrimaryKey)
 	return ok && pk == MetadataPrimaryKeyTrue
