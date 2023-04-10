@@ -13,7 +13,6 @@ import (
 	"text/template"
 
 	"github.com/cloudquery/plugin-sdk/caser"
-	"github.com/cloudquery/plugin-sdk/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
@@ -85,7 +84,7 @@ func (p *Plugin) GeneratePluginDocs(dir, format string) error {
 		return err
 	}
 
-	destination.SetDestinationManagedCqColumns(p.Tables())
+	// destination.SetDestinationManagedCqColumns(p.Tables())
 	sortedTables := make(schema.Tables, 0, len(p.Tables()))
 	for _, t := range p.Tables() {
 		sortedTables = append(sortedTables, t.Copy(nil))

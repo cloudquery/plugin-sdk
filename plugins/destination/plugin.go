@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/aws/aws-sdk-go/service/schemas"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -303,7 +302,7 @@ func checkDestinationColumns(schemas schema.Schemas) error {
 	return nil
 }
 
-func (p *Plugin) setPKsForTables(tables schemas.Schemas) schemas.Schemas {
+func (p *Plugin) setPKsForTables(tables schema.Schemas) schema.Schemas {
 	if p.spec.PKMode == specs.PKModeCQID {
 		return setCQIDAsPrimaryKeysForTables(tables)
 	}
