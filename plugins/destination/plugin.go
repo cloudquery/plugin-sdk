@@ -311,8 +311,8 @@ func (p *Plugin) setPKsForTables(tables schema.Schemas) schema.Schemas {
 
 func setCQIDAsPrimaryKeysForTables(tables schema.Schemas) schema.Schemas {
 	newSchemas := make(schema.Schemas, len(tables))
-	for _, table := range tables {
-		fields := make([]arrow.Field, len(tables))
+	for l, table := range tables {
+		fields := make([]arrow.Field, len(table.Fields()))
 		for i, field := range table.Fields() {
 			fields[i] = field
 			if field.Name == schema.CqIDColumn.Name {
@@ -322,7 +322,7 @@ func setCQIDAsPrimaryKeysForTables(tables schema.Schemas) schema.Schemas {
 			}
 		}
 		md := table.Metadata()
-		newSchemas = append(newSchemas, arrow.NewSchema(fields, &md))
+		newSchemas[l] = arrow.NewSchema(fields, &md)
 	}
 	return newSchemas
 }
