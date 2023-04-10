@@ -47,9 +47,6 @@ func TestSetCQIDAsPrimaryKeysForTables(t *testing.T) {
 	require.False(t, topLevelTable.Columns[0].CreationOptions.PrimaryKey)
 	require.False(t, topLevelTable.Columns[1].CreationOptions.PrimaryKey)
 	require.True(t, topLevelTable.Columns[2].CreationOptions.PrimaryKey)
-	//require.False(t, topLevelTable.Relations[0].Columns[0].CreationOptions.PrimaryKey)
-	//require.False(t, topLevelTable.Relations[0].Columns[1].CreationOptions.PrimaryKey)
-	//require.True(t, topLevelTable.Relations[0].Columns[2].CreationOptions.PrimaryKey)
 
 	sch := topLevelTable.ToArrowSchema()
 	newSchemas := setCQIDAsPrimaryKeysForTables(schema.Schemas{sch})
@@ -59,7 +56,4 @@ func TestSetCQIDAsPrimaryKeysForTables(t *testing.T) {
 	require.True(t, schema.IsPk(got.Field(0)))
 	require.False(t, schema.IsPk(got.Field(1)))
 	require.False(t, schema.IsPk(got.Field(2)))
-	//require.True(t, got.Relations[0].Columns[0].CreationOptions.PrimaryKey)
-	//require.False(t, got.Relations[0].Columns[1].CreationOptions.PrimaryKey)
-	//require.False(t, got.Relations[0].Columns[2].CreationOptions.PrimaryKey)
 }
