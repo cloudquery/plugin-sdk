@@ -209,7 +209,6 @@ func (p *Plugin) readAll(ctx context.Context, table *arrow.Schema, sourceName st
 }
 
 func (p *Plugin) Read(ctx context.Context, table *arrow.Schema, sourceName string, res chan<- arrow.Record) error {
-	// SetDestinationManagedCqColumns(schema.Tables{table})
 	return p.client.Read(ctx, table, sourceName, res)
 }
 
@@ -257,17 +256,15 @@ func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables sche
 		panic("unknown client type")
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
-		// tablesToDelete := tables
-		// if sourceSpec.Backend != specs.BackendNone {
-		// 	include := func(t *schema.Table) bool {
-		// 		return true
-		// 	}
-		// 	exclude := func(t *schema.Table) bool {
-		// 		return t.IsIncremental
-		// 	}
-		// 	tablesToDelete = tables.FilterDfsFunc(include, exclude, sourceSpec.SkipDependentTables)
-		// }
-		if err := p.DeleteStale(ctx, tables, sourceSpec.Name, syncTime); err != nil {
+		tablesToDelete := tables
+		if sourceSpec.Backend != specs.BackendNone {
+			for _, t := range tables {
+				if !schema.IsIncremental(t) {
+					tablesToDelete = append(tablesToDelete, t)
+				}
+			}
+		}
+		if err := p.DeleteStale(ctx, tablesToDelete, sourceSpec.Name, syncTime); err != nil {
 			return err
 		}
 	}

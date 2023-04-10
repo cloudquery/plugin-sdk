@@ -14,7 +14,8 @@ import (
 const (
 	MetadataUnique         = "cq:extension:unique"
 	MetadataPrimaryKey     = "cq:extension:primary_key"
-	MetadataPrimaryKeyTrue = "true"
+	MetadataIncremental    = "cq:extension:incremental"
+
 	MetadataTrue           = "true"
 	MetadataFalse          = "false"
 	MetadataTableName      = "cq:table_name"
@@ -63,7 +64,7 @@ func NewFieldMetadataFromOptions(opts MetadataFieldOptions) arrow.Metadata {
 
 func MdIsPk(md arrow.Metadata) bool {
 	pk, ok := md.GetValue(MetadataPrimaryKey)
-	return ok && pk == MetadataTrue || pk == MetadataPrimaryKeyTrue
+	return ok && pk == MetadataTrue || pk == MetadataTrue
 }
 
 func MdIsUnique(md arrow.Metadata) bool {
@@ -109,7 +110,12 @@ func SetPk(f *arrow.Field) {
 
 func IsPk(f arrow.Field) bool {
 	pk, ok := f.Metadata.GetValue(MetadataPrimaryKey)
-	return ok && pk == MetadataPrimaryKeyTrue
+	return ok && pk == MetadataTrue
+}
+
+func IsIncremental(s *arrow.Schema) bool {
+	val, ok := s.Metadata().GetValue(MetadataIncremental)
+	return ok && val == MetadataTrue
 }
 
 func IsUnique(f arrow.Field) bool {
@@ -212,7 +218,7 @@ func CQColumnToArrowField(col *Column) arrow.Field {
 		panic("unknown type " + typ.Name())
 	}
 	if col.CreationOptions.PrimaryKey {
-		metadata[MetadataPrimaryKey] = MetadataPrimaryKeyTrue
+		metadata[MetadataPrimaryKey] = MetadataTrue
 	}
 	return arrow.Field{
 		Name:     col.Name,
