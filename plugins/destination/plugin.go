@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/aws/aws-sdk-go/service/schemas"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
 	"github.com/rs/zerolog"
@@ -188,7 +189,7 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 // we implement all DestinationClient functions so we can hook into pre-post behavior
 func (p *Plugin) Migrate(ctx context.Context, tables schema.Schemas) error {
 	checkDestinationColumns(tables)
-	// p.setPKsForTables(tables)
+	tables = p.setPKsForTables(tables)
 	return p.client.Migrate(ctx, tables)
 }
 
@@ -242,7 +243,7 @@ func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables sche
 	if err := checkDestinationColumns(tables); err != nil {
 		return err
 	}
-	// p.setPKsForTables(tables)
+	tables = p.setPKsForTables(tables)
 	switch p.writerType {
 	case unmanaged:
 		if err := p.writeUnmanaged(ctx, sourceSpec, tables, syncTime, res); err != nil {
@@ -306,17 +307,27 @@ func checkDestinationColumns(schemas schema.Schemas) error {
 	return nil
 }
 
-func (p *Plugin) setPKsForTables(tables schema.Tables) {
+func (p *Plugin) setPKsForTables(tables schemas.Schemas) schemas.Schemas {
 	if p.spec.PKMode == specs.PKModeCQID {
-		setCQIDAsPrimaryKeysForTables(tables)
+		return setCQIDAsPrimaryKeysForTables(tables)
 	}
+	return tables
 }
 
-func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
+func setCQIDAsPrimaryKeysForTables(tables schema.Schemas) schema.Schemas {
+	newSchemas := make(schema.Schemas, len(tables))
 	for _, table := range tables {
-		for i, col := range table.Columns {
-			table.Columns[i].CreationOptions.PrimaryKey = col.Name == schema.CqIDColumn.Name
+		fields := make([]arrow.Field, len(tables))
+		for i, field := range table.Fields() {
+			fields[i] = field
+			if field.Name == schema.CqIDColumn.Name {
+				schema.SetPk(&fields[i])
+			} else if schema.IsPk(field) && field.Name != schema.CqIDColumn.Name {
+				schema.UnsetPk(&fields[i])
+			}
 		}
-		setCQIDAsPrimaryKeysForTables(table.Relations)
+		md := table.Metadata()
+		newSchemas = append(newSchemas, arrow.NewSchema(fields, &md))
 	}
+	return newSchemas
 }

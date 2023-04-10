@@ -16,6 +16,7 @@ const (
 	MetadataPrimaryKey     = "cq:extension:primary_key"
 	MetadataPrimaryKeyTrue = "true"
 	MetadataTrue           = "true"
+	MetadataFalse           = "false"
 	MetadataTableName      = "cq:table_name"
 )
 
@@ -68,6 +69,42 @@ func MdIsPk(md arrow.Metadata) bool {
 func MdIsUnique(md arrow.Metadata) bool {
 	pk, ok := md.GetValue(MetadataUnique)
 	return ok && pk == MetadataTrue
+}
+
+func UnsetPk(f *arrow.Field) {
+	pkExist := false
+	keys := f.Metadata.Keys()
+	values := f.Metadata.Values()
+	for i, k := range keys {
+		if k == MetadataPrimaryKey {
+			values[i] = MetadataFalse
+			pkExist = true
+			break
+		}
+	}
+	if !pkExist {
+		keys = append(keys, MetadataPrimaryKey)
+		values = append(values, MetadataTrue)
+	}
+	f.Metadata = arrow.NewMetadata(keys, values)
+}
+
+func SetPk(f *arrow.Field) {
+	pkExist := false
+	keys := f.Metadata.Keys()
+	values := f.Metadata.Values()
+	for i, k := range keys {
+		if k == MetadataPrimaryKey {
+			values[i] = MetadataTrue
+			pkExist = true
+			break
+		}
+	}
+	if !pkExist {
+		keys = append(keys, MetadataPrimaryKey)
+		values = append(values, MetadataTrue)
+	}
+	f.Metadata = arrow.NewMetadata(keys, values)
 }
 
 func IsPk(f arrow.Field) bool {
