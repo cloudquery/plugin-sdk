@@ -57,3 +57,18 @@ func TestSetCQIDAsPrimaryKeysForTables(t *testing.T) {
 	require.False(t, schema.IsPk(got.Field(1)))
 	require.False(t, schema.IsPk(got.Field(2)))
 }
+
+func TestSetDestinationManagedCqColumns(t *testing.T) {
+	topLevelTable := setupTables()
+	sc := topLevelTable.ToArrowSchema()
+
+	require.False(t, sc.HasField(schema.CqSyncTimeColumn.Name))
+	require.False(t, sc.HasField(schema.CqSourceNameColumn.Name))
+
+	newSchemas := SetDestinationManagedCqColumns(schema.Schemas{sc})
+	newSchema := newSchemas[0]
+
+	require.True(t, newSchema.HasField(schema.CqIDColumn.Name))
+	require.True(t, newSchema.HasField(schema.CqSyncTimeColumn.Name))
+	require.True(t, newSchema.HasField(schema.CqSourceNameColumn.Name))
+}

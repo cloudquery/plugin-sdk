@@ -278,6 +278,30 @@ func (p *Plugin) Close(ctx context.Context) error {
 	return p.client.Close(ctx)
 }
 
+// SetDestinationManagedCqColumns overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
+func SetDestinationManagedCqColumns(schemas schema.Schemas) (newSchemas schema.Schemas) {
+	newSchemas = make(schema.Schemas, len(schemas))
+	for i, sc := range schemas {
+		newSchemas[i] = overrideOrAddField(sc, schema.CqSyncTimeColumn.ToArrowField())
+		newSchemas[i] = overrideOrAddField(newSchemas[i], schema.CqSourceNameColumn.ToArrowField())
+	}
+	return newSchemas
+}
+
+func overrideOrAddField(s *arrow.Schema, field arrow.Field) *arrow.Schema {
+	md := arrow.NewMetadata(s.Metadata().Keys(), s.Metadata().Values())
+	newFields := s.Fields()
+	fi := s.FieldIndices(field.Name)
+	if len(fi) == 0 {
+		newFields = append(newFields, field)
+		return arrow.NewSchema(newFields, &md)
+	}
+	for _, i := range fi {
+		newFields[i] = field
+	}
+	return arrow.NewSchema(newFields, &md)
+}
+
 func checkDestinationColumns(schemas schema.Schemas) error {
 	for _, sc := range schemas {
 		if !sc.HasField(schema.CqSourceNameField.Name) {
