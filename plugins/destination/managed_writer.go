@@ -58,7 +58,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *arrow.Sche
 }
 
 func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *arrow.Schema, resources []arrow.Record) {
-	// resources = p.removeDuplicatesByPK(table, resources)
+	resources = p.removeDuplicatesByPK(table, resources)
 	tableName := schema.TableName(table)
 	start := time.Now()
 	batchSize := len(resources)
