@@ -220,6 +220,9 @@ func CQColumnToArrowField(col *Column) arrow.Field {
 	if col.CreationOptions.PrimaryKey {
 		metadata[MetadataPrimaryKey] = MetadataTrue
 	}
+	if col.CreationOptions.Unique {
+		metadata[MetadataUnique] = MetadataTrue
+	}
 	return arrow.Field{
 		Name:     col.Name,
 		Type:     typ,
