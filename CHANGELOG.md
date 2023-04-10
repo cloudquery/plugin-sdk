@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.2](https://github.com/cloudquery/plugin-sdk/compare/v1.44.1...v1.44.2) (2023-04-04)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 10a5072 ([#745](https://github.com/cloudquery/plugin-sdk/issues/745)) ([d52241c](https://github.com/cloudquery/plugin-sdk/commit/d52241c3120edf6b10cb9aacb6cee6ecad1b1764))
+* **deps:** Update google.golang.org/genproto digest to dcfb400 ([#746](https://github.com/cloudquery/plugin-sdk/issues/746)) ([b510219](https://github.com/cloudquery/plugin-sdk/commit/b51021934cd6355e9040d00504404f909490278b))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.20.0 ([#751](https://github.com/cloudquery/plugin-sdk/issues/751)) ([47b2fbc](https://github.com/cloudquery/plugin-sdk/commit/47b2fbcaab138f1d725a697f48a7c74db609bc62))
+* **deps:** Update module github.com/mattn/go-isatty to v0.0.18 ([#749](https://github.com/cloudquery/plugin-sdk/issues/749)) ([2d39af0](https://github.com/cloudquery/plugin-sdk/commit/2d39af0a6d4e71ae227c010f223889bde6157cf0))
+* **deps:** Update module github.com/schollz/progressbar/v3 to v3.13.1 ([#750](https://github.com/cloudquery/plugin-sdk/issues/750)) ([ee3f17f](https://github.com/cloudquery/plugin-sdk/commit/ee3f17fc56e3ee05ce3389a38415bccb10b4d420))
+
 ## [1.44.1](https://github.com/cloudquery/plugin-sdk/compare/v1.44.0...v1.44.1) (2023-03-31)
 
 
