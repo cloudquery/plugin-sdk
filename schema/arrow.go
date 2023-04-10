@@ -16,7 +16,7 @@ const (
 	MetadataPrimaryKey     = "cq:extension:primary_key"
 	MetadataPrimaryKeyTrue = "true"
 	MetadataTrue           = "true"
-	MetadataFalse           = "false"
+	MetadataFalse          = "false"
 	MetadataTableName      = "cq:table_name"
 )
 

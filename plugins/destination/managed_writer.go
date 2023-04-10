@@ -3,7 +3,6 @@ package destination
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/internal/pk"
 	"github.com/cloudquery/plugin-sdk/schema"
 	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/getsentry/sentry-go"
 )
 
 type worker struct {
@@ -74,9 +72,10 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *arrow.Schem
 	}
 }
 
-func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources []arrow.Record) []arrow.Record {
+func (p *Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Record) []arrow.Record {
+	pkIndices := schema.PrimaryKeyIndices(table)
 	// special case where there's no PK at all
-	if len(table.PrimaryKeys()) == 0 {
+	if len(pkIndices) == 0 {
 		return resources
 	}
 
@@ -84,7 +83,7 @@ func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources []arrow.Rec
 	res := make([]arrow.Record, 0, len(resources))
 	var reported bool
 	for _, r := range resources {
-		key := pk.String(table, r)
+		key := pk.String(r)
 		_, ok := pks[key]
 		switch {
 		case !ok:
@@ -94,32 +93,13 @@ func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources []arrow.Rec
 		case reported:
 			continue
 		}
-
-		reported = true
-		pkSpec := "(" + strings.Join(table.PrimaryKeys(), ",") + ")"
-
-		// log err
-		p.logger.Error().
-			Str("table", table.Name).
-			Str("pk", pkSpec).
-			Str("value", key).
-			Msg("duplicate primary key")
-
-		// send to Sentry only once per table,
-		// to avoid sending too many duplicate messages
-		sentry.WithScope(func(scope *sentry.Scope) {
-			scope.SetTag("plugin", p.name)
-			scope.SetTag("version", p.version)
-			scope.SetTag("table", table.Name)
-			scope.SetExtra("pk", pkSpec)
-			sentry.CurrentHub().CaptureMessage("duplicate primary key in " + table.Name)
-		})
 	}
 
 	return res
 }
 
 func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Schemas, _ time.Time, res <-chan arrow.Record) error {
+
 	workers := make(map[string]*worker, len(tables))
 	metrics := &Metrics{}
 
