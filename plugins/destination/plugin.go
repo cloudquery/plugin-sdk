@@ -2,6 +2,7 @@ package destination
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -186,8 +187,7 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 
 // we implement all DestinationClient functions so we can hook into pre-post behavior
 func (p *Plugin) Migrate(ctx context.Context, tables schema.Schemas) error {
-	// SetDestinationManagedCqColumns(tables)
-	// setCqIDColumnOptionsForTables(tables)
+	checkDestinationColumns(tables)
 	// p.setPKsForTables(tables)
 	return p.client.Migrate(ctx, tables)
 }
@@ -239,7 +239,9 @@ func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, syncTime
 
 func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Schemas, syncTime time.Time, res <-chan arrow.Record) error {
 	syncTime = syncTime.UTC()
-	// SetDestinationManagedCqColumns(tables)
+	if err := checkDestinationColumns(tables); err != nil {
+		return err
+	}
 	// p.setPKsForTables(tables)
 	switch p.writerType {
 	case unmanaged:
@@ -280,27 +282,28 @@ func (p *Plugin) Close(ctx context.Context) error {
 	return p.client.Close(ctx)
 }
 
-// Overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
-func SetDestinationManagedCqColumns(tables []*schema.Table) {
-	for _, table := range tables {
-		table.OverwriteOrAddColumn(&schema.CqSyncTimeColumn)
-		table.OverwriteOrAddColumn(&schema.CqSourceNameColumn)
-		SetDestinationManagedCqColumns(table.Relations)
-	}
-}
-
-// this is for backward compatibility for sources that didn't update the SDK yet
-// TODO: remove this in the future once all sources have updated the SDK
-func setCqIDColumnOptionsForTables(tables []*schema.Table) {
-	for _, table := range tables {
-		for i, c := range table.Columns {
-			if c.Name == schema.CqIDColumn.Name {
-				table.Columns[i].CreationOptions.NotNull = true
-				table.Columns[i].CreationOptions.Unique = true
-			}
+func checkDestinationColumns(schemas schema.Schemas) error {
+	for _, sc := range schemas {
+		if !sc.HasField(schema.CqSourceNameField.Name) {
+			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", schema.TableName(sc), schema.CqSourceNameField.Name)
 		}
-		setCqIDColumnOptionsForTables(table.Relations)
+		if !sc.HasField(schema.CqSyncTimeColumn.Name) {
+			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", schema.TableName(sc), schema.CqSourceNameField.Name)
+		}
+		if !sc.HasField(schema.CqIDColumn.Name) {
+			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
+		}
+		fields, _ := sc.FieldsByName(schema.CqIDColumn.Name)
+		cqId := fields[0]
+		if cqId.Nullable {
+			return fmt.Errorf("column %s.%s cannot be nullable. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
+		}
+		if !schema.IsUnique(cqId) {
+			return fmt.Errorf("column %s.%s must be unique. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
+		}
+
 	}
+	return nil
 }
 
 func (p *Plugin) setPKsForTables(tables schema.Tables) {
@@ -308,6 +311,7 @@ func (p *Plugin) setPKsForTables(tables schema.Tables) {
 		setCQIDAsPrimaryKeysForTables(tables)
 	}
 }
+
 func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 	for _, table := range tables {
 		for i, col := range table.Columns {

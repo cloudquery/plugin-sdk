@@ -75,6 +75,10 @@ func IsPk(f arrow.Field) bool {
 	return ok && pk == MetadataPrimaryKeyTrue
 }
 
+func IsUnique(f arrow.Field) bool {
+	return MdIsUnique(f.Metadata)
+}
+
 func PrimaryKeyIndices(sc *arrow.Schema) []int {
 	var indices []int
 	for i, f := range sc.Fields() {

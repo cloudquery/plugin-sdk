@@ -7,12 +7,11 @@ import (
 	"github.com/cloudquery/plugin-sdk/schema"
 )
 
-func String(table *schema.Table, resource arrow.Record) string {
-	parts := make([]string, 0, len(table.PrimaryKeys()))
-	for i, col := range table.Columns {
-		if !col.CreationOptions.PrimaryKey {
-			continue
-		}
+func String(resource arrow.Record) string {
+	sc := resource.Schema()
+	pkIndices := schema.PrimaryKeyIndices(sc)
+	parts := make([]string, 0, len(pkIndices))
+	for _, i := range pkIndices {
 		parts = append(parts, resource.Column(i).String())
 	}
 
