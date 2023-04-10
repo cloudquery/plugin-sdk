@@ -75,14 +75,15 @@ func RecordDiff(l arrow.Record, r arrow.Record) string {
 		return fmt.Sprintf("different number of rows: %d vs %d", l.NumRows(), r.NumRows())
 	}
 	for i := 0; i < int(l.NumCols()); i++ {
-		s, err := array.DiffString(l.Column(i), r.Column(i), memory.DefaultAllocator)
+		edits, err := array.Diff(l.Column(i), r.Column(i))
 		if err != nil {
 			panic(err)
 		}
-		if s != "" {
+		diff := edits.UnifiedDiff(l.Column(i), r.Column(i))
+		if diff != "" {
 			sb.WriteString(l.Schema().Field(i).Name)
 			sb.WriteString(": ")
-			sb.WriteString(s)
+			sb.WriteString(diff)
 			sb.WriteString("\n")
 		}
 	}
