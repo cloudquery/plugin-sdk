@@ -8,7 +8,7 @@ import (
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/apache/arrow/go/v12/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/types"
+	"github.com/cloudquery/plugin-sdk/v2/types"
 )
 
 const (

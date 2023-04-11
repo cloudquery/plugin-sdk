@@ -8,9 +8,9 @@ import (
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/apache/arrow/go/v12/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
-	"github.com/cloudquery/plugin-sdk/types"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v2/testdata"
+	"github.com/cloudquery/plugin-sdk/v2/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )

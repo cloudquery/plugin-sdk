@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
 )
 
 func String(resource arrow.Record) string {

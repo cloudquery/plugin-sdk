@@ -1,4 +1,4 @@
-module github.com/cloudquery/plugin-sdk
+module github.com/cloudquery/plugin-sdk/v2
 
 go 1.19
 

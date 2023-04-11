@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/cloudquery/plugin-sdk/internal/glob"
+	"github.com/cloudquery/plugin-sdk/v2/internal/glob"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
