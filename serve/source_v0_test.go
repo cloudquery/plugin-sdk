@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	clients "github.com/cloudquery/plugin-sdk/clients/source/v1"
-	"github.com/cloudquery/plugin-sdk/plugins/source"
-	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/cloudquery/plugin-sdk/specs"
+	clients "github.com/cloudquery/plugin-sdk/v2/clients/source/v1"
+	"github.com/cloudquery/plugin-sdk/v2/plugins/source"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

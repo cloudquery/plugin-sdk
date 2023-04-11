@@ -2,27 +2,28 @@ package destination
 
 import (
 	"context"
-	"strings"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/internal/pk"
-	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/getsentry/sentry-go"
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/util"
+	"github.com/cloudquery/plugin-sdk/v2/internal/pk"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
 )
 
 type worker struct {
 	count int
 	wg    *sync.WaitGroup
-	ch    chan schema.CQTypes
+	ch    chan arrow.Record
 	flush chan chan bool
 }
 
-func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan schema.CQTypes, flush <-chan chan bool) {
-	resources := make([][]any, 0)
-	sizeBytes := 0
+func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *arrow.Schema, ch <-chan arrow.Record, flush <-chan chan bool) {
+	sizeBytes := int64(0)
+	resources := make([]arrow.Record, 0)
 	for {
 		select {
 		case r, ok := <-ch:
@@ -32,23 +33,23 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 				}
 				return
 			}
-			if len(resources) == p.spec.BatchSize || sizeBytes+r.Size() > p.spec.BatchSizeBytes {
+			if len(resources) == p.spec.BatchSize || sizeBytes+util.TotalRecordSize(r) > int64(p.spec.BatchSizeBytes) {
 				p.flush(ctx, metrics, table, resources)
-				resources = make([][]any, 0)
+				resources = make([]arrow.Record, 0)
 				sizeBytes = 0
 			}
-			resources = append(resources, schema.TransformWithTransformer(p.client, r))
-			sizeBytes += r.Size()
+			resources = append(resources, r)
+			sizeBytes += util.TotalRecordSize(r)
 		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
-				resources = make([][]any, 0)
+				resources = make([]arrow.Record, 0)
 				sizeBytes = 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
-				resources = make([][]any, 0)
+				resources = make([]arrow.Record, 0)
 				sizeBytes = 0
 			}
 			done <- true
@@ -56,32 +57,33 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 	}
 }
 
-func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources [][]any) {
+func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *arrow.Schema, resources []arrow.Record) {
 	resources = p.removeDuplicatesByPK(table, resources)
-
+	tableName := schema.TableName(table)
 	start := time.Now()
 	batchSize := len(resources)
 	if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
-		p.logger.Err(err).Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
+		p.logger.Err(err).Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 		// we don't return an error as we need to continue until channel is closed otherwise there will be a deadlock
 		atomic.AddUint64(&metrics.Errors, uint64(batchSize))
 	} else {
-		p.logger.Info().Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+		p.logger.Info().Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 		atomic.AddUint64(&metrics.Writes, uint64(batchSize))
 	}
 }
 
-func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) [][]any {
+func (*Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Record) []arrow.Record {
+	pkIndices := schema.PrimaryKeyIndices(table)
 	// special case where there's no PK at all
-	if len(table.PrimaryKeys()) == 0 {
+	if len(pkIndices) == 0 {
 		return resources
 	}
 
 	pks := make(map[string]struct{}, len(resources))
-	res := make([][]any, 0, len(resources))
+	res := make([]arrow.Record, 0, len(resources))
 	var reported bool
 	for _, r := range resources {
-		key := pk.String(table, r)
+		key := pk.String(r)
 		_, ok := pks[key]
 		switch {
 		case !ok:
@@ -91,46 +93,24 @@ func (p *Plugin) removeDuplicatesByPK(table *schema.Table, resources [][]any) []
 		case reported:
 			continue
 		}
-
-		reported = true
-		pkSpec := "(" + strings.Join(table.PrimaryKeys(), ",") + ")"
-
-		// log err
-		p.logger.Error().
-			Str("table", table.Name).
-			Str("pk", pkSpec).
-			Str("value", key).
-			Msg("duplicate primary key")
-
-		// send to Sentry only once per table,
-		// to avoid sending too many duplicate messages
-		sentry.WithScope(func(scope *sentry.Scope) {
-			scope.SetTag("plugin", p.name)
-			scope.SetTag("version", p.version)
-			scope.SetTag("table", table.Name)
-			scope.SetExtra("pk", pkSpec)
-			sentry.CurrentHub().CaptureMessage("duplicate primary key in " + table.Name)
-		})
 	}
 
 	return res
 }
 
-func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan schema.DestinationResource) error {
-	syncTime = syncTime.UTC()
-	SetDestinationManagedCqColumns(tables)
-
+func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Schemas, _ time.Time, res <-chan arrow.Record) error {
 	workers := make(map[string]*worker, len(tables))
 	metrics := &Metrics{}
 
 	p.workersLock.Lock()
-	for _, table := range tables.FlattenTables() {
+	for _, table := range tables {
 		table := table
-		if p.workers[table.Name] == nil {
-			ch := make(chan schema.CQTypes)
+		tableName := schema.TableName(table)
+		if p.workers[schema.TableName(table)] == nil {
+			ch := make(chan arrow.Record)
 			flush := make(chan chan bool)
 			wg := &sync.WaitGroup{}
-			p.workers[table.Name] = &worker{
+			p.workers[schema.TableName(table)] = &worker{
 				count: 1,
 				ch:    ch,
 				flush: flush,
@@ -142,25 +122,23 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.So
 				p.worker(ctx, metrics, table, ch, flush)
 			}()
 		} else {
-			p.workers[table.Name].count++
+			p.workers[tableName].count++
 		}
 		// we save this locally because we don't want to access the map after that so we can
 		// keep the workersLock for as short as possible
-		workers[table.Name] = p.workers[table.Name]
+		workers[tableName] = p.workers[tableName]
 	}
 	p.workersLock.Unlock()
 
-	sourceColumn := &schema.Text{}
-	_ = sourceColumn.Set(sourceSpec.Name)
-	syncTimeColumn := &schema.Timestamptz{}
-	_ = syncTimeColumn.Set(syncTime)
 	for r := range res {
-		// this is a check to keep backward compatible for sources that are not adding
-		// source and sync time
-		if len(r.Data) < len(tables.Get(r.TableName).Columns) {
-			r.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, r.Data...)
+		tableName, ok := r.Schema().Metadata().GetValue(schema.MetadataTableName)
+		if !ok {
+			return fmt.Errorf("missing table name in record metadata")
 		}
-		workers[r.TableName].ch <- r.Data
+		if _, ok := workers[tableName]; !ok {
+			return fmt.Errorf("table %s not found in destination", tableName)
+		}
+		workers[tableName].ch <- r
 	}
 
 	// flush and wait for all workers to finish flush before finish and calling delete stale

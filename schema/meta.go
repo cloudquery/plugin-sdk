@@ -2,6 +2,9 @@ package schema
 
 import (
 	"context"
+
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/cloudquery/plugin-sdk/v2/types"
 )
 
 type ClientMeta interface {
@@ -36,6 +39,22 @@ var CqSourceNameColumn = Column{
 	Name:        "_cq_source_name",
 	Type:        TypeString,
 	Description: "Internal CQ row that references the source plugin name data was retrieved",
+}
+
+var CqIDField = arrow.Field{
+	Name: "_cq_id",
+	Type: types.ExtensionTypes.UUID,
+	Metadata: arrow.MetadataFrom(map[string]string{
+		MetadataUnique: MetadataTrue,
+	}),
+}
+var CqSyncTimeField = arrow.Field{
+	Name: "_cq_sync_time",
+	Type: arrow.FixedWidthTypes.Timestamp_us,
+}
+var CqSourceNameField = arrow.Field{
+	Name: "_cq_source_name",
+	Type: arrow.BinaryTypes.String,
 }
 
 func parentCqUUIDResolver() ColumnResolver {

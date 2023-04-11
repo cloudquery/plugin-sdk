@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
 )
 
 func TestLocal(t *testing.T) {
