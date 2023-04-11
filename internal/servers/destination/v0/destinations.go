@@ -23,6 +23,7 @@ type Server struct {
 	pb.UnimplementedDestinationServer
 	Plugin *destination.Plugin
 	Logger zerolog.Logger
+	spec   specs.Destination
 }
 
 func (*Server) GetProtocolVersion(context.Context, *pbBase.GetProtocolVersion_Request) (*pbBase.GetProtocolVersion_Response, error) {
@@ -36,6 +37,7 @@ func (s *Server) Configure(ctx context.Context, req *pbBase.Configure_Request) (
 	if err := json.Unmarshal(req.Config, &spec); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
+	s.spec = spec
 	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, s.Logger, spec)
 }
 
@@ -56,6 +58,8 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	if err := json.Unmarshal(req.Tables, &tables); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
+	SetDestinationManagedCqColumns(tables)
+	s.setPKsForTables(tables)
 
 	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables.ToArrowSchemas())
 }
@@ -93,6 +97,8 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	}
 	syncTime := r.Timestamp.AsTime()
 	schemas := make(schema.Schemas, 0)
+	SetDestinationManagedCqColumns(tables)
+	s.setPKsForTables(tables)
 	for _, table := range tables {
 		schemas = append(schemas, table.ToArrowSchema())
 	}
@@ -100,6 +106,10 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	eg.Go(func() error {
 		return s.Plugin.Write(ctx, sourceSpec, schemas, syncTime, resources)
 	})
+	sourceColumn := &schema.Text{}
+	_ = sourceColumn.Set(sourceSpec.Name)
+	syncTimeColumn := &schema.Timestamptz{}
+	_ = syncTimeColumn.Set(syncTime)
 
 	for {
 		r, err := msg.Recv()
@@ -125,6 +135,11 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
+		// this is a check to keep backward compatible for sources that are not adding
+		// source and sync time
+		if len(origResource.Data) < len(tables.Get(origResource.TableName).Columns) {
+			origResource.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, origResource.Data...)
+		}
 		convertedResource := schema.CQTypesToRecord(memory.DefaultAllocator, []schema.CQTypes{origResource.Data}, schema.CQSchemaToArrow(tables.Get(origResource.TableName)))
 		select {
 		case resources <- convertedResource:
@@ -135,6 +150,24 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			}
 			return status.Errorf(codes.Internal, "Context done: %v", ctx.Err())
 		}
+	}
+}
+
+func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
+	for _, table := range tables {
+		for i, col := range table.Columns {
+			table.Columns[i].CreationOptions.PrimaryKey = col.Name == schema.CqIDColumn.Name
+		}
+		setCQIDAsPrimaryKeysForTables(table.Relations)
+	}
+}
+
+// Overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
+func SetDestinationManagedCqColumns(tables []*schema.Table) {
+	for _, table := range tables {
+		table.OverwriteOrAddColumn(&schema.CqSyncTimeColumn)
+		table.OverwriteOrAddColumn(&schema.CqSourceNameColumn)
+		SetDestinationManagedCqColumns(table.Relations)
 	}
 }
 
@@ -154,6 +187,7 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 	if err := json.Unmarshal(req.Tables, &tables); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
+	SetDestinationManagedCqColumns(tables)
 	schemas := make(schema.Schemas, len(tables.FlattenTables()))
 	for i, table := range tables.FlattenTables() {
 		schemas[i] = table.ToArrowSchema()
@@ -163,6 +197,12 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 	}
 
 	return &pb.DeleteStale_Response{}, nil
+}
+
+func (p *Server) setPKsForTables(tables schema.Tables) {
+	if p.spec.PKMode == specs.PKModeCQID {
+		setCQIDAsPrimaryKeysForTables(tables)
+	}
 }
 
 func (s *Server) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {

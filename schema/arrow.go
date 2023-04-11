@@ -12,13 +12,13 @@ import (
 )
 
 const (
-	MetadataUnique         = "cq:extension:unique"
-	MetadataPrimaryKey     = "cq:extension:primary_key"
-	MetadataIncremental    = "cq:extension:incremental"
+	MetadataUnique      = "cq:extension:unique"
+	MetadataPrimaryKey  = "cq:extension:primary_key"
+	MetadataIncremental = "cq:extension:incremental"
 
-	MetadataTrue           = "true"
-	MetadataFalse          = "false"
-	MetadataTableName      = "cq:table_name"
+	MetadataTrue      = "true"
+	MetadataFalse     = "false"
+	MetadataTableName = "cq:table_name"
 )
 
 type FieldChange struct {
