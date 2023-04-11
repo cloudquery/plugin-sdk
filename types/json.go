@@ -42,6 +42,14 @@ func (b *JSONBuilder) UnsafeAppend(v any) {
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).UnsafeAppend(bytes)
 }
 
+func (b *JSONBuilder) AppendValueFromString(s string) error {
+	if s == array.NullValueStr {
+		b.AppendNull()
+		return nil
+	}
+	return b.UnmarshalOne(json.NewDecoder(strings.NewReader(s)))
+}
+
 func (b *JSONBuilder) AppendValues(v []any, valid []bool) {
 	data := make([][]byte, len(v))
 	for i := range v {
@@ -105,13 +113,13 @@ func (a JSONArray) String() string {
 	return o.String()
 }
 
-func (a *JSONArray) ValueString(i int) string {
+func (a *JSONArray) ValueStr(i int) string {
 	arr := a.Storage().(*array.Binary)
 	switch {
 	case a.IsNull(i):
 		return "(null)"
 	default:
-		return fmt.Sprintf(`"%s"`, arr.Value(i))
+		return string(arr.Value(i))
 	}
 }
 

@@ -39,6 +39,19 @@ func (b *InetBuilder) AppendValues(v []net.IPNet, valid []bool) {
 	b.ExtensionBuilder.Builder.(*array.StringBuilder).AppendValues(data, valid)
 }
 
+func (b *InetBuilder) AppendValueFromString(s string) error {
+	if s == array.NullValueStr {
+		b.AppendNull()
+		return nil
+	}
+	_, data, err := net.ParseCIDR(s)
+	if err != nil {
+		return err
+	}
+	b.Append(*data)
+	return nil
+}
+
 func (b *InetBuilder) UnmarshalOne(dec *json.Decoder) error {
 	t, err := dec.Token()
 	if err != nil {
@@ -122,7 +135,7 @@ func (a InetArray) String() string {
 	return o.String()
 }
 
-func (a *InetArray) ValueString(i int) string {
+func (a *InetArray) ValueStr(i int) string {
 	arr := a.Storage().(*array.String)
 	switch {
 	case a.IsNull(i):

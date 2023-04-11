@@ -39,6 +39,19 @@ func (b *MacBuilder) AppendValues(v []net.HardwareAddr, valid []bool) {
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).AppendValues(data, valid)
 }
 
+func (b *MacBuilder) AppendValueFromString(s string) error {
+	if s == array.NullValueStr {
+		b.AppendNull()
+		return nil
+	}
+	data, err := net.ParseMAC(s)
+	if err != nil {
+		return err
+	}
+	b.Append(data)
+	return nil
+}
+
 func (b *MacBuilder) UnmarshalOne(dec *json.Decoder) error {
 	t, err := dec.Token()
 	if err != nil {
@@ -119,7 +132,7 @@ func (a MacArray) String() string {
 	return o.String()
 }
 
-func (a *MacArray) ValueString(i int) string {
+func (a *MacArray) ValueStr(i int) string {
 	arr := a.Storage().(*array.Binary)
 	switch {
 	case a.IsNull(i):
