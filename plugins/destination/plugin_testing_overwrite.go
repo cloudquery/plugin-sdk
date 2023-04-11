@@ -5,14 +5,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v12/arrow/memory"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v2/testdata"
+	"github.com/cloudquery/plugin-sdk/v2/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, mem memory.Allocator, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
 	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
@@ -20,8 +24,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
 	table := testdata.TestTable(tableName)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	tables := []*schema.Table{
-		table,
+	tables := []*arrow.Schema{
+		table.ToArrowSchema(),
 	}
 	if err := p.Migrate(ctx, tables); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
@@ -32,61 +36,75 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		Name: sourceName,
 	}
 
-	resources := createTestResources(table, sourceName, syncTime, 2)
-	if err := p.writeAll(ctx, sourceSpec, tables, syncTime, resources); err != nil {
+	opts := testdata.GenTestDataOptions{
+		SourceName: sourceName,
+		SyncTime:   syncTime,
+		MaxRows:    2,
+	}
+	resources := testdata.GenTestData(mem, schema.CQSchemaToArrow(table), opts)
+	defer func() {
+		for _, r := range resources {
+			r.Release()
+		}
+	}()
+	if err := p.writeAll(ctx, sourceSpec, syncTime, resources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
-	sortResources(table, resources)
+	sortRecordsBySyncTime(table, resources)
 
-	resourcesRead, err := p.readAll(ctx, table, sourceName)
+	resourcesRead, err := p.readAll(ctx, table.ToArrowSchema(), sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
-	sortCQTypes(table, resourcesRead)
+	sortRecordsBySyncTime(table, resourcesRead)
 
 	if len(resourcesRead) != 2 {
 		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
-		return fmt.Errorf("expected first resource diff: %s", diff)
+	if !array.RecordEqual(resources[0], resourcesRead[0]) {
+		diff := RecordDiff(resources[0], resourcesRead[0])
+		return fmt.Errorf("expected first resource to be equal. diff=%s", diff)
 	}
 
-	if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
-		return fmt.Errorf("expected second resource diff: %s", diff)
+	if !array.RecordEqual(resources[1], resourcesRead[1]) {
+		diff := RecordDiff(resources[1], resourcesRead[1])
+		return fmt.Errorf("expected second resource to be equal. diff=%s", diff)
 	}
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 
 	// copy first resource but update the sync time
-	updatedResource := schema.DestinationResource{
-		TableName: table.Name,
-		Data:      make(schema.CQTypes, len(resources[0].Data)),
+	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
+	opts = testdata.GenTestDataOptions{
+		SourceName: sourceName,
+		SyncTime:   secondSyncTime,
+		MaxRows:    1,
+		StableUUID: *u,
 	}
-	copy(updatedResource.Data, resources[0].Data)
-	_ = updatedResource.Data[1].Set(secondSyncTime)
-
+	updatedResource := testdata.GenTestData(mem, schema.CQSchemaToArrow(table), opts)[0]
+	defer updatedResource.Release()
 	// write second time
-	if err := p.writeOne(ctx, sourceSpec, tables, secondSyncTime, updatedResource); err != nil {
+	if err := p.writeOne(ctx, sourceSpec, secondSyncTime, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
-	resourcesRead, err = p.readAll(ctx, table, sourceName)
+	resourcesRead, err = p.readAll(ctx, table.ToArrowSchema(), sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
-	sortCQTypes(table, resourcesRead)
-
+	sortRecordsBySyncTime(table, resourcesRead)
 	if len(resourcesRead) != 2 {
 		return fmt.Errorf("after overwrite expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if diff := resources[1].Data.Diff(resourcesRead[0]); diff != "" {
-		return fmt.Errorf("after overwrite expected first resource diff: %s", diff)
+	if !array.RecordEqual(resources[1], resourcesRead[0]) {
+		diff := RecordDiff(resources[1], resourcesRead[0])
+		return fmt.Errorf("after overwrite expected first resource to be equal. diff=%s", diff)
 	}
-
-	if diff := updatedResource.Data.Diff(resourcesRead[1]); diff != "" {
-		return fmt.Errorf("after overwrite expected second resource diff: %s", diff)
+	if !array.RecordEqual(updatedResource, resourcesRead[1]) {
+		diff := RecordDiff(updatedResource, resourcesRead[1])
+		return fmt.Errorf("after overwrite expected second resource to be equal. diff=%s", diff)
 	}
 
 	return nil

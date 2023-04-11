@@ -1,7 +1,7 @@
 syntax = "proto3";
 package cloudquery.source.v1;
 
-option go_package = "github.com/cloudquery/plugin-sdk/internal/pb/source/v1;source";
+option go_package = "github.com/cloudquery/plugin-sdk/v2/internal/pb/source/v1;source";
 
 service Source {
   // Get the name of the plugin

@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/backend"
-	"github.com/cloudquery/plugin-sdk/caser"
-	"github.com/cloudquery/plugin-sdk/internal/backends/local"
-	"github.com/cloudquery/plugin-sdk/internal/backends/nop"
-	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/cloudquery/plugin-sdk/specs"
+	"github.com/cloudquery/plugin-sdk/v2/backend"
+	"github.com/cloudquery/plugin-sdk/v2/caser"
+	"github.com/cloudquery/plugin-sdk/v2/internal/backends/local"
+	"github.com/cloudquery/plugin-sdk/v2/internal/backends/nop"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/semaphore"
 )
