@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/cloudquery/plugin-sdk/types"
+	"github.com/cloudquery/plugin-sdk/v2/types"
 )
 
 type ClientMeta interface {
