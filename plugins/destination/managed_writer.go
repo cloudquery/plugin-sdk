@@ -102,8 +102,6 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tab
 
 	workers := make(map[string]*worker, len(tables))
 	metrics := &Metrics{}
-	
-	tables = SetDestinationManagedCqColumns(tables)
 
 	p.workersLock.Lock()
 	for _, table := range tables {

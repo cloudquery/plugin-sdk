@@ -187,7 +187,6 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 // we implement all DestinationClient functions so we can hook into pre-post behavior
 func (p *Plugin) Migrate(ctx context.Context, tables schema.Schemas) error {
 	checkDestinationColumns(tables)
-	tables = p.setPKsForTables(tables)
 	return p.client.Migrate(ctx, tables)
 }
 
@@ -240,7 +239,6 @@ func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables sche
 	if err := checkDestinationColumns(tables); err != nil {
 		return err
 	}
-	tables = p.setPKsForTables(tables)
 	switch p.writerType {
 	case unmanaged:
 		if err := p.writeUnmanaged(ctx, sourceSpec, tables, syncTime, res); err != nil {
@@ -278,30 +276,6 @@ func (p *Plugin) Close(ctx context.Context) error {
 	return p.client.Close(ctx)
 }
 
-// SetDestinationManagedCqColumns overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
-func SetDestinationManagedCqColumns(schemas schema.Schemas) (newSchemas schema.Schemas) {
-	newSchemas = make(schema.Schemas, len(schemas))
-	for i, sc := range schemas {
-		newSchemas[i] = overrideOrAddField(sc, schema.CqSyncTimeColumn.ToArrowField())
-		newSchemas[i] = overrideOrAddField(newSchemas[i], schema.CqSourceNameColumn.ToArrowField())
-	}
-	return newSchemas
-}
-
-func overrideOrAddField(s *arrow.Schema, field arrow.Field) *arrow.Schema {
-	md := arrow.NewMetadata(s.Metadata().Keys(), s.Metadata().Values())
-	newFields := s.Fields()
-	fi := s.FieldIndices(field.Name)
-	if len(fi) == 0 {
-		newFields = append(newFields, field)
-		return arrow.NewSchema(newFields, &md)
-	}
-	for _, i := range fi {
-		newFields[i] = field
-	}
-	return arrow.NewSchema(newFields, &md)
-}
-
 func checkDestinationColumns(schemas schema.Schemas) error {
 	for _, sc := range schemas {
 		if !sc.HasField(schema.CqSourceNameField.Name) {
@@ -326,27 +300,4 @@ func checkDestinationColumns(schemas schema.Schemas) error {
 	return nil
 }
 
-func (p *Plugin) setPKsForTables(tables schema.Schemas) schema.Schemas {
-	if p.spec.PKMode == specs.PKModeCQID {
-		return setCQIDAsPrimaryKeysForTables(tables)
-	}
-	return tables
-}
 
-func setCQIDAsPrimaryKeysForTables(tables schema.Schemas) schema.Schemas {
-	newSchemas := make(schema.Schemas, len(tables))
-	for l, table := range tables {
-		fields := make([]arrow.Field, len(table.Fields()))
-		for i, field := range table.Fields() {
-			fields[i] = field
-			if field.Name == schema.CqIDColumn.Name {
-				schema.SetPk(&fields[i])
-			} else if schema.IsPk(field) && field.Name != schema.CqIDColumn.Name {
-				schema.UnsetPk(&fields[i])
-			}
-		}
-		md := table.Metadata()
-		newSchemas[l] = arrow.NewSchema(fields, &md)
-	}
-	return newSchemas
-}
