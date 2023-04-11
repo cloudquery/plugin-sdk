@@ -72,7 +72,7 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *arrow.Schem
 	}
 }
 
-func (p *Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Record) []arrow.Record {
+func (*Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Record) []arrow.Record {
 	pkIndices := schema.PrimaryKeyIndices(table)
 	// special case where there's no PK at all
 	if len(pkIndices) == 0 {
@@ -99,7 +99,6 @@ func (p *Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Rec
 }
 
 func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Schemas, _ time.Time, res <-chan arrow.Record) error {
-
 	workers := make(map[string]*worker, len(tables))
 	metrics := &Metrics{}
 

@@ -149,7 +149,7 @@ func (c *client) Read(_ context.Context, table *arrow.Schema, source string, res
 	return nil
 }
 
-func (c *client) Write(ctx context.Context, tables schema.Schemas, resources <-chan arrow.Record) error {
+func (c *client) Write(ctx context.Context, _ schema.Schemas, resources <-chan arrow.Record) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}

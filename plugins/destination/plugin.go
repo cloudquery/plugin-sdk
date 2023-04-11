@@ -186,7 +186,9 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 
 // we implement all DestinationClient functions so we can hook into pre-post behavior
 func (p *Plugin) Migrate(ctx context.Context, tables schema.Schemas) error {
-	checkDestinationColumns(tables)
+	if err := checkDestinationColumns(tables); err != nil {
+		return err
+	}
 	return p.client.Migrate(ctx, tables)
 }
 
@@ -288,14 +290,13 @@ func checkDestinationColumns(schemas schema.Schemas) error {
 			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
 		}
 		fields, _ := sc.FieldsByName(schema.CqIDColumn.Name)
-		cqId := fields[0]
-		if cqId.Nullable {
+		cqID := fields[0]
+		if cqID.Nullable {
 			return fmt.Errorf("column %s.%s cannot be nullable. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
 		}
-		if !schema.IsUnique(cqId) {
+		if !schema.IsUnique(cqID) {
 			return fmt.Errorf("column %s.%s must be unique. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
 		}
-
 	}
 	return nil
 }

@@ -199,8 +199,8 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 	return &pb.DeleteStale_Response{}, nil
 }
 
-func (p *Server) setPKsForTables(tables schema.Tables) {
-	if p.spec.PKMode == specs.PKModeCQID {
+func (s *Server) setPKsForTables(tables schema.Tables) {
+	if s.spec.PKMode == specs.PKModeCQID {
 		setCQIDAsPrimaryKeysForTables(tables)
 	}
 }
