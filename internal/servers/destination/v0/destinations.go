@@ -23,7 +23,7 @@ type Server struct {
 	pb.UnimplementedDestinationServer
 	Plugin *destination.Plugin
 	Logger zerolog.Logger
-	spec  specs.Destination
+	spec   specs.Destination
 }
 
 func (*Server) GetProtocolVersion(context.Context, *pbBase.GetProtocolVersion_Request) (*pbBase.GetProtocolVersion_Response, error) {
@@ -110,7 +110,6 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	_ = sourceColumn.Set(sourceSpec.Name)
 	syncTimeColumn := &schema.Timestamptz{}
 	_ = syncTimeColumn.Set(syncTime)
-
 
 	for {
 		r, err := msg.Recv()

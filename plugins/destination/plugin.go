@@ -299,5 +299,3 @@ func checkDestinationColumns(schemas schema.Schemas) error {
 	}
 	return nil
 }
-
-

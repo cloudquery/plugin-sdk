@@ -37,4 +37,3 @@ func setupTables() schema.Table {
 	topLevelTable.Relations = []*schema.Table{&nestedTable}
 	return topLevelTable
 }
-
