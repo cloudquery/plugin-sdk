@@ -62,16 +62,6 @@ func NewFieldMetadataFromOptions(opts MetadataFieldOptions) arrow.Metadata {
 	return arrow.NewMetadata(keys, values)
 }
 
-func MdIsPk(md arrow.Metadata) bool {
-	pk, ok := md.GetValue(MetadataPrimaryKey)
-	return ok && pk == MetadataTrue || pk == MetadataTrue
-}
-
-func MdIsUnique(md arrow.Metadata) bool {
-	pk, ok := md.GetValue(MetadataUnique)
-	return ok && pk == MetadataTrue
-}
-
 func UnsetPk(f *arrow.Field) {
 	pkExist := false
 	keys := f.Metadata.Keys()
@@ -119,7 +109,8 @@ func IsIncremental(s *arrow.Schema) bool {
 }
 
 func IsUnique(f arrow.Field) bool {
-	return MdIsUnique(f.Metadata)
+	pk, ok := f.Metadata.GetValue(MetadataUnique)
+	return ok && pk == MetadataTrue
 }
 
 func PrimaryKeyIndices(sc *arrow.Schema) []int {
