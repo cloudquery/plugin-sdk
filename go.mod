@@ -5,7 +5,6 @@ go 1.19
 require (
 	github.com/apache/arrow/go/v12 v12.0.0-20230401212133-adf33cc43010
 	github.com/avast/retry-go/v4 v4.3.3
-	github.com/aws/aws-sdk-go v1.44.239
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/ghodss/yaml v1.0.0
@@ -34,7 +33,6 @@ require (
 	github.com/apache/thrift v0.16.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v2.0.8+incompatible // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/asmfmt v1.3.2 // indirect
 	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
@@ -46,7 +44,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 )
 
-replace github.com/apache/arrow/go/v12 => github.com/cloudquery/arrow/go/v12 v12.0.0-20230410130538-47f7875f45e9
+replace github.com/apache/arrow/go/v12 => github.com/cloudquery/arrow/go/v12 v12.0.0-20230411134648-a5b71cd453c8
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

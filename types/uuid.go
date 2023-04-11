@@ -34,6 +34,19 @@ func (b *UUIDBuilder) UnsafeAppend(v uuid.UUID) {
 	b.ExtensionBuilder.Builder.(*array.FixedSizeBinaryBuilder).UnsafeAppend(v[:])
 }
 
+func (b *UUIDBuilder) AppendValueFromString(s string) error {
+	if s == array.NullValueStr {
+		b.AppendNull()
+		return nil
+	}
+	data, err := uuid.Parse(s)
+	if err != nil {
+		return err
+	}
+	b.Append(data)
+	return nil
+}
+
 func (b *UUIDBuilder) AppendValues(v []uuid.UUID, valid []bool) {
 	data := make([][]byte, len(v))
 	for i := range v {
@@ -137,7 +150,7 @@ func (a UUIDArray) String() string {
 	return o.String()
 }
 
-func (a *UUIDArray) ValueString(i int) string {
+func (a *UUIDArray) ValueStr(i int) string {
 	arr := a.Storage().(*array.FixedSizeBinary)
 	switch {
 	case a.IsNull(i):
