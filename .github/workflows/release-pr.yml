@@ -1,11 +1,11 @@
-name: release-please
+name: release-please-v1
 on:
   push:
     branches:
-      - main
+      - v1
 
 jobs:
-  release-please:
+  release-please-v1:
     runs-on: ubuntu-latest
     steps:
       - uses: google-github-actions/release-please-action@v3
@@ -15,6 +15,7 @@ jobs:
           package-name: plugin-sdk
           token: ${{ secrets.GH_CQ_BOT }}
           pull-request-title-pattern: "chore${scope}: Release${component} v${version}"
+          default-branch: v1
       - name: Parse semver string
         if: steps.release.outputs.release_created
         id: semver_parser
