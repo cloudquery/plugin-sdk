@@ -74,14 +74,6 @@ func NewClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (dest
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
-func (*client) ReverseTransformValues(_ *schema.Table, values []any) (schema.CQTypes, error) {
-	res := make(schema.CQTypes, len(values))
-	for i, v := range values {
-		res[i] = v.(schema.CQType)
-	}
-	return res, nil
-}
-
 func (c *client) overwrite(table *arrow.Schema, data arrow.Record) {
 	pksIndex := schema.PrimaryKeyIndices(table)
 	tableName := schema.TableName(table)
