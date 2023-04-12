@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.45.0](https://github.com/cloudquery/plugin-sdk/compare/v1.44.2...v1.45.0) (2023-04-12)
+
+
+### Features
+
+* **ci:** Set up releases for v1 ([#776](https://github.com/cloudquery/plugin-sdk/issues/776)) ([94cf217](https://github.com/cloudquery/plugin-sdk/commit/94cf217c5ea52ae2ae89cf2d901e3fa3bb378986))
+
+
+### Bug Fixes
+
+* Backport deterministic cq_id fix to v1 ([#775](https://github.com/cloudquery/plugin-sdk/issues/775)) ([0b54eab](https://github.com/cloudquery/plugin-sdk/commit/0b54eab881f8b561f4c774bf1d9a61ae5064ded2))
+
 ## [1.44.2](https://github.com/cloudquery/plugin-sdk/compare/v1.44.1...v1.44.2) (2023-04-04)
 
 
