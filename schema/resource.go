@@ -101,7 +101,7 @@ func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 		return r.storeCQID(uuid.New())
 	}
 	names := r.Table.PrimaryKeys()
-	if len(names) == 0 {
+	if len(names) == 0 || (len(names) == 1 && names[0] == CqIDColumn.Name) {
 		return r.storeCQID(uuid.New())
 	}
 	slices.Sort(names)
