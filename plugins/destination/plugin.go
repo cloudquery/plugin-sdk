@@ -53,7 +53,6 @@ func (*UnimplementedUnmanagedWriter) Metrics() Metrics {
 }
 
 type Client interface {
-	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Schemas) error
 	Read(ctx context.Context, table *arrow.Schema, sourceName string, res chan<- arrow.Record) error
 	ManagedWriter
