@@ -44,7 +44,7 @@ func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *arrow.Schem
 	panic("WriteTableBatch not implemented")
 }
 
-func (*UnimplementedUnmanagedWriter) Write(context.Context, schema.Tables, <-chan *ClientResource) error {
+func (*UnimplementedUnmanagedWriter) Write(context.Context, schema.Schemas, <-chan arrow.Record) error {
 	panic("Write not implemented")
 }
 
