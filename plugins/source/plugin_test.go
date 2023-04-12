@@ -18,7 +18,7 @@ type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
-var deterministicStableUUID = uuid.MustParse("c25c481db0f05865b6d8f07acab8515f")
+var deterministicStableUUID = uuid.MustParse("c25355aab52c5b70a4e0c9991f5a3b87")
 var randomStableUUID = uuid.MustParse("00000000000040008000000000000000")
 
 func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
@@ -48,6 +48,22 @@ func testTableSuccess() *schema.Table {
 			{
 				Name: "test_column",
 				Type: schema.TypeInt,
+			},
+		},
+	}
+}
+
+func testTableSuccessWithPK() *schema.Table {
+	return &schema.Table{
+		Name:     "test_table_success",
+		Resolver: testResolverSuccess,
+		Columns: []schema.Column{
+			{
+				Name: "test_column",
+				Type: schema.TypeInt,
+				CreationOptions: schema.ColumnCreationOptions{
+					PrimaryKey: true,
+				},
 			},
 		},
 	}
@@ -218,7 +234,7 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []schema.CQTypes{
 			{
-				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
 				&schema.UUID{Status: schema.Null},
 				&schema.Int8{Int: 3, Status: schema.Present},
 			},
@@ -239,7 +255,7 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []schema.CQTypes{
 			{
-				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
 				&schema.UUID{Status: schema.Null},
 				&schema.Int8{Int: 3, Status: schema.Present},
 				&schema.Int8{Status: schema.Undefined},
@@ -265,13 +281,33 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []schema.CQTypes{
 			{
-				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
 				&schema.UUID{Status: schema.Null},
 				&schema.Int8{Int: 3, Status: schema.Present},
 			},
 			{
+				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
+				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
+				&schema.Int8{Int: 3, Status: schema.Present},
+			},
+		},
+		deterministicCQID: true,
+	},
+	{
+		table: testTableSuccessWithPK(),
+		stats: Metrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
+				"test_table_success": {
+					"testExecutionClient": {
+						Resources: 1,
+					},
+				},
+			},
+		},
+		data: []schema.CQTypes{
+			{
 				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
-				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
+				&schema.UUID{Status: schema.Null},
 				&schema.Int8{Int: 3, Status: schema.Present},
 			},
 		},
