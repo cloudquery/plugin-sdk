@@ -135,7 +135,11 @@ func GenTestData(mem memory.Allocator, sc *arrow.Schema, opts GenTestDataOptions
 		nullRow := j%2 == 1
 		bldr := array.NewRecordBuilder(mem, sc)
 		for i, c := range sc.Fields() {
-			if nullRow && c.Nullable && c.Name != schema.CqSourceNameColumn.Name && c.Name != schema.CqSyncTimeColumn.Name {
+			if nullRow && c.Nullable &&
+				 c.Name != schema.CqSourceNameColumn.Name &&
+				 c.Name != schema.CqSyncTimeColumn.Name && 
+				 c.Name != schema.CqIDField.Name &&
+				 c.Name != schema.CqParentIDColumn.Name {
 				bldr.Field(i).AppendNull()
 				continue
 			}
