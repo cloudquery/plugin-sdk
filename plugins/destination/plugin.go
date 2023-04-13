@@ -44,7 +44,7 @@ func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *arrow.Schem
 	panic("WriteTableBatch not implemented")
 }
 
-func (*UnimplementedUnmanagedWriter) Write(context.Context, schema.Tables, <-chan *ClientResource) error {
+func (*UnimplementedUnmanagedWriter) Write(context.Context, schema.Schemas, <-chan arrow.Record) error {
 	panic("Write not implemented")
 }
 
@@ -53,7 +53,6 @@ func (*UnimplementedUnmanagedWriter) Metrics() Metrics {
 }
 
 type Client interface {
-	ReverseTransformValues(table *schema.Table, values []any) (schema.CQTypes, error)
 	Migrate(ctx context.Context, tables schema.Schemas) error
 	Read(ctx context.Context, table *arrow.Schema, sourceName string, res chan<- arrow.Record) error
 	ManagedWriter

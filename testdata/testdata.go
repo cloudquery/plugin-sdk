@@ -121,6 +121,8 @@ type GenTestDataOptions struct {
 	MaxRows int
 	// StableUUID is the UUID to use for all rows. If set to uuid.Nil, a new UUID will be generated
 	StableUUID uuid.UUID
+	// StableTime is the time to use for all rows other than sync time. If set to time.Time{}, a new time will be generated
+	StableTime time.Time
 }
 
 func GenTestData(mem memory.Allocator, sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
@@ -173,7 +175,11 @@ func GenTestData(mem memory.Allocator, sc *arrow.Schema, opts GenTestDataOptions
 				if c.Name == schema.CqSyncTimeColumn.Name {
 					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(opts.SyncTime.UTC().UnixMicro()))
 				} else {
-					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(time.Now().UTC().UnixMicro()))
+					t := time.Now()
+					if !opts.StableTime.IsZero() {
+						t = opts.StableTime
+					}
+					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(t.UTC().UnixMicro()))
 				}
 			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.JSON) {
 				bldr.Field(i).(*types.JSONBuilder).Append(map[string]interface{}{"test": "test"})

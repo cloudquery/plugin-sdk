@@ -77,7 +77,7 @@ func RecordDiff(l arrow.Record, r arrow.Record) string {
 	for i := 0; i < int(l.NumCols()); i++ {
 		edits, err := array.Diff(l.Column(i), r.Column(i))
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("left: %v, right: %v, error: %v", l.Column(i).DataType(), r.Column(i).DataType(), err))
 		}
 		diff := edits.UnifiedDiff(l.Column(i), r.Column(i))
 		if diff != "" {
