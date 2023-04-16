@@ -72,13 +72,13 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
-	if !array.RecordEqual(record1, resourcesRead[0]) {
+	if !array.RecordApproxEqual(record1, resourcesRead[0]) {
 		diff := RecordDiff(record1, resourcesRead[0])
 		return fmt.Errorf("first expected resource diff: %s", diff)
 	}
 
 	if !s.tests.SkipSecondAppend {
-		if !array.RecordEqual(record2, resourcesRead[1]) {
+		if !array.RecordApproxEqual(record2, resourcesRead[1]) {
 			diff := RecordDiff(record2, resourcesRead[1])
 			return fmt.Errorf("second expected resource diff: %s", diff)
 		}

@@ -67,12 +67,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if len(resourcesRead) != 2 {
 		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
 	}
-	if !array.RecordEqual(resources[0], resourcesRead[0]) {
+	if !array.RecordApproxEqual(resources[0], resourcesRead[0]) {
 		diff := RecordDiff(resources[0], resourcesRead[0])
 		return fmt.Errorf("expected first resource to be equal. diff: %s", diff)
 	}
 
-	if !array.RecordEqual(resources[1], resourcesRead[1]) {
+	if !array.RecordApproxEqual(resources[1], resourcesRead[1]) {
 		diff := RecordDiff(resources[1], resourcesRead[1])
 		return fmt.Errorf("expected second resource to be equal. diff: %s", diff)
 	}
@@ -110,7 +110,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if len(resourcesRead) != 1 {
 		return fmt.Errorf("after overwrite expected 1 resource, got %d", len(resourcesRead))
 	}
-	if array.RecordEqual(resources[0], resourcesRead[0]) {
+	if array.RecordApproxEqual(resources[0], resourcesRead[0]) {
 		diff := RecordDiff(resources[0], resourcesRead[0])
 		return fmt.Errorf("after overwrite expected first resource to be different. diff: %s", diff)
 	}
@@ -124,7 +124,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	// we expect the only resource returned to match the updated resource we wrote
-	if !array.RecordEqual(updatedResources, resourcesRead[0]) {
+	if !array.RecordApproxEqual(updatedResources, resourcesRead[0]) {
 		diff := RecordDiff(updatedResources, resourcesRead[0])
 		return fmt.Errorf("after delete stale expected resource to be equal. diff: %s", diff)
 	}

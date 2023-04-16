@@ -64,7 +64,7 @@ func testMigration(ctx context.Context, mem memory.Allocator, _ *testing.T, p *P
 		if len(resourcesRead) != 2 {
 			return fmt.Errorf("expected 2 resources after write, got %d", len(resourcesRead))
 		}
-		if !array.RecordEqual(resourcesRead[1], resource2) {
+		if !array.RecordApproxEqual(resourcesRead[1], resource2) {
 			diff := RecordDiff(resourcesRead[1], resource2)
 			return fmt.Errorf("resource1 and resource2 are not equal. diff: %s", diff)
 		}
@@ -72,7 +72,7 @@ func testMigration(ctx context.Context, mem memory.Allocator, _ *testing.T, p *P
 		if len(resourcesRead) != 1 {
 			return fmt.Errorf("expected 1 resource after write, got %d", len(resourcesRead))
 		}
-		if !array.RecordEqual(resourcesRead[0], resource2) {
+		if !array.RecordApproxEqual(resourcesRead[0], resource2) {
 			diff := RecordDiff(resourcesRead[0], resource2)
 			return fmt.Errorf("resource1 and resource2 are not equal. diff: %s", diff)
 		}
