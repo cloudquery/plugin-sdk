@@ -96,12 +96,9 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 		}
 	}
 	syncTime := r.Timestamp.AsTime()
-	schemas := make(schema.Schemas, 0)
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
-	for _, table := range tables {
-		schemas = append(schemas, table.ToArrowSchema())
-	}
+	schemas := tables.ToArrowSchemas()
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
 		return s.Plugin.Write(ctx, sourceSpec, schemas, syncTime, resources)
