@@ -20,6 +20,16 @@ func TestSourceTable(name string) *schema.Table {
 			schema.CqIDColumn,
 			schema.CqParentIDColumn,
 			{
+				Name:            "uuid_pk",
+				Type:            schema.TypeUUID,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+			},
+			{
+				Name:            "string_pk",
+				Type:            schema.TypeString,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+			},
+			{
 				Name: "bool",
 				Type: schema.TypeBool,
 			},
@@ -32,9 +42,8 @@ func TestSourceTable(name string) *schema.Table {
 				Type: schema.TypeFloat,
 			},
 			{
-				Name:            "uuid",
-				Type:            schema.TypeUUID,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Name: "uuid",
+				Type: schema.TypeUUID,
 			},
 			{
 				Name: "text",
