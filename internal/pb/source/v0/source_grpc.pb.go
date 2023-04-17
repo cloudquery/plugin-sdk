@@ -8,7 +8,7 @@ package source
 
 import (
 	context "context"
-	v0 "github.com/cloudquery/plugin-sdk/internal/pb/base/v0"
+	v0 "github.com/cloudquery/plugin-sdk/v2/internal/pb/base/v0"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"

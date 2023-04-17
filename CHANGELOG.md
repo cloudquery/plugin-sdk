@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0](https://github.com/cloudquery/plugin-sdk/compare/v2.0.1...v2.1.0) (2023-04-12)
+
+
+### Features
+
+* **destination:** Remove redundant `ReverseTransformValues` method ([#778](https://github.com/cloudquery/plugin-sdk/issues/778)) ([bea4d00](https://github.com/cloudquery/plugin-sdk/commit/bea4d00d6502a0a131abb2321685733af8de62c1))
+
+
+### Bug Fixes
+
+* **unimplemented:** Conform to the interface ([#777](https://github.com/cloudquery/plugin-sdk/issues/777)) ([3a155d4](https://github.com/cloudquery/plugin-sdk/commit/3a155d4997cd76fe4459c779eaaad0d9dc47f8c6))
+
+## [2.0.1](https://github.com/cloudquery/plugin-sdk/compare/v2.0.0...v2.0.1) (2023-04-11)
+
+
+### Bug Fixes
+
+* Update custom types with ValueStr and AppendFromValueString ([#772](https://github.com/cloudquery/plugin-sdk/issues/772)) ([166198e](https://github.com/cloudquery/plugin-sdk/commit/166198e8af595307adaa2ffe8577da5bde4fb1fa))
+
+## [2.0.0](https://github.com/cloudquery/plugin-sdk/compare/v1.44.2...v2.0.0) (2023-04-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* Arrow migration for destination
+
+### Features
+
+* Arrow migration for destination ([b39da64](https://github.com/cloudquery/plugin-sdk/commit/b39da6418115d7cf07902f7391de3565fcbbda0d))
+
+
+### Bug Fixes
+
+* **deps:** Update module golang.org/x/net to v0.9.0 ([#752](https://github.com/cloudquery/plugin-sdk/issues/752)) ([336a957](https://github.com/cloudquery/plugin-sdk/commit/336a957984ea12088a1783c2ce030dc148473287))
+* **deps:** Update module golang.org/x/sys to v0.7.0 ([#753](https://github.com/cloudquery/plugin-sdk/issues/753)) ([8d88a50](https://github.com/cloudquery/plugin-sdk/commit/8d88a50d6a47eafeeb35610b75e61b39110de42f))
+* **deps:** Update module golang.org/x/term to v0.7.0 ([#754](https://github.com/cloudquery/plugin-sdk/issues/754)) ([643d5e0](https://github.com/cloudquery/plugin-sdk/commit/643d5e0287ac62e497acfda46629a0bbfb03f5bf))
+* **deps:** Update module golang.org/x/text to v0.9.0 ([#755](https://github.com/cloudquery/plugin-sdk/issues/755)) ([92d3748](https://github.com/cloudquery/plugin-sdk/commit/92d3748d239829ac843df379d5ee903865fc0543))
+
 ## [1.44.2](https://github.com/cloudquery/plugin-sdk/compare/v1.44.1...v1.44.2) (2023-04-04)
 
 

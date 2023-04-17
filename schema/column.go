@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/apache/arrow/go/v12/arrow"
 )
 
 type ColumnList []Column
@@ -43,6 +45,10 @@ type Column struct {
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
 	IgnoreInTests bool `json:"-"`
+}
+
+func (c Column) ToArrowField() arrow.Field {
+	return CQColumnToArrowField(&c)
 }
 
 func (c Column) String() string {
