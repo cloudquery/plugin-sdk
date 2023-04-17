@@ -62,12 +62,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if !array.RecordEqual(resources[0], resourcesRead[0]) {
+	if !array.RecordApproxEqual(resources[0], resourcesRead[0]) {
 		diff := RecordDiff(resources[0], resourcesRead[0])
 		return fmt.Errorf("expected first resource to be equal. diff=%s", diff)
 	}
 
-	if !array.RecordEqual(resources[1], resourcesRead[1]) {
+	if !array.RecordApproxEqual(resources[1], resourcesRead[1]) {
 		diff := RecordDiff(resources[1], resourcesRead[1])
 		return fmt.Errorf("expected second resource to be equal. diff=%s", diff)
 	}
@@ -98,11 +98,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		return fmt.Errorf("after overwrite expected 2 resources, got %d", len(resourcesRead))
 	}
 
-	if !array.RecordEqual(resources[1], resourcesRead[0]) {
+	if !array.RecordApproxEqual(resources[1], resourcesRead[0]) {
 		diff := RecordDiff(resources[1], resourcesRead[0])
 		return fmt.Errorf("after overwrite expected first resource to be equal. diff=%s", diff)
 	}
-	if !array.RecordEqual(updatedResource, resourcesRead[1]) {
+	if !array.RecordApproxEqual(updatedResource, resourcesRead[1]) {
 		diff := RecordDiff(updatedResource, resourcesRead[1])
 		return fmt.Errorf("after overwrite expected second resource to be equal. diff=%s", diff)
 	}

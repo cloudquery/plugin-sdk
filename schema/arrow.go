@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	MetadataUnique      = "cq:extension:unique"
-	MetadataPrimaryKey  = "cq:extension:primary_key"
-	MetadataIncremental = "cq:extension:incremental"
+	MetadataUnique         = "cq:extension:unique"
+	MetadataPrimaryKey     = "cq:extension:primary_key"
+	MetadataConstraintName = "cq:extension:constraint_name"
+	MetadataIncremental    = "cq:extension:incremental"
 
 	MetadataTrue      = "true"
 	MetadataFalse     = "false"
