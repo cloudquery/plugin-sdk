@@ -215,14 +215,14 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 
 func sortRecordsBySyncTime(table *schema.Table, records []arrow.Record) {
 	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
-	cqIdIndex := table.Columns.Index(schema.CqIDColumn.Name)
+	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
 	sort.Slice(records, func(i, j int) bool {
 		// sort by sync time, then UUID
 		first := records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
 		second := records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
 		if first.Equal(second) {
-			firstUUID := records[i].Column(cqIdIndex).(*types.UUIDArray).Value(0).String()
-			secondUUID := records[j].Column(cqIdIndex).(*types.UUIDArray).Value(0).String()
+			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
+			secondUUID := records[j].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
 			return strings.Compare(firstUUID, secondUUID) < 0
 		}
 		return first.Before(second)
