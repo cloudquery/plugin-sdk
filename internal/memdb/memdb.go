@@ -18,7 +18,6 @@ import (
 
 // client is mostly used for testing the destination plugin.
 type client struct {
-	schema.DefaultTransformer
 	spec          specs.Destination
 	memoryDB      map[string][]arrow.Record
 	tables        map[string]*arrow.Schema
@@ -87,8 +86,10 @@ func (c *client) overwrite(table *arrow.Schema, data arrow.Record) {
 			}
 		}
 		if found {
+			tmp := c.memoryDB[tableName][i]
 			c.memoryDB[tableName] = append(c.memoryDB[tableName][:i], c.memoryDB[tableName][i+1:]...)
 			c.memoryDB[tableName] = append(c.memoryDB[tableName], data)
+			tmp.Release()
 			return
 		}
 	}
@@ -108,6 +109,11 @@ func (c *client) Migrate(_ context.Context, tables schema.Schemas) error {
 		// memdb doesn't support any auto-migrate
 		if changes == nil {
 			continue
+		}
+		for _, t := range c.memoryDB {
+			for _, row := range t {
+				row.Release()
+			}
 		}
 		c.memoryDB[tableName] = make([]arrow.Record, 0)
 		c.tables[tableName] = table
@@ -198,6 +204,11 @@ func (*client) Metrics() destination.Metrics {
 }
 
 func (c *client) Close(context.Context) error {
+	for _, table := range c.memoryDB {
+		for _, row := range table {
+			row.Release()
+		}
+	}
 	c.memoryDB = nil
 	return nil
 }
@@ -219,6 +230,8 @@ func (c *client) deleteStaleTable(_ context.Context, table *arrow.Schema, source
 			rowSyncTime := row.Column(syncColIndex).(*array.Timestamp).Value(0).ToTime(arrow.Microsecond).UTC()
 			if !rowSyncTime.Before(syncTime) {
 				filteredTable = append(filteredTable, c.memoryDB[tableName][i])
+			} else {
+				c.memoryDB[tableName][i].Release()
 			}
 		}
 	}
