@@ -142,7 +142,6 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tab
 		if _, ok := workers[tableName]; !ok {
 			return fmt.Errorf("table %s not found in destination", tableName)
 		}
-		r.Retain()
 		workers[tableName].ch <- r
 	}
 

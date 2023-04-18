@@ -138,7 +138,6 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			origResource.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, origResource.Data...)
 		}
 		convertedResource := schema.CQTypesToRecord(memory.DefaultAllocator, []schema.CQTypes{origResource.Data}, schema.CQSchemaToArrow(tables.Get(origResource.TableName)))
-		convertedResource.Retain()
 		select {
 		case resources <- convertedResource:
 		case <-ctx.Done():
