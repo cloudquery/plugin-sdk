@@ -90,8 +90,7 @@ func (*Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Recor
 		}
 		key := pk.String(r)
 		_, ok := pks[key]
-		switch {
-		case !ok:
+		if !ok {
 			pks[key] = struct{}{}
 			res = append(res, r)
 			continue
