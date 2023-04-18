@@ -138,9 +138,11 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			origResource.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, origResource.Data...)
 		}
 		convertedResource := schema.CQTypesToRecord(memory.DefaultAllocator, []schema.CQTypes{origResource.Data}, schema.CQSchemaToArrow(tables.Get(origResource.TableName)))
+		convertedResource.Retain()
 		select {
 		case resources <- convertedResource:
 		case <-ctx.Done():
+			convertedResource.Release()
 			close(resources)
 			if err := eg.Wait(); err != nil {
 				return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v", ctx.Err(), err)

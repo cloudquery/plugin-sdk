@@ -48,9 +48,6 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	incResources := testdata.GenTestData(mem, incTable.ToArrowSchema(), opts)
 	allResources := resources
 	allResources = append(allResources, incResources...)
-	for _, r := range allResources {
-		r.Retain()
-	}
 	defer func() {
 		for _, r := range allResources {
 			r.Release()
@@ -99,7 +96,6 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		MaxRows:    1,
 	}
 	updatedResources := testdata.GenTestData(mem, table.ToArrowSchema(), opts)[0]
-	updatedResources.Retain()
 	defer updatedResources.Release()
 
 	if err := p.writeOne(ctx, sourceSpec, secondSyncTime, updatedResources); err != nil {
