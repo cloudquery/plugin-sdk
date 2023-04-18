@@ -165,6 +165,7 @@ func SetDestinationManagedCqColumns(tables []*schema.Table) {
 		for i := range table.Columns {
 			if table.Columns[i].Name == schema.CqIDColumn.Name {
 				table.Columns[i].CreationOptions.Unique = true
+				table.Columns[i].CreationOptions.NotNull = true
 			}
 		}
 		table.OverwriteOrAddColumn(&schema.CqSyncTimeColumn)
