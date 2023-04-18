@@ -118,7 +118,7 @@ spec:
   path: cloudquery/test
   version: v1.1.0
 `,
-		`tables configuration is required. Hint: try setting tables to ["*"] to sync all tables`,
+		"tables configuration is required. Hint: try setting tables to [\"*\"] to sync all tables or use `cloudquery tables` to list available tables",
 		nil,
 	},
 	{
