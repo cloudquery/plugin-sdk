@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2](https://github.com/cloudquery/plugin-sdk/compare/v2.2.1...v2.2.2) (2023-04-17)
+
+
+### Bug Fixes
+
+* Destination testing memory leak ([#788](https://github.com/cloudquery/plugin-sdk/issues/788)) ([c17b64d](https://github.com/cloudquery/plugin-sdk/commit/c17b64dade247d794bd191075518eeba30d03a96))
+
+## [2.2.1](https://github.com/cloudquery/plugin-sdk/compare/v2.2.0...v2.2.1) (2023-04-17)
+
+
+### Bug Fixes
+
+* Make cq_id unique for backward compat ([#786](https://github.com/cloudquery/plugin-sdk/issues/786)) ([ad25ded](https://github.com/cloudquery/plugin-sdk/commit/ad25dedf81d0fb8538cd34dd0998627887ad5300))
+
 ## [2.2.0](https://github.com/cloudquery/plugin-sdk/compare/v2.1.0...v2.2.0) (2023-04-17)
 
 

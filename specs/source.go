@@ -64,9 +64,6 @@ func (s *Source) SetDefaults() {
 	if s.Scheduler.String() == "" {
 		s.Scheduler = SchedulerDFS
 	}
-	if s.Tables == nil {
-		s.Tables = []string{"*"}
-	}
 
 	if s.TableConcurrency != 0 || s.ResourceConcurrency != 0 {
 		// attempt to make a sensible backwards-compatible choice, but the CLI

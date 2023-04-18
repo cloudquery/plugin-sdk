@@ -162,6 +162,11 @@ func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 // Overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
 func SetDestinationManagedCqColumns(tables []*schema.Table) {
 	for _, table := range tables {
+		for i := range table.Columns {
+			if table.Columns[i].Name == schema.CqIDColumn.Name {
+				table.Columns[i].CreationOptions.Unique = true
+			}
+		}
 		table.OverwriteOrAddColumn(&schema.CqSyncTimeColumn)
 		table.OverwriteOrAddColumn(&schema.CqSourceNameColumn)
 		SetDestinationManagedCqColumns(table.Relations)

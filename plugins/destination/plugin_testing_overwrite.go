@@ -42,6 +42,9 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		MaxRows:    2,
 	}
 	resources := testdata.GenTestData(mem, schema.CQSchemaToArrow(table), opts)
+	for _, r := range resources {
+		r.Retain()
+	}
 	defer func() {
 		for _, r := range resources {
 			r.Release()
@@ -83,6 +86,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		StableUUID: *u,
 	}
 	updatedResource := testdata.GenTestData(mem, schema.CQSchemaToArrow(table), opts)[0]
+	updatedResource.Retain()
 	defer updatedResource.Release()
 	// write second time
 	if err := p.writeOne(ctx, sourceSpec, secondSyncTime, updatedResource); err != nil {

@@ -42,6 +42,7 @@ func testMigration(ctx context.Context, mem memory.Allocator, _ *testing.T, p *P
 		MaxRows:    1,
 	}
 	resource1 := testdata.GenTestData(mem, source, opts)[0]
+	resource1.Retain()
 	defer resource1.Release()
 	if err := p.writeOne(ctx, sourceSpec, syncTime, resource1); err != nil {
 		return fmt.Errorf("failed to write one: %w", err)
@@ -51,6 +52,7 @@ func testMigration(ctx context.Context, mem memory.Allocator, _ *testing.T, p *P
 		return fmt.Errorf("failed to migrate existing table: %w", err)
 	}
 	resource2 := testdata.GenTestData(mem, target, opts)[0]
+	resource2.Retain()
 	defer resource2.Release()
 	if err := p.writeOne(ctx, sourceSpec, syncTime, resource2); err != nil {
 		return fmt.Errorf("failed to write one after migration: %w", err)
