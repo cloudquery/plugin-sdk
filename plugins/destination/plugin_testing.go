@@ -14,6 +14,7 @@ import (
 	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v2/types"
 	"github.com/rs/zerolog"
 )
 
@@ -214,8 +215,16 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 
 func sortRecordsBySyncTime(table *schema.Table, records []arrow.Record) {
 	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
+	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
 	sort.Slice(records, func(i, j int) bool {
 		// sort by sync time, then UUID
-		return records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond).Before(records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond))
+		first := records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
+		second := records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
+		if first.Equal(second) {
+			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
+			secondUUID := records[j].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
+			return strings.Compare(firstUUID, secondUUID) < 0
+		}
+		return first.Before(second)
 	})
 }
