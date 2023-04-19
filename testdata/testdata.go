@@ -186,13 +186,13 @@ func GenTestData(mem memory.Allocator, sc *arrow.Schema, opts GenTestDataOptions
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(2)
 			} else if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Timestamp_us) {
 				if c.Name == schema.CqSyncTimeColumn.Name {
-					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(opts.SyncTime.UTC().UnixMicro()))
+					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(opts.SyncTime.UTC().Truncate(time.Millisecond).UnixMicro()))
 				} else {
 					t := time.Now()
 					if !opts.StableTime.IsZero() {
 						t = opts.StableTime
 					}
-					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(t.UTC().UnixMicro()))
+					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(t.UTC().Truncate(time.Millisecond).UnixMicro()))
 				}
 			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.JSON) {
 				bldr.Field(i).(*types.JSONBuilder).Append(map[string]interface{}{"test": "test"})
