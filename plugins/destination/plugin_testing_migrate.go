@@ -62,6 +62,9 @@ func testMigration(ctx context.Context, mem memory.Allocator, _ *testing.T, p *P
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
+
+	sortRecordsBySyncTimeArrow(source, resourcesRead)
+
 	if mode == specs.MigrateModeSafe {
 		if len(resourcesRead) != 2 {
 			return fmt.Errorf("expected 2 resources after write, got %d", len(resourcesRead))
