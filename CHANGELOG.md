@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.5](https://github.com/cloudquery/plugin-sdk/compare/v2.3.4...v2.3.5) (2023-04-19)
+
+
+### Bug Fixes
+
+* Truncate timestamp to millisecond in dest testing ([#806](https://github.com/cloudquery/plugin-sdk/issues/806)) ([eb8b7c4](https://github.com/cloudquery/plugin-sdk/commit/eb8b7c49cf788ebb8702d48cf22e75c6b56b8856))
+
 ## [2.3.4](https://github.com/cloudquery/plugin-sdk/compare/v2.3.3...v2.3.4) (2023-04-19)
 
 
