@@ -247,7 +247,7 @@ func GenTestData(mem memory.Allocator, sc *arrow.Schema, opts GenTestDataOptions
 }
 
 // GenTestDataV1 does approximately the same job as GenTestData, however, it's intended for simpler use-cases.
-// Deprecated. Will be removed in future release.
+// Deprecated: Will be removed in future release.
 func GenTestDataV1(table *schema.Table) schema.CQTypes {
 	data := make(schema.CQTypes, len(table.Columns))
 	for i, c := range table.Columns {
