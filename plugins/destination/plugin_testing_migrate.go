@@ -51,6 +51,9 @@ func testMigration(ctx context.Context, mem memory.Allocator, _ *testing.T, p *P
 	if err := p.Migrate(ctx, []*arrow.Schema{target}); err != nil {
 		return fmt.Errorf("failed to migrate existing table: %w", err)
 	}
+
+	opts.SyncTime = syncTime.Add(time.Second) // resource2 should come after resource1
+
 	resource2 := testdata.GenTestData(mem, target, opts)[0]
 	resource2.Retain()
 	defer resource2.Release()

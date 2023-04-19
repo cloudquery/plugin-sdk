@@ -237,6 +237,7 @@ func sortRecordsBySyncTimeIndex(syncTimeIndex, cqIDIndex int, records []arrow.Re
 		first := records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
 		second := records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
 		if first.Equal(second) {
+			// Since our cq_id UUIDs are version 4 (completely random, no time-component UUID) this is only a stable tie-breaker
 			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
 			secondUUID := records[j].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
 			return strings.Compare(firstUUID, secondUUID) < 0
