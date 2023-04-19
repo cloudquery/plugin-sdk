@@ -220,7 +220,6 @@ func (p *Plugin) writeOne(ctx context.Context, sourceSpec specs.Source, syncTime
 func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, syncTime time.Time, resources []arrow.Record) error {
 	ch := make(chan arrow.Record, len(resources))
 	for _, resource := range resources {
-		resource.Retain()
 		ch <- resource
 	}
 	close(ch)
