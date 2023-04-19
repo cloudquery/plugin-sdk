@@ -57,6 +57,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		if err := p.writeOne(ctx, specSource, secondSyncTime, record2); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
+	} else {
+		record2.Release()
 	}
 
 	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
