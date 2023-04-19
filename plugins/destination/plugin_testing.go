@@ -234,8 +234,10 @@ func sortRecordsBySyncTimeArrow(s *arrow.Schema, records []arrow.Record) {
 func sortRecordsBySyncTimeIndex(syncTimeIndex, cqIDIndex int, records []arrow.Record) {
 	sort.Slice(records, func(i, j int) bool {
 		// sort by sync time, then UUID
-		first := records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
-		second := records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
+		t1 := records[i].Column(syncTimeIndex).(*array.Timestamp)
+		t2 := records[j].Column(syncTimeIndex).(*array.Timestamp)
+		first := t1.Value(0).ToTime(t1.DataType().(*arrow.TimestampType).Unit)
+		second := t2.Value(0).ToTime(t2.DataType().(*arrow.TimestampType).Unit)
 		if first.Equal(second) {
 			// Since our cq_id UUIDs are version 4 (completely random, no time-component UUID) this is only a stable tie-breaker
 			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
