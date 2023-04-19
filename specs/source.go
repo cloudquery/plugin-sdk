@@ -114,7 +114,7 @@ func (s *Source) Validate() error {
 	}
 
 	if len(s.Tables) == 0 {
-		return fmt.Errorf("tables configuration is required. Hint: try setting tables to [\"*\"] to sync all tables or use `cloudquery tables` to list available tables")
+		return fmt.Errorf("tables configuration is required. Hint: set the tables you want to sync by adding `tables: [...]` or use `cloudquery tables` to list available tables")
 	}
 
 	if s.Registry == RegistryGithub {
