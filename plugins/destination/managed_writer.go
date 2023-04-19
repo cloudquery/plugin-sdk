@@ -70,9 +70,6 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *arrow.Schem
 		p.logger.Info().Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 		atomic.AddUint64(&metrics.Writes, uint64(batchSize))
 	}
-	for _, r := range resources {
-		r.Release()
-	}
 }
 
 func (*Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Record) []arrow.Record {
@@ -95,7 +92,7 @@ func (*Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Recor
 			res = append(res, r)
 			continue
 		}
-		// duplicate, release early
+		// duplicate, release
 		r.Release()
 	}
 
