@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.2](https://github.com/cloudquery/plugin-sdk/compare/v2.3.1...v2.3.2) (2023-04-19)
+
+
+### Bug Fixes
+
+* Arrow Retain and Release fixes ([#795](https://github.com/cloudquery/plugin-sdk/issues/795)) ([a893db6](https://github.com/cloudquery/plugin-sdk/commit/a893db675c5f4bb8cab71a854014c65caa43d3e3))
+* Disallow null character in strings per utf8 spec ([#797](https://github.com/cloudquery/plugin-sdk/issues/797)) ([591502f](https://github.com/cloudquery/plugin-sdk/commit/591502f51ea99ca852b307616e60ab665b231440))
+
 ## [2.3.1](https://github.com/cloudquery/plugin-sdk/compare/v2.3.0...v2.3.1) (2023-04-18)
 
 
