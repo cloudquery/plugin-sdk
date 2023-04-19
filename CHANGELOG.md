@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.6](https://github.com/cloudquery/plugin-sdk/compare/v2.3.5...v2.3.6) (2023-04-19)
+
+
+### Bug Fixes
+
+* Release resource on SkipSecondAppend ([#808](https://github.com/cloudquery/plugin-sdk/issues/808)) ([6f19c2d](https://github.com/cloudquery/plugin-sdk/commit/6f19c2d69f33b9983ffe4c201058db33e97a4e13))
+* **testdata:** Add old style gen testdata ([#811](https://github.com/cloudquery/plugin-sdk/issues/811)) ([494992b](https://github.com/cloudquery/plugin-sdk/commit/494992b267b3c145e63e1c97912d56bcc50da13f))
+
 ## [2.3.5](https://github.com/cloudquery/plugin-sdk/compare/v2.3.4...v2.3.5) (2023-04-19)
 
 
