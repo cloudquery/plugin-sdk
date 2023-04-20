@@ -134,7 +134,7 @@ type GenTestDataOptions struct {
 	StableTime time.Time
 }
 
-func GenTestData(mem memory.Allocator, sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
+func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 	var records []arrow.Record
 	for j := 0; j < opts.MaxRows; j++ {
 		u := uuid.New()
@@ -142,7 +142,7 @@ func GenTestData(mem memory.Allocator, sc *arrow.Schema, opts GenTestDataOptions
 			u = opts.StableUUID
 		}
 		nullRow := j%2 == 1
-		bldr := array.NewRecordBuilder(mem, sc)
+		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		for i, c := range sc.Fields() {
 			if nullRow && c.Nullable && !schema.IsPk(c) &&
 				c.Name != schema.CqSourceNameColumn.Name &&
