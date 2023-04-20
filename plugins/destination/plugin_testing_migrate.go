@@ -48,6 +48,7 @@ func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.
 	if err := p.Migrate(ctx, []*arrow.Schema{target}); err != nil {
 		return fmt.Errorf("failed to migrate existing table: %w", err)
 	}
+	opts.SyncTime = syncTime.Add(time.Second).UTC()
 	resource2 := testdata.GenTestData(target, opts)[0]
 	if err := p.writeOne(ctx, sourceSpec, syncTime, resource2); err != nil {
 		return fmt.Errorf("failed to write one after migration: %w", err)
@@ -57,6 +58,7 @@ func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
+	sortRecordsBySyncTime(target, resourcesRead)
 	if mode == specs.MigrateModeSafe {
 		if len(resourcesRead) != 2 {
 			return fmt.Errorf("expected 2 resources after write, got %d", len(resourcesRead))

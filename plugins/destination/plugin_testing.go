@@ -198,9 +198,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 	})
 }
 
-func sortRecordsBySyncTime(table *schema.Table, records []arrow.Record) {
-	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
-	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
+func sortRecordsBySyncTime(table *arrow.Schema, records []arrow.Record) {
+	syncTimeIndex := table.FieldIndices(schema.CqSyncTimeColumn.Name)[0]
+	cqIDIndex := table.FieldIndices(schema.CqIDColumn.Name)[0]
 	sort.Slice(records, func(i, j int) bool {
 		// sort by sync time, then UUID
 		first := records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)

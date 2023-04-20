@@ -20,13 +20,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := testdata.TestTable(tableName)
-	incTable := testdata.TestTable(tableName + "_incremental")
-	incTable.IsIncremental = true
+	table := testdata.TestTable(tableName).ToArrowSchema()
+	incTable := testdata.TestTableIncremental(tableName + "_incremental").ToArrowSchema()
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*arrow.Schema{
-		table.ToArrowSchema(),
-		incTable.ToArrowSchema(),
+		table,
+		incTable,
 	}
 	if err := p.Migrate(ctx, tables); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
@@ -43,8 +42,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		SyncTime:   syncTime,
 		MaxRows:    2,
 	}
-	resources := testdata.GenTestData(table.ToArrowSchema(), opts)
-	incResources := testdata.GenTestData(incTable.ToArrowSchema(), opts)
+	resources := testdata.GenTestData(table, opts)
+	incResources := testdata.GenTestData(incTable, opts)
 	allResources := resources
 	allResources = append(allResources, incResources...)
 	if err := p.writeAll(ctx, sourceSpec, syncTime, allResources); err != nil {
@@ -52,7 +51,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 	sortRecordsBySyncTime(table, resources)
 
-	resourcesRead, err := p.readAll(ctx, table.ToArrowSchema(), sourceName)
+	resourcesRead, err := p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
@@ -72,7 +71,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	// read from incremental table
-	resourcesRead, err = p.readAll(ctx, incTable.ToArrowSchema(), sourceName)
+	resourcesRead, err = p.readAll(ctx, incTable, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
@@ -89,13 +88,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		StableUUID: *u,
 		MaxRows:    1,
 	}
-	updatedResources := testdata.GenTestData(table.ToArrowSchema(), opts)[0]
+	updatedResources := testdata.GenTestData(table, opts)[0]
 
 	if err := p.writeOne(ctx, sourceSpec, secondSyncTime, updatedResources); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
-	resourcesRead, err = p.readAll(ctx, table.ToArrowSchema(), sourceName)
+	resourcesRead, err = p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}

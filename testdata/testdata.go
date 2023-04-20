@@ -2,6 +2,8 @@ package testdata
 
 import (
 	"net"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow"
@@ -107,6 +109,12 @@ func TestSourceTable(name string) *schema.Table {
 			},
 		},
 	}
+}
+
+func TestTableIncremental(name string) *schema.Table {
+	t := TestTable(name)
+	t.IsIncremental = true
+	return t
 }
 
 // TestTable returns a table with columns of all type. useful for destination testing purposes
@@ -242,6 +250,14 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 		}
 		records = append(records, bldr.NewRecord())
 		bldr.Release()
+	}
+	if indices := sc.FieldIndices(schema.CqIDColumn.Name); len(indices) > 0 {
+		cqIDIndex := indices[0]
+		sort.Slice(records, func(i, j int) bool {
+			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
+			secondUUID := records[j].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
+			return strings.Compare(firstUUID, secondUUID) < 0
+		})
 	}
 	return records
 }
