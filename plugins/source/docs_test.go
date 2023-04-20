@@ -103,6 +103,8 @@ var testTables = []*schema.Table{
 func TestGeneratePluginDocs(t *testing.T) {
 	p := NewPlugin("test", "v1.0.0", testTables, newTestExecutionClient)
 
+	cup := cupaloy.New(cupaloy.SnapshotSubdirectory("testdata"))
+
 	t.Run("Markdown", func(t *testing.T) {
 		tmpdir := t.TempDir()
 
@@ -117,7 +119,7 @@ func TestGeneratePluginDocs(t *testing.T) {
 				output := path.Join(tmpdir, exp)
 				got, err := os.ReadFile(output)
 				require.NoError(t, err)
-				cupaloy.SnapshotT(t, got)
+				cup.SnapshotT(t, got)
 			})
 		}
 	})
@@ -136,7 +138,7 @@ func TestGeneratePluginDocs(t *testing.T) {
 				output := path.Join(tmpdir, exp)
 				got, err := os.ReadFile(output)
 				require.NoError(t, err)
-				cupaloy.SnapshotT(t, got)
+				cup.SnapshotT(t, got)
 			})
 		}
 	})
