@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.7](https://github.com/cloudquery/plugin-sdk/compare/v2.3.6...v2.3.7) (2023-04-20)
+
+
+### Bug Fixes
+
+* Use Go memory allocator for arrow ([#810](https://github.com/cloudquery/plugin-sdk/issues/810)) ([b54e5e1](https://github.com/cloudquery/plugin-sdk/commit/b54e5e16378de6dc08d6782769f1779acb92804e))
+
 ## [2.3.6](https://github.com/cloudquery/plugin-sdk/compare/v2.3.5...v2.3.6) (2023-04-19)
 
 
