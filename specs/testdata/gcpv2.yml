@@ -5,3 +5,4 @@ spec:
   version: v1.0.1
   table_concurrency: 10
   destinations: [postgresqlv2]
+  tables: [test]

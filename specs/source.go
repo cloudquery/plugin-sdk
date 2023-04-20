@@ -113,6 +113,10 @@ func (s *Source) Validate() error {
 		return fmt.Errorf(msg)
 	}
 
+	if len(s.Tables) == 0 {
+		return fmt.Errorf("tables configuration is required. Hint: set the tables you want to sync by adding `tables: [...]` or use `cloudquery tables` to list available tables")
+	}
+
 	if s.Registry == RegistryGithub {
 		if s.Version == "" {
 			return fmt.Errorf("version is required")

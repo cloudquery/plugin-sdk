@@ -4,6 +4,7 @@ spec:
   version: v4.6.1
   destinations: [postgresql]
   path: cloudquery/aws
+  tables: [test]
 ---
 kind: source
 spec:
@@ -11,6 +12,7 @@ spec:
   version: v1.3.3
   destinations: [postgresql]
   path: cloudquery/azure
+  tables: [test]
 ---
 kind: destination
 spec:
