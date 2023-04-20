@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.8](https://github.com/cloudquery/plugin-sdk/compare/v2.3.7...v2.3.8) (2023-04-20)
+
+
+### Bug Fixes
+
+* Fail on empty tables ([#796](https://github.com/cloudquery/plugin-sdk/issues/796)) ([1320d32](https://github.com/cloudquery/plugin-sdk/commit/1320d32b5a2e6ea7b6bacb0b597caf45c3f26b1e))
+* **testing:** Add sorting for testing dest migrations ([#814](https://github.com/cloudquery/plugin-sdk/issues/814)) ([b1437f1](https://github.com/cloudquery/plugin-sdk/commit/b1437f1fd7a67253f6d1fc68bbb713fedbbb91c2))
+
 ## [2.3.7](https://github.com/cloudquery/plugin-sdk/compare/v2.3.6...v2.3.7) (2023-04-20)
 
 
