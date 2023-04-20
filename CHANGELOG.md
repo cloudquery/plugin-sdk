@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.7](https://github.com/cloudquery/plugin-sdk/compare/v2.3.6...v2.3.7) (2023-04-20)
+
+
+### Bug Fixes
+
+* Use Go memory allocator for arrow ([#810](https://github.com/cloudquery/plugin-sdk/issues/810)) ([b54e5e1](https://github.com/cloudquery/plugin-sdk/commit/b54e5e16378de6dc08d6782769f1779acb92804e))
+
+## [2.3.6](https://github.com/cloudquery/plugin-sdk/compare/v2.3.5...v2.3.6) (2023-04-19)
+
+
+### Bug Fixes
+
+* Release resource on SkipSecondAppend ([#808](https://github.com/cloudquery/plugin-sdk/issues/808)) ([6f19c2d](https://github.com/cloudquery/plugin-sdk/commit/6f19c2d69f33b9983ffe4c201058db33e97a4e13))
+* **testdata:** Add old style gen testdata ([#811](https://github.com/cloudquery/plugin-sdk/issues/811)) ([494992b](https://github.com/cloudquery/plugin-sdk/commit/494992b267b3c145e63e1c97912d56bcc50da13f))
+
+## [2.3.5](https://github.com/cloudquery/plugin-sdk/compare/v2.3.4...v2.3.5) (2023-04-19)
+
+
+### Bug Fixes
+
+* Truncate timestamp to millisecond in dest testing ([#806](https://github.com/cloudquery/plugin-sdk/issues/806)) ([eb8b7c4](https://github.com/cloudquery/plugin-sdk/commit/eb8b7c49cf788ebb8702d48cf22e75c6b56b8856))
+
+## [2.3.4](https://github.com/cloudquery/plugin-sdk/compare/v2.3.3...v2.3.4) (2023-04-19)
+
+
+### Bug Fixes
+
+* Undo release of all resources in managed writer ([#801](https://github.com/cloudquery/plugin-sdk/issues/801)) ([d586be0](https://github.com/cloudquery/plugin-sdk/commit/d586be077b099fa6d00e405a3b6c0bd655c1b40c))
+
+## [2.3.3](https://github.com/cloudquery/plugin-sdk/compare/v2.3.2...v2.3.3) (2023-04-19)
+
+
+### Bug Fixes
+
+* Make cq_id non required on destination ([#799](https://github.com/cloudquery/plugin-sdk/issues/799)) ([7f33b8d](https://github.com/cloudquery/plugin-sdk/commit/7f33b8df0e283fb8db5e70744a9964671f6b53d4))
+
+## [2.3.2](https://github.com/cloudquery/plugin-sdk/compare/v2.3.1...v2.3.2) (2023-04-19)
+
+
+### Bug Fixes
+
+* Arrow Retain and Release fixes ([#795](https://github.com/cloudquery/plugin-sdk/issues/795)) ([a893db6](https://github.com/cloudquery/plugin-sdk/commit/a893db675c5f4bb8cab71a854014c65caa43d3e3))
+* Disallow null character in strings per utf8 spec ([#797](https://github.com/cloudquery/plugin-sdk/issues/797)) ([591502f](https://github.com/cloudquery/plugin-sdk/commit/591502f51ea99ca852b307616e60ab665b231440))
+
 ## [2.3.1](https://github.com/cloudquery/plugin-sdk/compare/v2.3.0...v2.3.1) (2023-04-18)
 
 

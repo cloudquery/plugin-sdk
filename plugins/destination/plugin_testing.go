@@ -11,7 +11,6 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/cloudquery/plugin-sdk/v2/types"
@@ -116,11 +115,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipOverwrite {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.Name = "test_write_overwrite"
 		p := newPlugin()
-		if err := suite.destinationPluginTestWriteOverwrite(ctx, mem, p, logger, destSpec); err != nil {
+		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -133,11 +130,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipOverwrite || suite.tests.SkipDeleteStale {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.Name = "test_write_overwrite_delete_stale"
 		p := newPlugin()
-		if err := suite.destinationPluginTestWriteOverwriteDeleteStale(ctx, mem, p, logger, destSpec); err != nil {
+		if err := suite.destinationPluginTestWriteOverwriteDeleteStale(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -150,11 +145,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipMigrateOverwrite {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.WriteMode = specs.WriteModeOverwrite
 		destSpec.Name = "test_migrate_overwrite"
-		suite.destinationPluginTestMigrate(ctx, mem, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
 	})
 
 	t.Run("TestMigrateOverwriteForce", func(t *testing.T) {
@@ -162,12 +155,10 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipMigrateOverwriteForce {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.WriteMode = specs.WriteModeOverwrite
 		destSpec.MigrateMode = specs.MigrateModeForced
 		destSpec.Name = "test_migrate_overwrite_force"
-		suite.destinationPluginTestMigrate(ctx, mem, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
 	})
 
 	t.Run("TestWriteAppend", func(t *testing.T) {
@@ -175,11 +166,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipAppend {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.Name = "test_write_append"
 		p := newPlugin()
-		if err := suite.destinationPluginTestWriteAppend(ctx, mem, p, logger, destSpec); err != nil {
+		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec); err != nil {
 			t.Fatal(err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -189,14 +178,12 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 
 	t.Run("TestMigrateAppend", func(t *testing.T) {
 		t.Helper()
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		if suite.tests.SkipMigrateAppend {
 			t.Skip("skipping " + t.Name())
 		}
 		destSpec.WriteMode = specs.WriteModeAppend
 		destSpec.Name = "test_migrate_append"
-		suite.destinationPluginTestMigrate(ctx, mem, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
 	})
 
 	t.Run("TestMigrateAppendForce", func(t *testing.T) {
@@ -204,12 +191,10 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipMigrateAppendForce {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.WriteMode = specs.WriteModeAppend
 		destSpec.MigrateMode = specs.MigrateModeForced
 		destSpec.Name = "test_migrate_append_force"
-		suite.destinationPluginTestMigrate(ctx, mem, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
 	})
 }
 

@@ -285,16 +285,15 @@ func checkDestinationColumns(schemas schema.Schemas) error {
 		if !sc.HasField(schema.CqSyncTimeColumn.Name) {
 			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", schema.TableName(sc), schema.CqSourceNameField.Name)
 		}
-		if !sc.HasField(schema.CqIDColumn.Name) {
-			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
-		}
-		fields, _ := sc.FieldsByName(schema.CqIDColumn.Name)
-		cqID := fields[0]
-		if cqID.Nullable {
-			return fmt.Errorf("column %s.%s cannot be nullable. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
-		}
-		if !schema.IsUnique(cqID) {
-			return fmt.Errorf("column %s.%s must be unique. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
+		fields, ok := sc.FieldsByName(schema.CqIDColumn.Name)
+		if ok {
+			cqID := fields[0]
+			if cqID.Nullable {
+				return fmt.Errorf("column %s.%s cannot be nullable. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
+			}
+			if !schema.IsUnique(cqID) {
+				return fmt.Errorf("column %s.%s must be unique. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
+			}
 		}
 	}
 	return nil

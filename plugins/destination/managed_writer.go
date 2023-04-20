@@ -81,18 +81,19 @@ func (*Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Recor
 
 	pks := make(map[string]struct{}, len(resources))
 	res := make([]arrow.Record, 0, len(resources))
-	var reported bool
 	for _, r := range resources {
+		if r.NumRows() > 1 {
+			panic(fmt.Sprintf("record with more than 1 row: %d", r.NumRows()))
+		}
 		key := pk.String(r)
 		_, ok := pks[key]
-		switch {
-		case !ok:
+		if !ok {
 			pks[key] = struct{}{}
 			res = append(res, r)
 			continue
-		case reported:
-			continue
 		}
+		// duplicate, release
+		r.Release()
 	}
 
 	return res
