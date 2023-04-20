@@ -141,6 +141,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 		select {
 		case resources <- convertedResource:
 		case <-ctx.Done():
+			convertedResource.Release()
 			close(resources)
 			if err := eg.Wait(); err != nil {
 				return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
@@ -162,6 +163,12 @@ func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 // Overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
 func SetDestinationManagedCqColumns(tables []*schema.Table) {
 	for _, table := range tables {
+		for i := range table.Columns {
+			if table.Columns[i].Name == schema.CqIDColumn.Name {
+				table.Columns[i].CreationOptions.Unique = true
+				table.Columns[i].CreationOptions.NotNull = true
+			}
+		}
 		table.OverwriteOrAddColumn(&schema.CqSyncTimeColumn)
 		table.OverwriteOrAddColumn(&schema.CqSourceNameColumn)
 		SetDestinationManagedCqColumns(table.Relations)

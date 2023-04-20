@@ -93,6 +93,7 @@ spec:
 spec:
   name: test
   path: cloudquery/test
+  tables: ["test"]
 `,
 		"version is required",
 		nil,
@@ -104,8 +105,20 @@ spec:
   name: test
   path: cloudquery/test
   version: 1.1.0
+  tables: ["test"]
 `,
 		"version must start with v",
+		nil,
+	},
+	{
+		"tables_required",
+		`kind: source
+spec:
+  name: test
+  path: cloudquery/test
+  version: v1.1.0
+`,
+		"tables configuration is required. Hint: set the tables you want to sync by adding `tables: [...]` or use `cloudquery tables` to list available tables",
 		nil,
 	},
 	{
@@ -115,6 +128,7 @@ spec:
   name: test
   path: cloudquery/test
   version: v1.1.0
+  tables: ["test"]
 `,
 		"at least one destination is required",
 		nil,
@@ -128,6 +142,7 @@ spec:
   version: v1.1.0
   destinations: ["test"]
   scheduler: round-robin
+  tables: ["test"]
 `,
 		"",
 		&Source{
@@ -136,9 +151,9 @@ spec:
 			Path:         "cloudquery/test",
 			Concurrency:  defaultConcurrency,
 			Version:      "v1.1.0",
-			Tables:       []string{"*"},
 			Destinations: []string{"test"},
 			Scheduler:    SchedulerRoundRobin,
+			Tables:       []string{"test"},
 		},
 	},
 	{
@@ -149,6 +164,7 @@ spec:
   path: cloudquery/test
   version: v1.1.0
   destinations: ["test"]
+  tables: ["test"]
 `,
 		"",
 		&Source{
@@ -157,9 +173,9 @@ spec:
 			Path:         "cloudquery/test",
 			Concurrency:  defaultConcurrency,
 			Version:      "v1.1.0",
-			Tables:       []string{"*"},
 			Destinations: []string{"test"},
 			Scheduler:    SchedulerDFS,
+			Tables:       []string{"test"},
 		},
 	},
 }

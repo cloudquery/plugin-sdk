@@ -18,7 +18,6 @@ import (
 
 // client is mostly used for testing the destination plugin.
 type client struct {
-	schema.DefaultTransformer
 	spec          specs.Destination
 	memoryDB      map[string][]arrow.Record
 	tables        map[string]*arrow.Schema

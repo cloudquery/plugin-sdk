@@ -31,8 +31,8 @@ var specLoaderTestCases = []specLoaderTestCase{
 			return ""
 		},
 		sources: []*Source{
-			{Name: "gcp", Path: "cloudquery/gcp", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresqlv2"}, TableConcurrency: 10},
-			{Name: "aws", Path: "cloudquery/aws", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresql"}, TableConcurrency: 10},
+			{Name: "gcp", Path: "cloudquery/gcp", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresqlv2"}, TableConcurrency: 10, Tables: []string{"test"}},
+			{Name: "aws", Path: "cloudquery/aws", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresql"}, TableConcurrency: 10, Tables: []string{"test"}},
 		},
 		destinations: []*Destination{
 			{Name: "postgresqlv2", Path: "cloudquery/postgresql", Version: "v1.0.0", Registry: RegistryGrpc, WriteMode: WriteModeOverwrite, Spec: map[string]any{"credentials": "mytestcreds"}},
@@ -46,8 +46,8 @@ var specLoaderTestCases = []specLoaderTestCase{
 			return ""
 		},
 		sources: []*Source{
-			{Name: "gcp", Path: "cloudquery/gcp", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresqlv2"}, TableConcurrency: 10},
-			{Name: "aws", Path: "cloudquery/aws", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresql"}, TableConcurrency: 10},
+			{Name: "gcp", Path: "cloudquery/gcp", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresqlv2"}, TableConcurrency: 10, Tables: []string{"test"}},
+			{Name: "aws", Path: "cloudquery/aws", Version: "v1.0.0", Registry: RegistryLocal, Destinations: []string{"postgresql"}, TableConcurrency: 10, Tables: []string{"test"}},
 		},
 		destinations: []*Destination{
 			{Name: "postgresqlv2", Path: "cloudquery/postgresql", Version: "v1.0.0", Registry: RegistryGrpc, WriteMode: WriteModeOverwrite, Spec: map[string]any{"credentials": "mytestcreds"}},
@@ -92,8 +92,8 @@ var specLoaderTestCases = []specLoaderTestCase{
 			return ""
 		},
 		sources: []*Source{
-			{Name: "aws", Path: "cloudquery/aws", Version: "v4.6.1", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
-			{Name: "azure", Path: "cloudquery/azure", Version: "v1.3.3", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
+			{Name: "aws", Path: "cloudquery/aws", Version: "v4.6.1", Registry: RegistryGithub, Destinations: []string{"postgresql"}, Tables: []string{"test"}},
+			{Name: "azure", Path: "cloudquery/azure", Version: "v1.3.3", Registry: RegistryGithub, Destinations: []string{"postgresql"}, Tables: []string{"test"}},
 		},
 		destinations: []*Destination{
 			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1.6.3", Registry: RegistryGithub, Spec: map[string]any{"connection_string": "postgresql://postgres:pass@localhost:5432/postgres"}},
@@ -106,8 +106,8 @@ var specLoaderTestCases = []specLoaderTestCase{
 			return ""
 		},
 		sources: []*Source{
-			{Name: "aws", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
-			{Name: "azure", Path: "cloudquery/azure", Version: "v1.3.3", Registry: RegistryGithub, Destinations: []string{"postgresql", "postgresql"}},
+			{Name: "aws", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}, Tables: []string{"test"}},
+			{Name: "azure", Path: "cloudquery/azure", Version: "v1.3.3", Registry: RegistryGithub, Destinations: []string{"postgresql", "postgresql"}, Tables: []string{"test"}},
 		},
 		destinations: []*Destination{
 			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1.6.3", Registry: RegistryGithub, Spec: map[string]any{"connection_string": "postgresql://localhost:5432/cloudquery?sslmode=disable", "version": "#v1"}},
@@ -125,8 +125,8 @@ var specLoaderTestCases = []specLoaderTestCase{
 			return "failed to expand environment variable in file testdata/env_variables.yml (section 3): env variable CONNECTION_STRING not found"
 		},
 		sources: []*Source{
-			{Name: "aws", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
-			{Name: "azure", Path: "cloudquery/azure", Version: "v1.3.3", Registry: RegistryGithub, Destinations: []string{"postgresql", "postgresql"}},
+			{Name: "aws", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}, Tables: []string{"test"}},
+			{Name: "azure", Path: "cloudquery/azure", Version: "v1.3.3", Registry: RegistryGithub, Destinations: []string{"postgresql", "postgresql"}, Tables: []string{"test"}},
 		},
 		destinations: []*Destination{
 			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1.6.3", Registry: RegistryGithub, Spec: map[string]any{}},
@@ -143,7 +143,7 @@ var specLoaderTestCases = []specLoaderTestCase{
 			return ""
 		},
 		sources: []*Source{
-			{Name: "test", Path: "cloudquery/test", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
+			{Name: "test", Path: "cloudquery/test", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}, Tables: []string{"test"}},
 		},
 		destinations: []*Destination{
 			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1", Registry: RegistryGithub, Spec: map[string]any{"custom_version": "#v1"}},
@@ -159,7 +159,7 @@ var specLoaderTestCases = []specLoaderTestCase{
 			return "failed to expand environment variable in file testdata/env_variable_in_string.yml (section 2): env variable VERSION not found"
 		},
 		sources: []*Source{
-			{Name: "test", Path: "cloudquery/test", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}},
+			{Name: "test", Path: "cloudquery/test", Version: "v1", Registry: RegistryGithub, Destinations: []string{"postgresql"}, Tables: []string{"test"}},
 		},
 		destinations: []*Destination{
 			{Name: "postgresql", Path: "cloudquery/postgresql", Version: "v1", Registry: RegistryGithub, Spec: map[string]any{}},
@@ -173,8 +173,8 @@ var specLoaderTestCases = []specLoaderTestCase{
 			return ""
 		},
 		sources: []*Source{
-			{Name: "0123456789", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"0987654321"}},
-			{Name: "012345", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"0987654321"}},
+			{Name: "0123456789", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"0987654321"}, Tables: []string{"test"}},
+			{Name: "012345", Path: "cloudquery/aws", Version: "v1", Registry: RegistryGithub, Destinations: []string{"0987654321"}, Tables: []string{"test"}},
 		},
 		destinations: []*Destination{
 			{Name: "0987654321", Path: "cloudquery/postgresql", Version: "v1", Registry: RegistryGithub, Spec: map[string]any{"connection_string": "postgresql://localhost:5432/cloudquery?sslmode=disable"}},

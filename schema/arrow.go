@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/goccy/go-json"
 
@@ -270,7 +271,9 @@ func CQTypesToRecord(mem memory.Allocator, c []CQTypes, arrowSchema *arrow.Schem
 				}
 			case TypeString:
 				if c[j][i].(*Text).Status == Present {
-					bldr.Field(i).(*array.StringBuilder).Append(c[j][i].(*Text).Str)
+					// In the new type system we wont allow null string as they are not valid utf-8
+					// https://github.com/apache/arrow/pull/35161#discussion_r1170516104
+					bldr.Field(i).(*array.StringBuilder).Append(strings.ReplaceAll(c[j][i].(*Text).Str, "\x00", ""))
 				} else {
 					bldr.Field(i).(*array.StringBuilder).AppendNull()
 				}
@@ -285,7 +288,7 @@ func CQTypesToRecord(mem memory.Allocator, c []CQTypes, arrowSchema *arrow.Schem
 					listBldr := bldr.Field(i).(*array.ListBuilder)
 					listBldr.Append(true)
 					for _, str := range c[j][i].(*TextArray).Elements {
-						listBldr.ValueBuilder().(*array.StringBuilder).Append(str.Str)
+						listBldr.ValueBuilder().(*array.StringBuilder).Append(strings.ReplaceAll(str.Str, "\x00", ""))
 					}
 				} else {
 					bldr.Field(i).(*array.ListBuilder).AppendNull()
