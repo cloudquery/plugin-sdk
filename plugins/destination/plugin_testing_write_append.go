@@ -19,10 +19,10 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := spec.Name
-	table := testdata.TestTable(tableName)
+	table := testdata.TestTable(tableName).ToArrowSchema()
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*arrow.Schema{
-		table.ToArrowSchema(),
+		table,
 	}
 	if err := p.Migrate(ctx, tables); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
@@ -38,14 +38,14 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		SyncTime:   syncTime,
 		MaxRows:    1,
 	}
-	record1 := testdata.GenTestData(table.ToArrowSchema(), opts)[0]
+	record1 := testdata.GenTestData(table, opts)[0]
 	if err := p.writeOne(ctx, specSource, syncTime, record1); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
 	opts.SyncTime = secondSyncTime
-	record2 := testdata.GenTestData(table.ToArrowSchema(), opts)[0]
+	record2 := testdata.GenTestData(table, opts)[0]
 
 	if !s.tests.SkipSecondAppend {
 		// write second time
