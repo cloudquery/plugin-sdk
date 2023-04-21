@@ -33,7 +33,7 @@ func TestFieldChange_String(t *testing.T) {
 					Nullable: true,
 				},
 			},
-			expected: `~ name: nullable(bool) -> name: bool, metadata: ["cq:extension:primary_key": "true", "cq:extension:unique": "true"]`,
+			expected: `? name: nullable(bool) -> name: bool, metadata: ["cq:extension:primary_key": "true", "cq:extension:unique": "true"]`,
 		},
 		{
 			change: FieldChange{
@@ -154,7 +154,7 @@ func TestFieldChanges_String(t *testing.T) {
 		},
 	}
 
-	const expected = `~ unknown: nullable(bool) -> unknown: bool, metadata: ["cq:extension:primary_key": "true", "cq:extension:unique": "true"]
+	const expected = `? unknown: nullable(bool) -> unknown: bool, metadata: ["cq:extension:primary_key": "true", "cq:extension:unique": "true"]
 + add: bool, metadata: ["cq:extension:primary_key": "true", "cq:extension:unique": "true"]
 ~ update: nullable(bool) -> update: bool, metadata: ["cq:extension:primary_key": "true", "cq:extension:unique": "true"]
 - remove: nullable(bool)`

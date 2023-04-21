@@ -39,7 +39,7 @@ func (fc FieldChange) String() string {
 	case TableColumnChangeTypeUpdate:
 		return "~ " + fieldPrettify(fc.Previous) + " -> " + fieldPrettify(fc.Current)
 	default:
-		return "~ " + fieldPrettify(fc.Previous) + " -> " + fieldPrettify(fc.Current)
+		return "? " + fieldPrettify(fc.Previous) + " -> " + fieldPrettify(fc.Current)
 	}
 }
 
