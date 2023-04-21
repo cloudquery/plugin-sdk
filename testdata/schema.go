@@ -7,6 +7,7 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/types"
 )
 
 func PrimitiveFields() []arrow.Field {
@@ -77,10 +78,23 @@ func MapOfFields(baseFields []arrow.Field) []arrow.Field {
 
 // TestSourceFields returns fields for all Arrow types and composites thereof
 func TestSourceFields() []arrow.Field {
+	// cq fields
+	cqFields := make([]arrow.Field, 0)
+	cqIDMetadata := arrow.NewMetadata([]string{schema.MetadataUnique}, []string{"true"})
+	cqFields = append(cqFields, arrow.Field{Name: schema.CqIDColumn.Name, Type: types.NewUUIDType(), Nullable: false, Metadata: cqIDMetadata})
+	cqFields = append(cqFields, arrow.Field{Name: schema.CqParentIDColumn.Name, Type: types.NewUUIDType(), Nullable: false})
+
 	basicFields := make([]arrow.Field, 0)
 	basicFields = append(basicFields, PrimitiveFields()...)
 	basicFields = append(basicFields, BinaryFields()...)
 	basicFields = append(basicFields, FixedWidthFields()...)
+
+	// add extensions
+	basicFields = append(basicFields, arrow.Field{Name: "uuid", Type: types.NewUUIDType(), Nullable: true})
+	basicFields = append(basicFields, arrow.Field{Name: "json", Type: types.NewJSONType(), Nullable: true})
+	basicFields = append(basicFields, arrow.Field{Name: "inet", Type: types.NewInetType(), Nullable: true})
+	basicFields = append(basicFields, arrow.Field{Name: "mac", Type: types.NewMacType(), Nullable: true})
+	basicFields = append(basicFields, arrow.Field{Name: "json", Type: types.NewJSONType(), Nullable: true})
 
 	// sort and remove duplicates (e.g. date32 and date64 appear twice)
 	basicFields = SortAndRemoveDuplicates(basicFields)
@@ -95,7 +109,8 @@ func TestSourceFields() []arrow.Field {
 	// struct with nested struct
 	compositeFields = append(compositeFields, arrow.Field{Name: "nested_struct", Type: arrow.StructOf(arrow.Field{Name: "inner", Type: arrow.StructOf(basicFields...), Nullable: true}), Nullable: true})
 
-	return append(basicFields, compositeFields...)
+	allFields := append(append(cqFields, basicFields...), compositeFields...)
+	return allFields
 }
 
 func TestSourceSchemaWithMetadata(md *arrow.Metadata) *arrow.Schema {
