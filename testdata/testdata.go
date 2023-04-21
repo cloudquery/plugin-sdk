@@ -1,7 +1,7 @@
 package testdata
 
 import (
-	"net"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -117,7 +117,7 @@ func TestTableIncremental(name string) *schema.Table {
 	return t
 }
 
-// TestTable returns a table with columns of all type. useful for destination testing purposes
+// TestTable returns a table with columns of all CQ types. Useful for destination testing purposes
 func TestTable(name string) *schema.Table {
 	sourceTable := TestSourceTable(name)
 	sourceTable.Columns = append(schema.ColumnList{
@@ -145,10 +145,6 @@ type GenTestDataOptions struct {
 func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 	var records []arrow.Record
 	for j := 0; j < opts.MaxRows; j++ {
-		u := uuid.New()
-		if opts.StableUUID != uuid.Nil {
-			u = opts.StableUUID
-		}
 		nullRow := j%2 == 1
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		for i, c := range sc.Fields() {
@@ -160,92 +156,11 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 				bldr.Field(i).AppendNull()
 				continue
 			}
-			if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Boolean) {
-				bldr.Field(i).(*array.BooleanBuilder).Append(true)
-			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Int64) {
-				bldr.Field(i).(*array.Int64Builder).Append(1)
-			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Float64) {
-				bldr.Field(i).(*array.Float64Builder).Append(1.1)
-			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.UUID) {
-				bldr.Field(i).(*types.UUIDBuilder).Append(u)
-			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.String) {
-				if c.Name == schema.CqSourceNameColumn.Name {
-					bldr.Field(i).(*array.StringBuilder).AppendString(opts.SourceName)
-				} else if c.Name == "text_with_null" {
-					bldr.Field(i).(*array.StringBuilder).AppendString("AStringWith\x00NullBytes")
-				} else {
-					bldr.Field(i).(*array.StringBuilder).AppendString("AString")
-				}
-			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.Binary) {
-				bldr.Field(i).(*array.BinaryBuilder).Append([]byte{1, 2, 3})
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(arrow.BinaryTypes.String)) {
-				if c.Name == "text_array_with_null" {
-					bldr.Field(i).(*array.ListBuilder).Append(true)
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test1")
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test2\x00WithNull")
-				} else {
-					bldr.Field(i).(*array.ListBuilder).Append(true)
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test1")
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test2")
-				}
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(arrow.PrimitiveTypes.Int64)) {
-				bldr.Field(i).(*array.ListBuilder).Append(true)
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(1)
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(2)
-			} else if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Timestamp_us) {
-				if c.Name == schema.CqSyncTimeColumn.Name {
-					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(opts.SyncTime.UTC().Truncate(time.Millisecond).UnixMicro()))
-				} else {
-					t := time.Now()
-					if !opts.StableTime.IsZero() {
-						t = opts.StableTime
-					}
-					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(t.UTC().Truncate(time.Millisecond).UnixMicro()))
-				}
-			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.JSON) {
-				bldr.Field(i).(*types.JSONBuilder).Append(map[string]interface{}{"test": "test"})
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.UUID)) {
-				bldr.Field(i).(*array.ListBuilder).Append(true)
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.UUIDBuilder).Append(uuid.MustParse("00000000-0000-0000-0000-000000000001"))
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.UUIDBuilder).Append(uuid.MustParse("00000000-0000-0000-0000-000000000002"))
-			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.Inet) {
-				_, ipnet, err := net.ParseCIDR("192.0.2.0/24")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*types.InetBuilder).Append(*ipnet)
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.Inet)) {
-				bldr.Field(i).(*array.ListBuilder).Append(true)
-				_, ipnet, err := net.ParseCIDR("192.0.2.1/24")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(*ipnet)
-				_, ipnet, err = net.ParseCIDR("192.0.2.1/24")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(*ipnet)
-			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.Mac) {
-				mac, err := net.ParseMAC("aa:bb:cc:dd:ee:ff")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*types.MacBuilder).Append(mac)
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.Mac)) {
-				mac, err := net.ParseMAC("aa:bb:cc:dd:ee:ff")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*array.ListBuilder).Append(true)
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.MacBuilder).Append(mac)
-				mac, err = net.ParseMAC("11:22:33:44:55:66")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.MacBuilder).Append(mac)
-			} else {
-				panic("unknown type: " + c.Type.String() + " column: " + c.Name)
+			example := getExampleJSON(c.Name, c.Type, opts)
+			l := `[` + example + `]`
+			err := bldr.Field(i).UnmarshalJSON([]byte(l))
+			if err != nil {
+				panic(fmt.Sprintf("failed to unmarshal json for column %v: %v", c.Name, err))
 			}
 		}
 		records = append(records, bldr.NewRecord())
@@ -260,6 +175,171 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 		})
 	}
 	return records
+}
+
+func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
+	// handle lists (including maps)
+	if arrow.IsListLike(dataType.ID()) {
+		if dataType.ID() == arrow.MAP {
+			k := getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
+			v := getExampleJSON(colName, dataType.(*arrow.MapType).ValueType().Field(1).Type, opts)
+			return fmt.Sprintf(`[{"key": %s,"value": %s}]`, k, v)
+		}
+		return `[` + getExampleJSON(colName, dataType.(*arrow.ListType).Elem(), opts) + `]`
+	}
+	// handle extension types
+	if arrow.TypeEqual(dataType, types.ExtensionTypes.UUID) {
+		u := uuid.New()
+		if opts.StableUUID != uuid.Nil {
+			u = opts.StableUUID
+		}
+		return `"` + u.String() + `"`
+	}
+	if arrow.TypeEqual(dataType, types.ExtensionTypes.JSON) {
+		return `"{\"test\": \"test\"}"`
+	}
+	if arrow.TypeEqual(dataType, types.ExtensionTypes.Inet) {
+		return `"192.0.2.0/24"`
+	}
+	if arrow.TypeEqual(dataType, types.ExtensionTypes.Mac) {
+		return `"aa:bb:cc:dd:ee:ff"`
+	}
+
+	// handle integers
+	if arrow.IsInteger(dataType.ID()) {
+		return "-1"
+	}
+
+	// handle unsigned integers
+	if arrow.IsUnsignedInteger(dataType.ID()) {
+		return "1"
+	}
+
+	// handle floats
+	if arrow.IsFloating(dataType.ID()) {
+		return "1.1"
+	}
+
+	// handle decimals
+	if arrow.IsDecimal(dataType.ID()) {
+		return "1.1"
+	}
+
+	// handle booleans
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Boolean) {
+		return "true"
+	}
+
+	// handle strings
+	stringTypes := []arrow.DataType{
+		arrow.BinaryTypes.String,
+		arrow.BinaryTypes.LargeString,
+	}
+	for _, stringType := range stringTypes {
+		if arrow.TypeEqual(dataType, stringType) {
+			if colName == schema.CqSourceNameColumn.Name {
+				return `"` + opts.SourceName + `"`
+			} else if colName == "text_with_null" {
+				return `"AStringWith` + "\x00" + `NullBytes"`
+			}
+			return `"AString"`
+		}
+	}
+
+	// handle binary types
+	binaryTypes := []arrow.DataType{
+		arrow.BinaryTypes.Binary,
+		arrow.BinaryTypes.LargeBinary,
+	}
+	for _, binaryType := range binaryTypes {
+		if arrow.TypeEqual(dataType, binaryType) {
+			return `"AQIDBA=="` // base64 encoded 0x01, 0x02, 0x03, 0x04
+		}
+	}
+
+	// handle structs
+	if dataType.ID() == arrow.STRUCT {
+		var fields []string
+		for _, field := range dataType.(*arrow.StructType).Fields() {
+			v := getExampleJSON(field.Name, field.Type, opts)
+			fields = append(fields, fmt.Sprintf(`"%s": %v`, field.Name, v))
+		}
+		return `{` + strings.Join(fields, ",") + `}`
+	}
+
+	// handle timestamp types
+	timestampTypes := []arrow.DataType{
+		arrow.FixedWidthTypes.Timestamp_s,
+		arrow.FixedWidthTypes.Timestamp_ms,
+		arrow.FixedWidthTypes.Timestamp_us,
+		arrow.FixedWidthTypes.Timestamp_ns,
+		arrow.FixedWidthTypes.Time32s,
+		arrow.FixedWidthTypes.Time32ms,
+		arrow.FixedWidthTypes.Time64us,
+		arrow.FixedWidthTypes.Time64ns,
+	}
+	for _, timestampType := range timestampTypes {
+		if arrow.TypeEqual(dataType, timestampType) {
+			t := time.Now()
+			if colName == schema.CqSyncTimeColumn.Name {
+				t = opts.SyncTime.UTC()
+			} else if !opts.StableTime.IsZero() {
+				t = opts.StableTime
+			}
+			switch timestampType {
+			case arrow.FixedWidthTypes.Timestamp_s:
+				return fmt.Sprintf("%d", t.Unix())
+			case arrow.FixedWidthTypes.Timestamp_ms:
+				return fmt.Sprintf("%d", t.UnixMilli())
+			case arrow.FixedWidthTypes.Timestamp_us:
+				return fmt.Sprintf("%d", t.UnixMicro())
+			case arrow.FixedWidthTypes.Timestamp_ns:
+				return fmt.Sprintf("%d", t.UnixNano())
+			case arrow.FixedWidthTypes.Time32s:
+				return fmt.Sprintf("%d", t.Unix())
+			case arrow.FixedWidthTypes.Time32ms:
+				return fmt.Sprintf("%d", t.UnixMilli())
+			case arrow.FixedWidthTypes.Time64us:
+				return fmt.Sprintf("%d", t.UnixMicro())
+			case arrow.FixedWidthTypes.Time64ns:
+				return fmt.Sprintf("%d", t.UnixNano())
+			default:
+				panic("unhandled timestamp type: " + timestampType.Name())
+			}
+		}
+	}
+
+	// handle date types
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Date32) {
+		return `1682088351`
+	}
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Date64) {
+		return `1682088344338`
+	}
+
+	// handle duration and interval types
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.DayTimeInterval) {
+		return `{"days": 1, "milliseconds": 1}`
+	}
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.MonthInterval) {
+		return `{"months": 1}`
+	}
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.MonthDayNanoInterval) {
+		return `{"months": 1, "days": 1, "nanoseconds": 1}`
+	}
+	durationTypes := []arrow.DataType{
+		arrow.FixedWidthTypes.Duration_s,
+		arrow.FixedWidthTypes.Duration_ms,
+		arrow.FixedWidthTypes.Duration_us,
+		arrow.FixedWidthTypes.Duration_ns,
+	}
+	for _, durationType := range durationTypes {
+		if arrow.TypeEqual(dataType, durationType) {
+			return `123456789`
+		}
+	}
+
+	panic("unknown type: " + dataType.String() + " column: " + colName)
 }
 
 // GenTestDataV1 does approximately the same job as GenTestData, however, it's intended for simpler use-cases.
