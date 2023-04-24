@@ -61,6 +61,20 @@ func sortAndRemoveDuplicates(fields []arrow.Field) []arrow.Field {
 	return newFields
 }
 
+func removeFieldsByType(fields []arrow.Field, dt ...arrow.Type) []arrow.Field {
+	newFields := make([]arrow.Field, len(fields))
+	copy(newFields, fields)
+	for _, d := range dt {
+		for i := 0; i < len(newFields); i++ {
+			if newFields[i].Type.ID() == d {
+				newFields = append(newFields[:i], newFields[i+1:]...)
+				i--
+			}
+		}
+	}
+	return newFields
+}
+
 func ListOfFields(baseFields []arrow.Field) []arrow.Field {
 	fields := make([]arrow.Field, len(baseFields))
 	for i := 0; i < len(baseFields); i++ {
@@ -78,9 +92,13 @@ func MapOfFields(baseFields []arrow.Field) []arrow.Field {
 }
 
 type TestSourceOptions struct {
-	IncludeDates   bool
-	IncludeMaps    bool
-	IncludeStructs bool
+	IncludeDates      bool
+	IncludeMaps       bool
+	IncludeStructs    bool
+	IncludeIntervals  bool
+	IncludeDurations  bool
+	IncludeTimes      bool // time of day types
+	IncludeLargeTypes bool // e.g. large binary, large string
 }
 
 // TestSourceFields returns fields for all Arrow types and composites thereof
@@ -104,13 +122,23 @@ func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 	// sort and remove duplicates (e.g. date32 and date64 appear twice)
 	basicFields = sortAndRemoveDuplicates(basicFields)
 
+	// we don't support float16 right now
+	basicFields = removeFieldsByType(basicFields, arrow.FLOAT16)
+
 	if !opts.IncludeDates {
-		for i := 0; i < len(basicFields); i++ {
-			if basicFields[i].Type.ID() == arrow.DATE32 || basicFields[i].Type.ID() == arrow.DATE64 {
-				basicFields = append(basicFields[:i], basicFields[i+1:]...)
-				i--
-			}
-		}
+		basicFields = removeFieldsByType(basicFields, arrow.DATE32, arrow.DATE64)
+	}
+	if !opts.IncludeTimes {
+		basicFields = removeFieldsByType(basicFields, arrow.TIME32, arrow.TIME64)
+	}
+	if !opts.IncludeIntervals {
+		basicFields = removeFieldsByType(basicFields, arrow.INTERVAL_DAY_TIME, arrow.INTERVAL_MONTHS, arrow.INTERVAL_MONTH_DAY_NANO)
+	}
+	if !opts.IncludeDurations {
+		basicFields = removeFieldsByType(basicFields, arrow.DURATION)
+	}
+	if !opts.IncludeLargeTypes {
+		basicFields = removeFieldsByType(basicFields, arrow.LARGE_BINARY, arrow.LARGE_STRING)
 	}
 
 	var compositeFields []arrow.Field

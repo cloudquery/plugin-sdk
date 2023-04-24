@@ -112,9 +112,13 @@ func TestOnWriteError(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := testdata.TestTable("test")
+	arrowSchema := testdata.TestSourceSchema("test", testdata.TestSourceOptions{
+		IncludeDates:   false,
+		IncludeMaps:    false,
+		IncludeStructs: false,
+	})
 	tables := []*arrow.Schema{
-		table.ToArrowSchema(),
+		arrowSchema,
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
@@ -128,7 +132,7 @@ func TestOnWriteError(t *testing.T) {
 		MaxRows:    1,
 		StableUUID: uuid.Nil,
 	}
-	record := testdata.GenTestData(table.ToArrowSchema(), opts)[0]
+	record := testdata.GenTestData(arrowSchema, opts)[0]
 	ch <- record
 	close(ch)
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
