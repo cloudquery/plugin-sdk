@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0](https://github.com/cloudquery/plugin-sdk/compare/v2.3.8...v2.4.0) (2023-04-24)
+
+
+### Features
+
+* **arrow:** Pretty-print field changes ([#817](https://github.com/cloudquery/plugin-sdk/issues/817)) ([6c0d0b3](https://github.com/cloudquery/plugin-sdk/commit/6c0d0b346a2748dbac2464b81dfab86d307e6090))
+
 ## [2.3.8](https://github.com/cloudquery/plugin-sdk/compare/v2.3.7...v2.3.8) (2023-04-20)
 
 
