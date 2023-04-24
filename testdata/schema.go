@@ -135,6 +135,8 @@ func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 	return allFields
 }
 
+var PKColumnNames = []string{"uuid_pk", "string_pk"}
+
 func TestSourceSchemaWithMetadata(md *arrow.Metadata, opts TestSourceOptions) *arrow.Schema {
 	var fields []arrow.Field
 	pkMetadata := map[string]string{
@@ -150,12 +152,8 @@ func TestSourceSchemaWithMetadata(md *arrow.Metadata, opts TestSourceOptions) *a
 }
 
 func TestSourceSchema(name string, opts TestSourceOptions) *arrow.Schema {
-	keys := []string{
-		schema.MetadataTableName,
-	}
-	values := []string{
-		name,
-	}
-	metadata := arrow.NewMetadata(keys, values)
+	metadata := arrow.MetadataFrom(map[string]string{
+		schema.MetadataTableName: name,
+	})
 	return TestSourceSchemaWithMetadata(&metadata, opts)
 }

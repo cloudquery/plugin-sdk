@@ -7,7 +7,6 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/cloudquery/plugin-sdk/v2/testdata"
 	"github.com/cloudquery/plugin-sdk/v2/types"
@@ -73,7 +72,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 
 	// copy first resource but update the sync time
-	cqIDInds := resources[0].Schema().FieldIndices(schema.CqIDColumn.Name)
+	cqIDInds := resources[0].Schema().FieldIndices(testdata.PKColumnNames[0])
 	u := resources[0].Column(cqIDInds[0]).(*types.UUIDArray).Value(0).String()
 	opts = testdata.GenTestDataOptions{
 		SourceName: sourceName,
