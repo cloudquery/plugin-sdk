@@ -112,11 +112,7 @@ func TestOnWriteError(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	arrowSchema := testdata.TestSourceSchema("test", testdata.TestSourceOptions{
-		IncludeDates:   false,
-		IncludeMaps:    false,
-		IncludeStructs: false,
-	})
+	arrowSchema := testdata.TestSourceSchema("test", testdata.TestSourceOptions{})
 	tables := []*arrow.Schema{
 		arrowSchema,
 	}

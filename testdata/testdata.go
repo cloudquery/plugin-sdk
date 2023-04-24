@@ -3,6 +3,7 @@ package testdata
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,119 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestSourceTable(name string) *schema.Table {
-	return &schema.Table{
-		Name:        name,
-		Description: "Test table",
-		Columns: schema.ColumnList{
-			schema.CqIDColumn,
-			schema.CqParentIDColumn,
-			{
-				Name:            "uuid_pk",
-				Type:            schema.TypeUUID,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
-			},
-			{
-				Name:            "string_pk",
-				Type:            schema.TypeString,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
-			},
-			{
-				Name: "bool",
-				Type: schema.TypeBool,
-			},
-			{
-				Name: "int",
-				Type: schema.TypeInt,
-			},
-			{
-				Name: "float",
-				Type: schema.TypeFloat,
-			},
-			{
-				Name: "uuid",
-				Type: schema.TypeUUID,
-			},
-			{
-				Name: "text",
-				Type: schema.TypeString,
-			},
-			{
-				Name: "text_with_null",
-				Type: schema.TypeString,
-			},
-			{
-				Name: "bytea",
-				Type: schema.TypeByteArray,
-			},
-			{
-				Name: "text_array",
-				Type: schema.TypeStringArray,
-			},
-			{
-				Name: "text_array_with_null",
-				Type: schema.TypeStringArray,
-			},
-			{
-				Name: "int_array",
-				Type: schema.TypeIntArray,
-			},
-			{
-				Name: "timestamp",
-				Type: schema.TypeTimestamp,
-			},
-			{
-				Name: "json",
-				Type: schema.TypeJSON,
-			},
-			{
-				Name: "uuid_array",
-				Type: schema.TypeUUIDArray,
-			},
-			{
-				Name: "inet",
-				Type: schema.TypeInet,
-			},
-			{
-				Name: "inet_array",
-				Type: schema.TypeInetArray,
-			},
-			{
-				Name: "cidr",
-				Type: schema.TypeCIDR,
-			},
-			{
-				Name: "cidr_array",
-				Type: schema.TypeCIDRArray,
-			},
-			{
-				Name: "macaddr",
-				Type: schema.TypeMacAddr,
-			},
-			{
-				Name: "macaddr_array",
-				Type: schema.TypeMacAddrArray,
-			},
-		},
-	}
-}
-
-func TestTableIncremental(name string) *schema.Table {
-	t := TestTable(name)
-	t.IsIncremental = true
-	return t
-}
-
-// TestTable returns a table with columns of all CQ types. Useful for destination testing purposes
-func TestTable(name string) *schema.Table {
-	sourceTable := TestSourceTable(name)
-	sourceTable.Columns = append(schema.ColumnList{
-		schema.CqSourceNameColumn,
-		schema.CqSyncTimeColumn,
-	}, sourceTable.Columns...)
-	return sourceTable
-}
-
+// GenTestDataOptions are options for generating test data
 type GenTestDataOptions struct {
 	// SourceName is the name of the source to set in the source_name column.
 	SourceName string
@@ -142,6 +31,7 @@ type GenTestDataOptions struct {
 	StableTime time.Time
 }
 
+// GenTestData generates a slice of arrow.Records with the given schema and options.
 func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 	var records []arrow.Record
 	for j := 0; j < opts.MaxRows; j++ {
@@ -287,28 +177,28 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 			}
 			switch timestampType {
 			case arrow.FixedWidthTypes.Timestamp_s:
-				return fmt.Sprintf("%d", t.Unix())
+				return strconv.FormatInt(t.Unix(), 10)
 			case arrow.FixedWidthTypes.Timestamp_ms:
-				return fmt.Sprintf("%d", t.UnixMilli())
+				return strconv.FormatInt(t.UnixMilli(), 10)
 			case arrow.FixedWidthTypes.Timestamp_us:
-				return fmt.Sprintf("%d", t.UnixMicro())
+				return strconv.FormatInt(t.UnixMicro(), 10)
 			case arrow.FixedWidthTypes.Timestamp_ns:
-				return fmt.Sprintf("%d", t.UnixNano())
+				return strconv.FormatInt(t.UnixNano(), 10)
 			case arrow.FixedWidthTypes.Time32s:
 				h, m, s := t.Clock()
-				return fmt.Sprintf("%d", h*3600+m*60+s)
+				return strconv.Itoa(h*3600 + m*60 + s)
 			case arrow.FixedWidthTypes.Time32ms:
 				h, m, s := t.Clock()
 				ns := t.Nanosecond()
-				return fmt.Sprintf("%d", h*3600000+m*60000+s*1000+ns/1000000)
+				return strconv.Itoa(h*3600000 + m*60000 + s*1000 + ns/1000000)
 			case arrow.FixedWidthTypes.Time64us:
 				h, m, s := t.Clock()
 				ns := t.Nanosecond()
-				return fmt.Sprintf("%d", h*3600000000+m*60000000+s*1000000+ns/1000)
+				return strconv.Itoa(h*3600000000 + m*60000000 + s*1000000 + ns/1000)
 			case arrow.FixedWidthTypes.Time64ns:
 				h, m, s := t.Clock()
 				ns := t.Nanosecond()
-				return fmt.Sprintf("%d", h*3600000000000+m*60000000000+s*1000000000+ns)
+				return strconv.Itoa(h*3600000000000 + m*60000000000 + s*1000000000 + ns)
 			default:
 				panic("unhandled timestamp type: " + timestampType.Name())
 			}

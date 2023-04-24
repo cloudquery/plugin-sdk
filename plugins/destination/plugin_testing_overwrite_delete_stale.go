@@ -22,9 +22,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
 	table := testdata.TestSourceSchema(tableName, testdata.TestSourceOptions{
-		IncludeDates:   false,
-		IncludeMaps:    false,
-		IncludeStructs: false,
+		IncludeDates:      false,
+		IncludeMaps:       false,
+		IncludeStructs:    false,
+		IncludeIntervals:  false,
+		IncludeDurations:  false,
+		IncludeTimes:      false,
+		IncludeLargeTypes: false,
 	})
 	incTable := testdata.TestTableIncremental(tableName + "_incremental").ToArrowSchema()
 	syncTime := time.Now().UTC().Round(1 * time.Second)

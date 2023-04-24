@@ -101,7 +101,8 @@ type TestSourceOptions struct {
 	IncludeLargeTypes bool // e.g. large binary, large string
 }
 
-// TestSourceFields returns fields for all Arrow types and composites thereof
+// TestSourceFields returns fields for all Arrow types and composites thereof. TestSourceOptions controls
+// which types are included.
 func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 	// cq fields
 	var cqFields []arrow.Field
@@ -148,7 +149,7 @@ func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 		compositeFields = append(compositeFields, MapOfFields(basicFields)...)
 	}
 
-	// add JSON later, we don't want to include it as a list or map right now (it causes complications)
+	// add JSON later, we don't want to include it as a list or map right now (it causes complications with JSON unmarshalling)
 	basicFields = append(basicFields, arrow.Field{Name: "json", Type: types.NewJSONType(), Nullable: true})
 
 	if opts.IncludeStructs {
@@ -165,6 +166,7 @@ func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 
 var PKColumnNames = []string{"uuid_pk", "string_pk"}
 
+// TestSourceSchemaWithMetadata returns a schema for all Arrow types and composites thereof.
 func TestSourceSchemaWithMetadata(md *arrow.Metadata, opts TestSourceOptions) *arrow.Schema {
 	var fields []arrow.Field
 	pkMetadata := map[string]string{
@@ -179,6 +181,7 @@ func TestSourceSchemaWithMetadata(md *arrow.Metadata, opts TestSourceOptions) *a
 	return arrow.NewSchema(fields, md)
 }
 
+// TestSourceSchema returns a schema for all Arrow types and composites thereof.
 func TestSourceSchema(name string, opts TestSourceOptions) *arrow.Schema {
 	metadata := arrow.MetadataFrom(map[string]string{
 		schema.MetadataTableName: name,

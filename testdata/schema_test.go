@@ -7,11 +7,7 @@ import (
 )
 
 func TestTestSourceSchema(t *testing.T) {
-	s := TestSourceSchema("test", TestSourceOptions{
-		IncludeDates:   true,
-		IncludeMaps:    true,
-		IncludeStructs: true,
-	})
+	s := TestSourceSchema("test", TestSourceOptions{})
 	if schema.TableName(s) != "test" {
 		t.Fatal("wrong name")
 	}

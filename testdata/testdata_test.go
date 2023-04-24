@@ -8,11 +8,7 @@ import (
 )
 
 func TestGenTestData(t *testing.T) {
-	sch := TestSourceSchema("test", TestSourceOptions{
-		IncludeDates:   true,
-		IncludeMaps:    true,
-		IncludeStructs: true,
-	})
+	sch := TestSourceSchema("test", TestSourceOptions{})
 	records := GenTestData(sch, GenTestDataOptions{
 		SourceName: "test",
 		SyncTime:   time.Now().UTC().Round(1 * time.Second),

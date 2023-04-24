@@ -21,9 +21,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
 	table := testdata.TestSourceSchema(tableName, testdata.TestSourceOptions{
-		IncludeDates:   false,
-		IncludeMaps:    false,
-		IncludeStructs: false,
+		IncludeDates:      false,
+		IncludeMaps:       false,
+		IncludeStructs:    false,
+		IncludeIntervals:  false,
+		IncludeDurations:  false,
+		IncludeTimes:      false,
+		IncludeLargeTypes: false,
 	})
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*arrow.Schema{
