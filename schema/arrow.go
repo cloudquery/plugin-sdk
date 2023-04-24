@@ -30,6 +30,52 @@ type FieldChange struct {
 	Previous   arrow.Field
 }
 
+func (fc FieldChange) String() string {
+	switch fc.Type {
+	case TableColumnChangeTypeAdd:
+		return "+ " + fieldPrettify(fc.Current)
+	case TableColumnChangeTypeRemove:
+		return "- " + fieldPrettify(fc.Previous)
+	case TableColumnChangeTypeUpdate:
+		return "~ " + fieldPrettify(fc.Previous) + " -> " + fieldPrettify(fc.Current)
+	default:
+		return "? " + fieldPrettify(fc.Previous) + " -> " + fieldPrettify(fc.Current)
+	}
+}
+
+type FieldChanges []FieldChange
+
+func (fc FieldChanges) String() string {
+	builder := new(strings.Builder)
+	for i, c := range fc {
+		builder.WriteString(c.String())
+		if i < len(fc)-1 {
+			builder.WriteString("\n")
+		}
+	}
+	return builder.String()
+}
+
+func fieldPrettify(field arrow.Field) string {
+	builder := new(strings.Builder)
+	builder.WriteString(field.Name)
+	builder.WriteString(": ")
+
+	if field.Nullable {
+		builder.WriteString("nullable(")
+	}
+	builder.WriteString(field.Type.String())
+	if field.Nullable {
+		builder.WriteString(")")
+	}
+
+	if field.HasMetadata() {
+		builder.WriteString(", metadata: ")
+		builder.WriteString(field.Metadata.String())
+	}
+	return builder.String()
+}
+
 type MetadataFieldOptions struct {
 	PrimaryKey bool
 	Unique     bool
@@ -133,9 +179,9 @@ func TableName(sc *arrow.Schema) string {
 	return name
 }
 
-// Get changes return changes between two schemas
-func GetSchemaChanges(target *arrow.Schema, source *arrow.Schema) []FieldChange {
-	var changes []FieldChange
+// GetSchemaChanges returns changes between two schemas
+func GetSchemaChanges(target *arrow.Schema, source *arrow.Schema) FieldChanges {
+	var changes FieldChanges
 	for _, t := range target.Fields() {
 		sourceField, ok := source.FieldsByName(t.Name)
 		if !ok {
