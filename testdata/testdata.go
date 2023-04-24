@@ -238,11 +238,6 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	}
 	for _, stringType := range stringTypes {
 		if arrow.TypeEqual(dataType, stringType) {
-			if colName == schema.CqSourceNameColumn.Name {
-				return `"` + opts.SourceName + `"`
-			} else if colName == "text_with_null" {
-				return `"AStringWith` + "\x00" + `NullBytes"`
-			}
 			return `"AString"`
 		}
 	}
@@ -297,13 +292,20 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 			case arrow.FixedWidthTypes.Timestamp_ns:
 				return fmt.Sprintf("%d", t.UnixNano())
 			case arrow.FixedWidthTypes.Time32s:
-				return fmt.Sprintf("%d", t.Unix())
+				h, m, s := t.Clock()
+				return fmt.Sprintf("%d", h*3600+m*60+s)
 			case arrow.FixedWidthTypes.Time32ms:
-				return fmt.Sprintf("%d", t.UnixMilli())
+				h, m, s := t.Clock()
+				ns := t.Nanosecond()
+				return fmt.Sprintf("%d", h*3600000+m*60000+s*1000+ns/1000000)
 			case arrow.FixedWidthTypes.Time64us:
-				return fmt.Sprintf("%d", t.UnixMicro())
+				h, m, s := t.Clock()
+				ns := t.Nanosecond()
+				return fmt.Sprintf("%d", h*3600000000+m*60000000+s*1000000+ns/1000)
 			case arrow.FixedWidthTypes.Time64ns:
-				return fmt.Sprintf("%d", t.UnixNano())
+				h, m, s := t.Clock()
+				ns := t.Nanosecond()
+				return fmt.Sprintf("%d", h*3600000000000+m*60000000000+s*1000000000+ns)
 			default:
 				panic("unhandled timestamp type: " + timestampType.Name())
 			}
@@ -312,10 +314,11 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 
 	// handle date types
 	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Date32) {
-		return `1682088351`
+		return `19471`
 	}
 	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Date64) {
-		return `1682088344338`
+		ms := 19471 * 86400000
+		return fmt.Sprintf("%d", ms)
 	}
 
 	// handle duration and interval types

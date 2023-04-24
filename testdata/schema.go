@@ -46,8 +46,9 @@ func FixedWidthFields() []arrow.Field {
 	return fields
 }
 
-func SortAndRemoveDuplicates(fields []arrow.Field) []arrow.Field {
-	newFields := fields
+func sortAndRemoveDuplicates(fields []arrow.Field) []arrow.Field {
+	newFields := make([]arrow.Field, len(fields))
+	copy(newFields, fields)
 	sort.Slice(newFields, func(i, j int) bool {
 		return newFields[i].Name < newFields[j].Name
 	})
@@ -79,12 +80,12 @@ func MapOfFields(baseFields []arrow.Field) []arrow.Field {
 // TestSourceFields returns fields for all Arrow types and composites thereof
 func TestSourceFields() []arrow.Field {
 	// cq fields
-	cqFields := make([]arrow.Field, 0)
+	var cqFields []arrow.Field
 	cqIDMetadata := arrow.NewMetadata([]string{schema.MetadataUnique}, []string{"true"})
 	cqFields = append(cqFields, arrow.Field{Name: schema.CqIDColumn.Name, Type: types.NewUUIDType(), Nullable: false, Metadata: cqIDMetadata})
 	cqFields = append(cqFields, arrow.Field{Name: schema.CqParentIDColumn.Name, Type: types.NewUUIDType(), Nullable: false})
 
-	basicFields := make([]arrow.Field, 0)
+	var basicFields []arrow.Field
 	basicFields = append(basicFields, PrimitiveFields()...)
 	basicFields = append(basicFields, BinaryFields()...)
 	basicFields = append(basicFields, FixedWidthFields()...)
@@ -95,9 +96,9 @@ func TestSourceFields() []arrow.Field {
 	basicFields = append(basicFields, arrow.Field{Name: "mac", Type: types.NewMacType(), Nullable: true})
 
 	// sort and remove duplicates (e.g. date32 and date64 appear twice)
-	basicFields = SortAndRemoveDuplicates(basicFields)
+	basicFields = sortAndRemoveDuplicates(basicFields)
 
-	compositeFields := make([]arrow.Field, 0)
+	var compositeFields []arrow.Field
 	compositeFields = append(compositeFields, ListOfFields(basicFields)...)
 	compositeFields = append(compositeFields, MapOfFields(basicFields)...)
 
