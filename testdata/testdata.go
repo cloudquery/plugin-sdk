@@ -238,6 +238,9 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	}
 	for _, stringType := range stringTypes {
 		if arrow.TypeEqual(dataType, stringType) {
+			if colName == schema.CqSourceNameColumn.Name {
+				return `"` + opts.SourceName + `"`
+			}
 			return `"AString"`
 		}
 	}

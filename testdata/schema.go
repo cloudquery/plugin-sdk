@@ -77,8 +77,14 @@ func MapOfFields(baseFields []arrow.Field) []arrow.Field {
 	return fields
 }
 
+type TestSourceOptions struct {
+	IncludeDates   bool
+	IncludeMaps    bool
+	IncludeStructs bool
+}
+
 // TestSourceFields returns fields for all Arrow types and composites thereof
-func TestSourceFields() []arrow.Field {
+func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 	// cq fields
 	var cqFields []arrow.Field
 	cqIDMetadata := arrow.NewMetadata([]string{schema.MetadataUnique}, []string{"true"})
@@ -98,31 +104,52 @@ func TestSourceFields() []arrow.Field {
 	// sort and remove duplicates (e.g. date32 and date64 appear twice)
 	basicFields = sortAndRemoveDuplicates(basicFields)
 
+	if !opts.IncludeDates {
+		for i := 0; i < len(basicFields); i++ {
+			if basicFields[i].Type.ID() == arrow.DATE32 || basicFields[i].Type.ID() == arrow.DATE64 {
+				basicFields = append(basicFields[:i], basicFields[i+1:]...)
+				i--
+			}
+		}
+	}
+
 	var compositeFields []arrow.Field
 	compositeFields = append(compositeFields, ListOfFields(basicFields)...)
-	compositeFields = append(compositeFields, MapOfFields(basicFields)...)
 
-	// add JSON later, we don't want to include it as a list or map right now
+	if opts.IncludeMaps {
+		compositeFields = append(compositeFields, MapOfFields(basicFields)...)
+	}
+
+	// add JSON later, we don't want to include it as a list or map right now (it causes complications)
 	basicFields = append(basicFields, arrow.Field{Name: "json", Type: types.NewJSONType(), Nullable: true})
 
-	// struct with all the types
-	compositeFields = append(compositeFields, arrow.Field{Name: "struct", Type: arrow.StructOf(basicFields...), Nullable: true})
+	if opts.IncludeStructs {
+		// struct with all the types
+		compositeFields = append(compositeFields, arrow.Field{Name: "struct", Type: arrow.StructOf(basicFields...), Nullable: true})
 
-	// struct with nested struct
-	compositeFields = append(compositeFields, arrow.Field{Name: "nested_struct", Type: arrow.StructOf(arrow.Field{Name: "inner", Type: arrow.StructOf(basicFields...), Nullable: true}), Nullable: true})
+		// struct with nested struct
+		compositeFields = append(compositeFields, arrow.Field{Name: "nested_struct", Type: arrow.StructOf(arrow.Field{Name: "inner", Type: arrow.StructOf(basicFields...), Nullable: true}), Nullable: true})
+	}
 
 	allFields := append(append(cqFields, basicFields...), compositeFields...)
 	return allFields
 }
 
-func TestSourceSchemaWithMetadata(md *arrow.Metadata) *arrow.Schema {
-	fields := TestSourceFields()
+func TestSourceSchemaWithMetadata(md *arrow.Metadata, opts TestSourceOptions) *arrow.Schema {
+	var fields []arrow.Field
+	pkMetadata := map[string]string{
+		schema.MetadataPrimaryKey: "true",
+		schema.MetadataUnique:     "true",
+	}
+	fields = append(fields, arrow.Field{Name: "uuid_pk", Type: types.NewUUIDType(), Nullable: false, Metadata: arrow.MetadataFrom(pkMetadata)})
+	fields = append(fields, arrow.Field{Name: "string_pk", Type: arrow.BinaryTypes.String, Nullable: false, Metadata: arrow.MetadataFrom(pkMetadata)})
 	fields = append(fields, arrow.Field{Name: schema.CqSourceNameColumn.Name, Type: arrow.BinaryTypes.String, Nullable: true})
 	fields = append(fields, arrow.Field{Name: schema.CqSyncTimeColumn.Name, Type: arrow.FixedWidthTypes.Timestamp_us, Nullable: true})
+	fields = append(fields, TestSourceFields(opts)...)
 	return arrow.NewSchema(fields, md)
 }
 
-func TestSourceSchema(name string) *arrow.Schema {
+func TestSourceSchema(name string, opts TestSourceOptions) *arrow.Schema {
 	keys := []string{
 		schema.MetadataTableName,
 	}
@@ -130,5 +157,5 @@ func TestSourceSchema(name string) *arrow.Schema {
 		name,
 	}
 	metadata := arrow.NewMetadata(keys, values)
-	return TestSourceSchemaWithMetadata(&metadata)
+	return TestSourceSchemaWithMetadata(&metadata, opts)
 }

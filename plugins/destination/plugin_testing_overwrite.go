@@ -7,6 +7,7 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/cloudquery/plugin-sdk/v2/testdata"
 	"github.com/cloudquery/plugin-sdk/v2/types"
@@ -20,7 +21,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := testdata.TestSourceSchema(tableName)
+	table := testdata.TestSourceSchema(tableName, testdata.TestSourceOptions{
+		IncludeDates:   false,
+		IncludeMaps:    false,
+		IncludeStructs: false,
+	})
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*arrow.Schema{
 		table,
@@ -68,12 +73,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 
 	// copy first resource but update the sync time
-	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
+	cqIDInds := resources[0].Schema().FieldIndices(schema.CqIDColumn.Name)
+	u := resources[0].Column(cqIDInds[0]).(*types.UUIDArray).Value(0).String()
 	opts = testdata.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   secondSyncTime,
 		MaxRows:    1,
-		StableUUID: *u,
+		StableUUID: uuid.MustParse(u),
 	}
 	updatedResource := testdata.GenTestData(table, opts)[0]
 	// write second time

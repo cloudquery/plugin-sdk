@@ -79,8 +79,8 @@ func (c *client) overwrite(table *arrow.Schema, data arrow.Record) {
 	for i, row := range c.memoryDB[tableName] {
 		found := true
 		for _, pkIndex := range pksIndex {
-			s1 := data.Column(pkIndex).String()
-			s2 := row.Column(pkIndex).String()
+			s1 := data.Column(pkIndex).ValueStr(0)
+			s2 := row.Column(pkIndex).ValueStr(0)
 			if s1 != s2 {
 				found = false
 			}
