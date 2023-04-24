@@ -6,6 +6,7 @@ spec:
   table_concurrency: 10
   registry: local
   destinations: [postgresqlv2]
+  tables: [test]
 ---
 kind: destination
 spec:

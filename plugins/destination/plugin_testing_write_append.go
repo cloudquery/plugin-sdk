@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v2/testdata"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -18,32 +19,37 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := spec.Name
-	table := testdata.TestTable(tableName)
+	table := testdata.TestTable(tableName).ToArrowSchema()
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	tables := []*schema.Table{
+	tables := []*arrow.Schema{
 		table,
 	}
 	if err := p.Migrate(ctx, tables); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
-	resources := make([]schema.DestinationResource, 2)
 	sourceName := "testAppendSource" + uuid.NewString()
 	specSource := specs.Source{
 		Name: sourceName,
 	}
-	resources[0] = createTestResources(table, sourceName, syncTime, 1)[0]
-	if err := p.writeOne(ctx, specSource, tables, syncTime, resources[0]); err != nil {
+
+	opts := testdata.GenTestDataOptions{
+		SourceName: sourceName,
+		SyncTime:   syncTime,
+		MaxRows:    1,
+	}
+	record1 := testdata.GenTestData(table, opts)[0]
+	if err := p.writeOne(ctx, specSource, syncTime, record1); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
-	resources[1] = createTestResources(table, sourceName, secondSyncTime, 1)[0]
-	sortResources(table, resources)
+	opts.SyncTime = secondSyncTime
+	record2 := testdata.GenTestData(table, opts)[0]
 
 	if !s.tests.SkipSecondAppend {
 		// write second time
-		if err := p.writeOne(ctx, specSource, tables, secondSyncTime, resources[1]); err != nil {
+		if err := p.writeOne(ctx, specSource, secondSyncTime, record2); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
@@ -52,7 +58,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
-	sortCQTypes(table, resourcesRead)
+	sortRecordsBySyncTime(table, resourcesRead)
 
 	expectedResource := 2
 	if s.tests.SkipSecondAppend {
@@ -63,12 +69,14 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
-	if diff := resources[0].Data.Diff(resourcesRead[0]); diff != "" {
+	if !array.RecordApproxEqual(record1, resourcesRead[0]) {
+		diff := RecordDiff(record1, resourcesRead[0])
 		return fmt.Errorf("first expected resource diff: %s", diff)
 	}
 
 	if !s.tests.SkipSecondAppend {
-		if diff := resources[1].Data.Diff(resourcesRead[1]); diff != "" {
+		if !array.RecordApproxEqual(record2, resourcesRead[1]) {
+			diff := RecordDiff(record2, resourcesRead[1])
 			return fmt.Errorf("second expected resource diff: %s", diff)
 		}
 	}

@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v2/testdata"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
@@ -112,19 +113,23 @@ func TestOnWriteError(t *testing.T) {
 		t.Fatal(err)
 	}
 	table := testdata.TestTable("test")
-	tables := []*schema.Table{
-		table,
+	tables := []*arrow.Schema{
+		table.ToArrowSchema(),
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
-	ch := make(chan schema.DestinationResource, 1)
-	ch <- schema.DestinationResource{
-		TableName: "test",
-		Data:      testdata.GenTestData(table),
+	ch := make(chan arrow.Record, 1)
+	opts := testdata.GenTestDataOptions{
+		SourceName: "test",
+		SyncTime:   time.Now(),
+		MaxRows:    1,
+		StableUUID: uuid.Nil,
 	}
+	record := testdata.GenTestData(table.ToArrowSchema(), opts)[0]
+	ch <- record
 	close(ch)
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
 	if err == nil {
@@ -143,20 +148,24 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 		t.Fatal(err)
 	}
 	table := testdata.TestTable("test")
-	tables := []*schema.Table{
-		testdata.TestTable("test"),
+	tables := []*arrow.Schema{
+		table.ToArrowSchema(),
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
-	ch := make(chan schema.DestinationResource, 1)
+	ch := make(chan arrow.Record, 1)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	ch <- schema.DestinationResource{
-		TableName: "test",
-		Data:      testdata.GenTestData(table),
+	opts := testdata.GenTestDataOptions{
+		SourceName: "test",
+		SyncTime:   time.Now(),
+		MaxRows:    1,
+		StableUUID: uuid.Nil,
 	}
+	record := testdata.GenTestData(table.ToArrowSchema(), opts)[0]
+	ch <- record
 	defer cancel()
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
 	if err != nil {

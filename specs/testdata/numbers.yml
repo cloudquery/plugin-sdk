@@ -4,6 +4,7 @@ spec:
   version: v1
   destinations: ["0987654321"]
   path: cloudquery/aws
+  tables: [test]
 ---
 kind: source
 spec:
@@ -11,6 +12,7 @@ spec:
   version: v1
   destinations: ["0987654321"]
   path: cloudquery/aws
+  tables: [test]
 ---
 kind: destination
 spec:

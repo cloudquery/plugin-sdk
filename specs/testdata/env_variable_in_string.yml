@@ -4,6 +4,7 @@ spec:
   path: cloudquery/test
   version: "v1"
   destinations: [postgresql]
+  tables: [test]
 ---
 kind: destination
 spec:

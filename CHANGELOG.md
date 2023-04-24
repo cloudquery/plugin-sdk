@@ -5,6 +5,168 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0](https://github.com/cloudquery/plugin-sdk/compare/v2.3.8...v2.4.0) (2023-04-24)
+
+
+### Features
+
+* **arrow:** Pretty-print field changes ([#817](https://github.com/cloudquery/plugin-sdk/issues/817)) ([6c0d0b3](https://github.com/cloudquery/plugin-sdk/commit/6c0d0b346a2748dbac2464b81dfab86d307e6090))
+
+## [2.3.8](https://github.com/cloudquery/plugin-sdk/compare/v2.3.7...v2.3.8) (2023-04-20)
+
+
+### Bug Fixes
+
+* Fail on empty tables ([#796](https://github.com/cloudquery/plugin-sdk/issues/796)) ([1320d32](https://github.com/cloudquery/plugin-sdk/commit/1320d32b5a2e6ea7b6bacb0b597caf45c3f26b1e))
+* **testing:** Add sorting for testing dest migrations ([#814](https://github.com/cloudquery/plugin-sdk/issues/814)) ([b1437f1](https://github.com/cloudquery/plugin-sdk/commit/b1437f1fd7a67253f6d1fc68bbb713fedbbb91c2))
+
+## [2.3.7](https://github.com/cloudquery/plugin-sdk/compare/v2.3.6...v2.3.7) (2023-04-20)
+
+
+### Bug Fixes
+
+* Use Go memory allocator for arrow ([#810](https://github.com/cloudquery/plugin-sdk/issues/810)) ([b54e5e1](https://github.com/cloudquery/plugin-sdk/commit/b54e5e16378de6dc08d6782769f1779acb92804e))
+
+## [2.3.6](https://github.com/cloudquery/plugin-sdk/compare/v2.3.5...v2.3.6) (2023-04-19)
+
+
+### Bug Fixes
+
+* Release resource on SkipSecondAppend ([#808](https://github.com/cloudquery/plugin-sdk/issues/808)) ([6f19c2d](https://github.com/cloudquery/plugin-sdk/commit/6f19c2d69f33b9983ffe4c201058db33e97a4e13))
+* **testdata:** Add old style gen testdata ([#811](https://github.com/cloudquery/plugin-sdk/issues/811)) ([494992b](https://github.com/cloudquery/plugin-sdk/commit/494992b267b3c145e63e1c97912d56bcc50da13f))
+
+## [2.3.5](https://github.com/cloudquery/plugin-sdk/compare/v2.3.4...v2.3.5) (2023-04-19)
+
+
+### Bug Fixes
+
+* Truncate timestamp to millisecond in dest testing ([#806](https://github.com/cloudquery/plugin-sdk/issues/806)) ([eb8b7c4](https://github.com/cloudquery/plugin-sdk/commit/eb8b7c49cf788ebb8702d48cf22e75c6b56b8856))
+
+## [2.3.4](https://github.com/cloudquery/plugin-sdk/compare/v2.3.3...v2.3.4) (2023-04-19)
+
+
+### Bug Fixes
+
+* Undo release of all resources in managed writer ([#801](https://github.com/cloudquery/plugin-sdk/issues/801)) ([d586be0](https://github.com/cloudquery/plugin-sdk/commit/d586be077b099fa6d00e405a3b6c0bd655c1b40c))
+
+## [2.3.3](https://github.com/cloudquery/plugin-sdk/compare/v2.3.2...v2.3.3) (2023-04-19)
+
+
+### Bug Fixes
+
+* Make cq_id non required on destination ([#799](https://github.com/cloudquery/plugin-sdk/issues/799)) ([7f33b8d](https://github.com/cloudquery/plugin-sdk/commit/7f33b8df0e283fb8db5e70744a9964671f6b53d4))
+
+## [2.3.2](https://github.com/cloudquery/plugin-sdk/compare/v2.3.1...v2.3.2) (2023-04-19)
+
+
+### Bug Fixes
+
+* Arrow Retain and Release fixes ([#795](https://github.com/cloudquery/plugin-sdk/issues/795)) ([a893db6](https://github.com/cloudquery/plugin-sdk/commit/a893db675c5f4bb8cab71a854014c65caa43d3e3))
+* Disallow null character in strings per utf8 spec ([#797](https://github.com/cloudquery/plugin-sdk/issues/797)) ([591502f](https://github.com/cloudquery/plugin-sdk/commit/591502f51ea99ca852b307616e60ab665b231440))
+
+## [2.3.1](https://github.com/cloudquery/plugin-sdk/compare/v2.3.0...v2.3.1) (2023-04-18)
+
+
+### Bug Fixes
+
+* Set _cq_id to NotNull in destinations for backward compat ([#793](https://github.com/cloudquery/plugin-sdk/issues/793)) ([1ab4350](https://github.com/cloudquery/plugin-sdk/commit/1ab4350c7b26993f71cb39adc0d9e6d3caeddb7a))
+
+## [2.3.0](https://github.com/cloudquery/plugin-sdk/compare/v2.2.2...v2.3.0) (2023-04-18)
+
+
+### Features
+
+* Change default source tables to none ([#790](https://github.com/cloudquery/plugin-sdk/issues/790)) ([b33c777](https://github.com/cloudquery/plugin-sdk/commit/b33c77752a0b155c12ca46985410f56700a16589))
+
+
+### Bug Fixes
+
+* Update to latest Arrow (cqmain branch) ([#792](https://github.com/cloudquery/plugin-sdk/issues/792)) ([a6fdaca](https://github.com/cloudquery/plugin-sdk/commit/a6fdaca6656b79a6b420217abe8583be832ab70b))
+
+## [2.2.2](https://github.com/cloudquery/plugin-sdk/compare/v2.2.1...v2.2.2) (2023-04-17)
+
+
+### Bug Fixes
+
+* Destination testing memory leak ([#788](https://github.com/cloudquery/plugin-sdk/issues/788)) ([c17b64d](https://github.com/cloudquery/plugin-sdk/commit/c17b64dade247d794bd191075518eeba30d03a96))
+
+## [2.2.1](https://github.com/cloudquery/plugin-sdk/compare/v2.2.0...v2.2.1) (2023-04-17)
+
+
+### Bug Fixes
+
+* Make cq_id unique for backward compat ([#786](https://github.com/cloudquery/plugin-sdk/issues/786)) ([ad25ded](https://github.com/cloudquery/plugin-sdk/commit/ad25dedf81d0fb8538cd34dd0998627887ad5300))
+
+## [2.2.0](https://github.com/cloudquery/plugin-sdk/compare/v2.1.0...v2.2.0) (2023-04-17)
+
+
+### Features
+
+* Use ApproxEqual in dest tests ([#784](https://github.com/cloudquery/plugin-sdk/issues/784)) ([88a677a](https://github.com/cloudquery/plugin-sdk/commit/88a677a059f24575a0019552da92827a440b6b47))
+
+
+### Bug Fixes
+
+* Add composite PK to test table ([#768](https://github.com/cloudquery/plugin-sdk/issues/768)) ([57b8edd](https://github.com/cloudquery/plugin-sdk/commit/57b8edd823df9f2f2b603f42f3a298edf2a22bef))
+* Add StableTime to GenTestDataOptions and make panic message more verbose ([#783](https://github.com/cloudquery/plugin-sdk/issues/783)) ([be7a9a7](https://github.com/cloudquery/plugin-sdk/commit/be7a9a72b1317bb69c6e902d50f24705890a78c4))
+* Handle When `_cq_id` only PK ([#774](https://github.com/cloudquery/plugin-sdk/issues/774)) ([06fde4b](https://github.com/cloudquery/plugin-sdk/commit/06fde4b0f4f4bf4bf07878f30d0cf6222e295642))
+
+## [2.1.0](https://github.com/cloudquery/plugin-sdk/compare/v2.0.1...v2.1.0) (2023-04-12)
+
+
+### Features
+
+* **destination:** Remove redundant `ReverseTransformValues` method ([#778](https://github.com/cloudquery/plugin-sdk/issues/778)) ([bea4d00](https://github.com/cloudquery/plugin-sdk/commit/bea4d00d6502a0a131abb2321685733af8de62c1))
+
+
+### Bug Fixes
+
+* **unimplemented:** Conform to the interface ([#777](https://github.com/cloudquery/plugin-sdk/issues/777)) ([3a155d4](https://github.com/cloudquery/plugin-sdk/commit/3a155d4997cd76fe4459c779eaaad0d9dc47f8c6))
+
+## [2.0.1](https://github.com/cloudquery/plugin-sdk/compare/v2.0.0...v2.0.1) (2023-04-11)
+
+
+### Bug Fixes
+
+* Update custom types with ValueStr and AppendFromValueString ([#772](https://github.com/cloudquery/plugin-sdk/issues/772)) ([166198e](https://github.com/cloudquery/plugin-sdk/commit/166198e8af595307adaa2ffe8577da5bde4fb1fa))
+
+## [2.0.0](https://github.com/cloudquery/plugin-sdk/compare/v1.44.2...v2.0.0) (2023-04-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* Arrow migration for destination
+
+### Features
+
+* Arrow migration for destination ([b39da64](https://github.com/cloudquery/plugin-sdk/commit/b39da6418115d7cf07902f7391de3565fcbbda0d))
+
+
+### Bug Fixes
+
+* **deps:** Update module golang.org/x/net to v0.9.0 ([#752](https://github.com/cloudquery/plugin-sdk/issues/752)) ([336a957](https://github.com/cloudquery/plugin-sdk/commit/336a957984ea12088a1783c2ce030dc148473287))
+* **deps:** Update module golang.org/x/sys to v0.7.0 ([#753](https://github.com/cloudquery/plugin-sdk/issues/753)) ([8d88a50](https://github.com/cloudquery/plugin-sdk/commit/8d88a50d6a47eafeeb35610b75e61b39110de42f))
+* **deps:** Update module golang.org/x/term to v0.7.0 ([#754](https://github.com/cloudquery/plugin-sdk/issues/754)) ([643d5e0](https://github.com/cloudquery/plugin-sdk/commit/643d5e0287ac62e497acfda46629a0bbfb03f5bf))
+* **deps:** Update module golang.org/x/text to v0.9.0 ([#755](https://github.com/cloudquery/plugin-sdk/issues/755)) ([92d3748](https://github.com/cloudquery/plugin-sdk/commit/92d3748d239829ac843df379d5ee903865fc0543))
+
+## [1.44.2](https://github.com/cloudquery/plugin-sdk/compare/v1.44.1...v1.44.2) (2023-04-04)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 10a5072 ([#745](https://github.com/cloudquery/plugin-sdk/issues/745)) ([d52241c](https://github.com/cloudquery/plugin-sdk/commit/d52241c3120edf6b10cb9aacb6cee6ecad1b1764))
+* **deps:** Update google.golang.org/genproto digest to dcfb400 ([#746](https://github.com/cloudquery/plugin-sdk/issues/746)) ([b510219](https://github.com/cloudquery/plugin-sdk/commit/b51021934cd6355e9040d00504404f909490278b))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.20.0 ([#751](https://github.com/cloudquery/plugin-sdk/issues/751)) ([47b2fbc](https://github.com/cloudquery/plugin-sdk/commit/47b2fbcaab138f1d725a697f48a7c74db609bc62))
+* **deps:** Update module github.com/mattn/go-isatty to v0.0.18 ([#749](https://github.com/cloudquery/plugin-sdk/issues/749)) ([2d39af0](https://github.com/cloudquery/plugin-sdk/commit/2d39af0a6d4e71ae227c010f223889bde6157cf0))
+* **deps:** Update module github.com/schollz/progressbar/v3 to v3.13.1 ([#750](https://github.com/cloudquery/plugin-sdk/issues/750)) ([ee3f17f](https://github.com/cloudquery/plugin-sdk/commit/ee3f17fc56e3ee05ce3389a38415bccb10b4d420))
+
+## [1.44.1](https://github.com/cloudquery/plugin-sdk/compare/v1.44.0...v1.44.1) (2023-03-31)
+
+
+### Bug Fixes
+
+* **transform:** Use path instead of field name for PK options ([#739](https://github.com/cloudquery/plugin-sdk/issues/739)) ([d7649d8](https://github.com/cloudquery/plugin-sdk/commit/d7649d80f1a15cac6b7a29b6d0458a83db68cc76))
+
 ## [1.44.0](https://github.com/cloudquery/plugin-sdk/compare/v1.43.0...v1.44.0) (2023-03-17)
 
 

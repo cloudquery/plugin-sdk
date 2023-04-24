@@ -12,9 +12,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/cloudquery/plugin-sdk/caser"
-	"github.com/cloudquery/plugin-sdk/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/cloudquery/plugin-sdk/v2/caser"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
 )
 
 //go:embed templates/*.go.tpl
@@ -85,7 +84,8 @@ func (p *Plugin) GeneratePluginDocs(dir, format string) error {
 		return err
 	}
 
-	destination.SetDestinationManagedCqColumns(p.Tables())
+	setDestinationManagedCqColumns(p.Tables())
+
 	sortedTables := make(schema.Tables, 0, len(p.Tables()))
 	for _, t := range p.Tables() {
 		sortedTables = append(sortedTables, t.Copy(nil))
@@ -99,6 +99,15 @@ func (p *Plugin) GeneratePluginDocs(dir, format string) error {
 		return p.renderTablesAsJSON(dir, sortedTables)
 	default:
 		return fmt.Errorf("unsupported format: %v", format)
+	}
+}
+
+// setDestinationManagedCqColumns overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
+func setDestinationManagedCqColumns(tables []*schema.Table) {
+	for _, table := range tables {
+		table.OverwriteOrAddColumn(&schema.CqSyncTimeColumn)
+		table.OverwriteOrAddColumn(&schema.CqSourceNameColumn)
+		setDestinationManagedCqColumns(table.Relations)
 	}
 }
 

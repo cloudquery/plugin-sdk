@@ -15,7 +15,7 @@ jobs:
       - name: Vale
         uses: errata-ai/vale-action@v2
         with:
-          vale_flags: "--glob=!{plugins/source/.snapshots/*,CHANGELOG.md,.github/styles/proselint/README.md}"
+          vale_flags: "--glob=!{plugins/source/testdata/*,CHANGELOG.md,.github/styles/proselint/README.md}"
           filter_mode: nofilter
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
@@ -25,8 +25,8 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@v3
       - name: markdownlint-cli
-        uses: nosborn/github-action-markdown-cli@v3.2.0
+        uses: nosborn/github-action-markdown-cli@v3.3.0
         with:
           files: .
           config_file: .markdownlint.yaml
-          ignore_files: "CHANGELOG.md"
+          ignore_files: '{plugins/source/testdata/*,CHANGELOG.md}'

@@ -2,14 +2,18 @@ package destination
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/schema"
-	"github.com/cloudquery/plugin-sdk/specs"
-	"github.com/cloudquery/plugin-sdk/testdata"
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v2/types"
 	"github.com/rs/zerolog"
 )
 
@@ -60,6 +64,30 @@ type PluginTestSuiteTests struct {
 
 	MigrateStrategyOverwrite MigrateStrategy
 	MigrateStrategyAppend    MigrateStrategy
+}
+
+func RecordDiff(l arrow.Record, r arrow.Record) string {
+	var sb strings.Builder
+	if l.NumCols() != r.NumCols() {
+		return fmt.Sprintf("different number of columns: %d vs %d", l.NumCols(), r.NumCols())
+	}
+	if l.NumRows() != r.NumRows() {
+		return fmt.Sprintf("different number of rows: %d vs %d", l.NumRows(), r.NumRows())
+	}
+	for i := 0; i < int(l.NumCols()); i++ {
+		edits, err := array.Diff(l.Column(i), r.Column(i))
+		if err != nil {
+			panic(fmt.Sprintf("left: %v, right: %v, error: %v", l.Column(i).DataType(), r.Column(i).DataType(), err))
+		}
+		diff := edits.UnifiedDiff(l.Column(i), r.Column(i))
+		if diff != "" {
+			sb.WriteString(l.Schema().Field(i).Name)
+			sb.WriteString(": ")
+			sb.WriteString(diff)
+			sb.WriteString("\n")
+		}
+	}
+	return sb.String()
 }
 
 func getTestLogger(t *testing.T) zerolog.Logger {
@@ -170,40 +198,18 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 	})
 }
 
-func createTestResources(table *schema.Table, sourceName string, syncTime time.Time, count int) []schema.DestinationResource {
-	resources := make([]schema.DestinationResource, count)
-	for i := 0; i < count; i++ {
-		resource := schema.DestinationResource{
-			TableName: table.Name,
-			Data:      testdata.GenTestData(table),
-		}
-		_ = resource.Data[0].Set(sourceName)
-		_ = resource.Data[1].Set(syncTime)
-		resources[i] = resource
-	}
-	return resources
-}
-
-func sortResources(table *schema.Table, resources []schema.DestinationResource) {
-	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
-	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
-	sort.Slice(resources, func(i, j int) bool {
+func sortRecordsBySyncTime(table *arrow.Schema, records []arrow.Record) {
+	syncTimeIndex := table.FieldIndices(schema.CqSyncTimeColumn.Name)[0]
+	cqIDIndex := table.FieldIndices(schema.CqIDColumn.Name)[0]
+	sort.Slice(records, func(i, j int) bool {
 		// sort by sync time, then UUID
-		if !resources[i].Data[syncTimeIndex].Equal(resources[j].Data[syncTimeIndex]) {
-			return resources[i].Data[syncTimeIndex].Get().(time.Time).Before(resources[j].Data[syncTimeIndex].Get().(time.Time))
+		first := records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
+		second := records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
+		if first.Equal(second) {
+			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
+			secondUUID := records[j].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
+			return strings.Compare(firstUUID, secondUUID) < 0
 		}
-		return resources[i].Data[cqIDIndex].String() < resources[j].Data[cqIDIndex].String()
-	})
-}
-
-func sortCQTypes(table *schema.Table, resources []schema.CQTypes) {
-	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
-	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
-	sort.Slice(resources, func(i, j int) bool {
-		// sort by sync time, then UUID
-		if !resources[i][syncTimeIndex].Equal(resources[j][syncTimeIndex]) {
-			return resources[i][syncTimeIndex].Get().(time.Time).Before(resources[j][syncTimeIndex].Get().(time.Time))
-		}
-		return resources[i][cqIDIndex].String() < resources[j][cqIDIndex].String()
+		return first.Before(second)
 	})
 }
