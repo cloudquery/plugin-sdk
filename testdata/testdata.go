@@ -160,7 +160,7 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 			l := `[` + example + `]`
 			err := bldr.Field(i).UnmarshalJSON([]byte(l))
 			if err != nil {
-				panic(fmt.Sprintf("failed to unmarshal json for column %v: %v", c.Name, err))
+				panic(fmt.Sprintf("failed to unmarshal json `%v` for column %v: %v", l, c.Name, err))
 			}
 		}
 		records = append(records, bldr.NewRecord())
@@ -185,7 +185,8 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 			v := getExampleJSON(colName, dataType.(*arrow.MapType).ValueType().Field(1).Type, opts)
 			return fmt.Sprintf(`[{"key": %s,"value": %s}]`, k, v)
 		}
-		return `[` + getExampleJSON(colName, dataType.(*arrow.ListType).Elem(), opts) + `]`
+		inner := dataType.(*arrow.ListType).Elem()
+		return `[` + getExampleJSON(colName, inner, opts) + `]`
 	}
 	// handle extension types
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.UUID) {

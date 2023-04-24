@@ -91,10 +91,8 @@ func TestSourceFields() []arrow.Field {
 
 	// add extensions
 	basicFields = append(basicFields, arrow.Field{Name: "uuid", Type: types.NewUUIDType(), Nullable: true})
-	basicFields = append(basicFields, arrow.Field{Name: "json", Type: types.NewJSONType(), Nullable: true})
 	basicFields = append(basicFields, arrow.Field{Name: "inet", Type: types.NewInetType(), Nullable: true})
 	basicFields = append(basicFields, arrow.Field{Name: "mac", Type: types.NewMacType(), Nullable: true})
-	basicFields = append(basicFields, arrow.Field{Name: "json", Type: types.NewJSONType(), Nullable: true})
 
 	// sort and remove duplicates (e.g. date32 and date64 appear twice)
 	basicFields = SortAndRemoveDuplicates(basicFields)
@@ -102,6 +100,9 @@ func TestSourceFields() []arrow.Field {
 	compositeFields := make([]arrow.Field, 0)
 	compositeFields = append(compositeFields, ListOfFields(basicFields)...)
 	compositeFields = append(compositeFields, MapOfFields(basicFields)...)
+
+	// add JSON later, we don't want to include it as a list or map right now
+	basicFields = append(basicFields, arrow.Field{Name: "json", Type: types.NewJSONType(), Nullable: true})
 
 	// struct with all the types
 	compositeFields = append(compositeFields, arrow.Field{Name: "struct", Type: arrow.StructOf(basicFields...), Nullable: true})
