@@ -136,8 +136,7 @@ func (a *MacArray) Value(i int) net.HardwareAddr {
 	if a.IsNull(i) { // IsValid ~ !IsNull
 		return nil
 	}
-	arr := a.Storage().(*array.Binary)
-	return net.HardwareAddr(arr.Value(i))
+	return net.HardwareAddr(a.Storage().(*array.Binary).Value(i))
 }
 
 func (a *MacArray) ValueStr(i int) string {

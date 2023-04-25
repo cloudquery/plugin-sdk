@@ -117,8 +117,7 @@ func (a *JSONArray) Value(i int) []byte {
 	if a.IsNull(i) { // IsValid ~ !IsNull
 		return nil
 	}
-	arr := a.Storage().(*array.Binary)
-	return arr.Value(i)
+	return a.Storage().(*array.Binary).Value(i)
 }
 
 func (a *JSONArray) ValueStr(i int) string {
