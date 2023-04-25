@@ -37,7 +37,7 @@ func TestJSONBuilder(t *testing.T) {
 	require.Zero(t, b.Len(), "unexpected ArrayBuilder.Len(), NewJSONBuilder did not reset state")
 	require.Zero(t, b.Cap(), "unexpected ArrayBuilder.Cap(), NewJSONBuilder did not reset state")
 	require.Zero(t, b.NullN(), "unexpected ArrayBuilder.NullN(), NewJSONBuilder did not reset state")
-	require.Equal(t, `["{"a":1,"b":2}" (null) "{"c":3,"d":4}" (null) "{"e":5,"f":6}" "{"g":7,"h":8}"]`, a.String())
+	require.Equal(t, `["{\"a\":1,\"b\":2}" (null) "{\"c\":3,\"d\":4}" (null) "{\"e\":5,\"f\":6}" "{\"g\":7,\"h\":8}"]`, a.String())
 	st, err := a.MarshalJSON()
 	require.NoError(t, err)
 
@@ -49,7 +49,7 @@ func TestJSONBuilder(t *testing.T) {
 	require.NoError(t, err)
 
 	a = b.NewArray()
-	require.Equal(t, `["{"a":1,"b":2}" (null) "{"c":3,"d":4}" (null) "{"e":5,"f":6}" "{"g":7,"h":8}"]`, a.String())
+	require.Equal(t, `["{\"a\":1,\"b\":2}" (null) "{\"c\":3,\"d\":4}" (null) "{\"e\":5,\"f\":6}" "{\"g\":7,\"h\":8}"]`, a.String())
 	b.Release()
 	a.Release()
 }
@@ -63,12 +63,12 @@ func TestJSONBuilder_UnmarshalOne(t *testing.T) {
 		{
 			name: `map`,
 			data: `{"a": 1, "b": 2}`,
-			want: `["{"a":1,"b":2}"]`,
+			want: `["{\"a\":1,\"b\":2}"]`,
 		},
 		{
 			name: `two maps`,
 			data: `{"a": 1, "b": 2}{"c": 3, "d": 4}`,
-			want: `["{"a":1,"b":2}"]`,
+			want: `["{\"a\":1,\"b\":2}"]`,
 		},
 		{
 			name: `array`,

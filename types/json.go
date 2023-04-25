@@ -109,7 +109,7 @@ func (a JSONArray) String() string {
 		case a.IsNull(i):
 			o.WriteString(array.NullValueStr)
 		default:
-			fmt.Fprintf(o, "\"%s\"", a.ValueStr(i))
+			fmt.Fprintf(o, "%q", a.ValueStr(i))
 		}
 	}
 	o.WriteString("]")
