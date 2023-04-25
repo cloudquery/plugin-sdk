@@ -104,7 +104,7 @@ func (a JSONArray) String() string {
 		}
 		switch {
 		case a.IsNull(i):
-			o.WriteString("(null)")
+			o.WriteString(array.NullValueStr)
 		default:
 			fmt.Fprintf(o, "\"%s\"", arr.Value(i))
 		}
@@ -117,7 +117,7 @@ func (a *JSONArray) ValueStr(i int) string {
 	arr := a.Storage().(*array.Binary)
 	switch {
 	case a.IsNull(i):
-		return "(null)"
+		return array.NullValueStr
 	default:
 		return string(arr.Value(i))
 	}

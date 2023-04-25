@@ -126,7 +126,7 @@ func (a InetArray) String() string {
 		}
 		switch {
 		case a.IsNull(i):
-			o.WriteString("(null)")
+			o.WriteString(array.NullValueStr)
 		default:
 			fmt.Fprintf(o, "\"%s\"", arr.Value(i))
 		}
@@ -139,7 +139,7 @@ func (a *InetArray) ValueStr(i int) string {
 	arr := a.Storage().(*array.String)
 	switch {
 	case a.IsNull(i):
-		return "(null)"
+		return array.NullValueStr
 	default:
 		return arr.Value(i)
 	}

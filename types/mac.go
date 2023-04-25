@@ -122,7 +122,7 @@ func (a MacArray) String() string {
 		}
 		switch {
 		case a.IsNull(i):
-			o.WriteString("(null)")
+			o.WriteString(array.NullValueStr)
 		default:
 			mac := net.HardwareAddr(arr.Value(i))
 			fmt.Fprintf(o, "\"%s\"", mac)
@@ -136,7 +136,7 @@ func (a *MacArray) ValueStr(i int) string {
 	arr := a.Storage().(*array.Binary)
 	switch {
 	case a.IsNull(i):
-		return "(null)"
+		return array.NullValueStr
 	default:
 		mac := net.HardwareAddr(arr.Value(i))
 		return mac.String()

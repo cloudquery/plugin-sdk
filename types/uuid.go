@@ -137,7 +137,7 @@ func (a UUIDArray) String() string {
 		}
 		switch {
 		case a.IsNull(i):
-			o.WriteString("(null)")
+			o.WriteString(array.NullValueStr)
 		default:
 			uuidStr, err := uuid.FromBytes(arr.Value(i))
 			if err != nil {
@@ -154,7 +154,7 @@ func (a *UUIDArray) ValueStr(i int) string {
 	arr := a.Storage().(*array.FixedSizeBinary)
 	switch {
 	case a.IsNull(i):
-		return "(null)"
+		return array.NullValueStr
 	default:
 		uuidStr, _ := uuid.FromBytes(arr.Value(i))
 		return fmt.Sprintf("%v", uuidStr)
