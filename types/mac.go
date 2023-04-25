@@ -133,7 +133,7 @@ func (a MacArray) String() string {
 }
 
 func (a *MacArray) Value(i int) net.HardwareAddr {
-	if a.IsNull(i) { // IsValid ~ !IsNull
+	if a.IsNull(i) {
 		return nil
 	}
 	return net.HardwareAddr(a.Storage().(*array.Binary).Value(i))

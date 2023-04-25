@@ -114,7 +114,7 @@ func (a JSONArray) String() string {
 }
 
 func (a *JSONArray) Value(i int) []byte {
-	if a.IsNull(i) { // IsValid ~ !IsNull
+	if a.IsNull(i) {
 		return nil
 	}
 	return a.Storage().(*array.Binary).Value(i)

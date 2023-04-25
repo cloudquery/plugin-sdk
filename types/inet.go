@@ -136,7 +136,7 @@ func (a InetArray) String() string {
 }
 
 func (a *InetArray) Value(i int) *net.IPNet {
-	if a.IsNull(i) { // IsValid ~ !IsNull
+	if a.IsNull(i) {
 		return nil
 	}
 	arr := a.Storage().(*array.String)

@@ -151,7 +151,7 @@ func (a UUIDArray) String() string {
 }
 
 func (a *UUIDArray) Value(i int) uuid.UUID {
-	if a.IsNull(i) { // IsValid ~ !IsNull
+	if a.IsNull(i) {
 		return uuid.Nil
 	}
 	arr := a.Storage().(*array.FixedSizeBinary)
