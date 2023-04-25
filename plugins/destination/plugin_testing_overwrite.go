@@ -73,7 +73,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		SourceName: sourceName,
 		SyncTime:   secondSyncTime,
 		MaxRows:    1,
-		StableUUID: *u,
+		StableUUID: u,
 	}
 	updatedResource := testdata.GenTestData(table, opts)[0]
 	// write second time

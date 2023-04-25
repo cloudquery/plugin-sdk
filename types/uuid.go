@@ -150,14 +150,24 @@ func (a UUIDArray) String() string {
 	return o.String()
 }
 
-func (a *UUIDArray) ValueStr(i int) string {
+func (a *UUIDArray) Value(i int) uuid.UUID {
+	if a.IsNull(i) { // IsValid ~ !IsNull
+		return uuid.Nil
+	}
 	arr := a.Storage().(*array.FixedSizeBinary)
+	uid, err := uuid.FromBytes(arr.Value(i))
+	if err != nil {
+		panic(fmt.Errorf("invalid uuid: %w", err))
+	}
+	return uid
+}
+
+func (a *UUIDArray) ValueStr(i int) string {
 	switch {
 	case a.IsNull(i):
 		return array.NullValueStr
 	default:
-		uuidStr, _ := uuid.FromBytes(arr.Value(i))
-		return fmt.Sprintf("%v", uuidStr)
+		return a.Value(i).String()
 	}
 }
 
@@ -186,18 +196,6 @@ func (a *UUIDArray) GetOneForMarshal(i int) any {
 			panic(fmt.Errorf("invalid uuid: %w", err))
 		}
 		return uuidObj
-	}
-	return nil
-}
-
-func (a *UUIDArray) Value(i int) *uuid.UUID {
-	arr := a.Storage().(*array.FixedSizeBinary)
-	if a.IsValid(i) {
-		uuidObj, err := uuid.FromBytes(arr.Value(i))
-		if err != nil {
-			panic(fmt.Errorf("invalid uuid: %w", err))
-		}
-		return &uuidObj
 	}
 	return nil
 }
