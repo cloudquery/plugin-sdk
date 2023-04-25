@@ -132,14 +132,20 @@ func (a MacArray) String() string {
 	return o.String()
 }
 
-func (a *MacArray) ValueStr(i int) string {
+func (a *MacArray) Value(i int) net.HardwareAddr {
+	if a.IsNull(i) { // IsValid ~ !IsNull
+		return nil
+	}
 	arr := a.Storage().(*array.Binary)
+	return net.HardwareAddr(arr.Value(i))
+}
+
+func (a *MacArray) ValueStr(i int) string {
 	switch {
 	case a.IsNull(i):
 		return array.NullValueStr
 	default:
-		mac := net.HardwareAddr(arr.Value(i))
-		return mac.String()
+		return a.Value(i).String()
 	}
 }
 
