@@ -18,9 +18,10 @@ const (
 	MetadataConstraintName = "cq:extension:constraint_name"
 	MetadataIncremental    = "cq:extension:incremental"
 
-	MetadataTrue      = "true"
-	MetadataFalse     = "false"
-	MetadataTableName = "cq:table_name"
+	MetadataTrue             = "true"
+	MetadataFalse            = "false"
+	MetadataTableName        = "cq:table_name"
+	MetadataTableDescription = "cq:table_description"
 )
 
 type FieldChange struct {
@@ -82,17 +83,19 @@ type MetadataFieldOptions struct {
 }
 
 type MetadataSchemaOptions struct {
-	TableName string
+	TableName        string
+	TableDescription string
 }
 
 func NewSchemaMetadataFromOptions(opts MetadataSchemaOptions) arrow.Metadata {
-	keys := make([]string, 0)
-	values := make([]string, 0)
+	kv := map[string]string{}
 	if opts.TableName != "" {
-		keys = append(keys, MetadataTableName)
-		values = append(values, opts.TableName)
+		kv[MetadataTableName] = opts.TableName
 	}
-	return arrow.NewMetadata(keys, values)
+	if opts.TableDescription != "" {
+		kv[MetadataTableDescription] = opts.TableDescription
+	}
+	return arrow.MetadataFrom(kv)
 }
 
 func NewFieldMetadataFromOptions(opts MetadataFieldOptions) arrow.Metadata {
@@ -173,6 +176,14 @@ func PrimaryKeyIndices(sc *arrow.Schema) []int {
 
 func TableName(sc *arrow.Schema) string {
 	name, ok := sc.Metadata().GetValue(MetadataTableName)
+	if !ok {
+		return ""
+	}
+	return name
+}
+
+func TableDescription(sc *arrow.Schema) string {
+	name, ok := sc.Metadata().GetValue(MetadataTableDescription)
 	if !ok {
 		return ""
 	}
@@ -283,7 +294,11 @@ func CQSchemaToArrow(table *Table) *arrow.Schema {
 	for _, col := range table.Columns {
 		fields = append(fields, CQColumnToArrowField(&col))
 	}
-	metadata := arrow.NewMetadata([]string{MetadataTableName}, []string{table.Name})
+	opts := MetadataSchemaOptions{
+		TableName:        table.Name,
+		TableDescription: table.Description,
+	}
+	metadata := NewSchemaMetadataFromOptions(opts)
 	return arrow.NewSchema(fields, &metadata)
 }
 
