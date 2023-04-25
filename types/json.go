@@ -52,12 +52,15 @@ func (b *JSONBuilder) AppendValueFromString(s string) error {
 
 func (b *JSONBuilder) AppendValues(v []any, valid []bool) {
 	data := make([][]byte, len(v))
+	var err error
 	for i := range v {
-		bytes, err := json.Marshal(v[i])
+		if !valid[i] {
+			continue
+		}
+		data[i], err = json.Marshal(v[i])
 		if err != nil {
 			panic(err)
 		}
-		data[i] = bytes
 	}
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).AppendValues(data, valid)
 }
@@ -106,18 +109,18 @@ func (a JSONArray) String() string {
 		case a.IsNull(i):
 			o.WriteString(array.NullValueStr)
 		default:
-			fmt.Fprintf(o, "%q", a.ValueStr(i))
+			fmt.Fprintf(o, "\"%s\"", a.ValueStr(i))
 		}
 	}
 	o.WriteString("]")
 	return o.String()
 }
 
-func (a *JSONArray) Value(i int) []byte {
+func (a *JSONArray) Value(i int) json.RawMessage {
 	if a.IsNull(i) {
 		return nil
 	}
-	return a.Storage().(*array.Binary).Value(i)
+	return json.RawMessage(a.Storage().(*array.Binary).Value(i))
 }
 
 func (a *JSONArray) ValueStr(i int) string {
