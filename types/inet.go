@@ -135,24 +135,30 @@ func (a InetArray) String() string {
 	return o.String()
 }
 
-func (a *InetArray) ValueStr(i int) string {
+func (a *InetArray) Value(i int) *net.IPNet {
+	if a.IsNull(i) { // IsValid ~ !IsNull
+		return nil
+	}
 	arr := a.Storage().(*array.String)
+	_, ipnet, err := net.ParseCIDR(arr.Value(i))
+	if err != nil {
+		panic(fmt.Errorf("invalid ip+net: %w", err))
+	}
+	return ipnet
+}
+
+func (a *InetArray) ValueStr(i int) string {
 	switch {
 	case a.IsNull(i):
 		return array.NullValueStr
 	default:
-		return arr.Value(i)
+		return a.Value(i).String()
 	}
 }
 
 func (a *InetArray) GetOneForMarshal(i int) any {
-	arr := a.Storage().(*array.String)
-	if a.IsValid(i) {
-		_, ipnet, err := net.ParseCIDR(arr.Value(i))
-		if err != nil {
-			panic(fmt.Errorf("invalid ip+net: %w", err))
-		}
-		return ipnet.String()
+	if val := a.Value(i); val != nil {
+		return val.String()
 	}
 	return nil
 }
