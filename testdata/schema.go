@@ -143,10 +143,14 @@ func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 	}
 
 	var compositeFields []arrow.Field
-	compositeFields = append(compositeFields, ListOfFields(basicFields)...)
+
+	// we don't need to include lists of binary or large binary right now
+	basicFieldsWithoutBinary := removeFieldsByType(basicFields, arrow.BINARY, arrow.LARGE_BINARY)
+
+	compositeFields = append(compositeFields, ListOfFields(basicFieldsWithoutBinary)...)
 
 	if opts.IncludeMaps {
-		compositeFields = append(compositeFields, MapOfFields(basicFields)...)
+		compositeFields = append(compositeFields, MapOfFields(basicFieldsWithoutBinary)...)
 	}
 
 	// add JSON later, we don't want to include it as a list or map right now (it causes complications with JSON unmarshalling)
