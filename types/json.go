@@ -113,13 +113,20 @@ func (a JSONArray) String() string {
 	return o.String()
 }
 
-func (a *JSONArray) ValueStr(i int) string {
+func (a *JSONArray) Value(i int) []byte {
+	if a.IsNull(i) { // IsValid ~ !IsNull
+		return nil
+	}
 	arr := a.Storage().(*array.Binary)
+	return arr.Value(i)
+}
+
+func (a *JSONArray) ValueStr(i int) string {
 	switch {
 	case a.IsNull(i):
 		return array.NullValueStr
 	default:
-		return string(arr.Value(i))
+		return string(a.Value(i))
 	}
 }
 
