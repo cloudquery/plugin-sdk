@@ -128,7 +128,7 @@ func (a InetArray) String() string {
 		case a.IsNull(i):
 			o.WriteString(array.NullValueStr)
 		default:
-			fmt.Fprintf(o, "\"%s\"", arr.Value(i))
+			fmt.Fprintf(o, "%q", a.ValueStr(i))
 		}
 	}
 	o.WriteString("]")

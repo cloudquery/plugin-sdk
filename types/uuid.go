@@ -139,11 +139,7 @@ func (a UUIDArray) String() string {
 		case a.IsNull(i):
 			o.WriteString(array.NullValueStr)
 		default:
-			uuidStr, err := uuid.FromBytes(arr.Value(i))
-			if err != nil {
-				panic(fmt.Errorf("invalid uuid: %w", err))
-			}
-			fmt.Fprintf(o, "%q", uuidStr)
+			fmt.Fprintf(o, "%q", a.Value(i))
 		}
 	}
 	o.WriteString("]")
