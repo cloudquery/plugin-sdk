@@ -124,8 +124,7 @@ func (a MacArray) String() string {
 		case a.IsNull(i):
 			o.WriteString(array.NullValueStr)
 		default:
-			mac := net.HardwareAddr(arr.Value(i))
-			fmt.Fprintf(o, "\"%s\"", mac)
+			fmt.Fprintf(o, "%q", a.Value(i))
 		}
 	}
 	o.WriteString("]")
