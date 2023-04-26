@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strings"
@@ -27,19 +28,22 @@ func (b *JSONBuilder) Append(v any) {
 		b.AppendNull()
 		return
 	}
-	bytes, err := json.Marshal(v)
+
+	data, err := json.MarshalNoEscape(v) // per https://github.com/cloudquery/plugin-sdk/issues/622
 	if err != nil {
 		panic(err)
 	}
-	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append(bytes)
+
+	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append(data)
 }
 
 func (b *JSONBuilder) UnsafeAppend(v any) {
-	bytes, err := json.Marshal(v)
+	data, err := json.MarshalNoEscape(v) // per https://github.com/cloudquery/plugin-sdk/issues/622
 	if err != nil {
 		panic(err)
 	}
-	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).UnsafeAppend(bytes)
+
+	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).UnsafeAppend(data)
 }
 
 func (b *JSONBuilder) AppendValueFromString(s string) error {
@@ -65,19 +69,6 @@ func (b *JSONBuilder) AppendValues(v []any, valid []bool) {
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).AppendValues(data, valid)
 }
 
-func (b *JSONBuilder) UnmarshalJSON(data []byte) error {
-	var a []any
-	if err := json.Unmarshal(data, &a); err != nil {
-		return err
-	}
-	valid := make([]bool, len(a))
-	for i := range a {
-		valid[i] = a[i] != nil
-	}
-	b.AppendValues(a, valid)
-	return nil
-}
-
 func (b *JSONBuilder) UnmarshalOne(dec *json.Decoder) error {
 	var buf any
 	err := dec.Decode(&buf)
@@ -90,6 +81,29 @@ func (b *JSONBuilder) UnmarshalOne(dec *json.Decoder) error {
 		b.Append(buf)
 	}
 	return nil
+}
+
+func (b *JSONBuilder) Unmarshal(dec *json.Decoder) error {
+	for dec.More() {
+		if err := b.UnmarshalOne(dec); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *JSONBuilder) UnmarshalJSON(data []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	t, err := dec.Token()
+	if err != nil {
+		return err
+	}
+
+	if delim, ok := t.(json.Delim); !ok || delim != '[' {
+		return fmt.Errorf("JSON builder must unpack from JSON array, found %s", delim)
+	}
+
+	return b.Unmarshal(dec)
 }
 
 // JSONArray is a simple array which is a Binary
@@ -116,11 +130,18 @@ func (a JSONArray) String() string {
 	return o.String()
 }
 
-func (a *JSONArray) Value(i int) json.RawMessage {
+func (a *JSONArray) Value(i int) any {
 	if a.IsNull(i) {
 		return nil
 	}
-	return json.RawMessage(a.Storage().(*array.Binary).Value(i))
+
+	arr := a.Storage().(*array.Binary)
+	var data any
+	err := json.UnmarshalNoEscape(arr.Value(i), &data)
+	if err != nil {
+		panic(fmt.Errorf("invalid json: %w", err))
+	}
+	return data
 }
 
 func (a *JSONArray) ValueStr(i int) string {
@@ -128,37 +149,31 @@ func (a *JSONArray) ValueStr(i int) string {
 	case a.IsNull(i):
 		return array.NullValueStr
 	default:
-		return string(a.Value(i))
+		return string(a.GetOneForMarshal(i).(json.RawMessage))
 	}
 }
 
 func (a *JSONArray) MarshalJSON() ([]byte, error) {
+	values := make([]json.RawMessage, a.Len())
 	arr := a.Storage().(*array.Binary)
-	vals := make([]any, a.Len())
 	for i := 0; i < a.Len(); i++ {
-		if a.IsValid(i) {
-			err := json.Unmarshal(arr.Value(i), &vals[i])
-			if err != nil {
-				panic(fmt.Errorf("invalid json: %w", err))
-			}
-		} else {
-			vals[i] = nil
+		if a.IsNull(i) {
+			continue
 		}
-	}
-	return json.Marshal(vals)
-}
 
-func (a *JSONArray) GetOneForMarshal(i int) any {
-	arr := a.Storage().(*array.Binary)
-	if a.IsValid(i) {
-		var data any
-		err := json.Unmarshal(arr.Value(i), &data)
+		err := json.UnmarshalNoEscape(arr.Value(i), &values[i])
 		if err != nil {
 			panic(fmt.Errorf("invalid json: %w", err))
 		}
-		return data
 	}
-	return nil
+	return json.Marshal(values)
+}
+
+func (a *JSONArray) GetOneForMarshal(i int) any {
+	if a.IsNull(i) {
+		return nil
+	}
+	return json.RawMessage(a.Storage().(*array.Binary).Value(i))
 }
 
 // JSONType is a simple extension type that represents a BinaryType
