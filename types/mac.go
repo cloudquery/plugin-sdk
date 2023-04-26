@@ -34,6 +34,9 @@ func (b *MacBuilder) UnsafeAppend(v net.HardwareAddr) {
 func (b *MacBuilder) AppendValues(v []net.HardwareAddr, valid []bool) {
 	data := make([][]byte, len(v))
 	for i, v := range v {
+		if !valid[i] {
+			continue
+		}
 		data[i] = v
 	}
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).AppendValues(data, valid)

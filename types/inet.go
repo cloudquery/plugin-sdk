@@ -23,17 +23,24 @@ func NewInetBuilder(bldr *array.ExtensionBuilder) *InetBuilder {
 	return b
 }
 
-func (b *InetBuilder) Append(v net.IPNet) {
+func (b *InetBuilder) Append(v *net.IPNet) {
+	if v == nil {
+		b.AppendNull()
+		return
+	}
 	b.ExtensionBuilder.Builder.(*array.StringBuilder).Append(v.String())
 }
 
-func (b *InetBuilder) UnsafeAppend(v net.IPNet) {
+func (b *InetBuilder) UnsafeAppend(v *net.IPNet) {
 	b.ExtensionBuilder.Builder.(*array.StringBuilder).UnsafeAppend([]byte(v.String()))
 }
 
-func (b *InetBuilder) AppendValues(v []net.IPNet, valid []bool) {
+func (b *InetBuilder) AppendValues(v []*net.IPNet, valid []bool) {
 	data := make([]string, len(v))
 	for i, v := range v {
+		if !valid[i] {
+			continue
+		}
 		data[i] = v.String()
 	}
 	b.ExtensionBuilder.Builder.(*array.StringBuilder).AppendValues(data, valid)
@@ -48,7 +55,7 @@ func (b *InetBuilder) AppendValueFromString(s string) error {
 	if err != nil {
 		return err
 	}
-	b.Append(*data)
+	b.Append(data)
 	return nil
 }
 
@@ -58,20 +65,18 @@ func (b *InetBuilder) UnmarshalOne(dec *json.Decoder) error {
 		return err
 	}
 
-	var val net.IPNet
+	var val *net.IPNet
 	switch v := t.(type) {
 	case string:
-		_, data, err := net.ParseCIDR(v)
+		_, val, err = net.ParseCIDR(v)
 		if err != nil {
 			return err
 		}
-		val = *data
 	case []byte:
-		_, data, err := net.ParseCIDR(string(v))
+		_, val, err = net.ParseCIDR(string(v))
 		if err != nil {
 			return err
 		}
-		val = *data
 	case nil:
 		b.AppendNull()
 		return nil
@@ -139,11 +144,11 @@ func (a *InetArray) Value(i int) *net.IPNet {
 	if a.IsNull(i) {
 		return nil
 	}
-	arr := a.Storage().(*array.String)
-	_, ipnet, err := net.ParseCIDR(arr.Value(i))
+	_, ipnet, err := net.ParseCIDR(a.Storage().(*array.String).Value(i))
 	if err != nil {
 		panic(fmt.Errorf("invalid ip+net: %w", err))
 	}
+
 	return ipnet
 }
 

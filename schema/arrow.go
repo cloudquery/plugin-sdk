@@ -398,7 +398,7 @@ func CQTypesToRecord(mem memory.Allocator, c []CQTypes, arrowSchema *arrow.Schem
 				}
 			case TypeInet:
 				if c[j][i].(*Inet).Status == Present {
-					bldr.Field(i).(*types.InetBuilder).Append(*c[j][i].(*Inet).IPNet)
+					bldr.Field(i).(*types.InetBuilder).Append(c[j][i].(*Inet).IPNet)
 				} else {
 					bldr.Field(i).(*types.InetBuilder).AppendNull()
 				}
@@ -407,14 +407,14 @@ func CQTypesToRecord(mem memory.Allocator, c []CQTypes, arrowSchema *arrow.Schem
 					listBldr := bldr.Field(i).(*array.ListBuilder)
 					listBldr.Append(true)
 					for _, e := range c[j][i].(*InetArray).Elements {
-						listBldr.ValueBuilder().(*types.InetBuilder).Append(*e.IPNet)
+						listBldr.ValueBuilder().(*types.InetBuilder).Append(e.IPNet)
 					}
 				} else {
 					bldr.Field(i).(*array.ListBuilder).AppendNull()
 				}
 			case TypeCIDR:
 				if c[j][i].(*CIDR).Status == Present {
-					bldr.Field(i).(*types.InetBuilder).Append(*c[j][i].(*CIDR).IPNet)
+					bldr.Field(i).(*types.InetBuilder).Append(c[j][i].(*CIDR).IPNet)
 				} else {
 					bldr.Field(i).(*types.InetBuilder).AppendNull()
 				}
@@ -423,7 +423,7 @@ func CQTypesToRecord(mem memory.Allocator, c []CQTypes, arrowSchema *arrow.Schem
 					listBldr := bldr.Field(i).(*array.ListBuilder)
 					listBldr.Append(true)
 					for _, e := range c[j][i].(*CIDRArray).Elements {
-						listBldr.ValueBuilder().(*types.InetBuilder).Append(*e.IPNet)
+						listBldr.ValueBuilder().(*types.InetBuilder).Append(e.IPNet)
 					}
 				} else {
 					bldr.Field(i).(*array.ListBuilder).AppendNull()
