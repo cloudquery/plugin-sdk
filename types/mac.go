@@ -16,9 +16,9 @@ type MacBuilder struct {
 	*array.ExtensionBuilder
 }
 
-func NewMacBuilder(bldr *array.ExtensionBuilder) *MacBuilder {
+func NewMacBuilder(builder *array.ExtensionBuilder) *MacBuilder {
 	b := &MacBuilder{
-		ExtensionBuilder: bldr,
+		ExtensionBuilder: builder,
 	}
 	return b
 }
@@ -115,7 +115,7 @@ type MacArray struct {
 	array.ExtensionArrayBase
 }
 
-func (a MacArray) String() string {
+func (a *MacArray) String() string {
 	arr := a.Storage().(*array.Binary)
 	o := new(strings.Builder)
 	o.WriteString("[")
@@ -152,15 +152,15 @@ func (a *MacArray) ValueStr(i int) string {
 
 func (a *MacArray) MarshalJSON() ([]byte, error) {
 	arr := a.Storage().(*array.Binary)
-	vals := make([]any, a.Len())
+	values := make([]any, a.Len())
 	for i := 0; i < a.Len(); i++ {
 		if a.IsValid(i) {
-			vals[i] = net.HardwareAddr(arr.Value(i)).String()
+			values[i] = net.HardwareAddr(arr.Value(i)).String()
 		} else {
-			vals[i] = nil
+			values[i] = nil
 		}
 	}
-	return json.Marshal(vals)
+	return json.Marshal(values)
 }
 
 func (a *MacArray) GetOneForMarshal(i int) any {
@@ -186,22 +186,22 @@ func NewMacType() *MacType {
 }
 
 // ArrayType returns TypeOf(MacArray) for constructing mac arrays
-func (MacType) ArrayType() reflect.Type {
+func (*MacType) ArrayType() reflect.Type {
 	return reflect.TypeOf(MacArray{})
 }
 
-func (MacType) ExtensionName() string {
+func (*MacType) ExtensionName() string {
 	return "mac"
 }
 
 // Serialize returns "mac-serialized" for testing proper metadata passing
-func (MacType) Serialize() string {
+func (*MacType) Serialize() string {
 	return "mac-serialized"
 }
 
 // Deserialize expects storageType to be FixedSizeBinaryType{ByteWidth: 16} and the data to be
 // "mac-serialized" in order to correctly create a MacType for testing deserialize.
-func (MacType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
+func (*MacType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
 	if data != "mac-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
@@ -211,11 +211,11 @@ func (MacType) Deserialize(storageType arrow.DataType, data string) (arrow.Exten
 	return NewInetType(), nil
 }
 
-// MacTypes are equal if both are named "mac"
-func (u MacType) ExtensionEquals(other arrow.ExtensionType) bool {
+// ExtensionEquals returns true if both extensions have the same name
+func (u *MacType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return u.ExtensionName() == other.ExtensionName()
 }
 
-func (MacType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
-	return NewMacBuilder(bldr)
+func (*MacType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
+	return NewMacBuilder(builder)
 }

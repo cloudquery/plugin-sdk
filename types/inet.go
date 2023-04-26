@@ -16,9 +16,9 @@ type InetBuilder struct {
 	*array.ExtensionBuilder
 }
 
-func NewInetBuilder(bldr *array.ExtensionBuilder) *InetBuilder {
+func NewInetBuilder(builder *array.ExtensionBuilder) *InetBuilder {
 	b := &InetBuilder{
-		ExtensionBuilder: bldr,
+		ExtensionBuilder: builder,
 	}
 	return b
 }
@@ -121,7 +121,7 @@ type InetArray struct {
 	array.ExtensionArrayBase
 }
 
-func (a InetArray) String() string {
+func (a *InetArray) String() string {
 	arr := a.Storage().(*array.String)
 	o := new(strings.Builder)
 	o.WriteString("[")
@@ -182,22 +182,22 @@ func NewInetType() *InetType {
 			Storage: &arrow.StringType{}}}
 }
 
-func (InetType) ArrayType() reflect.Type {
+func (*InetType) ArrayType() reflect.Type {
 	return reflect.TypeOf(InetArray{})
 }
 
-func (InetType) ExtensionName() string {
+func (*InetType) ExtensionName() string {
 	return "inet"
 }
 
 // Serialize returns "inet-serialized" for testing proper metadata passing
-func (InetType) Serialize() string {
+func (*InetType) Serialize() string {
 	return "inet-serialized"
 }
 
 // Deserialize expects storageType to be StringType and the data to be
 // "inet-serialized" in order to correctly create a InetType for testing deserialize.
-func (InetType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
+func (*InetType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
 	if data != "inet-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
@@ -207,11 +207,11 @@ func (InetType) Deserialize(storageType arrow.DataType, data string) (arrow.Exte
 	return NewInetType(), nil
 }
 
-// InetType are equal if both are named "inet"
-func (u InetType) ExtensionEquals(other arrow.ExtensionType) bool {
+// ExtensionEquals returns true if both extensions have the same name
+func (u *InetType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return u.ExtensionName() == other.ExtensionName()
 }
 
-func (InetType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
-	return NewInetBuilder(bldr)
+func (*InetType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
+	return NewInetBuilder(builder)
 }

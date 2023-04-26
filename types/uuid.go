@@ -185,30 +185,30 @@ func NewUUIDType() *UUIDType {
 }
 
 // ArrayType returns TypeOf(UuidArray) for constructing uuid arrays
-func (UUIDType) ArrayType() reflect.Type {
+func (*UUIDType) ArrayType() reflect.Type {
 	return reflect.TypeOf(UUIDArray{})
 }
 
-func (UUIDType) ExtensionName() string {
+func (*UUIDType) ExtensionName() string {
 	return "uuid"
 }
 
-func (e UUIDType) String() string {
+func (e *UUIDType) String() string {
 	return fmt.Sprintf("extension_type<storage=%s>", e.Storage)
 }
 
-func (e UUIDType) MarshalJSON() ([]byte, error) {
+func (e *UUIDType) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`{"name":"%s","metadata":%s}`, e.ExtensionName(), e.Serialize())), nil
 }
 
 // Serialize returns "uuid-serialized" for testing proper metadata passing
-func (UUIDType) Serialize() string {
+func (*UUIDType) Serialize() string {
 	return "uuid-serialized"
 }
 
 // Deserialize expects storageType to be FixedSizeBinaryType{ByteWidth: 16} and the data to be
 // "uuid-serialized" in order to correctly create a UuidType for testing deserialize.
-func (UUIDType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
+func (*UUIDType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
 	if data != "uuid-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
@@ -218,11 +218,11 @@ func (UUIDType) Deserialize(storageType arrow.DataType, data string) (arrow.Exte
 	return NewUUIDType(), nil
 }
 
-// ExtensionEquals for UUIDType just checks that the names are equal
-func (e UUIDType) ExtensionEquals(other arrow.ExtensionType) bool {
+// ExtensionEquals returns true if both extensions have the same name
+func (e *UUIDType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return e.ExtensionName() == other.ExtensionName()
 }
 
-func (UUIDType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
+func (*UUIDType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
 	return NewUUIDBuilder(builder)
 }

@@ -114,7 +114,7 @@ type JSONArray struct {
 	array.ExtensionArrayBase
 }
 
-func (a JSONArray) String() string {
+func (a *JSONArray) String() string {
 	arr := a.Storage().(*array.Binary)
 	o := new(strings.Builder)
 	o.WriteString("[")
@@ -186,7 +186,7 @@ type JSONType struct {
 	arrow.ExtensionBase
 }
 
-// NewJSONType is a convenience function to create an instance of JSONType
+// NewJSONType is a convenience function to create an instance of *JSONType
 // with the correct storage type
 func NewJSONType() *JSONType {
 	return &JSONType{
@@ -194,45 +194,45 @@ func NewJSONType() *JSONType {
 			Storage: &arrow.BinaryType{}}}
 }
 
-// ArrayType returns TypeOf(JSONType) for constructing JSON arrays
-func (JSONType) ArrayType() reflect.Type {
+// ArrayType returns TypeOf(*JSONType) for constructing JSON arrays
+func (*JSONType) ArrayType() reflect.Type {
 	return reflect.TypeOf(JSONArray{})
 }
 
-func (JSONType) ExtensionName() string {
+func (*JSONType) ExtensionName() string {
 	return "json"
 }
 
-func (e JSONType) String() string {
+func (e *JSONType) String() string {
 	return fmt.Sprintf("extension_type<storage=%s>", e.Storage)
 }
 
-func (e JSONType) MarshalJSON() ([]byte, error) {
+func (e *JSONType) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`{"name":"%s","metadata":%s}`, e.ExtensionName(), e.Serialize())), nil
 }
 
 // Serialize returns "json-serialized" for testing proper metadata passing
-func (JSONType) Serialize() string {
+func (*JSONType) Serialize() string {
 	return "json-serialized"
 }
 
 // Deserialize expects storageType to be BinaryBuilder and the data to be
-// "json-serialized" in order to correctly create a JSONType for testing deserialize.
-func (JSONType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
+// "json-serialized" in order to correctly create a *JSONType for testing deserialize.
+func (*JSONType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
 	if data != "json-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
 	if !arrow.TypeEqual(storageType, &arrow.BinaryType{}) {
-		return nil, fmt.Errorf("invalid storage type for JSONType: %s", storageType.Name())
+		return nil, fmt.Errorf("invalid storage type for *JSONType: %s", storageType.Name())
 	}
 	return NewJSONType(), nil
 }
 
 // ExtensionEquals returns true if both extensions have the same name
-func (e JSONType) ExtensionEquals(other arrow.ExtensionType) bool {
+func (e *JSONType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return e.ExtensionName() == other.ExtensionName()
 }
 
-func (JSONType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
+func (*JSONType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
 	return NewJSONBuilder(bldr)
 }
