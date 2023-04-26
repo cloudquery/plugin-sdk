@@ -260,11 +260,12 @@ func (c *Client) Write(ctx context.Context, source string, syncTime time.Time, r
 	if err != nil {
 		return 0, fmt.Errorf("failed to call Write: %w", err)
 	}
+	syncTime = syncTime.Truncate(time.Microsecond)
 	for resource := range resources {
 		if err := saveClient.Send(&pb.Write_Request{
 			Resource:  resource,
 			Source:    source,
-			Timestamp: timestamppb.New(syncTime.Truncate(time.Microsecond)),
+			Timestamp: timestamppb.New(syncTime),
 		}); err != nil {
 			if err == io.EOF {
 				// don't send write request if the channel is closed
