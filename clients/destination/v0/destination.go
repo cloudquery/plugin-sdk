@@ -264,7 +264,7 @@ func (c *Client) Write(ctx context.Context, source string, syncTime time.Time, r
 		if err := saveClient.Send(&pb.Write_Request{
 			Resource:  resource,
 			Source:    source,
-			Timestamp: timestamppb.New(syncTime.Truncate(time.Millisecond)),
+			Timestamp: timestamppb.New(syncTime.Truncate(time.Microsecond)),
 		}); err != nil {
 			if err == io.EOF {
 				// don't send write request if the channel is closed
@@ -297,7 +297,7 @@ func (c *Client) Write2(ctx context.Context, sourceSpec specs.Source, tables sch
 	if err := saveClient.Send(&pb.Write2_Request{
 		Tables:     b,
 		Source:     sourceSpec.Name,
-		Timestamp:  timestamppb.New(syncTime.Truncate(time.Millisecond)),
+		Timestamp:  timestamppb.New(syncTime.Truncate(time.Microsecond)),
 		SourceSpec: sourceSpecBytes,
 	}); err != nil {
 		return fmt.Errorf("failed to send tables: %w", err)
@@ -335,7 +335,7 @@ func (c *Client) DeleteStale(ctx context.Context, tables schema.Tables, source s
 	}
 	if _, err := c.pbClient.DeleteStale(ctx, &pb.DeleteStale_Request{
 		Source:    source,
-		Timestamp: timestamppb.New(timestamp.Truncate(time.Millisecond)),
+		Timestamp: timestamppb.New(timestamp.Truncate(time.Microsecond)),
 		Tables:    b,
 	}); err != nil {
 		return fmt.Errorf("failed to call DeleteStale: %w", err)
