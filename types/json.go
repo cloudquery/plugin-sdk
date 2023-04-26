@@ -29,7 +29,8 @@ func (b *JSONBuilder) Append(v any) {
 		return
 	}
 
-	data, err := json.MarshalNoEscape(v) // per https://github.com/cloudquery/plugin-sdk/issues/622
+	// per https://github.com/cloudquery/plugin-sdk/issues/622
+	data, err := json.MarshalWithOption(v, json.DisableHTMLEscape())
 	if err != nil {
 		panic(err)
 	}
@@ -38,7 +39,8 @@ func (b *JSONBuilder) Append(v any) {
 }
 
 func (b *JSONBuilder) UnsafeAppend(v any) {
-	data, err := json.MarshalNoEscape(v) // per https://github.com/cloudquery/plugin-sdk/issues/622
+	// per https://github.com/cloudquery/plugin-sdk/issues/622
+	data, err := json.MarshalWithOption(v, json.DisableHTMLEscape())
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +63,8 @@ func (b *JSONBuilder) AppendValues(v []any, valid []bool) {
 		if !valid[i] {
 			continue
 		}
-		data[i], err = json.Marshal(v[i])
+		// per https://github.com/cloudquery/plugin-sdk/issues/622
+		data[i], err = json.MarshalWithOption(v[i], json.DisableHTMLEscape())
 		if err != nil {
 			panic(err)
 		}
@@ -135,9 +138,9 @@ func (a *JSONArray) Value(i int) any {
 		return nil
 	}
 
-	arr := a.Storage().(*array.Binary)
 	var data any
-	err := json.UnmarshalNoEscape(arr.Value(i), &data)
+	// per https://github.com/cloudquery/plugin-sdk/issues/622
+	err := json.UnmarshalNoEscape(a.Storage().(*array.Binary).Value(i), &data)
 	if err != nil {
 		panic(fmt.Errorf("invalid json: %w", err))
 	}
@@ -160,13 +163,14 @@ func (a *JSONArray) MarshalJSON() ([]byte, error) {
 		if a.IsNull(i) {
 			continue
 		}
-
+		// per https://github.com/cloudquery/plugin-sdk/issues/622
 		err := json.UnmarshalNoEscape(arr.Value(i), &values[i])
 		if err != nil {
 			panic(fmt.Errorf("invalid json: %w", err))
 		}
 	}
-	return json.Marshal(values)
+	// per https://github.com/cloudquery/plugin-sdk/issues/622
+	return json.MarshalWithOption(values, json.DisableHTMLEscape())
 }
 
 func (a *JSONArray) GetOneForMarshal(i int) any {
