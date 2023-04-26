@@ -66,6 +66,10 @@ type (
 		Name    string `json:"name"`
 		Version int    `json:"version"`
 	}
+
+	testFunnyStruct struct {
+		AFunnyLookingField string `json:"OS-EXT:a-funny-looking-field"`
+	}
 )
 
 var (
@@ -243,6 +247,16 @@ var (
 			},
 		},
 	}
+
+	expectedFunnyTable = schema.Table{
+		Name: "test_funny_struct",
+		Columns: schema.ColumnList{
+			{
+				Name: "a_funny_looking_field",
+				Type: schema.TypeString,
+			},
+		},
+	}
 )
 
 func TestTableFromGoStruct(t *testing.T) {
@@ -355,6 +369,13 @@ func TestTableFromGoStruct(t *testing.T) {
 			},
 			want:    expectedTableWithPKs,
 			wantErr: true,
+		},
+		{
+			name: "Should properly transform structs with funny looking fields",
+			args: args{
+				testStruct: testFunnyStruct{},
+			},
+			want: expectedFunnyTable,
 		},
 	}
 
