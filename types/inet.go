@@ -17,10 +17,7 @@ type InetBuilder struct {
 }
 
 func NewInetBuilder(builder *array.ExtensionBuilder) *InetBuilder {
-	b := &InetBuilder{
-		ExtensionBuilder: builder,
-	}
-	return b
+	return &InetBuilder{ExtensionBuilder: builder}
 }
 
 func (b *InetBuilder) Append(v *net.IPNet) {
@@ -177,9 +174,7 @@ type InetType struct {
 // NewInetType is a convenience function to create an instance of InetType
 // with the correct storage type
 func NewInetType() *InetType {
-	return &InetType{
-		ExtensionBase: arrow.ExtensionBase{
-			Storage: &arrow.StringType{}}}
+	return &InetType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.StringType{}}}
 }
 
 // ArrayType returns TypeOf(InetArray{}) for constructing Inet arrays

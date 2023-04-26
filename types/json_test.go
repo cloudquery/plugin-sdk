@@ -160,6 +160,7 @@ func TestJSONArray_GetOneForMarshal(t *testing.T) {
 		})
 	}
 }
+
 func TestJSONArray_ValueStr(t *testing.T) {
 	cases := []struct {
 		name string

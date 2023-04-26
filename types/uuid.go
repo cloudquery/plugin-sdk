@@ -20,10 +20,7 @@ type UUIDBuilder struct {
 }
 
 func NewUUIDBuilder(builder *array.ExtensionBuilder) *UUIDBuilder {
-	b := &UUIDBuilder{
-		ExtensionBuilder: builder,
-	}
-	return b
+	return &UUIDBuilder{ExtensionBuilder: builder}
 }
 
 func (b *UUIDBuilder) Append(v uuid.UUID) {
@@ -179,9 +176,7 @@ type UUIDType struct {
 // NewUUIDType is a convenience function to create an instance of UuidType
 // with the correct storage type
 func NewUUIDType() *UUIDType {
-	return &UUIDType{
-		ExtensionBase: arrow.ExtensionBase{
-			Storage: &arrow.FixedSizeBinaryType{ByteWidth: 16}}}
+	return &UUIDType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.FixedSizeBinaryType{ByteWidth: 16}}}
 }
 
 // ArrayType returns TypeOf(UUIDArray{}) for constructing UUID arrays

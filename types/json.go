@@ -16,11 +16,8 @@ type JSONBuilder struct {
 	*array.ExtensionBuilder
 }
 
-func NewJSONBuilder(bldr *array.ExtensionBuilder) *JSONBuilder {
-	b := &JSONBuilder{
-		ExtensionBuilder: bldr,
-	}
-	return b
+func NewJSONBuilder(builder *array.ExtensionBuilder) *JSONBuilder {
+	return &JSONBuilder{ExtensionBuilder: builder}
 }
 
 func (b *JSONBuilder) Append(v any) {
@@ -189,9 +186,7 @@ type JSONType struct {
 // NewJSONType is a convenience function to create an instance of JSONType
 // with the correct storage type
 func NewJSONType() *JSONType {
-	return &JSONType{
-		ExtensionBase: arrow.ExtensionBase{
-			Storage: &arrow.BinaryType{}}}
+	return &JSONType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.BinaryType{}}}
 }
 
 // ArrayType returns TypeOf(JSONArray{}) for constructing JSON arrays
@@ -233,6 +228,6 @@ func (e *JSONType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return e.ExtensionName() == other.ExtensionName()
 }
 
-func (*JSONType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
-	return NewJSONBuilder(bldr)
+func (*JSONType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
+	return NewJSONBuilder(builder)
 }

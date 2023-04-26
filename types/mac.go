@@ -17,10 +17,7 @@ type MacBuilder struct {
 }
 
 func NewMacBuilder(builder *array.ExtensionBuilder) *MacBuilder {
-	b := &MacBuilder{
-		ExtensionBuilder: builder,
-	}
-	return b
+	return &MacBuilder{ExtensionBuilder: builder}
 }
 
 func (b *MacBuilder) Append(v net.HardwareAddr) {
@@ -180,9 +177,7 @@ type MacType struct {
 // NewMacType is a convenience function to create an instance of MacType
 // with the correct storage type
 func NewMacType() *MacType {
-	return &MacType{
-		ExtensionBase: arrow.ExtensionBase{
-			Storage: &arrow.BinaryType{}}}
+	return &MacType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.BinaryType{}}}
 }
 
 // ArrayType returns TypeOf(MacArray{}) for constructing MAC arrays
