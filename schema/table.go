@@ -360,8 +360,7 @@ func (t *Table) ValidateDuplicateColumns() error {
 
 func (t *Table) ValidateColumnNames() error {
 	for _, c := range t.Columns {
-		ok := reValidColumnName.MatchString(c.Name)
-		if !ok {
+		if !ValidColumnName(c.Name) {
 			return fmt.Errorf("column name %q on table %q is not valid: column names must contain only lower-case letters, numbers and underscores, and must start with a lower-case letter or underscore", c.Name, t.Name)
 		}
 	}
@@ -429,4 +428,8 @@ func (t *Table) Copy(parent *Table) *Table {
 		c.Relations[i] = t.Relations[i].Copy(&c)
 	}
 	return &c
+}
+
+func ValidColumnName(name string) bool {
+	return reValidColumnName.MatchString(name)
 }
