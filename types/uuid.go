@@ -158,19 +158,16 @@ func (a *UUIDArray) MarshalJSON() ([]byte, error) {
 	for i := 0; i < a.Len(); i++ {
 		if a.IsValid(i) {
 			values[i] = uuid.Must(uuid.FromBytes(arr.Value(i))).String()
-		} else {
-			values[i] = nil
 		}
 	}
 	return json.Marshal(values)
 }
 
 func (a *UUIDArray) GetOneForMarshal(i int) any {
-	arr := a.Storage().(*array.FixedSizeBinary)
-	if a.IsValid(i) {
-		return uuid.Must(uuid.FromBytes(arr.Value(i)))
+	if a.IsNull(i) {
+		return nil
 	}
-	return nil
+	return uuid.Must(uuid.FromBytes(a.Storage().(*array.FixedSizeBinary).Value(i)))
 }
 
 // UUIDType is a simple extension type that represents a FixedSizeBinary(16)
