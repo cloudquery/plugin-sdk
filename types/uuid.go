@@ -184,7 +184,7 @@ func NewUUIDType() *UUIDType {
 			Storage: &arrow.FixedSizeBinaryType{ByteWidth: 16}}}
 }
 
-// ArrayType returns TypeOf(UuidArray) for constructing uuid arrays
+// ArrayType returns TypeOf(UUIDArray{}) for constructing UUID arrays
 func (*UUIDType) ArrayType() reflect.Type {
 	return reflect.TypeOf(UUIDArray{})
 }

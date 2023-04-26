@@ -185,7 +185,7 @@ func NewMacType() *MacType {
 			Storage: &arrow.BinaryType{}}}
 }
 
-// ArrayType returns TypeOf(MacArray) for constructing mac arrays
+// ArrayType returns TypeOf(MacArray{}) for constructing MAC arrays
 func (*MacType) ArrayType() reflect.Type {
 	return reflect.TypeOf(MacArray{})
 }

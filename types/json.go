@@ -186,7 +186,7 @@ type JSONType struct {
 	arrow.ExtensionBase
 }
 
-// NewJSONType is a convenience function to create an instance of *JSONType
+// NewJSONType is a convenience function to create an instance of JSONType
 // with the correct storage type
 func NewJSONType() *JSONType {
 	return &JSONType{
@@ -194,7 +194,7 @@ func NewJSONType() *JSONType {
 			Storage: &arrow.BinaryType{}}}
 }
 
-// ArrayType returns TypeOf(*JSONType) for constructing JSON arrays
+// ArrayType returns TypeOf(JSONArray{}) for constructing JSON arrays
 func (*JSONType) ArrayType() reflect.Type {
 	return reflect.TypeOf(JSONArray{})
 }
@@ -217,7 +217,7 @@ func (*JSONType) Serialize() string {
 }
 
 // Deserialize expects storageType to be BinaryBuilder and the data to be
-// "json-serialized" in order to correctly create a *JSONType for testing deserialize.
+// "json-serialized" in order to correctly create a JSONType for testing deserialize.
 func (*JSONType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
 	if data != "json-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)

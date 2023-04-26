@@ -182,6 +182,7 @@ func NewInetType() *InetType {
 			Storage: &arrow.StringType{}}}
 }
 
+// ArrayType returns TypeOf(InetArray{}) for constructing Inet arrays
 func (*InetType) ArrayType() reflect.Type {
 	return reflect.TypeOf(InetArray{})
 }
