@@ -15,6 +15,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v2/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 func tableUUIDSuffix() string {
@@ -240,5 +241,26 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
+	})
+
+	t.Run("double_migration", func(t *testing.T) {
+		tableName := "double_migration_" + tableUUIDSuffix()
+		md := arrow.NewMetadata([]string{schema.MetadataTableName}, []string{tableName})
+		table := arrow.NewSchema([]arrow.Field{
+			schema.CqSourceNameField,
+			schema.CqSyncTimeField,
+			schema.CqIDField,
+			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
+			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+		}, &md)
+
+		p := newPlugin()
+		require.NoError(t, p.Init(ctx, logger, spec))
+		require.NoError(t, p.Migrate(ctx, schema.Schemas{table}))
+
+		nonForced := spec
+		nonForced.MigrateMode = specs.MigrateModeSafe
+		require.NoError(t, p.Init(ctx, logger, nonForced))
+		require.NoError(t, p.Migrate(ctx, schema.Schemas{table}))
 	})
 }
