@@ -12,23 +12,23 @@ import (
 	"github.com/goccy/go-json"
 )
 
-type MACBuilder struct {
+type MacBuilder struct {
 	*array.ExtensionBuilder
 }
 
-func NewMACBuilder(builder *array.ExtensionBuilder) *MACBuilder {
-	return &MACBuilder{ExtensionBuilder: builder}
+func NewMacBuilder(builder *array.ExtensionBuilder) *MacBuilder {
+	return &MacBuilder{ExtensionBuilder: builder}
 }
 
-func (b *MACBuilder) Append(v net.HardwareAddr) {
+func (b *MacBuilder) Append(v net.HardwareAddr) {
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append(v[:])
 }
 
-func (b *MACBuilder) UnsafeAppend(v net.HardwareAddr) {
+func (b *MacBuilder) UnsafeAppend(v net.HardwareAddr) {
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).UnsafeAppend(v[:])
 }
 
-func (b *MACBuilder) AppendValues(v []net.HardwareAddr, valid []bool) {
+func (b *MacBuilder) AppendValues(v []net.HardwareAddr, valid []bool) {
 	data := make([][]byte, len(v))
 	for i, v := range v {
 		if !valid[i] {
@@ -39,7 +39,7 @@ func (b *MACBuilder) AppendValues(v []net.HardwareAddr, valid []bool) {
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).AppendValues(data, valid)
 }
 
-func (b *MACBuilder) AppendValueFromString(s string) error {
+func (b *MacBuilder) AppendValueFromString(s string) error {
 	if s == array.NullValueStr {
 		b.AppendNull()
 		return nil
@@ -52,7 +52,7 @@ func (b *MACBuilder) AppendValueFromString(s string) error {
 	return nil
 }
 
-func (b *MACBuilder) UnmarshalOne(dec *json.Decoder) error {
+func (b *MacBuilder) UnmarshalOne(dec *json.Decoder) error {
 	t, err := dec.Token()
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (b *MACBuilder) UnmarshalOne(dec *json.Decoder) error {
 	return nil
 }
 
-func (b *MACBuilder) Unmarshal(dec *json.Decoder) error {
+func (b *MacBuilder) Unmarshal(dec *json.Decoder) error {
 	for dec.More() {
 		if err := b.UnmarshalOne(dec); err != nil {
 			return err
@@ -93,7 +93,7 @@ func (b *MACBuilder) Unmarshal(dec *json.Decoder) error {
 	return nil
 }
 
-func (b *MACBuilder) UnmarshalJSON(data []byte) error {
+func (b *MacBuilder) UnmarshalJSON(data []byte) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	t, err := dec.Token()
 	if err != nil {
@@ -107,12 +107,12 @@ func (b *MACBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-// MACArray is a simple array which is a wrapper around a BinaryArray
-type MACArray struct {
+// MacArray is a simple array which is a wrapper around a BinaryArray
+type MacArray struct {
 	array.ExtensionArrayBase
 }
 
-func (a *MACArray) String() string {
+func (a *MacArray) String() string {
 	arr := a.Storage().(*array.Binary)
 	o := new(strings.Builder)
 	o.WriteString("[")
@@ -131,14 +131,14 @@ func (a *MACArray) String() string {
 	return o.String()
 }
 
-func (a *MACArray) Value(i int) net.HardwareAddr {
+func (a *MacArray) Value(i int) net.HardwareAddr {
 	if a.IsNull(i) {
 		return nil
 	}
 	return net.HardwareAddr(a.Storage().(*array.Binary).Value(i))
 }
 
-func (a *MACArray) ValueStr(i int) string {
+func (a *MacArray) ValueStr(i int) string {
 	switch {
 	case a.IsNull(i):
 		return array.NullValueStr
@@ -147,7 +147,7 @@ func (a *MACArray) ValueStr(i int) string {
 	}
 }
 
-func (a *MACArray) MarshalJSON() ([]byte, error) {
+func (a *MacArray) MarshalJSON() ([]byte, error) {
 	arr := a.Storage().(*array.Binary)
 	values := make([]any, a.Len())
 	for i := 0; i < a.Len(); i++ {
@@ -160,7 +160,7 @@ func (a *MACArray) MarshalJSON() ([]byte, error) {
 	return json.Marshal(values)
 }
 
-func (a *MACArray) GetOneForMarshal(i int) any {
+func (a *MacArray) GetOneForMarshal(i int) any {
 	arr := a.Storage().(*array.Binary)
 	if a.IsValid(i) {
 		return net.HardwareAddr(arr.Value(i)).String()
@@ -168,49 +168,49 @@ func (a *MACArray) GetOneForMarshal(i int) any {
 	return nil
 }
 
-// MACType is a simple extension type that represents a BinaryType
+// MacType is a simple extension type that represents a BinaryType
 // to be used for representing mac addresses.
-type MACType struct {
+type MacType struct {
 	arrow.ExtensionBase
 }
 
-// NewMACType is a convenience function to create an instance of MACType
+// NewMacType is a convenience function to create an instance of MacType
 // with the correct storage type
-func NewMACType() *MACType {
-	return &MACType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.BinaryType{}}}
+func NewMacType() *MacType {
+	return &MacType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.BinaryType{}}}
 }
 
-// ArrayType returns TypeOf(MACArray{}) for constructing MAC arrays
-func (*MACType) ArrayType() reflect.Type {
-	return reflect.TypeOf(MACArray{})
+// ArrayType returns TypeOf(MacArray{}) for constructing MAC arrays
+func (*MacType) ArrayType() reflect.Type {
+	return reflect.TypeOf(MacArray{})
 }
 
-func (*MACType) ExtensionName() string {
+func (*MacType) ExtensionName() string {
 	return "mac"
 }
 
 // Serialize returns "mac-serialized" for testing proper metadata passing
-func (*MACType) Serialize() string {
+func (*MacType) Serialize() string {
 	return "mac-serialized"
 }
 
 // Deserialize expects storageType to be FixedSizeBinaryType{ByteWidth: 16} and the data to be
-// "mac-serialized" in order to correctly create a MACType for testing deserialize.
-func (*MACType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
+// "mac-serialized" in order to correctly create a MacType for testing deserialize.
+func (*MacType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
 	if data != "mac-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
 	if !arrow.TypeEqual(storageType, &arrow.BinaryType{}) {
-		return nil, fmt.Errorf("invalid storage type for MACType: %s", storageType.Name())
+		return nil, fmt.Errorf("invalid storage type for MacType: %s", storageType.Name())
 	}
 	return NewInetType(), nil
 }
 
 // ExtensionEquals returns true if both extensions have the same name
-func (u *MACType) ExtensionEquals(other arrow.ExtensionType) bool {
+func (u *MacType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return u.ExtensionName() == other.ExtensionName()
 }
 
-func (*MACType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
-	return NewMACBuilder(builder)
+func (*MacType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
+	return NewMacBuilder(builder)
 }

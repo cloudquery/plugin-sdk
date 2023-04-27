@@ -261,9 +261,9 @@ func CQColumnToArrowField(col *Column) arrow.Field {
 	case TypeCIDRArray:
 		typ = arrow.ListOf(types.ExtensionTypes.Inet)
 	case TypeMacAddr:
-		typ = types.ExtensionTypes.MAC
+		typ = types.ExtensionTypes.Mac
 	case TypeMacAddrArray:
-		typ = arrow.ListOf(types.ExtensionTypes.MAC)
+		typ = arrow.ListOf(types.ExtensionTypes.Mac)
 	default:
 		panic("unknown type " + typ.Name())
 	}
@@ -430,16 +430,16 @@ func CQTypesToRecord(mem memory.Allocator, c []CQTypes, arrowSchema *arrow.Schem
 				}
 			case TypeMacAddr:
 				if c[j][i].(*Macaddr).Status == Present {
-					bldr.Field(i).(*types.MACBuilder).Append(c[j][i].(*Macaddr).Addr)
+					bldr.Field(i).(*types.MacBuilder).Append(c[j][i].(*Macaddr).Addr)
 				} else {
-					bldr.Field(i).(*types.MACBuilder).AppendNull()
+					bldr.Field(i).(*types.MacBuilder).AppendNull()
 				}
 			case TypeMacAddrArray:
 				if c[j][i].(*MacaddrArray).Status == Present {
 					listBldr := bldr.Field(i).(*array.ListBuilder)
 					listBldr.Append(true)
 					for _, e := range c[j][i].(*MacaddrArray).Elements {
-						listBldr.ValueBuilder().(*types.MACBuilder).Append(e.Addr)
+						listBldr.ValueBuilder().(*types.MacBuilder).Append(e.Addr)
 					}
 				} else {
 					bldr.Field(i).(*array.ListBuilder).AppendNull()

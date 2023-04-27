@@ -21,7 +21,7 @@ func TestMacBuilder(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
 
-	b := NewMACBuilder(array.NewExtensionBuilder(mem, NewMACType()))
+	b := NewMacBuilder(array.NewExtensionBuilder(mem, NewMacType()))
 
 	b.Append(mustParseMac("00:00:00:00:00:01"))
 	b.AppendNull()
@@ -53,7 +53,7 @@ func TestMacBuilder(t *testing.T) {
 	b.Release()
 	a.Release()
 
-	b = NewMACBuilder(array.NewExtensionBuilder(mem, NewMACType()))
+	b = NewMacBuilder(array.NewExtensionBuilder(mem, NewMacType()))
 	err = b.UnmarshalJSON(st)
 	require.NoError(t, err)
 
