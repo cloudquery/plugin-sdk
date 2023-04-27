@@ -363,7 +363,9 @@ func DefaultNameTransformer(field reflect.StructField) (string, error) {
 		if jsonTag == "-" {
 			return "", nil
 		}
-		name = jsonTag
+		if schema.ValidColumnName(jsonTag) {
+			name = jsonTag
+		}
 	}
 	return defaultCaser.ToSnake(name), nil
 }

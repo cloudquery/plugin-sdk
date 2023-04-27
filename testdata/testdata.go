@@ -213,19 +213,19 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 				if err != nil {
 					panic(err)
 				}
-				bldr.Field(i).(*types.InetBuilder).Append(*ipnet)
+				bldr.Field(i).(*types.InetBuilder).Append(ipnet)
 			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.Inet)) {
 				bldr.Field(i).(*array.ListBuilder).Append(true)
 				_, ipnet, err := net.ParseCIDR("192.0.2.1/24")
 				if err != nil {
 					panic(err)
 				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(*ipnet)
+				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(ipnet)
 				_, ipnet, err = net.ParseCIDR("192.0.2.1/24")
 				if err != nil {
 					panic(err)
 				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(*ipnet)
+				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(ipnet)
 			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.Mac) {
 				mac, err := net.ParseMAC("aa:bb:cc:dd:ee:ff")
 				if err != nil {
