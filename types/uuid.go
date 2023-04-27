@@ -218,6 +218,6 @@ func (e *UUIDType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return e.ExtensionName() == other.ExtensionName()
 }
 
-func (*UUIDType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
-	return NewUUIDBuilder(builder)
+func (*UUIDType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
+	return NewUUIDBuilder(bldr)
 }

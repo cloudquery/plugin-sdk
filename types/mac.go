@@ -211,6 +211,6 @@ func (u *MacType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return u.ExtensionName() == other.ExtensionName()
 }
 
-func (*MacType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
-	return NewMacBuilder(builder)
+func (*MacType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
+	return NewMacBuilder(bldr)
 }

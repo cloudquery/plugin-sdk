@@ -228,6 +228,6 @@ func (e *JSONType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return e.ExtensionName() == other.ExtensionName()
 }
 
-func (*JSONType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
-	return NewJSONBuilder(builder)
+func (*JSONType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
+	return NewJSONBuilder(bldr)
 }

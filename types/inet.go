@@ -208,6 +208,6 @@ func (u *InetType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return u.ExtensionName() == other.ExtensionName()
 }
 
-func (*InetType) NewBuilder(builder *array.ExtensionBuilder) array.Builder {
-	return NewInetBuilder(builder)
+func (*InetType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
+	return NewInetBuilder(bldr)
 }
