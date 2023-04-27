@@ -315,7 +315,6 @@ func TestJSON_MarshalUnmarshal(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestJSON_FromToString(t *testing.T) {
