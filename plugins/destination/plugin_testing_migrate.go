@@ -245,14 +245,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 
 	t.Run("double_migration", func(t *testing.T) {
 		tableName := "double_migration_" + tableUUIDSuffix()
-		md := arrow.NewMetadata([]string{schema.MetadataTableName}, []string{tableName})
-		table := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
-		}, &md)
+		table := schema.CQSchemaToArrow(testdata.TestTable(tableName))
 
 		p := newPlugin()
 		require.NoError(t, p.Init(ctx, logger, spec))
