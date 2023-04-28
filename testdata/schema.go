@@ -110,10 +110,10 @@ func MapOfFields(baseFields []arrow.Field) []arrow.Field {
 	return fields
 }
 
-// TestSourceOptions controls which types are included in TestSourceFields.
+// TestSourceOptions controls which types are included by TestSourceFields.
 type TestSourceOptions struct {
 	IncludeLists      bool // lists of all primitive types. Lists that were supported by CQTypes are always included.
-	IncludeTimestamps bool // all timestamp types. Microsecond timestamp is always be included, regardless of this setting.
+	IncludeTimestamps bool // timestamp types. Microsecond timestamp is always be included, regardless of this setting.
 	IncludeDates      bool
 	IncludeMaps       bool
 	IncludeStructs    bool
@@ -149,7 +149,7 @@ func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 	basicFields = removeFieldsByType(basicFields, arrow.FLOAT16)
 
 	if !opts.IncludeTimestamps {
-		// for backwards-compatibility, microsecond timestamps are not excluded here
+		// for backwards-compatibility, microsecond timestamps are not removed here
 		basicFields = removeFieldsByDataType(basicFields, &arrow.TimestampType{Unit: arrow.Second, TimeZone: "UTC"})
 		basicFields = removeFieldsByDataType(basicFields, &arrow.TimestampType{Unit: arrow.Millisecond, TimeZone: "UTC"})
 		basicFields = removeFieldsByDataType(basicFields, &arrow.TimestampType{Unit: arrow.Nanosecond, TimeZone: "UTC"})
@@ -172,7 +172,7 @@ func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 
 	var compositeFields []arrow.Field
 
-	// we don't need to include lists of binary or large binary right now
+	// we don't need to include lists of binary or large binary right now; probably no destinations or sources need to support that
 	basicFieldsWithExclusions := removeFieldsByType(basicFields, arrow.BINARY, arrow.LARGE_BINARY)
 	if opts.IncludeLists {
 		compositeFields = append(compositeFields, ListOfFields(basicFieldsWithExclusions)...)
