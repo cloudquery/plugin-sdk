@@ -112,14 +112,15 @@ func MapOfFields(baseFields []arrow.Field) []arrow.Field {
 
 // TestSourceOptions controls which types are included in TestSourceFields.
 type TestSourceOptions struct {
-	IncludeNanosecondTimestamps bool
-	IncludeDates                bool
-	IncludeMaps                 bool
-	IncludeStructs              bool
-	IncludeIntervals            bool
-	IncludeDurations            bool
-	IncludeTimes                bool // time of day types
-	IncludeLargeTypes           bool // e.g. large binary, large string
+	IncludeLists      bool // lists of all primitive types. Lists that were supported by CQTypes are always included.
+	IncludeTimestamps bool // all timestamp types. Microsecond timestamp is always be included, regardless of this setting.
+	IncludeDates      bool
+	IncludeMaps       bool
+	IncludeStructs    bool
+	IncludeIntervals  bool
+	IncludeDurations  bool
+	IncludeTimes      bool // time of day types
+	IncludeLargeTypes bool // e.g. large binary, large string
 }
 
 // TestSourceFields returns fields for all Arrow types and composites thereof. TestSourceOptions controls
@@ -147,7 +148,10 @@ func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 	// we don't support float16 right now
 	basicFields = removeFieldsByType(basicFields, arrow.FLOAT16)
 
-	if !opts.IncludeNanosecondTimestamps {
+	if !opts.IncludeTimestamps {
+		// for backwards-compatibility, microsecond timestamps are not excluded here
+		basicFields = removeFieldsByDataType(basicFields, &arrow.TimestampType{Unit: arrow.Second, TimeZone: "UTC"})
+		basicFields = removeFieldsByDataType(basicFields, &arrow.TimestampType{Unit: arrow.Millisecond, TimeZone: "UTC"})
 		basicFields = removeFieldsByDataType(basicFields, &arrow.TimestampType{Unit: arrow.Nanosecond, TimeZone: "UTC"})
 	}
 	if !opts.IncludeDates {
@@ -169,12 +173,22 @@ func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 	var compositeFields []arrow.Field
 
 	// we don't need to include lists of binary or large binary right now
-	basicFieldsWithoutBinary := removeFieldsByType(basicFields, arrow.BINARY, arrow.LARGE_BINARY)
-
-	compositeFields = append(compositeFields, ListOfFields(basicFieldsWithoutBinary)...)
+	basicFieldsWithExclusions := removeFieldsByType(basicFields, arrow.BINARY, arrow.LARGE_BINARY)
+	if opts.IncludeLists {
+		compositeFields = append(compositeFields, ListOfFields(basicFieldsWithExclusions)...)
+	} else {
+		// only include lists that were originally supported by CQTypes
+		cqListFields := []arrow.Field{
+			{Name: "string", Type: arrow.BinaryTypes.String, Nullable: true},
+			{Name: "uuid", Type: types.NewUUIDType(), Nullable: true},
+			{Name: "inet", Type: types.NewInetType(), Nullable: true},
+			{Name: "mac", Type: types.NewMacType(), Nullable: true},
+		}
+		compositeFields = append(compositeFields, ListOfFields(cqListFields)...)
+	}
 
 	if opts.IncludeMaps {
-		compositeFields = append(compositeFields, MapOfFields(basicFieldsWithoutBinary)...)
+		compositeFields = append(compositeFields, MapOfFields(basicFieldsWithExclusions)...)
 	}
 
 	// add JSON later, we don't want to include it as a list or map right now (it causes complications with JSON unmarshalling)

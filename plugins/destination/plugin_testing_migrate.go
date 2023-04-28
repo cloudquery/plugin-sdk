@@ -88,6 +88,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	logger zerolog.Logger,
 	spec specs.Destination,
 	strategy MigrateStrategy,
+	testSourceOptions testdata.TestSourceOptions,
 ) {
 	spec.BatchSize = 1
 
@@ -245,7 +246,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 
 	t.Run("double_migration", func(t *testing.T) {
 		tableName := "double_migration_" + tableUUIDSuffix()
-		table := testdata.TestSourceSchema(tableName, testdata.TestSourceOptions{})
+		table := testdata.TestSourceSchema(tableName, testSourceOptions)
 
 		p := newPlugin()
 		require.NoError(t, p.Init(ctx, logger, spec))

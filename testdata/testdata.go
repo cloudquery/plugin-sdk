@@ -183,7 +183,11 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 			case arrow.FixedWidthTypes.Timestamp_us:
 				return strconv.FormatInt(t.UnixMicro(), 10)
 			case arrow.FixedWidthTypes.Timestamp_ns:
-				return strconv.FormatInt(t.UnixNano(), 10)
+				// Note: We use microseconds instead of nanoseconds here because
+				//       nanosecond precision is not supported by many destinations.
+				//       For now, we begrudgingly accept loss of precision in these cases.
+				//       See https://github.com/cloudquery/plugin-sdk/issues/830
+				return strconv.FormatInt(t.UnixMicro()*1000, 10)
 			case arrow.FixedWidthTypes.Time32s:
 				h, m, s := t.Clock()
 				return strconv.Itoa(h*3600 + m*60 + s)

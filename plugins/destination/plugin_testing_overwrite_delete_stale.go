@@ -15,18 +15,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testSourceOptions testdata.TestSourceOptions) error {
 	spec.WriteMode = specs.WriteModeOverwriteDeleteStale
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := testdata.TestSourceSchema(tableName, testdata.TestSourceOptions{})
+	table := testdata.TestSourceSchema(tableName, testSourceOptions)
 	incrementalMetadata := arrow.MetadataFrom(map[string]string{
 		schema.MetadataTableName:   tableName + "_incremental",
 		schema.MetadataIncremental: schema.MetadataTrue,
 	})
-	incTable := testdata.TestSourceSchemaWithMetadata(&incrementalMetadata, testdata.TestSourceOptions{})
+	incTable := testdata.TestSourceSchemaWithMetadata(&incrementalMetadata, testSourceOptions)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*arrow.Schema{
 		table,
