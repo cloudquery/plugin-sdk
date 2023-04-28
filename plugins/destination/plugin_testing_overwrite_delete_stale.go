@@ -85,7 +85,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	opts = testdata.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   secondSyncTime,
-		StableUUID: *u,
+		StableUUID: u,
 		MaxRows:    1,
 	}
 	updatedResources := testdata.GenTestData(table, opts)[0]

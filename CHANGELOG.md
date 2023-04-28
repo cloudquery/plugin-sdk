@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1](https://github.com/cloudquery/plugin-sdk/compare/v2.5.0...v2.5.1) (2023-04-28)
+
+
+### Bug Fixes
+
+* **transformer:** Allow camel-cased json tags ([#828](https://github.com/cloudquery/plugin-sdk/issues/828)) ([653a50d](https://github.com/cloudquery/plugin-sdk/commit/653a50dccd9456f5e676a1fb63b8ff37fd5cc4e8))
+
+## [2.5.0](https://github.com/cloudquery/plugin-sdk/compare/v2.4.0...v2.5.0) (2023-04-28)
+
+
+### Features
+
+* Add table description to Arrow schema metadata ([#824](https://github.com/cloudquery/plugin-sdk/issues/824)) ([1a8072f](https://github.com/cloudquery/plugin-sdk/commit/1a8072ff7eff1c411569a538958069ad0744a0ce))
+* **arrow:** Streamline Apache Arrow extension types ([#823](https://github.com/cloudquery/plugin-sdk/issues/823)) ([f32fac3](https://github.com/cloudquery/plugin-sdk/commit/f32fac3b04c769bb86774c3d1b89991d5d2f51b3))
+* **test:** Add double migration test ([#827](https://github.com/cloudquery/plugin-sdk/issues/827)) ([4cd3872](https://github.com/cloudquery/plugin-sdk/commit/4cd3872f2a281c6b7e685d13061d6b7849fff3f4))
+* Time values are truncated uniformly ([#825](https://github.com/cloudquery/plugin-sdk/issues/825)) ([ffb97b0](https://github.com/cloudquery/plugin-sdk/commit/ffb97b0ddc949edccb2f05a4b67f3bc6b3ca2401))
+
+
+### Bug Fixes
+
+* TransformWithStruct/DefaultNameTransformer change for invalid column names ([#820](https://github.com/cloudquery/plugin-sdk/issues/820)) ([01e6649](https://github.com/cloudquery/plugin-sdk/commit/01e66491f6a21b1ed8fe1837ac86c0cccafd0cab))
+
+## [2.4.0](https://github.com/cloudquery/plugin-sdk/compare/v2.3.8...v2.4.0) (2023-04-24)
+
+
+### Features
+
+* **arrow:** Pretty-print field changes ([#817](https://github.com/cloudquery/plugin-sdk/issues/817)) ([6c0d0b3](https://github.com/cloudquery/plugin-sdk/commit/6c0d0b346a2748dbac2464b81dfab86d307e6090))
+
 ## [2.3.8](https://github.com/cloudquery/plugin-sdk/compare/v2.3.7...v2.3.8) (2023-04-20)
 
 

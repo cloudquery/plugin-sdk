@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func mustParseInet(s string) net.IPNet {
+func mustParseInet(s string) *net.IPNet {
 	_, ipnet, err := net.ParseCIDR(s)
 	if err != nil {
 		panic(err)
 	}
-	return *ipnet
+	return ipnet
 }
 
 func TestInetBuilder(t *testing.T) {
@@ -31,7 +31,7 @@ func TestInetBuilder(t *testing.T) {
 	require.Equal(t, 4, b.Len(), "unexpected Len()")
 	require.Equal(t, 2, b.NullN(), "unexpected NullN()")
 
-	values := []net.IPNet{
+	values := []*net.IPNet{
 		mustParseInet("192.168.0.0/26"),
 		mustParseInet("192.168.0.0/27"),
 	}
