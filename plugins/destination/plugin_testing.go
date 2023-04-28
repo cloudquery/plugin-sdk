@@ -146,6 +146,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 			t.Skip("skipping " + t.Name())
 		}
 		destSpec.WriteMode = specs.WriteModeOverwrite
+		destSpec.MigrateMode = specs.MigrateModeSafe
 		destSpec.Name = "test_migrate_overwrite"
 		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
 	})
@@ -182,6 +183,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 			t.Skip("skipping " + t.Name())
 		}
 		destSpec.WriteMode = specs.WriteModeAppend
+		destSpec.MigrateMode = specs.MigrateModeSafe
 		destSpec.Name = "test_migrate_append"
 		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
 	})
