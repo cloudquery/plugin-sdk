@@ -245,7 +245,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 
 	t.Run("double_migration", func(t *testing.T) {
 		tableName := "double_migration_" + tableUUIDSuffix()
-		table := schema.CQSchemaToArrow(testdata.TestTable(tableName))
+		table := testdata.TestSourceSchema(tableName, testdata.TestSourceOptions{})
 
 		p := newPlugin()
 		require.NoError(t, p.Init(ctx, logger, spec))

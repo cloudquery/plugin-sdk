@@ -87,7 +87,7 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 		return `"` + u.String() + `"`
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.JSON) {
-		return `"{\"test\": \"test\"}"`
+		return `"{\"test\":\"test\"}"`
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.Inet) {
 		return `"192.0.2.0/24"`

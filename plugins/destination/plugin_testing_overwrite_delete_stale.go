@@ -21,16 +21,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := testdata.TestSourceSchema(tableName, testdata.TestSourceOptions{
-		IncludeDates:      false,
-		IncludeMaps:       false,
-		IncludeStructs:    false,
-		IncludeIntervals:  false,
-		IncludeDurations:  false,
-		IncludeTimes:      false,
-		IncludeLargeTypes: false,
+	table := testdata.TestSourceSchema(tableName, testdata.TestSourceOptions{})
+	incrementalMetadata := arrow.MetadataFrom(map[string]string{
+		schema.MetadataTableName:   tableName + "_incremental",
+		schema.MetadataIncremental: schema.MetadataTrue,
 	})
-	incTable := testdata.TestTableIncremental(tableName + "_incremental").ToArrowSchema()
+	incTable := testdata.TestSourceSchemaWithMetadata(&incrementalMetadata, testdata.TestSourceOptions{})
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*arrow.Schema{
 		table,

@@ -10,6 +10,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v2/types"
 )
 
+// PrimitiveFields returns a list of primitive fields as defined by Arrow.
 func PrimitiveFields() []arrow.Field {
 	primitiveTypesValue := reflect.ValueOf(arrow.PrimitiveTypes)
 	primitiveTypesType := reflect.TypeOf(arrow.PrimitiveTypes)
@@ -22,6 +23,7 @@ func PrimitiveFields() []arrow.Field {
 	return fields
 }
 
+// BinaryFields returns a list of binary fields as defined by Arrow.
 func BinaryFields() []arrow.Field {
 	binaryTypesValue := reflect.ValueOf(arrow.BinaryTypes)
 	binaryTypesType := reflect.TypeOf(arrow.BinaryTypes)
@@ -34,6 +36,7 @@ func BinaryFields() []arrow.Field {
 	return fields
 }
 
+// FixedWidthFields returns a list of fixed width fields as defined by Arrow.
 func FixedWidthFields() []arrow.Field {
 	fixedWidthTypesValue := reflect.ValueOf(arrow.FixedWidthTypes)
 	fixedWidthTypesType := reflect.TypeOf(arrow.FixedWidthTypes)
@@ -61,10 +64,10 @@ func sortAndRemoveDuplicates(fields []arrow.Field) []arrow.Field {
 	return newFields
 }
 
-func removeFieldsByType(fields []arrow.Field, dt ...arrow.Type) []arrow.Field {
+func removeFieldsByType(fields []arrow.Field, t ...arrow.Type) []arrow.Field {
 	newFields := make([]arrow.Field, len(fields))
 	copy(newFields, fields)
-	for _, d := range dt {
+	for _, d := range t {
 		for i := 0; i < len(newFields); i++ {
 			if newFields[i].Type.ID() == d {
 				newFields = append(newFields[:i], newFields[i+1:]...)
@@ -75,6 +78,21 @@ func removeFieldsByType(fields []arrow.Field, dt ...arrow.Type) []arrow.Field {
 	return newFields
 }
 
+func removeFieldsByDataType(fields []arrow.Field, dt ...arrow.DataType) []arrow.Field {
+	newFields := make([]arrow.Field, len(fields))
+	copy(newFields, fields)
+	for _, d := range dt {
+		for i := 0; i < len(newFields); i++ {
+			if arrow.TypeEqual(newFields[i].Type, d) {
+				newFields = append(newFields[:i], newFields[i+1:]...)
+				i--
+			}
+		}
+	}
+	return newFields
+}
+
+// ListOfFields returns a list of fields that are lists of the given fields.
 func ListOfFields(baseFields []arrow.Field) []arrow.Field {
 	fields := make([]arrow.Field, len(baseFields))
 	for i := 0; i < len(baseFields); i++ {
@@ -83,6 +101,7 @@ func ListOfFields(baseFields []arrow.Field) []arrow.Field {
 	return fields
 }
 
+// MapOfFields returns a list of fields that are maps of the given fields.
 func MapOfFields(baseFields []arrow.Field) []arrow.Field {
 	fields := make([]arrow.Field, len(baseFields))
 	for i := 0; i < len(baseFields); i++ {
@@ -91,14 +110,16 @@ func MapOfFields(baseFields []arrow.Field) []arrow.Field {
 	return fields
 }
 
+// TestSourceOptions controls which types are included in TestSourceFields.
 type TestSourceOptions struct {
-	IncludeDates      bool
-	IncludeMaps       bool
-	IncludeStructs    bool
-	IncludeIntervals  bool
-	IncludeDurations  bool
-	IncludeTimes      bool // time of day types
-	IncludeLargeTypes bool // e.g. large binary, large string
+	IncludeNanosecondTimestamps bool
+	IncludeDates                bool
+	IncludeMaps                 bool
+	IncludeStructs              bool
+	IncludeIntervals            bool
+	IncludeDurations            bool
+	IncludeTimes                bool // time of day types
+	IncludeLargeTypes           bool // e.g. large binary, large string
 }
 
 // TestSourceFields returns fields for all Arrow types and composites thereof. TestSourceOptions controls
@@ -126,6 +147,9 @@ func TestSourceFields(opts TestSourceOptions) []arrow.Field {
 	// we don't support float16 right now
 	basicFields = removeFieldsByType(basicFields, arrow.FLOAT16)
 
+	if !opts.IncludeNanosecondTimestamps {
+		basicFields = removeFieldsByDataType(basicFields, &arrow.TimestampType{Unit: arrow.Nanosecond, TimeZone: "UTC"})
+	}
 	if !opts.IncludeDates {
 		basicFields = removeFieldsByType(basicFields, arrow.DATE32, arrow.DATE64)
 	}
