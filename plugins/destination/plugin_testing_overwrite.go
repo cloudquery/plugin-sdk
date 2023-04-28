@@ -77,12 +77,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 
 	// copy first resource but update the sync time
 	cqIDInds := resources[0].Schema().FieldIndices(testdata.PKColumnNames[0])
-	u := resources[0].Column(cqIDInds[0]).(*types.UUIDArray).Value(0).String()
+	u := resources[0].Column(cqIDInds[0]).(*types.UUIDArray).Value(0)
 	opts = testdata.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   secondSyncTime,
 		MaxRows:    1,
-		StableUUID: uuid.MustParse(u),
+		StableUUID: u,
 	}
 	updatedResource := testdata.GenTestData(table, opts)[0]
 	// write second time
