@@ -68,7 +68,8 @@ type (
 	}
 
 	testFunnyStruct struct {
-		AFunnyLookingField string `json:"OS-EXT:a-funny-looking-field"`
+		AFunnyLookingField      string `json:"OS-EXT:a-funny-looking-field"`
+		AFieldWithCamelCaseName string `json:"camelCaseName"`
 	}
 )
 
@@ -253,6 +254,10 @@ var (
 		Columns: schema.ColumnList{
 			{
 				Name: "a_funny_looking_field",
+				Type: schema.TypeString,
+			},
+			{
+				Name: "camel_case_name",
 				Type: schema.TypeString,
 			},
 		},
