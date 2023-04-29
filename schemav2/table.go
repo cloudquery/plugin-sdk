@@ -338,6 +338,7 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 			Name:     c.Name,
 			Type: c.Type,
 			Nullable: !c.CreationOptions.NotNull,
+			Metadata: arrow.MetadataFrom(fieldMdKv),
 		}
 	}
 	return arrow.NewSchema(fields, &schemaMd)
