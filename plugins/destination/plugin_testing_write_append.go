@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/cloudquery/plugin-sdk/v2/schemav2"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
-	"github.com/cloudquery/plugin-sdk/v2/testdata"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -19,9 +18,9 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := spec.Name
-	table := testdata.TestTable(tableName).ToArrowSchema()
+	table := schemav2.TestTable(tableName)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	tables := []*arrow.Schema{
+	tables := schemav2.Tables{
 		table,
 	}
 	if err := p.Migrate(ctx, tables); err != nil {
@@ -33,19 +32,19 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		Name: sourceName,
 	}
 
-	opts := testdata.GenTestDataOptions{
+	opts := schemav2.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   syncTime,
 		MaxRows:    1,
 	}
-	record1 := testdata.GenTestData(table, opts)[0]
+	record1 := schemav2.GenTestData(table, opts)[0]
 	if err := p.writeOne(ctx, specSource, syncTime, record1); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
 	opts.SyncTime = secondSyncTime
-	record2 := testdata.GenTestData(table, opts)[0]
+	record2 := schemav2.GenTestData(table, opts)[0]
 
 	if !s.tests.SkipSecondAppend {
 		// write second time

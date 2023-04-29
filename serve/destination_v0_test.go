@@ -14,6 +14,7 @@ import (
 	clients "github.com/cloudquery/plugin-sdk/v2/clients/destination/v0"
 	"github.com/cloudquery/plugin-sdk/v2/internal/deprecated"
 	"github.com/cloudquery/plugin-sdk/v2/internal/memdb"
+	servers "github.com/cloudquery/plugin-sdk/v2/internal/servers/destination/v0"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
@@ -130,7 +131,8 @@ func TestDestination(t *testing.T) {
 	}
 
 	readCh := make(chan arrow.Record, 1)
-	if err := plugin.Read(ctx, table.ToArrowSchema(), sourceName, readCh); err != nil {
+	tableV2 := servers.TableV1ToV2(table)
+	if err := plugin.Read(ctx, tableV2, sourceName, readCh); err != nil {
 		t.Fatal(err)
 	}
 	close(readCh)

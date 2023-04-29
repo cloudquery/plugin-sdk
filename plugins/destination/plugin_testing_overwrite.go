@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/cloudquery/plugin-sdk/v2/schemav2"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
-	"github.com/cloudquery/plugin-sdk/v2/testdata"
 	"github.com/cloudquery/plugin-sdk/v2/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -20,9 +19,9 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := testdata.TestTable(tableName).ToArrowSchema()
+	table := schemav2.TestTable(tableName)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	tables := []*arrow.Schema{
+	tables := schemav2.Tables{
 		table,
 	}
 	if err := p.Migrate(ctx, tables); err != nil {
@@ -34,12 +33,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		Name: sourceName,
 	}
 
-	opts := testdata.GenTestDataOptions{
+	opts := schemav2.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   syncTime,
 		MaxRows:    2,
 	}
-	resources := testdata.GenTestData(table, opts)
+	resources := schemav2.GenTestData(table, opts)
 	if err := p.writeAll(ctx, sourceSpec, syncTime, resources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
@@ -69,13 +68,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 
 	// copy first resource but update the sync time
 	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
-	opts = testdata.GenTestDataOptions{
+	opts = schemav2.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   secondSyncTime,
 		MaxRows:    1,
 		StableUUID: u,
 	}
-	updatedResource := testdata.GenTestData(table, opts)[0]
+	updatedResource := schemav2.GenTestData(table, opts)[0]
 	// write second time
 	if err := p.writeOne(ctx, sourceSpec, secondSyncTime, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)

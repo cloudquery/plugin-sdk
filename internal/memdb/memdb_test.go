@@ -7,8 +7,8 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v2/schemav2"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
-	"github.com/cloudquery/plugin-sdk/v2/testdata"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -112,9 +112,9 @@ func TestOnWriteError(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := testdata.TestTable("test")
-	tables := []*arrow.Schema{
-		table.ToArrowSchema(),
+	table := schemav2.TestTable("test")
+	tables := schemav2.Tables{
+		table,
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
@@ -122,13 +122,13 @@ func TestOnWriteError(t *testing.T) {
 		Name: sourceName,
 	}
 	ch := make(chan arrow.Record, 1)
-	opts := testdata.GenTestDataOptions{
+	opts := schemav2.GenTestDataOptions{
 		SourceName: "test",
 		SyncTime:   time.Now(),
 		MaxRows:    1,
 		StableUUID: uuid.Nil,
 	}
-	record := testdata.GenTestData(table.ToArrowSchema(), opts)[0]
+	record := schemav2.GenTestData(table, opts)[0]
 	ch <- record
 	close(ch)
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
@@ -147,9 +147,9 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := testdata.TestTable("test")
-	tables := []*arrow.Schema{
-		table.ToArrowSchema(),
+	table := schemav2.TestTable("test")
+	tables := schemav2.Tables{
+		table,
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
@@ -158,13 +158,13 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	}
 	ch := make(chan arrow.Record, 1)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	opts := testdata.GenTestDataOptions{
+	opts := schemav2.GenTestDataOptions{
 		SourceName: "test",
 		SyncTime:   time.Now(),
 		MaxRows:    1,
 		StableUUID: uuid.Nil,
 	}
-	record := testdata.GenTestData(table.ToArrowSchema(), opts)[0]
+	record := schemav2.GenTestData(table, opts)[0]
 	ch <- record
 	defer cancel()
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)

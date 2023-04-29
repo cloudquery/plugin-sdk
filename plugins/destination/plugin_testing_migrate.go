@@ -9,9 +9,8 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/schemav2"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
-	"github.com/cloudquery/plugin-sdk/v2/testdata"
 	"github.com/cloudquery/plugin-sdk/v2/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -22,35 +21,35 @@ func tableUUIDSuffix() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "_")
 }
 
-func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *arrow.Schema, source *arrow.Schema, mode specs.MigrateMode) error {
+func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schemav2.Table, source *schemav2.Table, mode specs.MigrateMode) error {
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 
-	if err := p.Migrate(ctx, []*arrow.Schema{source}); err != nil {
+	if err := p.Migrate(ctx, []*schemav2.Table{source}); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
-	sourceName := schema.TableName(target)
+	sourceName := target.Name
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	opts := testdata.GenTestDataOptions{
+	opts := schemav2.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   syncTime,
 		MaxRows:    1,
 	}
-	resource1 := testdata.GenTestData(source, opts)[0]
+	resource1 := schemav2.GenTestData(source, opts)[0]
 	if err := p.writeOne(ctx, sourceSpec, syncTime, resource1); err != nil {
 		return fmt.Errorf("failed to write one: %w", err)
 	}
 
-	if err := p.Migrate(ctx, []*arrow.Schema{target}); err != nil {
+	if err := p.Migrate(ctx, schemav2.Tables{target}); err != nil {
 		return fmt.Errorf("failed to migrate existing table: %w", err)
 	}
 	opts.SyncTime = syncTime.Add(time.Second).UTC()
-	resource2 := testdata.GenTestData(target, opts)[0]
+	resource2 := schemav2.GenTestData(target, opts)[0]
 	if err := p.writeOne(ctx, sourceSpec, syncTime, resource2); err != nil {
 		return fmt.Errorf("failed to write one after migration: %w", err)
 	}
@@ -97,21 +96,25 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			return
 		}
 		tableName := "add_column_" + tableUUIDSuffix()
-		md := arrow.NewMetadata([]string{schema.MetadataTableName}, []string{tableName})
-		source := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-		}, &md)
-
-		target := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
-		}, &md)
+		source := &schemav2.Table{
+			Name: tableName,
+			Columns: []schemav2.Column{
+				schemav2.CqSourceNameColumn,
+				schemav2.CqSyncTimeColumn,
+				schemav2.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schemav2.ColumnCreationOptions{NotNull: false}},
+			},
+		}
+		target := &schemav2.Table{
+			Name: tableName,
+			Columns: []schemav2.Column{
+				schemav2.CqSourceNameColumn,
+				schemav2.CqSyncTimeColumn,
+				schemav2.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schemav2.ColumnCreationOptions{NotNull: false}},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schemav2.ColumnCreationOptions{NotNull: false}},
+			},
+		}
 
 		p := newPlugin()
 		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.AddColumn); err != nil {
@@ -128,21 +131,26 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			return
 		}
 		tableName := "add_column_not_null_" + tableUUIDSuffix()
-		md := arrow.NewMetadata([]string{schema.MetadataTableName}, []string{tableName})
-		source := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-		}, &md)
+		source := &schemav2.Table{
+			Name: tableName,
+			Columns: []schemav2.Column{
+				schemav2.CqSourceNameColumn,
+				schemav2.CqSyncTimeColumn,
+				schemav2.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schemav2.ColumnCreationOptions{NotNull: false}},
+			},
+		}
+		target := &schemav2.Table{
+			Name: tableName,
+			Columns: []schemav2.Column{
+				schemav2.CqSourceNameColumn,
+				schemav2.CqSyncTimeColumn,
+				schemav2.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schemav2.ColumnCreationOptions{NotNull: false}},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schemav2.ColumnCreationOptions{NotNull: true}},
+			},
+		}
 
-		target := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
-		}, &md)
 		p := newPlugin()
 		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.AddColumnNotNull); err != nil {
 			t.Fatalf("failed to migrate add_column_not_null: %v", err)
@@ -158,20 +166,25 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			return
 		}
 		tableName := "remove_column_" + tableUUIDSuffix()
-		md := arrow.NewMetadata([]string{schema.MetadataTableName}, []string{tableName})
-		source := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
-		}, &md)
-		target := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-		}, &md)
+		source := &schemav2.Table{
+			Name: tableName,
+			Columns: []schemav2.Column{
+				schemav2.CqSourceNameColumn,
+				schemav2.CqSyncTimeColumn,
+				schemav2.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+			},
+		}
+		target := &schemav2.Table{
+			Name: tableName,
+			Columns: []schemav2.Column{
+				schemav2.CqSourceNameColumn,
+				schemav2.CqSyncTimeColumn,
+				schemav2.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID},
+			},
+		}
 
 		p := newPlugin()
 		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.RemoveColumn); err != nil {
@@ -188,20 +201,25 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			return
 		}
 		tableName := "remove_column_not_null_" + tableUUIDSuffix()
-		md := arrow.NewMetadata([]string{schema.MetadataTableName}, []string{tableName})
-		source := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
-		}, &md)
-		target := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-		}, &md)
+		source := &schemav2.Table{
+			Name: tableName,
+			Columns: []schemav2.Column{
+				schemav2.CqSourceNameColumn,
+				schemav2.CqSyncTimeColumn,
+				schemav2.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schemav2.ColumnCreationOptions{NotNull: true}},
+			},
+		}
+		target := &schemav2.Table{
+			Name: tableName,
+			Columns: []schemav2.Column{
+				schemav2.CqSourceNameColumn,
+				schemav2.CqSyncTimeColumn,
+				schemav2.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID},
+			},
+		}
 
 		p := newPlugin()
 		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.RemoveColumnNotNull); err != nil {
@@ -218,21 +236,26 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			return
 		}
 		tableName := "change_column_" + tableUUIDSuffix()
-		md := arrow.NewMetadata([]string{schema.MetadataTableName}, []string{tableName})
-		source := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
-		}, &md)
-		target := arrow.NewSchema([]arrow.Field{
-			schema.CqSourceNameField,
-			schema.CqSyncTimeField,
-			schema.CqIDField,
-			{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true},
-			{Name: "bool", Type: arrow.BinaryTypes.String},
-		}, &md)
+		source := &schemav2.Table{
+			Name: tableName,
+			Columns: []schemav2.Column{
+				schemav2.CqSourceNameColumn,
+				schemav2.CqSyncTimeColumn,
+				schemav2.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schemav2.ColumnCreationOptions{NotNull: true}},
+			},
+		}
+		target := &schemav2.Table{
+			Name: tableName,
+			Columns: []schemav2.Column{
+				schemav2.CqSourceNameColumn,
+				schemav2.CqSyncTimeColumn,
+				schemav2.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "bool", Type: arrow.BinaryTypes.String, CreationOptions: schemav2.ColumnCreationOptions{NotNull: true}},
+			},
+		}
 
 		p := newPlugin()
 		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.ChangeColumn); err != nil {
@@ -245,15 +268,15 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 
 	t.Run("double_migration", func(t *testing.T) {
 		tableName := "double_migration_" + tableUUIDSuffix()
-		table := schema.CQSchemaToArrow(testdata.TestTable(tableName))
+		table := schemav2.TestTable(tableName)
 
 		p := newPlugin()
 		require.NoError(t, p.Init(ctx, logger, spec))
-		require.NoError(t, p.Migrate(ctx, schema.Schemas{table}))
+		require.NoError(t, p.Migrate(ctx, schemav2.Tables{table}))
 
 		nonForced := spec
 		nonForced.MigrateMode = specs.MigrateModeSafe
 		require.NoError(t, p.Init(ctx, logger, nonForced))
-		require.NoError(t, p.Migrate(ctx, schema.Schemas{table}))
+		require.NoError(t, p.Migrate(ctx, schemav2.Tables{table}))
 	})
 }

@@ -1,4 +1,4 @@
-package testdata
+package schemav2
 
 import (
 	"net"
@@ -14,115 +14,107 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestSourceTable(name string) *schema.Table {
-	return &schema.Table{
+func TestSourceTable(name string) *Table {
+	return &Table{
 		Name:        name,
 		Description: "Test table",
-		Columns: schema.ColumnList{
-			schema.CqIDColumn,
-			schema.CqParentIDColumn,
+		Columns: ColumnList{
+			CqIDColumn,
+			CqParentIDColumn,
 			{
 				Name:            "uuid_pk",
-				Type:            schema.TypeUUID,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Type:            types.ExtensionTypes.UUID,
+				CreationOptions: ColumnCreationOptions{PrimaryKey: true},
 			},
 			{
 				Name:            "string_pk",
-				Type:            schema.TypeString,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Type:            arrow.BinaryTypes.String,
+				CreationOptions: ColumnCreationOptions{PrimaryKey: true},
 			},
 			{
 				Name: "bool",
-				Type: schema.TypeBool,
+				Type: arrow.FixedWidthTypes.Boolean,
 			},
 			{
 				Name: "int",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 			{
 				Name: "float",
-				Type: schema.TypeFloat,
+				Type: arrow.PrimitiveTypes.Float64,
 			},
 			{
 				Name: "uuid",
-				Type: schema.TypeUUID,
+				Type: types.ExtensionTypes.UUID,
 			},
 			{
 				Name: "text",
-				Type: schema.TypeString,
+				Type: arrow.BinaryTypes.String,
 			},
 			{
 				Name: "text_with_null",
-				Type: schema.TypeString,
+				Type: arrow.BinaryTypes.String,
 			},
 			{
 				Name: "bytea",
-				Type: schema.TypeByteArray,
+				Type: arrow.BinaryTypes.Binary,
 			},
 			{
 				Name: "text_array",
-				Type: schema.TypeStringArray,
+				Type: arrow.ListOf(arrow.BinaryTypes.String),
 			},
 			{
 				Name: "text_array_with_null",
-				Type: schema.TypeStringArray,
+				Type: arrow.ListOf(arrow.BinaryTypes.String),
 			},
 			{
 				Name: "int_array",
-				Type: schema.TypeIntArray,
+				Type: arrow.ListOf(arrow.PrimitiveTypes.Int64),
 			},
 			{
 				Name: "timestamp",
-				Type: schema.TypeTimestamp,
+				Type: arrow.FixedWidthTypes.Timestamp_us,
 			},
 			{
 				Name: "json",
-				Type: schema.TypeJSON,
+				Type: types.ExtensionTypes.JSON,
 			},
 			{
 				Name: "uuid_array",
-				Type: schema.TypeUUIDArray,
+				Type: arrow.ListOf(types.ExtensionTypes.UUID),
 			},
 			{
 				Name: "inet",
-				Type: schema.TypeInet,
+				Type: types.ExtensionTypes.Inet,
 			},
 			{
 				Name: "inet_array",
-				Type: schema.TypeInetArray,
-			},
-			{
-				Name: "cidr",
-				Type: schema.TypeCIDR,
-			},
-			{
-				Name: "cidr_array",
-				Type: schema.TypeCIDRArray,
+				Type: arrow.ListOf(types.ExtensionTypes.Inet),
 			},
 			{
 				Name: "macaddr",
-				Type: schema.TypeMacAddr,
+				Type: types.ExtensionTypes.Mac,
 			},
 			{
 				Name: "macaddr_array",
-				Type: schema.TypeMacAddrArray,
+				Type: arrow.ListOf(types.ExtensionTypes.Mac),
 			},
 		},
 	}
 }
 
-func TestTableIncremental(name string) *schema.Table {
+func TestTableIncremental(name string) *Table {
 	t := TestTable(name)
 	t.IsIncremental = true
 	return t
 }
 
 // TestTable returns a table with columns of all type. useful for destination testing purposes
-func TestTable(name string) *schema.Table {
+func TestTable(name string) *Table {
 	sourceTable := TestSourceTable(name)
-	sourceTable.Columns = append(schema.ColumnList{
-		schema.CqSourceNameColumn,
-		schema.CqSyncTimeColumn,
+	sourceTable.Columns = append(ColumnList{
+		CqSourceNameColumn,
+		CqSyncTimeColumn,
 	}, sourceTable.Columns...)
 	return sourceTable
 }
@@ -142,8 +134,9 @@ type GenTestDataOptions struct {
 	StableTime time.Time
 }
 
-func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
+func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 	var records []arrow.Record
+	sc := table.ToArrowSchema()
 	for j := 0; j < opts.MaxRows; j++ {
 		u := uuid.New()
 		if opts.StableUUID != uuid.Nil {
@@ -151,12 +144,12 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 		}
 		nullRow := j%2 == 1
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
-		for i, c := range sc.Fields() {
-			if nullRow && c.Nullable && !schema.IsPk(c) &&
-				c.Name != schema.CqSourceNameColumn.Name &&
-				c.Name != schema.CqSyncTimeColumn.Name &&
-				c.Name != schema.CqIDField.Name &&
-				c.Name != schema.CqParentIDColumn.Name {
+		for i, c := range table.Columns {
+			if nullRow && !c.CreationOptions.NotNull && !c.CreationOptions.PrimaryKey &&
+				c.Name != CqSourceNameColumn.Name &&
+				c.Name != CqSyncTimeColumn.Name &&
+				c.Name != CqIDColumn.Name &&
+				c.Name != CqParentIDColumn.Name {
 				bldr.Field(i).AppendNull()
 				continue
 			}
