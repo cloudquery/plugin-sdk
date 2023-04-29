@@ -17,9 +17,9 @@ func TablesV1ToV2(tables []*schema.Table) schemav2.Tables {
 
 func TableV1ToV2(table *schema.Table) *schemav2.Table {
 	return &schemav2.Table{
-		Name:    table.Name,
-		Description: table.Description,
-		Columns: ColumnsV1ToV2(table.Columns),
+		Name:          table.Name,
+		Description:   table.Description,
+		Columns:       ColumnsV1ToV2(table.Columns),
 		IgnoreInTests: table.IgnoreInTests,
 		IsIncremental: table.IsIncremental,
 	}
@@ -35,12 +35,12 @@ func ColumnsV1ToV2(columns []schema.Column) []schemav2.Column {
 
 func ColumnV1ToV2(column schema.Column) schemav2.Column {
 	return schemav2.Column{
-		Name:     column.Name,
+		Name:        column.Name,
 		Description: column.Description,
-		Type: TypeV1ToV2(column.Type),
+		Type:        TypeV1ToV2(column.Type),
 		CreationOptions: schemav2.ColumnCreationOptions{
-			NotNull: column.CreationOptions.NotNull,
-			Unique:  column.CreationOptions.Unique,
+			NotNull:    column.CreationOptions.NotNull,
+			Unique:     column.CreationOptions.Unique,
 			PrimaryKey: column.CreationOptions.PrimaryKey,
 		},
 		IgnoreInTests: column.IgnoreInTests,
@@ -89,5 +89,3 @@ func TypeV1ToV2(dataType schema.ValueType) arrow.DataType {
 		panic("unknown type " + typ.Name())
 	}
 }
-
-

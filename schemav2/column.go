@@ -52,7 +52,7 @@ func NewColumnFromArrowField(f arrow.Field) Column {
 	creationOptions := ColumnCreationOptions{
 		NotNull: !f.Nullable,
 	}
-	if v, ok := f.Metadata.GetValue(MetadataPrimaryKey); ok{
+	if v, ok := f.Metadata.GetValue(MetadataPrimaryKey); ok {
 		if v == MetadataTrue {
 			creationOptions.PrimaryKey = true
 		} else {
@@ -60,7 +60,7 @@ func NewColumnFromArrowField(f arrow.Field) Column {
 		}
 	}
 
-	if v, ok := f.Metadata.GetValue(MetadataUnique); ok{
+	if v, ok := f.Metadata.GetValue(MetadataUnique); ok {
 		if v == MetadataTrue {
 			creationOptions.Unique = true
 		} else {
@@ -68,8 +68,8 @@ func NewColumnFromArrowField(f arrow.Field) Column {
 		}
 	}
 	return Column{
-		Name: f.Name,
-		Type: f.Type,
+		Name:            f.Name,
+		Type:            f.Type,
 		CreationOptions: creationOptions,
 	}
 }
@@ -100,7 +100,7 @@ func (c Column) ToArrowField() arrow.Field {
 	} else {
 		mdKV[MetadataUnique] = MetadataFalse
 	}
-	
+
 	return arrow.Field{
 		Name:     c.Name,
 		Type:     c.Type,

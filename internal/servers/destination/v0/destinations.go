@@ -60,7 +60,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	}
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
-	
+
 	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, TablesV1ToV2(tables))
 }
 

@@ -102,9 +102,9 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		columns[i] = NewColumnFromArrowField(field)
 	}
 	table := &Table{
-		Name:    name,
+		Name:        name,
 		Description: description,
-		Columns: columns,
+		Columns:     columns,
 	}
 	return table, nil
 }
@@ -336,7 +336,7 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 		}
 		fields[i] = arrow.Field{
 			Name:     c.Name,
-			Type: c.Type,
+			Type:     c.Type,
 			Nullable: !c.CreationOptions.NotNull,
 			Metadata: arrow.MetadataFrom(fieldMdKv),
 		}
