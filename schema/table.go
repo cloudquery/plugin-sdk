@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/cloudquery/plugin-sdk/v2/internal/glob"
 )
 
@@ -129,14 +128,6 @@ func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool, skipDependent
 		}
 	}
 	return filteredTables
-}
-
-func (tt Tables) ToArrowSchemas() Schemas {
-	schemas := make(Schemas, 0, len(tt.FlattenTables()))
-	for _, t := range tt.FlattenTables() {
-		schemas = append(schemas, t.ToArrowSchema())
-	}
-	return schemas
 }
 
 func (tt Tables) FilterDfs(tables, skipTables []string, skipDependentTables bool) (Tables, error) {
@@ -299,10 +290,6 @@ func (t *Table) ValidateName() error {
 		return fmt.Errorf("table name %q is not valid: table names must contain only lower-case letters, numbers and underscores, and must start with a lower-case letter or underscore", t.Name)
 	}
 	return nil
-}
-
-func (t *Table) ToArrowSchema() *arrow.Schema {
-	return CQSchemaToArrow(t)
 }
 
 // Get Changes returns changes between two tables when t is the new one and old is the old one.

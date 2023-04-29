@@ -10,7 +10,6 @@ import (
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v2/internal/pk"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/schemav2"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
 )
@@ -131,7 +130,7 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tab
 	p.workersLock.Unlock()
 
 	for r := range res {
-		tableName, ok := r.Schema().Metadata().GetValue(schema.MetadataTableName)
+		tableName, ok := r.Schema().Metadata().GetValue(schemav2.MetadataTableName)
 		if !ok {
 			return fmt.Errorf("missing table name in record metadata")
 		}

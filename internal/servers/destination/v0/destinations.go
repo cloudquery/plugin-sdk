@@ -137,7 +137,8 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 		if len(origResource.Data) < len(tables.Get(origResource.TableName).Columns) {
 			origResource.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, origResource.Data...)
 		}
-		convertedResource := schema.CQTypesToRecord(memory.DefaultAllocator, []schema.CQTypes{origResource.Data}, schema.CQSchemaToArrow(tables.Get(origResource.TableName)))
+		tablesv2 := TablesV1ToV2(tables)
+		convertedResource := schema.CQTypesToRecord(memory.DefaultAllocator, []schema.CQTypes{origResource.Data}, tablesv2.Get(origResource.TableName).ToArrowSchema())
 		select {
 		case resources <- convertedResource:
 		case <-ctx.Done():

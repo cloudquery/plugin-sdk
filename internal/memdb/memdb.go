@@ -151,9 +151,10 @@ func (c *client) Write(ctx context.Context, _ schemav2.Tables, resources <-chan 
 
 	for resource := range resources {
 		c.memoryDBLock.Lock()
-		tableName, err := schema.TableNameFromSchema(resource.Schema())
-		if err != nil {
-			return err
+		sc := resource.Schema()
+		tableName, ok := sc.Metadata().GetValue(schemav2.MetadataTableName)
+		if !ok {
+			return fmt.Errorf("table name not found in schema metadata")
 		}
 		table := c.tables[tableName]
 		if c.spec.WriteMode == specs.WriteModeAppend {

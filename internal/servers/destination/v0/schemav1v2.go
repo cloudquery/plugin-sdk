@@ -88,8 +88,6 @@ func TypeV1ToV2(dataType schema.ValueType) arrow.DataType {
 	default:
 		panic("unknown type " + typ.Name())
 	}
-
-	return typ
 }
 
 
