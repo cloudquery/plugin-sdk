@@ -153,6 +153,7 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 				bldr.Field(i).AppendNull()
 				continue
 			}
+			//nolint:gocritic
 			if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Boolean) {
 				bldr.Field(i).(*array.BooleanBuilder).Append(true)
 			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Int64) {
@@ -162,6 +163,7 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.UUID) {
 				bldr.Field(i).(*types.UUIDBuilder).Append(u)
 			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.String) {
+				//nolint:gocritic
 				if c.Name == schema.CqSourceNameColumn.Name {
 					bldr.Field(i).(*array.StringBuilder).AppendString(opts.SourceName)
 				} else if c.Name == "text_with_null" {
