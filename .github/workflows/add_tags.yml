@@ -9,6 +9,7 @@ name: conventional-release-labels
 jobs:
   label:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: bcoe/conventional-release-labels@v1
         with:
