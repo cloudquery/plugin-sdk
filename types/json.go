@@ -136,8 +136,7 @@ func (a *JSONArray) Value(i int) any {
 	}
 
 	var data any
-	// per https://github.com/cloudquery/plugin-sdk/issues/622
-	err := json.UnmarshalNoEscape(a.Storage().(*array.Binary).Value(i), &data)
+	err := json.Unmarshal(a.Storage().(*array.Binary).Value(i), &data)
 	if err != nil {
 		panic(fmt.Errorf("invalid json: %w", err))
 	}
@@ -155,16 +154,11 @@ func (a *JSONArray) ValueStr(i int) string {
 
 func (a *JSONArray) MarshalJSON() ([]byte, error) {
 	values := make([]json.RawMessage, a.Len())
-	arr := a.Storage().(*array.Binary)
 	for i := 0; i < a.Len(); i++ {
 		if a.IsNull(i) {
 			continue
 		}
-		// per https://github.com/cloudquery/plugin-sdk/issues/622
-		err := json.UnmarshalNoEscape(arr.Value(i), &values[i])
-		if err != nil {
-			panic(fmt.Errorf("invalid json: %w", err))
-		}
+		values[i] = a.GetOneForMarshal(i).(json.RawMessage)
 	}
 	// per https://github.com/cloudquery/plugin-sdk/issues/622
 	return json.MarshalWithOption(values, json.DisableHTMLEscape())
