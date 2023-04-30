@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"strconv"
 	"testing"
 
 	"github.com/apache/arrow/go/v12/arrow/array"
@@ -85,6 +86,11 @@ func TestJSONBuilder_UnmarshalOne(t *testing.T) {
 			data: `null`,
 			want: `[(null)]`,
 		},
+		{
+			name: `escaped`,
+			data: `{"MyKey":"A\u0026B"}`,
+			want: `["{\"MyKey\":\"A&B\"}"]`,
+		},
 	}
 
 	for _, tc := range cases {
@@ -136,6 +142,11 @@ func TestJSONArray_GetOneForMarshal(t *testing.T) {
 			name: `null`,
 			data: `null`,
 			nil:  true,
+		},
+		{
+			name: `escaped`,
+			data: `{"MyKey":"A\u0026B"}`,
+			want: json.RawMessage(`{"MyKey":"A&B"}`),
 		},
 	}
 
@@ -193,6 +204,11 @@ func TestJSONArray_ValueStr(t *testing.T) {
 			data: `null`,
 			want: array.NullValueStr,
 		},
+		{
+			name: `escaped`,
+			data: `{"MyKey":"A\u0026B"}`,
+			want: `{"MyKey":"A&B"}`,
+		},
 	}
 
 	for _, tc := range cases {
@@ -242,6 +258,11 @@ func TestJSONArray_Value(t *testing.T) {
 		{
 			name: `null`,
 			data: `null`,
+		},
+		{
+			name: `escaped`,
+			data: `[{"MyKey":"A\u0026B"}]`,
+			want: []any{map[string]any{"MyKey": "A&B"}},
 		},
 	}
 
@@ -295,6 +316,11 @@ func TestJSON_MarshalUnmarshal(t *testing.T) {
 				map[string]any{"g": float64(7), "h": float64(8)},
 			},
 		},
+		{
+			name: `escaped`,
+			data: `[{"MyKey":"A\u0026B"}]`,
+			want: []any{map[string]any{"MyKey": "A&B"}},
+		},
 	}
 
 	for _, tc := range cases {
@@ -308,7 +334,7 @@ func TestJSON_MarshalUnmarshal(t *testing.T) {
 			defer a.Release()
 			data, err := a.MarshalJSON()
 			require.NoError(t, err)
-			require.Equal(t, tc.data, string(data))
+			require.Equal(t, unescape(tc.data), string(data))
 			require.Equal(t, len(tc.want), a.Len())
 			for i, elem := range tc.want {
 				require.Equal(t, elem, a.Value(i))
@@ -350,6 +376,11 @@ func TestJSON_FromToString(t *testing.T) {
 				map[string]any{"g": float64(7), "h": float64(8)},
 			},
 		},
+		{
+			name: `escaped`,
+			data: []string{`{"MyKey":"A\u0026B"}`},
+			want: []any{map[string]any{"MyKey": "A&B"}},
+		},
 	}
 
 	for _, tc := range cases {
@@ -369,8 +400,28 @@ func TestJSON_FromToString(t *testing.T) {
 			require.Equal(t, len(tc.want), a.Len())
 			for i, elem := range tc.want {
 				require.Equal(t, elem, a.Value(i))
-				require.Equal(t, tc.data[i], a.ValueStr(i))
+				require.Equal(t, unescape(tc.data[i]), a.ValueStr(i))
 			}
 		})
 	}
+}
+
+func unescape(str string) string {
+	out := ""
+	for len(str) > 0 {
+		if str[0] == '\\' {
+			if len(str) > 5 && str[1] == 'u' {
+				u, err := strconv.ParseUint(str[2:6], 16, 64)
+				if err == nil {
+					out += string(byte(u))
+					str = str[6:]
+					continue
+				}
+			}
+		}
+		out += str[:1]
+		str = str[1:]
+	}
+
+	return out
 }
