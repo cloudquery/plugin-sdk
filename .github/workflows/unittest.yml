@@ -49,4 +49,4 @@ jobs:
         run: go test -race -coverprofile=coverage.out -covermode=atomic  ./...
       - name: Upload coverage to Codecov
         if: always() && matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@cc7fb3f71c712c470a895ac29f8a1fd0fcb52c8a
+        uses: codecov/codecov-action@894ff025c7b54547a9a2a1e9f228beae737ad3c2
