@@ -10,9 +10,10 @@ import (
 	"github.com/apache/arrow/go/v12/arrow/memory"
 	pbBase "github.com/cloudquery/plugin-sdk/v2/pb/base/v0"
 	pb "github.com/cloudquery/plugin-sdk/v2/pb/destination/v0"
-	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/specs"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
@@ -54,14 +55,15 @@ func (s *Server) GetVersion(context.Context, *pbBase.GetVersion_Request) (*pbBas
 }
 
 func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migrate_Response, error) {
-	var tables schema.Tables
-	if err := json.Unmarshal(req.Tables, &tables); err != nil {
+	var tablesV2 schemav2.Tables
+	if err := json.Unmarshal(req.Tables, &tablesV2); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
+	tables := TablesV2ToV3(tablesV2)
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
 
-	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, TablesV1ToV2(tables))
+	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
 }
 
 func (*Server) Write(pb.Destination_WriteServer) error {
@@ -80,7 +82,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 		}
 		return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 	}
-	var tables schema.Tables
+	var tables schemav2.Tables
 	if err := json.Unmarshal(r.Tables, &tables); err != nil {
 		return status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
@@ -96,16 +98,17 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 		}
 	}
 	syncTime := r.Timestamp.AsTime()
-	SetDestinationManagedCqColumns(tables)
-	s.setPKsForTables(tables)
-	tablesV2 := TablesV1ToV2(tables)
+
+	tablesV3 := TablesV2ToV3(tables)
+	s.setPKsForTables(tablesV3)
+	SetDestinationManagedCqColumns(tablesV3)
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceSpec, tablesV2, syncTime, resources)
+		return s.Plugin.Write(ctx, sourceSpec, tablesV3, syncTime, resources)
 	})
-	sourceColumn := &schema.Text{}
+	sourceColumn := &schemav2.Text{}
 	_ = sourceColumn.Set(sourceSpec.Name)
-	syncTimeColumn := &schema.Timestamptz{}
+	syncTimeColumn := &schemav2.Timestamptz{}
 	_ = syncTimeColumn.Set(syncTime)
 
 	for {
@@ -124,7 +127,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
-		var origResource schema.DestinationResource
+		var origResource schemav2.DestinationResource
 		if err := json.Unmarshal(r.Resource, &origResource); err != nil {
 			close(resources)
 			if wgErr := eg.Wait(); wgErr != nil {
@@ -135,10 +138,10 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 		// this is a check to keep backward compatible for sources that are not adding
 		// source and sync time
 		if len(origResource.Data) < len(tables.Get(origResource.TableName).Columns) {
-			origResource.Data = append([]schema.CQType{sourceColumn, syncTimeColumn}, origResource.Data...)
+			origResource.Data = append([]schemav2.CQType{sourceColumn, syncTimeColumn}, origResource.Data...)
 		}
-		tablesv2 := TablesV1ToV2(tables)
-		convertedResource := schema.CQTypesToRecord(memory.DefaultAllocator, []schema.CQTypes{origResource.Data}, tablesv2.Get(origResource.TableName).ToArrowSchema())
+		tablesv2 := TablesV2ToV3(tables)
+		convertedResource := CQTypesToRecord(memory.DefaultAllocator, []schemav2.CQTypes{origResource.Data}, tablesv2.Get(origResource.TableName).ToArrowSchema())
 		select {
 		case resources <- convertedResource:
 		case <-ctx.Done():
@@ -155,7 +158,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 	for _, table := range tables {
 		for i, col := range table.Columns {
-			table.Columns[i].CreationOptions.PrimaryKey = col.Name == schema.CqIDColumn.Name
+			table.Columns[i].CreationOptions.PrimaryKey = col.Name == schemav2.CqIDColumn.Name
 		}
 		setCQIDAsPrimaryKeysForTables(table.Relations)
 	}
@@ -188,13 +191,13 @@ func (s *Server) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) 
 }
 
 func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (*pb.DeleteStale_Response, error) {
-	var tables schema.Tables
-	if err := json.Unmarshal(req.Tables, &tables); err != nil {
+	var tablesV2 schemav2.Tables
+	if err := json.Unmarshal(req.Tables, &tablesV2); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
+	tables := TablesV2ToV3(tablesV2)
 	SetDestinationManagedCqColumns(tables)
-	tavlesV2 := TablesV1ToV2(tables)
-	if err := s.Plugin.DeleteStale(ctx, tavlesV2, req.Source, req.Timestamp.AsTime()); err != nil {
+	if err := s.Plugin.DeleteStale(ctx, tables, req.Source, req.Timestamp.AsTime()); err != nil {
 		return nil, err
 	}
 

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v2/schemav2"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/specs"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -112,8 +112,8 @@ func TestOnWriteError(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := schemav2.TestTable("test")
-	tables := schemav2.Tables{
+	table := schema.TestTable("test")
+	tables := schema.Tables{
 		table,
 	}
 	sourceName := "TestDestinationOnWriteError"
@@ -122,13 +122,13 @@ func TestOnWriteError(t *testing.T) {
 		Name: sourceName,
 	}
 	ch := make(chan arrow.Record, 1)
-	opts := schemav2.GenTestDataOptions{
+	opts := schema.GenTestDataOptions{
 		SourceName: "test",
 		SyncTime:   time.Now(),
 		MaxRows:    1,
 		StableUUID: uuid.Nil,
 	}
-	record := schemav2.GenTestData(table, opts)[0]
+	record := schema.GenTestData(table, opts)[0]
 	ch <- record
 	close(ch)
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
@@ -147,8 +147,8 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := schemav2.TestTable("test")
-	tables := schemav2.Tables{
+	table := schema.TestTable("test")
+	tables := schema.Tables{
 		table,
 	}
 	sourceName := "TestDestinationOnWriteError"
@@ -158,13 +158,13 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	}
 	ch := make(chan arrow.Record, 1)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	opts := schemav2.GenTestDataOptions{
+	opts := schema.GenTestDataOptions{
 		SourceName: "test",
 		SyncTime:   time.Now(),
 		MaxRows:    1,
 		StableUUID: uuid.Nil,
 	}
-	record := schemav2.GenTestData(table, opts)[0]
+	record := schema.GenTestData(table, opts)[0]
 	ch <- record
 	defer cancel()
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)

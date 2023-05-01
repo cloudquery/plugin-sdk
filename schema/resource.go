@@ -1,11 +1,9 @@
 package schema
 
 import (
-	"crypto/sha256"
-	"fmt"
+	"encoding/json"
 
-	"github.com/google/uuid"
-	"golang.org/x/exp/slices"
+	"github.com/apache/arrow/go/v12/arrow/array"
 )
 
 type Resources []*Resource
@@ -20,46 +18,41 @@ type Resource struct {
 	// internal fields
 	Table *Table
 	// This is sorted result data by column name
-	data CQTypes
+	data map[string]any
+	bldr array.Builder
 }
 
 // This struct is what we send over the wire to destination.
 // We dont want to reuse the same struct as otherwise we will have to comment on fields which don't get sent over the wire but still accessible
 // code wise
-type DestinationResource struct {
-	TableName string  `json:"table_name"`
-	Data      CQTypes `json:"data"`
-}
+// type DestinationResource struct {
+// 	TableName string  `json:"table_name"`
+// 	Data      CQTypes `json:"data"`
+// }
 
 func NewResourceData(t *Table, parent *Resource, item any) *Resource {
 	r := Resource{
 		Item:   item,
 		Parent: parent,
 		Table:  t,
-		data:   make(CQTypes, len(t.Columns)),
+		data:   make(map[string]any, len(t.Columns)),
 	}
-	for i := range r.data {
-		r.data[i] = NewCqTypeFromValueType(t.Columns[i].Type)
+	for _, c := range t.Columns {
+		r.data[c.Name] = nil
 	}
 	return &r
 }
 
-func (r *Resource) ToDestinationResource() DestinationResource {
-	dr := DestinationResource{
-		TableName: r.Table.Name,
-		Data:      r.data,
+func (r *Resource) Build() error {
+	b, err := json.Marshal(r.data)
+	if err != nil {
+		return err
 	}
-	return dr
+	return r.bldr.UnmarshalJSON(b)
 }
 
-func (r *Resource) Get(columnName string) CQType {
-	index := r.Table.Columns.Index(columnName)
-	if index == -1 {
-		// we panic because we want to distinguish between code error and api error
-		// this also saves additional checks in our testing code
-		panic(columnName + " column not found")
-	}
-	return r.data[index]
+func (r *Resource) Get(columnName string) any {
+	return r.data[columnName]
 }
 
 // Set sets a column with value. This does validation and conversion to
@@ -72,9 +65,7 @@ func (r *Resource) Set(columnName string, value any) error {
 		// this also saves additional checks in our testing code
 		panic(columnName + " column not found")
 	}
-	if err := r.data[index].Set(value); err != nil {
-		panic(fmt.Errorf("failed to set column %s: %w", columnName, err))
-	}
+	r.data[columnName] = value
 	return nil
 }
 
@@ -87,56 +78,48 @@ func (r *Resource) GetItem() any {
 	return r.Item
 }
 
-func (r *Resource) GetValues() CQTypes {
-	return r.data
-}
-
-func (r *Resource) Columns() []string {
-	return r.Table.Columns.Names()
-}
-
 //nolint:revive
-func (r *Resource) CalculateCQID(deterministicCQID bool) error {
-	if !deterministicCQID {
-		return r.storeCQID(uuid.New())
-	}
-	names := r.Table.PrimaryKeys()
-	if len(names) == 0 || (len(names) == 1 && names[0] == CqIDColumn.Name) {
-		return r.storeCQID(uuid.New())
-	}
-	slices.Sort(names)
-	h := sha256.New()
-	for _, name := range names {
-		// We need to include the column name in the hash because the same value can be present in multiple columns and therefore lead to the same hash
-		h.Write([]byte(name))
-		h.Write([]byte(r.Get(name).String()))
-	}
-	return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, h.Sum(nil)))
-}
+// func (r *Resource) CalculateCQID(deterministicCQID bool) error {
+// 	if !deterministicCQID {
+// 		return r.storeCQID(uuid.New())
+// 	}
+// 	names := r.Table.PrimaryKeys()
+// 	if len(names) == 0 || (len(names) == 1 && names[0] == CqIDColumn.Name) {
+// 		return r.storeCQID(uuid.New())
+// 	}
+// 	slices.Sort(names)
+// 	h := sha256.New()
+// 	for _, name := range names {
+// 		// We need to include the column name in the hash because the same value can be present in multiple columns and therefore lead to the same hash
+// 		h.Write([]byte(name))
+// 		h.Write([]byte(r.Get(name).String()))
+// 	}
+// 	return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, h.Sum(nil)))
+// }
 
-func (r *Resource) storeCQID(value uuid.UUID) error {
-	b, err := value.MarshalBinary()
-	if err != nil {
-		return err
-	}
-	return r.Set(CqIDColumn.Name, b)
-}
+// func (r *Resource) storeCQID(value uuid.UUID) error {
+// 	b, err := value.MarshalBinary()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return r.Set(CqIDColumn.Name, b)
+// }
 
 // Validates that all primary keys have values.
-func (r *Resource) Validate() error {
-	var missingPks []string
-	for i, c := range r.Table.Columns {
-		if c.CreationOptions.PrimaryKey {
-			if r.data[i].GetStatus() != Present {
-				missingPks = append(missingPks, c.Name)
-			}
-		}
-	}
-	if len(missingPks) > 0 {
-		return fmt.Errorf("missing primary key on columns: %v", missingPks)
-	}
-	return nil
-}
+// func (r *Resource) Validate() error {
+// 	var missingPks []string
+// 	for i, c := range r.Table.Columns {
+// 		if c.CreationOptions.PrimaryKey {
+// 			if r.data[i].GetStatus() != Present {
+// 				missingPks = append(missingPks, c.Name)
+// 			}
+// 		}
+// 	}
+// 	if len(missingPks) > 0 {
+// 		return fmt.Errorf("missing primary key on columns: %v", missingPks)
+// 	}
+// 	return nil
+// }
 
 func (rr Resources) TableName() string {
 	if len(rr) == 0 {

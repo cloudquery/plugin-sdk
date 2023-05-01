@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v3/specs"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )

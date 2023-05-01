@@ -2,9 +2,9 @@ package schema
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"strings"
+
+	"github.com/apache/arrow/go/v12/arrow"
 )
 
 type ColumnList []Column
@@ -28,21 +28,50 @@ type ColumnCreationOptions struct {
 // Column definition for Table
 type Column struct {
 	// Name of column
-	Name string `json:"name,omitempty"`
+	Name string
 	// Value Type of column i.e String, UUID etc'
-	Type ValueType `json:"type,omitempty"`
+	Type arrow.DataType
 	// Description about column, this description is added as a comment in the database
-	Description string `json:"-"`
+	Description string
 	// Column Resolver allows to set your own data for a column; this can be an API call, setting multiple embedded values, etc
-	Resolver ColumnResolver `json:"-"`
+	Resolver ColumnResolver
 	// Creation options allow modifying how column is defined when table is created
-	CreationOptions ColumnCreationOptions `json:"creation_options,omitempty"`
+	CreationOptions ColumnCreationOptions
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
-	IgnoreInTests bool `json:"-"`
+	IgnoreInTests bool
+}
+
+// NewColumnFromArrowField creates a new Column from an arrow.Field
+// arrow.Field is a low-level representation of a CloudQuery column
+// that can be sent over the wire in a cross-language way.
+func NewColumnFromArrowField(f arrow.Field) Column {
+	creationOptions := ColumnCreationOptions{
+		NotNull: !f.Nullable,
+	}
+	if v, ok := f.Metadata.GetValue(MetadataPrimaryKey); ok {
+		if v == MetadataTrue {
+			creationOptions.PrimaryKey = true
+		} else {
+			creationOptions.PrimaryKey = false
+		}
+	}
+
+	if v, ok := f.Metadata.GetValue(MetadataUnique); ok {
+		if v == MetadataTrue {
+			creationOptions.Unique = true
+		} else {
+			creationOptions.Unique = false
+		}
+	}
+	return Column{
+		Name:            f.Name,
+		Type:            f.Type,
+		CreationOptions: creationOptions,
+	}
 }
 
 func (c Column) String() string {
@@ -59,19 +88,25 @@ func (c Column) String() string {
 	return sb.String()
 }
 
-func (c *ColumnList) UnmarshalJSON(data []byte) (err error) {
-	var tmp []Column
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return fmt.Errorf("failed to unmarshal column list: %w, %s", err, data)
+func (c Column) ToArrowField() arrow.Field {
+	mdKV := map[string]string{}
+	if c.CreationOptions.PrimaryKey {
+		mdKV[MetadataPrimaryKey] = MetadataTrue
+	} else {
+		mdKV[MetadataPrimaryKey] = MetadataFalse
 	}
-	res := make(ColumnList, 0, len(tmp))
-	for _, column := range tmp {
-		if column.Type != TypeInvalid {
-			res = append(res, column)
-		}
+	if c.CreationOptions.Unique {
+		mdKV[MetadataUnique] = MetadataTrue
+	} else {
+		mdKV[MetadataUnique] = MetadataFalse
 	}
-	*c = res
-	return nil
+
+	return arrow.Field{
+		Name:     c.Name,
+		Type:     c.Type,
+		Nullable: !c.CreationOptions.NotNull,
+		Metadata: arrow.MetadataFrom(mdKV),
+	}
 }
 
 func (c ColumnList) Index(col string) int {

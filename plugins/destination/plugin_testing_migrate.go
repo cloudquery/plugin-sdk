@@ -9,9 +9,9 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/cloudquery/plugin-sdk/v2/schemav2"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
-	"github.com/cloudquery/plugin-sdk/v2/types"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/specs"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -21,12 +21,12 @@ func tableUUIDSuffix() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "_")
 }
 
-func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schemav2.Table, source *schemav2.Table, mode specs.MigrateMode) error {
+func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.Logger, spec specs.Destination, target *schema.Table, source *schema.Table, mode specs.MigrateMode) error {
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 
-	if err := p.Migrate(ctx, []*schemav2.Table{source}); err != nil {
+	if err := p.Migrate(ctx, []*schema.Table{source}); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
@@ -35,21 +35,21 @@ func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.
 		Name: sourceName,
 	}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	opts := schemav2.GenTestDataOptions{
+	opts := schema.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   syncTime,
 		MaxRows:    1,
 	}
-	resource1 := schemav2.GenTestData(source, opts)[0]
+	resource1 := schema.GenTestData(source, opts)[0]
 	if err := p.writeOne(ctx, sourceSpec, syncTime, resource1); err != nil {
 		return fmt.Errorf("failed to write one: %w", err)
 	}
 
-	if err := p.Migrate(ctx, schemav2.Tables{target}); err != nil {
+	if err := p.Migrate(ctx, schema.Tables{target}); err != nil {
 		return fmt.Errorf("failed to migrate existing table: %w", err)
 	}
 	opts.SyncTime = syncTime.Add(time.Second).UTC()
-	resource2 := schemav2.GenTestData(target, opts)[0]
+	resource2 := schema.GenTestData(target, opts)[0]
 	if err := p.writeOne(ctx, sourceSpec, syncTime, resource2); err != nil {
 		return fmt.Errorf("failed to write one after migration: %w", err)
 	}
@@ -96,23 +96,23 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			return
 		}
 		tableName := "add_column_" + tableUUIDSuffix()
-		source := &schemav2.Table{
+		source := &schema.Table{
 			Name: tableName,
-			Columns: []schemav2.Column{
-				schemav2.CqSourceNameColumn,
-				schemav2.CqSyncTimeColumn,
-				schemav2.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schemav2.ColumnCreationOptions{NotNull: false}},
+			Columns: []schema.Column{
+				schema.CqSourceNameColumn,
+				schema.CqSyncTimeColumn,
+				schema.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schema.ColumnCreationOptions{NotNull: false}},
 			},
 		}
-		target := &schemav2.Table{
+		target := &schema.Table{
 			Name: tableName,
-			Columns: []schemav2.Column{
-				schemav2.CqSourceNameColumn,
-				schemav2.CqSyncTimeColumn,
-				schemav2.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schemav2.ColumnCreationOptions{NotNull: false}},
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schemav2.ColumnCreationOptions{NotNull: false}},
+			Columns: []schema.Column{
+				schema.CqSourceNameColumn,
+				schema.CqSyncTimeColumn,
+				schema.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schema.ColumnCreationOptions{NotNull: false}},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schema.ColumnCreationOptions{NotNull: false}},
 			},
 		}
 
@@ -131,23 +131,23 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			return
 		}
 		tableName := "add_column_not_null_" + tableUUIDSuffix()
-		source := &schemav2.Table{
+		source := &schema.Table{
 			Name: tableName,
-			Columns: []schemav2.Column{
-				schemav2.CqSourceNameColumn,
-				schemav2.CqSyncTimeColumn,
-				schemav2.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schemav2.ColumnCreationOptions{NotNull: false}},
+			Columns: []schema.Column{
+				schema.CqSourceNameColumn,
+				schema.CqSyncTimeColumn,
+				schema.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schema.ColumnCreationOptions{NotNull: false}},
 			},
 		}
-		target := &schemav2.Table{
+		target := &schema.Table{
 			Name: tableName,
-			Columns: []schemav2.Column{
-				schemav2.CqSourceNameColumn,
-				schemav2.CqSyncTimeColumn,
-				schemav2.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schemav2.ColumnCreationOptions{NotNull: false}},
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schemav2.ColumnCreationOptions{NotNull: true}},
+			Columns: []schema.Column{
+				schema.CqSourceNameColumn,
+				schema.CqSyncTimeColumn,
+				schema.CqIDColumn,
+				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schema.ColumnCreationOptions{NotNull: false}},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
 			},
 		}
 
@@ -166,22 +166,22 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			return
 		}
 		tableName := "remove_column_" + tableUUIDSuffix()
-		source := &schemav2.Table{
+		source := &schema.Table{
 			Name: tableName,
-			Columns: []schemav2.Column{
-				schemav2.CqSourceNameColumn,
-				schemav2.CqSyncTimeColumn,
-				schemav2.CqIDColumn,
+			Columns: []schema.Column{
+				schema.CqSourceNameColumn,
+				schema.CqSyncTimeColumn,
+				schema.CqIDColumn,
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		}
-		target := &schemav2.Table{
+		target := &schema.Table{
 			Name: tableName,
-			Columns: []schemav2.Column{
-				schemav2.CqSourceNameColumn,
-				schemav2.CqSyncTimeColumn,
-				schemav2.CqIDColumn,
+			Columns: []schema.Column{
+				schema.CqSourceNameColumn,
+				schema.CqSyncTimeColumn,
+				schema.CqIDColumn,
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 			},
 		}
@@ -201,22 +201,22 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			return
 		}
 		tableName := "remove_column_not_null_" + tableUUIDSuffix()
-		source := &schemav2.Table{
+		source := &schema.Table{
 			Name: tableName,
-			Columns: []schemav2.Column{
-				schemav2.CqSourceNameColumn,
-				schemav2.CqSyncTimeColumn,
-				schemav2.CqIDColumn,
+			Columns: []schema.Column{
+				schema.CqSourceNameColumn,
+				schema.CqSyncTimeColumn,
+				schema.CqIDColumn,
 				{Name: "id", Type: types.ExtensionTypes.UUID},
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schemav2.ColumnCreationOptions{NotNull: true}},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
 			},
 		}
-		target := &schemav2.Table{
+		target := &schema.Table{
 			Name: tableName,
-			Columns: []schemav2.Column{
-				schemav2.CqSourceNameColumn,
-				schemav2.CqSyncTimeColumn,
-				schemav2.CqIDColumn,
+			Columns: []schema.Column{
+				schema.CqSourceNameColumn,
+				schema.CqSyncTimeColumn,
+				schema.CqIDColumn,
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 			},
 		}
@@ -236,24 +236,24 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			return
 		}
 		tableName := "change_column_" + tableUUIDSuffix()
-		source := &schemav2.Table{
+		source := &schema.Table{
 			Name: tableName,
-			Columns: []schemav2.Column{
-				schemav2.CqSourceNameColumn,
-				schemav2.CqSyncTimeColumn,
-				schemav2.CqIDColumn,
+			Columns: []schema.Column{
+				schema.CqSourceNameColumn,
+				schema.CqSyncTimeColumn,
+				schema.CqIDColumn,
 				{Name: "id", Type: types.ExtensionTypes.UUID},
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schemav2.ColumnCreationOptions{NotNull: true}},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
 			},
 		}
-		target := &schemav2.Table{
+		target := &schema.Table{
 			Name: tableName,
-			Columns: []schemav2.Column{
-				schemav2.CqSourceNameColumn,
-				schemav2.CqSyncTimeColumn,
-				schemav2.CqIDColumn,
+			Columns: []schema.Column{
+				schema.CqSourceNameColumn,
+				schema.CqSyncTimeColumn,
+				schema.CqIDColumn,
 				{Name: "id", Type: types.ExtensionTypes.UUID},
-				{Name: "bool", Type: arrow.BinaryTypes.String, CreationOptions: schemav2.ColumnCreationOptions{NotNull: true}},
+				{Name: "bool", Type: arrow.BinaryTypes.String, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
 			},
 		}
 
@@ -268,15 +268,15 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 
 	t.Run("double_migration", func(t *testing.T) {
 		tableName := "double_migration_" + tableUUIDSuffix()
-		table := schemav2.TestTable(tableName)
+		table := schema.TestTable(tableName)
 
 		p := newPlugin()
 		require.NoError(t, p.Init(ctx, logger, spec))
-		require.NoError(t, p.Migrate(ctx, schemav2.Tables{table}))
+		require.NoError(t, p.Migrate(ctx, schema.Tables{table}))
 
 		nonForced := spec
 		nonForced.MigrateMode = specs.MigrateModeSafe
 		require.NoError(t, p.Init(ctx, logger, nonForced))
-		require.NoError(t, p.Migrate(ctx, schemav2.Tables{table}))
+		require.NoError(t, p.Migrate(ctx, schema.Tables{table}))
 	})
 }

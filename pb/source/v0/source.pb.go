@@ -7,7 +7,7 @@
 package source
 
 import (
-	v0 "github.com/cloudquery/plugin-sdk/v2/pb/base/v0"
+	v0 "github.com/cloudquery/plugin-sdk/v3/pb/base/v0"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"

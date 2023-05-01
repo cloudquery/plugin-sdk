@@ -2,6 +2,10 @@ package schema
 
 import (
 	"context"
+
+	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/cloudquery/plugin-sdk/v3/types"
+	"github.com/google/uuid"
 )
 
 type ClientMeta interface {
@@ -11,7 +15,7 @@ type ClientMeta interface {
 // These columns are managed and populated by the source plugins
 var CqIDColumn = Column{
 	Name:        "_cq_id",
-	Type:        TypeUUID,
+	Type:        types.ExtensionTypes.UUID,
 	Description: "Internal CQ ID of the row",
 	CreationOptions: ColumnCreationOptions{
 		NotNull: true,
@@ -20,7 +24,7 @@ var CqIDColumn = Column{
 }
 var CqParentIDColumn = Column{
 	Name:          "_cq_parent_id",
-	Type:          TypeUUID,
+	Type:          types.ExtensionTypes.UUID,
 	Description:   "Internal CQ ID of the parent row",
 	Resolver:      parentCqUUIDResolver(),
 	IgnoreInTests: true,
@@ -29,12 +33,12 @@ var CqParentIDColumn = Column{
 // These columns are managed and populated by the destination plugin.
 var CqSyncTimeColumn = Column{
 	Name:        "_cq_sync_time",
-	Type:        TypeTimestamp,
+	Type:        arrow.FixedWidthTypes.Timestamp_us,
 	Description: "Internal CQ row of when sync was started (this will be the same for all rows in a single fetch)",
 }
 var CqSourceNameColumn = Column{
 	Name:        "_cq_source_name",
-	Type:        TypeString,
+	Type:        arrow.BinaryTypes.String,
 	Description: "Internal CQ row that references the source plugin name data was retrieved",
 }
 
@@ -47,10 +51,10 @@ func parentCqUUIDResolver() ColumnResolver {
 		if parentCqID == nil {
 			return r.Set(c.Name, nil)
 		}
-		pUUID, ok := parentCqID.(*UUID)
+		pUUID, ok := parentCqID.(*uuid.UUID)
 		if !ok {
 			return r.Set(c.Name, nil)
 		}
-		return r.Set(c.Name, pUUID.Bytes)
+		return r.Set(c.Name, pUUID)
 	}
 }

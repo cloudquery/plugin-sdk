@@ -10,10 +10,9 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/schemav2"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/specs"
 	"github.com/rs/zerolog"
 )
 
@@ -21,7 +20,7 @@ import (
 type client struct {
 	spec          specs.Destination
 	memoryDB      map[string][]arrow.Record
-	tables        map[string]*schemav2.Table
+	tables        map[string]*schema.Table
 	memoryDBLock  sync.RWMutex
 	errOnWrite    bool
 	blockingWrite bool
@@ -65,7 +64,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 func NewClient(_ context.Context, _ zerolog.Logger, spec specs.Destination) (destination.Client, error) {
 	return &client{
 		memoryDB: make(map[string][]arrow.Record),
-		tables:   make(map[string]*schemav2.Table),
+		tables:   make(map[string]*schema.Table),
 		spec:     spec,
 	}, nil
 }
@@ -74,7 +73,7 @@ func NewClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (dest
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
-func (c *client) overwrite(table *schemav2.Table, data arrow.Record) {
+func (c *client) overwrite(table *schema.Table, data arrow.Record) {
 	pksIndexes := table.PrimaryKeysIndexes()
 	for i, row := range c.memoryDB[table.Name] {
 		found := true
@@ -94,7 +93,7 @@ func (c *client) overwrite(table *schemav2.Table, data arrow.Record) {
 	c.memoryDB[table.Name] = append(c.memoryDB[table.Name], data)
 }
 
-func (c *client) Migrate(_ context.Context, tables schemav2.Tables) error {
+func (c *client) Migrate(_ context.Context, tables schema.Tables) error {
 	for _, table := range tables {
 		memTable := c.memoryDB[table.Name]
 		if memTable == nil {
@@ -113,7 +112,7 @@ func (c *client) Migrate(_ context.Context, tables schemav2.Tables) error {
 	return nil
 }
 
-func (c *client) Read(_ context.Context, table *schemav2.Table, source string, res chan<- arrow.Record) error {
+func (c *client) Read(_ context.Context, table *schema.Table, source string, res chan<- arrow.Record) error {
 	if c.memoryDB[table.Name] == nil {
 		return nil
 	}
@@ -137,7 +136,7 @@ func (c *client) Read(_ context.Context, table *schemav2.Table, source string, r
 	return nil
 }
 
-func (c *client) Write(ctx context.Context, _ schemav2.Tables, resources <-chan arrow.Record) error {
+func (c *client) Write(ctx context.Context, _ schema.Tables, resources <-chan arrow.Record) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -152,7 +151,7 @@ func (c *client) Write(ctx context.Context, _ schemav2.Tables, resources <-chan 
 	for resource := range resources {
 		c.memoryDBLock.Lock()
 		sc := resource.Schema()
-		tableName, ok := sc.Metadata().GetValue(schemav2.MetadataTableName)
+		tableName, ok := sc.Metadata().GetValue(schema.MetadataTableName)
 		if !ok {
 			return fmt.Errorf("table name not found in schema metadata")
 		}
@@ -167,7 +166,7 @@ func (c *client) Write(ctx context.Context, _ schemav2.Tables, resources <-chan 
 	return nil
 }
 
-func (c *client) WriteTableBatch(ctx context.Context, table *schemav2.Table, resources []arrow.Record) error {
+func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resources []arrow.Record) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -199,14 +198,14 @@ func (c *client) Close(context.Context) error {
 	return nil
 }
 
-func (c *client) DeleteStale(ctx context.Context, tables schemav2.Tables, source string, syncTime time.Time) error {
+func (c *client) DeleteStale(ctx context.Context, tables schema.Tables, source string, syncTime time.Time) error {
 	for _, table := range tables {
 		c.deleteStaleTable(ctx, table, source, syncTime)
 	}
 	return nil
 }
 
-func (c *client) deleteStaleTable(_ context.Context, table *schemav2.Table, source string, syncTime time.Time) {
+func (c *client) deleteStaleTable(_ context.Context, table *schema.Table, source string, syncTime time.Time) {
 	sourceColIndex := table.Columns.Index(schema.CqSourceNameColumn.Name)
 	syncColIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
 	var filteredTable []arrow.Record

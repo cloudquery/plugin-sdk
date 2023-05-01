@@ -4,12 +4,12 @@ import (
 	"strings"
 
 	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/cloudquery/plugin-sdk/v2/schemav2"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 )
 
 func String(resource arrow.Record) string {
 	sc := resource.Schema()
-	table, err := schemav2.NewTableFromArrowSchema(sc)
+	table, err := schema.NewTableFromArrowSchema(sc)
 	if err != nil {
 		panic(err)
 	}

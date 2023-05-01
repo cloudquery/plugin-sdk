@@ -11,9 +11,9 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/cloudquery/plugin-sdk/v2/schemav2"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
-	"github.com/cloudquery/plugin-sdk/v2/types"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/specs"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/rs/zerolog"
 )
 
@@ -200,9 +200,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 	})
 }
 
-func sortRecordsBySyncTime(table *schemav2.Table, records []arrow.Record) {
-	syncTimeIndex := table.Columns.Index(schemav2.CqSyncTimeColumn.Name)
-	cqIDIndex := table.Columns.Index(schemav2.CqIDColumn.Name)
+func sortRecordsBySyncTime(table *schema.Table, records []arrow.Record) {
+	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
+	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
 	sort.Slice(records, func(i, j int) bool {
 		// sort by sync time, then UUID
 		first := records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)

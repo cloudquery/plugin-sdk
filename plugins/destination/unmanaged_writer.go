@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/cloudquery/plugin-sdk/v2/schemav2"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/specs"
 )
 
-func (p *Plugin) writeUnmanaged(ctx context.Context, _ specs.Source, tables schemav2.Tables, _ time.Time, res <-chan arrow.Record) error {
+func (p *Plugin) writeUnmanaged(ctx context.Context, _ specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
 	return p.client.Write(ctx, tables, res)
 }

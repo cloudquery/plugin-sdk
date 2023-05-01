@@ -11,13 +11,14 @@ import (
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/apache/arrow/go/v12/arrow/memory"
-	clients "github.com/cloudquery/plugin-sdk/v2/clients/destination/v0"
-	"github.com/cloudquery/plugin-sdk/v2/internal/deprecated"
-	"github.com/cloudquery/plugin-sdk/v2/internal/memdb"
-	servers "github.com/cloudquery/plugin-sdk/v2/internal/servers/destination/v0"
-	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v2/testdata"
+	clients "github.com/cloudquery/plugin-sdk/v3/clients/destination/v0"
+	"github.com/cloudquery/plugin-sdk/v3/internal/deprecated"
+	"github.com/cloudquery/plugin-sdk/v3/internal/memdb"
+	servers "github.com/cloudquery/plugin-sdk/v3/internal/servers/destination/v0"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v3/specs"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -101,8 +102,8 @@ func TestDestination(t *testing.T) {
 	tableName := "test_destination_serve"
 	sourceName := "test_destination_serve_source"
 	syncTime := time.Now()
-	table := schema.TestTable(tableName)
-	tables := schema.Tables{table}
+	table := testdata.TestTable(tableName)
+	tables := schemav2.Tables{table}
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
@@ -110,14 +111,15 @@ func TestDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	destResource := schema.DestinationResource{
+	destResource := schemav2.DestinationResource{
 		TableName: tableName,
 		Data:      deprecated.GenTestData(table),
 	}
 	_ = destResource.Data[0].Set(sourceName)
 	_ = destResource.Data[1].Set(syncTime)
-	tableV2 := servers.TableV1ToV2(table)
-	destRecord := schema.CQTypesOneToRecord(memory.DefaultAllocator, destResource.Data, tableV2.ToArrowSchema())
+
+	tableV3 := servers.TableV2ToV3(table)
+	destRecord := servers.CQTypesOneToRecord(memory.DefaultAllocator, destResource.Data, tableV3.ToArrowSchema())
 	b, err := json.Marshal(destResource)
 	if err != nil {
 		t.Fatal(err)
@@ -131,7 +133,7 @@ func TestDestination(t *testing.T) {
 	}
 
 	readCh := make(chan arrow.Record, 1)
-	if err := plugin.Read(ctx, tableV2, sourceName, readCh); err != nil {
+	if err := plugin.Read(ctx, tableV3, sourceName, readCh); err != nil {
 		t.Fatal(err)
 	}
 	close(readCh)

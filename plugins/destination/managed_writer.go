@@ -9,9 +9,9 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/util"
-	"github.com/cloudquery/plugin-sdk/v2/internal/pk"
-	"github.com/cloudquery/plugin-sdk/v2/schemav2"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-sdk/v3/internal/pk"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/specs"
 )
 
 type worker struct {
@@ -21,7 +21,7 @@ type worker struct {
 	flush chan chan bool
 }
 
-func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schemav2.Table, ch <-chan arrow.Record, flush <-chan chan bool) {
+func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan arrow.Record, flush <-chan chan bool) {
 	sizeBytes := int64(0)
 	resources := make([]arrow.Record, 0)
 	for {
@@ -57,7 +57,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schemav2.T
 	}
 }
 
-func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schemav2.Table, resources []arrow.Record) {
+func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources []arrow.Record) {
 	resources = p.removeDuplicatesByPK(table, resources)
 	start := time.Now()
 	batchSize := len(resources)
@@ -71,7 +71,7 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schemav2.Ta
 	}
 }
 
-func (*Plugin) removeDuplicatesByPK(table *schemav2.Table, resources []arrow.Record) []arrow.Record {
+func (*Plugin) removeDuplicatesByPK(table *schema.Table, resources []arrow.Record) []arrow.Record {
 	pkIndices := table.PrimaryKeysIndexes()
 	// special case where there's no PK at all
 	if len(pkIndices) == 0 {
@@ -98,7 +98,7 @@ func (*Plugin) removeDuplicatesByPK(table *schemav2.Table, resources []arrow.Rec
 	return res
 }
 
-func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schemav2.Tables, _ time.Time, res <-chan arrow.Record) error {
+func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
 	workers := make(map[string]*worker, len(tables))
 	metrics := &Metrics{}
 
@@ -130,7 +130,7 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tab
 	p.workersLock.Unlock()
 
 	for r := range res {
-		tableName, ok := r.Schema().Metadata().GetValue(schemav2.MetadataTableName)
+		tableName, ok := r.Schema().Metadata().GetValue(schema.MetadataTableName)
 		if !ok {
 			return fmt.Errorf("missing table name in record metadata")
 		}
