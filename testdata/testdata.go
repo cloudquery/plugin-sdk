@@ -107,6 +107,12 @@ func TestSourceTable(name string) *schema.Table {
 				Name: "macaddr_array",
 				Type: schema.TypeMacAddrArray,
 			},
+			// This column is added to be able to test the Postgresql destination handling of reserved keywords in PKs
+			{
+				Name:            "user",
+				Type:            schema.TypeString,
+				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+			},
 		},
 	}
 }
