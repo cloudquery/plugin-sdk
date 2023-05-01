@@ -15,8 +15,8 @@ import (
 	"sync"
 
 	"github.com/cloudquery/plugin-sdk/v2/internal/logging"
-	pb "github.com/cloudquery/plugin-sdk/v2/internal/pb/source/v1"
 	"github.com/cloudquery/plugin-sdk/v2/internal/random"
+	pb "github.com/cloudquery/plugin-sdk/v2/pb/source/v1"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/source"
 	"github.com/cloudquery/plugin-sdk/v2/registry"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
