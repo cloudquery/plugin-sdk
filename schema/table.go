@@ -106,6 +106,12 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		Description: description,
 		Columns:     columns,
 	}
+	if constraintName, found := tableMD.GetValue(MetadataConstraintName); found {
+		table.PkConstraintName = constraintName
+	}
+	if title, found := tableMD.GetValue(MetadataIncremental); found {
+		table.Title = title
+	}
 	return table, nil
 }
 

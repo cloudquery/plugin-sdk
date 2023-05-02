@@ -1,9 +1,8 @@
 package schema
 
 import (
-	"encoding/json"
-
 	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/google/uuid"
 )
 
 type Resources []*Resource
@@ -19,7 +18,7 @@ type Resource struct {
 	Table *Table
 	// This is sorted result data by column name
 	data map[string]any
-	bldr array.Builder
+	bldr array.RecordBuilder
 }
 
 // This struct is what we send over the wire to destination.
@@ -41,14 +40,6 @@ func NewResourceData(t *Table, parent *Resource, item any) *Resource {
 		r.data[c.Name] = nil
 	}
 	return &r
-}
-
-func (r *Resource) Build() error {
-	b, err := json.Marshal(r.data)
-	if err != nil {
-		return err
-	}
-	return r.bldr.UnmarshalJSON(b)
 }
 
 func (r *Resource) Get(columnName string) any {
@@ -79,47 +70,18 @@ func (r *Resource) GetItem() any {
 }
 
 //nolint:revive
-// func (r *Resource) CalculateCQID(deterministicCQID bool) error {
-// 	if !deterministicCQID {
-// 		return r.storeCQID(uuid.New())
-// 	}
-// 	names := r.Table.PrimaryKeys()
-// 	if len(names) == 0 || (len(names) == 1 && names[0] == CqIDColumn.Name) {
-// 		return r.storeCQID(uuid.New())
-// 	}
-// 	slices.Sort(names)
-// 	h := sha256.New()
-// 	for _, name := range names {
-// 		// We need to include the column name in the hash because the same value can be present in multiple columns and therefore lead to the same hash
-// 		h.Write([]byte(name))
-// 		h.Write([]byte(r.Get(name).String()))
-// 	}
-// 	return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, h.Sum(nil)))
-// }
+func (r *Resource) CalculateCQID(deterministicCQID bool) error {
+	panic("not implemented")
+}
 
-// func (r *Resource) storeCQID(value uuid.UUID) error {
-// 	b, err := value.MarshalBinary()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return r.Set(CqIDColumn.Name, b)
-// }
+func (r *Resource) storeCQID(value uuid.UUID) error {
+	panic("not implemented")
+}
 
 // Validates that all primary keys have values.
-// func (r *Resource) Validate() error {
-// 	var missingPks []string
-// 	for i, c := range r.Table.Columns {
-// 		if c.CreationOptions.PrimaryKey {
-// 			if r.data[i].GetStatus() != Present {
-// 				missingPks = append(missingPks, c.Name)
-// 			}
-// 		}
-// 	}
-// 	if len(missingPks) > 0 {
-// 		return fmt.Errorf("missing primary key on columns: %v", missingPks)
-// 	}
-// 	return nil
-// }
+func (r *Resource) Validate() error {
+	panic("not implemented")
+}
 
 func (rr Resources) TableName() string {
 	if len(rr) == 0 {
