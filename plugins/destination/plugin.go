@@ -40,7 +40,7 @@ type UnmanagedWriter interface {
 
 type UnimplementedUnmanagedWriter struct{}
 
-func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Tables, []arrow.Record) error {
+func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, []arrow.Record) error {
 	panic("WriteTableBatch not implemented")
 }
 
