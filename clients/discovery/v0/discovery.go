@@ -14,8 +14,8 @@ import (
 	"sync"
 
 	"github.com/cloudquery/plugin-sdk/v2/internal/logging"
-	pb "github.com/cloudquery/plugin-sdk/v2/internal/pb/discovery/v0"
 	"github.com/cloudquery/plugin-sdk/v2/internal/random"
+	pb "github.com/cloudquery/plugin-sdk/v2/pb/discovery/v0"
 	"github.com/cloudquery/plugin-sdk/v2/registry"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/rs/zerolog"

@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	pbBase "github.com/cloudquery/plugin-sdk/v2/internal/pb/base/v0"
-	pb "github.com/cloudquery/plugin-sdk/v2/internal/pb/source/v0"
+	pbBase "github.com/cloudquery/plugin-sdk/v2/pb/base/v0"
+	pb "github.com/cloudquery/plugin-sdk/v2/pb/source/v0"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/source"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/specs"

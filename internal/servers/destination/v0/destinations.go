@@ -8,8 +8,8 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/memory"
-	pbBase "github.com/cloudquery/plugin-sdk/v2/internal/pb/base/v0"
-	pb "github.com/cloudquery/plugin-sdk/v2/internal/pb/destination/v0"
+	pbBase "github.com/cloudquery/plugin-sdk/v2/pb/base/v0"
+	pb "github.com/cloudquery/plugin-sdk/v2/pb/destination/v0"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/specs"

@@ -4,7 +4,7 @@ package proto;
 import "cloudquery/base/v0/base.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/cloudquery/plugin-sdk/v2/internal/pb/source/v0;source";
+option go_package = "github.com/cloudquery/plugin-sdk/v2/pb/source/v0;source";
 
 service Source {
   // Get the current protocol version of the plugin. This helps
