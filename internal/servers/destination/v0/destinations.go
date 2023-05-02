@@ -135,13 +135,21 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
+		table := tablesV3.Get(origResource.TableName)
+		if table == nil {
+			close(resources)
+			if wgErr := eg.Wait(); wgErr != nil {
+				return status.Errorf(codes.InvalidArgument, "failed to get table: %s and write failed: %v", origResource.TableName, wgErr)
+			}
+			return status.Errorf(codes.InvalidArgument, "failed to get table: %s", origResource.TableName)
+		}
+
 		// this is a check to keep backward compatible for sources that are not adding
 		// source and sync time
-		if len(origResource.Data) < len(tables.Get(origResource.TableName).Columns) {
+		if len(origResource.Data) < len(table.Columns) {
 			origResource.Data = append([]schemav2.CQType{sourceColumn, syncTimeColumn}, origResource.Data...)
 		}
-		tablesv2 := TablesV2ToV3(tables)
-		convertedResource := CQTypesToRecord(memory.DefaultAllocator, []schemav2.CQTypes{origResource.Data}, tablesv2.Get(origResource.TableName).ToArrowSchema())
+		convertedResource := CQTypesToRecord(memory.DefaultAllocator, []schemav2.CQTypes{origResource.Data}, table.ToArrowSchema())
 		select {
 		case resources <- convertedResource:
 		case <-ctx.Done():

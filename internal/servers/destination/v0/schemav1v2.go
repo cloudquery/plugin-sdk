@@ -12,7 +12,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v3/types"
 )
 
-func TablesV2ToV3(tables []*schemav2.Table) schema.Tables {
+func TablesV2ToV3(tables schemav2.Tables) schema.Tables {
 	res := make(schema.Tables, len(tables))
 	for i, t := range tables {
 		res[i] = TableV2ToV3(t)
@@ -21,13 +21,17 @@ func TablesV2ToV3(tables []*schemav2.Table) schema.Tables {
 }
 
 func TableV2ToV3(table *schemav2.Table) *schema.Table {
-	return &schema.Table{
+	newTable := &schema.Table{
 		Name:          table.Name,
 		Description:   table.Description,
 		Columns:       ColumnsV2ToV3(table.Columns),
 		IgnoreInTests: table.IgnoreInTests,
 		IsIncremental: table.IsIncremental,
 	}
+	if len(table.Relations) > 0 {
+		newTable.Relations = TablesV2ToV3(table.Relations)
+	}
+	return newTable
 }
 
 func ColumnsV2ToV3(columns []schemav2.Column) []schema.Column {
