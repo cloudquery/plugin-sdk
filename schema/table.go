@@ -359,7 +359,7 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 			continue
 		}
 		// Column type or options (e.g. PK, Not Null) changed in the new table definition
-		if c.Type != otherColumn.Type || c.CreationOptions.NotNull != otherColumn.CreationOptions.NotNull || c.CreationOptions.PrimaryKey != otherColumn.CreationOptions.PrimaryKey {
+		if !arrow.TypeEqual(c.Type, otherColumn.Type) || c.CreationOptions.NotNull != otherColumn.CreationOptions.NotNull || c.CreationOptions.PrimaryKey != otherColumn.CreationOptions.PrimaryKey {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeUpdate,
 				ColumnName: c.Name,
