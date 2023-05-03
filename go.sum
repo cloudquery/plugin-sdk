@@ -49,6 +49,8 @@ github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMn
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cloudquery/arrow/go/v12 v12.0.0-20230425184555-43f156fcdec9 h1:DOmgyWSIXR8FLBS23UgIwCkEE/JPBWztzTjFHyj5lCw=
 github.com/cloudquery/arrow/go/v12 v12.0.0-20230425184555-43f156fcdec9/go.mod h1:d+tV/eHZZ7Dz7RPrFKtPK02tpr+c9/PEd/zm8mDS9Vg=
+github.com/cloudquery/plugin-pb-go v1.0.1 h1:WXJ8v1cKHO+x4mMUB4CCxtLNB71Tge2f27EL6fp86YY=
+github.com/cloudquery/plugin-pb-go v1.0.1/go.mod h1:HhqGh9BZcxg2uhkbDwhKBzHWPLrOyPa3Uybc3Bajwk4=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
 github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e/go.mod h1:F5haX7vjVVG0kc13fIWeqUViNPyEJxv/OmvnBo0Yme4=

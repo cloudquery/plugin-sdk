@@ -8,8 +8,8 @@ import (
 
 	"github.com/apache/arrow/go/v12/arrow"
 	"github.com/apache/arrow/go/v12/arrow/memory"
-	pbBase "github.com/cloudquery/plugin-sdk/v2/pb/base/v0"
-	pb "github.com/cloudquery/plugin-sdk/v2/pb/destination/v0"
+	pbBase "github.com/cloudquery/plugin-pb-go/pb/base/v0"
+	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
@@ -95,6 +95,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal source spec: %v", err)
 		}
 	}
+
 	syncTime := r.Timestamp.AsTime()
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)

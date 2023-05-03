@@ -3,12 +3,12 @@ package serve
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"io"
 	"sync"
 	"testing"
 	"time"
 
-	clients "github.com/cloudquery/plugin-sdk/v2/clients/source/v1"
+	pb "github.com/cloudquery/plugin-pb-go/pb/source/v1"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/source"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/specs"
@@ -56,41 +56,36 @@ func TestSourceSuccessV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
-	c, err := clients.NewClient(ctx, specs.RegistryGrpc, "", "", clients.WithGRPCConnection(conn), clients.WithNoSentry())
+	c := pb.NewSourceClient(conn)
+
+	getNameResponse, err := c.GetName(ctx, &pb.GetName_Request{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		if err := c.Terminate(); err != nil {
-			t.Fatal(err)
-		}
-	}()
+	if getNameResponse.Name != "testPlugin" {
+		t.Fatalf("expected name to be testPlugin but got %s", getNameResponse.Name)
+	}
 
-	name, err := c.Name(ctx)
+	getVersionRes, err := c.GetVersion(ctx, &pb.GetVersion_Request{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if name != "testPlugin" {
-		t.Fatalf("expected name to be testPlugin but got %s", name)
+	if getVersionRes.Version != "v1.0.0" {
+		t.Fatalf("Expected version to be v1.0.0 but got %s", getVersionRes.Version)
 	}
 
-	version, err := c.Version(ctx)
+	getTablesRes, err := c.GetTables(ctx, &pb.GetTables_Request{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if version != "v1.0.0" {
-		t.Fatalf("Expected version to be v1.0.0 but got %s", version)
-	}
-
-	tables, err := c.GetTables(ctx)
-	if err != nil {
+	var tables schema.Tables
+	if err := json.Unmarshal(getTablesRes.Tables, &tables); err != nil {
 		t.Fatal(err)
 	}
 	if len(tables) != 2 {
 		t.Fatalf("Expected 2 tables but got %d", len(tables))
 	}
-
-	if err := c.Init(ctx, specs.Source{
+	spec := specs.Source{
 		Name:         "testSourcePlugin",
 		Version:      "v1.0.0",
 		Path:         "cloudquery/testSourcePlugin",
@@ -98,30 +93,44 @@ func TestSourceSuccessV1(t *testing.T) {
 		Tables:       []string{"test_table"},
 		Spec:         TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
 		Destinations: []string{"test"},
-	}); err != nil {
+	}
+	specBytes, err := json.Marshal(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Init(ctx, &pb.Init_Request{Spec: specBytes}); err != nil {
 		t.Fatal(err)
 	}
 
-	resources := make(chan []byte, 2)
-	if err := c.Sync(ctx,
-		resources); err != nil {
+	syncClient, err := c.Sync(ctx, &pb.Sync_Request{})
+	if err != nil {
 		t.Fatal(err)
 	}
-	close(resources)
+	var resources []schema.DestinationResource
+	for {
+		r, err := syncClient.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		var resource schema.DestinationResource
+		if err := json.Unmarshal(r.Resource, &resource); err != nil {
+			t.Fatal(err)
+		}
+		resources = append(resources, resource)
+	}
 
 	totalResources := 0
-	for resourceB := range resources {
-		var resource schema.DestinationResource
-		if err := json.Unmarshal(resourceB, &resource); err != nil {
-			t.Fatalf("failed to unmarshal resource: %v", err)
-		}
+	for _, resource := range resources {
 		if resource.TableName != "test_table" {
 			t.Fatalf("Expected resource with table name test_table. got: %s", resource.TableName)
 		}
 		if len(resource.Data) != 3 {
 			t.Fatalf("Expected resource with data length 3 but got %d", len(resource.Data))
 		}
-		fmt.Println(resource.Data)
+
 		if resource.Data[2] == nil {
 			t.Fatalf("Expected resource with data[2] to be not nil")
 		}
@@ -131,8 +140,12 @@ func TestSourceSuccessV1(t *testing.T) {
 		t.Fatalf("Expected 1 resource on channel but got %d", totalResources)
 	}
 
-	stats, err := c.GetMetrics(ctx)
+	getMetricsRes, err := c.GetMetrics(ctx, &pb.GetMetrics_Request{})
 	if err != nil {
+		t.Fatal(err)
+	}
+	var stats source.Metrics
+	if err := json.Unmarshal(getMetricsRes.Metrics, &stats); err != nil {
 		t.Fatal(err)
 	}
 	clientStats := stats.TableClient[""][""]

@@ -9,12 +9,12 @@ import (
 	"sync"
 	"syscall"
 
+	pbdiscoveryv0 "github.com/cloudquery/plugin-pb-go/pb/discovery/v0"
+	pbv0 "github.com/cloudquery/plugin-pb-go/pb/source/v0"
+	pbv1 "github.com/cloudquery/plugin-pb-go/pb/source/v1"
 	discoveryServerV0 "github.com/cloudquery/plugin-sdk/v2/internal/servers/discovery/v0"
 	serversv0 "github.com/cloudquery/plugin-sdk/v2/internal/servers/source/v0"
 	serversv1 "github.com/cloudquery/plugin-sdk/v2/internal/servers/source/v1"
-	pbdiscoveryv0 "github.com/cloudquery/plugin-sdk/v2/pb/discovery/v0"
-	pbv0 "github.com/cloudquery/plugin-sdk/v2/pb/source/v0"
-	pbv1 "github.com/cloudquery/plugin-sdk/v2/pb/source/v1"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/source"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
@@ -116,8 +116,8 @@ func newCmdSourceServe(serve *sourceServe) *cobra.Command {
 				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
-				grpc.MaxRecvMsgSize(pbv1.MaxMsgSize),
-				grpc.MaxSendMsgSize(pbv1.MaxMsgSize),
+				grpc.MaxRecvMsgSize(MaxMsgSize),
+				grpc.MaxSendMsgSize(MaxMsgSize),
 			)
 			serve.plugin.SetLogger(logger)
 			pbv0.RegisterSourceServer(s, &serversv0.Server{
