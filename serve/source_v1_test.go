@@ -298,7 +298,7 @@ func TestSourceFail(t *testing.T) {
 		if err != nil {
 			break
 		}
-		t.Fatalf("expected error got nul")
+		t.Fatalf("expected error but got nil")
 	}
 
 	cancel()
