@@ -18,7 +18,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
-	tableName := spec.Name
+	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
 	table := testdata.TestTable(tableName).ToArrowSchema()
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*arrow.Schema{
