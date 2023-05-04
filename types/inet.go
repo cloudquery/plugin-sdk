@@ -33,9 +33,13 @@ func (b *InetBuilder) UnsafeAppend(v *net.IPNet) {
 }
 
 func (b *InetBuilder) AppendValues(v []*net.IPNet, valid []bool) {
+	if len(v) != len(valid) && len(valid) != 0 {
+		panic("len(v) != len(valid) && len(valid) != 0")
+	}
+
 	data := make([]string, len(v))
 	for i, v := range v {
-		if !valid[i] {
+		if len(valid) > 0 && !valid[i] {
 			continue
 		}
 		data[i] = v.String()
