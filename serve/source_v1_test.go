@@ -12,9 +12,9 @@ import (
 
 	pbBase "github.com/cloudquery/plugin-pb-go/pb/base/v0"
 	pb "github.com/cloudquery/plugin-pb-go/pb/source/v0"
+	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/source"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
