@@ -83,8 +83,10 @@ type MetadataFieldOptions struct {
 }
 
 type MetadataSchemaOptions struct {
-	TableName        string
-	TableDescription string
+	TableName          string
+	TableDescription   string
+	TableIsIncremental bool
+	TablePKConstraint  string
 }
 
 func NewSchemaMetadataFromOptions(opts MetadataSchemaOptions) arrow.Metadata {
@@ -94,6 +96,12 @@ func NewSchemaMetadataFromOptions(opts MetadataSchemaOptions) arrow.Metadata {
 	}
 	if opts.TableDescription != "" {
 		kv[MetadataTableDescription] = opts.TableDescription
+	}
+	if opts.TableIsIncremental {
+		kv[MetadataIncremental] = MetadataTrue
+	}
+	if opts.TablePKConstraint != "" {
+		kv[MetadataConstraintName] = opts.TablePKConstraint
 	}
 	return arrow.MetadataFrom(kv)
 }
@@ -295,8 +303,10 @@ func CQSchemaToArrow(table *Table) *arrow.Schema {
 		fields = append(fields, CQColumnToArrowField(&col))
 	}
 	opts := MetadataSchemaOptions{
-		TableName:        table.Name,
-		TableDescription: table.Description,
+		TableName:          table.Name,
+		TableDescription:   table.Description,
+		TableIsIncremental: table.IsIncremental,
+		TablePKConstraint:  table.PkConstraintName,
 	}
 	metadata := NewSchemaMetadataFromOptions(opts)
 	return arrow.NewSchema(fields, &metadata)
