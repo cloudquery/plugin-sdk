@@ -3,8 +3,8 @@ module github.com/cloudquery/plugin-sdk/v2
 go 1.19
 
 require (
-	github.com/apache/arrow/go/v12 v12.0.0-20230401212133-adf33cc43010
-	github.com/avast/retry-go/v4 v4.3.3
+	github.com/apache/arrow/go/v12 v12.0.0-20230430004532-0ea1a103dfc2
+	github.com/avast/retry-go/v4 v4.3.4
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/ghodss/yaml v1.0.0
@@ -19,7 +19,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.2
 	github.com/thoas/go-funk v0.9.3
-	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
+	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53
 	golang.org/x/net v0.9.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/text v0.9.0
@@ -55,7 +55,7 @@ require (
 	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/term v0.7.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect
-	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
-	google.golang.org/genproto v0.0.0-20230331144136-dcfb400f0633 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

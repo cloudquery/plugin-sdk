@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2](https://github.com/cloudquery/plugin-sdk/compare/v2.5.1...v2.5.2) (2023-05-02)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v12 digest to 0ea1a10 ([#836](https://github.com/cloudquery/plugin-sdk/issues/836)) ([5561fa1](https://github.com/cloudquery/plugin-sdk/commit/5561fa1a59ee498d5ecb0acbde79971e82fe4fda))
+* **deps:** Update golang.org/x/exp digest to 47ecfdc ([#837](https://github.com/cloudquery/plugin-sdk/issues/837)) ([bb56f9c](https://github.com/cloudquery/plugin-sdk/commit/bb56f9c67d1ce5936c32c093911b915680707954))
+* **deps:** Update golang.org/x/xerrors digest to 04be3eb ([#838](https://github.com/cloudquery/plugin-sdk/issues/838)) ([42d4517](https://github.com/cloudquery/plugin-sdk/commit/42d4517d223791f75881ad301d6df90664d4e232))
+* **deps:** Update google.golang.org/genproto digest to daa745c ([#839](https://github.com/cloudquery/plugin-sdk/issues/839)) ([1285222](https://github.com/cloudquery/plugin-sdk/commit/128522279101eb316f3b29665a1f3c7c65da1e3e))
+* **deps:** Update module github.com/avast/retry-go/v4 to v4.3.4 ([#840](https://github.com/cloudquery/plugin-sdk/issues/840)) ([47da73d](https://github.com/cloudquery/plugin-sdk/commit/47da73dac6c2af71e13d65e9b872fd0657cb0a2a))
+* Destination migration testing using incorrect mode ([#822](https://github.com/cloudquery/plugin-sdk/issues/822)) ([fa51c80](https://github.com/cloudquery/plugin-sdk/commit/fa51c80522b2bf573414eae81f12cd21b1cf549f))
+* **json:** Use `GetOneForMarshal` instead of deserialization-serialization cycle ([#834](https://github.com/cloudquery/plugin-sdk/issues/834)) ([6fb7c1c](https://github.com/cloudquery/plugin-sdk/commit/6fb7c1c761a0ed49f84f61afaadcc958966e58fa))
+
 ## [2.5.1](https://github.com/cloudquery/plugin-sdk/compare/v2.5.0...v2.5.1) (2023-04-28)
 
 
