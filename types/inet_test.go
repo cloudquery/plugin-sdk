@@ -35,7 +35,7 @@ func TestInetBuilder(t *testing.T) {
 		mustParseInet("192.168.0.0/26"),
 		mustParseInet("192.168.0.0/27"),
 	}
-	b.AppendValues(values, []bool{true, true})
+	b.AppendValues(values, nil)
 
 	require.Equal(t, 6, b.Len(), "unexpected Len()")
 

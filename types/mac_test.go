@@ -35,7 +35,7 @@ func TestMacBuilder(t *testing.T) {
 		mustParseMac("00:00:00:00:00:03"),
 		mustParseMac("00:00:00:00:00:04"),
 	}
-	b.AppendValues(values, []bool{true, true})
+	b.AppendValues(values, nil)
 
 	require.Equal(t, 6, b.Len(), "unexpected Len()")
 

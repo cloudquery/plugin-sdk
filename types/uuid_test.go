@@ -27,7 +27,7 @@ func TestUUIDBuilder(t *testing.T) {
 		uuid.MustParse("00000000-0000-0000-0000-000000000003"),
 		uuid.MustParse("00000000-0000-0000-0000-000000000004"),
 	}
-	b.AppendValues(values, []bool{true, true})
+	b.AppendValues(values, nil)
 
 	require.Equal(t, 6, b.Len(), "unexpected Len()")
 
