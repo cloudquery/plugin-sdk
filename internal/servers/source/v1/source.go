@@ -7,16 +7,18 @@ import (
 	"errors"
 	"fmt"
 
-	pb "github.com/cloudquery/plugin-sdk/v2/pb/source/v1"
+	pb "github.com/cloudquery/plugin-pb-go/pb/source/v1"
+	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/source"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
+
+const MaxMsgSize = 100 * 1024 * 1024 // 100 MiB
 
 type Server struct {
 	pb.UnimplementedSourceServer
@@ -144,14 +146,14 @@ func (s *Server) GenDocs(_ context.Context, req *pb.GenDocs_Request) (*pb.GenDoc
 func checkMessageSize(msg proto.Message, resource *schema.Resource) error {
 	size := proto.Size(msg)
 	// log error to Sentry if row exceeds half of the max size
-	if size > pb.MaxMsgSize/2 {
+	if size > MaxMsgSize/2 {
 		sentry.WithScope(func(scope *sentry.Scope) {
 			scope.SetTag("table", resource.Table.Name)
 			scope.SetExtra("bytes", size)
 			sentry.CurrentHub().CaptureMessage("Large message detected")
 		})
 	}
-	if size > pb.MaxMsgSize {
+	if size > MaxMsgSize {
 		return errors.New("message exceeds max size")
 	}
 	return nil
