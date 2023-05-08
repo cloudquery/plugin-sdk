@@ -117,6 +117,10 @@ func (b *InetBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *InetBuilder) NewInetArray() *InetArray {
+	return b.NewExtensionArray().(*InetArray)
+}
+
 // InetArray is a simple array which is a FixedSizeBinary(16)
 type InetArray struct {
 	array.ExtensionArrayBase
