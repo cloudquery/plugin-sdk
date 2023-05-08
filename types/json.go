@@ -110,6 +110,10 @@ func (b *JSONBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *JSONBuilder) NewJSONArray() *JSONArray {
+	return b.NewExtensionArray().(*JSONArray)
+}
+
 // JSONArray is a simple array which is a Binary
 type JSONArray struct {
 	array.ExtensionArrayBase

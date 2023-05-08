@@ -111,6 +111,10 @@ func (b *MacBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *MacBuilder) NewMacArray() *MacArray {
+	return b.NewExtensionArray().(*MacArray)
+}
+
 // MacArray is a simple array which is a wrapper around a BinaryArray
 type MacArray struct {
 	array.ExtensionArrayBase

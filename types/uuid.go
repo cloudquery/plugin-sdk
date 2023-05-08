@@ -113,6 +113,10 @@ func (b *UUIDBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *UUIDBuilder) NewUUIDArray() *UUIDArray {
+	return b.NewExtensionArray().(*UUIDArray)
+}
+
 // UUIDArray is a simple array which is a FixedSizeBinary(16)
 type UUIDArray struct {
 	array.ExtensionArrayBase
