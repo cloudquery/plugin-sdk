@@ -54,10 +54,14 @@ func (b *JSONBuilder) AppendValueFromString(s string) error {
 }
 
 func (b *JSONBuilder) AppendValues(v []any, valid []bool) {
+	if len(v) != len(valid) && len(valid) != 0 {
+		panic("len(v) != len(valid) && len(valid) != 0")
+	}
+
 	data := make([][]byte, len(v))
 	var err error
 	for i := range v {
-		if !valid[i] {
+		if len(valid) > 0 && !valid[i] {
 			continue
 		}
 		// per https://github.com/cloudquery/plugin-sdk/issues/622
@@ -104,6 +108,10 @@ func (b *JSONBuilder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *JSONBuilder) NewJSONArray() *JSONArray {
+	return b.NewExtensionArray().(*JSONArray)
 }
 
 // JSONArray is a simple array which is a Binary

@@ -28,7 +28,7 @@ func TestJSONBuilder(t *testing.T) {
 		map[string]any{"e": 5, "f": 6},
 		map[string]any{"g": 7, "h": 8},
 	}
-	b.AppendValues(values, []bool{true, true})
+	b.AppendValues(values, nil)
 
 	require.Equal(t, 6, b.Len(), "unexpected Len()")
 
@@ -172,7 +172,7 @@ func TestJSONArray_GetOneForMarshal(t *testing.T) {
 	}
 }
 
-func TestJSONArray_ValueStr(t *testing.T) {
+func TestJSONArray_ValueStrParse(t *testing.T) {
 	cases := []struct {
 		name string
 		data string

@@ -33,9 +33,13 @@ func (b *InetBuilder) UnsafeAppend(v *net.IPNet) {
 }
 
 func (b *InetBuilder) AppendValues(v []*net.IPNet, valid []bool) {
+	if len(v) != len(valid) && len(valid) != 0 {
+		panic("len(v) != len(valid) && len(valid) != 0")
+	}
+
 	data := make([]string, len(v))
 	for i, v := range v {
-		if !valid[i] {
+		if len(valid) > 0 && !valid[i] {
 			continue
 		}
 		data[i] = v.String()
@@ -111,6 +115,10 @@ func (b *InetBuilder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *InetBuilder) NewInetArray() *InetArray {
+	return b.NewExtensionArray().(*InetArray)
 }
 
 // InetArray is a simple array which is a FixedSizeBinary(16)
