@@ -232,13 +232,12 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	if err != nil {
 		return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
 	}
-	//
-	//if columnType == schema.TypeInvalid {
-	//	columnType, err = DefaultTypeTransformer(field)
-	//	if err != nil {
-	//		return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
-	//	}
-	//}
+	if columnType == nil {
+		columnType, err = DefaultTypeTransformer(field)
+		if err != nil {
+			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
+		}
+	}
 
 	path := field.Name
 	name, err := t.nameTransformer(field)
