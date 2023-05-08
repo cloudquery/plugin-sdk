@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/apache/arrow/go/v12 v12.0.0-20230430004532-0ea1a103dfc2
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/plugin-pb-go v1.0.2
+	github.com/cloudquery/plugin-pb-go v1.0.5
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/goccy/go-json v0.9.11
 	github.com/google/go-cmp v0.5.9
