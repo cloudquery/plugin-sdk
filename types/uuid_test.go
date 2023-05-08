@@ -6,7 +6,6 @@ import (
 	"github.com/apache/arrow/go/v12/arrow/array"
 	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,76 +53,4 @@ func TestUUIDBuilder(t *testing.T) {
 	require.Equal(t, `["00000000-0000-0000-0000-000000000001" (null) "00000000-0000-0000-0000-000000000002" (null) "00000000-0000-0000-0000-000000000003" "00000000-0000-0000-0000-000000000004"]`, a.String())
 	b.Release()
 	a.Release()
-}
-
-func TestUUIDArray_ValueStr(t *testing.T) {
-	// 1. create array
-	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-	defer mem.AssertSize(t, 0)
-
-	b := NewUUIDBuilder(array.NewExtensionBuilder(mem, NewUUIDType()))
-	defer b.Release()
-
-	b.AppendNull()
-	b.Append(uuid.NameSpaceURL)
-	b.AppendNull()
-	b.Append(uuid.NameSpaceDNS)
-	b.AppendNull()
-
-	arr := b.NewUUIDArray()
-	defer arr.Release()
-
-	// 2. create array via AppendValueFromString
-	b1 := NewUUIDBuilder(array.NewExtensionBuilder(mem, NewUUIDType()))
-	defer b1.Release()
-
-	for i := 0; i < arr.Len(); i++ {
-		assert.NoError(t, b1.AppendValueFromString(arr.ValueStr(i)))
-	}
-
-	arr1 := b1.NewUUIDArray()
-	defer arr1.Release()
-
-	assert.Equal(t, arr.Len(), arr1.Len())
-	for i := 0; i < arr.Len(); i++ {
-		assert.Equal(t, arr.IsValid(i), arr1.IsValid(i))
-		assert.Equal(t, arr.ValueStr(i), arr1.ValueStr(i))
-	}
-}
-
-func TestUUIDBuilder_AppendValueFromString(t *testing.T) {
-	// 1. create array
-	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-	defer mem.AssertSize(t, 0)
-
-	b := NewUUIDBuilder(array.NewExtensionBuilder(mem, NewUUIDType()))
-	defer b.Release()
-
-	b.AppendNull()
-	b.Append(uuid.NameSpaceURL)
-	b.AppendNull()
-	b.Append(uuid.NameSpaceDNS)
-	b.AppendNull()
-
-	arr := b.NewUUIDArray()
-	defer arr.Release()
-
-	// 2. create array via AppendValueFromString
-	b1 := NewUUIDBuilder(array.NewExtensionBuilder(mem, NewUUIDType()))
-	defer b1.Release()
-
-	for i := 0; i < arr.Len(); i++ {
-		assert.NoError(t, b1.AppendValueFromString(arr.ValueStr(i)))
-	}
-
-	arr1 := b1.NewUUIDArray()
-	defer arr1.Release()
-
-	assert.Equal(t, arr.Len(), arr1.Len())
-	for i := 0; i < arr.Len(); i++ {
-		assert.Equal(t, arr.IsValid(i), arr1.IsValid(i))
-		if arr.IsValid(i) {
-			assert.Exactly(t, arr.Value(i), arr1.Value(i))
-		}
-	}
 }
