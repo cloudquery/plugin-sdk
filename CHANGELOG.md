@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0](https://github.com/cloudquery/plugin-sdk/compare/v2.6.0...v2.7.0) (2023-05-09)
+
+
+### Features
+
+* **deps:** Upgrade to Apache Arrow v13 (latest `cqmain`) ([#852](https://github.com/cloudquery/plugin-sdk/issues/852)) ([5ae502f](https://github.com/cloudquery/plugin-sdk/commit/5ae502f7fe6c41043f1a5e1392c69657d8d9062e))
+
 ## [2.6.0](https://github.com/cloudquery/plugin-sdk/compare/v2.5.4...v2.6.0) (2023-05-08)
 
 
