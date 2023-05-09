@@ -160,7 +160,7 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 				bldr.Field(i).AppendNull()
 				continue
 			}
-			//nolint:gocritic
+			// nolint:gocritic
 			if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Boolean) {
 				bldr.Field(i).(*array.BooleanBuilder).Append(true)
 			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Int64) {
@@ -205,7 +205,7 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(t.UTC().Truncate(time.Millisecond).UnixMicro()))
 				}
 			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.JSON) {
-				bldr.Field(i).(*types.JSONBuilder).Append(map[string]interface{}{"test": "test"})
+				bldr.Field(i).(*types.JSONBuilder).Append(map[string]any{"test": "test"})
 			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.UUID)) {
 				bldr.Field(i).(*array.ListBuilder).Append(true)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.UUIDBuilder).Append(uuid.MustParse("00000000-0000-0000-0000-000000000001"))
