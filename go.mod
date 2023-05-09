@@ -3,7 +3,7 @@ module github.com/cloudquery/plugin-sdk/v2
 go 1.19
 
 require (
-	github.com/apache/arrow/go/v12 v12.0.0-20230430004532-0ea1a103dfc2
+	github.com/apache/arrow/go/v13 v13.0.0-20230509040948-de6c3cd2b604
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/plugin-pb-go v1.0.5
 	github.com/getsentry/sentry-go v0.20.0
@@ -25,7 +25,7 @@ require (
 	google.golang.org/protobuf v1.30.0
 )
 
-replace github.com/apache/arrow/go/v12 => github.com/cloudquery/arrow/go/v12 v12.0.0-20230425184555-43f156fcdec9
+replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230509053643-898a79b1d3c8
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
