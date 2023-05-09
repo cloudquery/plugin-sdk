@@ -154,9 +154,6 @@ func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ..
 	for _, opt := range opts {
 		opt(p)
 	}
-	if ocw, ok := p.client.(OpenCloseWriter); ok && p.writerType == managed {
-		p.clientOCW = ocw
-	}
 
 	return p
 }
@@ -196,6 +193,11 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 	p.client, err = p.newClient(ctx, logger, p.spec)
 	if err != nil {
 		return err
+	}
+	if ocw, ok := p.client.(OpenCloseWriter); ok && p.writerType == managed {
+		p.clientOCW = ocw
+	} else {
+		p.clientOCW = nil
 	}
 	return nil
 }
