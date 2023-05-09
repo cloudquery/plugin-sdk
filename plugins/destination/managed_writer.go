@@ -23,7 +23,7 @@ type worker struct {
 	openError bool
 }
 
-func (p *Plugin) dummyWorker(ctx context.Context, ch <-chan arrow.Record, flush <-chan chan bool) {
+func (*Plugin) dummyWorker(_ context.Context, ch <-chan arrow.Record, flush <-chan chan bool) {
 	for {
 		select {
 		case _, ok := <-ch:
