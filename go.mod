@@ -1,4 +1,4 @@
-module github.com/cloudquery/plugin-sdk/v2
+module github.com/cloudquery/plugin-sdk/v3
 
 go 1.19
 
@@ -30,6 +30,7 @@ replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/apache/thrift v0.16.0 // indirect
+	github.com/cloudquery/plugin-sdk/v2 v2.6.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect

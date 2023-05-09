@@ -14,11 +14,12 @@ import (
 	pbBase "github.com/cloudquery/plugin-pb-go/pb/base/v0"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v2/internal/deprecated"
-	"github.com/cloudquery/plugin-sdk/v2/internal/memdb"
-	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
+	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/testdata"
+	"github.com/cloudquery/plugin-sdk/v3/internal/deprecated"
+	"github.com/cloudquery/plugin-sdk/v3/internal/memdb"
+	serversDestination "github.com/cloudquery/plugin-sdk/v3/internal/servers/destination/v0"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -99,28 +100,27 @@ func TestDestination(t *testing.T) {
 	tableName := "test_destination_serve"
 	sourceName := "test_destination_serve_source"
 	syncTime := time.Now()
-	table := testdata.TestTable(tableName)
-	tables := schema.Tables{table}
+	tableV2 := testdata.TestTable(tableName)
+	tablesV2 := schemav2.Tables{tableV2}
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
-	tablesBytes, err := json.Marshal(tables)
+	tablesV2Bytes, err := json.Marshal(tablesV2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := c.Migrate(ctx, &pb.Migrate_Request{
-		Tables: tablesBytes,
+		Tables: tablesV2Bytes,
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	destResource := schema.DestinationResource{
+	destResource := schemav2.DestinationResource{
 		TableName: tableName,
-		Data:      deprecated.GenTestData(table),
+		Data:      deprecated.GenTestData(tableV2),
 	}
 	_ = destResource.Data[0].Set(sourceName)
 	_ = destResource.Data[1].Set(syncTime)
-	destRecord := schema.CQTypesOneToRecord(memory.DefaultAllocator, destResource.Data, table.ToArrowSchema())
 	destResourceBytes, err := json.Marshal(destResource)
 	if err != nil {
 		t.Fatal(err)
@@ -137,7 +137,7 @@ func TestDestination(t *testing.T) {
 		SourceSpec: sourceSpecBytes,
 		Source:     sourceSpec.Name,
 		Timestamp:  timestamppb.New(syncTime.Truncate(time.Microsecond)),
-		Tables:     tablesBytes,
+		Tables:     tablesV2Bytes,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -151,13 +151,15 @@ func TestDestination(t *testing.T) {
 	if _, err := writeClient.CloseAndRecv(); err != nil {
 		t.Fatal(err)
 	}
-
+	// serversDestination
+	table := serversDestination.TableV2ToV3(tableV2)
 	readCh := make(chan arrow.Record, 1)
-	if err := plugin.Read(ctx, table.ToArrowSchema(), sourceName, readCh); err != nil {
+	if err := plugin.Read(ctx, table, sourceName, readCh); err != nil {
 		t.Fatal(err)
 	}
 	close(readCh)
 	totalResources := 0
+	destRecord := serversDestination.CQTypesOneToRecord(memory.DefaultAllocator, destResource.Data, table.ToArrowSchema())
 	for resource := range readCh {
 		totalResources++
 		if !array.RecordEqual(destRecord, resource) {
@@ -171,7 +173,7 @@ func TestDestination(t *testing.T) {
 	if _, err := c.DeleteStale(ctx, &pb.DeleteStale_Request{
 		Source:    "testSource",
 		Timestamp: timestamppb.New(time.Now().Truncate(time.Microsecond)),
-		Tables:    tablesBytes,
+		Tables:    tablesV2Bytes,
 	}); err != nil {
 		t.Fatal(err)
 	}

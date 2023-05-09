@@ -1,4 +1,4 @@
-//nolint:revive,gocritic
+//nolint:revive,gocritic,unused
 package schema
 
 import (

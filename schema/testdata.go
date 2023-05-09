@@ -1,4 +1,4 @@
-package testdata
+package schema
 
 import (
 	"net"
@@ -9,120 +9,119 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/types"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/google/uuid"
 )
 
-func TestSourceTable(name string) *schema.Table {
-	return &schema.Table{
+func TestSourceTable(name string) *Table {
+	return &Table{
 		Name:        name,
 		Description: "Test table",
-		Columns: schema.ColumnList{
-			schema.CqIDColumn,
-			schema.CqParentIDColumn,
+		Columns: ColumnList{
+			CqIDColumn,
+			CqParentIDColumn,
 			{
 				Name:            "uuid_pk",
-				Type:            schema.TypeUUID,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Type:            types.ExtensionTypes.UUID,
+				CreationOptions: ColumnCreationOptions{PrimaryKey: true},
 			},
 			{
 				Name:            "string_pk",
-				Type:            schema.TypeString,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Type:            types.ExtensionTypes.UUID,
+				CreationOptions: ColumnCreationOptions{PrimaryKey: true},
 			},
 			{
 				Name: "bool",
-				Type: schema.TypeBool,
+				Type: arrow.FixedWidthTypes.Boolean,
 			},
 			{
 				Name: "int",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 			{
 				Name: "float",
-				Type: schema.TypeFloat,
+				Type: arrow.PrimitiveTypes.Float64,
 			},
 			{
 				Name: "uuid",
-				Type: schema.TypeUUID,
+				Type: types.ExtensionTypes.UUID,
 			},
 			{
 				Name: "text",
-				Type: schema.TypeString,
+				Type: arrow.BinaryTypes.String,
 			},
 			{
 				Name: "text_with_null",
-				Type: schema.TypeString,
+				Type: arrow.BinaryTypes.String,
 			},
 			{
 				Name: "bytea",
-				Type: schema.TypeByteArray,
+				Type: arrow.BinaryTypes.Binary,
 			},
 			{
 				Name: "text_array",
-				Type: schema.TypeStringArray,
+				Type: arrow.ListOf(arrow.BinaryTypes.String),
 			},
 			{
 				Name: "text_array_with_null",
-				Type: schema.TypeStringArray,
+				Type: arrow.ListOf(arrow.BinaryTypes.String),
 			},
 			{
 				Name: "int_array",
-				Type: schema.TypeIntArray,
+				Type: arrow.ListOf(arrow.PrimitiveTypes.Int64),
 			},
 			{
 				Name: "timestamp",
-				Type: schema.TypeTimestamp,
+				Type: arrow.FixedWidthTypes.Timestamp_us,
 			},
 			{
 				Name: "json",
-				Type: schema.TypeJSON,
+				Type: types.ExtensionTypes.UUID,
 			},
 			{
 				Name: "uuid_array",
-				Type: schema.TypeUUIDArray,
+				Type: arrow.ListOf(types.ExtensionTypes.UUID),
 			},
 			{
 				Name: "inet",
-				Type: schema.TypeInet,
+				Type: types.ExtensionTypes.Inet,
 			},
 			{
 				Name: "inet_array",
-				Type: schema.TypeInetArray,
+				Type: arrow.ListOf(types.ExtensionTypes.Inet),
 			},
 			{
 				Name: "cidr",
-				Type: schema.TypeCIDR,
+				Type: types.ExtensionTypes.Inet,
 			},
 			{
 				Name: "cidr_array",
-				Type: schema.TypeCIDRArray,
+				Type: arrow.ListOf(types.ExtensionTypes.Inet),
 			},
 			{
 				Name: "macaddr",
-				Type: schema.TypeMacAddr,
+				Type: types.ExtensionTypes.Mac,
 			},
 			{
 				Name: "macaddr_array",
-				Type: schema.TypeMacAddrArray,
+				Type: arrow.ListOf(types.ExtensionTypes.Mac),
 			},
 		},
 	}
 }
 
-func TestTableIncremental(name string) *schema.Table {
+func TestTableIncremental(name string) *Table {
 	t := TestTable(name)
 	t.IsIncremental = true
 	return t
 }
 
 // TestTable returns a table with columns of all type. useful for destination testing purposes
-func TestTable(name string) *schema.Table {
+func TestTable(name string) *Table {
 	sourceTable := TestSourceTable(name)
-	sourceTable.Columns = append(schema.ColumnList{
-		schema.CqSourceNameColumn,
-		schema.CqSyncTimeColumn,
+	sourceTable.Columns = append(ColumnList{
+		CqSourceNameColumn,
+		CqSyncTimeColumn,
 	}, sourceTable.Columns...)
 	return sourceTable
 }
@@ -142,8 +141,9 @@ type GenTestDataOptions struct {
 	StableTime time.Time
 }
 
-func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
+func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 	var records []arrow.Record
+	sc := table.ToArrowSchema()
 	for j := 0; j < opts.MaxRows; j++ {
 		u := uuid.New()
 		if opts.StableUUID != uuid.Nil {
@@ -151,15 +151,16 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 		}
 		nullRow := j%2 == 1
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
-		for i, c := range sc.Fields() {
-			if nullRow && c.Nullable && !schema.IsPk(c) &&
-				c.Name != schema.CqSourceNameColumn.Name &&
-				c.Name != schema.CqSyncTimeColumn.Name &&
-				c.Name != schema.CqIDField.Name &&
-				c.Name != schema.CqParentIDColumn.Name {
+		for i, c := range table.Columns {
+			if nullRow && !c.CreationOptions.NotNull && !c.CreationOptions.PrimaryKey &&
+				c.Name != CqSourceNameColumn.Name &&
+				c.Name != CqSyncTimeColumn.Name &&
+				c.Name != CqIDColumn.Name &&
+				c.Name != CqParentIDColumn.Name {
 				bldr.Field(i).AppendNull()
 				continue
 			}
+			//nolint:gocritic
 			if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Boolean) {
 				bldr.Field(i).(*array.BooleanBuilder).Append(true)
 			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Int64) {
@@ -169,11 +170,12 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.UUID) {
 				bldr.Field(i).(*types.UUIDBuilder).Append(u)
 			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.String) {
-				if c.Name == schema.CqSourceNameColumn.Name {
+				switch c.Name {
+				case CqSourceNameColumn.Name:
 					bldr.Field(i).(*array.StringBuilder).AppendString(opts.SourceName)
-				} else if c.Name == "text_with_null" {
+				case "text_with_null":
 					bldr.Field(i).(*array.StringBuilder).AppendString("AStringWith\x00NullBytes")
-				} else {
+				default:
 					bldr.Field(i).(*array.StringBuilder).AppendString("AString")
 				}
 			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.Binary) {
@@ -193,7 +195,7 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(1)
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(2)
 			} else if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Timestamp_us) {
-				if c.Name == schema.CqSyncTimeColumn.Name {
+				if c.Name == CqSyncTimeColumn.Name {
 					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(opts.SyncTime.UTC().Truncate(time.Millisecond).UnixMicro()))
 				} else {
 					t := time.Now()
@@ -251,7 +253,7 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 		records = append(records, bldr.NewRecord())
 		bldr.Release()
 	}
-	if indices := sc.FieldIndices(schema.CqIDColumn.Name); len(indices) > 0 {
+	if indices := sc.FieldIndices(CqIDColumn.Name); len(indices) > 0 {
 		cqIDIndex := indices[0]
 		sort.Slice(records, func(i, j int) bool {
 			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
@@ -260,125 +262,4 @@ func GenTestData(sc *arrow.Schema, opts GenTestDataOptions) []arrow.Record {
 		})
 	}
 	return records
-}
-
-// GenTestDataV1 does approximately the same job as GenTestData, however, it's intended for simpler use-cases.
-// Deprecated: Will be removed in future release.
-func GenTestDataV1(table *schema.Table) schema.CQTypes {
-	data := make(schema.CQTypes, len(table.Columns))
-	for i, c := range table.Columns {
-		switch c.Type {
-		case schema.TypeBool:
-			data[i] = &schema.Bool{
-				Bool:   true,
-				Status: schema.Present,
-			}
-		case schema.TypeInt:
-			data[i] = &schema.Int8{
-				Int:    1,
-				Status: schema.Present,
-			}
-		case schema.TypeFloat:
-			data[i] = &schema.Float8{
-				Float:  1.1,
-				Status: schema.Present,
-			}
-		case schema.TypeUUID:
-			uuidColumn := &schema.UUID{}
-			if err := uuidColumn.Set(uuid.NewString()); err != nil {
-				panic(err)
-			}
-			data[i] = uuidColumn
-		case schema.TypeString:
-			if c.Name == "text_with_null" {
-				data[i] = &schema.Text{
-					Str:    "AStringWith\x00NullBytes",
-					Status: schema.Present,
-				}
-			} else {
-				data[i] = &schema.Text{
-					Str:    "test",
-					Status: schema.Present,
-				}
-			}
-		case schema.TypeByteArray:
-			data[i] = &schema.Bytea{
-				Bytes:  []byte{1, 2, 3},
-				Status: schema.Present,
-			}
-		case schema.TypeStringArray:
-			if c.Name == "text_array_with_null" {
-				data[i] = &schema.TextArray{
-					Elements: []schema.Text{{Str: "test1", Status: schema.Present}, {Str: "test2\x00WithNull", Status: schema.Present}},
-					Status:   schema.Present,
-				}
-			} else {
-				data[i] = &schema.TextArray{
-					Elements: []schema.Text{{Str: "test1", Status: schema.Present}, {Str: "test2", Status: schema.Present}},
-					Status:   schema.Present,
-				}
-			}
-
-		case schema.TypeIntArray:
-			data[i] = &schema.Int8Array{
-				Elements: []schema.Int8{{Int: 1, Status: schema.Present}, {Int: 2, Status: schema.Present}},
-				Status:   schema.Present,
-			}
-		case schema.TypeTimestamp:
-			data[i] = &schema.Timestamptz{
-				Time:   time.Now().UTC().Round(time.Second),
-				Status: schema.Present,
-			}
-		case schema.TypeJSON:
-			data[i] = &schema.JSON{
-				Bytes:  []byte(`{"test": "test"}`),
-				Status: schema.Present,
-			}
-		case schema.TypeUUIDArray:
-			uuidArrayColumn := &schema.UUIDArray{}
-			if err := uuidArrayColumn.Set([]string{"00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002"}); err != nil {
-				panic(err)
-			}
-			data[i] = uuidArrayColumn
-		case schema.TypeInet:
-			inetColumn := &schema.Inet{}
-			if err := inetColumn.Set("192.0.2.0/24"); err != nil {
-				panic(err)
-			}
-			data[i] = inetColumn
-		case schema.TypeInetArray:
-			inetArrayColumn := &schema.InetArray{}
-			if err := inetArrayColumn.Set([]string{"192.0.2.1/24", "192.0.2.1/24"}); err != nil {
-				panic(err)
-			}
-			data[i] = inetArrayColumn
-		case schema.TypeCIDR:
-			cidrColumn := &schema.CIDR{}
-			if err := cidrColumn.Set("192.0.2.1"); err != nil {
-				panic(err)
-			}
-			data[i] = cidrColumn
-		case schema.TypeCIDRArray:
-			cidrArrayColumn := &schema.CIDRArray{}
-			if err := cidrArrayColumn.Set([]string{"192.0.2.1", "192.0.2.1"}); err != nil {
-				panic(err)
-			}
-			data[i] = cidrArrayColumn
-		case schema.TypeMacAddr:
-			macaddrColumn := &schema.Macaddr{}
-			if err := macaddrColumn.Set("aa:bb:cc:dd:ee:ff"); err != nil {
-				panic(err)
-			}
-			data[i] = macaddrColumn
-		case schema.TypeMacAddrArray:
-			macaddrArrayColumn := &schema.MacaddrArray{}
-			if err := macaddrArrayColumn.Set([]string{"aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"}); err != nil {
-				panic(err)
-			}
-			data[i] = macaddrArrayColumn
-		default:
-			panic("unknown type" + c.Type.String())
-		}
-	}
-	return data
 }

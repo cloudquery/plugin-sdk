@@ -8,7 +8,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/rs/zerolog"
 )
 
@@ -28,13 +28,13 @@ const (
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
 type ManagedWriter interface {
-	WriteTableBatch(ctx context.Context, table *arrow.Schema, data []arrow.Record) error
+	WriteTableBatch(ctx context.Context, table *schema.Table, data []arrow.Record) error
 }
 
 type UnimplementedManagedWriter struct{}
 
 type UnmanagedWriter interface {
-	Write(ctx context.Context, tables schema.Schemas, res <-chan arrow.Record) error
+	Write(ctx context.Context, tables schema.Tables, res <-chan arrow.Record) error
 	Metrics() Metrics
 }
 
@@ -53,11 +53,11 @@ func (*UnimplementedUnmanagedWriter) Metrics() Metrics {
 }
 
 type Client interface {
-	Migrate(ctx context.Context, tables schema.Schemas) error
-	Read(ctx context.Context, table *arrow.Schema, sourceName string, res chan<- arrow.Record) error
+	Migrate(ctx context.Context, tables schema.Tables) error
+	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error
 	ManagedWriter
 	UnmanagedWriter
-	DeleteStale(ctx context.Context, tables schema.Schemas, sourceName string, syncTime time.Time) error
+	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
 }
 
@@ -184,14 +184,14 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 }
 
 // we implement all DestinationClient functions so we can hook into pre-post behavior
-func (p *Plugin) Migrate(ctx context.Context, tables schema.Schemas) error {
+func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
 	if err := checkDestinationColumns(tables); err != nil {
 		return err
 	}
 	return p.client.Migrate(ctx, tables)
 }
 
-func (p *Plugin) readAll(ctx context.Context, table *arrow.Schema, sourceName string) ([]arrow.Record, error) {
+func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]arrow.Record, error) {
 	var readErr error
 	ch := make(chan arrow.Record)
 	go func() {
@@ -206,7 +206,7 @@ func (p *Plugin) readAll(ctx context.Context, table *arrow.Schema, sourceName st
 	return resources, readErr
 }
 
-func (p *Plugin) Read(ctx context.Context, table *arrow.Schema, sourceName string, res chan<- arrow.Record) error {
+func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error {
 	return p.client.Read(ctx, table, sourceName, res)
 }
 
@@ -223,19 +223,29 @@ func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, syncTime
 		ch <- resource
 	}
 	close(ch)
-	tables := make(schema.Schemas, 0)
+	tables := make(schema.Tables, 0)
 	tableNames := make(map[string]struct{})
 	for _, resource := range resources {
-		if _, ok := tableNames[schema.TableName(resource.Schema())]; ok {
+		sc := resource.Schema()
+		tableMD := sc.Metadata()
+		name, found := tableMD.GetValue(schema.MetadataTableName)
+		if !found {
+			return fmt.Errorf("missing table name")
+		}
+		if _, ok := tableNames[name]; ok {
 			continue
 		}
-		tables = append(tables, resource.Schema())
-		tableNames[schema.TableName(resource.Schema())] = struct{}{}
+		table, err := schema.NewTableFromArrowSchema(resource.Schema())
+		if err != nil {
+			return err
+		}
+		tables = append(tables, table)
+		tableNames[table.Name] = struct{}{}
 	}
 	return p.Write(ctx, sourceSpec, tables, syncTime, ch)
 }
 
-func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Schemas, syncTime time.Time, res <-chan arrow.Record) error {
+func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
 	syncTime = syncTime.UTC()
 	if err := checkDestinationColumns(tables); err != nil {
 		return err
@@ -256,7 +266,7 @@ func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables sche
 		tablesToDelete := tables
 		if sourceSpec.Backend != specs.BackendNone {
 			for _, t := range tables {
-				if !schema.IsIncremental(t) {
+				if !t.IsIncremental {
 					tablesToDelete = append(tablesToDelete, t)
 				}
 			}
@@ -268,7 +278,7 @@ func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables sche
 	return nil
 }
 
-func (p *Plugin) DeleteStale(ctx context.Context, tables schema.Schemas, sourceName string, syncTime time.Time) error {
+func (p *Plugin) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
 	syncTime = syncTime.UTC()
 	return p.client.DeleteStale(ctx, tables, sourceName, syncTime)
 }
@@ -277,22 +287,21 @@ func (p *Plugin) Close(ctx context.Context) error {
 	return p.client.Close(ctx)
 }
 
-func checkDestinationColumns(schemas schema.Schemas) error {
-	for _, sc := range schemas {
-		if !sc.HasField(schema.CqSourceNameField.Name) {
-			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", schema.TableName(sc), schema.CqSourceNameField.Name)
+func checkDestinationColumns(tables schema.Tables) error {
+	for _, table := range tables {
+		if table.Columns.Index(schema.CqSourceNameField.Name) == -1 {
+			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", table.Name, schema.CqSourceNameField.Name)
 		}
-		if !sc.HasField(schema.CqSyncTimeColumn.Name) {
-			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", schema.TableName(sc), schema.CqSourceNameField.Name)
+		if table.Columns.Index(schema.CqSyncTimeColumn.Name) == -1 {
+			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", table.Name, schema.CqSourceNameField.Name)
 		}
-		fields, ok := sc.FieldsByName(schema.CqIDColumn.Name)
-		if ok {
-			cqID := fields[0]
-			if cqID.Nullable {
-				return fmt.Errorf("column %s.%s cannot be nullable. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
+		field := table.Columns.Get(schema.CqIDColumn.Name)
+		if field != nil {
+			if !field.CreationOptions.NotNull {
+				return fmt.Errorf("column %s.%s cannot be nullable. please consider upgrading source plugin", table.Name, schema.CqIDColumn.Name)
 			}
-			if !schema.IsUnique(cqID) {
-				return fmt.Errorf("column %s.%s must be unique. please consider upgrading source plugin", schema.TableName(sc), schema.CqIDColumn.Name)
+			if !field.CreationOptions.Unique {
+				return fmt.Errorf("column %s.%s must be unique. please consider upgrading source plugin", table.Name, schema.CqIDColumn.Name)
 			}
 		}
 	}
