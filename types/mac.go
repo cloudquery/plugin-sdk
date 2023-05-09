@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/goccy/go-json"
 )
 
@@ -29,9 +29,13 @@ func (b *MacBuilder) UnsafeAppend(v net.HardwareAddr) {
 }
 
 func (b *MacBuilder) AppendValues(v []net.HardwareAddr, valid []bool) {
+	if len(v) != len(valid) && len(valid) != 0 {
+		panic("len(v) != len(valid) && len(valid) != 0")
+	}
+
 	data := make([][]byte, len(v))
 	for i, v := range v {
-		if !valid[i] {
+		if len(valid) > 0 && !valid[i] {
 			continue
 		}
 		data[i] = v
@@ -105,6 +109,10 @@ func (b *MacBuilder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *MacBuilder) NewMacArray() *MacArray {
+	return b.NewExtensionArray().(*MacArray)
 }
 
 // MacArray is a simple array which is a wrapper around a BinaryArray

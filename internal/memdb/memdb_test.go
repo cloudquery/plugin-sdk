@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"github.com/cloudquery/plugin-sdk/v2/testdata"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"

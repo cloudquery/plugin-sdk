@@ -1,6 +1,6 @@
 package schema
 
-import "github.com/apache/arrow/go/v12/arrow"
+import "github.com/apache/arrow/go/v13/arrow"
 
 type Schemas []*arrow.Schema
 

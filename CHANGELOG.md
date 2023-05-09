@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0](https://github.com/cloudquery/plugin-sdk/compare/v2.6.0...v2.7.0) (2023-05-09)
+
+
+### Features
+
+* **deps:** Upgrade to Apache Arrow v13 (latest `cqmain`) ([#852](https://github.com/cloudquery/plugin-sdk/issues/852)) ([5ae502f](https://github.com/cloudquery/plugin-sdk/commit/5ae502f7fe6c41043f1a5e1392c69657d8d9062e))
+
+## [2.6.0](https://github.com/cloudquery/plugin-sdk/compare/v2.5.4...v2.6.0) (2023-05-08)
+
+
+### Features
+
+* **arrow:** Add `types.XBuilder.NewXArray` helpers ([2df4413](https://github.com/cloudquery/plugin-sdk/commit/2df4413bed3df91ec596e2540584debab1974f4a))
+* Move proto to external repository ([#844](https://github.com/cloudquery/plugin-sdk/issues/844)) ([3cd3ba7](https://github.com/cloudquery/plugin-sdk/commit/3cd3ba7d910141ba89265767d968d24516809332))
+
+## [2.5.4](https://github.com/cloudquery/plugin-sdk/compare/v2.5.3...v2.5.4) (2023-05-05)
+
+
+### Bug Fixes
+
+* **arrow:** Allow empty and `nil` valid param in `AppendValues` ([#847](https://github.com/cloudquery/plugin-sdk/issues/847)) ([dafd05b](https://github.com/cloudquery/plugin-sdk/commit/dafd05b3e2b8dc406d4b6a4bdaf6d1143e569f1d))
+
+## [2.5.3](https://github.com/cloudquery/plugin-sdk/compare/v2.5.2...v2.5.3) (2023-05-04)
+
+
+### Bug Fixes
+
+* **arrow:** Add missing table options ([#833](https://github.com/cloudquery/plugin-sdk/issues/833)) ([95a9f0c](https://github.com/cloudquery/plugin-sdk/commit/95a9f0c29c6c2b85fded012341bf00cff0225605))
+
 ## [2.5.2](https://github.com/cloudquery/plugin-sdk/compare/v2.5.1...v2.5.2) (2023-05-02)
 
 

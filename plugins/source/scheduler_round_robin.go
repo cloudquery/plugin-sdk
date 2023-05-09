@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
 	"golang.org/x/sync/semaphore"
 )
 
