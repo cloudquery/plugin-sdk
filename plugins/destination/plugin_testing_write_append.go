@@ -20,7 +20,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := testdata.TestTable(tableName).ToArrowSchema()
+	table := testdata.TestSourceSchema(tableName, testSourceOptions)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := []*arrow.Schema{
 		table,
