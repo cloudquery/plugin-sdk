@@ -3,6 +3,7 @@ package schema
 import (
 	"testing"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -257,13 +258,13 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 		target: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		source: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		expectedChanges: nil,
@@ -273,21 +274,21 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 		target: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
-				{Name: "bool1", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+				{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		source: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		expectedChanges: []TableColumnChange{
 			{
 				Type:       TableColumnChangeTypeAdd,
 				ColumnName: "bool1",
-				Current:    Column{Name: "bool1", Type: TypeBool},
+				Current:    Column{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 	},
@@ -296,21 +297,21 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 		target: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		source: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
-				{Name: "bool1", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+				{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		expectedChanges: []TableColumnChange{
 			{
 				Type:       TableColumnChangeTypeRemove,
 				ColumnName: "bool1",
-				Previous:   Column{Name: "bool1", Type: TypeBool},
+				Previous:   Column{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 	},

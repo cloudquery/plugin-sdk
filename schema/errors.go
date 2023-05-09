@@ -1,6 +1,11 @@
+//nolint:revive,gocritic,unused
 package schema
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/apache/arrow/go/v13/arrow"
+)
 
 const (
 	noConversion                = "no conversion available"
@@ -15,7 +20,7 @@ const (
 type ValidationError struct {
 	Err   error
 	Msg   string
-	Type  ValueType
+	Type  arrow.DataType
 	Value any
 }
 
