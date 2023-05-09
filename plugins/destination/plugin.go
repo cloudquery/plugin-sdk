@@ -40,17 +40,29 @@ type UnmanagedWriter interface {
 
 type UnimplementedUnmanagedWriter struct{}
 
-func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *arrow.Schema, []arrow.Record) error {
+// OpenCloseWriter is an optional interface that can be implemented by a Client which already implements ManagedWriter.
+type OpenCloseWriter interface {
+	OpenTable(ctx context.Context, sourceSpec specs.Source, table *schema.Table) error
+	CloseTable(ctx context.Context, sourceSpec specs.Source, table *schema.Table) error
+	ManagedWriter
+}
+
+func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, []arrow.Record) error {
 	panic("WriteTableBatch not implemented")
 }
 
-func (*UnimplementedUnmanagedWriter) Write(context.Context, schema.Schemas, <-chan arrow.Record) error {
+func (*UnimplementedUnmanagedWriter) Write(context.Context, schema.Tables, <-chan arrow.Record) error {
 	panic("Write not implemented")
 }
 
 func (*UnimplementedUnmanagedWriter) Metrics() Metrics {
 	panic("Metrics not implemented")
 }
+
+var (
+	_ ManagedWriter   = (*UnimplementedManagedWriter)(nil)
+	_ UnmanagedWriter = (*UnimplementedUnmanagedWriter)(nil)
+)
 
 type Client interface {
 	Migrate(ctx context.Context, tables schema.Tables) error
@@ -78,6 +90,8 @@ type Plugin struct {
 	writerType writerType
 	// initialized destination client
 	client Client
+	// initialized destination client writer, if the client implements OpenCloseWriter. Can be nil.
+	clientOCW OpenCloseWriter
 	// spec the client was initialized with
 	spec specs.Destination
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
@@ -134,13 +148,16 @@ func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ..
 		defaultBatchSizeBytes: defaultBatchSizeBytes,
 	}
 	if newClientFunc == nil {
-		// we do this check because we only call this during runtime later on so it can fail
-		// before the server starts
+		// we do this check because we only call this during runtime later on, so it can fail before the server starts
 		panic("newClientFunc can't be nil")
 	}
 	for _, opt := range opts {
 		opt(p)
 	}
+	if ocw, ok := p.client.(OpenCloseWriter); ok && p.writerType == managed {
+		p.clientOCW = ocw
+	}
+
 	return p
 }
 
@@ -210,13 +227,13 @@ func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName strin
 	return p.client.Read(ctx, table, sourceName, res)
 }
 
-// this function is currently used mostly for testing so it's not a public api
+// this function is currently used mostly for testing, so it's not a public api
 func (p *Plugin) writeOne(ctx context.Context, sourceSpec specs.Source, syncTime time.Time, resource arrow.Record) error {
 	resources := []arrow.Record{resource}
 	return p.writeAll(ctx, sourceSpec, syncTime, resources)
 }
 
-// this function is currently used mostly for testing so it's not a public api
+// this function is currently used mostly for testing, so it's not a public api
 func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, syncTime time.Time, resources []arrow.Record) error {
 	ch := make(chan arrow.Record, len(resources))
 	for _, resource := range resources {

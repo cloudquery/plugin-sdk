@@ -19,6 +19,21 @@ type worker struct {
 	wg    *sync.WaitGroup
 	ch    chan arrow.Record
 	flush chan chan bool
+
+	openError bool
+}
+
+func (p *Plugin) dummyWorker(ctx context.Context, ch <-chan arrow.Record, flush <-chan chan bool) {
+	for {
+		select {
+		case _, ok := <-ch:
+			if !ok {
+				return
+			}
+		case done := <-flush:
+			done <- true
+		}
+	}
 }
 
 func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan arrow.Record, flush <-chan chan bool) {
@@ -98,7 +113,7 @@ func (*Plugin) removeDuplicatesByPK(table *schema.Table, resources []arrow.Recor
 	return res
 }
 
-func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
+func (p *Plugin) writeManagedTableBatch(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
 	workers := make(map[string]*worker, len(tables))
 	metrics := &Metrics{}
 
@@ -109,15 +124,30 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tab
 			ch := make(chan arrow.Record)
 			flush := make(chan chan bool)
 			wg := &sync.WaitGroup{}
+			var errored bool
+			if p.clientOCW != nil {
+				if err := p.clientOCW.OpenTable(ctx, sourceSpec, table); err != nil {
+					p.logger.Err(err).Str("table", table.Name).Msg("OpenTable failed")
+					// we don't return an error as we need to continue until channel is closed otherwise there will be a deadlock
+					atomic.AddUint64(&metrics.Errors, 1)
+					errored = true
+				}
+			}
 			p.workers[table.Name] = &worker{
 				count: 1,
 				ch:    ch,
 				flush: flush,
 				wg:    wg,
+
+				openError: errored,
 			}
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
+				if errored {
+					p.dummyWorker(ctx, ch, flush)
+					return
+				}
 				p.worker(ctx, metrics, table, ch, flush)
 			}()
 		} else {
@@ -158,6 +188,14 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tab
 		if p.workers[tableName].count == 0 {
 			close(p.workers[tableName].ch)
 			p.workers[tableName].wg.Wait()
+
+			if p.clientOCW != nil && !p.workers[tableName].openError {
+				if err := p.clientOCW.CloseTable(ctx, sourceSpec, tables.Get(tableName)); err != nil {
+					p.logger.Err(err).Str("table", tableName).Msg("CloseTable failed")
+					atomic.AddUint64(&metrics.Errors, 1)
+				}
+			}
+
 			delete(p.workers, tableName)
 		}
 	}
