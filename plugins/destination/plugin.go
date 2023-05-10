@@ -33,12 +33,16 @@ type ManagedWriter interface {
 
 type UnimplementedManagedWriter struct{}
 
+var _ ManagedWriter = UnimplementedManagedWriter{}
+
+func (UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, []arrow.Record) error {
+	panic("WriteTableBatch not implemented")
+}
+
 type UnmanagedWriter interface {
 	Write(ctx context.Context, tables schema.Tables, res <-chan arrow.Record) error
 	Metrics() Metrics
 }
-
-type UnimplementedUnmanagedWriter struct{}
 
 // OpenCloseWriter is an optional interface that can be implemented by a Client which already implements ManagedWriter.
 type OpenCloseWriter interface {
@@ -51,11 +55,15 @@ func (*UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Tabl
 	panic("WriteTableBatch not implemented")
 }
 
+type UnimplementedUnmanagedWriter struct{}
+
 func (*UnimplementedUnmanagedWriter) Write(context.Context, schema.Tables, <-chan arrow.Record) error {
+
+func (UnimplementedUnmanagedWriter) Write(context.Context, schema.Tables, <-chan arrow.Record) error {
 	panic("Write not implemented")
 }
 
-func (*UnimplementedUnmanagedWriter) Metrics() Metrics {
+func (UnimplementedUnmanagedWriter) Metrics() Metrics {
 	panic("Metrics not implemented")
 }
 
