@@ -28,7 +28,7 @@ const (
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
 type ManagedWriter interface {
-	WriteTableBatch(ctx context.Context, table *schema.Table, data []arrow.Record) error
+	WriteTableBatch(ctx context.Context, sourceSpec specs.Source, table *schema.Table, data []arrow.Record) error
 }
 
 type UnimplementedManagedWriter struct{}
@@ -45,7 +45,7 @@ type OpenCloseWriter interface {
 	ManagedWriter
 }
 
-func (UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, []arrow.Record) error {
+func (UnimplementedManagedWriter) WriteTableBatch(context.Context, specs.Source, *schema.Table, []arrow.Record) error {
 	panic("WriteTableBatch not implemented")
 }
 

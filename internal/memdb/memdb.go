@@ -170,7 +170,7 @@ func (c *client) Write(ctx context.Context, _ schema.Tables, resources <-chan ar
 	return nil
 }
 
-func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resources []arrow.Record) error {
+func (c *client) WriteTableBatch(ctx context.Context, _ specs.Source, table *schema.Table, resources []arrow.Record) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
