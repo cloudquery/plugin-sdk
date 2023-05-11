@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1](https://github.com/cloudquery/plugin-sdk/compare/v3.0.0...v3.0.1) (2023-05-11)
+
+
+### Bug Fixes
+
+* **testing:** Wrong types in v3 testdata ([#859](https://github.com/cloudquery/plugin-sdk/issues/859)) ([e494fb5](https://github.com/cloudquery/plugin-sdk/commit/e494fb51f177ea0ae9af735e9fb8f320c3a72b94))
+
+## [3.0.0](https://github.com/cloudquery/plugin-sdk/compare/v2.7.0...v3.0.0) (2023-05-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* Upgrade to SDK V3 make Column.Type an arrow.DataType ([#854](https://github.com/cloudquery/plugin-sdk/issues/854))
+
+### Features
+
+* Upgrade to SDK V3 make Column.Type an arrow.DataType ([#854](https://github.com/cloudquery/plugin-sdk/issues/854)) ([1265554](https://github.com/cloudquery/plugin-sdk/commit/12655541d1b7e4a1c5ab69e3c9e16f3978d2d44e))
+
 ## [2.7.0](https://github.com/cloudquery/plugin-sdk/compare/v2.6.0...v2.7.0) (2023-05-09)
 
 
