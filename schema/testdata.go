@@ -27,7 +27,7 @@ func TestSourceTable(name string) *Table {
 			},
 			{
 				Name:            "string_pk",
-				Type:            types.ExtensionTypes.UUID,
+				Type:            arrow.BinaryTypes.String,
 				CreationOptions: ColumnCreationOptions{PrimaryKey: true},
 			},
 			{
@@ -76,7 +76,7 @@ func TestSourceTable(name string) *Table {
 			},
 			{
 				Name: "json",
-				Type: types.ExtensionTypes.UUID,
+				Type: types.ExtensionTypes.JSON,
 			},
 			{
 				Name: "uuid_array",
