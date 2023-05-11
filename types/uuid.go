@@ -8,8 +8,8 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/google/uuid"
 )
 
@@ -37,14 +37,23 @@ func (b *UUIDBuilder) AppendValueFromString(s string) error {
 		return nil
 	}
 
-	b.Append(uuid.MustParse(s))
+	uid, err := uuid.Parse(s)
+	if err != nil {
+		return err
+	}
+
+	b.Append(uid)
 	return nil
 }
 
 func (b *UUIDBuilder) AppendValues(v []uuid.UUID, valid []bool) {
+	if len(v) != len(valid) && len(valid) != 0 {
+		panic("len(v) != len(valid) && len(valid) != 0")
+	}
+
 	data := make([][]byte, len(v))
 	for i := range v {
-		if !valid[i] {
+		if len(valid) > 0 && !valid[i] {
 			continue
 		}
 		data[i] = v[i][:]
@@ -109,6 +118,10 @@ func (b *UUIDBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *UUIDBuilder) NewUUIDArray() *UUIDArray {
+	return b.NewExtensionArray().(*UUIDArray)
+}
+
 // UUIDArray is a simple array which is a FixedSizeBinary(16)
 type UUIDArray struct {
 	array.ExtensionArrayBase
@@ -164,7 +177,7 @@ func (a *UUIDArray) GetOneForMarshal(i int) any {
 	if a.IsNull(i) {
 		return nil
 	}
-	return uuid.Must(uuid.FromBytes(a.Storage().(*array.FixedSizeBinary).Value(i)))
+	return a.Value(i)
 }
 
 // UUIDType is a simple extension type that represents a FixedSizeBinary(16)
@@ -173,7 +186,7 @@ type UUIDType struct {
 	arrow.ExtensionBase
 }
 
-// NewUUIDType is a convenience function to create an instance of UuidType
+// NewUUIDType is a convenience function to create an instance of UUIDType
 // with the correct storage type
 func NewUUIDType() *UUIDType {
 	return &UUIDType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.FixedSizeBinaryType{ByteWidth: 16}}}
@@ -202,13 +215,13 @@ func (*UUIDType) Serialize() string {
 }
 
 // Deserialize expects storageType to be FixedSizeBinaryType{ByteWidth: 16} and the data to be
-// "uuid-serialized" in order to correctly create a UuidType for testing deserialize.
+// "uuid-serialized" in order to correctly create a UUIDType for testing deserialize.
 func (*UUIDType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
 	if data != "uuid-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
 	if !arrow.TypeEqual(storageType, &arrow.FixedSizeBinaryType{ByteWidth: 16}) {
-		return nil, fmt.Errorf("invalid storage type for UuidType: %s", storageType.Name())
+		return nil, fmt.Errorf("invalid storage type for UUIDType: %s", storageType.Name())
 	}
 	return NewUUIDType(), nil
 }

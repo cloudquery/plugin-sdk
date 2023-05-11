@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1](https://github.com/cloudquery/plugin-sdk/compare/v3.0.0...v3.0.1) (2023-05-11)
+
+
+### Bug Fixes
+
+* **testing:** Wrong types in v3 testdata ([#859](https://github.com/cloudquery/plugin-sdk/issues/859)) ([e494fb5](https://github.com/cloudquery/plugin-sdk/commit/e494fb51f177ea0ae9af735e9fb8f320c3a72b94))
+
+## [3.0.0](https://github.com/cloudquery/plugin-sdk/compare/v2.7.0...v3.0.0) (2023-05-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* Upgrade to SDK V3 make Column.Type an arrow.DataType ([#854](https://github.com/cloudquery/plugin-sdk/issues/854))
+
+### Features
+
+* Upgrade to SDK V3 make Column.Type an arrow.DataType ([#854](https://github.com/cloudquery/plugin-sdk/issues/854)) ([1265554](https://github.com/cloudquery/plugin-sdk/commit/12655541d1b7e4a1c5ab69e3c9e16f3978d2d44e))
+
+## [2.7.0](https://github.com/cloudquery/plugin-sdk/compare/v2.6.0...v2.7.0) (2023-05-09)
+
+
+### Features
+
+* **deps:** Upgrade to Apache Arrow v13 (latest `cqmain`) ([#852](https://github.com/cloudquery/plugin-sdk/issues/852)) ([5ae502f](https://github.com/cloudquery/plugin-sdk/commit/5ae502f7fe6c41043f1a5e1392c69657d8d9062e))
+
+## [2.6.0](https://github.com/cloudquery/plugin-sdk/compare/v2.5.4...v2.6.0) (2023-05-08)
+
+
+### Features
+
+* **arrow:** Add `types.XBuilder.NewXArray` helpers ([2df4413](https://github.com/cloudquery/plugin-sdk/commit/2df4413bed3df91ec596e2540584debab1974f4a))
+* Move proto to external repository ([#844](https://github.com/cloudquery/plugin-sdk/issues/844)) ([3cd3ba7](https://github.com/cloudquery/plugin-sdk/commit/3cd3ba7d910141ba89265767d968d24516809332))
+
+## [2.5.4](https://github.com/cloudquery/plugin-sdk/compare/v2.5.3...v2.5.4) (2023-05-05)
+
+
+### Bug Fixes
+
+* **arrow:** Allow empty and `nil` valid param in `AppendValues` ([#847](https://github.com/cloudquery/plugin-sdk/issues/847)) ([dafd05b](https://github.com/cloudquery/plugin-sdk/commit/dafd05b3e2b8dc406d4b6a4bdaf6d1143e569f1d))
+
+## [2.5.3](https://github.com/cloudquery/plugin-sdk/compare/v2.5.2...v2.5.3) (2023-05-04)
+
+
+### Bug Fixes
+
+* **arrow:** Add missing table options ([#833](https://github.com/cloudquery/plugin-sdk/issues/833)) ([95a9f0c](https://github.com/cloudquery/plugin-sdk/commit/95a9f0c29c6c2b85fded012341bf00cff0225605))
+
+## [2.5.2](https://github.com/cloudquery/plugin-sdk/compare/v2.5.1...v2.5.2) (2023-05-02)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v12 digest to 0ea1a10 ([#836](https://github.com/cloudquery/plugin-sdk/issues/836)) ([5561fa1](https://github.com/cloudquery/plugin-sdk/commit/5561fa1a59ee498d5ecb0acbde79971e82fe4fda))
+* **deps:** Update golang.org/x/exp digest to 47ecfdc ([#837](https://github.com/cloudquery/plugin-sdk/issues/837)) ([bb56f9c](https://github.com/cloudquery/plugin-sdk/commit/bb56f9c67d1ce5936c32c093911b915680707954))
+* **deps:** Update golang.org/x/xerrors digest to 04be3eb ([#838](https://github.com/cloudquery/plugin-sdk/issues/838)) ([42d4517](https://github.com/cloudquery/plugin-sdk/commit/42d4517d223791f75881ad301d6df90664d4e232))
+* **deps:** Update google.golang.org/genproto digest to daa745c ([#839](https://github.com/cloudquery/plugin-sdk/issues/839)) ([1285222](https://github.com/cloudquery/plugin-sdk/commit/128522279101eb316f3b29665a1f3c7c65da1e3e))
+* **deps:** Update module github.com/avast/retry-go/v4 to v4.3.4 ([#840](https://github.com/cloudquery/plugin-sdk/issues/840)) ([47da73d](https://github.com/cloudquery/plugin-sdk/commit/47da73dac6c2af71e13d65e9b872fd0657cb0a2a))
+* Destination migration testing using incorrect mode ([#822](https://github.com/cloudquery/plugin-sdk/issues/822)) ([fa51c80](https://github.com/cloudquery/plugin-sdk/commit/fa51c80522b2bf573414eae81f12cd21b1cf549f))
+* **json:** Use `GetOneForMarshal` instead of deserialization-serialization cycle ([#834](https://github.com/cloudquery/plugin-sdk/issues/834)) ([6fb7c1c](https://github.com/cloudquery/plugin-sdk/commit/6fb7c1c761a0ed49f84f61afaadcc958966e58fa))
+
 ## [2.5.1](https://github.com/cloudquery/plugin-sdk/compare/v2.5.0...v2.5.1) (2023-04-28)
 
 

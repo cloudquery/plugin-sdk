@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
-	"github.com/cloudquery/plugin-sdk/v2/testdata"
-	"github.com/cloudquery/plugin-sdk/v2/types"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -20,10 +19,10 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := testdata.TestTable(tableName).ToArrowSchema()
-	incTable := testdata.TestTableIncremental(tableName + "_incremental").ToArrowSchema()
+	table := schema.TestTable(tableName)
+	incTable := schema.TestTableIncremental(tableName + "_incremental")
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	tables := []*arrow.Schema{
+	tables := schema.Tables{
 		table,
 		incTable,
 	}
@@ -37,13 +36,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		Backend: specs.BackendLocal,
 	}
 
-	opts := testdata.GenTestDataOptions{
+	opts := schema.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   syncTime,
 		MaxRows:    2,
 	}
-	resources := testdata.GenTestData(table, opts)
-	incResources := testdata.GenTestData(incTable, opts)
+	resources := schema.GenTestData(table, opts)
+	incResources := schema.GenTestData(incTable, opts)
 	allResources := resources
 	allResources = append(allResources, incResources...)
 	if err := p.writeAll(ctx, sourceSpec, syncTime, allResources); err != nil {
@@ -82,13 +81,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 	// copy first resource but update the sync time
 	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
-	opts = testdata.GenTestDataOptions{
+	opts = schema.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   secondSyncTime,
 		StableUUID: u,
 		MaxRows:    1,
 	}
-	updatedResources := testdata.GenTestData(table, opts)[0]
+	updatedResources := schema.GenTestData(table, opts)[0]
 
 	if err := p.writeOne(ctx, sourceSpec, secondSyncTime, updatedResources); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)

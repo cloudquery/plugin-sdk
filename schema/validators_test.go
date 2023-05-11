@@ -3,6 +3,7 @@ package schema
 import (
 	"testing"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,15 +13,15 @@ func TestTableValidators(t *testing.T) {
 		Columns: []Column{
 			{
 				Name: "zero_bool",
-				Type: TypeBool,
+				Type: arrow.FixedWidthTypes.Boolean,
 			},
 			{
 				Name: "zero_int",
-				Type: TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 			{
 				Name: "not_zero_bool",
-				Type: TypeBool,
+				Type: arrow.FixedWidthTypes.Boolean,
 			},
 		},
 	}

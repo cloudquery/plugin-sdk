@@ -3,7 +3,7 @@ package discovery
 import (
 	"context"
 
-	pb "github.com/cloudquery/plugin-sdk/v2/internal/pb/discovery/v0"
+	pb "github.com/cloudquery/plugin-pb-go/pb/discovery/v0"
 )
 
 type Server struct {

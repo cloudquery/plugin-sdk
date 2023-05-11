@@ -7,8 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/v2/caser"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v3/caser"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/thoas/go-funk"
 	"golang.org/x/exp/slices"
 )
@@ -28,7 +30,7 @@ type structTransformer struct {
 
 type NameTransformer func(reflect.StructField) (string, error)
 
-type TypeTransformer func(reflect.StructField) (schema.ValueType, error)
+type TypeTransformer func(reflect.StructField) (arrow.DataType, error)
 
 type ResolverTransformer func(field reflect.StructField, path string) schema.ColumnResolver
 
@@ -231,7 +233,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
 	}
 
-	if columnType == schema.TypeInvalid {
+	if columnType == nil {
 		columnType, err = DefaultTypeTransformer(field)
 		if err != nil {
 			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
@@ -298,14 +300,14 @@ func isTypeIgnored(t reflect.Type) bool {
 	}
 }
 
-func DefaultTypeTransformer(v reflect.StructField) (schema.ValueType, error) {
+func DefaultTypeTransformer(v reflect.StructField) (arrow.DataType, error) {
 	return defaultGoTypeToSchemaType(v.Type)
 }
 
-func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
+func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 	// Non primitive types
 	if v == reflect.TypeOf(net.IP{}) {
-		return schema.TypeInet, nil
+		return types.ExtensionTypes.Inet, nil
 	}
 
 	k := v.Kind()
@@ -313,44 +315,33 @@ func defaultGoTypeToSchemaType(v reflect.Type) (schema.ValueType, error) {
 	case reflect.Pointer:
 		return defaultGoTypeToSchemaType(v.Elem())
 	case reflect.String:
-		return schema.TypeString, nil
+		return arrow.BinaryTypes.String, nil
 	case reflect.Bool:
-		return schema.TypeBool, nil
+		return arrow.FixedWidthTypes.Boolean, nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return schema.TypeInt, nil
+		return arrow.PrimitiveTypes.Int64, nil
 	case reflect.Float32, reflect.Float64:
-		return schema.TypeFloat, nil
+		return arrow.PrimitiveTypes.Float64, nil
 	case reflect.Map:
-		return schema.TypeJSON, nil
+		return types.ExtensionTypes.JSON, nil
 	case reflect.Struct:
 		if v == reflect.TypeOf(time.Time{}) {
-			return schema.TypeTimestamp, nil
+			return arrow.FixedWidthTypes.Timestamp_us, nil
 		}
-		return schema.TypeJSON, nil
+		return types.ExtensionTypes.JSON, nil
 	case reflect.Slice:
 		if v.Elem().Kind() == reflect.Uint8 {
-			return schema.TypeByteArray, nil
+			return arrow.BinaryTypes.Binary, nil
 		}
+		elemValueType, err := defaultGoTypeToSchemaType(v.Elem())
+		if err != nil {
+			return nil, err
+		}
+		return arrow.ListOf(elemValueType), nil
 
-		switch elemValueType, _ := defaultGoTypeToSchemaType(v.Elem()); elemValueType {
-		case schema.TypeString:
-			return schema.TypeStringArray, nil
-		case schema.TypeInt:
-			return schema.TypeIntArray, nil
-		case schema.TypeCIDR:
-			return schema.TypeCIDRArray, nil
-		case schema.TypeUUID:
-			return schema.TypeUUIDArray, nil
-		case schema.TypeInet:
-			return schema.TypeInetArray, nil
-		case schema.TypeMacAddr:
-			return schema.TypeMacAddrArray, nil
-		default:
-			return schema.TypeJSON, nil
-		}
 	default:
-		return schema.TypeInvalid, fmt.Errorf("unsupported type: %s", k)
+		return nil, fmt.Errorf("unsupported type: %s", k)
 	}
 }
 
