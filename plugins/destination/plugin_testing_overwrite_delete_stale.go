@@ -13,14 +13,15 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testSourceOptions schema.TestSourceOptions) error {
 	spec.WriteMode = specs.WriteModeOverwriteDeleteStale
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := schema.TestTable(tableName)
-	incTable := schema.TestTableIncremental(tableName + "_incremental")
+	table := schema.TestTable(tableName, testSourceOptions)
+	incTable := schema.TestTable(tableName+"_incremental", testSourceOptions)
+	incTable.IsIncremental = true
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := schema.Tables{
 		table,
@@ -80,7 +81,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 	// copy first resource but update the sync time
-	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
+	cqIDInds := resources[0].Schema().FieldIndices(schema.CqIDColumn.Name)
+	u := resources[0].Column(cqIDInds[0]).(*types.UUIDArray).Value(0)
 	opts = schema.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   secondSyncTime,
