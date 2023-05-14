@@ -2,7 +2,6 @@ package scalar
 
 import "testing"
 
-
 func TestUint64Set(t *testing.T) {
 	successfulTests := []struct {
 		source any

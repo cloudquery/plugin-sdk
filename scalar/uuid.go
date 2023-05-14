@@ -102,4 +102,3 @@ func parseUUID(src string) (dst [16]byte, err error) {
 	copy(dst[:], buf)
 	return dst, err
 }
-

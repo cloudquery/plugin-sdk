@@ -129,6 +129,7 @@ type Float64 struct {
 	Valid bool
 	Value float64
 }
+
 func (s *Float64) IsValid() bool {
 	return s.Valid
 }

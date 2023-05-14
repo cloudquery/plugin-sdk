@@ -11,7 +11,6 @@ type Binary struct {
 	Value []byte
 }
 
-
 func (s *Binary) IsValid() bool {
 	return s.Valid
 }

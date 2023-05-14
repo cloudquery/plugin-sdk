@@ -30,7 +30,7 @@ func (s *JSON) Equal(rhs Scalar) bool {
 	if !ok {
 		return false
 	}
-	if !s.Valid && !r.Valid{
+	if !s.Valid && !r.Valid {
 		return true
 	}
 
@@ -145,7 +145,6 @@ func isEmptySlice(value any) bool {
 
 	return reflect.ValueOf(value).Len() == 0
 }
-
 
 // JSONBytesEqual compares the JSON in two byte slices.
 func jsonBytesEqual(a, b []byte) (bool, error) {

@@ -12,7 +12,7 @@ import (
 
 type Inet struct {
 	Valid bool
-	Value  *net.IPNet
+	Value *net.IPNet
 }
 
 func (s *Inet) IsValid() bool {
@@ -105,7 +105,6 @@ func (s *Inet) Set(val any) error {
 	s.Valid = true
 	return nil
 }
-
 
 // Convert the net.IP to IPv4, if appropriate.
 //

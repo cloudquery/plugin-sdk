@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	noConversion                = "no conversion available"
+	noConversion = "no conversion available"
 )
 
 type ValidationError struct {

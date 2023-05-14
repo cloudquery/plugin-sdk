@@ -7,7 +7,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/v3/types"
 )
 
-
 type Mac struct {
 	Valid bool
 	Value net.HardwareAddr

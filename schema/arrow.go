@@ -39,7 +39,6 @@ func (s Schemas) SchemaByName(name string) *arrow.Schema {
 	return nil
 }
 
-
 func (s Schemas) Encode() ([][]byte, error) {
 	ret := make([][]byte, len(s))
 	for i, sc := range s {

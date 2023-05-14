@@ -10,7 +10,6 @@ import (
 	"testing"
 )
 
-
 type textMarshaler struct {
 	Text string
 }

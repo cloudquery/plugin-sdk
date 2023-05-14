@@ -75,4 +75,3 @@ type LargeString struct {
 func (s *LargeString) DataType() arrow.DataType {
 	return arrow.BinaryTypes.LargeString
 }
-

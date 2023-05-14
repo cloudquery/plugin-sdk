@@ -99,7 +99,7 @@ func TestDestinationV1(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	if _, err := c.Migrate(ctx, &pb.Migrate_Request{
 		Tables: encodedTables,
 	}); err != nil {
@@ -109,7 +109,7 @@ func TestDestinationV1(t *testing.T) {
 	rec := schema.GenTestData(table, schema.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   syncTime,
-		MaxRows: 1,
+		MaxRows:    1,
 	})[0]
 
 	sourceSpecBytes, err := json.Marshal(sourceSpec)

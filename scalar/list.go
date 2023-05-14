@@ -10,7 +10,7 @@ import (
 type List struct {
 	Valid bool
 	Value Vector
-	Type arrow.DataType
+	Type  arrow.DataType
 }
 
 func (s *List) IsValid() bool {

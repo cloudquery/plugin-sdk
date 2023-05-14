@@ -2,7 +2,6 @@ package scalar
 
 import "testing"
 
-
 func TestStringSet(t *testing.T) {
 	successfulTests := []struct {
 		source any

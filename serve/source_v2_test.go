@@ -140,7 +140,6 @@ func TestSourceSuccess(t *testing.T) {
 		t.Fatalf("Failed to marshal spec: %v", err)
 	}
 
-
 	getTablesRes, err := c.GetTables(ctx, &pb.GetTables_Request{})
 	if err != nil {
 		t.Fatal(err)
