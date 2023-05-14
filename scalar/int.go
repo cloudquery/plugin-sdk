@@ -16,7 +16,7 @@ func (s *Int64) IsValid() bool {
 	return s.Valid
 }
 
-func (s *Int64) DataType() arrow.DataType {
+func (*Int64) DataType() arrow.DataType {
 	return arrow.PrimitiveTypes.Int64
 }
 
@@ -24,7 +24,7 @@ func (s *Int64) String() string {
 	if !s.Valid {
 		return "(null)"
 	}
-	return strconv.FormatInt(int64(s.Value), 10)
+	return strconv.FormatInt(s.Value, 10)
 }
 
 func (s *Int64) Equal(rhs Scalar) bool {

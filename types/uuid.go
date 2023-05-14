@@ -201,7 +201,7 @@ func (*UUIDType) ExtensionName() string {
 	return "uuid"
 }
 
-func (e *UUIDType) String() string {
+func (*UUIDType) String() string {
 	return "uuid"
 }
 

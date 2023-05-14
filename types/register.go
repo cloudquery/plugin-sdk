@@ -12,8 +12,5 @@ func RegisterAllExtensions() error {
 	if err := arrow.RegisterExtensionType(&InetType{}); err != nil {
 		return err
 	}
-	if err := arrow.RegisterExtensionType(&MacType{}); err != nil {
-		return err
-	}
-	return nil
+	return arrow.RegisterExtensionType(&MacType{})
 }

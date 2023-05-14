@@ -126,6 +126,7 @@ func underlyingBytesType(val any) (any, bool) {
 func underlyingUUIDType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
+	//nolint:revive,gocritic
 	switch refVal.Kind() {
 	case reflect.Ptr:
 		if refVal.IsNil() {
@@ -147,7 +148,7 @@ func underlyingUUIDType(val any) (any, bool) {
 func underlyingPtrType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
-	//nolint:gocritic
+	//nolint:gocritic,revive
 	switch refVal.Kind() {
 	case reflect.Ptr:
 		if refVal.IsNil() {

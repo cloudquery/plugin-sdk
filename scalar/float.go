@@ -16,7 +16,7 @@ func (s *Float32) IsValid() bool {
 	return s.Valid
 }
 
-func (s *Float32) DataType() arrow.DataType {
+func (*Float32) DataType() arrow.DataType {
 	return arrow.PrimitiveTypes.Float32
 }
 
@@ -134,7 +134,7 @@ func (s *Float64) IsValid() bool {
 	return s.Valid
 }
 
-func (s *Float64) DataType() arrow.DataType {
+func (*Float64) DataType() arrow.DataType {
 	return arrow.PrimitiveTypes.Float64
 }
 

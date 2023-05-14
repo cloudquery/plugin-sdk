@@ -15,7 +15,7 @@ func (s *String) IsValid() bool {
 	return s.Valid
 }
 
-func (s *String) DataType() arrow.DataType {
+func (*String) DataType() arrow.DataType {
 	return arrow.BinaryTypes.String
 }
 
@@ -72,6 +72,6 @@ type LargeString struct {
 	_smallString
 }
 
-func (s *LargeString) DataType() arrow.DataType {
+func (*LargeString) DataType() arrow.DataType {
 	return arrow.BinaryTypes.LargeString
 }

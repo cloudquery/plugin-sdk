@@ -18,7 +18,7 @@ func (s *JSON) IsValid() bool {
 	return s.Valid
 }
 
-func (s *JSON) DataType() arrow.DataType {
+func (*JSON) DataType() arrow.DataType {
 	return types.ExtensionTypes.JSON
 }
 
@@ -74,16 +74,15 @@ func (s *JSON) Set(val any) error {
 	case []byte:
 		if value == nil {
 			return nil
-		} else {
-			if string(value) == "" {
-				return nil
-			}
-
-			if !json.Valid(value) {
-				return &ValidationError{Type: types.ExtensionTypes.UUID, Msg: "invalid json byte array", Value: value}
-			}
-			s.Value = value
 		}
+		if string(value) == "" {
+			return nil
+		}
+
+		if !json.Valid(value) {
+			return &ValidationError{Type: types.ExtensionTypes.UUID, Msg: "invalid json byte array", Value: value}
+		}
+		s.Value = value
 	// Encode* methods are defined on *JSON. If JSON is passed directly then the
 	// struct itself would be encoded instead of Bytes. This is clearly a footgun
 	// so detect and return an error. See https://github.com/jackc/pgx/issues/350.

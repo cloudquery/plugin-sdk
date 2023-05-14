@@ -60,7 +60,7 @@ func (s *Binary) Set(val any) error {
 	return nil
 }
 
-func (s *Binary) DataType() arrow.DataType {
+func (*Binary) DataType() arrow.DataType {
 	return arrow.BinaryTypes.Binary
 }
 
@@ -68,6 +68,6 @@ type LargeBinary struct {
 	Binary
 }
 
-func (s *LargeBinary) DataType() arrow.DataType {
+func (*LargeBinary) DataType() arrow.DataType {
 	return arrow.BinaryTypes.LargeBinary
 }

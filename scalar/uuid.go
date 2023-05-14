@@ -18,7 +18,7 @@ func (s *UUID) IsValid() bool {
 	return s.Valid
 }
 
-func (s *UUID) DataType() arrow.DataType {
+func (*UUID) DataType() arrow.DataType {
 	return types.ExtensionTypes.UUID
 }
 
@@ -52,26 +52,24 @@ func (s *UUID) Set(src any) error {
 	case [16]byte:
 		s.Value = uuid.UUID(value)
 	case []byte:
-		if value != nil {
-			if len(value) != 16 {
-				return &ValidationError{Type: types.ExtensionTypes.UUID, Msg: "[]byte must be 16 bytes to convert to UUID", Value: value}
-			}
-			copy(s.Value[:], value)
-		} else {
+		if value == nil {
 			return nil
 		}
+		if len(value) != 16 {
+			return &ValidationError{Type: types.ExtensionTypes.UUID, Msg: "[]byte must be 16 bytes to convert to UUID", Value: value}
+		}
+		copy(s.Value[:], value)
 	case string:
-		uuid, err := parseUUID(value)
+		uuidVal, err := parseUUID(value)
 		if err != nil {
 			return err
 		}
-		s.Value = uuid
+		s.Value = uuidVal
 	case *string:
 		if value == nil {
 			return nil
-		} else {
-			return s.Set(*value)
 		}
+		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingUUIDType(src); ok {
 			return s.Set(originalSrc)

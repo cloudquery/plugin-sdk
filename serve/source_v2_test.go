@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -30,7 +29,7 @@ type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
-var errTestExecutionClientErr = fmt.Errorf("error in newTestExecutionClientErr")
+// var errTestExecutionClientErr = fmt.Errorf("error in newTestExecutionClientErr")
 
 func testTable(name string) *schema.Table {
 	return &schema.Table{
@@ -56,10 +55,6 @@ func (*testExecutionClient) ID() string {
 
 func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source, source.Options) (schema.ClientMeta, error) {
 	return &testExecutionClient{}, nil
-}
-
-func newTestExecutionClientErr(context.Context, zerolog.Logger, specs.Source, source.Options) (schema.ClientMeta, error) {
-	return nil, errTestExecutionClientErr
 }
 
 func bufSourceDialer(context.Context, string) (net.Conn, error) {

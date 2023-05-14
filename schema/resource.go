@@ -77,6 +77,7 @@ func (r *Resource) GetValues() scalar.Vector {
 	return r.data
 }
 
+//nolint:revive
 func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 	if !deterministicCQID {
 		return r.storeCQID(uuid.New())

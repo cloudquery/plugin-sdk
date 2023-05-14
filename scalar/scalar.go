@@ -58,15 +58,16 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.BOOL:
 		return &Bool{}
 	case arrow.EXTENSION:
-		if arrow.TypeEqual(dt, types.ExtensionTypes.UUID) {
+		switch {
+		case arrow.TypeEqual(dt, types.ExtensionTypes.UUID):
 			return &UUID{}
-		} else if arrow.TypeEqual(dt, types.ExtensionTypes.JSON) {
+		case arrow.TypeEqual(dt, types.ExtensionTypes.JSON):
 			return &JSON{}
-		} else if arrow.TypeEqual(dt, types.ExtensionTypes.Mac) {
+		case arrow.TypeEqual(dt, types.ExtensionTypes.Mac):
 			return &Mac{}
-		} else if arrow.TypeEqual(dt, types.ExtensionTypes.Inet) {
+		case arrow.TypeEqual(dt, types.ExtensionTypes.Inet):
 			return &Inet{}
-		} else {
+		default:
 			panic("not implemented extension: " + dt.Name())
 		}
 	case arrow.LIST:
@@ -107,15 +108,16 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 			lb.AppendNull()
 		}
 	case arrow.EXTENSION:
-		if arrow.TypeEqual(s.DataType(), types.ExtensionTypes.UUID) {
+		switch {
+		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.UUID):
 			bldr.(*types.UUIDBuilder).Append(s.(*UUID).Value)
-		} else if arrow.TypeEqual(s.DataType(), types.ExtensionTypes.JSON) {
+		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.JSON):
 			bldr.(*types.JSONBuilder).Append(s.(*JSON).Value)
-		} else if arrow.TypeEqual(s.DataType(), types.ExtensionTypes.Mac) {
+		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.Mac):
 			bldr.(*types.MacBuilder).Append(s.(*Mac).Value)
-		} else if arrow.TypeEqual(s.DataType(), types.ExtensionTypes.Inet) {
+		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.Inet):
 			bldr.(*types.InetBuilder).Append(s.(*Inet).Value)
-		} else {
+		default:
 			panic("not implemented extension: " + s.DataType().Name())
 		}
 	default:

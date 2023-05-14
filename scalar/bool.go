@@ -15,7 +15,7 @@ func (s *Bool) IsValid() bool {
 	return s.Valid
 }
 
-func (s *Bool) DataType() arrow.DataType {
+func (*Bool) DataType() arrow.DataType {
 	return arrow.FixedWidthTypes.Boolean
 }
 

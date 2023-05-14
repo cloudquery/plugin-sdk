@@ -16,7 +16,7 @@ func (s *Mac) IsValid() bool {
 	return s.Valid
 }
 
-func (s *Mac) DataType() arrow.DataType {
+func (*Mac) DataType() arrow.DataType {
 	return types.ExtensionTypes.Mac
 }
 
@@ -57,15 +57,13 @@ func (s *Mac) Set(val any) error {
 	case *net.HardwareAddr:
 		if value == nil {
 			return nil
-		} else {
-			return s.Set(*value)
 		}
+		return s.Set(*value)
 	case *string:
 		if value == nil {
 			return nil
-		} else {
-			return s.Set(*value)
 		}
+		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingPtrType(value); ok {
 			return s.Set(originalSrc)

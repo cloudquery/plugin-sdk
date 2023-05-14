@@ -18,6 +18,7 @@ func (t textMarshaler) MarshalText() (text []byte, err error) {
 	return []byte(t.Text), err
 }
 
+// nolint:unparam
 func mustParseCIDR(t testing.TB, s string) *net.IPNet {
 	_, ipnet, err := net.ParseCIDR(s)
 	if err != nil {

@@ -19,7 +19,7 @@ func (s *Inet) IsValid() bool {
 	return s.Valid
 }
 
-func (s *Inet) DataType() arrow.DataType {
+func (*Inet) DataType() arrow.DataType {
 	return types.ExtensionTypes.Inet
 }
 
@@ -52,11 +52,10 @@ func (s *Inet) Set(val any) error {
 	case net.IP:
 		if len(value) == 0 {
 			return nil
-		} else {
-			bitCount := len(value) * 8
-			mask := net.CIDRMask(bitCount, bitCount)
-			s.Value = &net.IPNet{Mask: mask, IP: value}
 		}
+		bitCount := len(value) * 8
+		mask := net.CIDRMask(bitCount, bitCount)
+		s.Value = &net.IPNet{Mask: mask, IP: value}
 	case string:
 		ip, ipnet, err := net.ParseCIDR(value)
 		if err != nil {
@@ -81,11 +80,17 @@ func (s *Inet) Set(val any) error {
 		}
 		s.Value = ipnet
 	case *net.IPNet:
-		s.Set(*value)
+		if err := s.Set(*value); err != nil {
+			return err
+		}
 	case *net.IP:
-		s.Set(*value)
+		if err := s.Set(*value); err != nil {
+			return err
+		}
 	case *string:
-		s.Set(*value)
+		if err := s.Set(*value); err != nil {
+			return err
+		}
 	default:
 		if tv, ok := value.(encoding.TextMarshaler); ok {
 			text, err := tv.MarshalText()
