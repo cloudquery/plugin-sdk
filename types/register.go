@@ -14,3 +14,16 @@ func RegisterAllExtensions() error {
 	}
 	return arrow.RegisterExtensionType(&MacType{})
 }
+
+func UnregisterAllExtensions() error {
+	if err := arrow.UnregisterExtensionType(ExtensionTypes.Mac.ExtensionName()); err != nil {
+		return err
+	}
+	if err := arrow.UnregisterExtensionType(ExtensionTypes.Inet.ExtensionName()); err != nil {
+		return err
+	}
+	if err := arrow.UnregisterExtensionType(ExtensionTypes.JSON.ExtensionName()); err != nil {
+		return err
+	}
+	return arrow.UnregisterExtensionType(ExtensionTypes.UUID.ExtensionName())
+}

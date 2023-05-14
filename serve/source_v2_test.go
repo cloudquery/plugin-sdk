@@ -199,7 +199,7 @@ func TestSourceSuccess(t *testing.T) {
 		if tableName != "test_table" {
 			t.Fatalf("Expected resource with table name test_table. got: %s", tableName)
 		}
-		if len(resource.Columns()) != 3 {
+		if len(resource.Columns()) != 5 {
 			t.Fatalf("Expected resource with data length 3 but got %d", len(resource.Columns()))
 		}
 		totalResources++

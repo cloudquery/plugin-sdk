@@ -43,6 +43,8 @@ func (v Vector) Equal(r Vector) bool {
 
 func NewScalar(dt arrow.DataType) Scalar {
 	switch dt.ID() {
+	case arrow.TIMESTAMP:
+		return &Timestamp{}
 	case arrow.BINARY:
 		return &Binary{}
 	case arrow.STRING:
@@ -97,6 +99,8 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		bldr.(*array.Float64Builder).Append(s.(*Float64).Value)
 	case arrow.BOOL:
 		bldr.(*array.BooleanBuilder).Append(s.(*Bool).Value)
+	case arrow.TIMESTAMP:
+		bldr.(*array.TimestampBuilder).Append(arrow.Timestamp(s.(*Timestamp).Value.UnixMicro()))
 	case arrow.LIST:
 		lb := bldr.(*array.ListBuilder)
 		if s.IsValid() {

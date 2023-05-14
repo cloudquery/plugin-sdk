@@ -155,6 +155,11 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 			if err := types.RegisterAllExtensions(); err != nil {
 				return err
 			}
+			defer func() {
+				if err := types.UnregisterAllExtensions(); err != nil {
+					logger.Error().Err(err).Msg("Failed to unregister extensions")
+				}
+			}()
 
 			ctx := cmd.Context()
 			c := make(chan os.Signal, 1)

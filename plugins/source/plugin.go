@@ -70,6 +70,7 @@ type Plugin struct {
 	unmanaged bool
 	// titleTransformer allows the plugin to control how table names get turned into titles for generated documentation
 	titleTransformer func(*schema.Table) string
+	syncTime         *time.Time
 }
 
 const (
@@ -77,7 +78,7 @@ const (
 )
 
 // Add internal columns
-func addInternalColumns(tables []*schema.Table) error {
+func (p *Plugin) addInternalColumns(tables []*schema.Table) error {
 	for _, table := range tables {
 		if c := table.Column("_cq_id"); c != nil {
 			return fmt.Errorf("table %s already has column _cq_id", table.Name)
@@ -86,8 +87,17 @@ func addInternalColumns(tables []*schema.Table) error {
 		if len(table.PrimaryKeys()) == 0 {
 			cqID.CreationOptions.PrimaryKey = true
 		}
-		table.Columns = append([]schema.Column{cqID, schema.CqParentIDColumn}, table.Columns...)
-		if err := addInternalColumns(table.Relations); err != nil {
+		cqSourceName := schema.CqSourceNameColumn
+		cqSyncTime := schema.CqSyncTimeColumn
+		cqSourceName.Resolver = func(_ context.Context, _ schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
+			return resource.Set(c.Name, p.spec.Name)
+		}
+		cqSyncTime.Resolver = func(_ context.Context, _ schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
+			return resource.Set(c.Name, p.syncTime)
+		}
+
+		table.Columns = append([]schema.Column{schema.CqSourceNameColumn, schema.CqSyncTimeColumn, cqID, schema.CqParentIDColumn}, table.Columns...)
+		if err := p.addInternalColumns(table.Relations); err != nil {
 			return err
 		}
 	}
@@ -152,7 +162,7 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 		panic(err)
 	}
 	if p.internalColumns {
-		if err := addInternalColumns(p.tables); err != nil {
+		if err := p.addInternalColumns(p.tables); err != nil {
 			panic(err)
 		}
 	}
@@ -261,7 +271,7 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 			return err
 		}
 		if p.internalColumns {
-			if err := addInternalColumns(tables); err != nil {
+			if err := p.addInternalColumns(tables); err != nil {
 				return err
 			}
 		}

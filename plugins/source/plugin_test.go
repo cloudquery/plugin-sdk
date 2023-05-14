@@ -161,6 +161,8 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []scalar.Vector{
 			{
+				&scalar.String{},
+				&scalar.Timestamp{},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -212,11 +214,15 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []scalar.Vector{
 			{
+				&scalar.String{},
+				&scalar.Timestamp{},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
 			},
 			{
+				&scalar.String{},
+				&scalar.Timestamp{},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -236,6 +242,8 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []scalar.Vector{
 			{
+				&scalar.String{},
+				&scalar.Timestamp{},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -257,6 +265,8 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []scalar.Vector{
 			{
+				&scalar.String{},
+				&scalar.Timestamp{},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -283,11 +293,15 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []scalar.Vector{
 			{
+				&scalar.String{},
+				&scalar.Timestamp{},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
 			},
 			{
+				&scalar.String{},
+				&scalar.Timestamp{},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -308,6 +322,8 @@ var syncTestCases = []syncTestCase{
 		},
 		data: []scalar.Vector{
 			{
+				&scalar.String{},
+				&scalar.Timestamp{},
 				&scalar.UUID{Value: deterministicStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},

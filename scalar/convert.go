@@ -2,6 +2,7 @@ package scalar
 
 import (
 	"reflect"
+	"time"
 )
 
 // underlyingNumberType gets the underlying type that can be converted to Int2, Int4, Int8, Float4, or Float8
@@ -117,6 +118,28 @@ func underlyingBytesType(val any) (any, bool) {
 			convVal := refVal.Bytes()
 			return convVal, reflect.TypeOf(convVal) != refVal.Type()
 		}
+	}
+
+	return nil, false
+}
+
+// underlyingTimeType gets the underlying type that can be converted to time.Time
+func underlyingTimeType(val any) (any, bool) {
+	refVal := reflect.ValueOf(val)
+
+	// nolint:gocritic,revive
+	switch refVal.Kind() {
+	case reflect.Ptr:
+		if refVal.IsNil() {
+			return nil, false
+		}
+		convVal := refVal.Elem().Interface()
+		return convVal, true
+	}
+
+	timeType := reflect.TypeOf(time.Time{})
+	if refVal.Type().ConvertibleTo(timeType) {
+		return refVal.Convert(timeType).Interface(), true
 	}
 
 	return nil, false
