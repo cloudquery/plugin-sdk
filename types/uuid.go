@@ -202,7 +202,7 @@ func (*UUIDType) ExtensionName() string {
 }
 
 func (e *UUIDType) String() string {
-	return fmt.Sprintf("extension_type<storage=%s>", e.Storage)
+	return "uuid"
 }
 
 func (e *UUIDType) MarshalJSON() ([]byte, error) {

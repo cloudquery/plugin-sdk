@@ -9,14 +9,12 @@ import (
 	"sync"
 	"syscall"
 
-	pbv0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
-	pbv1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	pbdiscoveryv0 "github.com/cloudquery/plugin-pb-go/pb/discovery/v0"
-	servers "github.com/cloudquery/plugin-sdk/v3/internal/servers/destination/v0"
-	serversv1 "github.com/cloudquery/plugin-sdk/v3/internal/servers/destination/v1"
+	pbv2 "github.com/cloudquery/plugin-pb-go/pb/source/v2"
 	discoveryServerV0 "github.com/cloudquery/plugin-sdk/v3/internal/servers/discovery/v0"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v3/types"
+
+	serversv2 "github.com/cloudquery/plugin-sdk/v3/internal/servers/source/v2"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/source"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -24,36 +22,38 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/thoas/go-funk"
+	"golang.org/x/net/netutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
 
-type destinationServe struct {
-	plugin    *destination.Plugin
+type sourceServe struct {
+	plugin    *source.Plugin
 	sentryDSN string
 }
 
-type DestinationOption func(*destinationServe)
+type SourceOption func(*sourceServe)
 
-func WithDestinationSentryDSN(dsn string) DestinationOption {
-	return func(s *destinationServe) {
+func WithSourceSentryDSN(dsn string) SourceOption {
+	return func(s *sourceServe) {
 		s.sentryDSN = dsn
 	}
 }
 
-var testDestinationListener *bufconn.Listener
-var testDestinationListenerLock sync.Mutex
+// lis used for unit testing grpc server and client
+var testSourceListener *bufconn.Listener
+var testSourceListenerLock sync.Mutex
 
-const serveDestinationShort = `Start destination plugin server`
+const serveSourceShort = `Start source plugin server`
 
-func Destination(plugin *destination.Plugin, opts ...DestinationOption) {
-	s := &destinationServe{
+func Source(plugin *source.Plugin, opts ...SourceOption) {
+	s := &sourceServe{
 		plugin: plugin,
 	}
 	for _, opt := range opts {
 		opt(s)
 	}
-	if err := newCmdDestinationRoot(s).Execute(); err != nil {
+	if err := newCmdSourceRoot(s).Execute(); err != nil {
 		sentry.CaptureMessage(err.Error())
 		fmt.Println(err)
 		os.Exit(1)
@@ -61,7 +61,7 @@ func Destination(plugin *destination.Plugin, opts ...DestinationOption) {
 }
 
 // nolint:dupl
-func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
+func newCmdSourceServe(serve *sourceServe) *cobra.Command {
 	var address string
 	var network string
 	var noSentry bool
@@ -76,8 +76,8 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: serveDestinationShort,
-		Long:  serveDestinationShort,
+		Short: serveSourceShort,
+		Long:  serveSourceShort,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			zerologLevel, err := zerolog.ParseLevel(logLevel.String())
@@ -91,18 +91,22 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
 
+			// opts.Plugin.Logger = logger
 			var listener net.Listener
 			if network == "test" {
-				testDestinationListenerLock.Lock()
+				testSourceListenerLock.Lock()
 				listener = bufconn.Listen(testBufSize)
-				testDestinationListener = listener.(*bufconn.Listener)
-				testDestinationListenerLock.Unlock()
+				testSourceListener = listener.(*bufconn.Listener)
+				testSourceListenerLock.Unlock()
 			} else {
 				listener, err = net.Listen(network, address)
 				if err != nil {
 					return fmt.Errorf("failed to listen %s:%s: %w", network, address, err)
 				}
 			}
+			// source plugins can only accept one connection at a time
+			// unlike destination plugins that can accept multiple connections
+			limitListener := netutil.LimitListener(listener, 1)
 			// See logging pattern https://github.com/grpc-ecosystem/go-grpc-middleware/blob/v2/providers/zerolog/examples_test.go
 			s := grpc.NewServer(
 				grpc.ChainUnaryInterceptor(
@@ -114,17 +118,15 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 				grpc.MaxRecvMsgSize(MaxMsgSize),
 				grpc.MaxSendMsgSize(MaxMsgSize),
 			)
-			pbv0.RegisterDestinationServer(s, &servers.Server{
-				Plugin: serve.plugin,
-				Logger: logger,
-			})
-			pbv1.RegisterDestinationServer(s, &serversv1.Server{
+			serve.plugin.SetLogger(logger)
+			pbv2.RegisterSourceServer(s, &serversv2.Server{
 				Plugin: serve.plugin,
 				Logger: logger,
 			})
 			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.Server{
-				Versions: []string{"v0", "v1"},
+				Versions: []string{"v2"},
 			})
+
 			version := serve.plugin.Version()
 
 			if serve.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {
@@ -152,10 +154,6 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 				}
 			}
 
-			if err := types.RegisterAllExtensions(); err != nil {
-				return err
-			}
-
 			ctx := cmd.Context()
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -166,16 +164,16 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 			go func() {
 				select {
 				case sig := <-c:
-					logger.Info().Str("address", listener.Addr().String()).Str("signal", sig.String()).Msg("Got stop signal. Destination plugin server shutting down")
+					logger.Info().Str("address", listener.Addr().String()).Str("signal", sig.String()).Msg("Got stop signal. Source plugin server shutting down")
 					s.Stop()
 				case <-ctx.Done():
-					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Destination plugin server shutting down")
+					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Source plugin server shutting down")
 					s.Stop()
 				}
 			}()
 
-			logger.Info().Str("address", listener.Addr().String()).Msg("Destination plugin server listening")
-			if err := s.Serve(listener); err != nil {
+			logger.Info().Str("address", listener.Addr().String()).Msg("Source plugin server listening")
+			if err := s.Serve(limitListener); err != nil {
 				return fmt.Errorf("failed to serve: %w", err)
 			}
 			return nil
@@ -190,14 +188,45 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 	if !sendErrors {
 		noSentry = true
 	}
+
 	return cmd
 }
 
-func newCmdDestinationRoot(serve *destinationServe) *cobra.Command {
+const (
+	sourceDocShort = "Generate documentation for tables"
+	sourceDocLong  = `Generate documentation for tables
+
+If format is markdown, a destination directory will be created (if necessary) containing markdown files.
+Example:
+doc ./output 
+
+If format is JSON, a destination directory will be created (if necessary) with a single json file called __tables.json.
+Example:
+doc --format json .
+`
+)
+
+func newCmdSourceDoc(serve *sourceServe) *cobra.Command {
+	format := newEnum([]string{"json", "markdown"}, "markdown")
+	cmd := &cobra.Command{
+		Use:   "doc <directory>",
+		Short: sourceDocShort,
+		Long:  sourceDocLong,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return serve.plugin.GeneratePluginDocs(args[0], format.Value)
+		},
+	}
+	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
+	return cmd
+}
+
+func newCmdSourceRoot(serve *sourceServe) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: fmt.Sprintf("%s <command>", serve.plugin.Name()),
 	}
-	cmd.AddCommand(newCmdDestinationServe(serve))
+	cmd.AddCommand(newCmdSourceServe(serve))
+	cmd.AddCommand(newCmdSourceDoc(serve))
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	cmd.Version = serve.plugin.Version()
 	return cmd

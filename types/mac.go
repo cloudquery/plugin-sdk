@@ -197,7 +197,11 @@ func (*MACType) ExtensionName() string {
 	return "mac"
 }
 
-// Serialize returns "MAC-serialized" for testing proper metadata passing
+func (*MACType) String() string {
+	return "mac"
+}
+
+// Serialize returns "mac-serialized" for testing proper metadata passing
 func (*MACType) Serialize() string {
 	return "mac-serialized"
 }
@@ -211,7 +215,7 @@ func (*MACType) Deserialize(storageType arrow.DataType, data string) (arrow.Exte
 	if !arrow.TypeEqual(storageType, &arrow.BinaryType{}) {
 		return nil, fmt.Errorf("invalid storage type for MACType: %s", storageType.Name())
 	}
-	return NewInetType(), nil
+	return NewMACType(), nil
 }
 
 // ExtensionEquals returns true if both extensions have the same name

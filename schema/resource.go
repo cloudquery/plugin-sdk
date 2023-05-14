@@ -1,7 +1,12 @@
 package schema
 
 import (
+	"crypto/sha256"
+	"fmt"
+
+	"github.com/cloudquery/plugin-sdk/v3/scalar"
 	"github.com/google/uuid"
+	"golang.org/x/exp/slices"
 )
 
 type Resources []*Resource
@@ -16,7 +21,7 @@ type Resource struct {
 	// internal fields
 	Table *Table
 	// This is sorted result data by column name
-	data map[string]any
+	data scalar.Vector
 	// bldr array.RecordBuilder
 }
 
@@ -25,16 +30,22 @@ func NewResourceData(t *Table, parent *Resource, item any) *Resource {
 		Item:   item,
 		Parent: parent,
 		Table:  t,
-		data:   make(map[string]any, len(t.Columns)),
+		data:   make(scalar.Vector, len(t.Columns)),
 	}
-	for _, c := range t.Columns {
-		r.data[c.Name] = nil
+	for i := range r.data {
+		r.data[i] = scalar.NewScalar(t.Columns[i].Type)
 	}
 	return &r
 }
 
-func (r *Resource) Get(columnName string) any {
-	return r.data[columnName]
+func (r *Resource) Get(columnName string) scalar.Scalar {
+	index := r.Table.Columns.Index(columnName)
+	if index == -1 {
+		// we panic because we want to distinguish between code error and api error
+		// this also saves additional checks in our testing code
+		panic(columnName + " column not found")
+	}
+	return r.data[index]
 }
 
 // Set sets a column with value. This does validation and conversion to
@@ -47,7 +58,9 @@ func (r *Resource) Set(columnName string, value any) error {
 		// this also saves additional checks in our testing code
 		panic(columnName + " column not found")
 	}
-	r.data[columnName] = value
+	if err := r.data[index].Set(value); err != nil {
+		panic(fmt.Errorf("failed to set column %s: %w", columnName, err))
+	}
 	return nil
 }
 
@@ -60,19 +73,50 @@ func (r *Resource) GetItem() any {
 	return r.Item
 }
 
-//nolint:revive
-func (*Resource) CalculateCQID(deterministicCQID bool) error {
-	panic("not implemented")
+func (r *Resource) GetValues() scalar.Vector {
+	return r.data
 }
 
-//nolint:unused,revive
-func (*Resource) storeCQID(value uuid.UUID) error {
-	panic("not implemented")
+func (r *Resource) CalculateCQID(deterministicCQID bool) error {
+	if !deterministicCQID {
+		return r.storeCQID(uuid.New())
+	}
+	names := r.Table.PrimaryKeys()
+	if len(names) == 0 || (len(names) == 1 && names[0] == CqIDColumn.Name) {
+		return r.storeCQID(uuid.New())
+	}
+	slices.Sort(names)
+	h := sha256.New()
+	for _, name := range names {
+		// We need to include the column name in the hash because the same value can be present in multiple columns and therefore lead to the same hash
+		h.Write([]byte(name))
+		h.Write([]byte(r.Get(name).String()))
+	}
+	return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, h.Sum(nil)))
+}
+
+func (r *Resource) storeCQID(value uuid.UUID) error {
+	b, err := value.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	return r.Set(CqIDColumn.Name, b)
 }
 
 // Validates that all primary keys have values.
-func (*Resource) Validate() error {
-	panic("not implemented")
+func (r *Resource) Validate() error {
+	var missingPks []string
+	for i, c := range r.Table.Columns {
+		if c.CreationOptions.PrimaryKey {
+			if !r.data[i].IsValid() {
+				missingPks = append(missingPks, c.Name)
+			}
+		}
+	}
+	if len(missingPks) > 0 {
+		return fmt.Errorf("missing primary key on columns: %v", missingPks)
+	}
+	return nil
 }
 
 func (rr Resources) TableName() string {

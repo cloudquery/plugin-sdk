@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v3/scalar"
 	"github.com/cloudquery/plugin-sdk/v3/types"
-	"github.com/google/uuid"
 )
 
 type ClientMeta interface {
@@ -49,7 +49,7 @@ func parentCqUUIDResolver() ColumnResolver {
 		if parentCqID == nil {
 			return r.Set(c.Name, nil)
 		}
-		pUUID, ok := parentCqID.(*uuid.UUID)
+		pUUID, ok := parentCqID.(*scalar.UUID)
 		if !ok {
 			return r.Set(c.Name, nil)
 		}
