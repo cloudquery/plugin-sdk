@@ -14,6 +14,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/google/uuid"
+	"golang.org/x/exp/slices"
 )
 
 // TestSourceOptions controls which types are included by TestSourceColumns.
@@ -213,7 +214,7 @@ func fixedWidthColumns() []Column {
 }
 
 func removeDuplicates(columns []Column) []Column {
-	var newColumns []Column
+	newColumns := make([]Column, 0, len(columns))
 	seen := map[string]struct{}{}
 	for _, c := range columns {
 		if _, ok := seen[c.Name]; ok {
@@ -222,7 +223,7 @@ func removeDuplicates(columns []Column) []Column {
 		newColumns = append(newColumns, c)
 		seen[c.Name] = struct{}{}
 	}
-	return newColumns
+	return slices.Clip(newColumns)
 }
 
 func removeColumnsByType(columns []Column, t ...arrow.Type) []Column {
