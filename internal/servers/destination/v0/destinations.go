@@ -164,7 +164,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 	for _, table := range tables {
 		for i, col := range table.Columns {
-			table.Columns[i].CreationOptions.PrimaryKey = col.Name == schema.CqIDColumn.Name
+			table.Columns[i].PrimaryKey = col.Name == schema.CqIDColumn.Name
 		}
 		setCQIDAsPrimaryKeysForTables(table.Relations)
 	}
@@ -175,8 +175,8 @@ func SetDestinationManagedCqColumns(tables []*schema.Table) {
 	for _, table := range tables {
 		for i := range table.Columns {
 			if table.Columns[i].Name == schema.CqIDColumn.Name {
-				table.Columns[i].CreationOptions.Unique = true
-				table.Columns[i].CreationOptions.NotNull = true
+				table.Columns[i].Unique = true
+				table.Columns[i].NotNull = true
 			}
 		}
 		table.OverwriteOrAddColumn(&schema.CqSyncTimeColumn)

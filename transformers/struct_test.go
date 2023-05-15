@@ -158,7 +158,7 @@ var (
 		Columns: func(base schema.ColumnList) schema.ColumnList {
 			cols := slices.Clone(base)
 			cols = append(cols, schema.Column{Name: "embedded_string", Type: arrow.BinaryTypes.String})
-			cols[cols.Index("int_col")].CreationOptions.PrimaryKey = true
+			cols[cols.Index("int_col")].PrimaryKey = true
 			return cols
 		}(expectedColumns),
 	}
@@ -166,9 +166,9 @@ var (
 		Name: "test_struct",
 		Columns: append(
 			expectedColumns, schema.Column{
-				Name:            "embedded_string",
-				Type:            arrow.BinaryTypes.String,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Name:       "embedded_string",
+				Type:       arrow.BinaryTypes.String,
+				PrimaryKey: true,
 			}),
 	}
 	expectedTestTableNonEmbeddedStruct = schema.Table{
@@ -186,9 +186,9 @@ var (
 		Name: "test_struct",
 		Columns: schema.ColumnList{
 			schema.Column{
-				Name:            "int_col",
-				Type:            arrow.PrimitiveTypes.Int64,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Name:       "int_col",
+				Type:       arrow.PrimitiveTypes.Int64,
+				PrimaryKey: true,
 			},
 			// Should not be unwrapped
 			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
@@ -214,9 +214,9 @@ var (
 			},
 			// should be PK
 			schema.Column{
-				Name:            "non_embedded_int_col",
-				Type:            arrow.PrimitiveTypes.Int64,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Name:       "non_embedded_int_col",
+				Type:       arrow.PrimitiveTypes.Int64,
+				PrimaryKey: true,
 			},
 		},
 	}
@@ -234,14 +234,14 @@ var (
 		Name: "test_pk_struct",
 		Columns: schema.ColumnList{
 			{
-				Name:            "parent",
-				Type:            arrow.BinaryTypes.String,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Name:       "parent",
+				Type:       arrow.BinaryTypes.String,
+				PrimaryKey: true,
 			},
 			{
-				Name:            "name",
-				Type:            arrow.BinaryTypes.String,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Name:       "name",
+				Type:       arrow.BinaryTypes.String,
+				PrimaryKey: true,
 			},
 			{
 				Name: "version",

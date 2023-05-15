@@ -278,7 +278,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 			// use path to allow the following
 			// 1. Don't duplicate the PK fields if the unwrapped struct contains a fields with the same name
 			// 2. Allow specifying the nested unwrapped field as part of the PK.
-			column.CreationOptions.PrimaryKey = true
+			column.PrimaryKey = true
 			t.pkFieldsFound = append(t.pkFieldsFound, pk)
 		}
 	}

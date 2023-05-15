@@ -93,8 +93,8 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 
 	// cq columns
 	var cqColumns []Column
-	cqColumns = append(cqColumns, Column{Name: CqIDColumn.Name, Type: types.NewUUIDType(), CreationOptions: ColumnCreationOptions{NotNull: true, Unique: true}})
-	cqColumns = append(cqColumns, Column{Name: CqParentIDColumn.Name, Type: types.NewUUIDType(), CreationOptions: ColumnCreationOptions{NotNull: true}})
+	cqColumns = append(cqColumns, Column{Name: CqIDColumn.Name, Type: types.NewUUIDType(), NotNull: true, Unique: true})
+	cqColumns = append(cqColumns, Column{Name: CqParentIDColumn.Name, Type: types.NewUUIDType(), NotNull: true})
 
 	var basicColumns []Column
 	basicColumns = append(basicColumns, primitiveColumns()...)
@@ -104,7 +104,7 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 	// add extensions
 	basicColumns = append(basicColumns, Column{Name: "uuid", Type: types.NewUUIDType()})
 	basicColumns = append(basicColumns, Column{Name: "inet", Type: types.NewInetType()})
-	basicColumns = append(basicColumns, Column{Name: "mac", Type: types.NewMacType()})
+	basicColumns = append(basicColumns, Column{Name: "mac", Type: types.NewMACType()})
 
 	// sort and remove duplicates (e.g. date32 and date64 appear twice)
 	basicColumns = sortAndRemoveDuplicates(basicColumns)
@@ -144,7 +144,7 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 			{Name: "string", Type: arrow.BinaryTypes.String},
 			{Name: "uuid", Type: types.NewUUIDType()},
 			{Name: "inet", Type: types.NewInetType()},
-			{Name: "mac", Type: types.NewMacType()},
+			{Name: "mac", Type: types.NewMACType()},
 		}
 		compositeColumns = append(compositeColumns, listOfColumns(cqListColumns)...)
 	} else {
@@ -286,9 +286,8 @@ var PKColumnNames = []string{"uuid_pk", "string_pk"}
 // TestTable returns a table with columns of all types. Useful for destination testing purposes
 func TestTable(name string, opts ...func(o *TestSourceOptions)) *Table {
 	var columns []Column
-	colOpts := ColumnCreationOptions{PrimaryKey: true, Unique: true}
-	columns = append(columns, Column{Name: "uuid_pk", Type: types.NewUUIDType(), CreationOptions: colOpts})
-	columns = append(columns, Column{Name: "string_pk", Type: arrow.BinaryTypes.String, CreationOptions: colOpts})
+	columns = append(columns, Column{Name: "uuid_pk", Type: types.NewUUIDType(), PrimaryKey: true, Unique: true})
+	columns = append(columns, Column{Name: "string_pk", Type: arrow.BinaryTypes.String, PrimaryKey: true, Unique: true})
 	columns = append(columns, Column{Name: CqSourceNameColumn.Name, Type: arrow.BinaryTypes.String})
 	columns = append(columns, Column{Name: CqSyncTimeColumn.Name, Type: arrow.FixedWidthTypes.Timestamp_us})
 	columns = append(columns, TestSourceColumns(opts...)...)
@@ -373,7 +372,7 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.Inet) {
 		return `"192.0.2.0/24"`
 	}
-	if arrow.TypeEqual(dataType, types.ExtensionTypes.Mac) {
+	if arrow.TypeEqual(dataType, types.ExtensionTypes.MAC) {
 		return `"aa:bb:cc:dd:ee:ff"`
 	}
 

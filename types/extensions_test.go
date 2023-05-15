@@ -53,18 +53,18 @@ func TestValueStrRoundTrip(t *testing.T) {
 		},
 		{
 			arr: func() arrow.Array {
-				b := NewMacBuilder(array.NewExtensionBuilder(mem, NewMacType()))
+				b := NewMACBuilder(array.NewExtensionBuilder(mem, NewMACType()))
 				defer b.Release()
 
 				b.AppendNull()
-				b.Append(mustParseMac("00:00:00:00:00:01"))
+				b.Append(mustParseMAC("00:00:00:00:00:01"))
 				b.AppendNull()
-				b.Append(mustParseMac("00:00:00:00:00:02"))
+				b.Append(mustParseMAC("00:00:00:00:00:02"))
 				b.AppendNull()
 
-				return b.NewMacArray()
+				return b.NewMACArray()
 			}(),
-			builder: NewMacBuilder(array.NewExtensionBuilder(mem, NewMacType())),
+			builder: NewMACBuilder(array.NewExtensionBuilder(mem, NewMACType())),
 		},
 		{
 			arr: func() arrow.Array {
