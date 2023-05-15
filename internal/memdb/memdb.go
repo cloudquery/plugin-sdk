@@ -19,8 +19,8 @@ import (
 // client is mostly used for testing the destination plugin.
 type client struct {
 	spec          specs.Destination
-	memoryDB      map[string][]arrow.Record
 	tables        map[string]*schema.Table
+	memoryDB      map[string][]arrow.Record
 	memoryDBLock  sync.RWMutex
 	errOnWrite    bool
 	blockingWrite bool
@@ -42,6 +42,7 @@ func WithBlockingWrite() Option {
 
 func GetNewClient(options ...Option) destination.NewClientFunc {
 	c := &client{
+		tables:       make(map[string]*schema.Table),
 		memoryDB:     make(map[string][]arrow.Record),
 		memoryDBLock: sync.RWMutex{},
 	}

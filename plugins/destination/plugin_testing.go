@@ -64,6 +64,8 @@ type PluginTestSuiteTests struct {
 
 	MigrateStrategyOverwrite MigrateStrategy
 	MigrateStrategyAppend    MigrateStrategy
+
+	Validate func(t *testing.T, plugin *Plugin, destination specs.Destination)
 }
 
 func RecordDiff(l arrow.Record, r arrow.Record) string {
@@ -123,6 +125,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
+		if suite.tests.Validate != nil {
+			suite.tests.Validate(t, p, destSpec)
+		}
 	})
 
 	t.Run("TestWriteOverwriteDeleteStale", func(t *testing.T) {
@@ -137,6 +142,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		}
 		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
+		}
+		if suite.tests.Validate != nil {
+			suite.tests.Validate(t, p, destSpec)
 		}
 	})
 
@@ -174,6 +182,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		}
 		if err := p.Close(ctx); err != nil {
 			t.Fatal(err)
+		}
+		if suite.tests.Validate != nil {
+			suite.tests.Validate(t, p, destSpec)
 		}
 	})
 

@@ -154,13 +154,13 @@ func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName strin
 	return p.client.Read(ctx, table, sourceName, res)
 }
 
-// this function is currently used mostly for testing so it's not a public api
+// this function is currently used mostly for testing, so it's not a public api
 func (p *Plugin) writeOne(ctx context.Context, sourceSpec specs.Source, syncTime time.Time, resource arrow.Record) error {
 	resources := []arrow.Record{resource}
 	return p.writeAll(ctx, sourceSpec, syncTime, resources)
 }
 
-// this function is currently used mostly for testing so it's not a public api
+// this function is currently used mostly for testing, so it's not a public api
 func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, syncTime time.Time, resources []arrow.Record) error {
 	ch := make(chan arrow.Record, len(resources))
 	for _, resource := range resources {

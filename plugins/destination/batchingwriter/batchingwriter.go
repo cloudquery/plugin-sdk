@@ -29,6 +29,16 @@ type Batching struct {
 	batchSize      int64
 	batchSizeBytes int64
 	batchTimeout   time.Duration
+
+	// underlyingOCW is set if the given underlyingWriter implements OpenCloseWriter
+	underlyingOCW OpenCloseWriter
+}
+
+// OpenCloseWriter is an optional interface that can be implemented by a Client which already implements destination.ManagedWriter.
+type OpenCloseWriter interface {
+	OpenTable(ctx context.Context, sourceSpec specs.Source, table *schema.Table) error
+	CloseTable(ctx context.Context, sourceSpec specs.Source, table *schema.Table) error
+	destination.ManagedWriter
 }
 
 func New(opts ...Option) destination.BatchingWriterFuncFunc {
@@ -59,6 +69,10 @@ func New(opts ...Option) destination.BatchingWriterFuncFunc {
 
 		return func(writer destination.ManagedWriter) destination.BatchingWriter {
 			w.underlyingWriter = writer
+
+			if ocw, ok := writer.(OpenCloseWriter); ok {
+				w.underlyingOCW = ocw
+			}
 			return w
 		}
 	}
@@ -68,8 +82,8 @@ func (w *Batching) Metrics() destination.Metrics {
 	metrics := destination.Metrics{}
 	w.metricsLock.RLock()
 	for _, m := range w.metrics {
-		metrics.Errors += m.Errors
-		metrics.Writes += m.Writes
+		metrics.Errors += atomic.LoadUint64(&m.Errors)
+		metrics.Writes += atomic.LoadUint64(&m.Writes)
 	}
 	w.metricsLock.RUnlock()
 	return metrics
@@ -81,8 +95,21 @@ type worker struct {
 	ch         chan arrow.Record
 	flush      chan chan bool
 	sourceSpec specs.Source
+	openError  bool
 }
 
+func (*Batching) dummyWork(_ context.Context, ch <-chan arrow.Record, flush <-chan chan bool) {
+	for {
+		select {
+		case _, ok := <-ch:
+			if !ok {
+				return
+			}
+		case done := <-flush:
+			done <- true
+		}
+	}
+}
 func (w *Batching) work(ctx context.Context, sourceSpec specs.Source, syncTime time.Time, metrics *destination.Metrics, table *schema.Table, ch <-chan arrow.Record, flush <-chan chan bool) {
 	sizeBytes := int64(0)
 	resources := make([]arrow.Record, 0)
@@ -138,25 +165,43 @@ func (w *Batching) flush(ctx context.Context, sourceSpec specs.Source, syncTime 
 
 func (w *Batching) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
 	workers := make(map[string]*worker, len(tables))
-	metrics := &destination.Metrics{}
 
 	w.workersLock.Lock()
 	for _, table := range tables {
 		table := table
+		metrics := &destination.Metrics{}
+		w.metricsLock.Lock()
+		w.metrics[table.Name] = metrics
+		w.metricsLock.Unlock()
+
 		if w.workers[table.Name] == nil {
 			ch := make(chan arrow.Record)
 			flush := make(chan chan bool)
 			wg := &sync.WaitGroup{}
+			var errored bool
+			if w.underlyingOCW != nil {
+				if err := w.underlyingOCW.OpenTable(ctx, sourceSpec, table); err != nil {
+					w.logger.Err(err).Str("table", table.Name).Msg("OpenTable failed")
+					// we don't return an error as we need to continue until channel is closed otherwise there will be a deadlock
+					atomic.AddUint64(&metrics.Errors, 1)
+					errored = true
+				}
+			}
 			w.workers[table.Name] = &worker{
 				count:      1,
 				ch:         ch,
 				flush:      flush,
 				wg:         wg,
 				sourceSpec: sourceSpec,
+				openError:  errored,
 			}
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
+				if errored {
+					w.dummyWork(ctx, ch, flush)
+					return
+				}
 				w.work(ctx, sourceSpec, syncTime, metrics, table, ch, flush)
 			}()
 		} else {
@@ -197,6 +242,19 @@ func (w *Batching) Write(ctx context.Context, sourceSpec specs.Source, tables sc
 		if w.workers[tableName].count == 0 {
 			close(w.workers[tableName].ch)
 			w.workers[tableName].wg.Wait()
+
+			if w.underlyingOCW != nil && !w.workers[tableName].openError {
+				if err := w.underlyingOCW.CloseTable(ctx, sourceSpec, tables.Get(tableName)); err != nil {
+					w.logger.Err(err).Str("table", tableName).Msg("CloseTable failed")
+
+					w.metricsLock.RLock()
+					metrics := w.metrics[tableName]
+					w.metricsLock.RUnlock()
+
+					atomic.AddUint64(&metrics.Errors, 1)
+				}
+			}
+
 			delete(w.workers, tableName)
 		}
 	}
