@@ -130,9 +130,7 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 
 	var bwf BatchingWriterFunc
 	if p.batchingWriterFuncFunc != nil {
-		fmt.Println(p.spec.BatchSize, p.spec.BatchSizeBytes, "old")
 		bwf = p.batchingWriterFuncFunc(&p.spec)
-		fmt.Println(p.spec.BatchSize, p.spec.BatchSizeBytes, "new")
 	}
 
 	var err error
