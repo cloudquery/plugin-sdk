@@ -228,11 +228,16 @@ func removeDuplicates(columns []Column) []Column {
 
 func removeColumnsByType(columns []Column, t ...arrow.Type) []Column {
 	var newColumns []Column
-	for _, d := range t {
-		for _, c := range columns {
+	for _, c := range columns {
+		shouldRemove := false
+		for _, d := range t {
 			if c.Type.ID() == d {
-				newColumns = append(newColumns, c)
+				shouldRemove = true
+				break
 			}
+		}
+		if !shouldRemove {
+			newColumns = append(newColumns, c)
 		}
 	}
 	return newColumns
@@ -240,11 +245,16 @@ func removeColumnsByType(columns []Column, t ...arrow.Type) []Column {
 
 func removeColumnsByDataType(columns []Column, dt ...arrow.DataType) []Column {
 	var newColumns []Column
-	for _, d := range dt {
-		for _, c := range columns {
+	for _, c := range columns {
+		shouldRemove := false
+		for _, d := range dt {
 			if arrow.TypeEqual(c.Type, d) {
-				newColumns = append(newColumns, c)
+				shouldRemove = true
+				break
 			}
+		}
+		if !shouldRemove {
+			newColumns = append(newColumns, c)
 		}
 	}
 	return newColumns
