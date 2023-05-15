@@ -31,25 +31,36 @@ type Batching struct {
 	batchTimeout   time.Duration
 }
 
-func New(opts ...Option) destination.BatchingWriterFunc {
-	return func(writer destination.ManagedWriter) destination.BatchingWriter {
+func New(opts ...Option) destination.BatchingWriterFuncFunc {
+	return func(spec *specs.Destination) destination.BatchingWriterFunc {
 		w := &Batching{
-			underlyingWriter: writer,
-			logger:           zerolog.Logger{},
-			metrics:          make(map[string]*destination.Metrics),
-			metricsLock:      &sync.RWMutex{},
-			workers:          make(map[string]*worker),
-			workersLock:      &sync.Mutex{},
+			logger:      zerolog.Logger{},
+			metrics:     make(map[string]*destination.Metrics),
+			metricsLock: &sync.RWMutex{},
+			workers:     make(map[string]*worker),
+			workersLock: &sync.Mutex{},
 
 			dedupPK:        true,
-			batchSize:      10000,
-			batchSizeBytes: 5 * 1024 * 1024, // 5 MiB
+			batchSize:      int64(spec.BatchSize),
+			batchSizeBytes: int64(spec.BatchSizeBytes),
 			batchTimeout:   5 * time.Second,
 		}
 		for _, opt := range opts {
 			opt(w)
 		}
-		return w
+		// Set the spec batch sizes again, in case the options changed them. Used in testing
+		spec.BatchSize = int(w.batchSize)
+		spec.BatchSizeBytes = int(w.batchSizeBytes)
+		spec.SetDefaults(
+			10000,
+			5*1024*1024, // 5 MiB
+		)
+		w.batchSize, w.batchSizeBytes = int64(spec.BatchSize), int64(spec.BatchSizeBytes)
+
+		return func(writer destination.ManagedWriter) destination.BatchingWriter {
+			w.underlyingWriter = writer
+			return w
+		}
 	}
 }
 
@@ -191,4 +202,8 @@ func (w *Batching) Write(ctx context.Context, sourceSpec specs.Source, tables sc
 	}
 	w.workersLock.Unlock()
 	return nil
+}
+
+func (w *Batching) BatchSize() (int64, int64) {
+	return w.batchSize, w.batchSizeBytes
 }

@@ -20,10 +20,14 @@ func WithDedupPK(dedup bool) Option {
 	}
 }
 
-func WithBatchSize(batchSize, batchSizeBytes int64) Option {
+func WithDefaultBatchSize(batchSize, batchSizeBytes int64) Option {
 	return func(w *Batching) {
-		w.batchSize = batchSize
-		w.batchSizeBytes = batchSizeBytes
+		if w.batchSize == 0 {
+			w.batchSize = batchSize
+		}
+		if w.batchSizeBytes == 0 {
+			w.batchSizeBytes = batchSizeBytes
+		}
 	}
 }
 

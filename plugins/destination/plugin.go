@@ -53,7 +53,10 @@ type BatchingWriter interface {
 	UnmanagedWriter
 }
 
-type BatchingWriterFunc func(ManagedWriter) BatchingWriter
+type (
+	BatchingWriterFunc     func(ManagedWriter) BatchingWriter
+	BatchingWriterFuncFunc func(*specs.Destination) BatchingWriterFunc
+)
 
 type ClientResource struct {
 	TableName string
@@ -77,13 +80,13 @@ type Plugin struct {
 	logger zerolog.Logger
 	// batchingWriter to use instead of passing data to client's Writer
 	batchingWriter BatchingWriter
-	// batchingWriterFunc is to create the batchingWriter after Client is initialized
-	batchingWriterFunc BatchingWriterFunc
+	// batchingWriterFuncFunc is to create the batchingWriter during Client initialization
+	batchingWriterFuncFunc BatchingWriterFuncFunc
 }
 
-func WithManagedWriter(f BatchingWriterFunc) Option {
+func WithManagedWriter(f BatchingWriterFuncFunc) Option {
 	return func(p *Plugin) {
-		p.batchingWriterFunc = f
+		p.batchingWriterFuncFunc = f
 	}
 }
 
@@ -122,15 +125,23 @@ func (p *Plugin) Metrics() Metrics {
 
 // we need lazy loading because we want to be able to initialize after
 func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Destination) error {
-	var err error
 	p.logger = logger
 	p.spec = spec
+
+	var bwf BatchingWriterFunc
+	if p.batchingWriterFuncFunc != nil {
+		fmt.Println(p.spec.BatchSize, p.spec.BatchSizeBytes, "old")
+		bwf = p.batchingWriterFuncFunc(&p.spec)
+		fmt.Println(p.spec.BatchSize, p.spec.BatchSizeBytes, "new")
+	}
+
+	var err error
 	p.client, err = p.newClient(ctx, logger, p.spec)
 	if err != nil {
 		return err
 	}
-	if p.batchingWriterFunc != nil {
-		p.batchingWriter = p.batchingWriterFunc(p.client)
+	if bwf != nil {
+		p.batchingWriter = bwf(p.client)
 	}
 
 	return nil
@@ -236,6 +247,10 @@ func (p *Plugin) DeleteStale(ctx context.Context, tables schema.Tables, sourceNa
 
 func (p *Plugin) Close(ctx context.Context) error {
 	return p.client.Close(ctx)
+}
+
+func (p *Plugin) BatchingWriter() BatchingWriter {
+	return p.batchingWriter
 }
 
 func checkDestinationColumns(tables schema.Tables) error {
