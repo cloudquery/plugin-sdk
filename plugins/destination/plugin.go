@@ -299,12 +299,12 @@ func checkDestinationColumns(tables schema.Tables) error {
 		if table.Columns.Index(schema.CqSyncTimeColumn.Name) == -1 {
 			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", table.Name, schema.CqSourceNameField.Name)
 		}
-		field := table.Columns.Get(schema.CqIDColumn.Name)
-		if field != nil {
-			if !field.CreationOptions.NotNull {
+		column := table.Columns.Get(schema.CqIDColumn.Name)
+		if column != nil {
+			if column.Nullable {
 				return fmt.Errorf("column %s.%s cannot be nullable. please consider upgrading source plugin", table.Name, schema.CqIDColumn.Name)
 			}
-			if !field.CreationOptions.Unique {
+			if !column.Unique {
 				return fmt.Errorf("column %s.%s must be unique. please consider upgrading source plugin", table.Name, schema.CqIDColumn.Name)
 			}
 		}

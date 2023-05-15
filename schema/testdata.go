@@ -21,90 +21,69 @@ func TestSourceTable(name string) *Table {
 			CqIDColumn,
 			CqParentIDColumn,
 			{
-				Name:            "uuid_pk",
-				Type:            types.ExtensionTypes.UUID,
-				CreationOptions: ColumnCreationOptions{PrimaryKey: true},
+				Field:           arrow.Field{Name: "uuid_pk", Type: types.ExtensionTypes.UUID, Nullable: true},
+				CreationOptions: CreationOptions{PrimaryKey: true},
 			},
 			{
-				Name:            "string_pk",
-				Type:            arrow.BinaryTypes.String,
-				CreationOptions: ColumnCreationOptions{PrimaryKey: true},
+				Field:           arrow.Field{Name: "string_pk", Type: arrow.BinaryTypes.String, Nullable: true},
+				CreationOptions: CreationOptions{PrimaryKey: true},
 			},
 			{
-				Name: "bool",
-				Type: arrow.FixedWidthTypes.Boolean,
+				Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
 			},
 			{
-				Name: "int",
-				Type: arrow.PrimitiveTypes.Int64,
+				Field: arrow.Field{Name: "int", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
 			},
 			{
-				Name: "float",
-				Type: arrow.PrimitiveTypes.Float64,
+				Field: arrow.Field{Name: "float", Type: arrow.PrimitiveTypes.Float64, Nullable: true},
 			},
 			{
-				Name: "uuid",
-				Type: types.ExtensionTypes.UUID,
+				Field: arrow.Field{Name: "uuid", Type: types.ExtensionTypes.UUID, Nullable: true},
 			},
 			{
-				Name: "text",
-				Type: arrow.BinaryTypes.String,
+				Field: arrow.Field{Name: "text", Type: arrow.BinaryTypes.String, Nullable: true},
 			},
 			{
-				Name: "text_with_null",
-				Type: arrow.BinaryTypes.String,
+				Field: arrow.Field{Name: "text_with_null", Type: arrow.BinaryTypes.String, Nullable: true},
 			},
 			{
-				Name: "bytea",
-				Type: arrow.BinaryTypes.Binary,
+				Field: arrow.Field{Name: "bytea", Type: arrow.BinaryTypes.Binary, Nullable: true},
 			},
 			{
-				Name: "text_array",
-				Type: arrow.ListOf(arrow.BinaryTypes.String),
+				Field: arrow.Field{Name: "text_array", Type: arrow.ListOf(arrow.BinaryTypes.String), Nullable: true},
 			},
 			{
-				Name: "text_array_with_null",
-				Type: arrow.ListOf(arrow.BinaryTypes.String),
+				Field: arrow.Field{Name: "text_array_with_null", Type: arrow.ListOf(arrow.BinaryTypes.String), Nullable: true},
 			},
 			{
-				Name: "int_array",
-				Type: arrow.ListOf(arrow.PrimitiveTypes.Int64),
+				Field: arrow.Field{Name: "int_array", Type: arrow.ListOf(arrow.PrimitiveTypes.Int64), Nullable: true},
 			},
 			{
-				Name: "timestamp",
-				Type: arrow.FixedWidthTypes.Timestamp_us,
+				Field: arrow.Field{Name: "timestamp", Type: arrow.FixedWidthTypes.Timestamp_us, Nullable: true},
 			},
 			{
-				Name: "json",
-				Type: types.ExtensionTypes.JSON,
+				Field: arrow.Field{Name: "json", Type: types.ExtensionTypes.JSON, Nullable: true},
 			},
 			{
-				Name: "uuid_array",
-				Type: arrow.ListOf(types.ExtensionTypes.UUID),
+				Field: arrow.Field{Name: "uuid_array", Type: arrow.ListOf(types.ExtensionTypes.UUID), Nullable: true},
 			},
 			{
-				Name: "inet",
-				Type: types.ExtensionTypes.Inet,
+				Field: arrow.Field{Name: "inet", Type: types.ExtensionTypes.Inet, Nullable: true},
 			},
 			{
-				Name: "inet_array",
-				Type: arrow.ListOf(types.ExtensionTypes.Inet),
+				Field: arrow.Field{Name: "inet_array", Type: arrow.ListOf(types.ExtensionTypes.Inet), Nullable: true},
 			},
 			{
-				Name: "cidr",
-				Type: types.ExtensionTypes.Inet,
+				Field: arrow.Field{Name: "cidr", Type: types.ExtensionTypes.Inet, Nullable: true},
 			},
 			{
-				Name: "cidr_array",
-				Type: arrow.ListOf(types.ExtensionTypes.Inet),
+				Field: arrow.Field{Name: "cidr_array", Type: arrow.ListOf(types.ExtensionTypes.Inet), Nullable: true},
 			},
 			{
-				Name: "macaddr",
-				Type: types.ExtensionTypes.Mac,
+				Field: arrow.Field{Name: "macaddr", Type: types.ExtensionTypes.Mac, Nullable: true},
 			},
 			{
-				Name: "macaddr_array",
-				Type: arrow.ListOf(types.ExtensionTypes.Mac),
+				Field: arrow.Field{Name: "macaddr_array", Type: arrow.ListOf(types.ExtensionTypes.Mac), Nullable: true},
 			},
 		},
 	}
@@ -152,7 +131,7 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 		nullRow := j%2 == 1
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		for i, c := range table.Columns {
-			if nullRow && !c.CreationOptions.NotNull && !c.CreationOptions.PrimaryKey &&
+			if nullRow && c.Nullable && !c.PrimaryKey &&
 				c.Name != CqSourceNameColumn.Name &&
 				c.Name != CqSyncTimeColumn.Name &&
 				c.Name != CqIDColumn.Name &&

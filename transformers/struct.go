@@ -267,8 +267,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	}
 
 	column := schema.Column{
-		Name:          name,
-		Type:          columnType,
+		Field:         arrow.Field{Name: name, Type: columnType, Nullable: true},
 		Resolver:      resolver,
 		IgnoreInTests: t.ignoreInTestsTransformer(field),
 	}

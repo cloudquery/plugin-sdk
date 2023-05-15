@@ -101,7 +101,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Field: arrow.Field{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true}},
 			},
 		}
 
@@ -111,8 +111,8 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID},
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+				{Field: arrow.Field{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true}},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
 			},
 		}
 
@@ -137,7 +137,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Field: arrow.Field{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true}},
 			},
 		}
 
@@ -146,8 +146,8 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID},
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
+				{Field: arrow.Field{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true}},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean}},
 			}}
 		p := newPlugin()
 		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.AddColumnNotNull); err != nil {
@@ -170,15 +170,15 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
+				{Field: arrow.Field{Name: "id", Type: types.ExtensionTypes.UUID}},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean}},
 			}}
 		target := &schema.Table{
 			Columns: schema.ColumnList{
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Field: arrow.Field{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true}},
 			}}
 
 		p := newPlugin()
@@ -202,8 +202,8 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID},
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
+				{Field: arrow.Field{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true}},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean}},
 			},
 		}
 		target := &schema.Table{
@@ -212,7 +212,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
+				{Field: arrow.Field{Name: "id", Type: types.ExtensionTypes.UUID}},
 			}}
 
 		p := newPlugin()
@@ -236,8 +236,8 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID},
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
+				{Field: arrow.Field{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true}},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean}},
 			}}
 		target := &schema.Table{
 			Name: tableName,
@@ -245,8 +245,8 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID},
-				{Name: "bool", Type: arrow.BinaryTypes.String, CreationOptions: schema.ColumnCreationOptions{NotNull: true}},
+				{Field: arrow.Field{Name: "id", Type: types.ExtensionTypes.UUID, Nullable: true}},
+				{Field: arrow.Field{Name: "bool", Type: arrow.BinaryTypes.String}},
 			}}
 
 		p := newPlugin()

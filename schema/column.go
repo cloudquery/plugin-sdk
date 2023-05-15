@@ -14,8 +14,8 @@ type ColumnList []Column
 // resource holds the current row we are resolving the column for.
 type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resource, c Column) error
 
-// ColumnCreationOptions allow modification of how column is defined when table is created
-type ColumnCreationOptions struct {
+// CreationOptions allow modification of how column is defined when table is created
+type CreationOptions struct {
 	PrimaryKey bool
 	// IncrementalKey is a flag that indicates if the column is used as part of an incremental key.
 	// It is mainly used for documentation purposes, but may also be used as part of ensuring that
@@ -32,7 +32,7 @@ type Column struct {
 	// Column Resolver allows to set your own data for a column; this can be an API call, setting multiple embedded values, etc
 	Resolver ColumnResolver
 	// Creation options allow modifying how column is defined when table is created
-	ColumnCreationOptions
+	CreationOptions
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.

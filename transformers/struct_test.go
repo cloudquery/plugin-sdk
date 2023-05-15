@@ -9,6 +9,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
 )
 
@@ -76,74 +77,23 @@ type (
 
 var (
 	expectedColumns = []schema.Column{
-		{
-			Name: "int_col",
-			Type: arrow.PrimitiveTypes.Int64,
-		},
-		{
-			Name: "int64_col",
-			Type: arrow.PrimitiveTypes.Int64,
-		},
-		{
-			Name: "string_col",
-			Type: arrow.BinaryTypes.String,
-		},
-		{
-			Name: "float_col",
-			Type: arrow.PrimitiveTypes.Float64,
-		},
-		{
-			Name: "bool_col",
-			Type: arrow.FixedWidthTypes.Boolean,
-		},
-		{
-			Name: "json_col",
-			Type: types.ExtensionTypes.JSON,
-		},
-		{
-			Name: "int_array_col",
-			Type: arrow.ListOf(arrow.PrimitiveTypes.Int64),
-		},
-		{
-			Name: "int_pointer_array_col",
-			Type: arrow.ListOf(arrow.PrimitiveTypes.Int64),
-		},
-		{
-			Name: "string_array_col",
-			Type: arrow.ListOf(arrow.BinaryTypes.String),
-		},
-		{
-			Name: "string_pointer_array_col",
-			Type: arrow.ListOf(arrow.BinaryTypes.String),
-		},
-		{
-			Name: "inet_col",
-			Type: types.ExtensionTypes.Inet,
-		},
-		{
-			Name: "inet_pointer_col",
-			Type: types.ExtensionTypes.Inet,
-		},
-		{
-			Name: "byte_array_col",
-			Type: arrow.BinaryTypes.Binary,
-		},
-		{
-			Name: "time_col",
-			Type: arrow.FixedWidthTypes.Timestamp_us,
-		},
-		{
-			Name: "time_pointer_col",
-			Type: arrow.FixedWidthTypes.Timestamp_us,
-		},
-		{
-			Name: "json_tag",
-			Type: arrow.BinaryTypes.String,
-		},
-		{
-			Name: "no_json_tag",
-			Type: arrow.BinaryTypes.String,
-		},
+		{Field: arrow.Field{Name: "int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true}},
+		{Field: arrow.Field{Name: "int64_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true}},
+		{Field: arrow.Field{Name: "string_col", Type: arrow.BinaryTypes.String, Nullable: true}},
+		{Field: arrow.Field{Name: "float_col", Type: arrow.PrimitiveTypes.Float64, Nullable: true}},
+		{Field: arrow.Field{Name: "bool_col", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
+		{Field: arrow.Field{Name: "json_col", Type: types.ExtensionTypes.JSON, Nullable: true}},
+		{Field: arrow.Field{Name: "int_array_col", Type: arrow.ListOf(arrow.PrimitiveTypes.Int64), Nullable: true}},
+		{Field: arrow.Field{Name: "int_pointer_array_col", Type: arrow.ListOf(arrow.PrimitiveTypes.Int64), Nullable: true}},
+		{Field: arrow.Field{Name: "string_array_col", Type: arrow.ListOf(arrow.BinaryTypes.String), Nullable: true}},
+		{Field: arrow.Field{Name: "string_pointer_array_col", Type: arrow.ListOf(arrow.BinaryTypes.String), Nullable: true}},
+		{Field: arrow.Field{Name: "inet_col", Type: types.ExtensionTypes.Inet, Nullable: true}},
+		{Field: arrow.Field{Name: "inet_pointer_col", Type: types.ExtensionTypes.Inet, Nullable: true}},
+		{Field: arrow.Field{Name: "byte_array_col", Type: arrow.BinaryTypes.Binary, Nullable: true}},
+		{Field: arrow.Field{Name: "time_col", Type: arrow.FixedWidthTypes.Timestamp_us, Nullable: true}},
+		{Field: arrow.Field{Name: "time_pointer_col", Type: arrow.FixedWidthTypes.Timestamp_us, Nullable: true}},
+		{Field: arrow.Field{Name: "json_tag", Type: arrow.BinaryTypes.String, Nullable: true}},
+		{Field: arrow.Field{Name: "no_json_tag", Type: arrow.BinaryTypes.String, Nullable: true}},
 	}
 	expectedTestTable = schema.Table{
 		Name:    "test_struct",
@@ -151,82 +101,70 @@ var (
 	}
 	expectedTestTableEmbeddedStruct = schema.Table{
 		Name:    "test_struct",
-		Columns: append(expectedColumns, schema.Column{Name: "embedded_string", Type: arrow.BinaryTypes.String}),
+		Columns: append(expectedColumns, schema.Column{Field: arrow.Field{Name: "embedded_string", Type: arrow.BinaryTypes.String, Nullable: true}}),
 	}
 	expectedTestTableEmbeddedStructWithTopLevelPK = schema.Table{
 		Name: "test_struct",
 		Columns: func(base schema.ColumnList) schema.ColumnList {
 			cols := slices.Clone(base)
-			cols = append(cols, schema.Column{Name: "embedded_string", Type: arrow.BinaryTypes.String})
-			cols[cols.Index("int_col")].CreationOptions.PrimaryKey = true
+			cols = append(cols, schema.Column{Field: arrow.Field{Name: "embedded_string", Type: arrow.BinaryTypes.String, Nullable: true}})
+			cols[cols.Index("int_col")].PrimaryKey = true
 			return cols
 		}(expectedColumns),
 	}
 	expectedTestTableEmbeddedStructWithUnwrappedPK = schema.Table{
 		Name: "test_struct",
-		Columns: append(
-			expectedColumns, schema.Column{
-				Name:            "embedded_string",
-				Type:            arrow.BinaryTypes.String,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+		Columns: append(expectedColumns,
+			schema.Column{
+				Field:           arrow.Field{Name: "embedded_string", Type: arrow.BinaryTypes.String, Nullable: true},
+				CreationOptions: schema.CreationOptions{PrimaryKey: true},
 			}),
 	}
 	expectedTestTableNonEmbeddedStruct = schema.Table{
 		Name: "test_struct",
 		Columns: schema.ColumnList{
-			schema.Column{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
+			schema.Column{Field: arrow.Field{Name: "int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true}},
 			// Should not be unwrapped
-			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
+			schema.Column{Field: arrow.Field{Name: "test_struct", Type: types.ExtensionTypes.JSON, Nullable: true}},
 			// Should be unwrapped
-			schema.Column{Name: "non_embedded_embedded_string", Type: arrow.BinaryTypes.String},
-			schema.Column{Name: "non_embedded_int_col", Type: arrow.PrimitiveTypes.Int64},
+			schema.Column{Field: arrow.Field{Name: "non_embedded_embedded_string", Type: arrow.BinaryTypes.String, Nullable: true}},
+			schema.Column{Field: arrow.Field{Name: "non_embedded_int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true}},
 		},
 	}
 	expectedTestTableNonEmbeddedStructWithTopLevelPK = schema.Table{
 		Name: "test_struct",
 		Columns: schema.ColumnList{
 			schema.Column{
-				Name:            "int_col",
-				Type:            arrow.PrimitiveTypes.Int64,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Field:           arrow.Field{Name: "int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
+				CreationOptions: schema.CreationOptions{PrimaryKey: true},
 			},
 			// Should not be unwrapped
-			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
+			schema.Column{Field: arrow.Field{Name: "test_struct", Type: types.ExtensionTypes.JSON, Nullable: true}},
 			// Should be unwrapped
-			schema.Column{
-				Name: "non_embedded_embedded_string",
-				Type: arrow.BinaryTypes.String,
-			},
-			schema.Column{Name: "non_embedded_int_col", Type: arrow.PrimitiveTypes.Int64},
+			schema.Column{Field: arrow.Field{Name: "non_embedded_embedded_string", Type: arrow.BinaryTypes.String, Nullable: true}},
+			schema.Column{Field: arrow.Field{Name: "non_embedded_int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true}},
 		},
 	}
 	expectedTestTableNonEmbeddedStructWithUnwrappedPK = schema.Table{
 		Name: "test_struct",
 		Columns: schema.ColumnList{
 			// shouldn't be PK
-			schema.Column{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
+			schema.Column{Field: arrow.Field{Name: "int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true}},
 			// Should not be unwrapped
-			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
+			schema.Column{Field: arrow.Field{Name: "test_struct", Type: types.ExtensionTypes.JSON, Nullable: true}},
 			// Should be unwrapped
-			schema.Column{
-				Name: "non_embedded_embedded_string",
-				Type: arrow.BinaryTypes.String,
-			},
+			schema.Column{Field: arrow.Field{Name: "non_embedded_embedded_string", Type: arrow.BinaryTypes.String, Nullable: true}},
 			// should be PK
 			schema.Column{
-				Name:            "non_embedded_int_col",
-				Type:            arrow.PrimitiveTypes.Int64,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Field:           arrow.Field{Name: "non_embedded_int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
+				CreationOptions: schema.CreationOptions{PrimaryKey: true},
 			},
 		},
 	}
 	expectedTestSliceStruct = schema.Table{
 		Name: "test_struct",
 		Columns: schema.ColumnList{
-			{
-				Name: "int_col",
-				Type: arrow.PrimitiveTypes.Int64,
-			},
+			{Field: arrow.Field{Name: "int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true}},
 		},
 	}
 
@@ -234,33 +172,22 @@ var (
 		Name: "test_pk_struct",
 		Columns: schema.ColumnList{
 			{
-				Name:            "parent",
-				Type:            arrow.BinaryTypes.String,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Field:           arrow.Field{Name: "parent", Type: arrow.BinaryTypes.String, Nullable: true},
+				CreationOptions: schema.CreationOptions{PrimaryKey: true},
 			},
 			{
-				Name:            "name",
-				Type:            arrow.BinaryTypes.String,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Field:           arrow.Field{Name: "name", Type: arrow.BinaryTypes.String, Nullable: true},
+				CreationOptions: schema.CreationOptions{PrimaryKey: true},
 			},
-			{
-				Name: "version",
-				Type: arrow.PrimitiveTypes.Int64,
-			},
+			{Field: arrow.Field{Name: "version", Type: arrow.PrimitiveTypes.Int64, Nullable: true}},
 		},
 	}
 
 	expectedFunnyTable = schema.Table{
 		Name: "test_funny_struct",
 		Columns: schema.ColumnList{
-			{
-				Name: "a_funny_looking_field",
-				Type: arrow.BinaryTypes.String,
-			},
-			{
-				Name: "camel_case_name",
-				Type: arrow.BinaryTypes.String,
-			},
+			{Field: arrow.Field{Name: "a_funny_looking_field", Type: arrow.BinaryTypes.String, Nullable: true}},
+			{Field: arrow.Field{Name: "camel_case_name", Type: arrow.BinaryTypes.String, Nullable: true}},
 		},
 	}
 )
@@ -403,6 +330,7 @@ func TestTableFromGoStruct(t *testing.T) {
 				if !arrow.TypeEqual(col.Type, tt.want.Columns[i].Type) {
 					t.Fatalf("column %s does not match expected type. got %v, want %v", col.Name, col.Type, tt.want.Columns[i].Type)
 				}
+				require.Exactly(t, tt.want.Columns[i].Nullable, col.Nullable)
 			}
 			if diff := cmp.Diff(table.PrimaryKeys(), tt.want.PrimaryKeys()); diff != "" {
 				t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)

@@ -258,13 +258,13 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 		target: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
 			},
 		},
 		source: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
 			},
 		},
 		expectedChanges: nil,
@@ -274,21 +274,21 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 		target: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
-				{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
+				{Field: arrow.Field{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
 			},
 		},
 		source: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
 			},
 		},
 		expectedChanges: []TableColumnChange{
 			{
 				Type:       TableColumnChangeTypeAdd,
 				ColumnName: "bool1",
-				Current:    Column{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
+				Current:    Column{Field: arrow.Field{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
 			},
 		},
 	},
@@ -297,21 +297,21 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 		target: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
 			},
 		},
 		source: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
-				{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
+				{Field: arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
+				{Field: arrow.Field{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
 			},
 		},
 		expectedChanges: []TableColumnChange{
 			{
 				Type:       TableColumnChangeTypeRemove,
 				ColumnName: "bool1",
-				Previous:   Column{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
+				Previous:   Column{Field: arrow.Field{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
 			},
 		},
 	},

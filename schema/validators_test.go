@@ -11,18 +11,9 @@ func TestTableValidators(t *testing.T) {
 	var testTableValidators = Table{
 		Name: "test_table_validator",
 		Columns: []Column{
-			{
-				Name: "zero_bool",
-				Type: arrow.FixedWidthTypes.Boolean,
-			},
-			{
-				Name: "zero_int",
-				Type: arrow.PrimitiveTypes.Int64,
-			},
-			{
-				Name: "not_zero_bool",
-				Type: arrow.FixedWidthTypes.Boolean,
-			},
+			{Field: arrow.Field{Name: "zero_bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
+			{Field: arrow.Field{Name: "zero_int", Type: arrow.PrimitiveTypes.Int64, Nullable: true}},
+			{Field: arrow.Field{Name: "not_zero_bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true}},
 		},
 	}
 
