@@ -70,7 +70,7 @@ type Plugin struct {
 	unmanaged bool
 	// titleTransformer allows the plugin to control how table names get turned into titles for generated documentation
 	titleTransformer func(*schema.Table) string
-	syncTime         *time.Time
+	syncTime         time.Time
 }
 
 const (
@@ -299,7 +299,7 @@ func (p *Plugin) Sync(ctx context.Context, syncTime time.Time, res chan<- *schem
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
-
+	p.syncTime = syncTime
 	if p.client == nil {
 		var err error
 		p.client, err = p.newExecutionClient(ctx, p.logger, p.spec, Options{Backend: p.backend})
