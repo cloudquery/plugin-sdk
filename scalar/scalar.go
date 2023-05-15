@@ -82,6 +82,10 @@ func NewScalar(dt arrow.DataType) Scalar {
 }
 
 func AppendToBuilder(bldr array.Builder, s Scalar) {
+	if !s.IsValid() {
+		bldr.AppendNull()
+		return
+	}
 	switch s.DataType().ID() {
 	case arrow.BINARY:
 		bldr.(*array.BinaryBuilder).Append(s.(*Binary).Value)

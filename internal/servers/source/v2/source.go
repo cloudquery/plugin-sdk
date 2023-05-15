@@ -72,21 +72,21 @@ func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Respo
 	if err := dec.Decode(&spec); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to decode spec: %v", err)
 	}
-
+	
 	if err := s.Plugin.Init(ctx, spec); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
 	return &pb.Init_Response{}, nil
 }
 
-func (s *Server) Sync(_ *pb.Sync_Request, stream pb.Source_SyncServer) error {
+func (s *Server) Sync(req *pb.Sync_Request, stream pb.Source_SyncServer) error {
 	resources := make(chan *schema.Resource)
 	var syncErr error
 	ctx := stream.Context()
-
+	
 	go func() {
 		defer close(resources)
-		err := s.Plugin.Sync(ctx, resources)
+		err := s.Plugin.Sync(ctx, req.SyncTime.AsTime(), resources)
 		if err != nil {
 			syncErr = fmt.Errorf("failed to sync resources: %w", err)
 		}

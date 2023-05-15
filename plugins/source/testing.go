@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
@@ -33,7 +34,7 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 
 	go func() {
 		defer close(resourcesChannel)
-		syncErr = plugin.Sync(context.Background(), resourcesChannel)
+		syncErr = plugin.Sync(context.Background(), time.Now(), resourcesChannel)
 	}()
 
 	syncedResources := make([]*schema.Resource, 0)

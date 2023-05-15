@@ -96,7 +96,7 @@ func (p *Plugin) addInternalColumns(tables []*schema.Table) error {
 			return resource.Set(c.Name, p.syncTime)
 		}
 
-		table.Columns = append([]schema.Column{schema.CqSourceNameColumn, schema.CqSyncTimeColumn, cqID, schema.CqParentIDColumn}, table.Columns...)
+		table.Columns = append([]schema.Column{cqSourceName, cqSyncTime, cqID, schema.CqParentIDColumn}, table.Columns...)
 		if err := p.addInternalColumns(table.Relations); err != nil {
 			return err
 		}
@@ -294,7 +294,7 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 }
 
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *Plugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
+func (p *Plugin) Sync(ctx context.Context, syncTime time.Time, res chan<- *schema.Resource) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}

@@ -204,6 +204,7 @@ func (s *Benchmark) Run() {
 		g.Go(func() error {
 			defer close(resources)
 			return s.plugin.Sync(ctx,
+				time.Now(),
 				resources)
 		})
 		s.b.StartTimer()
