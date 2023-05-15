@@ -38,7 +38,7 @@ func getNewOCWClient(base opencloseclient, options ...Option) destination.NewCli
 	}
 }
 
-func (c *opencloseclient) WriteTableBatch(ctx context.Context, _ specs.Source, table *schema.Table, _ time.Time, resources []arrow.Record) error {
+func (c *opencloseclient) WriteTableBatch(_ context.Context, _ specs.Source, table *schema.Table, _ time.Time, resources []arrow.Record) error {
 	tableName := table.Name
 	for _, resource := range resources {
 		c.memoryDBLock.Lock()
@@ -52,7 +52,7 @@ func (c *opencloseclient) WriteTableBatch(ctx context.Context, _ specs.Source, t
 	return nil
 }
 
-func (c *opencloseclient) OpenTable(ctx context.Context, sourceSpec specs.Source, table *schema.Table) error {
+func (c *opencloseclient) OpenTable(_ context.Context, _ specs.Source, table *schema.Table) error {
 	if c.errOnOpen {
 		return fmt.Errorf("errOnOpen")
 	}
@@ -61,7 +61,7 @@ func (c *opencloseclient) OpenTable(ctx context.Context, sourceSpec specs.Source
 	c.openTables = append(c.openTables, table.Name)
 	return nil
 }
-func (c *opencloseclient) CloseTable(ctx context.Context, sourceSpec specs.Source, table *schema.Table) error {
+func (c *opencloseclient) CloseTable(_ context.Context, _ specs.Source, table *schema.Table) error {
 	if c.errOnClose {
 		return fmt.Errorf("errOnClose")
 	}
@@ -71,7 +71,7 @@ func (c *opencloseclient) CloseTable(ctx context.Context, sourceSpec specs.Sourc
 	return nil
 }
 
-func (c *opencloseclient) Close(ctx context.Context) error {
+func (c *opencloseclient) Close(_ context.Context) error {
 	// run the OpenClose-specific test checks here
 	c.tblLock.Lock()
 	defer c.tblLock.Unlock()
@@ -88,8 +88,9 @@ func (c *opencloseclient) Close(ctx context.Context) error {
 	return nil
 }
 
-func validateOCWClient(expectErrors bool) func(t *testing.T, p *destination.Plugin, destination specs.Destination) {
-	return func(t *testing.T, p *destination.Plugin, destination specs.Destination) {
+//nolint:revive
+func validateOCWClient(expectErrors bool) func(t *testing.T, p *destination.Plugin, destSpec specs.Destination) {
+	return func(t *testing.T, p *destination.Plugin, destSpec specs.Destination) {
 		t.Helper()
 		if expectErrors && p.Metrics().Errors == 0 {
 			t.Fatal("expected errors, got none")
