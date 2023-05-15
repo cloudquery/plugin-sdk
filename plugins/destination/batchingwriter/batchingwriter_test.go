@@ -13,12 +13,7 @@ import (
 
 type client struct {
 	spec specs.Destination
-	destination.UnimplementedUnmanagedWriter
-	destination.UnimplementedManagedWriter
-	destination.UnimplementedMigrate
-	destination.UnimplementedRead
-	destination.UnimplementedDeleteStale
-	destination.UnimplementedClose
+	destination.UnimplementedClient
 }
 
 func newClient(_ context.Context, _ zerolog.Logger, spec specs.Destination) (destination.Client, error) {
