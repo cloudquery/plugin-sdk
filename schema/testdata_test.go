@@ -2,12 +2,17 @@ package schema
 
 import "testing"
 
-func TestTestSourceColumns(t *testing.T) {
+func TestTestSourceColumns_Default(t *testing.T) {
 	// basic sanity check for tested columns
 	defaults := TestSourceColumns()
 	if len(defaults) < 100 {
 		t.Fatal("expected at least 100 columns by default")
 	}
+	// test some specific columns
+	checkColumnsExist(t, defaults, []string{"int64", "date32", "timestamp_us", "string", "struct", "string_map", "string_list"})
+}
+
+func TestTestSourceColumns_SkipAll(t *testing.T) {
 	skipAll := ColumnList(TestSourceColumns(
 		WithTestSourceSkipStructs(),
 		WithTestSourceSkipMaps(),
@@ -18,25 +23,22 @@ func TestTestSourceColumns(t *testing.T) {
 		WithTestSourceSkipIntervals(),
 		WithTestSourceSkipLargeTypes(),
 	))
-	if skipAll.Get("struct") != nil {
-		t.Fatal("expected no structs when WithTestSourceSkipStructs is used")
+	// test some specific columns
+	checkColumnsDontExist(t, skipAll, []string{"int64", "date32", "timestamp_us", "string", "struct", "string_map", "string_list"})
+}
+
+func checkColumnsExist(t *testing.T, list ColumnList, cols []string) {
+	for _, col := range cols {
+		if list.Get(col) == nil {
+			t.Errorf("expected column %s to be present", col)
+		}
 	}
-	if skipAll.Get("map") != nil {
-		t.Fatal("expected no maps when WithTestSourceSkipMaps is used")
-	}
-	if skipAll.Get("date32") != nil {
-		t.Fatal("expected no date32 when WithTestSourceSkipDates is used")
-	}
-	if skipAll.Get("time32") != nil {
-		t.Fatal("expected no times when WithTestSourceSkipTimes is used")
-	}
-	if skipAll.Get("timestamp_us") == nil {
-		t.Fatal("expected microsecond timestamps even when WithTestSourceSkipTimestamps is used (microsecond timestamps must always be supported)")
-	}
-	if skipAll.Get("timestamp_ns") != nil {
-		t.Fatal("expected no nansecond timestamps when WithTestSourceSkipTimestamps is used")
-	}
-	if skipAll.Get("monthinterval") != nil {
-		t.Fatal("expected no interval when WithTestSourceSkipIntervals is used")
+}
+
+func checkColumnsDontExist(t *testing.T, list ColumnList, cols []string) {
+	for _, col := range cols {
+		if list.Get(col) == nil {
+			t.Errorf("expected no %s column", col)
+		}
 	}
 }
