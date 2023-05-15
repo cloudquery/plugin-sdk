@@ -107,7 +107,10 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 	basicColumns = append(basicColumns, Column{Name: "mac", Type: types.NewMACType()})
 
 	// sort and remove duplicates (e.g. date32 and date64 appear twice)
-	basicColumns = sortAndRemoveDuplicates(basicColumns)
+	sort.Slice(basicColumns, func(i, j int) bool {
+		return basicColumns[i].Name < basicColumns[j].Name
+	})
+	basicColumns = removeDuplicates(basicColumns)
 
 	// we don't support float16 right now
 	basicColumns = removeColumnsByType(basicColumns, arrow.FLOAT16)
@@ -209,29 +212,25 @@ func fixedWidthColumns() []Column {
 	return columns
 }
 
-func sortAndRemoveDuplicates(columns []Column) []Column {
-	newColumns := make([]Column, len(columns))
-	copy(newColumns, columns)
-	sort.Slice(newColumns, func(i, j int) bool {
-		return newColumns[i].Name < newColumns[j].Name
-	})
-	for i := 0; i < len(newColumns)-1; i++ {
-		if newColumns[i].Name == newColumns[i+1].Name {
-			newColumns = append(newColumns[:i], newColumns[i+1:]...)
-			i--
+func removeDuplicates(columns []Column) []Column {
+	var newColumns []Column
+	seen := map[string]struct{}{}
+	for _, c := range columns {
+		if _, ok := seen[c.Name]; ok {
+			continue
 		}
+		newColumns = append(newColumns, c)
+		seen[c.Name] = struct{}{}
 	}
 	return newColumns
 }
 
 func removeColumnsByType(columns []Column, t ...arrow.Type) []Column {
-	newColumns := make([]Column, len(columns))
-	copy(newColumns, columns)
+	var newColumns []Column
 	for _, d := range t {
-		for i := 0; i < len(newColumns); i++ {
-			if newColumns[i].Type.ID() == d {
-				newColumns = append(newColumns[:i], newColumns[i+1:]...)
-				i--
+		for _, c := range columns {
+			if c.Type.ID() == d {
+				newColumns = append(newColumns, c)
 			}
 		}
 	}
@@ -239,13 +238,11 @@ func removeColumnsByType(columns []Column, t ...arrow.Type) []Column {
 }
 
 func removeColumnsByDataType(columns []Column, dt ...arrow.DataType) []Column {
-	newColumns := make([]Column, len(columns))
-	copy(newColumns, columns)
+	var newColumns []Column
 	for _, d := range dt {
-		for i := 0; i < len(newColumns); i++ {
-			if arrow.TypeEqual(newColumns[i].Type, d) {
-				newColumns = append(newColumns[:i], newColumns[i+1:]...)
-				i--
+		for _, c := range columns {
+			if arrow.TypeEqual(c.Type, d) {
+				newColumns = append(newColumns, c)
 			}
 		}
 	}
