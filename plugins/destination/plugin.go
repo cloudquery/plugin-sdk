@@ -18,26 +18,8 @@ type UnmanagedWriter interface {
 	Metrics() Metrics
 }
 
-var _ UnmanagedWriter = UnimplementedUnmanagedWriter{}
-
-type UnimplementedUnmanagedWriter struct{}
-
-func (UnimplementedUnmanagedWriter) Write(context.Context, specs.Source, schema.Tables, time.Time, <-chan arrow.Record) error {
-	panic("Write not implemented")
-}
-
-func (UnimplementedUnmanagedWriter) Metrics() Metrics {
-	panic("Metrics not implemented")
-}
-
 type ManagedWriter interface {
 	WriteTableBatch(context.Context, specs.Source, *schema.Table, time.Time, []arrow.Record) error
-}
-
-type UnimplementedManagedWriter struct{}
-
-func (UnimplementedManagedWriter) WriteTableBatch(context.Context, specs.Source, *schema.Table, time.Time, []arrow.Record) error {
-	panic("WriteTableBatch not implemented")
 }
 
 type Client interface {
