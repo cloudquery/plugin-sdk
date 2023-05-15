@@ -13,13 +13,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testSourceOptions ...func(o *schema.TestSourceOptions)) error {
 	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := schema.TestTable(tableName)
+	table := schema.TestTable(tableName, testSourceOptions...)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := schema.Tables{
 		table,
@@ -67,7 +67,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 
 	// copy first resource but update the sync time
-	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
+	cqIDInds := resources[0].Schema().FieldIndices(schema.PKColumnNames[0])
+	u := resources[0].Column(cqIDInds[0]).(*types.UUIDArray).Value(0)
 	opts = schema.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   secondSyncTime,

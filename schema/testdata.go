@@ -1,131 +1,298 @@
 package schema
 
 import (
-	"net"
+	"fmt"
+	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/google/uuid"
+	"golang.org/x/exp/slices"
 )
 
-func TestSourceTable(name string) *Table {
-	return &Table{
-		Name:        name,
-		Description: "Test table",
-		Columns: ColumnList{
-			CqIDColumn,
-			CqParentIDColumn,
-			{
-				Name:       "uuid_pk",
-				Type:       types.ExtensionTypes.UUID,
-				PrimaryKey: true,
-			},
-			{
-				Name:       "string_pk",
-				Type:       arrow.BinaryTypes.String,
-				PrimaryKey: true,
-			},
-			{
-				Name: "bool",
-				Type: arrow.FixedWidthTypes.Boolean,
-			},
-			{
-				Name: "int",
-				Type: arrow.PrimitiveTypes.Int64,
-			},
-			{
-				Name: "float",
-				Type: arrow.PrimitiveTypes.Float64,
-			},
-			{
-				Name: "uuid",
-				Type: types.ExtensionTypes.UUID,
-			},
-			{
-				Name: "text",
-				Type: arrow.BinaryTypes.String,
-			},
-			{
-				Name: "text_with_null",
-				Type: arrow.BinaryTypes.String,
-			},
-			{
-				Name: "bytea",
-				Type: arrow.BinaryTypes.Binary,
-			},
-			{
-				Name: "text_array",
-				Type: arrow.ListOf(arrow.BinaryTypes.String),
-			},
-			{
-				Name: "text_array_with_null",
-				Type: arrow.ListOf(arrow.BinaryTypes.String),
-			},
-			{
-				Name: "int_array",
-				Type: arrow.ListOf(arrow.PrimitiveTypes.Int64),
-			},
-			{
-				Name: "timestamp",
-				Type: arrow.FixedWidthTypes.Timestamp_us,
-			},
-			{
-				Name: "json",
-				Type: types.ExtensionTypes.JSON,
-			},
-			{
-				Name: "uuid_array",
-				Type: arrow.ListOf(types.ExtensionTypes.UUID),
-			},
-			{
-				Name: "inet",
-				Type: types.ExtensionTypes.Inet,
-			},
-			{
-				Name: "inet_array",
-				Type: arrow.ListOf(types.ExtensionTypes.Inet),
-			},
-			{
-				Name: "cidr",
-				Type: types.ExtensionTypes.Inet,
-			},
-			{
-				Name: "cidr_array",
-				Type: arrow.ListOf(types.ExtensionTypes.Inet),
-			},
-			{
-				Name: "macaddr",
-				Type: types.ExtensionTypes.MAC,
-			},
-			{
-				Name: "macaddr_array",
-				Type: arrow.ListOf(types.ExtensionTypes.MAC),
-			},
-		},
+// TestSourceOptions controls which types are included by TestSourceColumns.
+type TestSourceOptions struct {
+	SkipLists      bool // lists of all primitive types. Lists that were supported by CQTypes are always included.
+	SkipTimestamps bool // timestamp types. Microsecond timestamp is always be included, regardless of this setting.
+	SkipDates      bool
+	SkipMaps       bool
+	SkipStructs    bool
+	SkipIntervals  bool
+	SkipDurations  bool
+	SkipTimes      bool // time of day types
+	SkipLargeTypes bool // e.g. large binary, large string
+}
+
+func WithTestSourceSkipLists() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipLists = true
 	}
 }
 
-func TestTableIncremental(name string) *Table {
-	t := TestTable(name)
-	t.IsIncremental = true
-	return t
+func WithTestSourceSkipTimestamps() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipTimestamps = true
+	}
 }
 
-// TestTable returns a table with columns of all type. useful for destination testing purposes
-func TestTable(name string) *Table {
-	sourceTable := TestSourceTable(name)
-	sourceTable.Columns = append(ColumnList{
-		CqSourceNameColumn,
-		CqSyncTimeColumn,
-	}, sourceTable.Columns...)
-	return sourceTable
+func WithTestSourceSkipDates() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipDates = true
+	}
 }
 
+func WithTestSourceSkipMaps() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipMaps = true
+	}
+}
+
+func WithTestSourceSkipStructs() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipStructs = true
+	}
+}
+
+func WithTestSourceSkipIntervals() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipIntervals = true
+	}
+}
+
+func WithTestSourceSkipDurations() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipDurations = true
+	}
+}
+
+func WithTestSourceSkipTimes() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipTimes = true
+	}
+}
+
+func WithTestSourceSkipLargeTypes() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipLargeTypes = true
+	}
+}
+
+// TestSourceColumns returns columns for all Arrow types and composites thereof. TestSourceOptions controls
+// which types are included.
+func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
+	var opts TestSourceOptions
+	for _, opt := range testOpts {
+		opt(&opts)
+	}
+
+	// cq columns
+	var cqColumns []Column
+	cqColumns = append(cqColumns, Column{Name: CqIDColumn.Name, Type: types.NewUUIDType(), NotNull: true, Unique: true})
+	cqColumns = append(cqColumns, Column{Name: CqParentIDColumn.Name, Type: types.NewUUIDType(), NotNull: true})
+
+	var basicColumns []Column
+	basicColumns = append(basicColumns, primitiveColumns()...)
+	basicColumns = append(basicColumns, binaryColumns()...)
+	basicColumns = append(basicColumns, fixedWidthColumns()...)
+
+	// add extensions
+	basicColumns = append(basicColumns, Column{Name: "uuid", Type: types.NewUUIDType()})
+	basicColumns = append(basicColumns, Column{Name: "inet", Type: types.NewInetType()})
+	basicColumns = append(basicColumns, Column{Name: "mac", Type: types.NewMACType()})
+
+	// sort and remove duplicates (e.g. date32 and date64 appear twice)
+	sort.Slice(basicColumns, func(i, j int) bool {
+		return basicColumns[i].Name < basicColumns[j].Name
+	})
+	basicColumns = removeDuplicates(basicColumns)
+
+	// we don't support float16 right now
+	basicColumns = removeColumnsByType(basicColumns, arrow.FLOAT16)
+
+	if opts.SkipTimestamps {
+		// for backwards-compatibility, microsecond timestamps are not removed here
+		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Second, TimeZone: "UTC"})
+		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Millisecond, TimeZone: "UTC"})
+		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Nanosecond, TimeZone: "UTC"})
+	}
+	if opts.SkipDates {
+		basicColumns = removeColumnsByType(basicColumns, arrow.DATE32, arrow.DATE64)
+	}
+	if opts.SkipTimes {
+		basicColumns = removeColumnsByType(basicColumns, arrow.TIME32, arrow.TIME64)
+	}
+	if opts.SkipIntervals {
+		basicColumns = removeColumnsByType(basicColumns, arrow.INTERVAL_DAY_TIME, arrow.INTERVAL_MONTHS, arrow.INTERVAL_MONTH_DAY_NANO)
+	}
+	if opts.SkipDurations {
+		basicColumns = removeColumnsByType(basicColumns, arrow.DURATION)
+	}
+	if opts.SkipLargeTypes {
+		basicColumns = removeColumnsByType(basicColumns, arrow.LARGE_BINARY, arrow.LARGE_STRING)
+	}
+
+	var compositeColumns []Column
+
+	// we don't need to include lists of binary or large binary right now; probably no destinations or sources need to support that
+	basicColumnsWithExclusions := removeColumnsByType(basicColumns, arrow.BINARY, arrow.LARGE_BINARY)
+	if opts.SkipLists {
+		// only include lists that were originally supported by CQTypes
+		cqListColumns := []Column{
+			{Name: "string", Type: arrow.BinaryTypes.String},
+			{Name: "uuid", Type: types.NewUUIDType()},
+			{Name: "inet", Type: types.NewInetType()},
+			{Name: "mac", Type: types.NewMACType()},
+		}
+		compositeColumns = append(compositeColumns, listOfColumns(cqListColumns)...)
+	} else {
+		compositeColumns = append(compositeColumns, listOfColumns(basicColumnsWithExclusions)...)
+	}
+
+	if !opts.SkipMaps {
+		compositeColumns = append(compositeColumns, mapOfColumns(basicColumnsWithExclusions)...)
+	}
+
+	// add JSON later, we don't want to include it as a list or map right now (it causes complications with JSON unmarshalling)
+	basicColumns = append(basicColumns, Column{Name: "json", Type: types.NewJSONType()})
+
+	if !opts.SkipStructs {
+		// struct with all the types
+		compositeColumns = append(compositeColumns, Column{Name: "struct", Type: arrow.StructOf(columnsToFields(basicColumns...)...)})
+
+		// struct with nested struct
+		compositeColumns = append(compositeColumns, Column{Name: "nested_struct", Type: arrow.StructOf(arrow.Field{Name: "inner", Type: arrow.StructOf(columnsToFields(basicColumns...)...)})})
+	}
+
+	allColumns := append(append(cqColumns, basicColumns...), compositeColumns...)
+	return allColumns
+}
+
+// primitiveColumns returns a list of primitive columns as defined by Arrow types.
+func primitiveColumns() []Column {
+	primitiveTypesValue := reflect.ValueOf(arrow.PrimitiveTypes)
+	primitiveTypesType := reflect.TypeOf(arrow.PrimitiveTypes)
+	columns := make([]Column, primitiveTypesType.NumField())
+	for i := 0; i < primitiveTypesType.NumField(); i++ {
+		fieldName := primitiveTypesType.Field(i).Name
+		dataType := primitiveTypesValue.FieldByName(fieldName).Interface().(arrow.DataType)
+		columns[i] = Column{Name: strings.ToLower(fieldName), Type: dataType}
+	}
+	return columns
+}
+
+// binaryColumns returns a list of binary columns as defined by Arrow types.
+func binaryColumns() []Column {
+	binaryTypesValue := reflect.ValueOf(arrow.BinaryTypes)
+	binaryTypesType := reflect.TypeOf(arrow.BinaryTypes)
+	columns := make([]Column, binaryTypesType.NumField())
+	for i := 0; i < binaryTypesType.NumField(); i++ {
+		fieldName := binaryTypesType.Field(i).Name
+		dataType := binaryTypesValue.FieldByName(fieldName).Interface().(arrow.DataType)
+		columns[i] = Column{Name: strings.ToLower(fieldName), Type: dataType}
+	}
+	return columns
+}
+
+// fixedWidthColumns returns a list of fixed width columns as defined by Arrow types.
+func fixedWidthColumns() []Column {
+	fixedWidthTypesValue := reflect.ValueOf(arrow.FixedWidthTypes)
+	fixedWidthTypesType := reflect.TypeOf(arrow.FixedWidthTypes)
+	columns := make([]Column, fixedWidthTypesType.NumField())
+	for i := 0; i < fixedWidthTypesType.NumField(); i++ {
+		fieldName := fixedWidthTypesType.Field(i).Name
+		dataType := fixedWidthTypesValue.FieldByName(fieldName).Interface().(arrow.DataType)
+		columns[i] = Column{Name: strings.ToLower(fieldName), Type: dataType}
+	}
+	return columns
+}
+
+func removeDuplicates(columns []Column) []Column {
+	newColumns := make([]Column, 0, len(columns))
+	seen := map[string]struct{}{}
+	for _, c := range columns {
+		if _, ok := seen[c.Name]; ok {
+			continue
+		}
+		newColumns = append(newColumns, c)
+		seen[c.Name] = struct{}{}
+	}
+	return slices.Clip(newColumns)
+}
+
+func removeColumnsByType(columns []Column, t ...arrow.Type) []Column {
+	var newColumns []Column
+	for _, d := range t {
+		for _, c := range columns {
+			if c.Type.ID() == d {
+				newColumns = append(newColumns, c)
+			}
+		}
+	}
+	return newColumns
+}
+
+func removeColumnsByDataType(columns []Column, dt ...arrow.DataType) []Column {
+	var newColumns []Column
+	for _, d := range dt {
+		for _, c := range columns {
+			if arrow.TypeEqual(c.Type, d) {
+				newColumns = append(newColumns, c)
+			}
+		}
+	}
+	return newColumns
+}
+
+// listOfColumns returns a list of columns that are lists of the given columns.
+func listOfColumns(baseColumns []Column) []Column {
+	columns := make([]Column, len(baseColumns))
+	for i := 0; i < len(baseColumns); i++ {
+		columns[i] = Column{Name: baseColumns[i].Name + "_list", Type: arrow.ListOf(baseColumns[i].Type)}
+	}
+	return columns
+}
+
+// mapOfColumns returns a list of columns that are maps of the given columns.
+func mapOfColumns(baseColumns []Column) []Column {
+	columns := make([]Column, len(baseColumns))
+	for i := 0; i < len(baseColumns); i++ {
+		columns[i] = Column{Name: baseColumns[i].Name + "_map", Type: arrow.MapOf(baseColumns[i].Type, baseColumns[i].Type)}
+	}
+	return columns
+}
+
+func columnsToFields(columns ...Column) []arrow.Field {
+	fields := make([]arrow.Field, len(columns))
+	for i := range columns {
+		fields[i] = arrow.Field{
+			Name: columns[i].Name,
+			Type: columns[i].Type,
+		}
+	}
+	return fields
+}
+
+var PKColumnNames = []string{"uuid_pk", "string_pk"}
+
+// TestTable returns a table with columns of all types. Useful for destination testing purposes
+func TestTable(name string, opts ...func(o *TestSourceOptions)) *Table {
+	var columns []Column
+	columns = append(columns, Column{Name: "uuid_pk", Type: types.NewUUIDType(), PrimaryKey: true, Unique: true})
+	columns = append(columns, Column{Name: "string_pk", Type: arrow.BinaryTypes.String, PrimaryKey: true, Unique: true})
+	columns = append(columns, Column{Name: CqSourceNameColumn.Name, Type: arrow.BinaryTypes.String})
+	columns = append(columns, Column{Name: CqSyncTimeColumn.Name, Type: arrow.FixedWidthTypes.Timestamp_us})
+	columns = append(columns, TestSourceColumns(opts...)...)
+	return &Table{Name: name, Columns: columns}
+}
+
+// GenTestDataOptions are options for generating test data
 type GenTestDataOptions struct {
 	// SourceName is the name of the source to set in the source_name column.
 	SourceName string
@@ -141,119 +308,33 @@ type GenTestDataOptions struct {
 	StableTime time.Time
 }
 
+// GenTestData generates a slice of arrow.Records with the given schema and options.
 func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 	var records []arrow.Record
 	sc := table.ToArrowSchema()
 	for j := 0; j < opts.MaxRows; j++ {
-		u := uuid.New()
-		if opts.StableUUID != uuid.Nil {
-			u = opts.StableUUID
-		}
 		nullRow := j%2 == 1
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
-		for i, c := range table.Columns {
-			if nullRow && !c.NotNull && !c.PrimaryKey &&
-				c.Name != CqSourceNameColumn.Name &&
-				c.Name != CqSyncTimeColumn.Name &&
-				c.Name != CqIDColumn.Name &&
-				c.Name != CqParentIDColumn.Name {
+		for i, c := range sc.Fields() {
+			if nullRow && c.Nullable && !schema.IsPk(c) &&
+				c.Name != schema.CqSourceNameColumn.Name &&
+				c.Name != schema.CqSyncTimeColumn.Name &&
+				c.Name != schema.CqIDField.Name &&
+				c.Name != schema.CqParentIDColumn.Name {
 				bldr.Field(i).AppendNull()
 				continue
 			}
-			// nolint:gocritic
-			if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Boolean) {
-				bldr.Field(i).(*array.BooleanBuilder).Append(true)
-			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Int64) {
-				bldr.Field(i).(*array.Int64Builder).Append(1)
-			} else if arrow.TypeEqual(c.Type, arrow.PrimitiveTypes.Float64) {
-				bldr.Field(i).(*array.Float64Builder).Append(1.1)
-			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.UUID) {
-				bldr.Field(i).(*types.UUIDBuilder).Append(u)
-			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.String) {
-				switch c.Name {
-				case CqSourceNameColumn.Name:
-					bldr.Field(i).(*array.StringBuilder).AppendString(opts.SourceName)
-				case "text_with_null":
-					bldr.Field(i).(*array.StringBuilder).AppendString("AStringWith\x00NullBytes")
-				default:
-					bldr.Field(i).(*array.StringBuilder).AppendString("AString")
-				}
-			} else if arrow.TypeEqual(c.Type, arrow.BinaryTypes.Binary) {
-				bldr.Field(i).(*array.BinaryBuilder).Append([]byte{1, 2, 3})
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(arrow.BinaryTypes.String)) {
-				if c.Name == "text_array_with_null" {
-					bldr.Field(i).(*array.ListBuilder).Append(true)
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test1")
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test2\x00WithNull")
-				} else {
-					bldr.Field(i).(*array.ListBuilder).Append(true)
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test1")
-					bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.StringBuilder).AppendString("test2")
-				}
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(arrow.PrimitiveTypes.Int64)) {
-				bldr.Field(i).(*array.ListBuilder).Append(true)
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(1)
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*array.Int64Builder).Append(2)
-			} else if arrow.TypeEqual(c.Type, arrow.FixedWidthTypes.Timestamp_us) {
-				if c.Name == CqSyncTimeColumn.Name {
-					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(opts.SyncTime.UTC().Truncate(time.Millisecond).UnixMicro()))
-				} else {
-					t := time.Now()
-					if !opts.StableTime.IsZero() {
-						t = opts.StableTime
-					}
-					bldr.Field(i).(*array.TimestampBuilder).Append(arrow.Timestamp(t.UTC().Truncate(time.Millisecond).UnixMicro()))
-				}
-			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.JSON) {
-				bldr.Field(i).(*types.JSONBuilder).Append(map[string]any{"test": "test"})
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.UUID)) {
-				bldr.Field(i).(*array.ListBuilder).Append(true)
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.UUIDBuilder).Append(uuid.MustParse("00000000-0000-0000-0000-000000000001"))
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.UUIDBuilder).Append(uuid.MustParse("00000000-0000-0000-0000-000000000002"))
-			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.Inet) {
-				_, ipnet, err := net.ParseCIDR("192.0.2.0/24")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*types.InetBuilder).Append(ipnet)
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.Inet)) {
-				bldr.Field(i).(*array.ListBuilder).Append(true)
-				_, ipnet, err := net.ParseCIDR("192.0.2.1/24")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(ipnet)
-				_, ipnet, err = net.ParseCIDR("192.0.2.1/24")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(ipnet)
-			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.MAC) {
-				mac, err := net.ParseMAC("aa:bb:cc:dd:ee:ff")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*types.MACBuilder).Append(mac)
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.MAC)) {
-				mac, err := net.ParseMAC("aa:bb:cc:dd:ee:ff")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*array.ListBuilder).Append(true)
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.MACBuilder).Append(mac)
-				mac, err = net.ParseMAC("11:22:33:44:55:66")
-				if err != nil {
-					panic(err)
-				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.MACBuilder).Append(mac)
-			} else {
-				panic("unknown type: " + c.Type.String() + " column: " + c.Name)
+			example := getExampleJSON(c.Name, c.Type, opts)
+			l := `[` + example + `]`
+			err := bldr.Field(i).UnmarshalJSON([]byte(l))
+			if err != nil {
+				panic(fmt.Sprintf("failed to unmarshal json `%v` for column %v: %v", l, c.Name, err))
 			}
 		}
 		records = append(records, bldr.NewRecord())
 		bldr.Release()
 	}
-	if indices := sc.FieldIndices(CqIDColumn.Name); len(indices) > 0 {
+	if indices := sc.FieldIndices(schema.CqIDColumn.Name); len(indices) > 0 {
 		cqIDIndex := indices[0]
 		sort.Slice(records, func(i, j int) bool {
 			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
@@ -262,4 +343,183 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 		})
 	}
 	return records
+}
+
+func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
+	// handle lists (including maps)
+	if arrow.IsListLike(dataType.ID()) {
+		if dataType.ID() == arrow.MAP {
+			k := getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
+			v := getExampleJSON(colName, dataType.(*arrow.MapType).ValueType().Field(1).Type, opts)
+			return fmt.Sprintf(`[{"key": %s,"value": %s}]`, k, v)
+		}
+		inner := dataType.(*arrow.ListType).Elem()
+		return `[` + getExampleJSON(colName, inner, opts) + `]`
+	}
+	// handle extension types
+	if arrow.TypeEqual(dataType, types.ExtensionTypes.UUID) {
+		u := uuid.New()
+		if opts.StableUUID != uuid.Nil {
+			u = opts.StableUUID
+		}
+		return `"` + u.String() + `"`
+	}
+	if arrow.TypeEqual(dataType, types.ExtensionTypes.JSON) {
+		return `"{\"test\":\"test\"}"`
+	}
+	if arrow.TypeEqual(dataType, types.ExtensionTypes.Inet) {
+		return `"192.0.2.0/24"`
+	}
+	if arrow.TypeEqual(dataType, types.ExtensionTypes.MAC) {
+		return `"aa:bb:cc:dd:ee:ff"`
+	}
+
+	// handle integers
+	if arrow.IsInteger(dataType.ID()) {
+		return "-1"
+	}
+
+	// handle unsigned integers
+	if arrow.IsUnsignedInteger(dataType.ID()) {
+		return "1"
+	}
+
+	// handle floats
+	if arrow.IsFloating(dataType.ID()) {
+		return "1.1"
+	}
+
+	// handle decimals
+	if arrow.IsDecimal(dataType.ID()) {
+		return "1.1"
+	}
+
+	// handle booleans
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Boolean) {
+		return "true"
+	}
+
+	// handle strings
+	stringTypes := []arrow.DataType{
+		arrow.BinaryTypes.String,
+		arrow.BinaryTypes.LargeString,
+	}
+	for _, stringType := range stringTypes {
+		if arrow.TypeEqual(dataType, stringType) {
+			if colName == schema.CqSourceNameColumn.Name {
+				return `"` + opts.SourceName + `"`
+			}
+			return `"AString"`
+		}
+	}
+
+	// handle binary types
+	binaryTypes := []arrow.DataType{
+		arrow.BinaryTypes.Binary,
+		arrow.BinaryTypes.LargeBinary,
+	}
+	for _, binaryType := range binaryTypes {
+		if arrow.TypeEqual(dataType, binaryType) {
+			return `"AQIDBA=="` // base64 encoded 0x01, 0x02, 0x03, 0x04
+		}
+	}
+
+	// handle structs
+	if dataType.ID() == arrow.STRUCT {
+		var columns []string
+		for _, field := range dataType.(*arrow.StructType).Fields() {
+			v := getExampleJSON(field.Name, field.Type, opts)
+			columns = append(columns, fmt.Sprintf(`"%s": %v`, field.Name, v))
+		}
+		return `{` + strings.Join(columns, ",") + `}`
+	}
+
+	// handle timestamp types
+	timestampTypes := []arrow.DataType{
+		arrow.FixedWidthTypes.Timestamp_s,
+		arrow.FixedWidthTypes.Timestamp_ms,
+		arrow.FixedWidthTypes.Timestamp_us,
+		arrow.FixedWidthTypes.Timestamp_ns,
+		arrow.FixedWidthTypes.Time32s,
+		arrow.FixedWidthTypes.Time32ms,
+		arrow.FixedWidthTypes.Time64us,
+		arrow.FixedWidthTypes.Time64ns,
+	}
+	for _, timestampType := range timestampTypes {
+		if arrow.TypeEqual(dataType, timestampType) {
+			t := time.Now()
+			if colName == schema.CqSyncTimeColumn.Name {
+				t = opts.SyncTime.UTC()
+			} else if !opts.StableTime.IsZero() {
+				t = opts.StableTime
+			}
+			switch timestampType {
+			case arrow.FixedWidthTypes.Timestamp_s:
+				return strconv.FormatInt(t.Unix(), 10)
+			case arrow.FixedWidthTypes.Timestamp_ms:
+				return strconv.FormatInt(t.UnixMilli(), 10)
+			case arrow.FixedWidthTypes.Timestamp_us:
+				return strconv.FormatInt(t.UnixMicro(), 10)
+			case arrow.FixedWidthTypes.Timestamp_ns:
+				// Note: We use microseconds instead of nanoseconds here because
+				//       nanosecond precision is not supported by many destinations.
+				//       For now, we begrudgingly accept loss of precision in these cases.
+				//       See https://github.com/cloudquery/plugin-sdk/issues/830
+				t = t.Truncate(time.Microsecond)
+				// Use string timestamp string format here because JSON integers are
+				// unmarshalled as float64, losing precision for nanosecond timestamps.
+				return t.Format(`"2006-01-02 15:04:05.999999999"`)
+			case arrow.FixedWidthTypes.Time32s:
+				h, m, s := t.Clock()
+				return strconv.Itoa(h*3600 + m*60 + s)
+			case arrow.FixedWidthTypes.Time32ms:
+				h, m, s := t.Clock()
+				ns := t.Nanosecond()
+				return strconv.Itoa(h*3600000 + m*60000 + s*1000 + ns/1000000)
+			case arrow.FixedWidthTypes.Time64us:
+				h, m, s := t.Clock()
+				ns := t.Nanosecond()
+				return strconv.Itoa(h*3600000000 + m*60000000 + s*1000000 + ns/1000)
+			case arrow.FixedWidthTypes.Time64ns:
+				h, m, s := t.Clock()
+				ns := t.Nanosecond()
+				return strconv.Itoa(h*3600000000000 + m*60000000000 + s*1000000000 + ns)
+			default:
+				panic("unhandled timestamp type: " + timestampType.Name())
+			}
+		}
+	}
+
+	// handle date types
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Date32) {
+		return `19471`
+	}
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Date64) {
+		ms := 19471 * 86400000
+		return fmt.Sprintf("%d", ms)
+	}
+
+	// handle duration and interval types
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.DayTimeInterval) {
+		return `{"days": 1, "milliseconds": 1}`
+	}
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.MonthInterval) {
+		return `{"months": 1}`
+	}
+	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.MonthDayNanoInterval) {
+		return `{"months": 1, "days": 1, "nanoseconds": 1}`
+	}
+	durationTypes := []arrow.DataType{
+		arrow.FixedWidthTypes.Duration_s,
+		arrow.FixedWidthTypes.Duration_ms,
+		arrow.FixedWidthTypes.Duration_us,
+		arrow.FixedWidthTypes.Duration_ns,
+	}
+	for _, durationType := range durationTypes {
+		if arrow.TypeEqual(dataType, durationType) {
+			return `123456789`
+		}
+	}
+
+	panic("unknown type: " + dataType.String() + " column: " + colName)
 }
