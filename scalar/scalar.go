@@ -116,7 +116,7 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.UUID):
 			bldr.(*types.UUIDBuilder).Append(s.(*UUID).Value)
 		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.JSON):
-			bldr.(*types.JSONBuilder).Append(s.(*JSON).Value)
+			bldr.(*types.JSONBuilder).AppendBytes(s.(*JSON).Value)
 		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.MAC):
 			bldr.(*types.MACBuilder).Append(s.(*Mac).Value)
 		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.Inet):

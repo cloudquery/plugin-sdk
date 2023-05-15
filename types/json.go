@@ -20,6 +20,15 @@ func NewJSONBuilder(builder *array.ExtensionBuilder) *JSONBuilder {
 	return &JSONBuilder{ExtensionBuilder: builder}
 }
 
+func (b *JSONBuilder) AppendBytes(v []byte) {
+	if v == nil {
+		b.AppendNull()
+		return
+	}
+
+	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append(v)
+}
+
 func (b *JSONBuilder) Append(v any) {
 	if v == nil {
 		b.AppendNull()
