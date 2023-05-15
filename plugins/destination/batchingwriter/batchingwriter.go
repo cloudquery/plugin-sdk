@@ -204,6 +204,7 @@ func (w *Batching) Write(ctx context.Context, sourceSpec specs.Source, tables sc
 	return nil
 }
 
-func (w *Batching) BatchSize() (int64, int64) {
+// BatchSize returns the current batch size, used in testing
+func (w *Batching) BatchSize() (batchSize int64, batchSizeBytes int64) {
 	return w.batchSize, w.batchSizeBytes
 }

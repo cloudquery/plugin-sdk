@@ -247,6 +247,7 @@ func (p *Plugin) Close(ctx context.Context) error {
 	return p.client.Close(ctx)
 }
 
+// BatchWriter returns the current batching writer or nil, used in testing
 func (p *Plugin) BatchingWriter() BatchingWriter {
 	return p.batchingWriter
 }
