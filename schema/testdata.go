@@ -18,20 +18,79 @@ import (
 
 // TestSourceOptions controls which types are included by TestSourceColumns.
 type TestSourceOptions struct {
-	IncludeLists      bool // lists of all primitive types. Lists that were supported by CQTypes are always included.
-	IncludeTimestamps bool // timestamp types. Microsecond timestamp is always be included, regardless of this setting.
-	IncludeDates      bool
-	IncludeMaps       bool
-	IncludeStructs    bool
-	IncludeIntervals  bool
-	IncludeDurations  bool
-	IncludeTimes      bool // time of day types
-	IncludeLargeTypes bool // e.g. large binary, large string
+	SkipLists      bool // lists of all primitive types. Lists that were supported by CQTypes are always included.
+	SkipTimestamps bool // timestamp types. Microsecond timestamp is always be included, regardless of this setting.
+	SkipDates      bool
+	SkipMaps       bool
+	SkipStructs    bool
+	SkipIntervals  bool
+	SkipDurations  bool
+	SkipTimes      bool // time of day types
+	SkipLargeTypes bool // e.g. large binary, large string
+}
+
+func WithTestSourceSkipLists() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipLists = true
+	}
+}
+
+func WithTestSourceSkipTimestamps() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipTimestamps = true
+	}
+}
+
+func WithTestSourceSkipDates() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipDates = true
+	}
+}
+
+func WithTestSourceSkipMaps() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipMaps = true
+	}
+}
+
+func WithTestSourceSkipStructs() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipStructs = true
+	}
+}
+
+func WithTestSourceSkipIntervals() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipIntervals = true
+	}
+}
+
+func WithTestSourceSkipDurations() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipDurations = true
+	}
+}
+
+func WithTestSourceSkipTimes() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipTimes = true
+	}
+}
+
+func WithTestSourceSkipLargeTypes() func(o *TestSourceOptions) {
+	return func(o *TestSourceOptions) {
+		o.SkipLargeTypes = true
+	}
 }
 
 // TestSourceColumns returns columns for all Arrow types and composites thereof. TestSourceOptions controls
 // which types are included.
-func TestSourceColumns(opts TestSourceOptions) []Column {
+func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
+	var opts TestSourceOptions
+	for _, opt := range testOpts {
+		opt(&opts)
+	}
+
 	// cq columns
 	var cqColumns []Column
 	cqColumns = append(cqColumns, Column{Name: CqIDColumn.Name, Type: types.NewUUIDType(), CreationOptions: ColumnCreationOptions{NotNull: true, Unique: true}})
@@ -53,25 +112,25 @@ func TestSourceColumns(opts TestSourceOptions) []Column {
 	// we don't support float16 right now
 	basicColumns = removeColumnsByType(basicColumns, arrow.FLOAT16)
 
-	if !opts.IncludeTimestamps {
+	if opts.SkipTimestamps {
 		// for backwards-compatibility, microsecond timestamps are not removed here
 		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Second, TimeZone: "UTC"})
 		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Millisecond, TimeZone: "UTC"})
 		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Nanosecond, TimeZone: "UTC"})
 	}
-	if !opts.IncludeDates {
+	if opts.SkipDates {
 		basicColumns = removeColumnsByType(basicColumns, arrow.DATE32, arrow.DATE64)
 	}
-	if !opts.IncludeTimes {
+	if opts.SkipTimes {
 		basicColumns = removeColumnsByType(basicColumns, arrow.TIME32, arrow.TIME64)
 	}
-	if !opts.IncludeIntervals {
+	if opts.SkipIntervals {
 		basicColumns = removeColumnsByType(basicColumns, arrow.INTERVAL_DAY_TIME, arrow.INTERVAL_MONTHS, arrow.INTERVAL_MONTH_DAY_NANO)
 	}
-	if !opts.IncludeDurations {
+	if opts.SkipDurations {
 		basicColumns = removeColumnsByType(basicColumns, arrow.DURATION)
 	}
-	if !opts.IncludeLargeTypes {
+	if opts.SkipLargeTypes {
 		basicColumns = removeColumnsByType(basicColumns, arrow.LARGE_BINARY, arrow.LARGE_STRING)
 	}
 
@@ -79,9 +138,7 @@ func TestSourceColumns(opts TestSourceOptions) []Column {
 
 	// we don't need to include lists of binary or large binary right now; probably no destinations or sources need to support that
 	basicColumnsWithExclusions := removeColumnsByType(basicColumns, arrow.BINARY, arrow.LARGE_BINARY)
-	if opts.IncludeLists {
-		compositeColumns = append(compositeColumns, listOfColumns(basicColumnsWithExclusions)...)
-	} else {
+	if opts.SkipLists {
 		// only include lists that were originally supported by CQTypes
 		cqListColumns := []Column{
 			{Name: "string", Type: arrow.BinaryTypes.String},
@@ -90,16 +147,18 @@ func TestSourceColumns(opts TestSourceOptions) []Column {
 			{Name: "mac", Type: types.NewMacType()},
 		}
 		compositeColumns = append(compositeColumns, listOfColumns(cqListColumns)...)
+	} else {
+		compositeColumns = append(compositeColumns, listOfColumns(basicColumnsWithExclusions)...)
 	}
 
-	if opts.IncludeMaps {
+	if !opts.SkipMaps {
 		compositeColumns = append(compositeColumns, mapOfColumns(basicColumnsWithExclusions)...)
 	}
 
 	// add JSON later, we don't want to include it as a list or map right now (it causes complications with JSON unmarshalling)
 	basicColumns = append(basicColumns, Column{Name: "json", Type: types.NewJSONType()})
 
-	if opts.IncludeStructs {
+	if !opts.SkipStructs {
 		// struct with all the types
 		compositeColumns = append(compositeColumns, Column{Name: "struct", Type: arrow.StructOf(columnsToFields(basicColumns...)...)})
 
@@ -225,14 +284,14 @@ func columnsToFields(columns ...Column) []arrow.Field {
 var PKColumnNames = []string{"uuid_pk", "string_pk"}
 
 // TestTable returns a table with columns of all types. Useful for destination testing purposes
-func TestTable(name string, opts TestSourceOptions) *Table {
+func TestTable(name string, opts ...func(o *TestSourceOptions)) *Table {
 	var columns []Column
 	colOpts := ColumnCreationOptions{PrimaryKey: true, Unique: true}
 	columns = append(columns, Column{Name: "uuid_pk", Type: types.NewUUIDType(), CreationOptions: colOpts})
 	columns = append(columns, Column{Name: "string_pk", Type: arrow.BinaryTypes.String, CreationOptions: colOpts})
 	columns = append(columns, Column{Name: CqSourceNameColumn.Name, Type: arrow.BinaryTypes.String})
 	columns = append(columns, Column{Name: CqSyncTimeColumn.Name, Type: arrow.FixedWidthTypes.Timestamp_us})
-	columns = append(columns, TestSourceColumns(opts)...)
+	columns = append(columns, TestSourceColumns(opts...)...)
 	return &Table{Name: name, Columns: columns}
 }
 

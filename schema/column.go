@@ -27,6 +27,7 @@ type ColumnCreationOptions struct {
 
 // Column definition for Table
 type Column struct {
+	arrow.Field
 	// Name of column
 	Name string
 	// Value Type of column i.e String, UUID etc'

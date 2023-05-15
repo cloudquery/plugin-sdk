@@ -64,8 +64,6 @@ type PluginTestSuiteTests struct {
 
 	MigrateStrategyOverwrite MigrateStrategy
 	MigrateStrategyAppend    MigrateStrategy
-
-	TestSourceOptions schema.TestSourceOptions
 }
 
 func RecordDiff(l arrow.Record, r arrow.Record) string {
@@ -102,7 +100,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 
 type NewPluginFunc func() *Plugin
 
-func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs.Destination, tests PluginTestSuiteTests) {
+func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs.Destination, tests PluginTestSuiteTests, testSourceOptions ...func(o *schema.TestSourceOptions)) {
 	t.Helper()
 	destSpec.Name = "testsuite"
 
@@ -119,7 +117,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		}
 		destSpec.Name = "test_write_overwrite"
 		p := newPlugin()
-		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec, tests.TestSourceOptions); err != nil {
+		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec, testSourceOptions...); err != nil {
 			t.Fatal(err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -134,7 +132,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		}
 		destSpec.Name = "test_write_overwrite_delete_stale"
 		p := newPlugin()
-		if err := suite.destinationPluginTestWriteOverwriteDeleteStale(ctx, p, logger, destSpec, tests.TestSourceOptions); err != nil {
+		if err := suite.destinationPluginTestWriteOverwriteDeleteStale(ctx, p, logger, destSpec, testSourceOptions...); err != nil {
 			t.Fatal(err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -150,7 +148,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		destSpec.WriteMode = specs.WriteModeOverwrite
 		destSpec.MigrateMode = specs.MigrateModeSafe
 		destSpec.Name = "test_migrate_overwrite"
-		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite, tests.TestSourceOptions)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite, testSourceOptions...)
 	})
 
 	t.Run("TestMigrateOverwriteForce", func(t *testing.T) {
@@ -161,7 +159,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		destSpec.WriteMode = specs.WriteModeOverwrite
 		destSpec.MigrateMode = specs.MigrateModeForced
 		destSpec.Name = "test_migrate_overwrite_force"
-		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite, tests.TestSourceOptions)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite, testSourceOptions...)
 	})
 
 	t.Run("TestWriteAppend", func(t *testing.T) {
@@ -171,7 +169,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		}
 		destSpec.Name = "test_write_append"
 		p := newPlugin()
-		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec, tests.TestSourceOptions); err != nil {
+		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec, testSourceOptions...); err != nil {
 			t.Fatal(err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -187,7 +185,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		destSpec.WriteMode = specs.WriteModeAppend
 		destSpec.MigrateMode = specs.MigrateModeSafe
 		destSpec.Name = "test_migrate_append"
-		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend, tests.TestSourceOptions)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend, testSourceOptions...)
 	})
 
 	t.Run("TestMigrateAppendForce", func(t *testing.T) {
@@ -198,7 +196,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		destSpec.WriteMode = specs.WriteModeAppend
 		destSpec.MigrateMode = specs.MigrateModeForced
 		destSpec.Name = "test_migrate_append_force"
-		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend, tests.TestSourceOptions)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend, testSourceOptions...)
 	})
 }
 

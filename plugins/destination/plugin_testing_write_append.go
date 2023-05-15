@@ -12,13 +12,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testSourceOptions schema.TestSourceOptions) error {
+func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testSourceOptions ...func(o *schema.TestSourceOptions)) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := schema.TestTable(tableName, testSourceOptions)
+	table := schema.TestTable(tableName, testSourceOptions...)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := schema.Tables{
 		table,
