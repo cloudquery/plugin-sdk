@@ -48,14 +48,8 @@ func (s *Float32) Set(val any) error {
 	case int8:
 		s.Value = float32(value)
 	case int16:
-		if value > math.MaxInt8 {
-			return &ValidationError{Type: arrow.PrimitiveTypes.Float32, Msg: "int16 bigger than MaxInt8", Value: value}
-		}
 		s.Value = float32(value)
 	case int32:
-		if value > math.MaxInt8 {
-			return &ValidationError{Type: arrow.PrimitiveTypes.Float32, Msg: "int32 bigger than MaxInt8", Value: value}
-		}
 		s.Value = float32(value)
 	case int64:
 		if value > math.MaxInt32 {
@@ -63,14 +57,8 @@ func (s *Float32) Set(val any) error {
 		}
 		s.Value = float32(value)
 	case uint8:
-		if value > math.MaxInt8 {
-			return &ValidationError{Type: arrow.PrimitiveTypes.Int8, Msg: "uint8 bigger than MaxInt8", Value: value}
-		}
 		s.Value = float32(value)
 	case uint16:
-		if value > math.MaxInt8 {
-			return &ValidationError{Type: arrow.PrimitiveTypes.Int8, Msg: "uint16 bigger than MaxInt8", Value: value}
-		}
 		s.Value = float32(value)
 	case uint32:
 		if value > math.MaxInt32 {

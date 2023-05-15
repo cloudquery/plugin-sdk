@@ -24,6 +24,8 @@ var _ schema.ClientMeta = &testExecutionClient{}
 var deterministicStableUUID = uuid.MustParse("c25355aab52c5b70a4e0c9991f5a3b87")
 var randomStableUUID = uuid.MustParse("00000000000040008000000000000000")
 
+var testSyncTime = time.Now()
+
 func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 	res <- map[string]any{
 		"TestColumn": 3,
@@ -161,7 +163,7 @@ var syncTestCases = []syncTestCase{
 		data: []scalar.Vector{
 			{
 				&scalar.String{Value: "testSource", Valid: true},
-				&scalar.Timestamp{},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -214,14 +216,14 @@ var syncTestCases = []syncTestCase{
 		data: []scalar.Vector{
 			{
 				&scalar.String{Value: "testSource", Valid: true},
-				&scalar.Timestamp{},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
 			},
 			{
 				&scalar.String{Value: "testSource", Valid: true},
-				&scalar.Timestamp{},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -242,7 +244,7 @@ var syncTestCases = []syncTestCase{
 		data: []scalar.Vector{
 			{
 				&scalar.String{Value: "testSource", Valid: true},
-				&scalar.Timestamp{},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -265,7 +267,7 @@ var syncTestCases = []syncTestCase{
 		data: []scalar.Vector{
 			{
 				&scalar.String{Value: "testSource", Valid: true},
-				&scalar.Timestamp{},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -293,14 +295,14 @@ var syncTestCases = []syncTestCase{
 		data: []scalar.Vector{
 			{
 				&scalar.String{Value: "testSource", Valid: true},
-				&scalar.Timestamp{},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
 			},
 			{
 				&scalar.String{Value: "testSource", Valid: true},
-				&scalar.Timestamp{},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -322,7 +324,7 @@ var syncTestCases = []syncTestCase{
 		data: []scalar.Vector{
 			{
 				&scalar.String{Value: "testSource", Valid: true},
-				&scalar.Timestamp{},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
 				&scalar.UUID{Value: deterministicStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
@@ -386,7 +388,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler, det
 	g.Go(func() error {
 		defer close(resources)
 		return plugin.Sync(ctx,
-			time.Now(),
+			testSyncTime,
 			resources)
 	})
 
