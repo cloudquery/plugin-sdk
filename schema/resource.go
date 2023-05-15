@@ -108,7 +108,7 @@ func (r *Resource) storeCQID(value uuid.UUID) error {
 func (r *Resource) Validate() error {
 	var missingPks []string
 	for i, c := range r.Table.Columns {
-		if c.CreationOptions.PrimaryKey {
+		if c.PrimaryKey {
 			if !r.data[i].IsValid() {
 				missingPks = append(missingPks, c.Name)
 			}

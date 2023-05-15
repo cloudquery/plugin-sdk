@@ -65,7 +65,7 @@ func NewScalar(dt arrow.DataType) Scalar {
 			return &UUID{}
 		case arrow.TypeEqual(dt, types.ExtensionTypes.JSON):
 			return &JSON{}
-		case arrow.TypeEqual(dt, types.ExtensionTypes.Mac):
+		case arrow.TypeEqual(dt, types.ExtensionTypes.MAC):
 			return &Mac{}
 		case arrow.TypeEqual(dt, types.ExtensionTypes.Inet):
 			return &Inet{}
@@ -117,8 +117,8 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 			bldr.(*types.UUIDBuilder).Append(s.(*UUID).Value)
 		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.JSON):
 			bldr.(*types.JSONBuilder).Append(s.(*JSON).Value)
-		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.Mac):
-			bldr.(*types.MacBuilder).Append(s.(*Mac).Value)
+		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.MAC):
+			bldr.(*types.MACBuilder).Append(s.(*Mac).Value)
 		case arrow.TypeEqual(s.DataType(), types.ExtensionTypes.Inet):
 			bldr.(*types.InetBuilder).Append(s.(*Inet).Value)
 		default:

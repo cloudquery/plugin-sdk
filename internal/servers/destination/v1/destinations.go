@@ -146,7 +146,7 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 	for _, table := range tables {
 		for i, col := range table.Columns {
-			table.Columns[i].CreationOptions.PrimaryKey = col.Name == schema.CqIDColumn.Name
+			table.Columns[i].PrimaryKey = col.Name == schema.CqIDColumn.Name
 		}
 		setCQIDAsPrimaryKeysForTables(table.Relations)
 	}

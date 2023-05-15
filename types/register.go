@@ -12,11 +12,11 @@ func RegisterAllExtensions() error {
 	if err := arrow.RegisterExtensionType(&InetType{}); err != nil {
 		return err
 	}
-	return arrow.RegisterExtensionType(&MacType{})
+	return arrow.RegisterExtensionType(&MACType{})
 }
 
 func UnregisterAllExtensions() error {
-	if err := arrow.UnregisterExtensionType(ExtensionTypes.Mac.ExtensionName()); err != nil {
+	if err := arrow.UnregisterExtensionType(ExtensionTypes.MAC.ExtensionName()); err != nil {
 		return err
 	}
 	if err := arrow.UnregisterExtensionType(ExtensionTypes.Inet.ExtensionName()); err != nil {

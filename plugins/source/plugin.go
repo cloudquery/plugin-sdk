@@ -85,7 +85,7 @@ func (p *Plugin) addInternalColumns(tables []*schema.Table) error {
 		}
 		cqID := schema.CqIDColumn
 		if len(table.PrimaryKeys()) == 0 {
-			cqID.CreationOptions.PrimaryKey = true
+			cqID.PrimaryKey = true
 		}
 		cqSourceName := schema.CqSourceNameColumn
 		cqSyncTime := schema.CqSyncTimeColumn

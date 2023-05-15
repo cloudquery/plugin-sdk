@@ -17,7 +17,7 @@ func (s *Mac) IsValid() bool {
 }
 
 func (*Mac) DataType() arrow.DataType {
-	return types.ExtensionTypes.Mac
+	return types.ExtensionTypes.MAC
 }
 
 func (s *Mac) String() string {
@@ -68,7 +68,7 @@ func (s *Mac) Set(val any) error {
 		if originalSrc, ok := underlyingPtrType(value); ok {
 			return s.Set(originalSrc)
 		}
-		return &ValidationError{Type: types.ExtensionTypes.Mac, Msg: noConversion, Value: value}
+		return &ValidationError{Type: types.ExtensionTypes.MAC, Msg: noConversion, Value: value}
 	}
 
 	s.Valid = true

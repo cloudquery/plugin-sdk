@@ -144,8 +144,8 @@ func (p *Plugin) jsonifyTables(tables schema.Tables) []jsonTable {
 			jsonColumns[c] = jsonColumn{
 				Name:             col.Name,
 				Type:             col.Type.String(),
-				IsPrimaryKey:     col.CreationOptions.PrimaryKey,
-				IsIncrementalKey: col.CreationOptions.IncrementalKey,
+				IsPrimaryKey:     col.PrimaryKey,
+				IsIncrementalKey: col.IncrementalKey,
 			}
 		}
 		jsonTables[i] = jsonTable{
