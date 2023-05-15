@@ -21,14 +21,14 @@ func TestSourceTable(name string) *Table {
 			CqIDColumn,
 			CqParentIDColumn,
 			{
-				Name:            "uuid_pk",
-				Type:            types.ExtensionTypes.UUID,
-				CreationOptions: CreationOptions{PrimaryKey: true},
+				Name:       "uuid_pk",
+				Type:       types.ExtensionTypes.UUID,
+				PrimaryKey: true,
 			},
 			{
-				Name:            "string_pk",
-				Type:            arrow.BinaryTypes.String,
-				CreationOptions: CreationOptions{PrimaryKey: true},
+				Name:       "string_pk",
+				Type:       arrow.BinaryTypes.String,
+				PrimaryKey: true,
 			},
 			{
 				Name: "bool",

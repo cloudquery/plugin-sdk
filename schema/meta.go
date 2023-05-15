@@ -14,10 +14,11 @@ type ClientMeta interface {
 
 // These columns are managed and populated by the source plugins
 var CqIDColumn = Column{
-	Name:            "_cq_id",
-	Type:            types.ExtensionTypes.UUID,
-	Description:     "Internal CQ ID of the row",
-	CreationOptions: CreationOptions{NotNull: true, Unique: true},
+	Name:        "_cq_id",
+	Type:        types.ExtensionTypes.UUID,
+	Description: "Internal CQ ID of the row",
+	NotNull:     true,
+	Unique:      true,
 }
 var CqParentIDColumn = Column{
 	Name:          "_cq_parent_id",

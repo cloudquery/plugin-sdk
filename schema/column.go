@@ -14,17 +14,6 @@ type ColumnList []Column
 // resource holds the current row we are resolving the column for.
 type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resource, c Column) error
 
-// CreationOptions allow modification of how column is defined when table is created
-type CreationOptions struct {
-	PrimaryKey bool
-	NotNull    bool
-	// IncrementalKey is a flag that indicates if the column is used as part of an incremental key.
-	// It is mainly used for documentation purposes, but may also be used as part of ensuring that
-	// migrations are done correctly.
-	IncrementalKey bool
-	Unique         bool
-}
-
 // Column definition for Table
 type Column struct {
 	// Name of column
@@ -35,36 +24,46 @@ type Column struct {
 	Description string
 	// Column Resolver allows to set your own data for a column; this can be an API call, setting multiple embedded values, etc
 	Resolver ColumnResolver
-	// CreationOptions allow modifying how column is defined when table is created
-	CreationOptions
+
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
 	IgnoreInTests bool
+
+	// PrimaryKey requires the destinations supporting this to include this column into the primary key
+	PrimaryKey bool
+	// NotNull requires the destinations supporting this to mark this column as non-nullable
+	NotNull bool
+	// IncrementalKey is a flag that indicates if the column is used as part of an incremental key.
+	// It is mainly used for documentation purposes, but may also be used as part of ensuring that
+	// migrations are done correctly.
+	IncrementalKey bool
+	// Unique requires the destinations supporting this to mark this column as unique
+	Unique bool
 }
 
 // NewColumnFromArrowField creates a new Column from an arrow.Field
 // arrow.Field is a low-level representation of a CloudQuery column
 // that can be sent over the wire in a cross-language way.
 func NewColumnFromArrowField(f arrow.Field) Column {
-	creationOptions := CreationOptions{NotNull: !f.Nullable}
+	column := Column{
+		Name:    f.Name,
+		Type:    f.Type,
+		NotNull: !f.Nullable,
+	}
 
 	v, ok := f.Metadata.GetValue(MetadataPrimaryKey)
-	creationOptions.PrimaryKey = ok && v == MetadataTrue
+	column.PrimaryKey = ok && v == MetadataTrue
 
 	v, ok = f.Metadata.GetValue(MetadataUnique)
-	creationOptions.Unique = ok && v == MetadataTrue
+	column.Unique = ok && v == MetadataTrue
 
 	v, ok = f.Metadata.GetValue(MetadataIncremental)
-	creationOptions.IncrementalKey = ok && v == MetadataTrue
+	column.IncrementalKey = ok && v == MetadataTrue
 
-	return Column{
-		Name:            f.Name,
-		Type:            f.Type,
-		CreationOptions: creationOptions,
-	}
+	return column
 }
 
 func (c Column) ToArrowField() arrow.Field {
