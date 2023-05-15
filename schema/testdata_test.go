@@ -31,7 +31,7 @@ func TestTestSourceColumns(t *testing.T) {
 		t.Fatal("expected no times when WithTestSourceSkipTimes is used")
 	}
 	if skipAll.Get("timestamp_us") == nil {
-		t.Fatal("expected no microsecond timestamps even when WithTestSourceSkipTimestamps is used")
+		t.Fatal("expected microsecond timestamps even when WithTestSourceSkipTimestamps is used (microsecond timestamps must always be supported)")
 	}
 	if skipAll.Get("timestamp_ns") != nil {
 		t.Fatal("expected no nansecond timestamps when WithTestSourceSkipTimestamps is used")
