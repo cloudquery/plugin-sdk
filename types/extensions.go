@@ -5,11 +5,11 @@ import "github.com/apache/arrow/go/v13/arrow"
 var ExtensionTypes = struct {
 	UUID arrow.ExtensionType
 	Inet arrow.ExtensionType
-	Mac  arrow.ExtensionType
+	MAC  arrow.ExtensionType
 	JSON arrow.ExtensionType
 }{
 	UUID: NewUUIDType(),
 	Inet: NewInetType(),
-	Mac:  NewMacType(),
+	MAC:  NewMACType(),
 	JSON: NewJSONType(),
 }
