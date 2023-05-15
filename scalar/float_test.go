@@ -38,7 +38,6 @@ func TestFloat32Set(t *testing.T) {
 	}
 }
 
-
 func TestFloat64Set(t *testing.T) {
 	successfulTests := []struct {
 		source any
