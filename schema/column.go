@@ -86,7 +86,7 @@ func (c Column) ToArrowField() arrow.Field {
 	return arrow.Field{
 		Name:     c.Name,
 		Type:     c.Type,
-		Nullable: !c.CreationOptions.NotNull,
+		Nullable: !c.NotNull,
 		Metadata: arrow.MetadataFrom(mdKV),
 	}
 }
@@ -96,10 +96,10 @@ func (c Column) String() string {
 	sb.WriteString(c.Name)
 	sb.WriteString(":")
 	sb.WriteString(c.Type.String())
-	if c.CreationOptions.PrimaryKey {
+	if c.PrimaryKey {
 		sb.WriteString(":PK")
 	}
-	if c.CreationOptions.NotNull {
+	if c.NotNull {
 		sb.WriteString(":NotNull")
 	}
 	return sb.String()

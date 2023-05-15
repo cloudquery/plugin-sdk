@@ -152,7 +152,7 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 		nullRow := j%2 == 1
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		for i, c := range table.Columns {
-			if nullRow && !c.CreationOptions.NotNull && !c.CreationOptions.PrimaryKey &&
+			if nullRow && !c.NotNull && !c.PrimaryKey &&
 				c.Name != CqSourceNameColumn.Name &&
 				c.Name != CqSyncTimeColumn.Name &&
 				c.Name != CqIDColumn.Name &&

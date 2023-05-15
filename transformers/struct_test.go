@@ -158,7 +158,7 @@ var (
 		Columns: func(base schema.ColumnList) schema.ColumnList {
 			cols := slices.Clone(base)
 			cols = append(cols, schema.Column{Name: "embedded_string", Type: arrow.BinaryTypes.String})
-			cols[cols.Index("int_col")].CreationOptions.PrimaryKey = true
+			cols[cols.Index("int_col")].PrimaryKey = true
 			return cols
 		}(expectedColumns),
 	}

@@ -333,7 +333,7 @@ func (t *Table) ValidateName() error {
 func (t *Table) PrimaryKeysIndexes() []int {
 	var primaryKeys []int
 	for i, c := range t.Columns {
-		if c.CreationOptions.PrimaryKey {
+		if c.PrimaryKey {
 			primaryKeys = append(primaryKeys, i)
 		}
 	}
@@ -367,7 +367,7 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 			continue
 		}
 		// Column type or options (e.g. PK, Not Null) changed in the new table definition
-		if c.Type != otherColumn.Type || c.CreationOptions.NotNull != otherColumn.CreationOptions.NotNull || c.CreationOptions.PrimaryKey != otherColumn.CreationOptions.PrimaryKey {
+		if c.Type != otherColumn.Type || c.NotNull != otherColumn.NotNull || c.PrimaryKey != otherColumn.PrimaryKey {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeUpdate,
 				ColumnName: c.Name,
@@ -438,7 +438,7 @@ func (t *Table) OverwriteOrAddColumn(column *Column) {
 func (t *Table) PrimaryKeys() []string {
 	var primaryKeys []string
 	for _, c := range t.Columns {
-		if c.CreationOptions.PrimaryKey {
+		if c.PrimaryKey {
 			primaryKeys = append(primaryKeys, c.Name)
 		}
 	}
@@ -449,7 +449,7 @@ func (t *Table) PrimaryKeys() []string {
 func (t *Table) IncrementalKeys() []string {
 	var incrementalKeys []string
 	for _, c := range t.Columns {
-		if c.CreationOptions.IncrementalKey {
+		if c.IncrementalKey {
 			incrementalKeys = append(incrementalKeys, c.Name)
 		}
 	}
