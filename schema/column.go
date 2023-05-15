@@ -102,6 +102,12 @@ func (c Column) String() string {
 	if c.NotNull {
 		sb.WriteString(":NotNull")
 	}
+	if c.Unique {
+		sb.WriteString(":Unique")
+	}
+	if c.IncrementalKey {
+		sb.WriteString(":IncrementalKey")
+	}
 	return sb.String()
 }
 
