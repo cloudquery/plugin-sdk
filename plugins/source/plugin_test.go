@@ -61,11 +61,9 @@ func testTableSuccessWithPK() *schema.Table {
 		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
 			{
-				Name: "test_column",
-				Type: arrow.PrimitiveTypes.Int64,
-				CreationOptions: schema.ColumnCreationOptions{
-					PrimaryKey: true,
-				},
+				Name:       "test_column",
+				Type:       arrow.PrimitiveTypes.Int64,
+				PrimaryKey: true,
 			},
 		},
 	}
