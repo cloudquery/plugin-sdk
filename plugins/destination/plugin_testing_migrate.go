@@ -98,6 +98,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 		}
 		tableName := "add_column_" + tableUUIDSuffix()
 		source := &schema.Table{
+			Name: tableName,
 			Columns: schema.ColumnList{
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
@@ -143,6 +144,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 		}
 
 		target := &schema.Table{
+			Name: tableName,
 			Columns: schema.ColumnList{
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
@@ -171,10 +173,11 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID, NotNull: true},
-				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
+				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			}}
 		target := &schema.Table{
+			Name: tableName,
 			Columns: schema.ColumnList{
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
@@ -213,7 +216,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				schema.CqSourceNameColumn,
 				schema.CqSyncTimeColumn,
 				schema.CqIDColumn,
-				{Name: "id", Type: types.ExtensionTypes.UUID, NotNull: true},
+				{Name: "id", Type: types.ExtensionTypes.UUID},
 			}}
 
 		p := newPlugin()

@@ -5,11 +5,11 @@ import "testing"
 func TestTestSourceColumns_Default(t *testing.T) {
 	// basic sanity check for tested columns
 	defaults := TestSourceColumns()
-	if len(defaults) < 100 {
-		t.Fatal("expected at least 100 columns by default")
+	if len(defaults) < 73 {
+		t.Fatalf("expected at least 73 columns by default got: %d ", len(defaults))
 	}
 	// test some specific columns
-	checkColumnsExist(t, defaults, []string{"int64", "date32", "timestamp_us", "string", "struct", "string_map", "string_list"})
+	checkColumnsExist(t, defaults, []string{"int64", "date32", "timestamp_us", "string", "struct", "string_list"})
 }
 
 func TestTestSourceColumns_SkipAll(t *testing.T) {

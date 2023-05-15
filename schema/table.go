@@ -93,6 +93,18 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
+func NewTablesFromArrowSchemas(schemas []*arrow.Schema) (Tables, error) {
+	tables := make(Tables, len(schemas))
+	for i, schema := range schemas {
+		table, err := NewTableFromArrowSchema(schema)
+		if err != nil {
+			return nil, err
+		}
+		tables[i] = table
+	}
+	return tables, nil
+}
+
 // Create a CloudQuery Table abstraction from an arrow schema
 // arrow schema is a low level representation of a table that can be sent
 // over the wire in a cross-language way
@@ -367,7 +379,7 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 			continue
 		}
 		// Column type or options (e.g. PK, Not Null) changed in the new table definition
-		if c.Type != otherColumn.Type || c.NotNull != otherColumn.NotNull || c.PrimaryKey != otherColumn.PrimaryKey {
+		if !arrow.TypeEqual(c.Type, otherColumn.Type) || c.NotNull != otherColumn.NotNull || c.PrimaryKey != otherColumn.PrimaryKey {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeUpdate,
 				ColumnName: c.Name,
