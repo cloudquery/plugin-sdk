@@ -338,6 +338,10 @@ func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 		if err != nil {
 			return nil, err
 		}
+		// if it's already JSON then we don't want to create list of JSON
+		if arrow.TypeEqual(elemValueType, types.ExtensionTypes.JSON) {
+			return elemValueType, nil
+		}
 		return arrow.ListOf(elemValueType), nil
 
 	default:
