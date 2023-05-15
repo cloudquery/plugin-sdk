@@ -8,6 +8,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/destination/batchingwriter"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -47,7 +48,7 @@ func TestPluginUnmanagedClient(t *testing.T) {
 func TestPluginManagedClient(t *testing.T) {
 	destination.PluginTestSuiteRunner(t,
 		func() *destination.Plugin {
-			return destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter())
+			return destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter(batchingwriter.New()))
 		},
 		specs.Destination{},
 		destination.PluginTestSuiteTests{
@@ -59,9 +60,9 @@ func TestPluginManagedClient(t *testing.T) {
 func TestPluginManagedClientWithSmallBatchSize(t *testing.T) {
 	destination.PluginTestSuiteRunner(t,
 		func() *destination.Plugin {
-			return destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter(),
-				destination.WithDefaultBatchSize(1),
-				destination.WithDefaultBatchSizeBytes(1))
+			return destination.NewPlugin("test", "development", NewClient,
+				destination.WithManagedWriter(batchingwriter.New(batchingwriter.WithBatchSize(1, 1))),
+			)
 		}, specs.Destination{},
 		destination.PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
@@ -72,9 +73,9 @@ func TestPluginManagedClientWithSmallBatchSize(t *testing.T) {
 func TestPluginManagedClientWithLargeBatchSize(t *testing.T) {
 	destination.PluginTestSuiteRunner(t,
 		func() *destination.Plugin {
-			return destination.NewPlugin("test", "development", NewClient, destination.WithManagedWriter(),
-				destination.WithDefaultBatchSize(100000000),
-				destination.WithDefaultBatchSizeBytes(100000000))
+			return destination.NewPlugin("test", "development", NewClient,
+				destination.WithManagedWriter(batchingwriter.New(batchingwriter.WithBatchSize(100000000, 100000000))),
+			)
 		},
 		specs.Destination{},
 		destination.PluginTestSuiteTests{
@@ -187,12 +188,14 @@ func TestPluginInit(t *testing.T) {
 		"test",
 		"development",
 		func(ctx context.Context, logger zerolog.Logger, s specs.Destination) (destination.Client, error) {
+			// TODO this won't work because we don't set these back on the spec
 			batchSizeObserved = s.BatchSize
 			batchSizeBytesObserved = s.BatchSizeBytes
 			return NewClient(ctx, logger, s)
 		},
-		destination.WithDefaultBatchSize(batchSize),
-		destination.WithDefaultBatchSizeBytes(batchSizeBytes),
+		destination.WithManagedWriter(batchingwriter.New(
+			batchingwriter.WithBatchSize(batchSize, batchSizeBytes),
+		)),
 	)
 	require.NoError(t, p.Init(context.TODO(), getTestLogger(t), specs.Destination{}))
 

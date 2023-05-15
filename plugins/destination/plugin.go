@@ -3,7 +3,6 @@ package destination
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -12,35 +11,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type writerType int
-
-const (
-	unmanaged writerType = iota
-	managed
-)
-
-const (
-	defaultBatchTimeoutSeconds = 20
-	defaultBatchSize           = 10000
-	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
-)
-
 type NewClientFunc func(context.Context, zerolog.Logger, specs.Destination) (Client, error)
 
-type ManagedWriter interface {
-	WriteTableBatch(ctx context.Context, table *schema.Table, data []arrow.Record) error
-}
-
-type UnimplementedManagedWriter struct{}
-
-var _ ManagedWriter = UnimplementedManagedWriter{}
-
-func (UnimplementedManagedWriter) WriteTableBatch(context.Context, *schema.Table, []arrow.Record) error {
-	panic("WriteTableBatch not implemented")
-}
-
 type UnmanagedWriter interface {
-	Write(ctx context.Context, tables schema.Tables, res <-chan arrow.Record) error
+	Write(context.Context, specs.Source, schema.Tables, time.Time, <-chan arrow.Record) error
 	Metrics() Metrics
 }
 
@@ -48,12 +22,22 @@ var _ UnmanagedWriter = UnimplementedUnmanagedWriter{}
 
 type UnimplementedUnmanagedWriter struct{}
 
-func (UnimplementedUnmanagedWriter) Write(context.Context, schema.Tables, <-chan arrow.Record) error {
+func (UnimplementedUnmanagedWriter) Write(context.Context, specs.Source, schema.Tables, time.Time, <-chan arrow.Record) error {
 	panic("Write not implemented")
 }
 
 func (UnimplementedUnmanagedWriter) Metrics() Metrics {
 	panic("Metrics not implemented")
+}
+
+type ManagedWriter interface {
+	WriteTableBatch(context.Context, specs.Source, *schema.Table, time.Time, []arrow.Record) error
+}
+
+type UnimplementedManagedWriter struct{}
+
+func (UnimplementedManagedWriter) WriteTableBatch(context.Context, specs.Source, *schema.Table, time.Time, []arrow.Record) error {
+	panic("WriteTableBatch not implemented")
 }
 
 type Client interface {
@@ -64,6 +48,12 @@ type Client interface {
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Close(ctx context.Context) error
 }
+
+type BatchingWriter interface {
+	UnmanagedWriter
+}
+
+type BatchingWriterFunc func(ManagedWriter) BatchingWriter
 
 type ClientResource struct {
 	TableName string
@@ -78,64 +68,31 @@ type Plugin struct {
 	// Version of the destination plugin
 	version string
 	// Called upon configure call to validate and init configuration
-	newClient  NewClientFunc
-	writerType writerType
+	newClient NewClientFunc
 	// initialized destination client
 	client Client
 	// spec the client was initialized with
 	spec specs.Destination
 	// Logger to call, this logger is passed to the serve.Serve Client, if not define Serve will create one instead.
 	logger zerolog.Logger
-
-	// This is in use if the user passed a managed client
-	metrics     map[string]*Metrics
-	metricsLock *sync.RWMutex
-
-	workers     map[string]*worker
-	workersLock *sync.Mutex
-
-	batchTimeout          time.Duration
-	defaultBatchSize      int
-	defaultBatchSizeBytes int
+	// batchingWriter to use instead of passing data to client's Writer
+	batchingWriter BatchingWriter
+	// batchingWriterFunc is to create the batchingWriter after Client is initialized
+	batchingWriterFunc BatchingWriterFunc
 }
 
-func WithManagedWriter() Option {
+func WithManagedWriter(f BatchingWriterFunc) Option {
 	return func(p *Plugin) {
-		p.writerType = managed
-	}
-}
-
-func WithBatchTimeout(seconds int) Option {
-	return func(p *Plugin) {
-		p.batchTimeout = time.Duration(seconds) * time.Second
-	}
-}
-
-func WithDefaultBatchSize(defaultBatchSize int) Option {
-	return func(p *Plugin) {
-		p.defaultBatchSize = defaultBatchSize
-	}
-}
-
-func WithDefaultBatchSizeBytes(defaultBatchSizeBytes int) Option {
-	return func(p *Plugin) {
-		p.defaultBatchSizeBytes = defaultBatchSizeBytes
+		p.batchingWriterFunc = f
 	}
 }
 
 // NewPlugin creates a new destination plugin
 func NewPlugin(name string, version string, newClientFunc NewClientFunc, opts ...Option) *Plugin {
 	p := &Plugin{
-		name:                  name,
-		version:               version,
-		newClient:             newClientFunc,
-		metrics:               make(map[string]*Metrics),
-		metricsLock:           &sync.RWMutex{},
-		workers:               make(map[string]*worker),
-		workersLock:           &sync.Mutex{},
-		batchTimeout:          time.Duration(defaultBatchTimeoutSeconds) * time.Second,
-		defaultBatchSize:      defaultBatchSize,
-		defaultBatchSizeBytes: defaultBatchSizeBytes,
+		name:      name,
+		version:   version,
+		newClient: newClientFunc,
 	}
 	if newClientFunc == nil {
 		// we do this check because we only call this during runtime later on so it can fail
@@ -157,21 +114,10 @@ func (p *Plugin) Version() string {
 }
 
 func (p *Plugin) Metrics() Metrics {
-	switch p.writerType {
-	case unmanaged:
+	if p.batchingWriter == nil {
 		return p.client.Metrics()
-	case managed:
-		metrics := Metrics{}
-		p.metricsLock.RLock()
-		for _, m := range p.metrics {
-			metrics.Errors += m.Errors
-			metrics.Writes += m.Writes
-		}
-		p.metricsLock.RUnlock()
-		return metrics
-	default:
-		panic("unknown client type")
 	}
+	return p.batchingWriter.Metrics()
 }
 
 // we need lazy loading because we want to be able to initialize after
@@ -179,11 +125,14 @@ func (p *Plugin) Init(ctx context.Context, logger zerolog.Logger, spec specs.Des
 	var err error
 	p.logger = logger
 	p.spec = spec
-	p.spec.SetDefaults(p.defaultBatchSize, p.defaultBatchSizeBytes)
 	p.client, err = p.newClient(ctx, logger, p.spec)
 	if err != nil {
 		return err
 	}
+	if p.batchingWriterFunc != nil {
+		p.batchingWriter = p.batchingWriterFunc(p.client)
+	}
+
 	return nil
 }
 
@@ -251,20 +200,18 @@ func (p *Plugin) writeAll(ctx context.Context, sourceSpec specs.Source, syncTime
 
 func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
 	syncTime = syncTime.UTC()
-	if err := checkDestinationColumns(tables); err != nil {
+	err := checkDestinationColumns(tables)
+	if err != nil {
 		return err
 	}
-	switch p.writerType {
-	case unmanaged:
-		if err := p.writeUnmanaged(ctx, sourceSpec, tables, syncTime, res); err != nil {
-			return err
-		}
-	case managed:
-		if err := p.writeManagedTableBatch(ctx, sourceSpec, tables, syncTime, res); err != nil {
-			return err
-		}
-	default:
-		panic("unknown client type")
+
+	if p.batchingWriter == nil {
+		err = p.client.Write(ctx, sourceSpec, tables, syncTime, res)
+	} else {
+		err = p.batchingWriter.Write(ctx, sourceSpec, tables, syncTime, res)
+	}
+	if err != nil {
+		return err
 	}
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
 		tablesToDelete := tables
