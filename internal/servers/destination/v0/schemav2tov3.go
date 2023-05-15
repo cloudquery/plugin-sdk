@@ -91,9 +91,9 @@ func TypeV2ToV3(dataType schemav2.ValueType) arrow.DataType {
 	case schemav2.TypeCIDRArray:
 		return arrow.ListOf(types.ExtensionTypes.Inet)
 	case schemav2.TypeMacAddr:
-		return types.ExtensionTypes.Mac
+		return types.ExtensionTypes.MAC
 	case schemav2.TypeMacAddrArray:
-		return arrow.ListOf(types.ExtensionTypes.Mac)
+		return arrow.ListOf(types.ExtensionTypes.MAC)
 	default:
 		panic("unknown type " + typ.Name())
 	}
@@ -227,16 +227,16 @@ func CQTypesToRecord(mem memory.Allocator, c []schemav2.CQTypes, arrowSchema *ar
 				}
 			case schemav2.TypeMacAddr:
 				if c[j][i].(*schemav2.Macaddr).Status == schemav2.Present {
-					bldr.Field(i).(*types.MacBuilder).Append(c[j][i].(*schemav2.Macaddr).Addr)
+					bldr.Field(i).(*types.MACBuilder).Append(c[j][i].(*schemav2.Macaddr).Addr)
 				} else {
-					bldr.Field(i).(*types.MacBuilder).AppendNull()
+					bldr.Field(i).(*types.MACBuilder).AppendNull()
 				}
 			case schemav2.TypeMacAddrArray:
 				if c[j][i].(*schemav2.MacaddrArray).Status == schemav2.Present {
 					listBldr := bldr.Field(i).(*array.ListBuilder)
 					listBldr.Append(true)
 					for _, e := range c[j][i].(*schemav2.MacaddrArray).Elements {
-						listBldr.ValueBuilder().(*types.MacBuilder).Append(e.Addr)
+						listBldr.ValueBuilder().(*types.MACBuilder).Append(e.Addr)
 					}
 				} else {
 					bldr.Field(i).(*array.ListBuilder).AppendNull()

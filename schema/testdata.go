@@ -100,11 +100,11 @@ func TestSourceTable(name string) *Table {
 			},
 			{
 				Name: "macaddr",
-				Type: types.ExtensionTypes.Mac,
+				Type: types.ExtensionTypes.MAC,
 			},
 			{
 				Name: "macaddr_array",
-				Type: arrow.ListOf(types.ExtensionTypes.Mac),
+				Type: arrow.ListOf(types.ExtensionTypes.MAC),
 			},
 		},
 	}
@@ -228,24 +228,24 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 					panic(err)
 				}
 				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.InetBuilder).Append(ipnet)
-			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.Mac) {
+			} else if arrow.TypeEqual(c.Type, types.ExtensionTypes.MAC) {
 				mac, err := net.ParseMAC("aa:bb:cc:dd:ee:ff")
 				if err != nil {
 					panic(err)
 				}
-				bldr.Field(i).(*types.MacBuilder).Append(mac)
-			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.Mac)) {
+				bldr.Field(i).(*types.MACBuilder).Append(mac)
+			} else if arrow.TypeEqual(c.Type, arrow.ListOf(types.ExtensionTypes.MAC)) {
 				mac, err := net.ParseMAC("aa:bb:cc:dd:ee:ff")
 				if err != nil {
 					panic(err)
 				}
 				bldr.Field(i).(*array.ListBuilder).Append(true)
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.MacBuilder).Append(mac)
+				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.MACBuilder).Append(mac)
 				mac, err = net.ParseMAC("11:22:33:44:55:66")
 				if err != nil {
 					panic(err)
 				}
-				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.MacBuilder).Append(mac)
+				bldr.Field(i).(*array.ListBuilder).ValueBuilder().(*types.MACBuilder).Append(mac)
 			} else {
 				panic("unknown type: " + c.Type.String() + " column: " + c.Name)
 			}
