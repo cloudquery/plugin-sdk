@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0](https://github.com/cloudquery/plugin-sdk/compare/v3.0.1...v3.1.0) (2023-05-15)
+
+
+### Features
+
+* **schema:** Embed column creation options ([#869](https://github.com/cloudquery/plugin-sdk/issues/869)) ([7512e29](https://github.com/cloudquery/plugin-sdk/commit/7512e299168e43fb1d8b9d184d71a2b23f1d9892))
+* **types:** Rename Mac -&gt; MAC ([#868](https://github.com/cloudquery/plugin-sdk/issues/868)) ([b5c76bb](https://github.com/cloudquery/plugin-sdk/commit/b5c76bb36b52c01bd27ec8529529dc69ecf0f116))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.0.6 ([#865](https://github.com/cloudquery/plugin-sdk/issues/865)) ([1fb4eaf](https://github.com/cloudquery/plugin-sdk/commit/1fb4eafe3e3b0842b071948c3f2e3dd5d29dad22))
+
 ## [3.0.1](https://github.com/cloudquery/plugin-sdk/compare/v3.0.0...v3.0.1) (2023-05-11)
 
 
