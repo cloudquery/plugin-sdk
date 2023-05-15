@@ -24,7 +24,8 @@ func TestTestSourceColumns_SkipAll(t *testing.T) {
 		WithTestSourceSkipLargeTypes(),
 	))
 	// test some specific columns
-	checkColumnsDontExist(t, skipAll, []string{"int64", "date32", "timestamp_us", "string", "struct", "string_map", "string_list"})
+	checkColumnsExist(t, skipAll, []string{"int64", "timestamp_us", "string", "string_list"})
+	checkColumnsDontExist(t, skipAll, []string{"date32", "struct", "string_map"})
 }
 
 func checkColumnsExist(t *testing.T, list ColumnList, cols []string) {
@@ -37,7 +38,7 @@ func checkColumnsExist(t *testing.T, list ColumnList, cols []string) {
 
 func checkColumnsDontExist(t *testing.T, list ColumnList, cols []string) {
 	for _, col := range cols {
-		if list.Get(col) == nil {
+		if list.Get(col) != nil {
 			t.Errorf("expected no %s column", col)
 		}
 	}
