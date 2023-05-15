@@ -44,15 +44,14 @@ func ColumnsV2ToV3(columns []schemav2.Column) []schema.Column {
 
 func ColumnV2ToV3(column schemav2.Column) schema.Column {
 	return schema.Column{
-		Name:        column.Name,
-		Description: column.Description,
-		Type:        TypeV2ToV3(column.Type),
-		CreationOptions: schema.ColumnCreationOptions{
-			NotNull:    column.CreationOptions.NotNull,
-			Unique:     column.CreationOptions.Unique,
-			PrimaryKey: column.CreationOptions.PrimaryKey,
-		},
-		IgnoreInTests: column.IgnoreInTests,
+		Name:           column.Name,
+		Description:    column.Description,
+		Type:           TypeV2ToV3(column.Type),
+		NotNull:        column.CreationOptions.NotNull,
+		Unique:         column.CreationOptions.Unique,
+		PrimaryKey:     column.CreationOptions.PrimaryKey,
+		IncrementalKey: column.CreationOptions.IncrementalKey,
+		IgnoreInTests:  column.IgnoreInTests,
 	}
 }
 

@@ -293,18 +293,18 @@ func (p *Plugin) Close(ctx context.Context) error {
 
 func checkDestinationColumns(tables schema.Tables) error {
 	for _, table := range tables {
-		if table.Columns.Index(schema.CqSourceNameField.Name) == -1 {
-			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", table.Name, schema.CqSourceNameField.Name)
+		if table.Columns.Index(schema.CqSourceNameColumn.Name) == -1 {
+			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", table.Name, schema.CqSourceNameColumn.Name)
 		}
 		if table.Columns.Index(schema.CqSyncTimeColumn.Name) == -1 {
-			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", table.Name, schema.CqSourceNameField.Name)
+			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", table.Name, schema.CqSourceNameColumn.Name)
 		}
-		field := table.Columns.Get(schema.CqIDColumn.Name)
-		if field != nil {
-			if !field.CreationOptions.NotNull {
+		column := table.Columns.Get(schema.CqIDColumn.Name)
+		if column != nil {
+			if !column.NotNull {
 				return fmt.Errorf("column %s.%s cannot be nullable. please consider upgrading source plugin", table.Name, schema.CqIDColumn.Name)
 			}
-			if !field.CreationOptions.Unique {
+			if !column.Unique {
 				return fmt.Errorf("column %s.%s must be unique. please consider upgrading source plugin", table.Name, schema.CqIDColumn.Name)
 			}
 		}
