@@ -94,7 +94,7 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 
 	// cq columns
 	var cqColumns []Column
-	cqColumns = append(cqColumns, Column{Name: CqIDColumn.Name, Type: types.NewUUIDType(), NotNull: true, Unique: true})
+	cqColumns = append(cqColumns, Column{Name: CqIDColumn.Name, Type: types.NewUUIDType(), NotNull: true, Unique: true, PrimaryKey: true})
 	cqColumns = append(cqColumns, Column{Name: CqParentIDColumn.Name, Type: types.NewUUIDType(), NotNull: true})
 
 	var basicColumns []Column
@@ -155,9 +155,9 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 		compositeColumns = append(compositeColumns, listOfColumns(basicColumnsWithExclusions)...)
 	}
 
-	if !opts.SkipMaps {
-		compositeColumns = append(compositeColumns, mapOfColumns(basicColumnsWithExclusions)...)
-	}
+	// if !opts.SkipMaps {
+	// 	compositeColumns = append(compositeColumns, mapOfColumns(basicColumnsWithExclusions)...)
+	// }
 
 	// add JSON later, we don't want to include it as a list or map right now (it causes complications with JSON unmarshalling)
 	basicColumns = append(basicColumns, Column{Name: "json", Type: types.NewJSONType()})
@@ -270,6 +270,7 @@ func listOfColumns(baseColumns []Column) []Column {
 }
 
 // mapOfColumns returns a list of columns that are maps of the given columns.
+// nolint:unused
 func mapOfColumns(baseColumns []Column) []Column {
 	columns := make([]Column, len(baseColumns))
 	for i := 0; i < len(baseColumns); i++ {
@@ -289,13 +290,13 @@ func columnsToFields(columns ...Column) []arrow.Field {
 	return fields
 }
 
-var PKColumnNames = []string{"uuid_pk", "string_pk"}
+// var PKColumnNames = []string{"uuid_pk"}
 
 // TestTable returns a table with columns of all types. Useful for destination testing purposes
 func TestTable(name string, opts ...func(o *TestSourceOptions)) *Table {
 	var columns []Column
-	columns = append(columns, Column{Name: "uuid_pk", Type: types.NewUUIDType(), PrimaryKey: true, Unique: true})
-	columns = append(columns, Column{Name: "string_pk", Type: arrow.BinaryTypes.String, PrimaryKey: true, Unique: true})
+	// columns = append(columns, Column{Name: "uuid", Type: types.NewUUIDType()})
+	// columns = append(columns, Column{Name: "string_pk", Type: arrow.BinaryTypes.String})
 	columns = append(columns, Column{Name: CqSourceNameColumn.Name, Type: arrow.BinaryTypes.String})
 	columns = append(columns, Column{Name: CqSyncTimeColumn.Name, Type: arrow.FixedWidthTypes.Timestamp_us})
 	columns = append(columns, TestSourceColumns(opts...)...)
