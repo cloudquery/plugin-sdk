@@ -23,12 +23,12 @@ func TestSourceTable(name string) *Table {
 			{
 				Name:            "uuid_pk",
 				Type:            types.ExtensionTypes.UUID,
-				CreationOptions: ColumnCreationOptions{PrimaryKey: true},
+				CreationOptions: CreationOptions{PrimaryKey: true},
 			},
 			{
 				Name:            "string_pk",
 				Type:            arrow.BinaryTypes.String,
-				CreationOptions: ColumnCreationOptions{PrimaryKey: true},
+				CreationOptions: CreationOptions{PrimaryKey: true},
 			},
 			{
 				Name: "bool",

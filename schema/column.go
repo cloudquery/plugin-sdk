@@ -14,8 +14,8 @@ type ColumnList []Column
 // resource holds the current row we are resolving the column for.
 type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resource, c Column) error
 
-// ColumnCreationOptions allow modification of how column is defined when table is created
-type ColumnCreationOptions struct {
+// CreationOptions allow modification of how column is defined when table is created
+type CreationOptions struct {
 	PrimaryKey bool
 	NotNull    bool
 	// IncrementalKey is a flag that indicates if the column is used as part of an incremental key.
@@ -35,8 +35,8 @@ type Column struct {
 	Description string
 	// Column Resolver allows to set your own data for a column; this can be an API call, setting multiple embedded values, etc
 	Resolver ColumnResolver
-	// Creation options allow modifying how column is defined when table is created
-	CreationOptions ColumnCreationOptions
+	// CreationOptions allow modifying how column is defined when table is created
+	CreationOptions
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.
@@ -49,24 +49,17 @@ type Column struct {
 // arrow.Field is a low-level representation of a CloudQuery column
 // that can be sent over the wire in a cross-language way.
 func NewColumnFromArrowField(f arrow.Field) Column {
-	creationOptions := ColumnCreationOptions{
-		NotNull: !f.Nullable,
-	}
-	if v, ok := f.Metadata.GetValue(MetadataPrimaryKey); ok {
-		if v == MetadataTrue {
-			creationOptions.PrimaryKey = true
-		} else {
-			creationOptions.PrimaryKey = false
-		}
-	}
+	creationOptions := CreationOptions{NotNull: !f.Nullable}
 
-	if v, ok := f.Metadata.GetValue(MetadataUnique); ok {
-		if v == MetadataTrue {
-			creationOptions.Unique = true
-		} else {
-			creationOptions.Unique = false
-		}
-	}
+	v, ok := f.Metadata.GetValue(MetadataPrimaryKey)
+	creationOptions.PrimaryKey = ok && v == MetadataTrue
+
+	v, ok = f.Metadata.GetValue(MetadataUnique)
+	creationOptions.Unique = ok && v == MetadataTrue
+
+	v, ok = f.Metadata.GetValue(MetadataIncremental)
+	creationOptions.IncrementalKey = ok && v == MetadataTrue
+
 	return Column{
 		Name:            f.Name,
 		Type:            f.Type,
@@ -75,16 +68,19 @@ func NewColumnFromArrowField(f arrow.Field) Column {
 }
 
 func (c Column) ToArrowField() arrow.Field {
-	mdKV := map[string]string{}
-	if c.CreationOptions.PrimaryKey {
-		mdKV[MetadataPrimaryKey] = MetadataTrue
-	} else {
-		mdKV[MetadataPrimaryKey] = MetadataFalse
+	mdKV := map[string]string{
+		MetadataPrimaryKey:  MetadataFalse,
+		MetadataUnique:      MetadataFalse,
+		MetadataIncremental: MetadataFalse,
 	}
-	if c.CreationOptions.Unique {
+	if c.PrimaryKey {
+		mdKV[MetadataPrimaryKey] = MetadataTrue
+	}
+	if c.Unique {
 		mdKV[MetadataUnique] = MetadataTrue
-	} else {
-		mdKV[MetadataUnique] = MetadataFalse
+	}
+	if c.IncrementalKey {
+		mdKV[MetadataIncremental] = MetadataTrue
 	}
 
 	return arrow.Field{

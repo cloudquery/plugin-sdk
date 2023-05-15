@@ -347,23 +347,7 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 		MetadataTableName: t.Name,
 	})
 	for i, c := range t.Columns {
-		fieldMdKv := map[string]string{}
-		if c.CreationOptions.PrimaryKey {
-			fieldMdKv[MetadataPrimaryKey] = MetadataTrue
-		} else {
-			fieldMdKv[MetadataPrimaryKey] = MetadataFalse
-		}
-		if c.CreationOptions.Unique {
-			fieldMdKv[MetadataUnique] = MetadataTrue
-		} else {
-			fieldMdKv[MetadataUnique] = MetadataFalse
-		}
-		fields[i] = arrow.Field{
-			Name:     c.Name,
-			Type:     c.Type,
-			Nullable: !c.CreationOptions.NotNull,
-			Metadata: arrow.MetadataFrom(fieldMdKv),
-		}
+		fields[i] = c.ToArrowField()
 	}
 	return arrow.NewSchema(fields, &schemaMd)
 }

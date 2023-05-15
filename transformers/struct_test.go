@@ -168,7 +168,7 @@ var (
 			expectedColumns, schema.Column{
 				Name:            "embedded_string",
 				Type:            arrow.BinaryTypes.String,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				CreationOptions: schema.CreationOptions{PrimaryKey: true},
 			}),
 	}
 	expectedTestTableNonEmbeddedStruct = schema.Table{
@@ -188,7 +188,7 @@ var (
 			schema.Column{
 				Name:            "int_col",
 				Type:            arrow.PrimitiveTypes.Int64,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				CreationOptions: schema.CreationOptions{PrimaryKey: true},
 			},
 			// Should not be unwrapped
 			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
@@ -216,7 +216,7 @@ var (
 			schema.Column{
 				Name:            "non_embedded_int_col",
 				Type:            arrow.PrimitiveTypes.Int64,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				CreationOptions: schema.CreationOptions{PrimaryKey: true},
 			},
 		},
 	}
@@ -236,12 +236,12 @@ var (
 			{
 				Name:            "parent",
 				Type:            arrow.BinaryTypes.String,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				CreationOptions: schema.CreationOptions{PrimaryKey: true},
 			},
 			{
 				Name:            "name",
 				Type:            arrow.BinaryTypes.String,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				CreationOptions: schema.CreationOptions{PrimaryKey: true},
 			},
 			{
 				Name: "version",

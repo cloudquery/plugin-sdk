@@ -47,10 +47,11 @@ func ColumnV2ToV3(column schemav2.Column) schema.Column {
 		Name:        column.Name,
 		Description: column.Description,
 		Type:        TypeV2ToV3(column.Type),
-		CreationOptions: schema.ColumnCreationOptions{
-			NotNull:    column.CreationOptions.NotNull,
-			Unique:     column.CreationOptions.Unique,
-			PrimaryKey: column.CreationOptions.PrimaryKey,
+		CreationOptions: schema.CreationOptions{
+			NotNull:        column.CreationOptions.NotNull,
+			Unique:         column.CreationOptions.Unique,
+			PrimaryKey:     column.CreationOptions.PrimaryKey,
+			IncrementalKey: column.CreationOptions.IncrementalKey,
 		},
 		IgnoreInTests: column.IgnoreInTests,
 	}
