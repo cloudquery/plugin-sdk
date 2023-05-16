@@ -22,10 +22,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	table := schema.TestTable(tableName, testSourceOptions...)
 	incTable := schema.TestTable(tableName+"_incremental", testSourceOptions...)
 	incTable.IsIncremental = true
-	parent := schema.TestTable(tableName+"_parent", testSourceOptions...)
-	parent.Relations = schema.Tables{table, incTable}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	if err := p.Migrate(ctx, schema.Tables{parent}); err != nil {
+	tables := schema.Tables{
+		table,
+		incTable,
+	}
+	if err := p.Migrate(ctx, tables); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
@@ -106,7 +108,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		return fmt.Errorf("after overwrite expected first resource to be different. diff: %s", diff)
 	}
 
-	resourcesRead, err = p.readAll(ctx, table, sourceName)
+	resourcesRead, err = p.readAll(ctx, tables[0], sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
@@ -122,7 +124,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 
 	// we expect the incremental table to still have 2 resources, because delete-stale should
 	// not apply there
-	resourcesRead, err = p.readAll(ctx, incTable, sourceName)
+	resourcesRead, err = p.readAll(ctx, tables[1], sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all from incremental table: %w", err)
 	}
