@@ -11,7 +11,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/google/uuid"
 	"golang.org/x/exp/slices"
@@ -326,12 +325,12 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 	for j := 0; j < opts.MaxRows; j++ {
 		nullRow := j%2 == 1
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
-		for i, c := range sc.Fields() {
-			if nullRow && c.Nullable && !schema.IsPk(c) &&
-				c.Name != schema.CqSourceNameColumn.Name &&
-				c.Name != schema.CqSyncTimeColumn.Name &&
-				c.Name != schema.CqIDField.Name &&
-				c.Name != schema.CqParentIDColumn.Name {
+		for i, c := range table.Columns {
+			if nullRow && !c.NotNull && !c.PrimaryKey &&
+				c.Name != CqSourceNameColumn.Name &&
+				c.Name != CqSyncTimeColumn.Name &&
+				c.Name != CqIDColumn.Name &&
+				c.Name != CqParentIDColumn.Name {
 				bldr.Field(i).AppendNull()
 				continue
 			}
@@ -345,7 +344,7 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 		records = append(records, bldr.NewRecord())
 		bldr.Release()
 	}
-	if indices := sc.FieldIndices(schema.CqIDColumn.Name); len(indices) > 0 {
+	if indices := sc.FieldIndices(CqIDColumn.Name); len(indices) > 0 {
 		cqIDIndex := indices[0]
 		sort.Slice(records, func(i, j int) bool {
 			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
@@ -361,7 +360,7 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	if arrow.IsListLike(dataType.ID()) {
 		if dataType.ID() == arrow.MAP {
 			k := getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
-			v := getExampleJSON(colName, dataType.(*arrow.MapType).ValueType().Field(1).Type, opts)
+			v := getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
 			return fmt.Sprintf(`[{"key": %s,"value": %s}]`, k, v)
 		}
 		inner := dataType.(*arrow.ListType).Elem()
@@ -385,8 +384,8 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 		return `"aa:bb:cc:dd:ee:ff"`
 	}
 
-	// handle integers
-	if arrow.IsInteger(dataType.ID()) {
+	// handle signed integers
+	if arrow.IsSignedInteger(dataType.ID()) {
 		return "-1"
 	}
 
@@ -417,7 +416,7 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	}
 	for _, stringType := range stringTypes {
 		if arrow.TypeEqual(dataType, stringType) {
-			if colName == schema.CqSourceNameColumn.Name {
+			if colName == CqSourceNameColumn.Name {
 				return `"` + opts.SourceName + `"`
 			}
 			return `"AString"`
@@ -459,7 +458,7 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	for _, timestampType := range timestampTypes {
 		if arrow.TypeEqual(dataType, timestampType) {
 			t := time.Now()
-			if colName == schema.CqSyncTimeColumn.Name {
+			if colName == CqSyncTimeColumn.Name {
 				t = opts.SyncTime.UTC()
 			} else if !opts.StableTime.IsZero() {
 				t = opts.StableTime
