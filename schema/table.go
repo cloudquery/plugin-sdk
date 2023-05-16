@@ -231,7 +231,16 @@ func (tt Tables) FlattenTables() Tables {
 		tables = append(tables, t)
 		tables = append(tables, t.Relations.FlattenTables()...)
 	}
-	return tables
+	tableNames := make(map[string]bool)
+	dedupedTables := make(Tables, 0, len(tables))
+	for _, t := range tables {
+		if _, found := tableNames[t.Name]; !found {
+			dedupedTables = append(dedupedTables, t)
+			tableNames[t.Name] = true
+		}
+	}
+
+	return dedupedTables
 }
 
 func (tt Tables) TableNames() []string {
