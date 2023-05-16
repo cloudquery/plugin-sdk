@@ -36,8 +36,8 @@ type Batching struct {
 
 // OpenCloseWriter is an optional interface that can be implemented by a Client which already implements destination.ManagedWriter.
 type OpenCloseWriter interface {
-	OpenTable(ctx context.Context, sourceSpec specs.Source, table *schema.Table) error
-	CloseTable(ctx context.Context, sourceSpec specs.Source, table *schema.Table) error
+	OpenTable(ctx context.Context, sourceSpec specs.Source, table *schema.Table, syncTime time.Time) error
+	CloseTable(ctx context.Context, sourceSpec specs.Source, table *schema.Table, syncTime time.Time) error
 	destination.ManagedWriter
 }
 
@@ -180,7 +180,7 @@ func (w *Batching) Write(ctx context.Context, sourceSpec specs.Source, tables sc
 			wg := &sync.WaitGroup{}
 			var errored bool
 			if w.underlyingOCW != nil {
-				if err := w.underlyingOCW.OpenTable(ctx, sourceSpec, table); err != nil {
+				if err := w.underlyingOCW.OpenTable(ctx, sourceSpec, table, syncTime); err != nil {
 					w.logger.Err(err).Str("table", table.Name).Msg("OpenTable failed")
 					// we don't return an error as we need to continue until channel is closed otherwise there will be a deadlock
 					atomic.AddUint64(&metrics.Errors, 1)
@@ -244,7 +244,7 @@ func (w *Batching) Write(ctx context.Context, sourceSpec specs.Source, tables sc
 			w.workers[tableName].wg.Wait()
 
 			if w.underlyingOCW != nil && !w.workers[tableName].openError {
-				if err := w.underlyingOCW.CloseTable(ctx, sourceSpec, tables.Get(tableName)); err != nil {
+				if err := w.underlyingOCW.CloseTable(ctx, sourceSpec, tables.Get(tableName), syncTime); err != nil {
 					w.logger.Err(err).Str("table", tableName).Msg("CloseTable failed")
 
 					w.metricsLock.RLock()

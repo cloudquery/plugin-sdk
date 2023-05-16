@@ -25,6 +25,8 @@ type opencloseclient struct {
 	tblLock      *sync.Mutex
 }
 
+var _ batchingwriter.OpenCloseWriter = (*opencloseclient)(nil)
+
 func getNewOCWClient(base opencloseclient, options ...Option) destination.NewClientFunc {
 	return func(ctx context.Context, lgr zerolog.Logger, spec specs.Destination) (destination.Client, error) {
 		c, err := GetNewClient(options...)(ctx, lgr, spec)
@@ -52,7 +54,7 @@ func (c *opencloseclient) WriteTableBatch(_ context.Context, _ specs.Source, tab
 	return nil
 }
 
-func (c *opencloseclient) OpenTable(_ context.Context, _ specs.Source, table *schema.Table) error {
+func (c *opencloseclient) OpenTable(_ context.Context, _ specs.Source, table *schema.Table, _ time.Time) error {
 	if c.errOnOpen {
 		return fmt.Errorf("errOnOpen")
 	}
@@ -61,7 +63,7 @@ func (c *opencloseclient) OpenTable(_ context.Context, _ specs.Source, table *sc
 	c.openTables = append(c.openTables, table.Name)
 	return nil
 }
-func (c *opencloseclient) CloseTable(_ context.Context, _ specs.Source, table *schema.Table) error {
+func (c *opencloseclient) CloseTable(_ context.Context, _ specs.Source, table *schema.Table, _ time.Time) error {
 	if c.errOnClose {
 		return fmt.Errorf("errOnClose")
 	}
