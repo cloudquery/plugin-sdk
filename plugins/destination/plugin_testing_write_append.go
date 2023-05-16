@@ -19,11 +19,10 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
 	table := schema.TestTable(tableName, testSourceOptions...)
+	parent := schema.TestTable(tableName+"_parent", testSourceOptions...)
+	parent.Relations = schema.Tables{table}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	tables := schema.Tables{
-		table,
-	}
-	if err := p.Migrate(ctx, tables); err != nil {
+	if err := p.Migrate(ctx, schema.Tables{parent}); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
@@ -53,7 +52,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		}
 	}
 
-	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
+	resourcesRead, err := p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
