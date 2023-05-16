@@ -360,7 +360,7 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	if arrow.IsListLike(dataType.ID()) {
 		if dataType.ID() == arrow.MAP {
 			k := getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
-			v := getExampleJSON(colName, dataType.(*arrow.MapType).ValueType().Field(1).Type, opts)
+			v := getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
 			return fmt.Sprintf(`[{"key": %s,"value": %s}]`, k, v)
 		}
 		inner := dataType.(*arrow.ListType).Elem()
