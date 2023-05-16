@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0](https://github.com/cloudquery/plugin-sdk/compare/v3.4.0...v3.5.0) (2023-05-16)
+
+
+### Features
+
+* Revert "feat(test): Test writing to a child table" ([#880](https://github.com/cloudquery/plugin-sdk/issues/880)) ([9d61013](https://github.com/cloudquery/plugin-sdk/commit/9d610131faf4597fe191caac08d40a93efd8aafe))
+
 ## [3.4.0](https://github.com/cloudquery/plugin-sdk/compare/v3.3.0...v3.4.0) (2023-05-16)
 
 
