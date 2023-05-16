@@ -384,8 +384,8 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 		return `"aa:bb:cc:dd:ee:ff"`
 	}
 
-	// handle integers
-	if arrow.IsInteger(dataType.ID()) {
+	// handle signed integers
+	if arrow.IsSignedInteger(dataType.ID()) {
 		return "-1"
 	}
 
