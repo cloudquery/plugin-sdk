@@ -95,7 +95,7 @@ func (c *client) overwrite(table *schema.Table, data arrow.Record) {
 }
 
 func (c *client) Migrate(_ context.Context, tables schema.Tables) error {
-	for _, table := range tables {
+	for _, table := range tables.FlattenTables() {
 		tableName := table.Name
 		memTable := c.memoryDB[tableName]
 		if memTable == nil {
