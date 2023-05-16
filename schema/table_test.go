@@ -23,6 +23,10 @@ func TestTablesFlatten(t *testing.T) {
 	if len(tables) != 2 {
 		t.Fatal("expected 2 tables")
 	}
+	tables = Tables{testTable}.FlattenTables()
+	if len(tables) != 2 {
+		t.Fatal("expected 2 tables")
+	}
 }
 
 func TestTablesFilterDFS(t *testing.T) {

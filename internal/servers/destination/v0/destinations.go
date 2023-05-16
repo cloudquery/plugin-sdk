@@ -59,7 +59,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	if err := json.Unmarshal(req.Tables, &tablesV2); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
-	tables := TablesV2ToV3(tablesV2)
+	tables := TablesV2ToV3(tablesV2).FlattenTables()
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
 
@@ -97,7 +97,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal source spec: %v", err)
 		}
 	}
-	tables := TablesV2ToV3(tablesV2)
+	tables := TablesV2ToV3(tablesV2).FlattenTables()
 	syncTime := r.Timestamp.AsTime()
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
@@ -201,12 +201,8 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 	if err := json.Unmarshal(req.Tables, &tablesV2); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal tables: %v", err)
 	}
-	tables := TablesV2ToV3(tablesV2)
+	tables := TablesV2ToV3(tablesV2).FlattenTables()
 	SetDestinationManagedCqColumns(tables)
-	schemas := make(schemav2.Schemas, len(tables.FlattenTables()))
-	for i, table := range tables.FlattenTables() {
-		schemas[i] = table.ToArrowSchema()
-	}
 	if err := s.Plugin.DeleteStale(ctx, tables, req.Source, req.Timestamp.AsTime()); err != nil {
 		return nil, err
 	}
