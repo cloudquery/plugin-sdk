@@ -7,6 +7,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v3/internal/glob"
+	"golang.org/x/exp/slices"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -244,7 +245,7 @@ func (tt Tables) FlattenTables() Tables {
 		}
 	}
 
-	return deduped
+	return slices.Clip(deduped)
 }
 
 func (tt Tables) TableNames() []string {
