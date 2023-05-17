@@ -94,7 +94,7 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 	// cq columns
 	var cqColumns []Column
 	cqColumns = append(cqColumns, Column{Name: CqIDColumn.Name, Type: types.NewUUIDType(), NotNull: true, Unique: true, PrimaryKey: true})
-	cqColumns = append(cqColumns, Column{Name: CqParentIDColumn.Name, Type: types.NewUUIDType(), NotNull: true})
+	cqColumns = append(cqColumns, Column{Name: CqParentIDColumn.Name, Type: types.NewUUIDType()})
 
 	var basicColumns []Column
 	basicColumns = append(basicColumns, primitiveColumns()...)
