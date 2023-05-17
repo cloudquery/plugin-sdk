@@ -7,6 +7,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v3/internal/glob"
+	"golang.org/x/exp/slices"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -173,9 +174,10 @@ func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool, skipDependent
 }
 
 func (tt Tables) ToArrowSchemas() Schemas {
-	schemas := make(Schemas, 0, len(tt.FlattenTables()))
-	for _, t := range tt.FlattenTables() {
-		schemas = append(schemas, t.ToArrowSchema())
+	flattened := tt.FlattenTables()
+	schemas := make(Schemas, len(flattened))
+	for i, t := range flattened {
+		schemas[i] = t.ToArrowSchema()
 	}
 	return schemas
 }
@@ -228,19 +230,22 @@ func (tt Tables) FilterDfs(tables, skipTables []string, skipDependentTables bool
 func (tt Tables) FlattenTables() Tables {
 	tables := make(Tables, 0, len(tt))
 	for _, t := range tt {
-		tables = append(tables, t)
+		table := *t
+		table.Relations = nil
+		tables = append(tables, &table)
 		tables = append(tables, t.Relations.FlattenTables()...)
 	}
-	tableNames := make(map[string]bool)
-	dedupedTables := make(Tables, 0, len(tables))
+
+	seen := make(map[string]struct{})
+	deduped := make(Tables, 0, len(tables))
 	for _, t := range tables {
-		if _, found := tableNames[t.Name]; !found {
-			dedupedTables = append(dedupedTables, t)
-			tableNames[t.Name] = true
+		if _, found := seen[t.Name]; !found {
+			deduped = append(deduped, t)
+			seen[t.Name] = struct{}{}
 		}
 	}
 
-	return dedupedTables
+	return slices.Clip(deduped)
 }
 
 func (tt Tables) TableNames() []string {
