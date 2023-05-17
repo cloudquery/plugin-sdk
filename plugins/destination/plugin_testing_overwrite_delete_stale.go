@@ -89,10 +89,13 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		StableUUID: u,
 		MaxRows:    1,
 	}
-	updatedResources := schema.GenTestData(table, opts)[0]
+	updatedResources := schema.GenTestData(table, opts)
+	updatedIncResources := schema.GenTestData(incTable, opts)
+	allUpdatedResources := updatedResources
+	allUpdatedResources = append(allUpdatedResources, updatedIncResources...)
 
-	if err := p.writeOne(ctx, sourceSpec, secondSyncTime, updatedResources); err != nil {
-		return fmt.Errorf("failed to write one second time: %w", err)
+	if err := p.writeAll(ctx, sourceSpec, secondSyncTime, allUpdatedResources); err != nil {
+		return fmt.Errorf("failed to write all second time: %w", err)
 	}
 
 	resourcesRead, err = p.readAll(ctx, table, sourceName)
@@ -108,7 +111,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		return fmt.Errorf("after overwrite expected first resource to be different. diff: %s", diff)
 	}
 
-	resourcesRead, err = p.readAll(ctx, tables[0], sourceName)
+	resourcesRead, err = p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
@@ -117,19 +120,19 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	// we expect the only resource returned to match the updated resource we wrote
-	if !array.RecordApproxEqual(updatedResources, resourcesRead[0]) {
-		diff := RecordDiff(updatedResources, resourcesRead[0])
+	if !array.RecordApproxEqual(updatedResources[0], resourcesRead[0]) {
+		diff := RecordDiff(updatedResources[0], resourcesRead[0])
 		return fmt.Errorf("after delete stale expected resource to be equal. diff: %s", diff)
 	}
 
 	// we expect the incremental table to still have 2 resources, because delete-stale should
 	// not apply there
-	resourcesRead, err = p.readAll(ctx, tables[1], sourceName)
+	resourcesRead, err = p.readAll(ctx, incTable, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all from incremental table: %w", err)
 	}
-	if len(resourcesRead) != 2 {
-		return fmt.Errorf("expected 2 resources in incremental table after delete-stale, got %d", len(resourcesRead))
+	if len(resourcesRead) != 3 {
+		return fmt.Errorf("expected 3 resources in incremental table after delete-stale, got %d", len(resourcesRead))
 	}
 
 	return nil

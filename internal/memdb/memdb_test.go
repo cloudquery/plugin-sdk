@@ -44,21 +44,6 @@ func TestPluginUnmanagedClient(t *testing.T) {
 	)
 }
 
-func TestPluginIncrementalFilteredOut(t *testing.T) {
-	destination.PluginTestSuiteRunner(
-		t,
-		func() *destination.Plugin {
-			return destination.NewPlugin("test", "development",
-				NewClientWithSrcSpec(specs.Source{Backend: specs.BackendLocal}))
-		},
-		specs.Destination{},
-		destination.PluginTestSuiteTests{
-			MigrateStrategyOverwrite: migrateStrategyOverwrite,
-			MigrateStrategyAppend:    migrateStrategyAppend,
-		},
-	)
-}
-
 func TestPluginManagedClient(t *testing.T) {
 	destination.PluginTestSuiteRunner(t,
 		func() *destination.Plugin {

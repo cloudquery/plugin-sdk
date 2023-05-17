@@ -19,7 +19,6 @@ import (
 // client is mostly used for testing the destination plugin.
 type client struct {
 	spec          specs.Destination
-	sourceSpec    specs.Source // used to verify that we don't remove incremental tables when src backend != none
 	memoryDB      map[string][]arrow.Record
 	tables        map[string]*schema.Table
 	memoryDBLock  sync.RWMutex
@@ -72,16 +71,6 @@ func NewClient(_ context.Context, _ zerolog.Logger, spec specs.Destination) (des
 
 func NewClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (destination.Client, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
-}
-
-func NewClientWithSrcSpec(srcSpec specs.Source) destination.NewClientFunc {
-	return func(ctx context.Context, logger zerolog.Logger, spec specs.Destination) (destination.Client, error) {
-		c, err := NewClient(ctx, logger, spec)
-		if c != nil {
-			c.(*client).sourceSpec = srcSpec
-		}
-		return c, err
-	}
 }
 
 func (c *client) overwrite(table *schema.Table, data arrow.Record) {
@@ -216,10 +205,6 @@ func (c *client) Close(context.Context) error {
 
 func (c *client) DeleteStale(ctx context.Context, tables schema.Tables, source string, syncTime time.Time) error {
 	for _, table := range tables {
-		if c.sourceSpec.Backend != specs.BackendNone && table.IsIncremental {
-			return fmt.Errorf("tried to delete stale from incremental table %q when source backend is %q",
-				table.Name, c.sourceSpec.Backend.String())
-		}
 		c.deleteStaleTable(ctx, table, source, syncTime)
 	}
 	return nil
