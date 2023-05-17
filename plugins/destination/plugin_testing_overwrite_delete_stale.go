@@ -125,7 +125,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		return fmt.Errorf("after delete stale expected resource to be equal. diff: %s", diff)
 	}
 
-	// we expect the incremental table to still have 2 resources, because delete-stale should
+	// we expect the incremental table to still have 3 resources, because delete-stale should
 	// not apply there
 	resourcesRead, err = p.readAll(ctx, incTable, sourceName)
 	if err != nil {
