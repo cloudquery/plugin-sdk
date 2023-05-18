@@ -269,6 +269,7 @@ func (p *Plugin) Write(ctx context.Context, sourceSpec specs.Source, tables sche
 	if p.spec.WriteMode == specs.WriteModeOverwriteDeleteStale {
 		tablesToDelete := tables
 		if sourceSpec.Backend != specs.BackendNone {
+			tablesToDelete = make(schema.Tables, 0, len(tables))
 			for _, t := range tables {
 				if !t.IsIncremental {
 					tablesToDelete = append(tablesToDelete, t)

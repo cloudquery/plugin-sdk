@@ -116,21 +116,20 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		return nil, fmt.Errorf("missing table name")
 	}
 	description, _ := tableMD.GetValue(MetadataTableDescription)
+	constraintName, _ := tableMD.GetValue(MetadataConstraintName)
 	fields := sc.Fields()
 	columns := make(ColumnList, len(fields))
 	for i, field := range fields {
 		columns[i] = NewColumnFromArrowField(field)
 	}
 	table := &Table{
-		Name:        name,
-		Description: description,
-		Columns:     columns,
+		Name:             name,
+		Description:      description,
+		PkConstraintName: constraintName,
+		Columns:          columns,
 	}
-	if constraintName, found := tableMD.GetValue(MetadataConstraintName); found {
-		table.PkConstraintName = constraintName
-	}
-	if title, found := tableMD.GetValue(MetadataIncremental); found {
-		table.Title = title
+	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
+		table.IsIncremental = isIncremental == MetadataTrue
 	}
 	return table, nil
 }
@@ -369,9 +368,16 @@ func (t *Table) PrimaryKeysIndexes() []int {
 
 func (t *Table) ToArrowSchema() *arrow.Schema {
 	fields := make([]arrow.Field, len(t.Columns))
-	schemaMd := arrow.MetadataFrom(map[string]string{
-		MetadataTableName: t.Name,
-	})
+	md := map[string]string{
+		MetadataTableName:        t.Name,
+		MetadataTableDescription: t.Description,
+		MetadataConstraintName:   t.PkConstraintName,
+		MetadataIncremental:      MetadataFalse,
+	}
+	if t.IsIncremental {
+		md[MetadataIncremental] = MetadataTrue
+	}
+	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {
 		fields[i] = c.ToArrowField()
 	}
