@@ -35,7 +35,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	opts := schema.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   syncTime,
-		MaxRows:    1,
+		MaxRows:    2,
 	}
 	record1 := schema.GenTestData(table, opts)[0]
 	if err := p.writeOne(ctx, specSource, syncTime, record1); err != nil {
@@ -59,9 +59,9 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 	sortRecordsBySyncTime(table, resourcesRead)
 
-	expectedResource := 2
+	expectedResource := 3
 	if s.tests.SkipSecondAppend {
-		expectedResource = 1
+		expectedResource = 2
 	}
 
 	if len(resourcesRead) != expectedResource {
@@ -74,8 +74,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 
 	if !s.tests.SkipSecondAppend {
-		if !array.RecordApproxEqual(record2, resourcesRead[1]) {
-			diff := RecordDiff(record2, resourcesRead[1])
+		if !array.RecordApproxEqual(record2, resourcesRead[2]) {
+			diff := RecordDiff(record2, resourcesRead[2])
 			return fmt.Errorf("second expected resource diff: %s", diff)
 		}
 	}
