@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.2](https://github.com/cloudquery/plugin-sdk/compare/v3.5.1...v3.5.2) (2023-05-18)
+
+
+### Bug Fixes
+
+* **arrow:** `schema.Table` &lt;-&gt; `arrow.Schema` conversion ([#886](https://github.com/cloudquery/plugin-sdk/issues/886)) ([61d98c9](https://github.com/cloudquery/plugin-sdk/commit/61d98c9558287879137e10da0687bbf307d0d0ac))
+* **destination:** Don't duplicate tables to be removed ([#886](https://github.com/cloudquery/plugin-sdk/issues/886)) ([61d98c9](https://github.com/cloudquery/plugin-sdk/commit/61d98c9558287879137e10da0687bbf307d0d0ac))
+* **tables:** Flatten stripping relations ([#884](https://github.com/cloudquery/plugin-sdk/issues/884)) ([e890385](https://github.com/cloudquery/plugin-sdk/commit/e890385102e2668a16e35cff75fe2ffea32f2937))
+* **testing:** CQ Parent ID column should not be NotNull ([#887](https://github.com/cloudquery/plugin-sdk/issues/887)) ([f4aa5bc](https://github.com/cloudquery/plugin-sdk/commit/f4aa5bcebc88ae1a9a5bd90937dcd5868dc0dff1))
+
 ## [3.5.1](https://github.com/cloudquery/plugin-sdk/compare/v3.5.0...v3.5.1) (2023-05-16)
 
 
