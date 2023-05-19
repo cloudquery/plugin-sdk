@@ -160,6 +160,7 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 
 	// add JSON later, we don't want to include it as a list or map right now (it causes complications with JSON unmarshalling)
 	basicColumns = append(basicColumns, Column{Name: "json", Type: types.NewJSONType()})
+	basicColumns = append(basicColumns, Column{Name: "json_array", Type: types.NewJSONType()}) // GenTestData knows to populate this with a JSON array
 
 	if !opts.SkipStructs {
 		// struct with all the types
@@ -363,7 +364,7 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 			return fmt.Sprintf(`[{"key": %s,"value": %s}]`, k, v)
 		}
 		inner := dataType.(*arrow.ListType).Elem()
-		return `[` + getExampleJSON(colName, inner, opts) + `]`
+		return `[` + getExampleJSON(colName, inner, opts) + `,null,` + getExampleJSON(colName, inner, opts) + `]`
 	}
 	// handle extension types
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.UUID) {
@@ -374,7 +375,10 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 		return `"` + u.String() + `"`
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.JSON) {
-		return `"{\"test\":\"test\"}"`
+		if strings.HasSuffix(colName, "_array") {
+			return `"[{\"test\":\"test\"},123,{\"test_number\":456}]"`
+		}
+		return `"{\"test\":[\"a\",\"b\",3]}"`
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.Inet) {
 		return `"192.0.2.0/24"`
