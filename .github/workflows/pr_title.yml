@@ -11,6 +11,7 @@ jobs:
   main:
     name: Validate PR title
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       # Please look up the latest version from
       # https://github.com/amannn/action-semantic-pull-request/releases

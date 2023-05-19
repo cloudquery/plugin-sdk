@@ -7,11 +7,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/util"
-	"github.com/cloudquery/plugin-sdk/v2/internal/pk"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/util"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/internal/pk"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 )
 
 type worker struct {
@@ -21,7 +21,7 @@ type worker struct {
 	flush chan chan bool
 }
 
-func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *arrow.Schema, ch <-chan arrow.Record, flush <-chan chan bool) {
+func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan arrow.Record, flush <-chan chan bool) {
 	sizeBytes := int64(0)
 	resources := make([]arrow.Record, 0)
 	for {
@@ -57,23 +57,22 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *arrow.Sche
 	}
 }
 
-func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *arrow.Schema, resources []arrow.Record) {
+func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources []arrow.Record) {
 	resources = p.removeDuplicatesByPK(table, resources)
-	tableName := schema.TableName(table)
 	start := time.Now()
 	batchSize := len(resources)
 	if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
-		p.logger.Err(err).Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
+		p.logger.Err(err).Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 		// we don't return an error as we need to continue until channel is closed otherwise there will be a deadlock
 		atomic.AddUint64(&metrics.Errors, uint64(batchSize))
 	} else {
-		p.logger.Info().Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+		p.logger.Info().Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 		atomic.AddUint64(&metrics.Writes, uint64(batchSize))
 	}
 }
 
-func (*Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Record) []arrow.Record {
-	pkIndices := schema.PrimaryKeyIndices(table)
+func (*Plugin) removeDuplicatesByPK(table *schema.Table, resources []arrow.Record) []arrow.Record {
+	pkIndices := table.PrimaryKeysIndexes()
 	// special case where there's no PK at all
 	if len(pkIndices) == 0 {
 		return resources
@@ -81,36 +80,36 @@ func (*Plugin) removeDuplicatesByPK(table *arrow.Schema, resources []arrow.Recor
 
 	pks := make(map[string]struct{}, len(resources))
 	res := make([]arrow.Record, 0, len(resources))
-	var reported bool
 	for _, r := range resources {
+		if r.NumRows() > 1 {
+			panic(fmt.Sprintf("record with more than 1 row: %d", r.NumRows()))
+		}
 		key := pk.String(r)
 		_, ok := pks[key]
-		switch {
-		case !ok:
+		if !ok {
 			pks[key] = struct{}{}
 			res = append(res, r)
 			continue
-		case reported:
-			continue
 		}
+		// duplicate, release
+		r.Release()
 	}
 
 	return res
 }
 
-func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Schemas, _ time.Time, res <-chan arrow.Record) error {
+func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
 	workers := make(map[string]*worker, len(tables))
 	metrics := &Metrics{}
 
 	p.workersLock.Lock()
 	for _, table := range tables {
 		table := table
-		tableName := schema.TableName(table)
-		if p.workers[schema.TableName(table)] == nil {
+		if p.workers[table.Name] == nil {
 			ch := make(chan arrow.Record)
 			flush := make(chan chan bool)
 			wg := &sync.WaitGroup{}
-			p.workers[schema.TableName(table)] = &worker{
+			p.workers[table.Name] = &worker{
 				count: 1,
 				ch:    ch,
 				flush: flush,
@@ -122,11 +121,11 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tab
 				p.worker(ctx, metrics, table, ch, flush)
 			}()
 		} else {
-			p.workers[tableName].count++
+			p.workers[table.Name].count++
 		}
 		// we save this locally because we don't want to access the map after that so we can
 		// keep the workersLock for as short as possible
-		workers[tableName] = p.workers[tableName]
+		workers[table.Name] = p.workers[table.Name]
 	}
 	p.workersLock.Unlock()
 

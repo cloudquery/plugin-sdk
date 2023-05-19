@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/v2/backend"
-	"github.com/cloudquery/plugin-sdk/v2/caser"
-	"github.com/cloudquery/plugin-sdk/v2/internal/backends/local"
-	"github.com/cloudquery/plugin-sdk/v2/internal/backends/nop"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/backend"
+	"github.com/cloudquery/plugin-sdk/v3/caser"
+	"github.com/cloudquery/plugin-sdk/v3/internal/backends/local"
+	"github.com/cloudquery/plugin-sdk/v3/internal/backends/nop"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/semaphore"
 )
@@ -70,6 +70,7 @@ type Plugin struct {
 	unmanaged bool
 	// titleTransformer allows the plugin to control how table names get turned into titles for generated documentation
 	titleTransformer func(*schema.Table) string
+	syncTime         time.Time
 }
 
 const (
@@ -77,17 +78,26 @@ const (
 )
 
 // Add internal columns
-func addInternalColumns(tables []*schema.Table) error {
+func (p *Plugin) addInternalColumns(tables []*schema.Table) error {
 	for _, table := range tables {
 		if c := table.Column("_cq_id"); c != nil {
 			return fmt.Errorf("table %s already has column _cq_id", table.Name)
 		}
 		cqID := schema.CqIDColumn
 		if len(table.PrimaryKeys()) == 0 {
-			cqID.CreationOptions.PrimaryKey = true
+			cqID.PrimaryKey = true
 		}
-		table.Columns = append([]schema.Column{cqID, schema.CqParentIDColumn}, table.Columns...)
-		if err := addInternalColumns(table.Relations); err != nil {
+		cqSourceName := schema.CqSourceNameColumn
+		cqSyncTime := schema.CqSyncTimeColumn
+		cqSourceName.Resolver = func(_ context.Context, _ schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
+			return resource.Set(c.Name, p.spec.Name)
+		}
+		cqSyncTime.Resolver = func(_ context.Context, _ schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
+			return resource.Set(c.Name, p.syncTime)
+		}
+
+		table.Columns = append([]schema.Column{cqSourceName, cqSyncTime, cqID, schema.CqParentIDColumn}, table.Columns...)
+		if err := p.addInternalColumns(table.Relations); err != nil {
 			return err
 		}
 	}
@@ -152,7 +162,7 @@ func NewPlugin(name string, version string, tables []*schema.Table, newExecution
 		panic(err)
 	}
 	if p.internalColumns {
-		if err := addInternalColumns(p.tables); err != nil {
+		if err := p.addInternalColumns(p.tables); err != nil {
 			panic(err)
 		}
 	}
@@ -261,7 +271,7 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 			return err
 		}
 		if p.internalColumns {
-			if err := addInternalColumns(tables); err != nil {
+			if err := p.addInternalColumns(tables); err != nil {
 				return err
 			}
 		}
@@ -284,12 +294,12 @@ func (p *Plugin) Init(ctx context.Context, spec specs.Source) error {
 }
 
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *Plugin) Sync(ctx context.Context, res chan<- *schema.Resource) error {
+func (p *Plugin) Sync(ctx context.Context, syncTime time.Time, res chan<- *schema.Resource) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
-
+	p.syncTime = syncTime
 	if p.client == nil {
 		var err error
 		p.client, err = p.newExecutionClient(ctx, p.logger, p.spec, Options{Backend: p.backend})

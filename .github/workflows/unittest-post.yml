@@ -9,6 +9,7 @@ on:
 jobs:
   post-unitests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       # This posts the status to the PR/commit
       - uses: haya14busa/action-workflow_run-status@v1

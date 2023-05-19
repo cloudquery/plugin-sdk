@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-pb-go/specs"
 )
 
 type Local struct {

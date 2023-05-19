@@ -3,10 +3,13 @@ package source
 import (
 	"context"
 	"testing"
+	"time"
 
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
-	"github.com/cloudquery/plugin-sdk/v2/transformers"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/scalar"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/transformers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -18,8 +21,10 @@ type testExecutionClient struct{}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
-var deterministicStableUUID = uuid.MustParse("c25c481db0f05865b6d8f07acab8515f")
+var deterministicStableUUID = uuid.MustParse("c25355aab52c5b70a4e0c9991f5a3b87")
 var randomStableUUID = uuid.MustParse("00000000000040008000000000000000")
+
+var testSyncTime = time.Now()
 
 func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 	res <- map[string]any{
@@ -47,7 +52,21 @@ func testTableSuccess() *schema.Table {
 		Columns: []schema.Column{
 			{
 				Name: "test_column",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+		},
+	}
+}
+
+func testTableSuccessWithPK() *schema.Table {
+	return &schema.Table{
+		Name:     "test_table_success",
+		Resolver: testResolverSuccess,
+		Columns: []schema.Column{
+			{
+				Name:       "test_column",
+				Type:       arrow.PrimitiveTypes.Int64,
+				PrimaryKey: true,
 			},
 		},
 	}
@@ -60,7 +79,7 @@ func testTableResolverPanic() *schema.Table {
 		Columns: []schema.Column{
 			{
 				Name: "test_column",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 		},
 	}
@@ -74,7 +93,7 @@ func testTablePreResourceResolverPanic() *schema.Table {
 		Columns: []schema.Column{
 			{
 				Name: "test_column",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 		},
 	}
@@ -87,11 +106,11 @@ func testTableColumnResolverPanic() *schema.Table {
 		Columns: []schema.Column{
 			{
 				Name: "test_column",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 			{
 				Name:     "test_column1",
-				Type:     schema.TypeInt,
+				Type:     arrow.PrimitiveTypes.Int64,
 				Resolver: testColumnResolverPanic,
 			},
 		},
@@ -105,7 +124,7 @@ func testTableRelationSuccess() *schema.Table {
 		Columns: []schema.Column{
 			{
 				Name: "test_column",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 		},
 		Relations: []*schema.Table{
@@ -125,7 +144,7 @@ func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source, Optio
 type syncTestCase struct {
 	table             *schema.Table
 	stats             Metrics
-	data              []schema.CQTypes
+	data              []scalar.Vector
 	deterministicCQID bool
 }
 
@@ -141,11 +160,13 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: []schema.CQTypes{
+		data: []scalar.Vector{
 			{
-				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
-				&schema.UUID{Status: schema.Null},
-				&schema.Int8{Int: 3, Status: schema.Present},
+				&scalar.String{Value: "testSource", Valid: true},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
+				&scalar.UUID{Value: randomStableUUID, Valid: true},
+				&scalar.UUID{},
+				&scalar.Int64{Value: 3, Valid: true},
 			},
 		},
 	},
@@ -192,16 +213,20 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: []schema.CQTypes{
+		data: []scalar.Vector{
 			{
-				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
-				&schema.UUID{Status: schema.Null},
-				&schema.Int8{Int: 3, Status: schema.Present},
+				&scalar.String{Value: "testSource", Valid: true},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
+				&scalar.UUID{Value: randomStableUUID, Valid: true},
+				&scalar.UUID{},
+				&scalar.Int64{Value: 3, Valid: true},
 			},
 			{
-				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
-				&schema.UUID{Bytes: randomStableUUID, Status: schema.Present},
-				&schema.Int8{Int: 3, Status: schema.Present},
+				&scalar.String{Value: "testSource", Valid: true},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
+				&scalar.UUID{Value: randomStableUUID, Valid: true},
+				&scalar.UUID{Value: randomStableUUID, Valid: true},
+				&scalar.Int64{Value: 3, Valid: true},
 			},
 		},
 	},
@@ -216,11 +241,13 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: []schema.CQTypes{
+		data: []scalar.Vector{
 			{
-				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
-				&schema.UUID{Status: schema.Null},
-				&schema.Int8{Int: 3, Status: schema.Present},
+				&scalar.String{Value: "testSource", Valid: true},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
+				&scalar.UUID{Value: randomStableUUID, Valid: true},
+				&scalar.UUID{},
+				&scalar.Int64{Value: 3, Valid: true},
 			},
 		},
 		deterministicCQID: true,
@@ -237,12 +264,14 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: []schema.CQTypes{
+		data: []scalar.Vector{
 			{
-				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
-				&schema.UUID{Status: schema.Null},
-				&schema.Int8{Int: 3, Status: schema.Present},
-				&schema.Int8{Status: schema.Undefined},
+				&scalar.String{Value: "testSource", Valid: true},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
+				&scalar.UUID{Value: randomStableUUID, Valid: true},
+				&scalar.UUID{},
+				&scalar.Int64{Value: 3, Valid: true},
+				&scalar.Int64{},
 			},
 		},
 		deterministicCQID: true,
@@ -263,16 +292,42 @@ var syncTestCases = []syncTestCase{
 				},
 			},
 		},
-		data: []schema.CQTypes{
+		data: []scalar.Vector{
 			{
-				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
-				&schema.UUID{Status: schema.Null},
-				&schema.Int8{Int: 3, Status: schema.Present},
+				&scalar.String{Value: "testSource", Valid: true},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
+				&scalar.UUID{Value: randomStableUUID, Valid: true},
+				&scalar.UUID{},
+				&scalar.Int64{Value: 3, Valid: true},
 			},
 			{
-				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
-				&schema.UUID{Bytes: deterministicStableUUID, Status: schema.Present},
-				&schema.Int8{Int: 3, Status: schema.Present},
+				&scalar.String{Value: "testSource", Valid: true},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
+				&scalar.UUID{Value: randomStableUUID, Valid: true},
+				&scalar.UUID{Value: randomStableUUID, Valid: true},
+				&scalar.Int64{Value: 3, Valid: true},
+			},
+		},
+		deterministicCQID: true,
+	},
+	{
+		table: testTableSuccessWithPK(),
+		stats: Metrics{
+			TableClient: map[string]map[string]*TableClientMetrics{
+				"test_table_success": {
+					"testExecutionClient": {
+						Resources: 1,
+					},
+				},
+			},
+		},
+		data: []scalar.Vector{
+			{
+				&scalar.String{Value: "testSource", Valid: true},
+				&scalar.Timestamp{Value: testSyncTime, Valid: true},
+				&scalar.UUID{Value: deterministicStableUUID, Valid: true},
+				&scalar.UUID{},
+				&scalar.Int64{Value: 3, Valid: true},
 			},
 		},
 		deterministicCQID: true,
@@ -333,6 +388,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler, det
 	g.Go(func() error {
 		defer close(resources)
 		return plugin.Sync(ctx,
+			testSyncTime,
 			resources)
 	})
 
@@ -369,7 +425,7 @@ func TestIgnoredColumns(t *testing.T) {
 			Columns: schema.ColumnList{
 				{
 					Name:          "a",
-					Type:          schema.TypeString,
+					Type:          arrow.BinaryTypes.String,
 					IgnoreInTests: true,
 				},
 			},
