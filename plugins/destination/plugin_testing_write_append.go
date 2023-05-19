@@ -44,11 +44,12 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
 	opts.SyncTime = secondSyncTime
-	record2 := schema.GenTestData(table, opts)[0]
+	opts.MaxRows = 1
+	record2 := schema.GenTestData(table, opts)
 
 	if !s.tests.SkipSecondAppend {
 		// write second time
-		if err := p.writeOne(ctx, specSource, secondSyncTime, record2); err != nil {
+		if err := p.writeAll(ctx, specSource, secondSyncTime, record2); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
@@ -70,6 +71,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(record1)
+		stripNullsFromLists(record2)
 	}
 	if !array.RecordApproxEqual(record1[0], resourcesRead[0]) {
 		diff := RecordDiff(record1[0], resourcesRead[0])
@@ -81,8 +83,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 
 	if !s.tests.SkipSecondAppend {
-		if !array.RecordApproxEqual(record2, resourcesRead[2]) {
-			diff := RecordDiff(record2, resourcesRead[2])
+		if !array.RecordApproxEqual(record2[0], resourcesRead[2]) {
+			diff := RecordDiff(record2[0], resourcesRead[2])
 			return fmt.Errorf("second expected resource diff: %s", diff)
 		}
 	}
