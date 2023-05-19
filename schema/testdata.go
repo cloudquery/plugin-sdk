@@ -329,8 +329,7 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 			if nullRow && !c.NotNull && !c.PrimaryKey &&
 				c.Name != CqSourceNameColumn.Name &&
 				c.Name != CqSyncTimeColumn.Name &&
-				c.Name != CqIDColumn.Name &&
-				c.Name != CqParentIDColumn.Name {
+				c.Name != CqIDColumn.Name {
 				bldr.Field(i).AppendNull()
 				continue
 			}

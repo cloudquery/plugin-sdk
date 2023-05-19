@@ -35,11 +35,11 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	opts := schema.GenTestDataOptions{
 		SourceName: sourceName,
 		SyncTime:   syncTime,
-		MaxRows:    1,
+		MaxRows:    2,
 	}
-	record1 := schema.GenTestData(table, opts)[0]
-	if err := p.writeOne(ctx, specSource, syncTime, record1); err != nil {
-		return fmt.Errorf("failed to write one second time: %w", err)
+	record1 := schema.GenTestData(table, opts)
+	if err := p.writeAll(ctx, specSource, syncTime, record1); err != nil {
+		return fmt.Errorf("failed to write record first time: %w", err)
 	}
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
@@ -59,23 +59,27 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 	sortRecordsBySyncTime(table, resourcesRead)
 
-	expectedResource := 2
+	expectedResource := 3
 	if s.tests.SkipSecondAppend {
-		expectedResource = 1
+		expectedResource = 2
 	}
 
 	if len(resourcesRead) != expectedResource {
 		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
-	if !array.RecordApproxEqual(record1, resourcesRead[0]) {
-		diff := RecordDiff(record1, resourcesRead[0])
-		return fmt.Errorf("first expected resource diff: %s", diff)
+	if !array.RecordApproxEqual(record1[0], resourcesRead[0]) {
+		diff := RecordDiff(record1[0], resourcesRead[0])
+		return fmt.Errorf("first expected resource diff at row 0: %s", diff)
+	}
+	if !array.RecordApproxEqual(record1[1], resourcesRead[1]) {
+		diff := RecordDiff(record1[1], resourcesRead[1])
+		return fmt.Errorf("first expected resource diff at row 1: %s", diff)
 	}
 
 	if !s.tests.SkipSecondAppend {
-		if !array.RecordApproxEqual(record2, resourcesRead[1]) {
-			diff := RecordDiff(record2, resourcesRead[1])
+		if !array.RecordApproxEqual(record2, resourcesRead[2]) {
+			diff := RecordDiff(record2, resourcesRead[2])
 			return fmt.Errorf("second expected resource diff: %s", diff)
 		}
 	}
