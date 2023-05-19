@@ -26,9 +26,11 @@ func stripNullsFromLists(records []arrow.Record) {
 						if slc.IsNull(k) {
 							continue
 						}
-						vBldr.AppendValueFromString(slc.ValueStr(k))
+						err := vBldr.AppendValueFromString(slc.ValueStr(k))
+						if err != nil {
+							panic(err)
+						}
 					}
-
 				}
 				cols[c] = bldr.NewArray()
 				continue
