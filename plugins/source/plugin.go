@@ -300,13 +300,15 @@ func (p *Plugin) Sync(ctx context.Context, syncTime time.Time, res chan<- *schem
 	}
 	defer p.mu.Unlock()
 	p.syncTime = syncTime
-	if p.client == nil {
-		var err error
-		p.client, err = p.newExecutionClient(ctx, p.logger, p.spec, Options{Backend: p.backend})
-		if err != nil {
-			return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
-		}
+	if p.client != nil {
+		return fmt.Errorf("execution client already exists for source plugin %s", p.name)
 	}
+	var err error
+	p.client, err = p.newExecutionClient(ctx, p.logger, p.spec, Options{Backend: p.backend})
+	if err != nil {
+		return fmt.Errorf("failed to create execution client for source plugin %s: %w", p.name, err)
+	}
+
 	defer func() { p.client = nil }()
 	startTime := time.Now()
 	if p.unmanaged {
