@@ -29,68 +29,9 @@ type TestSourceOptions struct {
 	SkipLargeTypes bool // e.g. large binary, large string
 }
 
-func WithTestSourceSkipLists() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipLists = true
-	}
-}
-
-func WithTestSourceSkipTimestamps() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipTimestamps = true
-	}
-}
-
-func WithTestSourceSkipDates() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipDates = true
-	}
-}
-
-func WithTestSourceSkipMaps() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipMaps = true
-	}
-}
-
-func WithTestSourceSkipStructs() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipStructs = true
-	}
-}
-
-func WithTestSourceSkipIntervals() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipIntervals = true
-	}
-}
-
-func WithTestSourceSkipDurations() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipDurations = true
-	}
-}
-
-func WithTestSourceSkipTimes() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipTimes = true
-	}
-}
-
-func WithTestSourceSkipLargeTypes() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipLargeTypes = true
-	}
-}
-
 // TestSourceColumns returns columns for all Arrow types and composites thereof. TestSourceOptions controls
 // which types are included.
-func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
-	var opts TestSourceOptions
-	for _, opt := range testOpts {
-		opt(&opts)
-	}
-
+func TestSourceColumns(testOpts TestSourceOptions) []Column {
 	// cq columns
 	var cqColumns []Column
 	cqColumns = append(cqColumns, Column{Name: CqIDColumn.Name, Type: types.NewUUIDType(), NotNull: true, Unique: true, PrimaryKey: true})
@@ -115,25 +56,25 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 	// we don't support float16 right now
 	basicColumns = removeColumnsByType(basicColumns, arrow.FLOAT16)
 
-	if opts.SkipTimestamps {
+	if testOpts.SkipTimestamps {
 		// for backwards-compatibility, microsecond timestamps are not removed here
 		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Second, TimeZone: "UTC"})
 		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Millisecond, TimeZone: "UTC"})
 		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Nanosecond, TimeZone: "UTC"})
 	}
-	if opts.SkipDates {
+	if testOpts.SkipDates {
 		basicColumns = removeColumnsByType(basicColumns, arrow.DATE32, arrow.DATE64)
 	}
-	if opts.SkipTimes {
+	if testOpts.SkipTimes {
 		basicColumns = removeColumnsByType(basicColumns, arrow.TIME32, arrow.TIME64)
 	}
-	if opts.SkipIntervals {
+	if testOpts.SkipIntervals {
 		basicColumns = removeColumnsByType(basicColumns, arrow.INTERVAL_DAY_TIME, arrow.INTERVAL_MONTHS, arrow.INTERVAL_MONTH_DAY_NANO)
 	}
-	if opts.SkipDurations {
+	if testOpts.SkipDurations {
 		basicColumns = removeColumnsByType(basicColumns, arrow.DURATION)
 	}
-	if opts.SkipLargeTypes {
+	if testOpts.SkipLargeTypes {
 		basicColumns = removeColumnsByType(basicColumns, arrow.LARGE_BINARY, arrow.LARGE_STRING)
 	}
 
@@ -141,7 +82,7 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 
 	// we don't need to include lists of binary or large binary right now; probably no destinations or sources need to support that
 	basicColumnsWithExclusions := removeColumnsByType(basicColumns, arrow.BINARY, arrow.LARGE_BINARY)
-	if opts.SkipLists {
+	if testOpts.SkipLists {
 		// only include lists that were originally supported by CQTypes
 		cqListColumns := []Column{
 			{Name: "string", Type: arrow.BinaryTypes.String},
@@ -160,8 +101,9 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 
 	// add JSON later, we don't want to include it as a list or map right now (it causes complications with JSON unmarshalling)
 	basicColumns = append(basicColumns, Column{Name: "json", Type: types.NewJSONType()})
+	basicColumns = append(basicColumns, Column{Name: "json_array", Type: types.NewJSONType()}) // GenTestData knows to populate this with a JSON array
 
-	if !opts.SkipStructs {
+	if !testOpts.SkipStructs {
 		// struct with all the types
 		compositeColumns = append(compositeColumns, Column{Name: "struct", Type: arrow.StructOf(columnsToFields(basicColumns...)...)})
 
@@ -292,13 +234,13 @@ func columnsToFields(columns ...Column) []arrow.Field {
 // var PKColumnNames = []string{"uuid_pk"}
 
 // TestTable returns a table with columns of all types. Useful for destination testing purposes
-func TestTable(name string, opts ...func(o *TestSourceOptions)) *Table {
+func TestTable(name string, testOpts TestSourceOptions) *Table {
 	var columns []Column
 	// columns = append(columns, Column{Name: "uuid", Type: types.NewUUIDType()})
 	// columns = append(columns, Column{Name: "string_pk", Type: arrow.BinaryTypes.String})
 	columns = append(columns, Column{Name: CqSourceNameColumn.Name, Type: arrow.BinaryTypes.String})
 	columns = append(columns, Column{Name: CqSyncTimeColumn.Name, Type: arrow.FixedWidthTypes.Timestamp_us})
-	columns = append(columns, TestSourceColumns(opts...)...)
+	columns = append(columns, TestSourceColumns(testOpts)...)
 	return &Table{Name: name, Columns: columns}
 }
 
@@ -363,7 +305,7 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 			return fmt.Sprintf(`[{"key": %s,"value": %s}]`, k, v)
 		}
 		inner := dataType.(*arrow.ListType).Elem()
-		return `[` + getExampleJSON(colName, inner, opts) + `]`
+		return `[` + getExampleJSON(colName, inner, opts) + `,null,` + getExampleJSON(colName, inner, opts) + `]`
 	}
 	// handle extension types
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.UUID) {
@@ -374,7 +316,10 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 		return `"` + u.String() + `"`
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.JSON) {
-		return `"{\"test\":\"test\"}"`
+		if strings.HasSuffix(colName, "_array") {
+			return `"[{\"test\":\"test\"},123,{\"test_number\":456}]"`
+		}
+		return `"{\"test\":[\"a\",\"b\",3]}"`
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.Inet) {
 		return `"192.0.2.0/24"`

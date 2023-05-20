@@ -12,13 +12,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testSourceOptions ...func(o *schema.TestSourceOptions)) error {
+func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testOpts PluginTestSuiteRunnerOptions) error {
 	spec.WriteMode = specs.WriteModeAppend
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := schema.TestTable(tableName, testSourceOptions...)
+	table := schema.TestTable(tableName, testOpts.TestSourceOptions)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := schema.Tables{
 		table,
@@ -44,11 +44,12 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 
 	secondSyncTime := syncTime.Add(10 * time.Second).UTC()
 	opts.SyncTime = secondSyncTime
-	record2 := schema.GenTestData(table, opts)[0]
+	opts.MaxRows = 1
+	record2 := schema.GenTestData(table, opts)
 
 	if !s.tests.SkipSecondAppend {
 		// write second time
-		if err := p.writeOne(ctx, specSource, secondSyncTime, record2); err != nil {
+		if err := p.writeAll(ctx, specSource, secondSyncTime, record2); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
@@ -68,6 +69,10 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
+	if testOpts.IgnoreNullsInLists {
+		stripNullsFromLists(record1)
+		stripNullsFromLists(record2)
+	}
 	if !array.RecordApproxEqual(record1[0], resourcesRead[0]) {
 		diff := RecordDiff(record1[0], resourcesRead[0])
 		return fmt.Errorf("first expected resource diff at row 0: %s", diff)
@@ -78,8 +83,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 
 	if !s.tests.SkipSecondAppend {
-		if !array.RecordApproxEqual(record2, resourcesRead[2]) {
-			diff := RecordDiff(record2, resourcesRead[2])
+		if !array.RecordApproxEqual(record2[0], resourcesRead[2]) {
+			diff := RecordDiff(record2[0], resourcesRead[2])
 			return fmt.Errorf("second expected resource diff: %s", diff)
 		}
 	}

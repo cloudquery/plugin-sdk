@@ -4,7 +4,7 @@ import "testing"
 
 func TestTestSourceColumns_Default(t *testing.T) {
 	// basic sanity check for tested columns
-	defaults := TestSourceColumns()
+	defaults := TestSourceColumns(TestSourceOptions{})
 	if len(defaults) < 73 {
 		t.Fatalf("expected at least 73 columns by default got: %d ", len(defaults))
 	}
@@ -14,14 +14,17 @@ func TestTestSourceColumns_Default(t *testing.T) {
 
 func TestTestSourceColumns_SkipAll(t *testing.T) {
 	skipAll := ColumnList(TestSourceColumns(
-		WithTestSourceSkipStructs(),
-		WithTestSourceSkipMaps(),
-		WithTestSourceSkipDates(),
-		WithTestSourceSkipTimes(),
-		WithTestSourceSkipTimestamps(),
-		WithTestSourceSkipDurations(),
-		WithTestSourceSkipIntervals(),
-		WithTestSourceSkipLargeTypes(),
+		TestSourceOptions{
+			SkipLists:      true,
+			SkipTimestamps: true,
+			SkipDates:      true,
+			SkipMaps:       true,
+			SkipStructs:    true,
+			SkipIntervals:  true,
+			SkipDurations:  true,
+			SkipTimes:      true,
+			SkipLargeTypes: true,
+		},
 	))
 	// test some specific columns
 	checkColumnsExist(t, skipAll, []string{"int64", "timestamp_us", "string", "string_list"})

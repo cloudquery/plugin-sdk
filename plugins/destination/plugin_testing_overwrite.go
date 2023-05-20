@@ -13,13 +13,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testSourceOptions ...func(o *schema.TestSourceOptions)) error {
+func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testOpts PluginTestSuiteRunnerOptions) error {
 	spec.WriteMode = specs.WriteModeOverwrite
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := schema.TestTable(tableName, testSourceOptions...)
+	table := schema.TestTable(tableName, testOpts.TestSourceOptions)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := schema.Tables{
 		table,
@@ -43,7 +43,9 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		return fmt.Errorf("failed to write all: %w", err)
 	}
 	sortRecordsBySyncTime(table, resources)
-
+	if testOpts.IgnoreNullsInLists {
+		stripNullsFromLists(resources)
+	}
 	resourcesRead, err := p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
@@ -75,12 +77,15 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		MaxRows:    1,
 		StableUUID: u,
 	}
-	updatedResource := schema.GenTestData(table, opts)[0]
+	updatedResource := schema.GenTestData(table, opts)
 	// write second time
-	if err := p.writeOne(ctx, sourceSpec, secondSyncTime, updatedResource); err != nil {
+	if err := p.writeAll(ctx, sourceSpec, secondSyncTime, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
+	if testOpts.IgnoreNullsInLists {
+		stripNullsFromLists(updatedResource)
+	}
 	resourcesRead, err = p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
@@ -94,8 +99,8 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		diff := RecordDiff(resources[1], resourcesRead[0])
 		return fmt.Errorf("after overwrite expected first resource to be equal. diff=%s", diff)
 	}
-	if !array.RecordApproxEqual(updatedResource, resourcesRead[1]) {
-		diff := RecordDiff(updatedResource, resourcesRead[1])
+	if !array.RecordApproxEqual(updatedResource[0], resourcesRead[1]) {
+		diff := RecordDiff(updatedResource[0], resourcesRead[1])
 		return fmt.Errorf("after overwrite expected second resource to be equal. diff=%s", diff)
 	}
 
