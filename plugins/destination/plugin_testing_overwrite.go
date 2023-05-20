@@ -34,9 +34,10 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	}
 
 	opts := schema.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   syncTime,
-		MaxRows:    2,
+		SourceName:    sourceName,
+		SyncTime:      syncTime,
+		MaxRows:       2,
+		TimePrecision: testOpts.TimePrecision,
 	}
 	resources := schema.GenTestData(table, opts)
 	if err := p.writeAll(ctx, sourceSpec, syncTime, resources); err != nil {
@@ -72,10 +73,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	cqIDInds := resources[0].Schema().FieldIndices(schema.CqIDColumn.Name)
 	u := resources[0].Column(cqIDInds[0]).(*types.UUIDArray).Value(0)
 	opts = schema.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   secondSyncTime,
-		MaxRows:    1,
-		StableUUID: u,
+		SourceName:    sourceName,
+		SyncTime:      secondSyncTime,
+		MaxRows:       1,
+		StableUUID:    u,
+		TimePrecision: testOpts.TimePrecision,
 	}
 	updatedResource := schema.GenTestData(table, opts)
 	// write second time

@@ -33,9 +33,10 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 
 	opts := schema.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   syncTime,
-		MaxRows:    2,
+		SourceName:    sourceName,
+		SyncTime:      syncTime,
+		MaxRows:       2,
+		TimePrecision: testOpts.TimePrecision,
 	}
 	record1 := schema.GenTestData(table, opts)
 	if err := p.writeAll(ctx, specSource, syncTime, record1); err != nil {

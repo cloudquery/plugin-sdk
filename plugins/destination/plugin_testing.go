@@ -111,6 +111,12 @@ func WithTestIgnoreNullsInLists() func(o *PluginTestSuiteRunnerOptions) {
 	}
 }
 
+func WithTestSourceTimePrecision(precision time.Duration) func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.TimePrecision = precision
+	}
+}
+
 func WithTestSourceSkipLists() func(o *PluginTestSuiteRunnerOptions) {
 	return func(o *PluginTestSuiteRunnerOptions) {
 		o.SkipLists = true
@@ -173,7 +179,11 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		tests: tests,
 	}
 
-	opts := PluginTestSuiteRunnerOptions{}
+	opts := PluginTestSuiteRunnerOptions{
+		TestSourceOptions: schema.TestSourceOptions{
+			TimePrecision: time.Microsecond,
+		},
+	}
 	for _, o := range testOptions {
 		o(&opts)
 	}
