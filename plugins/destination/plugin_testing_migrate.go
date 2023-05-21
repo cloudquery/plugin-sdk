@@ -36,9 +36,10 @@ func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.
 	}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	opts := schema.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   syncTime,
-		MaxRows:    1,
+		SourceName:    sourceName,
+		SyncTime:      syncTime,
+		MaxRows:       1,
+		TimePrecision: testOpts.TimePrecision,
 	}
 	resource1 := schema.GenTestData(source, opts)[0]
 	if err := p.writeOne(ctx, sourceSpec, syncTime, resource1); err != nil {

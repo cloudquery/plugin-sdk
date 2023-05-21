@@ -27,6 +27,7 @@ type TestSourceOptions struct {
 	SkipDurations  bool
 	SkipTimes      bool // time of day types
 	SkipLargeTypes bool // e.g. large binary, large string
+	TimePrecision  time.Duration
 }
 
 // TestSourceColumns returns columns for all Arrow types and composites thereof. TestSourceOptions controls
@@ -257,7 +258,8 @@ type GenTestDataOptions struct {
 	// StableUUID is the UUID to use for all rows. If set to uuid.Nil, a new UUID will be generated
 	StableUUID uuid.UUID
 	// StableTime is the time to use for all rows other than sync time. If set to time.Time{}, a new time will be generated
-	StableTime time.Time
+	StableTime    time.Time
+	TimePrecision time.Duration
 }
 
 // GenTestData generates a slice of arrow.Records with the given schema and options.
@@ -407,6 +409,8 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 			} else if !opts.StableTime.IsZero() {
 				t = opts.StableTime
 			}
+			t = t.Truncate(opts.TimePrecision)
+
 			switch timestampType {
 			case arrow.FixedWidthTypes.Timestamp_s:
 				return strconv.FormatInt(t.Unix(), 10)

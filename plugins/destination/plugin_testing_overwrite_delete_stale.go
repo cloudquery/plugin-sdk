@@ -38,9 +38,10 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	opts := schema.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   syncTime,
-		MaxRows:    2,
+		SourceName:    sourceName,
+		SyncTime:      syncTime,
+		MaxRows:       2,
+		TimePrecision: testOpts.TimePrecision,
 	}
 	resources := schema.GenTestData(table, opts)
 	incResources := schema.GenTestData(incTable, opts)
@@ -87,10 +88,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	cqIDInds := resources[0].Schema().FieldIndices(schema.CqIDColumn.Name)
 	u := resources[0].Column(cqIDInds[0]).(*types.UUIDArray).Value(0)
 	opts = schema.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   secondSyncTime,
-		StableUUID: u,
-		MaxRows:    1,
+		SourceName:    sourceName,
+		SyncTime:      secondSyncTime,
+		StableUUID:    u,
+		MaxRows:       1,
+		TimePrecision: testOpts.TimePrecision,
 	}
 	updatedResources := schema.GenTestData(table, opts)
 	updatedIncResources := schema.GenTestData(incTable, opts)
