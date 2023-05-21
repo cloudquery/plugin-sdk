@@ -13,14 +13,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testSourceOptions ...func(o *schema.TestSourceOptions)) error {
+func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testOpts PluginTestSuiteRunnerOptions) error {
 	spec.WriteMode = specs.WriteModeOverwriteDeleteStale
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := schema.TestTable(tableName, testSourceOptions...)
-	incTable := schema.TestTable(tableName+"_incremental", testSourceOptions...)
+	table := schema.TestTable(tableName, testOpts.TestSourceOptions)
+	incTable := schema.TestTable(tableName+"_incremental", testOpts.TestSourceOptions)
 	incTable.IsIncremental = true
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := schema.Tables{
@@ -38,9 +38,10 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	opts := schema.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   syncTime,
-		MaxRows:    2,
+		SourceName:    sourceName,
+		SyncTime:      syncTime,
+		MaxRows:       2,
+		TimePrecision: testOpts.TimePrecision,
 	}
 	resources := schema.GenTestData(table, opts)
 	incResources := schema.GenTestData(incTable, opts)
@@ -59,6 +60,9 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 
 	if len(resourcesRead) != 2 {
 		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
+	}
+	if testOpts.IgnoreNullsInLists {
+		stripNullsFromLists(resources)
 	}
 	if !array.RecordApproxEqual(resources[0], resourcesRead[0]) {
 		diff := RecordDiff(resources[0], resourcesRead[0])
@@ -84,10 +88,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	cqIDInds := resources[0].Schema().FieldIndices(schema.CqIDColumn.Name)
 	u := resources[0].Column(cqIDInds[0]).(*types.UUIDArray).Value(0)
 	opts = schema.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   secondSyncTime,
-		StableUUID: u,
-		MaxRows:    1,
+		SourceName:    sourceName,
+		SyncTime:      secondSyncTime,
+		StableUUID:    u,
+		MaxRows:       1,
+		TimePrecision: testOpts.TimePrecision,
 	}
 	updatedResources := schema.GenTestData(table, opts)
 	updatedIncResources := schema.GenTestData(incTable, opts)
@@ -106,6 +111,9 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if len(resourcesRead) != 1 {
 		return fmt.Errorf("after overwrite expected 1 resource, got %d", len(resourcesRead))
 	}
+	if testOpts.IgnoreNullsInLists {
+		stripNullsFromLists(resources)
+	}
 	if array.RecordApproxEqual(resources[0], resourcesRead[0]) {
 		diff := RecordDiff(resources[0], resourcesRead[0])
 		return fmt.Errorf("after overwrite expected first resource to be different. diff: %s", diff)
@@ -120,6 +128,9 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	// we expect the only resource returned to match the updated resource we wrote
+	if testOpts.IgnoreNullsInLists {
+		stripNullsFromLists(updatedResources)
+	}
 	if !array.RecordApproxEqual(updatedResources[0], resourcesRead[0]) {
 		diff := RecordDiff(updatedResources[0], resourcesRead[0])
 		return fmt.Errorf("after delete stale expected resource to be equal. diff: %s", diff)

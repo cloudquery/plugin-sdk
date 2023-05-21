@@ -90,7 +90,7 @@ func TestDestinationV1(t *testing.T) {
 	tableName := "test_destination_serve"
 	sourceName := "test_destination_serve_source"
 	syncTime := time.Now()
-	table := schema.TestTable(tableName)
+	table := schema.TestTable(tableName, schema.TestSourceOptions{})
 	tables := schema.Tables{table}
 	sourceSpec := specs.Source{
 		Name: sourceName,

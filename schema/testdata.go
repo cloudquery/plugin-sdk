@@ -27,70 +27,12 @@ type TestSourceOptions struct {
 	SkipDurations  bool
 	SkipTimes      bool // time of day types
 	SkipLargeTypes bool // e.g. large binary, large string
-}
-
-func WithTestSourceSkipLists() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipLists = true
-	}
-}
-
-func WithTestSourceSkipTimestamps() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipTimestamps = true
-	}
-}
-
-func WithTestSourceSkipDates() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipDates = true
-	}
-}
-
-func WithTestSourceSkipMaps() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipMaps = true
-	}
-}
-
-func WithTestSourceSkipStructs() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipStructs = true
-	}
-}
-
-func WithTestSourceSkipIntervals() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipIntervals = true
-	}
-}
-
-func WithTestSourceSkipDurations() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipDurations = true
-	}
-}
-
-func WithTestSourceSkipTimes() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipTimes = true
-	}
-}
-
-func WithTestSourceSkipLargeTypes() func(o *TestSourceOptions) {
-	return func(o *TestSourceOptions) {
-		o.SkipLargeTypes = true
-	}
+	TimePrecision  time.Duration
 }
 
 // TestSourceColumns returns columns for all Arrow types and composites thereof. TestSourceOptions controls
 // which types are included.
-func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
-	var opts TestSourceOptions
-	for _, opt := range testOpts {
-		opt(&opts)
-	}
-
+func TestSourceColumns(testOpts TestSourceOptions) []Column {
 	// cq columns
 	var cqColumns []Column
 	cqColumns = append(cqColumns, Column{Name: CqIDColumn.Name, Type: types.NewUUIDType(), NotNull: true, Unique: true, PrimaryKey: true})
@@ -115,25 +57,25 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 	// we don't support float16 right now
 	basicColumns = removeColumnsByType(basicColumns, arrow.FLOAT16)
 
-	if opts.SkipTimestamps {
+	if testOpts.SkipTimestamps {
 		// for backwards-compatibility, microsecond timestamps are not removed here
 		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Second, TimeZone: "UTC"})
 		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Millisecond, TimeZone: "UTC"})
 		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Nanosecond, TimeZone: "UTC"})
 	}
-	if opts.SkipDates {
+	if testOpts.SkipDates {
 		basicColumns = removeColumnsByType(basicColumns, arrow.DATE32, arrow.DATE64)
 	}
-	if opts.SkipTimes {
+	if testOpts.SkipTimes {
 		basicColumns = removeColumnsByType(basicColumns, arrow.TIME32, arrow.TIME64)
 	}
-	if opts.SkipIntervals {
+	if testOpts.SkipIntervals {
 		basicColumns = removeColumnsByType(basicColumns, arrow.INTERVAL_DAY_TIME, arrow.INTERVAL_MONTHS, arrow.INTERVAL_MONTH_DAY_NANO)
 	}
-	if opts.SkipDurations {
+	if testOpts.SkipDurations {
 		basicColumns = removeColumnsByType(basicColumns, arrow.DURATION)
 	}
-	if opts.SkipLargeTypes {
+	if testOpts.SkipLargeTypes {
 		basicColumns = removeColumnsByType(basicColumns, arrow.LARGE_BINARY, arrow.LARGE_STRING)
 	}
 
@@ -141,7 +83,7 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 
 	// we don't need to include lists of binary or large binary right now; probably no destinations or sources need to support that
 	basicColumnsWithExclusions := removeColumnsByType(basicColumns, arrow.BINARY, arrow.LARGE_BINARY)
-	if opts.SkipLists {
+	if testOpts.SkipLists {
 		// only include lists that were originally supported by CQTypes
 		cqListColumns := []Column{
 			{Name: "string", Type: arrow.BinaryTypes.String},
@@ -162,7 +104,7 @@ func TestSourceColumns(testOpts ...func(o *TestSourceOptions)) []Column {
 	basicColumns = append(basicColumns, Column{Name: "json", Type: types.NewJSONType()})
 	basicColumns = append(basicColumns, Column{Name: "json_array", Type: types.NewJSONType()}) // GenTestData knows to populate this with a JSON array
 
-	if !opts.SkipStructs {
+	if !testOpts.SkipStructs {
 		// struct with all the types
 		compositeColumns = append(compositeColumns, Column{Name: "struct", Type: arrow.StructOf(columnsToFields(basicColumns...)...)})
 
@@ -293,13 +235,13 @@ func columnsToFields(columns ...Column) []arrow.Field {
 // var PKColumnNames = []string{"uuid_pk"}
 
 // TestTable returns a table with columns of all types. Useful for destination testing purposes
-func TestTable(name string, opts ...func(o *TestSourceOptions)) *Table {
+func TestTable(name string, testOpts TestSourceOptions) *Table {
 	var columns []Column
 	// columns = append(columns, Column{Name: "uuid", Type: types.NewUUIDType()})
 	// columns = append(columns, Column{Name: "string_pk", Type: arrow.BinaryTypes.String})
 	columns = append(columns, Column{Name: CqSourceNameColumn.Name, Type: arrow.BinaryTypes.String})
 	columns = append(columns, Column{Name: CqSyncTimeColumn.Name, Type: arrow.FixedWidthTypes.Timestamp_us})
-	columns = append(columns, TestSourceColumns(opts...)...)
+	columns = append(columns, TestSourceColumns(testOpts)...)
 	return &Table{Name: name, Columns: columns}
 }
 
@@ -316,7 +258,8 @@ type GenTestDataOptions struct {
 	// StableUUID is the UUID to use for all rows. If set to uuid.Nil, a new UUID will be generated
 	StableUUID uuid.UUID
 	// StableTime is the time to use for all rows other than sync time. If set to time.Time{}, a new time will be generated
-	StableTime time.Time
+	StableTime    time.Time
+	TimePrecision time.Duration
 }
 
 // GenTestData generates a slice of arrow.Records with the given schema and options.
@@ -466,6 +409,8 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 			} else if !opts.StableTime.IsZero() {
 				t = opts.StableTime
 			}
+			t = t.Truncate(opts.TimePrecision)
+
 			switch timestampType {
 			case arrow.FixedWidthTypes.Timestamp_s:
 				return strconv.FormatInt(t.Unix(), 10)
