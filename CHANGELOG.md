@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0](https://github.com/cloudquery/plugin-sdk/compare/v3.5.2...v3.6.0) (2023-05-21)
+
+
+### Features
+
+* Add precision options for dest testing ([#893](https://github.com/cloudquery/plugin-sdk/issues/893)) ([faacca6](https://github.com/cloudquery/plugin-sdk/commit/faacca6b52347b9cf61b0acbcb4096f535817087))
+* Refactor test options and allow skipping of nulls in lists ([#892](https://github.com/cloudquery/plugin-sdk/issues/892)) ([bc3c251](https://github.com/cloudquery/plugin-sdk/commit/bc3c25193c6675317835a9642758c350260486e9))
+
+
+### Bug Fixes
+
+* Add null-row case for append-only tests ([#889](https://github.com/cloudquery/plugin-sdk/issues/889)) ([6967929](https://github.com/cloudquery/plugin-sdk/commit/6967929bc598ddc2bf6120a9a905ccbf92b97773))
+* Tighter Arrow test cases ([#891](https://github.com/cloudquery/plugin-sdk/issues/891)) ([c7f2546](https://github.com/cloudquery/plugin-sdk/commit/c7f25468f5fff7176cc71301d337598837ef7d61))
+
 ## [3.5.2](https://github.com/cloudquery/plugin-sdk/compare/v3.5.1...v3.5.2) (2023-05-18)
 
 
