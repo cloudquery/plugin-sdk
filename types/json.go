@@ -209,7 +209,7 @@ func (*JSONType) ExtensionName() string {
 	return "json"
 }
 
-func (e *JSONType) String() string {
+func (*JSONType) String() string {
 	return "json"
 }
 
