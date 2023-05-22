@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"text/template"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -240,19 +241,36 @@ func formatType(v arrow.DataType) string {
 			s := "struct<"
 			for i, f := range v.(*arrow.StructType).Fields() {
 				if i > 0 {
-					s += ","
+					s += ", "
 				}
-				s += f.Name + ":" + formatType(f.Type)
+				s += f.Name + ": " + formatType(f.Type)
 			}
 			return s + ">"
 		case arrow.LIST:
-			return "list<" + formatType(v.(*arrow.ListType).Elem()) + ">"
+			inner := formatType(v.(*arrow.ListType).Elem())
+			if v.(*arrow.ListType).ElemField().Nullable {
+				inner += ", nullable"
+			}
+			return "list<" + inner + ">"
 		case arrow.LARGE_LIST:
-			return "large_list<" + formatType(v.(*arrow.LargeListType).Elem()) + ">"
+			inner := formatType(v.(*arrow.LargeListType).Elem())
+			if v.(*arrow.ListType).ElemField().Nullable {
+				inner += ", nullable"
+			}
+			return "large_list<" + inner + ">"
 		case arrow.FIXED_SIZE_LIST:
-			return fmt.Sprintf("fixed_size_list<%s,%d>", formatType(v.(*arrow.FixedSizeListType).Elem()), v.(*arrow.FixedSizeListType).Len())
+			inner := formatType(v.(*arrow.LargeListType).Elem())
+			if v.(*arrow.ListType).ElemField().Nullable {
+				inner += ", nullable"
+			}
+			inner += "," + strconv.Itoa(int(v.(*arrow.FixedSizeListType).Len()))
+			return "fixed_size_list<" + inner + ">"
 		case arrow.MAP:
-			return fmt.Sprintf("map<%s,%s>", formatType(v.(*arrow.MapType).KeyType()), formatType(v.(*arrow.MapType).ItemType()))
+			inner := formatType(v.(*arrow.MapType).KeyType()) + ", " + formatType(v.(*arrow.MapType).ItemType())
+			if v.(*arrow.MapType).KeyField().Nullable {
+				inner += ", nullable"
+			}
+			return fmt.Sprintf("map<%s>", inner)
 		default:
 			// TODO: support other nested types like unions
 			panic("unsupported nested type: " + v.String())
@@ -262,57 +280,37 @@ func formatType(v arrow.DataType) string {
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Boolean):
 		return "boolean"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_s):
-		return "duration[seconds]"
+		return "duration[s]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_ms):
-		return "duration[milliseconds]"
+		return "duration[ms]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_us):
-		return "duration[microseconds]"
+		return "duration[us]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_ns):
-		return "duration[nanoseconds]"
+		return "duration[ns]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.MonthDayNanoInterval):
 		return "month_day_nano_interval"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.DayTimeInterval):
 		return "day_time_interval"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time32s):
-		return "time32[seconds]"
+		return "time32[s]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time32ms):
-		return "time32[milliseconds]"
+		return "time32[ms]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time64us):
-		return "time64[microseconds]"
+		return "time64[us]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time64ns):
-		return "time64[nanoseconds]"
+		return "time64[ns]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Date32):
 		return "date32"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Date64):
 		return "date64"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_s):
-		return "timestamp[seconds]"
+		return "timestamp[s]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_ms):
-		return "timestamp[milliseconds]"
+		return "timestamp[ms]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_us):
-		return "timestamp[microseconds]"
+		return "timestamp[us]"
 	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_ns):
-		return "timestamp[nanoseconds]"
-	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Uint8):
-		return "uint8"
-	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Uint16):
-		return "uint16"
-	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Uint32):
-		return "uint32"
-	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Uint64):
-		return "uint64"
-	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Int8):
-		return "int8"
-	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Int16):
-		return "int16"
-	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Int32):
-		return "int32"
-	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Int64):
-		return "int64"
-	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Float32):
-		return "float32"
-	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Float64):
-		return "float64"
+		return "timestamp[ns]"
 	case arrow.TypeEqual(v, arrow.BinaryTypes.String):
 		return "string"
 	case arrow.TypeEqual(v, arrow.BinaryTypes.LargeString):

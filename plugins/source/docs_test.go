@@ -162,3 +162,25 @@ func TestGeneratePluginDocs(t *testing.T) {
 		}
 	})
 }
+
+func TestFormatType(t *testing.T) {
+	cases := []struct {
+		dataType arrow.DataType
+		expected string
+	}{
+		{dataType: arrow.PrimitiveTypes.Int64, expected: "int64"},
+		{dataType: arrow.BinaryTypes.String, expected: "string"},
+		{dataType: arrow.ListOfNonNullable(arrow.PrimitiveTypes.Int64), expected: "list<int64>"},
+		{dataType: arrow.ListOf(arrow.PrimitiveTypes.Int64), expected: "list<int64, nullable>"},
+		{dataType: arrow.MapOf(arrow.BinaryTypes.String, arrow.PrimitiveTypes.Int64), expected: "map<string, int64>"},
+		{dataType: arrow.StructOf(arrow.Field{Name: "string_field", Type: arrow.BinaryTypes.String}, arrow.Field{Name: "int_field", Type: arrow.PrimitiveTypes.Int64}), expected: "struct<string_field: string, int_field: int64>"},
+		{dataType: types.ExtensionTypes.JSON, expected: "json"},
+		{dataType: arrow.StructOf(arrow.Field{Name: "json_list", Type: arrow.ListOf(types.ExtensionTypes.JSON)}), expected: "struct<json_list: list<json, nullable>>"},
+	}
+	for _, c := range cases {
+		t.Run(c.expected, func(t *testing.T) {
+			got := formatType(c.dataType)
+			require.Equal(t, c.expected, got)
+		})
+	}
+}
