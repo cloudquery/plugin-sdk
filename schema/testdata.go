@@ -319,9 +319,9 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.JSON) {
 		if strings.HasSuffix(colName, "_array") {
-			return `"[{\"test\":\"test\"},123,{\"test_number\":456}]"`
+			return `[{"test":"test"},123,{"test_number":456}]`
 		}
-		return `"{\"test\":[\"a\",\"b\",3]}"`
+		return `{"test":["a","b",3]}`
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.Inet) {
 		return `"192.0.2.0/24"`
