@@ -14,8 +14,8 @@ This table depends on [relation_table](relation_table.md).
 
 | Name          | Type          |
 | ------------- | ------------- |
-|_cq_source_name|string|
-|_cq_sync_time|timestamp[us]|
+|_cq_source_name|utf8|
+|_cq_sync_time|timestamp[us, tz=UTC]|
 |_cq_id (PK)|uuid|
 |_cq_parent_id|uuid|
-|string_col|string|
+|string_col|utf8|

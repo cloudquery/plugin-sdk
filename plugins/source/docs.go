@@ -9,13 +9,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"text/template"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v3/caser"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
-	"github.com/cloudquery/plugin-sdk/v3/types"
 )
 
 //go:embed templates/*.go.tpl
@@ -235,99 +233,6 @@ func formatMarkdown(s string) string {
 }
 
 func formatType(v arrow.DataType) string {
-	if arrow.IsNested(v.ID()) {
-		switch v.ID() {
-		case arrow.STRUCT:
-			s := "struct<"
-			for i, f := range v.(*arrow.StructType).Fields() {
-				if i > 0 {
-					s += ", "
-				}
-				s += f.Name + ": " + formatType(f.Type)
-			}
-			return s + ">"
-		case arrow.LIST:
-			inner := formatType(v.(*arrow.ListType).Elem())
-			if v.(*arrow.ListType).ElemField().Nullable {
-				inner += ", nullable"
-			}
-			return "list<" + inner + ">"
-		case arrow.LARGE_LIST:
-			inner := formatType(v.(*arrow.LargeListType).Elem())
-			if v.(*arrow.ListType).ElemField().Nullable {
-				inner += ", nullable"
-			}
-			return "large_list<" + inner + ">"
-		case arrow.FIXED_SIZE_LIST:
-			inner := formatType(v.(*arrow.LargeListType).Elem())
-			if v.(*arrow.ListType).ElemField().Nullable {
-				inner += ", nullable"
-			}
-			inner += "," + strconv.Itoa(int(v.(*arrow.FixedSizeListType).Len()))
-			return "fixed_size_list<" + inner + ">"
-		case arrow.MAP:
-			inner := formatType(v.(*arrow.MapType).KeyType()) + ", " + formatType(v.(*arrow.MapType).ItemType())
-			if v.(*arrow.MapType).KeyField().Nullable {
-				inner += ", nullable"
-			}
-			return fmt.Sprintf("map<%s>", inner)
-		default:
-			// TODO: support other nested types like unions
-			panic("unsupported nested type: " + v.String())
-		}
-	}
-	switch {
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Boolean):
-		return "boolean"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_s):
-		return "duration[s]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_ms):
-		return "duration[ms]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_us):
-		return "duration[us]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_ns):
-		return "duration[ns]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.MonthDayNanoInterval):
-		return "month_day_nano_interval"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.DayTimeInterval):
-		return "day_time_interval"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time32s):
-		return "time32[s]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time32ms):
-		return "time32[ms]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time64us):
-		return "time64[us]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time64ns):
-		return "time64[ns]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Date32):
-		return "date32"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Date64):
-		return "date64"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_s):
-		return "timestamp[s]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_ms):
-		return "timestamp[ms]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_us):
-		return "timestamp[us]"
-	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_ns):
-		return "timestamp[ns]"
-	case arrow.TypeEqual(v, arrow.BinaryTypes.String):
-		return "string"
-	case arrow.TypeEqual(v, arrow.BinaryTypes.LargeString):
-		return "large_string"
-	case arrow.TypeEqual(v, arrow.BinaryTypes.Binary):
-		return "binary"
-	case arrow.TypeEqual(v, arrow.BinaryTypes.LargeBinary):
-		return "large_binary"
-	case arrow.TypeEqual(v, types.ExtensionTypes.UUID):
-		return "uuid"
-	case arrow.TypeEqual(v, types.ExtensionTypes.JSON):
-		return "json"
-	case arrow.TypeEqual(v, types.ExtensionTypes.Inet):
-		return "inet_address"
-	case arrow.TypeEqual(v, types.ExtensionTypes.MAC):
-		return "mac_address"
-	}
 	return v.String()
 }
 
