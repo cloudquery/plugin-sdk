@@ -11,8 +11,8 @@ It supports incremental syncs based on the (**id_col**, **id_col2**) columns.
 
 | Name          | Type          |
 | ------------- | ------------- |
-|_cq_source_name|utf8|
-|_cq_sync_time|timestamp[us, tz=UTC]|
+|_cq_source_name|string|
+|_cq_sync_time|timestamp[microseconds]|
 |_cq_id|uuid|
 |_cq_parent_id|uuid|
 |int_col|int64|

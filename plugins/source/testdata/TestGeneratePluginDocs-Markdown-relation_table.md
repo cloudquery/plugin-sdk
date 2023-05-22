@@ -18,8 +18,8 @@ The following tables depend on relation_table:
 
 | Name          | Type          |
 | ------------- | ------------- |
-|_cq_source_name|utf8|
-|_cq_sync_time|timestamp[us, tz=UTC]|
+|_cq_source_name|string|
+|_cq_sync_time|timestamp[microseconds]|
 |_cq_id (PK)|uuid|
 |_cq_parent_id|uuid|
-|string_col|utf8|
+|string_col|string|
