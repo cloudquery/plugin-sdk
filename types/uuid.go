@@ -24,11 +24,11 @@ func NewUUIDBuilder(builder *array.ExtensionBuilder) *UUIDBuilder {
 }
 
 func (b *UUIDBuilder) Append(v uuid.UUID) {
-	b.ExtensionBuilder.Builder.(*array.FixedSizeBinaryBuilder).Append(v[:])
+	b.ExtensionBuilder.Builder.(*array.StringBuilder).Append(v.String())
 }
 
 func (b *UUIDBuilder) UnsafeAppend(v uuid.UUID) {
-	b.ExtensionBuilder.Builder.(*array.FixedSizeBinaryBuilder).UnsafeAppend(v[:])
+	b.ExtensionBuilder.Builder.(*array.StringBuilder).UnsafeAppend([]byte(v.String()))
 }
 
 func (b *UUIDBuilder) AppendValueFromString(s string) error {
@@ -51,14 +51,14 @@ func (b *UUIDBuilder) AppendValues(v []uuid.UUID, valid []bool) {
 		panic("len(v) != len(valid) && len(valid) != 0")
 	}
 
-	data := make([][]byte, len(v))
+	data := make([]string, len(v))
 	for i := range v {
 		if len(valid) > 0 && !valid[i] {
 			continue
 		}
-		data[i] = v[i][:]
+		data[i] = v[i].String()
 	}
-	b.ExtensionBuilder.Builder.(*array.FixedSizeBinaryBuilder).AppendValues(data, valid)
+	b.ExtensionBuilder.Builder.(*array.StringBuilder).AppendValues(data, valid)
 }
 
 func (b *UUIDBuilder) UnmarshalOne(dec *json.Decoder) error {
@@ -128,7 +128,7 @@ type UUIDArray struct {
 }
 
 func (a *UUIDArray) String() string {
-	arr := a.Storage().(*array.FixedSizeBinary)
+	arr := a.Storage().(*array.String)
 	o := new(strings.Builder)
 	o.WriteString("[")
 	for i := 0; i < arr.Len(); i++ {
@@ -150,7 +150,7 @@ func (a *UUIDArray) Value(i int) uuid.UUID {
 	if a.IsNull(i) {
 		return uuid.Nil
 	}
-	return uuid.Must(uuid.FromBytes(a.Storage().(*array.FixedSizeBinary).Value(i)))
+	return uuid.MustParse(a.Storage().(*array.String).Value(i))
 }
 
 func (a *UUIDArray) ValueStr(i int) string {
@@ -163,11 +163,11 @@ func (a *UUIDArray) ValueStr(i int) string {
 }
 
 func (a *UUIDArray) MarshalJSON() ([]byte, error) {
-	arr := a.Storage().(*array.FixedSizeBinary)
+	arr := a.Storage().(*array.String)
 	values := make([]any, a.Len())
 	for i := 0; i < a.Len(); i++ {
 		if a.IsValid(i) {
-			values[i] = uuid.Must(uuid.FromBytes(arr.Value(i))).String()
+			values[i] = arr.Value(i)
 		}
 	}
 	return json.Marshal(values)
@@ -189,7 +189,7 @@ type UUIDType struct {
 // NewUUIDType is a convenience function to create an instance of UUIDType
 // with the correct storage type
 func NewUUIDType() *UUIDType {
-	return &UUIDType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.FixedSizeBinaryType{ByteWidth: 16}}}
+	return &UUIDType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.StringType{}}}
 }
 
 // ArrayType returns TypeOf(UUIDArray{}) for constructing UUID arrays
@@ -220,7 +220,7 @@ func (*UUIDType) Deserialize(storageType arrow.DataType, data string) (arrow.Ext
 	if data != "uuid-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
-	if !arrow.TypeEqual(storageType, &arrow.FixedSizeBinaryType{ByteWidth: 16}) {
+	if !arrow.TypeEqual(storageType, &arrow.StringType{}) {
 		return nil, fmt.Errorf("invalid storage type for UUIDType: %s", storageType.Name())
 	}
 	return NewUUIDType(), nil

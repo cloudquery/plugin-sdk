@@ -26,7 +26,7 @@ func (b *JSONBuilder) AppendBytes(v []byte) {
 		return
 	}
 
-	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append(v)
+	b.ExtensionBuilder.Builder.(*array.StringBuilder).Append(string(v))
 }
 
 func (b *JSONBuilder) Append(v any) {
@@ -34,24 +34,29 @@ func (b *JSONBuilder) Append(v any) {
 		b.AppendNull()
 		return
 	}
-
+	
 	// per https://github.com/cloudquery/plugin-sdk/issues/622
 	data, err := json.MarshalWithOption(v, json.DisableHTMLEscape())
 	if err != nil {
 		panic(err)
 	}
 
-	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append(data)
+	b.ExtensionBuilder.Builder.(*array.StringBuilder).Append(string(data))
 }
 
 func (b *JSONBuilder) UnsafeAppend(v any) {
+	if v == nil {
+		b.AppendNull()
+		return
+	}
+	
 	// per https://github.com/cloudquery/plugin-sdk/issues/622
 	data, err := json.MarshalWithOption(v, json.DisableHTMLEscape())
 	if err != nil {
 		panic(err)
 	}
 
-	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).UnsafeAppend(data)
+	b.ExtensionBuilder.Builder.(*array.StringBuilder).UnsafeAppend(data)
 }
 
 func (b *JSONBuilder) AppendValueFromString(s string) error {
@@ -67,19 +72,19 @@ func (b *JSONBuilder) AppendValues(v []any, valid []bool) {
 		panic("len(v) != len(valid) && len(valid) != 0")
 	}
 
-	data := make([][]byte, len(v))
-	var err error
+	data := make([]string, len(v))
 	for i := range v {
 		if len(valid) > 0 && !valid[i] {
 			continue
 		}
 		// per https://github.com/cloudquery/plugin-sdk/issues/622
-		data[i], err = json.MarshalWithOption(v[i], json.DisableHTMLEscape())
+		b, err := json.MarshalWithOption(v[i], json.DisableHTMLEscape())
 		if err != nil {
 			panic(err)
 		}
+		data[i] = string(b)
 	}
-	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).AppendValues(data, valid)
+	b.ExtensionBuilder.Builder.(*array.StringBuilder).AppendValues(data, valid)
 }
 
 func (b *JSONBuilder) UnmarshalOne(dec *json.Decoder) error {
@@ -129,7 +134,7 @@ type JSONArray struct {
 }
 
 func (a *JSONArray) String() string {
-	arr := a.Storage().(*array.Binary)
+	arr := a.Storage().(*array.String)
 	o := new(strings.Builder)
 	o.WriteString("[")
 	for i := 0; i < arr.Len(); i++ {
@@ -153,7 +158,7 @@ func (a *JSONArray) Value(i int) any {
 	}
 
 	var data any
-	err := json.Unmarshal(a.Storage().(*array.Binary).Value(i), &data)
+	err := json.Unmarshal([]byte(a.Storage().(*array.String).Value(i)), &data)
 	if err != nil {
 		panic(fmt.Errorf("invalid json: %w", err))
 	}
@@ -185,7 +190,7 @@ func (a *JSONArray) GetOneForMarshal(i int) any {
 	if a.IsNull(i) {
 		return nil
 	}
-	return json.RawMessage(a.Storage().(*array.Binary).Value(i))
+	return json.RawMessage(a.Storage().(*array.String).Value(i))
 }
 
 // JSONType is a simple extension type that represents a BinaryType
@@ -197,7 +202,7 @@ type JSONType struct {
 // NewJSONType is a convenience function to create an instance of JSONType
 // with the correct storage type
 func NewJSONType() *JSONType {
-	return &JSONType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.BinaryType{}}}
+	return &JSONType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.StringType{}}}
 }
 
 // ArrayType returns TypeOf(JSONArray{}) for constructing JSON arrays
@@ -228,7 +233,7 @@ func (*JSONType) Deserialize(storageType arrow.DataType, data string) (arrow.Ext
 	if data != "json-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
-	if !arrow.TypeEqual(storageType, &arrow.BinaryType{}) {
+	if !arrow.TypeEqual(storageType, &arrow.StringType{}) {
 		return nil, fmt.Errorf("invalid storage type for *JSONType: %s", storageType.Name())
 	}
 	return NewJSONType(), nil

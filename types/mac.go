@@ -21,11 +21,11 @@ func NewMACBuilder(builder *array.ExtensionBuilder) *MACBuilder {
 }
 
 func (b *MACBuilder) Append(v net.HardwareAddr) {
-	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append(v[:])
+	b.ExtensionBuilder.Builder.(*array.StringBuilder).Append(v.String())
 }
 
 func (b *MACBuilder) UnsafeAppend(v net.HardwareAddr) {
-	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).UnsafeAppend(v[:])
+	b.ExtensionBuilder.Builder.(*array.StringBuilder).UnsafeAppend(v[:])
 }
 
 func (b *MACBuilder) AppendValues(v []net.HardwareAddr, valid []bool) {
@@ -33,14 +33,14 @@ func (b *MACBuilder) AppendValues(v []net.HardwareAddr, valid []bool) {
 		panic("len(v) != len(valid) && len(valid) != 0")
 	}
 
-	data := make([][]byte, len(v))
+	data := make([]string, len(v))
 	for i, v := range v {
 		if len(valid) > 0 && !valid[i] {
 			continue
 		}
-		data[i] = v
+		data[i] = v.String()
 	}
-	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).AppendValues(data, valid)
+	b.ExtensionBuilder.Builder.(*array.StringBuilder).AppendValues(data, valid)
 }
 
 func (b *MACBuilder) AppendValueFromString(s string) error {
@@ -121,7 +121,7 @@ type MACArray struct {
 }
 
 func (a *MACArray) String() string {
-	arr := a.Storage().(*array.Binary)
+	arr := a.Storage().(*array.String)
 	o := new(strings.Builder)
 	o.WriteString("[")
 	for i := 0; i < arr.Len(); i++ {
@@ -143,7 +143,11 @@ func (a *MACArray) Value(i int) net.HardwareAddr {
 	if a.IsNull(i) {
 		return nil
 	}
-	return net.HardwareAddr(a.Storage().(*array.Binary).Value(i))
+	hw, err := net.ParseMAC(a.Storage().(*array.String).Value(i))
+	if err != nil {
+		panic(err)
+	}
+	return hw
 }
 
 func (a *MACArray) ValueStr(i int) string {
@@ -151,16 +155,16 @@ func (a *MACArray) ValueStr(i int) string {
 	case a.IsNull(i):
 		return array.NullValueStr
 	default:
-		return a.Value(i).String()
+		return a.Storage().(*array.String).Value(i)
 	}
 }
 
 func (a *MACArray) MarshalJSON() ([]byte, error) {
-	arr := a.Storage().(*array.Binary)
+	arr := a.Storage().(*array.String)
 	values := make([]any, a.Len())
 	for i := 0; i < a.Len(); i++ {
 		if a.IsValid(i) {
-			values[i] = net.HardwareAddr(arr.Value(i)).String()
+			values[i] = arr.Value(i)
 		} else {
 			values[i] = nil
 		}
@@ -169,7 +173,7 @@ func (a *MACArray) MarshalJSON() ([]byte, error) {
 }
 
 func (a *MACArray) GetOneForMarshal(i int) any {
-	arr := a.Storage().(*array.Binary)
+	arr := a.Storage().(*array.String)
 	if a.IsValid(i) {
 		return net.HardwareAddr(arr.Value(i)).String()
 	}
@@ -185,7 +189,7 @@ type MACType struct {
 // NewMACType is a convenience function to create an instance of MACType
 // with the correct storage type
 func NewMACType() *MACType {
-	return &MACType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.BinaryType{}}}
+	return &MACType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.StringType{}}}
 }
 
 // ArrayType returns TypeOf(MACArray{}) for constructing MAC arrays
@@ -212,7 +216,7 @@ func (*MACType) Deserialize(storageType arrow.DataType, data string) (arrow.Exte
 	if data != "mac-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
-	if !arrow.TypeEqual(storageType, &arrow.BinaryType{}) {
+	if !arrow.TypeEqual(storageType, &arrow.StringType{}) {
 		return nil, fmt.Errorf("invalid storage type for MACType: %s", storageType.Name())
 	}
 	return NewMACType(), nil
