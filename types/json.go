@@ -34,7 +34,7 @@ func (b *JSONBuilder) Append(v any) {
 		b.AppendNull()
 		return
 	}
-	
+
 	// per https://github.com/cloudquery/plugin-sdk/issues/622
 	data, err := json.MarshalWithOption(v, json.DisableHTMLEscape())
 	if err != nil {
@@ -49,7 +49,7 @@ func (b *JSONBuilder) UnsafeAppend(v any) {
 		b.AppendNull()
 		return
 	}
-	
+
 	// per https://github.com/cloudquery/plugin-sdk/issues/622
 	data, err := json.MarshalWithOption(v, json.DisableHTMLEscape())
 	if err != nil {

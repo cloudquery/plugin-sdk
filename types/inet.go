@@ -149,7 +149,7 @@ func (a *InetArray) Value(i int) *net.IPNet {
 	if a.IsNull(i) {
 		return nil
 	}
-	_, ipnet, err := net.ParseCIDR(string(a.Storage().(*array.String).Value(i)))
+	_, ipnet, err := net.ParseCIDR(a.Storage().(*array.String).Value(i))
 	if err != nil {
 		panic(fmt.Errorf("invalid ip+net: %w", err))
 	}
@@ -170,7 +170,7 @@ func (a *InetArray) GetOneForMarshal(i int) any {
 	if a.IsNull(i) {
 		return nil
 	}
-	return string(a.Storage().(*array.String).Value(i))
+	return a.Storage().(*array.String).Value(i)
 }
 
 func (a *InetArray) MarshalJSON() ([]byte, error) {
@@ -178,7 +178,7 @@ func (a *InetArray) MarshalJSON() ([]byte, error) {
 	values := make([]any, a.Len())
 	for i := 0; i < a.Len(); i++ {
 		if a.IsValid(i) {
-			values[i] = string(arr.Value(i))
+			values[i] = arr.Value(i)
 		} else {
 			values[i] = nil
 		}
