@@ -14,6 +14,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v3/caser"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 )
 
 //go:embed templates/*.go.tpl
@@ -128,12 +129,16 @@ type jsonColumn struct {
 
 func (p *Plugin) renderTablesAsJSON(dir string, tables schema.Tables) error {
 	jsonTables := p.jsonifyTables(tables)
-	b, err := json.MarshalIndent(jsonTables, "", "  ")
+	buffer := &bytes.Buffer{}
+	m := json.NewEncoder(buffer)
+	m.SetIndent("", "  ")
+	m.SetEscapeHTML(false)
+	err := m.Encode(jsonTables)
 	if err != nil {
-		return fmt.Errorf("failed to marshal tables as json: %v", err)
+		return err
 	}
 	outputPath := filepath.Join(dir, "__tables.json")
-	return os.WriteFile(outputPath, b, 0644)
+	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
 func (p *Plugin) jsonifyTables(tables schema.Tables) []jsonTable {
@@ -143,7 +148,7 @@ func (p *Plugin) jsonifyTables(tables schema.Tables) []jsonTable {
 		for c, col := range table.Columns {
 			jsonColumns[c] = jsonColumn{
 				Name:             col.Name,
-				Type:             col.Type.String(),
+				Type:             formatType(col.Type),
 				IsPrimaryKey:     col.PrimaryKey,
 				IsIncrementalKey: col.IncrementalKey,
 			}
@@ -229,6 +234,102 @@ func formatMarkdown(s string) string {
 }
 
 func formatType(v arrow.DataType) string {
+	if arrow.IsNested(v.ID()) {
+		switch v.ID() {
+		case arrow.STRUCT:
+			s := "struct<"
+			for i, f := range v.(*arrow.StructType).Fields() {
+				if i > 0 {
+					s += ","
+				}
+				s += f.Name + ":" + formatType(f.Type)
+			}
+			return s + ">"
+		case arrow.LIST:
+			return "list<" + formatType(v.(*arrow.ListType).Elem()) + ">"
+		case arrow.LARGE_LIST:
+			return "large_list<" + formatType(v.(*arrow.LargeListType).Elem()) + ">"
+		case arrow.FIXED_SIZE_LIST:
+			return fmt.Sprintf("fixed_size_list<%s,%d>", formatType(v.(*arrow.FixedSizeListType).Elem()), v.(*arrow.FixedSizeListType).Len())
+		case arrow.MAP:
+			return fmt.Sprintf("map<%s,%s>", formatType(v.(*arrow.MapType).KeyType()), formatType(v.(*arrow.MapType).ItemType()))
+		default:
+			// TODO: support other nested types like unions
+			panic("unsupported nested type: " + v.String())
+		}
+	}
+	switch {
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Boolean):
+		return "boolean"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_s):
+		return "duration[seconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_ms):
+		return "duration[milliseconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_us):
+		return "duration[microseconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Duration_ns):
+		return "duration[nanoseconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.MonthDayNanoInterval):
+		return "month_day_nano_interval"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.DayTimeInterval):
+		return "day_time_interval"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time32s):
+		return "time32[seconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time32ms):
+		return "time32[milliseconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time64us):
+		return "time64[microseconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Time64ns):
+		return "time64[nanoseconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Date32):
+		return "date32"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Date64):
+		return "date64"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_s):
+		return "timestamp[seconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_ms):
+		return "timestamp[milliseconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_us):
+		return "timestamp[microseconds]"
+	case arrow.TypeEqual(v, arrow.FixedWidthTypes.Timestamp_ns):
+		return "timestamp[nanoseconds]"
+	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Uint8):
+		return "uint8"
+	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Uint16):
+		return "uint16"
+	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Uint32):
+		return "uint32"
+	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Uint64):
+		return "uint64"
+	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Int8):
+		return "int8"
+	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Int16):
+		return "int16"
+	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Int32):
+		return "int32"
+	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Int64):
+		return "int64"
+	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Float32):
+		return "float32"
+	case arrow.TypeEqual(v, arrow.PrimitiveTypes.Float64):
+		return "float64"
+	case arrow.TypeEqual(v, arrow.BinaryTypes.String):
+		return "string"
+	case arrow.TypeEqual(v, arrow.BinaryTypes.LargeString):
+		return "large_string"
+	case arrow.TypeEqual(v, arrow.BinaryTypes.Binary):
+		return "binary"
+	case arrow.TypeEqual(v, arrow.BinaryTypes.LargeBinary):
+		return "large_binary"
+	case arrow.TypeEqual(v, types.ExtensionTypes.UUID):
+		return "uuid"
+	case arrow.TypeEqual(v, types.ExtensionTypes.JSON):
+		return "json"
+	case arrow.TypeEqual(v, types.ExtensionTypes.Inet):
+		return "inet_address"
+	case arrow.TypeEqual(v, types.ExtensionTypes.MAC):
+		return "mac_address"
+	}
 	return v.String()
 }
 
