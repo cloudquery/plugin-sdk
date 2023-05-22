@@ -11,7 +11,6 @@ import (
 	"sort"
 	"text/template"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v3/caser"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
 )
@@ -147,7 +146,7 @@ func (p *Plugin) jsonifyTables(tables schema.Tables) []jsonTable {
 		for c, col := range table.Columns {
 			jsonColumns[c] = jsonColumn{
 				Name:             col.Name,
-				Type:             formatType(col.Type),
+				Type:             col.Type.String(),
 				IsPrimaryKey:     col.PrimaryKey,
 				IsIncrementalKey: col.IncrementalKey,
 			}
@@ -204,8 +203,7 @@ func (p *Plugin) renderAllTables(t *schema.Table, dir string) error {
 
 func (p *Plugin) renderTable(table *schema.Table, dir string) error {
 	t := template.New("").Funcs(map[string]any{
-		"formatType": formatType,
-		"title":      p.titleTransformer,
+		"title": p.titleTransformer,
 	})
 	t, err := t.New("table.md.go.tpl").ParseFS(templatesFS, "templates/table.md.go.tpl")
 	if err != nil {
@@ -230,10 +228,6 @@ func (p *Plugin) renderTable(table *schema.Table, dir string) error {
 func formatMarkdown(s string) string {
 	s = reMatchNewlines.ReplaceAllString(s, "\n\n")
 	return reMatchHeaders.ReplaceAllString(s, `$1`+"\n\n")
-}
-
-func formatType(v arrow.DataType) string {
-	return v.String()
 }
 
 func indentToDepth(table *schema.Table) string {
