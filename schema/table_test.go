@@ -5,6 +5,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
 
 var testTable = &Table{
@@ -19,7 +20,25 @@ var testTable = &Table{
 }
 
 func TestTablesFlatten(t *testing.T) {
-	tables := Tables{testTable}.FlattenTables()
+	srcTables := Tables{testTable}
+	tables := srcTables.FlattenTables()
+	require.Equal(t, 1, len(srcTables)) // verify that the source Tables were left untouched
+	require.Equal(t, 1, len(testTable.Relations))
+	require.Equal(t, 2, len(tables))
+	for _, table := range tables {
+		require.Nil(t, table.Relations)
+	}
+
+	srcTables = Tables{testTable, testTable}
+	tables = srcTables.FlattenTables()
+	require.Equal(t, 2, len(srcTables)) // verify that the source Tables were left untouched
+	require.Equal(t, 1, len(testTable.Relations))
+	require.Equal(t, 2, len(tables))
+	for _, table := range tables {
+		require.Nil(t, table.Relations)
+	}
+
+	tables = tables.FlattenTables()
 	if len(tables) != 2 {
 		t.Fatal("expected 2 tables")
 	}

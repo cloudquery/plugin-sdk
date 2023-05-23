@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func mustParseMac(s string) net.HardwareAddr {
+func mustParseMAC(s string) net.HardwareAddr {
 	mac, err := net.ParseMAC(s)
 	if err != nil {
 		panic(err)
@@ -17,23 +17,23 @@ func mustParseMac(s string) net.HardwareAddr {
 	return mac
 }
 
-func TestMacBuilder(t *testing.T) {
+func TestMACBuilder(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
 
-	b := NewMacBuilder(array.NewExtensionBuilder(mem, NewMacType()))
+	b := NewMACBuilder(array.NewExtensionBuilder(mem, NewMACType()))
 
-	b.Append(mustParseMac("00:00:00:00:00:01"))
+	b.Append(mustParseMAC("00:00:00:00:00:01"))
 	b.AppendNull()
-	b.Append(mustParseMac("00:00:00:00:00:02"))
+	b.Append(mustParseMAC("00:00:00:00:00:02"))
 	b.AppendNull()
 
 	require.Equal(t, 4, b.Len(), "unexpected Len()")
 	require.Equal(t, 2, b.NullN(), "unexpected NullN()")
 
 	values := []net.HardwareAddr{
-		mustParseMac("00:00:00:00:00:03"),
-		mustParseMac("00:00:00:00:00:04"),
+		mustParseMAC("00:00:00:00:00:03"),
+		mustParseMAC("00:00:00:00:00:04"),
 	}
 	b.AppendValues(values, nil)
 
@@ -53,7 +53,7 @@ func TestMacBuilder(t *testing.T) {
 	b.Release()
 	a.Release()
 
-	b = NewMacBuilder(array.NewExtensionBuilder(mem, NewMacType()))
+	b = NewMACBuilder(array.NewExtensionBuilder(mem, NewMACType()))
 	err = b.UnmarshalJSON(st)
 	require.NoError(t, err)
 
