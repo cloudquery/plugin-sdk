@@ -7,8 +7,9 @@ import (
 	"path"
 	"testing"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/bradleyjkemp/cupaloy/v2"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,17 +20,17 @@ var testTables = []*schema.Table{
 		Columns: []schema.Column{
 			{
 				Name: "int_col",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 			{
-				Name:            "id_col",
-				Type:            schema.TypeInt,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Name:       "id_col",
+				Type:       arrow.PrimitiveTypes.Int64,
+				PrimaryKey: true,
 			},
 			{
-				Name:            "id_col2",
-				Type:            schema.TypeInt,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Name:       "id_col2",
+				Type:       arrow.PrimitiveTypes.Int64,
+				PrimaryKey: true,
 			},
 		},
 		Relations: []*schema.Table{
@@ -39,7 +40,7 @@ var testTables = []*schema.Table{
 				Columns: []schema.Column{
 					{
 						Name: "string_col",
-						Type: schema.TypeString,
+						Type: arrow.BinaryTypes.String,
 					},
 				},
 				Relations: []*schema.Table{
@@ -49,7 +50,7 @@ var testTables = []*schema.Table{
 						Columns: []schema.Column{
 							{
 								Name: "string_col",
-								Type: schema.TypeString,
+								Type: arrow.BinaryTypes.String,
 							},
 						},
 					},
@@ -59,7 +60,7 @@ var testTables = []*schema.Table{
 						Columns: []schema.Column{
 							{
 								Name: "string_col",
-								Type: schema.TypeString,
+								Type: arrow.BinaryTypes.String,
 							},
 						},
 					},
@@ -71,7 +72,7 @@ var testTables = []*schema.Table{
 				Columns: []schema.Column{
 					{
 						Name: "string_col",
-						Type: schema.TypeString,
+						Type: arrow.BinaryTypes.String,
 					},
 				},
 			},
@@ -84,17 +85,18 @@ var testTables = []*schema.Table{
 		Columns: []schema.Column{
 			{
 				Name: "int_col",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 			{
-				Name:            "id_col",
-				Type:            schema.TypeInt,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true, IncrementalKey: true},
+				Name:           "id_col",
+				Type:           arrow.PrimitiveTypes.Int64,
+				PrimaryKey:     true,
+				IncrementalKey: true,
 			},
 			{
-				Name:            "id_col2",
-				Type:            schema.TypeInt,
-				CreationOptions: schema.ColumnCreationOptions{IncrementalKey: true},
+				Name:           "id_col2",
+				Type:           arrow.PrimitiveTypes.Int64,
+				IncrementalKey: true,
 			},
 		},
 	},

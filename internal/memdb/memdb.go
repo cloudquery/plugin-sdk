@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/rs/zerolog"
 )
 
@@ -20,7 +20,7 @@ import (
 type client struct {
 	spec          specs.Destination
 	memoryDB      map[string][]arrow.Record
-	tables        map[string]*arrow.Schema
+	tables        map[string]*schema.Table
 	memoryDBLock  sync.RWMutex
 	errOnWrite    bool
 	blockingWrite bool
@@ -64,7 +64,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 func NewClient(_ context.Context, _ zerolog.Logger, spec specs.Destination) (destination.Client, error) {
 	return &client{
 		memoryDB: make(map[string][]arrow.Record),
-		tables:   make(map[string]*arrow.Schema),
+		tables:   make(map[string]*schema.Table),
 		spec:     spec,
 	}, nil
 }
@@ -73,9 +73,9 @@ func NewClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (dest
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
-func (c *client) overwrite(table *arrow.Schema, data arrow.Record) {
-	pksIndex := schema.PrimaryKeyIndices(table)
-	tableName := schema.TableName(table)
+func (c *client) overwrite(table *schema.Table, data arrow.Record) {
+	pksIndex := table.PrimaryKeysIndexes()
+	tableName := table.Name
 	for i, row := range c.memoryDB[tableName] {
 		found := true
 		for _, pkIndex := range pksIndex {
@@ -94,16 +94,17 @@ func (c *client) overwrite(table *arrow.Schema, data arrow.Record) {
 	c.memoryDB[tableName] = append(c.memoryDB[tableName], data)
 }
 
-func (c *client) Migrate(_ context.Context, tables schema.Schemas) error {
+func (c *client) Migrate(_ context.Context, tables schema.Tables) error {
 	for _, table := range tables {
-		tableName := schema.TableName(table)
+		tableName := table.Name
 		memTable := c.memoryDB[tableName]
 		if memTable == nil {
 			c.memoryDB[tableName] = make([]arrow.Record, 0)
 			c.tables[tableName] = table
 			continue
 		}
-		changes := schema.GetSchemaChanges(table, c.tables[tableName])
+
+		changes := table.GetChanges(c.tables[tableName])
 		// memdb doesn't support any auto-migrate
 		if changes == nil {
 			continue
@@ -114,16 +115,15 @@ func (c *client) Migrate(_ context.Context, tables schema.Schemas) error {
 	return nil
 }
 
-func (c *client) Read(_ context.Context, table *arrow.Schema, source string, res chan<- arrow.Record) error {
-	tableName := schema.TableName(table)
+func (c *client) Read(_ context.Context, table *schema.Table, source string, res chan<- arrow.Record) error {
+	tableName := table.Name
 	if c.memoryDB[tableName] == nil {
 		return nil
 	}
-	indices := table.FieldIndices(schema.CqSourceNameColumn.Name)
-	if len(indices) == 0 {
+	sourceColIndex := table.Columns.Index(schema.CqSourceNameColumn.Name)
+	if sourceColIndex == -1 {
 		return fmt.Errorf("table %s doesn't have source column", tableName)
 	}
-	sourceColIndex := indices[0]
 	var sortedRes []arrow.Record
 	c.memoryDBLock.RLock()
 	for _, row := range c.memoryDB[tableName] {
@@ -140,7 +140,7 @@ func (c *client) Read(_ context.Context, table *arrow.Schema, source string, res
 	return nil
 }
 
-func (c *client) Write(ctx context.Context, _ schema.Schemas, resources <-chan arrow.Record) error {
+func (c *client) Write(ctx context.Context, _ schema.Tables, resources <-chan arrow.Record) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -154,21 +154,23 @@ func (c *client) Write(ctx context.Context, _ schema.Schemas, resources <-chan a
 
 	for resource := range resources {
 		c.memoryDBLock.Lock()
-		tableName, err := schema.TableNameFromSchema(resource.Schema())
-		if err != nil {
-			return err
+		sc := resource.Schema()
+		tableName, ok := sc.Metadata().GetValue(schema.MetadataTableName)
+		if !ok {
+			return fmt.Errorf("table name not found in schema metadata")
 		}
+		table := c.tables[tableName]
 		if c.spec.WriteMode == specs.WriteModeAppend {
 			c.memoryDB[tableName] = append(c.memoryDB[tableName], resource)
 		} else {
-			c.overwrite(resource.Schema(), resource)
+			c.overwrite(table, resource)
 		}
 		c.memoryDBLock.Unlock()
 	}
 	return nil
 }
 
-func (c *client) WriteTableBatch(ctx context.Context, table *arrow.Schema, resources []arrow.Record) error {
+func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resources []arrow.Record) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -179,7 +181,7 @@ func (c *client) WriteTableBatch(ctx context.Context, table *arrow.Schema, resou
 		}
 		return nil
 	}
-	tableName := schema.TableName(table)
+	tableName := table.Name
 	for _, resource := range resources {
 		c.memoryDBLock.Lock()
 		if c.spec.WriteMode == specs.WriteModeAppend {
@@ -201,17 +203,17 @@ func (c *client) Close(context.Context) error {
 	return nil
 }
 
-func (c *client) DeleteStale(ctx context.Context, tables schema.Schemas, source string, syncTime time.Time) error {
+func (c *client) DeleteStale(ctx context.Context, tables schema.Tables, source string, syncTime time.Time) error {
 	for _, table := range tables {
 		c.deleteStaleTable(ctx, table, source, syncTime)
 	}
 	return nil
 }
 
-func (c *client) deleteStaleTable(_ context.Context, table *arrow.Schema, source string, syncTime time.Time) {
-	sourceColIndex := table.FieldIndices(schema.CqSourceNameColumn.Name)[0]
-	syncColIndex := table.FieldIndices(schema.CqSyncTimeColumn.Name)[0]
-	tableName := schema.TableName(table)
+func (c *client) deleteStaleTable(_ context.Context, table *schema.Table, source string, syncTime time.Time) {
+	sourceColIndex := table.Columns.Index(schema.CqSourceNameColumn.Name)
+	syncColIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
+	tableName := table.Name
 	var filteredTable []arrow.Record
 	for i, row := range c.memoryDB[tableName] {
 		if row.Column(sourceColIndex).(*array.String).Value(0) == source {

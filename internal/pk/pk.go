@@ -3,13 +3,17 @@ package pk
 import (
 	"strings"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 )
 
 func String(resource arrow.Record) string {
 	sc := resource.Schema()
-	pkIndices := schema.PrimaryKeyIndices(sc)
+	table, err := schema.NewTableFromArrowSchema(sc)
+	if err != nil {
+		panic(err)
+	}
+	pkIndices := table.PrimaryKeysIndexes()
 	parts := make([]string, 0, len(pkIndices))
 	for _, i := range pkIndices {
 		parts = append(parts, resource.Column(i).String())

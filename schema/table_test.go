@@ -3,7 +3,9 @@ package schema
 import (
 	"testing"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
 
 var testTable = &Table{
@@ -18,7 +20,25 @@ var testTable = &Table{
 }
 
 func TestTablesFlatten(t *testing.T) {
-	tables := Tables{testTable}.FlattenTables()
+	srcTables := Tables{testTable}
+	tables := srcTables.FlattenTables()
+	require.Equal(t, 1, len(srcTables)) // verify that the source Tables were left untouched
+	require.Equal(t, 1, len(testTable.Relations))
+	require.Equal(t, 2, len(tables))
+	for _, table := range tables {
+		require.Nil(t, table.Relations)
+	}
+
+	srcTables = Tables{testTable, testTable}
+	tables = srcTables.FlattenTables()
+	require.Equal(t, 2, len(srcTables)) // verify that the source Tables were left untouched
+	require.Equal(t, 1, len(testTable.Relations))
+	require.Equal(t, 2, len(tables))
+	for _, table := range tables {
+		require.Nil(t, table.Relations)
+	}
+
+	tables = tables.FlattenTables()
 	if len(tables) != 2 {
 		t.Fatal("expected 2 tables")
 	}
@@ -257,13 +277,13 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 		target: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		source: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		expectedChanges: nil,
@@ -273,21 +293,21 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 		target: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
-				{Name: "bool1", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+				{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		source: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		expectedChanges: []TableColumnChange{
 			{
 				Type:       TableColumnChangeTypeAdd,
 				ColumnName: "bool1",
-				Current:    Column{Name: "bool1", Type: TypeBool},
+				Current:    Column{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 	},
@@ -296,21 +316,21 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 		target: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		source: &Table{
 			Name: "test",
 			Columns: []Column{
-				{Name: "bool", Type: TypeBool},
-				{Name: "bool1", Type: TypeBool},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+				{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 		expectedChanges: []TableColumnChange{
 			{
 				Type:       TableColumnChangeTypeRemove,
 				ColumnName: "bool1",
-				Previous:   Column{Name: "bool1", Type: TypeBool},
+				Previous:   Column{Name: "bool1", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		},
 	},

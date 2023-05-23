@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 )
@@ -118,7 +119,7 @@ func (s *Benchmark) setup(b *testing.B) {
 		for u := 0; u < s.Columns; u++ {
 			columns[u] = schema.Column{
 				Name: fmt.Sprintf("column%d", u),
-				Type: schema.TypeString,
+				Type: arrow.BinaryTypes.String,
 			}
 			if u < s.ColumnResolvers {
 				columns[u].Resolver = columnResolver
@@ -203,6 +204,7 @@ func (s *Benchmark) Run() {
 		g.Go(func() error {
 			defer close(resources)
 			return s.plugin.Sync(ctx,
+				time.Now(),
 				resources)
 		})
 		s.b.StartTimer()

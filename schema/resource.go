@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"github.com/cloudquery/plugin-sdk/v3/scalar"
 	"github.com/google/uuid"
 	"golang.org/x/exp/slices"
 )
@@ -20,15 +21,8 @@ type Resource struct {
 	// internal fields
 	Table *Table
 	// This is sorted result data by column name
-	data CQTypes
-}
-
-// This struct is what we send over the wire to destination.
-// We dont want to reuse the same struct as otherwise we will have to comment on fields which don't get sent over the wire but still accessible
-// code wise
-type DestinationResource struct {
-	TableName string  `json:"table_name"`
-	Data      CQTypes `json:"data"`
+	data scalar.Vector
+	// bldr array.RecordBuilder
 }
 
 func NewResourceData(t *Table, parent *Resource, item any) *Resource {
@@ -36,23 +30,15 @@ func NewResourceData(t *Table, parent *Resource, item any) *Resource {
 		Item:   item,
 		Parent: parent,
 		Table:  t,
-		data:   make(CQTypes, len(t.Columns)),
+		data:   make(scalar.Vector, len(t.Columns)),
 	}
 	for i := range r.data {
-		r.data[i] = NewCqTypeFromValueType(t.Columns[i].Type)
+		r.data[i] = scalar.NewScalar(t.Columns[i].Type)
 	}
 	return &r
 }
 
-func (r *Resource) ToDestinationResource() DestinationResource {
-	dr := DestinationResource{
-		TableName: r.Table.Name,
-		Data:      r.data,
-	}
-	return dr
-}
-
-func (r *Resource) Get(columnName string) CQType {
+func (r *Resource) Get(columnName string) scalar.Scalar {
 	index := r.Table.Columns.Index(columnName)
 	if index == -1 {
 		// we panic because we want to distinguish between code error and api error
@@ -87,12 +73,8 @@ func (r *Resource) GetItem() any {
 	return r.Item
 }
 
-func (r *Resource) GetValues() CQTypes {
+func (r *Resource) GetValues() scalar.Vector {
 	return r.data
-}
-
-func (r *Resource) Columns() []string {
-	return r.Table.Columns.Names()
 }
 
 //nolint:revive
@@ -126,8 +108,8 @@ func (r *Resource) storeCQID(value uuid.UUID) error {
 func (r *Resource) Validate() error {
 	var missingPks []string
 	for i, c := range r.Table.Columns {
-		if c.CreationOptions.PrimaryKey {
-			if r.data[i].GetStatus() != Present {
+		if c.PrimaryKey {
+			if !r.data[i].IsValid() {
 				missingPks = append(missingPks, c.Name)
 			}
 		}

@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strings"
 	"text/template"
 
-	"github.com/cloudquery/plugin-sdk/v2/caser"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v3/caser"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 )
 
 //go:embed templates/*.go.tpl
@@ -144,8 +144,8 @@ func (p *Plugin) jsonifyTables(tables schema.Tables) []jsonTable {
 			jsonColumns[c] = jsonColumn{
 				Name:             col.Name,
 				Type:             col.Type.String(),
-				IsPrimaryKey:     col.CreationOptions.PrimaryKey,
-				IsIncrementalKey: col.CreationOptions.IncrementalKey,
+				IsPrimaryKey:     col.PrimaryKey,
+				IsIncrementalKey: col.IncrementalKey,
 			}
 		}
 		jsonTables[i] = jsonTable{
@@ -228,8 +228,8 @@ func formatMarkdown(s string) string {
 	return reMatchHeaders.ReplaceAllString(s, `$1`+"\n\n")
 }
 
-func formatType(v schema.ValueType) string {
-	return strings.TrimPrefix(v.String(), "Type")
+func formatType(v arrow.DataType) string {
+	return v.String()
 }
 
 func indentToDepth(table *schema.Table) string {

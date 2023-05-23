@@ -8,9 +8,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/cloudquery/plugin-sdk/v2/helpers"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/helpers"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/getsentry/sentry-go"
 	"golang.org/x/sync/semaphore"
 )

@@ -6,33 +6,33 @@
     "columns": [
       {
         "name": "_cq_source_name",
-        "type": "TypeString"
+        "type": "utf8"
       },
       {
         "name": "_cq_sync_time",
-        "type": "TypeTimestamp"
+        "type": "timestamp[us, tz=UTC]"
       },
       {
         "name": "_cq_id",
-        "type": "TypeUUID"
+        "type": "uuid"
       },
       {
         "name": "_cq_parent_id",
-        "type": "TypeUUID"
+        "type": "uuid"
       },
       {
         "name": "int_col",
-        "type": "TypeInt"
+        "type": "int64"
       },
       {
         "name": "id_col",
-        "type": "TypeInt",
+        "type": "int64",
         "is_primary_key": true,
         "is_incremental_key": true
       },
       {
         "name": "id_col2",
-        "type": "TypeInt",
+        "type": "int64",
         "is_incremental_key": true
       }
     ],
@@ -45,32 +45,32 @@
     "columns": [
       {
         "name": "_cq_source_name",
-        "type": "TypeString"
+        "type": "utf8"
       },
       {
         "name": "_cq_sync_time",
-        "type": "TypeTimestamp"
+        "type": "timestamp[us, tz=UTC]"
       },
       {
         "name": "_cq_id",
-        "type": "TypeUUID"
+        "type": "uuid"
       },
       {
         "name": "_cq_parent_id",
-        "type": "TypeUUID"
+        "type": "uuid"
       },
       {
         "name": "int_col",
-        "type": "TypeInt"
+        "type": "int64"
       },
       {
         "name": "id_col",
-        "type": "TypeInt",
+        "type": "int64",
         "is_primary_key": true
       },
       {
         "name": "id_col2",
-        "type": "TypeInt",
+        "type": "int64",
         "is_primary_key": true
       }
     ],
@@ -82,24 +82,24 @@
         "columns": [
           {
             "name": "_cq_source_name",
-            "type": "TypeString"
+            "type": "utf8"
           },
           {
             "name": "_cq_sync_time",
-            "type": "TypeTimestamp"
+            "type": "timestamp[us, tz=UTC]"
           },
           {
             "name": "_cq_id",
-            "type": "TypeUUID",
+            "type": "uuid",
             "is_primary_key": true
           },
           {
             "name": "_cq_parent_id",
-            "type": "TypeUUID"
+            "type": "uuid"
           },
           {
             "name": "string_col",
-            "type": "TypeString"
+            "type": "utf8"
           }
         ],
         "relations": [
@@ -110,24 +110,24 @@
             "columns": [
               {
                 "name": "_cq_source_name",
-                "type": "TypeString"
+                "type": "utf8"
               },
               {
                 "name": "_cq_sync_time",
-                "type": "TypeTimestamp"
+                "type": "timestamp[us, tz=UTC]"
               },
               {
                 "name": "_cq_id",
-                "type": "TypeUUID",
+                "type": "uuid",
                 "is_primary_key": true
               },
               {
                 "name": "_cq_parent_id",
-                "type": "TypeUUID"
+                "type": "uuid"
               },
               {
                 "name": "string_col",
-                "type": "TypeString"
+                "type": "utf8"
               }
             ],
             "relations": []
@@ -139,24 +139,24 @@
             "columns": [
               {
                 "name": "_cq_source_name",
-                "type": "TypeString"
+                "type": "utf8"
               },
               {
                 "name": "_cq_sync_time",
-                "type": "TypeTimestamp"
+                "type": "timestamp[us, tz=UTC]"
               },
               {
                 "name": "_cq_id",
-                "type": "TypeUUID",
+                "type": "uuid",
                 "is_primary_key": true
               },
               {
                 "name": "_cq_parent_id",
-                "type": "TypeUUID"
+                "type": "uuid"
               },
               {
                 "name": "string_col",
-                "type": "TypeString"
+                "type": "utf8"
               }
             ],
             "relations": []
@@ -170,24 +170,24 @@
         "columns": [
           {
             "name": "_cq_source_name",
-            "type": "TypeString"
+            "type": "utf8"
           },
           {
             "name": "_cq_sync_time",
-            "type": "TypeTimestamp"
+            "type": "timestamp[us, tz=UTC]"
           },
           {
             "name": "_cq_id",
-            "type": "TypeUUID",
+            "type": "uuid",
             "is_primary_key": true
           },
           {
             "name": "_cq_parent_id",
-            "type": "TypeUUID"
+            "type": "uuid"
           },
           {
             "name": "string_col",
-            "type": "TypeString"
+            "type": "utf8"
           }
         ],
         "relations": []

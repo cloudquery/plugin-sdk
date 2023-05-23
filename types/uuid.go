@@ -8,8 +8,8 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/google/uuid"
 )
 
@@ -19,11 +19,8 @@ type UUIDBuilder struct {
 	*array.ExtensionBuilder
 }
 
-func NewUUIDBuilder(bldr *array.ExtensionBuilder) *UUIDBuilder {
-	b := &UUIDBuilder{
-		ExtensionBuilder: bldr,
-	}
-	return b
+func NewUUIDBuilder(builder *array.ExtensionBuilder) *UUIDBuilder {
+	return &UUIDBuilder{ExtensionBuilder: builder}
 }
 
 func (b *UUIDBuilder) Append(v uuid.UUID) {
@@ -39,17 +36,26 @@ func (b *UUIDBuilder) AppendValueFromString(s string) error {
 		b.AppendNull()
 		return nil
 	}
-	data, err := uuid.Parse(s)
+
+	uid, err := uuid.Parse(s)
 	if err != nil {
 		return err
 	}
-	b.Append(data)
+
+	b.Append(uid)
 	return nil
 }
 
 func (b *UUIDBuilder) AppendValues(v []uuid.UUID, valid []bool) {
+	if len(v) != len(valid) && len(valid) != 0 {
+		panic("len(v) != len(valid) && len(valid) != 0")
+	}
+
 	data := make([][]byte, len(v))
 	for i := range v {
+		if len(valid) > 0 && !valid[i] {
+			continue
+		}
 		data[i] = v[i][:]
 	}
 	b.ExtensionBuilder.Builder.(*array.FixedSizeBinaryBuilder).AppendValues(data, valid)
@@ -64,17 +70,15 @@ func (b *UUIDBuilder) UnmarshalOne(dec *json.Decoder) error {
 	var val uuid.UUID
 	switch v := t.(type) {
 	case string:
-		data, err := uuid.Parse(v)
+		val, err = uuid.Parse(v)
 		if err != nil {
 			return err
 		}
-		val = data
 	case []byte:
-		data, err := uuid.ParseBytes(v)
+		val, err = uuid.ParseBytes(v)
 		if err != nil {
 			return err
 		}
-		val = data
 	case nil:
 		b.AppendNull()
 		return nil
@@ -87,14 +91,6 @@ func (b *UUIDBuilder) UnmarshalOne(dec *json.Decoder) error {
 		}
 	}
 
-	if len(val) != 16 {
-		return &json.UnmarshalTypeError{
-			Value:  fmt.Sprint(val),
-			Type:   reflect.TypeOf([]byte{}),
-			Offset: dec.InputOffset(),
-			Struct: fmt.Sprintf("FixedSizeBinary[%d]", 16),
-		}
-	}
 	b.Append(val)
 	return nil
 }
@@ -122,12 +118,16 @@ func (b *UUIDBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *UUIDBuilder) NewUUIDArray() *UUIDArray {
+	return b.NewExtensionArray().(*UUIDArray)
+}
+
 // UUIDArray is a simple array which is a FixedSizeBinary(16)
 type UUIDArray struct {
 	array.ExtensionArrayBase
 }
 
-func (a UUIDArray) String() string {
+func (a *UUIDArray) String() string {
 	arr := a.Storage().(*array.FixedSizeBinary)
 	o := new(strings.Builder)
 	o.WriteString("[")
@@ -137,69 +137,47 @@ func (a UUIDArray) String() string {
 		}
 		switch {
 		case a.IsNull(i):
-			o.WriteString("(null)")
+			o.WriteString(array.NullValueStr)
 		default:
-			uuidStr, err := uuid.FromBytes(arr.Value(i))
-			if err != nil {
-				panic(fmt.Errorf("invalid uuid: %w", err))
-			}
-			fmt.Fprintf(o, "%q", uuidStr)
+			fmt.Fprintf(o, "%q", a.Value(i))
 		}
 	}
 	o.WriteString("]")
 	return o.String()
 }
 
+func (a *UUIDArray) Value(i int) uuid.UUID {
+	if a.IsNull(i) {
+		return uuid.Nil
+	}
+	return uuid.Must(uuid.FromBytes(a.Storage().(*array.FixedSizeBinary).Value(i)))
+}
+
 func (a *UUIDArray) ValueStr(i int) string {
-	arr := a.Storage().(*array.FixedSizeBinary)
 	switch {
 	case a.IsNull(i):
-		return "(null)"
+		return array.NullValueStr
 	default:
-		uuidStr, _ := uuid.FromBytes(arr.Value(i))
-		return fmt.Sprintf("%v", uuidStr)
+		return a.Value(i).String()
 	}
 }
 
 func (a *UUIDArray) MarshalJSON() ([]byte, error) {
 	arr := a.Storage().(*array.FixedSizeBinary)
-	vals := make([]any, a.Len())
+	values := make([]any, a.Len())
 	for i := 0; i < a.Len(); i++ {
 		if a.IsValid(i) {
-			uuidStr, err := uuid.FromBytes(arr.Value(i))
-			if err != nil {
-				panic(fmt.Errorf("invalid uuid: %w", err))
-			}
-			vals[i] = uuidStr.String()
-		} else {
-			vals[i] = nil
+			values[i] = uuid.Must(uuid.FromBytes(arr.Value(i))).String()
 		}
 	}
-	return json.Marshal(vals)
+	return json.Marshal(values)
 }
 
 func (a *UUIDArray) GetOneForMarshal(i int) any {
-	arr := a.Storage().(*array.FixedSizeBinary)
-	if a.IsValid(i) {
-		uuidObj, err := uuid.FromBytes(arr.Value(i))
-		if err != nil {
-			panic(fmt.Errorf("invalid uuid: %w", err))
-		}
-		return uuidObj
+	if a.IsNull(i) {
+		return nil
 	}
-	return nil
-}
-
-func (a *UUIDArray) Value(i int) *uuid.UUID {
-	arr := a.Storage().(*array.FixedSizeBinary)
-	if a.IsValid(i) {
-		uuidObj, err := uuid.FromBytes(arr.Value(i))
-		if err != nil {
-			panic(fmt.Errorf("invalid uuid: %w", err))
-		}
-		return &uuidObj
-	}
-	return nil
+	return a.Value(i)
 }
 
 // UUIDType is a simple extension type that represents a FixedSizeBinary(16)
@@ -208,53 +186,51 @@ type UUIDType struct {
 	arrow.ExtensionBase
 }
 
-// NewUUIDType is a convenience function to create an instance of UuidType
+// NewUUIDType is a convenience function to create an instance of UUIDType
 // with the correct storage type
 func NewUUIDType() *UUIDType {
-	return &UUIDType{
-		ExtensionBase: arrow.ExtensionBase{
-			Storage: &arrow.FixedSizeBinaryType{ByteWidth: 16}}}
+	return &UUIDType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.FixedSizeBinaryType{ByteWidth: 16}}}
 }
 
-// ArrayType returns TypeOf(UuidArray) for constructing uuid arrays
-func (UUIDType) ArrayType() reflect.Type {
+// ArrayType returns TypeOf(UUIDArray{}) for constructing UUID arrays
+func (*UUIDType) ArrayType() reflect.Type {
 	return reflect.TypeOf(UUIDArray{})
 }
 
-func (UUIDType) ExtensionName() string {
+func (*UUIDType) ExtensionName() string {
 	return "uuid"
 }
 
-func (e UUIDType) String() string {
-	return fmt.Sprintf("extension_type<storage=%s>", e.Storage)
+func (*UUIDType) String() string {
+	return "uuid"
 }
 
-func (e UUIDType) MarshalJSON() ([]byte, error) {
+func (e *UUIDType) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`{"name":"%s","metadata":%s}`, e.ExtensionName(), e.Serialize())), nil
 }
 
 // Serialize returns "uuid-serialized" for testing proper metadata passing
-func (UUIDType) Serialize() string {
+func (*UUIDType) Serialize() string {
 	return "uuid-serialized"
 }
 
 // Deserialize expects storageType to be FixedSizeBinaryType{ByteWidth: 16} and the data to be
-// "uuid-serialized" in order to correctly create a UuidType for testing deserialize.
-func (UUIDType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
+// "uuid-serialized" in order to correctly create a UUIDType for testing deserialize.
+func (*UUIDType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
 	if data != "uuid-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
 	if !arrow.TypeEqual(storageType, &arrow.FixedSizeBinaryType{ByteWidth: 16}) {
-		return nil, fmt.Errorf("invalid storage type for UuidType: %s", storageType.Name())
+		return nil, fmt.Errorf("invalid storage type for UUIDType: %s", storageType.Name())
 	}
 	return NewUUIDType(), nil
 }
 
-// UuidTypes are equal if both are named "uuid"
-func (e UUIDType) ExtensionEquals(other arrow.ExtensionType) bool {
+// ExtensionEquals returns true if both extensions have the same name
+func (e *UUIDType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return e.ExtensionName() == other.ExtensionName()
 }
 
-func (UUIDType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
+func (*UUIDType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
 	return NewUUIDBuilder(bldr)
 }
