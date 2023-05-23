@@ -4,7 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/schema"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,7 +87,7 @@ var exampleTableSchema = &schema.Table{
 	Columns: schema.ColumnList{
 		{
 			Name: "col1",
-			Type: schema.TypeInt,
+			Type: &arrow.Int32Type{},
 		},
 	},
 	Relations: []*schema.Table{
@@ -95,7 +96,7 @@ var exampleTableSchema = &schema.Table{
 			Columns: schema.ColumnList{
 				{
 					Name: "col1",
-					Type: schema.TypeInt,
+					Type: &arrow.Int32Type{},
 				},
 			},
 		},
