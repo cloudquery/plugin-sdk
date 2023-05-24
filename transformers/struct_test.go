@@ -9,6 +9,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
 )
 
@@ -399,6 +400,7 @@ func TestTableFromGoStruct(t *testing.T) {
 				}
 				t.Fatal(err)
 			}
+			require.Equal(t, len(tt.want.Columns), len(table.Columns))
 			for i, col := range table.Columns {
 				if !arrow.TypeEqual(col.Type, tt.want.Columns[i].Type) {
 					t.Fatalf("column %s does not match expected type. got %v, want %v", col.Name, col.Type, tt.want.Columns[i].Type)

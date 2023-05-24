@@ -28,10 +28,6 @@ type structTransformer struct {
 	pkFieldsFound                 []string
 }
 
-type NameTransformer func(reflect.StructField) (string, error)
-
-type TypeTransformer func(reflect.StructField) (arrow.DataType, error)
-
 type ResolverTransformer func(field reflect.StructField, path string) schema.ColumnResolver
 
 func DefaultResolverTransformer(_ reflect.StructField, path string) schema.ColumnResolver {
@@ -228,34 +224,14 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		return nil
 	}
 
-	columnType, err := t.typeTransformer(field)
+	columnType, err := t.getColumnType(field)
 	if err != nil {
 		return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
 	}
 
-	if columnType == nil {
-		columnType, err = DefaultTypeTransformer(field)
-		if err != nil {
-			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
-		}
-	}
-
-	path := field.Name
-	name, err := t.nameTransformer(field)
-	if err != nil {
-		return fmt.Errorf("failed to transform field name for field %s: %w", field.Name, err)
-	}
-	// skip field if there is no name
-	if name == "" {
-		return nil
-	}
-	if parent != nil {
-		parentName, err := t.nameTransformer(*parent)
-		if err != nil {
-			return fmt.Errorf("failed to transform field name for parent field %s: %w", parent.Name, err)
-		}
-		name = parentName + "_" + name
-		path = parent.Name + `.` + path
+	name, path, err := t.getFieldNamePath(field, parent)
+	if err != nil || name == "" {
+		return err
 	}
 	if t.table.Columns.Get(name) != nil {
 		return nil
