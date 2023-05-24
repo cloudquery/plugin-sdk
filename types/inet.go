@@ -207,6 +207,10 @@ func (*InetType) ExtensionName() string {
 	return "inet"
 }
 
+func (*InetType) String() string {
+	return "inet"
+}
+
 // Serialize returns "inet-serialized" for testing proper metadata passing
 func (*InetType) Serialize() string {
 	return "inet-serialized"

@@ -209,8 +209,8 @@ func (*JSONType) ExtensionName() string {
 	return "json"
 }
 
-func (e *JSONType) String() string {
-	return fmt.Sprintf("extension_type<storage=%s>", e.Storage)
+func (*JSONType) String() string {
+	return "json"
 }
 
 func (e *JSONType) MarshalJSON() ([]byte, error) {

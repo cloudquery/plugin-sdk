@@ -10,6 +10,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/bradleyjkemp/cupaloy/v2"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,6 +32,22 @@ var testTables = []*schema.Table{
 				Name:       "id_col2",
 				Type:       arrow.PrimitiveTypes.Int64,
 				PrimaryKey: true,
+			},
+			{
+				Name: "json_col",
+				Type: types.ExtensionTypes.JSON,
+			},
+			{
+				Name: "list_col",
+				Type: arrow.ListOf(arrow.PrimitiveTypes.Int64),
+			},
+			{
+				Name: "map_col",
+				Type: arrow.MapOf(arrow.BinaryTypes.String, arrow.PrimitiveTypes.Int64),
+			},
+			{
+				Name: "struct_col",
+				Type: arrow.StructOf(arrow.Field{Name: "string_field", Type: arrow.BinaryTypes.String}, arrow.Field{Name: "int_field", Type: arrow.PrimitiveTypes.Int64}),
 			},
 		},
 		Relations: []*schema.Table{
