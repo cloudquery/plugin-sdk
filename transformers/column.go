@@ -35,6 +35,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		Type:          columnType,
 		Resolver:      resolver,
 		IgnoreInTests: t.ignoreInTestsTransformer(field),
+		NotNull:       !Nullable(field.Type),
 	}
 
 	for _, pk := range t.pkFields {

@@ -75,7 +75,9 @@ func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 
 func isTypeIgnored(t reflect.Type) bool {
 	switch t.Kind() {
-	case reflect.Interface,
+	case
+		reflect.Invalid,
+		reflect.Interface,
 		reflect.Func,
 		reflect.Chan,
 		reflect.UnsafePointer:
