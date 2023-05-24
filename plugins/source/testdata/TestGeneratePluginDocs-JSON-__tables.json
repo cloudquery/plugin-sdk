@@ -72,6 +72,22 @@
         "name": "id_col2",
         "type": "int64",
         "is_primary_key": true
+      },
+      {
+        "name": "json_col",
+        "type": "json"
+      },
+      {
+        "name": "list_col",
+        "type": "list<item: int64, nullable>"
+      },
+      {
+        "name": "map_col",
+        "type": "map<utf8, int64, items_nullable>"
+      },
+      {
+        "name": "struct_col",
+        "type": "struct<string_field: utf8, int_field: int64>"
       }
     ],
     "relations": [
@@ -195,3 +211,4 @@
     ]
   }
 ]
+

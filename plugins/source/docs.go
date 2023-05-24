@@ -11,7 +11,6 @@ import (
 	"sort"
 	"text/template"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v3/caser"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
 )
@@ -128,12 +127,16 @@ type jsonColumn struct {
 
 func (p *Plugin) renderTablesAsJSON(dir string, tables schema.Tables) error {
 	jsonTables := p.jsonifyTables(tables)
-	b, err := json.MarshalIndent(jsonTables, "", "  ")
+	buffer := &bytes.Buffer{}
+	m := json.NewEncoder(buffer)
+	m.SetIndent("", "  ")
+	m.SetEscapeHTML(false)
+	err := m.Encode(jsonTables)
 	if err != nil {
-		return fmt.Errorf("failed to marshal tables as json: %v", err)
+		return err
 	}
 	outputPath := filepath.Join(dir, "__tables.json")
-	return os.WriteFile(outputPath, b, 0644)
+	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
 func (p *Plugin) jsonifyTables(tables schema.Tables) []jsonTable {
@@ -200,8 +203,7 @@ func (p *Plugin) renderAllTables(t *schema.Table, dir string) error {
 
 func (p *Plugin) renderTable(table *schema.Table, dir string) error {
 	t := template.New("").Funcs(map[string]any{
-		"formatType": formatType,
-		"title":      p.titleTransformer,
+		"title": p.titleTransformer,
 	})
 	t, err := t.New("table.md.go.tpl").ParseFS(templatesFS, "templates/table.md.go.tpl")
 	if err != nil {
@@ -226,10 +228,6 @@ func (p *Plugin) renderTable(table *schema.Table, dir string) error {
 func formatMarkdown(s string) string {
 	s = reMatchNewlines.ReplaceAllString(s, "\n\n")
 	return reMatchHeaders.ReplaceAllString(s, `$1`+"\n\n")
-}
-
-func formatType(v arrow.DataType) string {
-	return v.String()
 }
 
 func indentToDepth(table *schema.Table) string {
