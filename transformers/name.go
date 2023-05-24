@@ -3,9 +3,11 @@ package transformers
 import (
 	"fmt"
 	"reflect"
-)
+	"strings"
 
-type NameTransformer func(reflect.StructField) (string, error)
+	"github.com/cloudquery/plugin-sdk/v3/caser"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+)
 
 func (t *structTransformer) getFieldNamePath(field reflect.StructField, parent *reflect.StructField) (name, path string, err error) {
 	path = field.Name
@@ -28,4 +30,22 @@ func (t *structTransformer) getFieldNamePath(field reflect.StructField, parent *
 	}
 
 	return parentName + "_" + name, parent.Name + `.` + path, nil
+}
+
+type NameTransformer func(reflect.StructField) (string, error)
+
+var defaultCaser = caser.New()
+
+func DefaultNameTransformer(field reflect.StructField) (string, error) {
+	name := field.Name
+	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
+		// return empty string if the field is not related api response
+		if jsonTag == "-" {
+			return "", nil
+		}
+		if nameFromJSONTag := defaultCaser.ToSnake(jsonTag); schema.ValidColumnName(nameFromJSONTag) {
+			return nameFromJSONTag, nil
+		}
+	}
+	return defaultCaser.ToSnake(name), nil
 }
