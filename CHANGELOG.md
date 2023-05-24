@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.2](https://github.com/cloudquery/plugin-sdk/compare/v3.6.1...v3.6.2) (2023-05-22)
+
+
+### Bug Fixes
+
+* **testdata:** Don't use escaping in JSON testdata (as array.Approx will check the underlying data) ([#898](https://github.com/cloudquery/plugin-sdk/issues/898)) ([f7e0ae7](https://github.com/cloudquery/plugin-sdk/commit/f7e0ae7bbf520a77d3a900fc9b0068a18fcdfab3))
+
 ## [3.6.1](https://github.com/cloudquery/plugin-sdk/compare/v3.6.0...v3.6.1) (2023-05-21)
 
 
