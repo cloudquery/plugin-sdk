@@ -278,7 +278,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 			// use path to allow the following
 			// 1. Don't duplicate the PK fields if the unwrapped struct contains a fields with the same name
 			// 2. Allow specifying the nested unwrapped field as part of the PK.
-			column.CreationOptions.PrimaryKey = true
+			column.PrimaryKey = true
 			t.pkFieldsFound = append(t.pkFieldsFound, pk)
 		}
 	}
@@ -337,6 +337,10 @@ func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 		elemValueType, err := defaultGoTypeToSchemaType(v.Elem())
 		if err != nil {
 			return nil, err
+		}
+		// if it's already JSON then we don't want to create list of JSON
+		if arrow.TypeEqual(elemValueType, types.ExtensionTypes.JSON) {
+			return elemValueType, nil
 		}
 		return arrow.ListOf(elemValueType), nil
 

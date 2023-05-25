@@ -5,6 +5,116 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.3](https://github.com/cloudquery/plugin-sdk/compare/v3.6.2...v3.6.3) (2023-05-24)
+
+
+### Bug Fixes
+
+* Better handling for Arrow type strings in docs ([#896](https://github.com/cloudquery/plugin-sdk/issues/896)) ([78699f4](https://github.com/cloudquery/plugin-sdk/commit/78699f416c67fb701eb7f7d56a5beba37b3fc150))
+
+## [3.6.2](https://github.com/cloudquery/plugin-sdk/compare/v3.6.1...v3.6.2) (2023-05-22)
+
+
+### Bug Fixes
+
+* **testdata:** Don't use escaping in JSON testdata (as array.Approx will check the underlying data) ([#898](https://github.com/cloudquery/plugin-sdk/issues/898)) ([f7e0ae7](https://github.com/cloudquery/plugin-sdk/commit/f7e0ae7bbf520a77d3a900fc9b0068a18fcdfab3))
+
+## [3.6.1](https://github.com/cloudquery/plugin-sdk/compare/v3.6.0...v3.6.1) (2023-05-21)
+
+
+### Bug Fixes
+
+* Inet extension MarshalJSON ([#894](https://github.com/cloudquery/plugin-sdk/issues/894)) ([f483c57](https://github.com/cloudquery/plugin-sdk/commit/f483c572ac2b77f42a8f3a6cf8a0327fae3fce4c))
+
+## [3.6.0](https://github.com/cloudquery/plugin-sdk/compare/v3.5.2...v3.6.0) (2023-05-21)
+
+
+### Features
+
+* Add precision options for dest testing ([#893](https://github.com/cloudquery/plugin-sdk/issues/893)) ([faacca6](https://github.com/cloudquery/plugin-sdk/commit/faacca6b52347b9cf61b0acbcb4096f535817087))
+* Refactor test options and allow skipping of nulls in lists ([#892](https://github.com/cloudquery/plugin-sdk/issues/892)) ([bc3c251](https://github.com/cloudquery/plugin-sdk/commit/bc3c25193c6675317835a9642758c350260486e9))
+
+
+### Bug Fixes
+
+* Add null-row case for append-only tests ([#889](https://github.com/cloudquery/plugin-sdk/issues/889)) ([6967929](https://github.com/cloudquery/plugin-sdk/commit/6967929bc598ddc2bf6120a9a905ccbf92b97773))
+* Tighter Arrow test cases ([#891](https://github.com/cloudquery/plugin-sdk/issues/891)) ([c7f2546](https://github.com/cloudquery/plugin-sdk/commit/c7f25468f5fff7176cc71301d337598837ef7d61))
+
+## [3.5.2](https://github.com/cloudquery/plugin-sdk/compare/v3.5.1...v3.5.2) (2023-05-18)
+
+
+### Bug Fixes
+
+* **arrow:** `schema.Table` &lt;-&gt; `arrow.Schema` conversion ([#886](https://github.com/cloudquery/plugin-sdk/issues/886)) ([61d98c9](https://github.com/cloudquery/plugin-sdk/commit/61d98c9558287879137e10da0687bbf307d0d0ac))
+* **destination:** Don't duplicate tables to be removed ([#886](https://github.com/cloudquery/plugin-sdk/issues/886)) ([61d98c9](https://github.com/cloudquery/plugin-sdk/commit/61d98c9558287879137e10da0687bbf307d0d0ac))
+* **tables:** Flatten stripping relations ([#884](https://github.com/cloudquery/plugin-sdk/issues/884)) ([e890385](https://github.com/cloudquery/plugin-sdk/commit/e890385102e2668a16e35cff75fe2ffea32f2937))
+* **testing:** CQ Parent ID column should not be NotNull ([#887](https://github.com/cloudquery/plugin-sdk/issues/887)) ([f4aa5bc](https://github.com/cloudquery/plugin-sdk/commit/f4aa5bcebc88ae1a9a5bd90937dcd5868dc0dff1))
+
+## [3.5.1](https://github.com/cloudquery/plugin-sdk/compare/v3.5.0...v3.5.1) (2023-05-16)
+
+
+### Bug Fixes
+
+* Flatten V2 tables ([#882](https://github.com/cloudquery/plugin-sdk/issues/882)) ([28706f1](https://github.com/cloudquery/plugin-sdk/commit/28706f17eb3cc9d0766ecd9c3554eb7505d69c85))
+
+## [3.5.0](https://github.com/cloudquery/plugin-sdk/compare/v3.4.0...v3.5.0) (2023-05-16)
+
+
+### Features
+
+* Revert "feat(test): Test writing to a child table" ([#880](https://github.com/cloudquery/plugin-sdk/issues/880)) ([9d61013](https://github.com/cloudquery/plugin-sdk/commit/9d610131faf4597fe191caac08d40a93efd8aafe))
+
+## [3.4.0](https://github.com/cloudquery/plugin-sdk/compare/v3.3.0...v3.4.0) (2023-05-16)
+
+
+### Features
+
+* **test:** Test writing to a child table ([#878](https://github.com/cloudquery/plugin-sdk/issues/878)) ([d4154fb](https://github.com/cloudquery/plugin-sdk/commit/d4154fb4e2bc703d2974afa4e7dd9c2c774940f9)), closes [#877](https://github.com/cloudquery/plugin-sdk/issues/877)
+
+
+### Bug Fixes
+
+* **test:** Remove extra `v2/schema` import ([#876](https://github.com/cloudquery/plugin-sdk/issues/876)) ([da9ed4d](https://github.com/cloudquery/plugin-sdk/commit/da9ed4d79223ab2c21b48e816ebd194b9b42b262))
+
+## [3.3.0](https://github.com/cloudquery/plugin-sdk/compare/v3.2.1...v3.3.0) (2023-05-15)
+
+
+### Features
+
+* Support sources in SDK V3 ([#864](https://github.com/cloudquery/plugin-sdk/issues/864)) ([a49abcb](https://github.com/cloudquery/plugin-sdk/commit/a49abcbc67e695d804b72baee1bb8813d3830a4a))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.0.8 ([#874](https://github.com/cloudquery/plugin-sdk/issues/874)) ([56c0e84](https://github.com/cloudquery/plugin-sdk/commit/56c0e8451606aa2ee9e8773e640bbf339037629d))
+
+## [3.2.1](https://github.com/cloudquery/plugin-sdk/compare/v3.2.0...v3.2.1) (2023-05-15)
+
+
+### Bug Fixes
+
+* Fix test column generation ([#872](https://github.com/cloudquery/plugin-sdk/issues/872)) ([99fb000](https://github.com/cloudquery/plugin-sdk/commit/99fb0008d216c7b63ccf91db90e99da996185c46))
+
+## [3.2.0](https://github.com/cloudquery/plugin-sdk/compare/v3.1.0...v3.2.0) (2023-05-15)
+
+
+### Features
+
+* Allow testing of more Arrow types ([#863](https://github.com/cloudquery/plugin-sdk/issues/863)) ([28642ec](https://github.com/cloudquery/plugin-sdk/commit/28642ec7537ac9f1b97401a66e1982591b62b6d9))
+
+## [3.1.0](https://github.com/cloudquery/plugin-sdk/compare/v3.0.1...v3.1.0) (2023-05-15)
+
+
+### Features
+
+* **schema:** Embed column creation options ([#869](https://github.com/cloudquery/plugin-sdk/issues/869)) ([7512e29](https://github.com/cloudquery/plugin-sdk/commit/7512e299168e43fb1d8b9d184d71a2b23f1d9892))
+* **types:** Rename Mac -&gt; MAC ([#868](https://github.com/cloudquery/plugin-sdk/issues/868)) ([b5c76bb](https://github.com/cloudquery/plugin-sdk/commit/b5c76bb36b52c01bd27ec8529529dc69ecf0f116))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.0.6 ([#865](https://github.com/cloudquery/plugin-sdk/issues/865)) ([1fb4eaf](https://github.com/cloudquery/plugin-sdk/commit/1fb4eafe3e3b0842b071948c3f2e3dd5d29dad22))
+
 ## [3.0.1](https://github.com/cloudquery/plugin-sdk/compare/v3.0.0...v3.0.1) (2023-05-11)
 
 

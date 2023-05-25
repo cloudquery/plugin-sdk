@@ -7,6 +7,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v3/internal/glob"
+	"golang.org/x/exp/slices"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -93,6 +94,18 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
+func NewTablesFromArrowSchemas(schemas []*arrow.Schema) (Tables, error) {
+	tables := make(Tables, len(schemas))
+	for i, schema := range schemas {
+		table, err := NewTableFromArrowSchema(schema)
+		if err != nil {
+			return nil, err
+		}
+		tables[i] = table
+	}
+	return tables, nil
+}
+
 // Create a CloudQuery Table abstraction from an arrow schema
 // arrow schema is a low level representation of a table that can be sent
 // over the wire in a cross-language way
@@ -103,21 +116,20 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		return nil, fmt.Errorf("missing table name")
 	}
 	description, _ := tableMD.GetValue(MetadataTableDescription)
+	constraintName, _ := tableMD.GetValue(MetadataConstraintName)
 	fields := sc.Fields()
 	columns := make(ColumnList, len(fields))
 	for i, field := range fields {
 		columns[i] = NewColumnFromArrowField(field)
 	}
 	table := &Table{
-		Name:        name,
-		Description: description,
-		Columns:     columns,
+		Name:             name,
+		Description:      description,
+		PkConstraintName: constraintName,
+		Columns:          columns,
 	}
-	if constraintName, found := tableMD.GetValue(MetadataConstraintName); found {
-		table.PkConstraintName = constraintName
-	}
-	if title, found := tableMD.GetValue(MetadataIncremental); found {
-		table.Title = title
+	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
+		table.IsIncremental = isIncremental == MetadataTrue
 	}
 	return table, nil
 }
@@ -161,9 +173,10 @@ func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool, skipDependent
 }
 
 func (tt Tables) ToArrowSchemas() Schemas {
-	schemas := make(Schemas, 0, len(tt.FlattenTables()))
-	for _, t := range tt.FlattenTables() {
-		schemas = append(schemas, t.ToArrowSchema())
+	flattened := tt.FlattenTables()
+	schemas := make(Schemas, len(flattened))
+	for i, t := range flattened {
+		schemas[i] = t.ToArrowSchema()
 	}
 	return schemas
 }
@@ -216,10 +229,22 @@ func (tt Tables) FilterDfs(tables, skipTables []string, skipDependentTables bool
 func (tt Tables) FlattenTables() Tables {
 	tables := make(Tables, 0, len(tt))
 	for _, t := range tt {
-		tables = append(tables, t)
+		table := *t
+		table.Relations = nil
+		tables = append(tables, &table)
 		tables = append(tables, t.Relations.FlattenTables()...)
 	}
-	return tables
+
+	seen := make(map[string]struct{})
+	deduped := make(Tables, 0, len(tables))
+	for _, t := range tables {
+		if _, found := seen[t.Name]; !found {
+			deduped = append(deduped, t)
+			seen[t.Name] = struct{}{}
+		}
+	}
+
+	return slices.Clip(deduped)
 }
 
 func (tt Tables) TableNames() []string {
@@ -333,7 +358,7 @@ func (t *Table) ValidateName() error {
 func (t *Table) PrimaryKeysIndexes() []int {
 	var primaryKeys []int
 	for i, c := range t.Columns {
-		if c.CreationOptions.PrimaryKey {
+		if c.PrimaryKey {
 			primaryKeys = append(primaryKeys, i)
 		}
 	}
@@ -343,27 +368,18 @@ func (t *Table) PrimaryKeysIndexes() []int {
 
 func (t *Table) ToArrowSchema() *arrow.Schema {
 	fields := make([]arrow.Field, len(t.Columns))
-	schemaMd := arrow.MetadataFrom(map[string]string{
-		MetadataTableName: t.Name,
-	})
+	md := map[string]string{
+		MetadataTableName:        t.Name,
+		MetadataTableDescription: t.Description,
+		MetadataConstraintName:   t.PkConstraintName,
+		MetadataIncremental:      MetadataFalse,
+	}
+	if t.IsIncremental {
+		md[MetadataIncremental] = MetadataTrue
+	}
+	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {
-		fieldMdKv := map[string]string{}
-		if c.CreationOptions.PrimaryKey {
-			fieldMdKv[MetadataPrimaryKey] = MetadataTrue
-		} else {
-			fieldMdKv[MetadataPrimaryKey] = MetadataFalse
-		}
-		if c.CreationOptions.Unique {
-			fieldMdKv[MetadataUnique] = MetadataTrue
-		} else {
-			fieldMdKv[MetadataUnique] = MetadataFalse
-		}
-		fields[i] = arrow.Field{
-			Name:     c.Name,
-			Type:     c.Type,
-			Nullable: !c.CreationOptions.NotNull,
-			Metadata: arrow.MetadataFrom(fieldMdKv),
-		}
+		fields[i] = c.ToArrowField()
 	}
 	return arrow.NewSchema(fields, &schemaMd)
 }
@@ -383,7 +399,7 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 			continue
 		}
 		// Column type or options (e.g. PK, Not Null) changed in the new table definition
-		if c.Type != otherColumn.Type || c.CreationOptions.NotNull != otherColumn.CreationOptions.NotNull || c.CreationOptions.PrimaryKey != otherColumn.CreationOptions.PrimaryKey {
+		if !arrow.TypeEqual(c.Type, otherColumn.Type) || c.NotNull != otherColumn.NotNull || c.PrimaryKey != otherColumn.PrimaryKey {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeUpdate,
 				ColumnName: c.Name,
@@ -454,7 +470,7 @@ func (t *Table) OverwriteOrAddColumn(column *Column) {
 func (t *Table) PrimaryKeys() []string {
 	var primaryKeys []string
 	for _, c := range t.Columns {
-		if c.CreationOptions.PrimaryKey {
+		if c.PrimaryKey {
 			primaryKeys = append(primaryKeys, c.Name)
 		}
 	}
@@ -465,7 +481,7 @@ func (t *Table) PrimaryKeys() []string {
 func (t *Table) IncrementalKeys() []string {
 	var incrementalKeys []string
 	for _, c := range t.Columns {
-		if c.CreationOptions.IncrementalKey {
+		if c.IncrementalKey {
 			incrementalKeys = append(incrementalKeys, c.Name)
 		}
 	}

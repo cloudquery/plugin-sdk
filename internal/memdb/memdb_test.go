@@ -111,7 +111,7 @@ func TestOnWriteError(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := schema.TestTable("test")
+	table := schema.TestTable("test", schema.TestSourceOptions{})
 	tables := schema.Tables{
 		table,
 	}
@@ -146,7 +146,7 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := schema.TestTable("test")
+	table := schema.TestTable("test", schema.TestSourceOptions{})
 	tables := schema.Tables{
 		table,
 	}
