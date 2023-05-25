@@ -37,6 +37,7 @@ func TestMacaddrSet(t *testing.T) {
 	}
 }
 
+// nolint:unparam
 func mustParseMacaddr(t testing.TB, s string) net.HardwareAddr {
 	addr, err := net.ParseMAC(s)
 	if err != nil {
