@@ -23,6 +23,7 @@ func TestFloat32Set(t *testing.T) {
 		{source: uint64(1), result: Float32{Value: 1, Valid: true}},
 		{source: "1", result: Float32{Value: 1, Valid: true}},
 		{source: _int8(1), result: Float32{Value: 1, Valid: true}},
+		{source: &Float32{Value: 1, Valid: true}, result: Float32{Value: 1, Valid: true}},
 	}
 
 	for i, tt := range successfulTests {
@@ -59,6 +60,7 @@ func TestFloat64Set(t *testing.T) {
 		{source: uint64(1), result: Float64{Value: 1, Valid: true}},
 		{source: "1", result: Float64{Value: 1, Valid: true}},
 		{source: _int8(1), result: Float64{Value: 1, Valid: true}},
+		{source: &Float64{Value: 1, Valid: true}, result: Float64{Value: 1, Valid: true}},
 	}
 
 	for i, tt := range successfulTests {

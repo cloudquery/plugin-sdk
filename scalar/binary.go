@@ -33,10 +33,22 @@ func (s *Binary) String() string {
 	return string(s.Value)
 }
 
+func (s *Binary) Get() any {
+	return s.Value
+}
+
 func (s *Binary) Set(val any) error {
 	if val == nil {
 		s.Valid = false
 		return nil
+	}
+
+	if sc, ok := val.(Scalar); ok {
+		if !sc.IsValid() {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(sc.Get())
 	}
 
 	switch value := val.(type) {
