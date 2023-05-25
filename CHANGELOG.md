@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.4](https://github.com/cloudquery/plugin-sdk/compare/v3.6.3...v3.6.4) (2023-05-25)
+
+
+### Bug Fixes
+
+* Scalar set now accepts scalar type ([#902](https://github.com/cloudquery/plugin-sdk/issues/902)) ([1ff2229](https://github.com/cloudquery/plugin-sdk/commit/1ff222910356762ea2c7f48c4bc2ee3c19769e26))
+
 ## [3.6.3](https://github.com/cloudquery/plugin-sdk/compare/v3.6.2...v3.6.3) (2023-05-24)
 
 
