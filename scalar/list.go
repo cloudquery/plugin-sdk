@@ -59,6 +59,10 @@ func (s *List) Equal(rhs Scalar) bool {
 	return true
 }
 
+func (s *List) Get() any {
+	return s.Value
+}
+
 func (s *List) Set(val any) error {
 	if val == nil {
 		s.Valid = false
@@ -66,6 +70,14 @@ func (s *List) Set(val any) error {
 	}
 	if s.Type == nil {
 		panic("List type is nil")
+	}
+
+	if sc, ok := val.(Scalar); ok {
+		if !sc.IsValid() {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(sc.Get())
 	}
 
 	reflectedValue := reflect.ValueOf(val)

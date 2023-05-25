@@ -38,10 +38,22 @@ func (s *Float32) Equal(rhs Scalar) bool {
 	return s.Valid == r.Valid && s.Value == r.Value
 }
 
+func (s *Float32) Get() any {
+	return s.Value
+}
+
 func (s *Float32) Set(val any) error {
 	if val == nil {
 		s.Valid = false
 		return nil
+	}
+
+	if sc, ok := val.(Scalar); ok {
+		if !sc.IsValid() {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(sc.Get())
 	}
 
 	switch value := val.(type) {
@@ -126,6 +138,10 @@ func (*Float64) DataType() arrow.DataType {
 	return arrow.PrimitiveTypes.Float64
 }
 
+func (s *Float64) Get() any {
+	return s.Value
+}
+
 func (s *Float64) Equal(rhs Scalar) bool {
 	if rhs == nil {
 		return false
@@ -148,6 +164,14 @@ func (s *Float64) Set(val any) error {
 	if val == nil {
 		s.Valid = false
 		return nil
+	}
+
+	if sc, ok := val.(Scalar); ok {
+		if !sc.IsValid() {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(sc.Get())
 	}
 
 	switch value := val.(type) {

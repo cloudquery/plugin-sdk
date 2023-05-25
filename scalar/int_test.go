@@ -23,6 +23,7 @@ func TestInt8Set(t *testing.T) {
 		{source: float64(1), result: Int64{Value: 1, Valid: true}},
 		{source: "1", result: Int64{Value: 1, Valid: true}},
 		{source: _int8(1), result: Int64{Value: 1, Valid: true}},
+		{source: &Int64{Value: 1, Valid: true}, result: Int64{Value: 1, Valid: true}},
 	}
 
 	for i, tt := range successfulTests {

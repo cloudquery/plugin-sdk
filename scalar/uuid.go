@@ -40,9 +40,21 @@ func (s *UUID) Equal(rhs Scalar) bool {
 	return s.Valid == r.Valid && s.Value == r.Value
 }
 
+func (s *UUID) Get() any {
+	return s.Value
+}
+
 func (s *UUID) Set(src any) error {
 	if src == nil {
 		return nil
+	}
+
+	if sc, ok := src.(Scalar); ok {
+		if !sc.IsValid() {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(sc.Get())
 	}
 
 	switch value := src.(type) {

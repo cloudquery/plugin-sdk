@@ -37,10 +37,22 @@ func (s *String) Equal(rhs Scalar) bool {
 	return s.Valid == r.Valid && s.Value == r.Value
 }
 
+func (s *String) Get() any {
+	return s.Value
+}
+
 func (s *String) Set(val any) error {
 	if val == nil {
 		s.Valid = false
 		return nil
+	}
+
+	if sc, ok := val.(Scalar); ok {
+		if !sc.IsValid() {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(sc.Get())
 	}
 
 	switch value := val.(type) {

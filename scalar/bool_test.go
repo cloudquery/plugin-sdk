@@ -17,6 +17,7 @@ func TestBoolSet(t *testing.T) {
 		{source: "f", result: Bool{Value: false, Valid: true}},
 		{source: _bool(true), result: Bool{Value: true, Valid: true}},
 		{source: _bool(false), result: Bool{Value: false, Valid: true}},
+		{source: &Bool{Value: true, Valid: true}, result: Bool{Value: true, Valid: true}},
 		{source: nil, result: Bool{}},
 	}
 
