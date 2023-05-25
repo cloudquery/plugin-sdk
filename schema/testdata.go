@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"sort"
@@ -13,20 +14,22 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/google/uuid"
+	"golang.org/x/exp/rand"
 	"golang.org/x/exp/slices"
 )
 
 // TestSourceOptions controls which types are included by TestSourceColumns.
 type TestSourceOptions struct {
-	SkipLists      bool // lists of all primitive types. Lists that were supported by CQTypes are always included.
-	SkipTimestamps bool // timestamp types. Microsecond timestamp is always be included, regardless of this setting.
 	SkipDates      bool
+	SkipDecimals   bool
+	SkipDurations  bool
+	SkipIntervals  bool
+	SkipLargeTypes bool // e.g. large binary, large string
+	SkipLists      bool // lists of all primitive types. Lists that were supported by CQTypes are always included.
 	SkipMaps       bool
 	SkipStructs    bool
-	SkipIntervals  bool
-	SkipDurations  bool
 	SkipTimes      bool // time of day types
-	SkipLargeTypes bool // e.g. large binary, large string
+	SkipTimestamps bool // timestamp types. Microsecond timestamp is always be included, regardless of this setting.
 	TimePrecision  time.Duration
 }
 
@@ -56,6 +59,10 @@ func TestSourceColumns(testOpts TestSourceOptions) []Column {
 
 	// we don't support float16 right now
 	basicColumns = removeColumnsByType(basicColumns, arrow.FLOAT16)
+
+	if !testOpts.SkipDecimals {
+		basicColumns = append(basicColumns, Column{Name: "decimal", Type: &arrow.Decimal128Type{Precision: 19, Scale: 10}})
+	}
 
 	if testOpts.SkipTimestamps {
 		// for backwards-compatibility, microsecond timestamps are not removed here
@@ -96,9 +103,9 @@ func TestSourceColumns(testOpts TestSourceOptions) []Column {
 		compositeColumns = append(compositeColumns, listOfColumns(basicColumnsWithExclusions)...)
 	}
 
-	// if !opts.SkipMaps {
-	// 	compositeColumns = append(compositeColumns, mapOfColumns(basicColumnsWithExclusions)...)
-	// }
+	if !testOpts.SkipMaps {
+		compositeColumns = append(compositeColumns, mapOfColumns(basicColumnsWithExclusions)...)
+	}
 
 	// add JSON later, we don't want to include it as a list or map right now (it causes complications with JSON unmarshalling)
 	basicColumns = append(basicColumns, Column{Name: "json", Type: types.NewJSONType()})
@@ -214,9 +221,12 @@ func listOfColumns(baseColumns []Column) []Column {
 // mapOfColumns returns a list of columns that are maps of the given columns.
 // nolint:unused
 func mapOfColumns(baseColumns []Column) []Column {
-	columns := make([]Column, len(baseColumns))
-	for i := 0; i < len(baseColumns); i++ {
-		columns[i] = Column{Name: baseColumns[i].Name + "_map", Type: arrow.MapOf(baseColumns[i].Type, baseColumns[i].Type)}
+	columns := make([]Column, len(baseColumns)*2)
+	for i := 0; i < len(columns); i += 2 {
+		// we focus on string and int keys for now
+		n := i / 2
+		columns[i] = Column{Name: "int_" + baseColumns[n].Name + "_map", Type: arrow.MapOf(arrow.BinaryTypes.String, baseColumns[n].Type)}
+		columns[i+1] = Column{Name: "string_" + baseColumns[n].Name + "_map", Type: arrow.MapOf(arrow.PrimitiveTypes.Int64, baseColumns[n].Type)}
 	}
 	return columns
 }
@@ -260,6 +270,7 @@ type GenTestDataOptions struct {
 	// StableTime is the time to use for all rows other than sync time. If set to time.Time{}, a new time will be generated
 	StableTime    time.Time
 	TimePrecision time.Duration
+	Seed          int64
 }
 
 // GenTestData generates a slice of arrow.Records with the given schema and options.
@@ -299,12 +310,18 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 }
 
 func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
+	src := rand.NewSource(uint64(opts.Seed))
+	rnd := rand.New(src)
+
 	// handle lists (including maps)
 	if arrow.IsListLike(dataType.ID()) {
 		if dataType.ID() == arrow.MAP {
 			k := getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
 			v := getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
-			return fmt.Sprintf(`[{"key": %s,"value": %s}]`, k, v)
+			opts.Seed++
+			k2 := getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
+			v2 := getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
+			return fmt.Sprintf(`[{"key": %s,"value": %s},{"key": %s,"value": %s}]`, k, v, k2, v2)
 		}
 		inner := dataType.(*arrow.ListType).Elem()
 		return `[` + getExampleJSON(colName, inner, opts) + `,null,` + getExampleJSON(colName, inner, opts) + `]`
@@ -332,26 +349,47 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 
 	// handle signed integers
 	if arrow.IsSignedInteger(dataType.ID()) {
-		return "-1"
+		switch dataType {
+		case arrow.PrimitiveTypes.Int8:
+			return fmt.Sprintf("-%d", rnd.Intn(int(^uint8(0)>>1)))
+		case arrow.PrimitiveTypes.Int16:
+			return fmt.Sprintf("-%d", rnd.Intn(int(^uint16(0)>>1)))
+		case arrow.PrimitiveTypes.Int32:
+			return fmt.Sprintf("-%d", rnd.Intn(int(^uint32(0)>>1)))
+		case arrow.PrimitiveTypes.Int64:
+			return fmt.Sprintf("-%d", rnd.Int63n(int64(^uint64(0)>>1)))
+		}
 	}
 
 	// handle unsigned integers
 	if arrow.IsUnsignedInteger(dataType.ID()) {
-		return "1"
+		switch dataType {
+		case arrow.PrimitiveTypes.Uint8:
+			return fmt.Sprintf("%d", rnd.Uint64n(uint64(^uint8(0))))
+		case arrow.PrimitiveTypes.Uint16:
+			return fmt.Sprintf("%d", rnd.Uint64n(uint64(^uint16(0))))
+		case arrow.PrimitiveTypes.Uint32:
+			return fmt.Sprintf("%d", rnd.Uint64n(uint64(^uint32(0))))
+		case arrow.PrimitiveTypes.Uint64:
+			return fmt.Sprintf("%d", rnd.Uint64())
+		}
 	}
 
 	// handle floats
 	if arrow.IsFloating(dataType.ID()) {
-		return "1.1"
+		return fmt.Sprintf("%d.%d", rnd.Intn(1e3), rnd.Intn(1e3))
 	}
 
 	// handle decimals
 	if arrow.IsDecimal(dataType.ID()) {
-		return "1.1"
+		return fmt.Sprintf("%d.%d", rnd.Int63n(1e9), rnd.Int63n(1e10))
 	}
 
 	// handle booleans
 	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Boolean) {
+		if rnd.Intn(2) == 0 {
+			return "false"
+		}
 		return "true"
 	}
 
@@ -365,7 +403,8 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 			if colName == CqSourceNameColumn.Name {
 				return `"` + opts.SourceName + `"`
 			}
-			return `"AString"`
+			n := rnd.Intn(100000)
+			return fmt.Sprintf(`"AString%d"`, n)
 		}
 	}
 
@@ -376,7 +415,9 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	}
 	for _, binaryType := range binaryTypes {
 		if arrow.TypeEqual(dataType, binaryType) {
-			return `"AQIDBA=="` // base64 encoded 0x01, 0x02, 0x03, 0x04
+			bytes := make([]byte, 4)
+			rnd.Read(bytes)
+			return `"` + base64.StdEncoding.EncodeToString(bytes) + `"`
 		}
 	}
 
@@ -450,22 +491,24 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 
 	// handle date types
 	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Date32) {
-		return `19471`
+		return fmt.Sprintf("%d", 19471+rnd.Intn(100))
 	}
 	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Date64) {
-		ms := 19471 * 86400000
+		ms := (19471 + rnd.Intn(100)) * 86400000
 		return fmt.Sprintf("%d", ms)
 	}
 
 	// handle duration and interval types
 	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.DayTimeInterval) {
-		return `{"days": 1, "milliseconds": 1}`
+		n := rnd.Intn(10000)
+		return fmt.Sprintf(`{"days": %[1]d, "milliseconds": %[1]d}`, n)
 	}
 	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.MonthInterval) {
 		return `{"months": 1}`
 	}
 	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.MonthDayNanoInterval) {
-		return `{"months": 1, "days": 1, "nanoseconds": 1}`
+		n := rnd.Intn(10000)
+		return fmt.Sprintf(`{"months": %[1]d, "days": %[1]d, "nanoseconds": %[1]d}`, n)
 	}
 	durationTypes := []arrow.DataType{
 		arrow.FixedWidthTypes.Duration_s,
@@ -475,7 +518,8 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	}
 	for _, durationType := range durationTypes {
 		if arrow.TypeEqual(dataType, durationType) {
-			return `123456789`
+			n := rnd.Intn(10000000)
+			return fmt.Sprintf("%d", n)
 		}
 	}
 
