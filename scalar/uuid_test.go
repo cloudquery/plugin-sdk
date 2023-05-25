@@ -50,6 +50,10 @@ func TestUUIDSet(t *testing.T) {
 			source: StringUUIDType("00010203-0405-0607-0809-0a0b0c0d0e0f"),
 			result: UUID{Value: [16]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, Valid: true},
 		},
+		{
+			source: &UUID{Value: [16]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, Valid: true},
+			result: UUID{Value: [16]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, Valid: true},
+		},
 	}
 
 	for i, tt := range successfulTests {

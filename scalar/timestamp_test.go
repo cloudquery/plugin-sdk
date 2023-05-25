@@ -34,6 +34,7 @@ func TestTimestampSet(t *testing.T) {
 		{source: timeInstance.String(), result: Timestamp{Value: time.Date(2105, 7, 23, 22, 23, 37, 750076110, time.UTC), Valid: true}},
 		{source: TimestampSt{timeInstance}, result: Timestamp{Value: time.Date(2105, 7, 23, 22, 23, 37, 750076110, time.UTC), Valid: true}},
 		{source: "", result: Timestamp{}},
+		{source: &Timestamp{Value: time.Date(2105, 7, 23, 22, 23, 37, 750076110, time.UTC), Valid: true}, result: Timestamp{Value: time.Date(2105, 7, 23, 22, 23, 37, 750076110, time.UTC), Valid: true}},
 	}
 
 	for i, tt := range successfulTests {

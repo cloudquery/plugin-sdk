@@ -37,11 +37,24 @@ func (s *Bool) String() string {
 	return strconv.FormatBool(s.Value)
 }
 
+func (s *Bool) Get() any {
+	return s.Value
+}
+
 func (s *Bool) Set(val any) error {
 	if val == nil {
 		s.Valid = false
 		return nil
 	}
+
+	if sc, ok := val.(Scalar); ok {
+		if !sc.IsValid() {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(sc.Get())
+	}
+
 	switch value := val.(type) {
 	case bool:
 		s.Value = value

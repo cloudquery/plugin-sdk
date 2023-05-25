@@ -18,6 +18,10 @@ func TestMacaddrSet(t *testing.T) {
 			source: "01:23:45:67:89:ab",
 			result: Mac{Value: mustParseMacaddr(t, "01:23:45:67:89:ab"), Valid: true},
 		},
+		{
+			source: &Mac{Value: mustParseMacaddr(t, "01:23:45:67:89:ab"), Valid: true},
+			result: Mac{Value: mustParseMacaddr(t, "01:23:45:67:89:ab"), Valid: true},
+		},
 	}
 
 	for i, tt := range successfulTests {
@@ -33,6 +37,7 @@ func TestMacaddrSet(t *testing.T) {
 	}
 }
 
+// nolint:unparam
 func mustParseMacaddr(t testing.TB, s string) net.HardwareAddr {
 	addr, err := net.ParseMAC(s)
 	if err != nil {
