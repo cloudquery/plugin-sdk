@@ -10,7 +10,6 @@ var (
 	TypeInt    = arrow.PrimitiveTypes.Int64
 	TypeFloat  = arrow.PrimitiveTypes.Float64
 	TypeString = arrow.BinaryTypes.String
-	TypeText   = arrow.BinaryTypes.String
 
 	TypeUUID    = types.ExtensionTypes.UUID
 	TypeJSON    = types.ExtensionTypes.JSON
@@ -22,7 +21,6 @@ var (
 
 	TypeByteArray   = arrow.BinaryTypes.Binary
 	TypeStringArray = arrow.ListOf(arrow.BinaryTypes.String)
-	TypeTextArray   = arrow.ListOf(arrow.BinaryTypes.String)
 	TypeIntArray    = arrow.ListOf(arrow.PrimitiveTypes.Int64)
 
 	TypeUUIDArray    = arrow.ListOf(types.ExtensionTypes.UUID)
