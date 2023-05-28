@@ -1,0 +1,295 @@
+package plugin
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow/ipc"
+	"github.com/apache/arrow/go/v13/arrow/memory"
+	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v0"
+	"github.com/cloudquery/plugin-sdk/v3/plugin"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/source"
+	"github.com/cloudquery/plugin-sdk/v3/scalar"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/getsentry/sentry-go"
+	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+)
+
+const MaxMsgSize = 100 * 1024 * 1024 // 100 MiB
+
+type Server struct {
+	pb.UnimplementedPluginServer
+	Plugin *plugin.Plugin
+	Logger zerolog.Logger
+	spec pb.Spec
+}
+
+func (s *Server) GetStaticTables(context.Context, *pb.GetStaticTables_Request) (*pb.GetStaticTables_Response, error) {
+	tables := s.Plugin.StaticTables().ToArrowSchemas()
+	encoded, err := tables.Encode()
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode tables: %w", err)
+	}
+	return &pb.GetStaticTables_Response{
+		Tables: encoded,
+	}, nil
+}
+
+func (s *Server) GetDynamicTables(context.Context, *pb.GetDynamicTables_Request) (*pb.GetDynamicTables_Response, error) {
+	// TODO: Fix this
+	tables := s.Plugin.StaticTables().ToArrowSchemas()
+	encoded, err := tables.Encode()
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode tables: %w", err)
+	}
+	return &pb.GetDynamicTables_Response{
+		Tables: encoded,
+	}, nil
+}
+
+func (s *Server) GetName(context.Context, *pb.GetName_Request) (*pb.GetName_Response, error) {
+	return &pb.GetName_Response{
+		Name: s.Plugin.Name(),
+	}, nil
+}
+
+func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVersion_Response, error) {
+	return &pb.GetVersion_Response{
+		Version: s.Plugin.Version(),
+	}, nil
+}
+
+func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
+	if err := s.Plugin.Init(ctx, *req.Spec); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
+	}
+	s.spec = *req.Spec
+	return &pb.Init_Response{}, nil
+}
+
+func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
+	resources := make(chan *schema.Resource)
+	var syncErr error
+	ctx := stream.Context()
+
+	go func() {
+		defer close(resources)
+		err := s.Plugin.Sync(ctx, req.SyncTime.AsTime(), *req.SyncSpec, resources)
+		if err != nil {
+			syncErr = fmt.Errorf("failed to sync resources: %w", err)
+		}
+	}()
+
+	for resource := range resources {
+		vector := resource.GetValues()
+		bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
+		scalar.AppendToRecordBuilder(bldr, vector)
+		rec := bldr.NewRecord()
+
+		var buf bytes.Buffer
+		w := ipc.NewWriter(&buf, ipc.WithSchema(rec.Schema()))
+		if err := w.Write(rec); err != nil {
+			return status.Errorf(codes.Internal, "failed to write record: %v", err)
+		}
+		if err := w.Close(); err != nil {
+			return status.Errorf(codes.Internal, "failed to close writer: %v", err)
+		}
+
+		msg := &pb.Sync_Response{
+			Resource: buf.Bytes(),
+		}
+		err := checkMessageSize(msg, resource)
+		if err != nil {
+			s.Logger.Warn().Str("table", resource.Table.Name).
+				Int("bytes", len(msg.String())).
+				Msg("Row exceeding max bytes ignored")
+			continue
+		}
+		if err := stream.Send(msg); err != nil {
+			return status.Errorf(codes.Internal, "failed to send resource: %v", err)
+		}
+	}
+
+	return syncErr
+}
+
+func (s *Server) GetMetrics(context.Context, *pb.GetMetrics_Request) (*pb.GetMetrics_Response, error) {
+	// Aggregate metrics before sending to keep response size small.
+	// Temporary fix for https://github.com/cloudquery/cloudquery/issues/3962
+	m := s.Plugin.Metrics()
+	agg := &source.TableClientMetrics{}
+	for _, table := range m.TableClient {
+		for _, tableClient := range table {
+			agg.Resources += tableClient.Resources
+			agg.Errors += tableClient.Errors
+			agg.Panics += tableClient.Panics
+		}
+	}
+	b, err := json.Marshal(&source.Metrics{
+		TableClient: map[string]map[string]*source.TableClientMetrics{"": {"": agg}},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal source metrics: %w", err)
+	}
+	return &pb.GetMetrics_Response{
+		Metrics: b,
+	}, nil
+}
+
+func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migrate_Response, error) {
+	schemas, err := schema.NewSchemasFromBytes(req.Tables)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to create schemas: %v", err)
+	}
+	tables, err := schema.NewTablesFromArrowSchemas(schemas)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to create tables: %v", err)
+	}
+	s.setPKsForTables(tables)
+	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
+}
+
+func (s *Server) Write(msg pb.Plugin_WriteServer) error {
+	resources := make(chan arrow.Record)
+
+	r, err := msg.Recv()
+	if err != nil {
+		if err == io.EOF {
+			return msg.SendAndClose(&pb.Write_Response{})
+		}
+		return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
+	}
+
+	schemas, err := schema.NewSchemasFromBytes(r.Tables)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to create schemas: %v", err)
+	}
+	tables, err := schema.NewTablesFromArrowSchemas(schemas)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to create tables: %v", err)
+	}
+	s.setPKsForTables(tables)
+	sourceSpec := *r.SourceSpec
+	syncTime := r.Timestamp.AsTime()
+	eg, ctx := errgroup.WithContext(msg.Context())
+	eg.Go(func() error {
+		return s.Plugin.Write(ctx, sourceSpec, tables, syncTime, resources)
+	})
+
+	for {
+		r, err := msg.Recv()
+		if err == io.EOF {
+			close(resources)
+			if err := eg.Wait(); err != nil {
+				return status.Errorf(codes.Internal, "write failed: %v", err)
+			}
+			return msg.SendAndClose(&pb.Write_Response{})
+		}
+		if err != nil {
+			close(resources)
+			if wgErr := eg.Wait(); wgErr != nil {
+				return status.Errorf(codes.Internal, "failed to receive msg: %v and write failed: %v", err, wgErr)
+			}
+			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
+		}
+		rdr, err := ipc.NewReader(bytes.NewReader(r.Resource))
+		if err != nil {
+			close(resources)
+			if wgErr := eg.Wait(); wgErr != nil {
+				return status.Errorf(codes.InvalidArgument, "failed to create reader: %v and write failed: %v", err, wgErr)
+			}
+			return status.Errorf(codes.InvalidArgument, "failed to create reader: %v", err)
+		}
+		for rdr.Next() {
+			rec := rdr.Record()
+			rec.Retain()
+			select {
+			case resources <- rec:
+			case <-ctx.Done():
+				close(resources)
+				if err := eg.Wait(); err != nil {
+					return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
+				}
+				return status.Errorf(codes.Internal, "Context done: %v", ctx.Err())
+			}
+		}
+		if err := rdr.Err(); err != nil {
+			return status.Errorf(codes.InvalidArgument, "failed to read resource: %v", err)
+		}
+	}
+}
+
+func (s *Server) GenDocs(req *pb.GenDocs_Request, srv pb.Plugin_GenDocsServer) error {
+	tmpDir := os.TempDir()
+	defer os.RemoveAll(tmpDir)
+	err := s.Plugin.GeneratePluginDocs(s.Plugin.StaticTables(), tmpDir, req.Format)
+	if err != nil {
+		return fmt.Errorf("failed to generate docs: %w", err)
+	}
+
+	// list files in tmpDir
+	files, err := ioutil.ReadDir(tmpDir)
+	if err != nil {
+		return fmt.Errorf("failed to read tmp dir: %w", err)
+	}
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Join(tmpDir, f.Name()))
+		if err != nil {
+			return fmt.Errorf("failed to read file: %w", err)
+		}
+		if err := srv.Send(&pb.GenDocs_Response{
+			Filename: f.Name(),
+			Content: content,
+		}); err != nil {
+			return fmt.Errorf("failed to send file: %w", err)
+		}
+	}
+	return nil
+}
+
+func checkMessageSize(msg proto.Message, resource *schema.Resource) error {
+	size := proto.Size(msg)
+	// log error to Sentry if row exceeds half of the max size
+	if size > MaxMsgSize/2 {
+		sentry.WithScope(func(scope *sentry.Scope) {
+			scope.SetTag("table", resource.Table.Name)
+			scope.SetExtra("bytes", size)
+			sentry.CurrentHub().CaptureMessage("Large message detected")
+		})
+	}
+	if size > MaxMsgSize {
+		return errors.New("message exceeds max size")
+	}
+	return nil
+}
+
+func (s *Server) setPKsForTables(tables schema.Tables) {
+	if s.spec.WriteSpec.PkMode == pb.WriteSpec_CQ_ID_ONLY {
+		setCQIDAsPrimaryKeysForTables(tables)
+	}
+}
+
+func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
+	for _, table := range tables {
+		for i, col := range table.Columns {
+			table.Columns[i].PrimaryKey = col.Name == schema.CqIDColumn.Name
+		}
+		setCQIDAsPrimaryKeysForTables(table.Relations)
+	}
+}
