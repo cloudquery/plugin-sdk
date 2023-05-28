@@ -28,6 +28,8 @@ require (
 
 replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230623001532-8366a2241e66
 
+replace github.com/cloudquery/plugin-pb-go => ../plugin-pb-go
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
