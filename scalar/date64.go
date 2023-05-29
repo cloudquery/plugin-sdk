@@ -9,50 +9,42 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 )
 
-type Date struct {
-	Valid    bool
-	Value    time.Time
-	BitWidth uint8 // defaults to 64
+type Date64 struct {
+	Valid bool
+	Value int64 // int64 milliseconds since the UNIX epoch
 }
 
-func (s *Date) IsValid() bool {
+func (s *Date64) IsValid() bool {
 	return s.Valid
 }
 
-func (s *Date) DataType() arrow.DataType {
-	switch s.getBitWidth() {
-	case 32:
-		return arrow.FixedWidthTypes.Date32
-	case 64:
-		return arrow.FixedWidthTypes.Date64
-	default:
-		panic("invalid bit width")
-	}
+func (s *Date64) DataType() arrow.DataType {
+	return arrow.FixedWidthTypes.Date64
 }
 
-func (s *Date) Equal(rhs Scalar) bool {
+func (s *Date64) Equal(rhs Scalar) bool {
 	if rhs == nil {
 		return false
 	}
-	r, ok := rhs.(*Date)
+	r, ok := rhs.(*Date64)
 	if !ok {
 		return false
 	}
-	return s.getBitWidth() == r.getBitWidth() && s.Valid == r.Valid && s.Value.Equal(r.Value)
+	return s.Valid == r.Valid && s.Value == r.Value
 }
 
-func (s *Date) String() string {
+func (s *Date64) String() string {
 	if !s.Valid {
 		return "(null)"
 	}
-	return s.Value.Format("2006-01-02")
+	return time.Unix(86400000*int64(s.Value), 0).UTC().Format("2006-01-02")
 }
 
-func (s *Date) Get() any {
+func (s *Date64) Get() any {
 	return s.Value
 }
 
-func (s *Date) Set(val any) error {
+func (s *Date64) Set(val any) error {
 	if val == nil {
 		return nil
 	}
@@ -67,16 +59,17 @@ func (s *Date) Set(val any) error {
 
 	switch value := val.(type) {
 	case int:
-		s.Value = time.Unix(int64(value), 0).UTC().Truncate(24 * time.Hour)
+		s.Value = int64(value)
 	case int64:
-		s.Value = time.Unix(value, 0).UTC().Truncate(24 * time.Hour)
+		s.Value = value
 	case uint64:
 		if value > math.MaxInt64 {
 			return &ValidationError{Type: s.DataType(), Msg: "uint64 bigger than MaxInt64", Value: value}
 		}
-		s.Value = time.Unix(int64(value), 0).UTC().Truncate(24 * time.Hour)
+		s.Value = int64(value)
 	case time.Time:
-		s.Value = value.UTC().Truncate(24 * time.Hour)
+		val := value.UTC().UnixMilli() / 86400000
+		return s.Set(val)
 	case *time.Time:
 		if value == nil {
 			return nil
@@ -113,15 +106,8 @@ func (s *Date) Set(val any) error {
 			str := value.String()
 			return s.Set(str)
 		}
-		return &ValidationError{Type: arrow.FixedWidthTypes.Timestamp_us, Msg: noConversion, Value: value}
+		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
 	s.Valid = true
 	return nil
-}
-
-func (s *Date) getBitWidth() uint8 {
-	if s.BitWidth == 0 {
-		return 64 // default
-	}
-	return s.BitWidth
 }

@@ -91,9 +91,9 @@ func NewScalar(dt arrow.DataType) Scalar {
 			Type: dt,
 		}
 	case arrow.DATE64:
-		return &Date{}
+		return &Date64{}
 	case arrow.DATE32:
-		return &Date{BitWidth: 32}
+		return &Date32{}
 	default:
 		panic("not implemented: " + dt.Name())
 	}
