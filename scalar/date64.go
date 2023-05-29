@@ -37,7 +37,7 @@ func (s *Date64) String() string {
 	if !s.Valid {
 		return "(null)"
 	}
-	return time.Unix(86400000*int64(s.Value), 0).UTC().Format("2006-01-02")
+	return time.UnixMilli(s.Value).UTC().Format(arrowStringFormat)
 }
 
 func (s *Date64) Get() any {
@@ -68,8 +68,7 @@ func (s *Date64) Set(val any) error {
 		}
 		s.Value = int64(value)
 	case time.Time:
-		val := value.UTC().UnixMilli() / 86400000
-		return s.Set(val)
+		return s.Set(value.UTC().UnixMilli())
 	case *time.Time:
 		if value == nil {
 			return nil
@@ -81,7 +80,7 @@ func (s *Date64) Set(val any) error {
 			return nil
 		}
 
-		p, err := time.Parse("2006-01-02", value)
+		p, err := time.Parse(arrowStringFormat, value)
 		if err != nil {
 			return &ValidationError{Type: s.DataType(), Msg: "cannot parse date", Value: value, Err: err}
 		}
