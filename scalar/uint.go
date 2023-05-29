@@ -47,7 +47,7 @@ func (s *Uint) Equal(rhs Scalar) bool {
 	if !ok {
 		return false
 	}
-	return s.Valid == r.Valid && s.Value == r.Value
+	return s.BitWidth == r.BitWidth && s.Valid == r.Valid && s.Value == r.Value
 }
 
 func (s *Uint) Get() any {
