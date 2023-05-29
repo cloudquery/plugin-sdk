@@ -52,7 +52,13 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.STRING:
 		return &String{}
 	case arrow.INT64:
-		return &Int64{}
+		return &Int{Type: arrow.PrimitiveTypes.Int64}
+	case arrow.INT32:
+		return &Int{Type: arrow.PrimitiveTypes.Int32}
+	case arrow.INT16:
+		return &Int{Type: arrow.PrimitiveTypes.Int16}
+	case arrow.INT8:
+		return &Int{Type: arrow.PrimitiveTypes.Int8}
 	case arrow.UINT64:
 		return &Uint64{}
 	case arrow.FLOAT32:
@@ -96,7 +102,13 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 	case arrow.STRING:
 		bldr.(*array.StringBuilder).Append(s.(*String).Value)
 	case arrow.INT64:
-		bldr.(*array.Int64Builder).Append(s.(*Int64).Value)
+		bldr.(*array.Int64Builder).Append(s.(*Int).Value)
+	case arrow.INT32:
+		bldr.(*array.Int32Builder).Append(int32(s.(*Int).Value))
+	case arrow.INT16:
+		bldr.(*array.Int16Builder).Append(int16(s.(*Int).Value))
+	case arrow.INT8:
+		bldr.(*array.Int8Builder).Append(int8(s.(*Int).Value))
 	case arrow.UINT64:
 		bldr.(*array.Uint64Builder).Append(s.(*Uint64).Value)
 	case arrow.FLOAT32:
