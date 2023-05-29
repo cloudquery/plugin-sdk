@@ -160,6 +160,14 @@ func NewScalar(dt arrow.DataType) Scalar {
 				Unit:     arrow.Nanosecond,
 			}
 		}
+
+	case arrow.INTERVAL_MONTHS:
+		return &MonthInterval{Int{BitWidth: 32}}
+	case arrow.INTERVAL_DAY_TIME:
+		return &DayTimeInterval{}
+	case arrow.INTERVAL_MONTH_DAY_NANO:
+		return &MonthDayNanoInterval{}
+
 	default:
 		panic("not implemented: " + dt.Name())
 	}
@@ -215,6 +223,12 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		bldr.(*array.Time32Builder).Append(arrow.Time32(int32(s.(*Time).Value)))
 	case arrow.TIME64:
 		bldr.(*array.Time64Builder).Append(arrow.Time64(s.(*Time).Value))
+	case arrow.INTERVAL_MONTHS:
+		bldr.(*array.MonthIntervalBuilder).Append(arrow.MonthInterval(int32(s.(*MonthInterval).Value)))
+	case arrow.INTERVAL_DAY_TIME:
+		bldr.(*array.DayTimeIntervalBuilder).Append(s.(*DayTimeInterval).Value)
+	case arrow.INTERVAL_MONTH_DAY_NANO:
+		bldr.(*array.MonthDayNanoIntervalBuilder).Append(s.(*MonthDayNanoInterval).Value)
 	case arrow.LIST:
 		lb := bldr.(*array.ListBuilder)
 		if s.IsValid() {
