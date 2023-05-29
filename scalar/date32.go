@@ -18,7 +18,7 @@ func (s *Date32) IsValid() bool {
 	return s.Valid
 }
 
-func (s *Date32) DataType() arrow.DataType {
+func (*Date32) DataType() arrow.DataType {
 	return arrow.FixedWidthTypes.Date32
 }
 
@@ -37,7 +37,7 @@ func (s *Date32) String() string {
 	if !s.Valid {
 		return "(null)"
 	}
-	return time.Unix(86400*int64(s.Value), 0).UTC().Format("2006-01-02")
+	return arrow.Date32(s.Value).FormattedString()
 }
 
 func (s *Date32) Get() any {

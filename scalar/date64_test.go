@@ -12,7 +12,7 @@ func TestDate64Set(t *testing.T) {
 	}{
 		{source: time.Date(1900, 1, 1, 0, 0, 1, 0, time.UTC), result: Date64{Value: -2208988800000, Valid: true}},
 		{source: time.Date(1999, 12, 31, 12, 59, 59, 0, time.UTC), result: Date64{Value: 946598400000, Valid: true}},
-		{source: "2150-10-15 12:13:14.123456789", result: Date64{Value: 5705078400000, Valid: true}},
+		{source: "2150-10-15", result: Date64{Value: 5705078400000, Valid: true}},
 		{source: "", result: Date64{}},
 	}
 

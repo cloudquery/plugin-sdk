@@ -18,7 +18,7 @@ func (s *Date64) IsValid() bool {
 	return s.Valid
 }
 
-func (s *Date64) DataType() arrow.DataType {
+func (*Date64) DataType() arrow.DataType {
 	return arrow.FixedWidthTypes.Date64
 }
 
@@ -37,7 +37,7 @@ func (s *Date64) String() string {
 	if !s.Valid {
 		return "(null)"
 	}
-	return time.UnixMilli(s.Value).UTC().Format(arrowStringFormat)
+	return arrow.Date64(s.Value).FormattedString()
 }
 
 func (s *Date64) Get() any {
@@ -82,7 +82,7 @@ func (s *Date64) Set(val any) error {
 			return nil
 		}
 
-		p, err := time.Parse(arrowStringFormat, value)
+		p, err := time.Parse("2006-01-02", value)
 		if err != nil {
 			return &ValidationError{Type: s.DataType(), Msg: "cannot parse date", Value: value, Err: err}
 		}

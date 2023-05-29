@@ -33,7 +33,7 @@ func TestNewScalar(t *testing.T) {
 
 		{dt: arrow.FixedWidthTypes.Boolean},
 		{dt: arrow.FixedWidthTypes.Date32, str: "2006-01-02"},
-		{dt: arrow.FixedWidthTypes.Date64, str: "2006-01-02 15:04:05.999999999"},
+		{dt: arrow.FixedWidthTypes.Date64, str: "2006-01-02"},
 		{dt: arrow.FixedWidthTypes.Time32s},
 		{dt: arrow.FixedWidthTypes.Time32ms},
 		{dt: arrow.FixedWidthTypes.Time64us},
@@ -47,9 +47,9 @@ func TestNewScalar(t *testing.T) {
 		{dt: arrow.FixedWidthTypes.Duration_ms},
 		{dt: arrow.FixedWidthTypes.Duration_s},
 		{dt: arrow.FixedWidthTypes.Float16},
-		//{dt: arrow.FixedWidthTypes.DayTimeInterval},
-		//{dt: arrow.FixedWidthTypes.MonthDayNanoInterval},
-		//{dt: arrow.FixedWidthTypes.MonthInterval},
+		// {dt: arrow.FixedWidthTypes.DayTimeInterval},
+		// {dt: arrow.FixedWidthTypes.MonthDayNanoInterval},
+		// {dt: arrow.FixedWidthTypes.MonthInterval},
 	}
 
 	for idx, tc := range tl {
