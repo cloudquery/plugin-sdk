@@ -29,14 +29,26 @@ const (
 type Timestamp struct {
 	Valid bool
 	Value time.Time
+	Unit  arrow.TimeUnit
 }
 
 func (s *Timestamp) IsValid() bool {
 	return s.Valid
 }
 
-func (*Timestamp) DataType() arrow.DataType {
-	return arrow.FixedWidthTypes.Timestamp_us
+func (s *Timestamp) DataType() arrow.DataType {
+	switch s.Unit {
+	case arrow.Second:
+		return arrow.FixedWidthTypes.Timestamp_s
+	case arrow.Millisecond:
+		return arrow.FixedWidthTypes.Timestamp_ms
+	case arrow.Nanosecond:
+		return arrow.FixedWidthTypes.Timestamp_ns
+	case arrow.Microsecond:
+		return arrow.FixedWidthTypes.Timestamp_us
+	default:
+		panic("unknown timestamp unit")
+	}
 }
 
 func (s *Timestamp) Equal(rhs Scalar) bool {
@@ -76,18 +88,12 @@ func (s *Timestamp) Set(val any) error {
 
 	switch value := val.(type) {
 	case int:
-		if value < 0 {
-			return &ValidationError{Type: arrow.FixedWidthTypes.Timestamp_us, Msg: "negative timestamp"}
-		}
 		s.Value = time.Unix(int64(value), 0).UTC()
 	case int64:
-		if value < 0 {
-			return &ValidationError{Type: arrow.FixedWidthTypes.Timestamp_us, Msg: "negative timestamp"}
-		}
 		s.Value = time.Unix(value, 0).UTC()
 	case uint64:
 		if value > math.MaxInt64 {
-			return &ValidationError{Type: arrow.FixedWidthTypes.Timestamp_us, Msg: "uint64 bigger than MaxInt64", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "uint64 bigger than MaxInt64", Value: value}
 		}
 		s.Value = time.Unix(int64(value), 0).UTC()
 	case time.Time:
@@ -119,7 +125,7 @@ func (s *Timestamp) Set(val any) error {
 			str := value.String()
 			return s.Set(str)
 		}
-		return &ValidationError{Type: arrow.FixedWidthTypes.Timestamp_us, Msg: noConversion, Value: value}
+		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
 	s.Valid = true
 	return nil
@@ -161,6 +167,6 @@ func (s *Timestamp) DecodeText(src []byte) error {
 			s.Valid = true
 			return nil
 		}
-		return &ValidationError{Type: arrow.FixedWidthTypes.Timestamp_us, Msg: "cannot parse timestamp", Value: sbuf, Err: err}
+		return &ValidationError{Type: s.DataType(), Msg: "cannot parse timestamp", Value: sbuf, Err: err}
 	}
 }

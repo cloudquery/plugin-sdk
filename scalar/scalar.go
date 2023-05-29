@@ -5,6 +5,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow/float16"
 	"github.com/cloudquery/plugin-sdk/v3/types"
 )
 
@@ -46,7 +47,16 @@ func (v Vector) Equal(r Vector) bool {
 func NewScalar(dt arrow.DataType) Scalar {
 	switch dt.ID() {
 	case arrow.TIMESTAMP:
-		return &Timestamp{}
+		switch {
+		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Timestamp_ms):
+			return &Timestamp{Unit: arrow.Millisecond}
+		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Timestamp_ns):
+			return &Timestamp{Unit: arrow.Nanosecond}
+		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Timestamp_s):
+			return &Timestamp{Unit: arrow.Second}
+		default:
+			return &Timestamp{Unit: arrow.Microsecond}
+		}
 	case arrow.BINARY:
 		return &Binary{}
 	case arrow.STRING:
@@ -100,6 +110,29 @@ func NewScalar(dt arrow.DataType) Scalar {
 		return &Date64{}
 	case arrow.DATE32:
 		return &Date32{}
+	case arrow.DURATION:
+		switch {
+		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Duration_ms):
+			return &Duration{
+				Int:  Int{BitWidth: 64},
+				Unit: arrow.Millisecond,
+			}
+		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Duration_ns):
+			return &Duration{
+				Int:  Int{BitWidth: 64},
+				Unit: arrow.Nanosecond,
+			}
+		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Duration_s):
+			return &Duration{
+				Int:  Int{BitWidth: 64},
+				Unit: arrow.Second,
+			}
+		default:
+			return &Duration{
+				Int:  Int{BitWidth: 64},
+				Unit: arrow.Microsecond,
+			}
+		}
 	default:
 		panic("not implemented: " + dt.Name())
 	}
@@ -117,6 +150,8 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		bldr.(*array.BinaryBuilder).Append(s.(*LargeBinary).Value)
 	case arrow.STRING:
 		bldr.(*array.StringBuilder).Append(s.(*String).Value)
+	case arrow.LARGE_STRING:
+		bldr.(*array.LargeStringBuilder).Append(s.(*LargeString).s.Value)
 	case arrow.INT64:
 		bldr.(*array.Int64Builder).Append(s.(*Int).Value)
 	case arrow.INT32:
@@ -133,6 +168,8 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		bldr.(*array.Uint16Builder).Append(uint16(s.(*Uint).Value))
 	case arrow.UINT8:
 		bldr.(*array.Uint8Builder).Append(uint8(s.(*Uint).Value))
+	case arrow.FLOAT16:
+		bldr.(*array.Float16Builder).Append(float16.New(float32(s.(*Float).Value)))
 	case arrow.FLOAT32:
 		bldr.(*array.Float32Builder).Append(float32(s.(*Float).Value))
 	case arrow.FLOAT64:
@@ -141,6 +178,12 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		bldr.(*array.BooleanBuilder).Append(s.(*Bool).Value)
 	case arrow.TIMESTAMP:
 		bldr.(*array.TimestampBuilder).Append(arrow.Timestamp(s.(*Timestamp).Value.UnixMicro()))
+	case arrow.DURATION:
+		bldr.(*array.DurationBuilder).Append(arrow.Duration(s.(*Duration).Value))
+	case arrow.DATE32:
+		bldr.(*array.Date32Builder).Append(arrow.Date32(s.(*Date32).Value))
+	case arrow.DATE64:
+		bldr.(*array.Date64Builder).Append(arrow.Date64(s.(*Date64).Value))
 	case arrow.LIST:
 		lb := bldr.(*array.ListBuilder)
 		if s.IsValid() {
