@@ -29,7 +29,22 @@ func (s *MonthInterval) Set(value any) error {
 	if mi, ok := value.(arrow.MonthInterval); ok {
 		return s.Int.Set(int32(mi))
 	}
-	return s.Int.Set(value)
+
+	switch v := value.(type) {
+	case string:
+		if len(v) == 0 {
+			s.Valid = false
+			return nil
+		}
+		return s.Int.Set(value)
+	case *string:
+		if v == nil {
+			return s.Int.Set(nil)
+		}
+		return s.Set(value)
+	default:
+		return s.Int.Set(value)
+	}
 }
 
 type DayTimeInterval struct {
@@ -78,6 +93,11 @@ func (s *DayTimeInterval) Set(value any) error {
 
 	switch v := value.(type) {
 	case string:
+		if len(v) == 0 {
+			s.Valid = false
+			return nil
+		}
+
 		var dti arrow.DayTimeInterval
 		if err := json.Unmarshal([]byte(v), &dti); err != nil {
 			return err
@@ -86,6 +106,11 @@ func (s *DayTimeInterval) Set(value any) error {
 		s.Value = dti
 		return nil
 	case []byte:
+		if len(v) == 0 {
+			s.Valid = false
+			return nil
+		}
+
 		var dti arrow.DayTimeInterval
 		if err := json.Unmarshal(v, &dti); err != nil {
 			return err
@@ -157,6 +182,11 @@ func (s *MonthDayNanoInterval) Set(value any) error {
 
 	switch v := value.(type) {
 	case string:
+		if len(v) == 0 {
+			s.Valid = false
+			return nil
+		}
+
 		var dti arrow.MonthDayNanoInterval
 		if err := json.Unmarshal([]byte(v), &dti); err != nil {
 			return err
@@ -165,6 +195,11 @@ func (s *MonthDayNanoInterval) Set(value any) error {
 		s.Value = dti
 		return nil
 	case []byte:
+		if len(v) == 0 {
+			s.Valid = false
+			return nil
+		}
+
 		var dti arrow.MonthDayNanoInterval
 		if err := json.Unmarshal(v, &dti); err != nil {
 			return err
