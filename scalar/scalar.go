@@ -68,9 +68,9 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.UINT8:
 		return &Uint{Type: arrow.PrimitiveTypes.Uint8}
 	case arrow.FLOAT32:
-		return &Float32{}
+		return &Float{Type: arrow.PrimitiveTypes.Float32}
 	case arrow.FLOAT64:
-		return &Float64{}
+		return &Float{Type: arrow.PrimitiveTypes.Float64}
 	case arrow.BOOL:
 		return &Bool{}
 	case arrow.EXTENSION:
@@ -117,10 +117,16 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		bldr.(*array.Int8Builder).Append(int8(s.(*Int).Value))
 	case arrow.UINT64:
 		bldr.(*array.Uint64Builder).Append(s.(*Uint).Value)
+	case arrow.UINT32:
+		bldr.(*array.Uint32Builder).Append(uint32(s.(*Uint).Value))
+	case arrow.UINT16:
+		bldr.(*array.Uint16Builder).Append(uint16(s.(*Uint).Value))
+	case arrow.UINT8:
+		bldr.(*array.Uint8Builder).Append(uint8(s.(*Uint).Value))
 	case arrow.FLOAT32:
-		bldr.(*array.Float32Builder).Append(s.(*Float32).Value)
+		bldr.(*array.Float32Builder).Append(float32(s.(*Float).Value))
 	case arrow.FLOAT64:
-		bldr.(*array.Float64Builder).Append(s.(*Float64).Value)
+		bldr.(*array.Float64Builder).Append(s.(*Float).Value)
 	case arrow.BOOL:
 		bldr.(*array.BooleanBuilder).Append(s.(*Bool).Value)
 	case arrow.TIMESTAMP:
