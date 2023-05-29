@@ -100,11 +100,10 @@ func (s *Float) Set(val any) error {
 	case float32:
 		s.Value = float64(value)
 	case float64:
-		v := float64(value)
-		if err := s.validateValue(v); err != nil {
+		if err := s.validateValue(value); err != nil {
 			return err
 		}
-		s.Value = v
+		s.Value = value
 	case string:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
@@ -145,11 +144,8 @@ func (s *Float) Set(val any) error {
 }
 
 func (s *Float) validateValue(value float64) error {
-	switch {
-	case arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Float32):
-		if value > math.MaxFloat32 {
-			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxFloat32", Value: value}
-		}
+	if arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Float32) && value > math.MaxFloat32 {
+		return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxFloat32", Value: value}
 	}
 	return nil
 }
