@@ -18,8 +18,8 @@ func (s *Int) IsValid() bool {
 }
 
 func (s *Int) DataType() arrow.DataType {
-	switch s.BitWidth {
-	case 0, 64:
+	switch s.getBitWidth() {
+	case 64:
 		return arrow.PrimitiveTypes.Int64
 	case 8:
 		return arrow.PrimitiveTypes.Int8
@@ -47,7 +47,7 @@ func (s *Int) Equal(rhs Scalar) bool {
 	if !ok {
 		return false
 	}
-	return s.BitWidth == r.BitWidth && s.Valid == r.Valid && s.Value == r.Value
+	return s.getBitWidth() == r.getBitWidth() && s.Valid == r.Valid && s.Value == r.Value
 }
 
 func (s *Int) Get() any {
@@ -227,4 +227,11 @@ func (s *Int) validateValue(value int64) error {
 		}
 	}
 	return nil
+}
+
+func (s *Int) getBitWidth() uint8 {
+	if s.BitWidth == 0 {
+		return 64 // default
+	}
+	return s.BitWidth
 }

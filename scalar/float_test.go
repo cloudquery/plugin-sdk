@@ -29,7 +29,7 @@ func TestFloat32Set(t *testing.T) {
 	}
 
 	for i, tt := range successfulTests {
-		var r Float
+		r := Float{BitWidth: 32}
 		err := r.Set(tt.source)
 		if err != nil {
 			t.Errorf("%d: %v", i, err)

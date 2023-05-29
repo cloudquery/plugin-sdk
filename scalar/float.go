@@ -18,8 +18,8 @@ func (s *Float) IsValid() bool {
 }
 
 func (s *Float) DataType() arrow.DataType {
-	switch s.BitWidth {
-	case 0, 64:
+	switch s.getBitWidth() {
+	case 64:
 		return arrow.PrimitiveTypes.Float64
 	case 32:
 		return arrow.PrimitiveTypes.Float32
@@ -40,7 +40,7 @@ func (s *Float) Equal(rhs Scalar) bool {
 	if !ok {
 		return false
 	}
-	return s.BitWidth == r.BitWidth && s.Valid == r.Valid && s.Value == r.Value
+	return s.getBitWidth() == r.getBitWidth() && s.Valid == r.Valid && s.Value == r.Value
 }
 
 func (s *Float) String() string {
@@ -148,4 +148,11 @@ func (s *Float) validateValue(value float64) error {
 		return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxFloat32", Value: value}
 	}
 	return nil
+}
+
+func (s *Float) getBitWidth() uint8 {
+	if s.BitWidth == 0 {
+		return 64 // default
+	}
+	return s.BitWidth
 }
