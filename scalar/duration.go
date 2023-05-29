@@ -32,7 +32,6 @@ func (s *Duration) String() string {
 	}
 
 	return s.Int.String() + s.Unit.String()
-
 }
 
 func (s *Duration) Equal(rhs Scalar) bool {
