@@ -271,7 +271,7 @@ var syncTestCases = []syncTestCase{
 				&scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.UUID{},
 				&scalar.Int{Value: 3, Valid: true},
-				&scalar.Int{Type: arrow.PrimitiveTypes.Int64},
+				&scalar.Int{},
 			},
 		},
 		deterministicCQID: true,
