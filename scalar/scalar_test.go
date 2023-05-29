@@ -12,8 +12,8 @@ import (
 
 func TestNewScalar(t *testing.T) {
 	tl := []struct {
-		dt  arrow.DataType
-		str string
+		dt    arrow.DataType
+		input any
 	}{
 		{dt: arrow.PrimitiveTypes.Uint8},
 		{dt: arrow.PrimitiveTypes.Uint16},
@@ -32,35 +32,37 @@ func TestNewScalar(t *testing.T) {
 		{dt: arrow.BinaryTypes.LargeBinary},
 
 		{dt: arrow.FixedWidthTypes.Boolean},
-		{dt: arrow.FixedWidthTypes.Date32, str: "2006-01-02"},
-		{dt: arrow.FixedWidthTypes.Date64, str: "2006-01-02"},
-		{dt: arrow.FixedWidthTypes.Time32s, str: "21:14:00"},
-		{dt: arrow.FixedWidthTypes.Time32ms, str: "21:14:00.709"},
-		{dt: arrow.FixedWidthTypes.Time64us, str: "21:14:00.709229"},
-		{dt: arrow.FixedWidthTypes.Time64ns, str: "21:14:00.709227000"},
-		{dt: arrow.FixedWidthTypes.Timestamp_ns, str: "2006-01-02 15:04:05.999999999"},
-		{dt: arrow.FixedWidthTypes.Timestamp_us, str: "2006-01-02 15:04:05.999999999"},
-		{dt: arrow.FixedWidthTypes.Timestamp_ms, str: "2006-01-02 15:04:05.999999999"},
-		{dt: arrow.FixedWidthTypes.Timestamp_s, str: "2006-01-02 15:04:05.999999999"},
+		{dt: arrow.FixedWidthTypes.Date32, input: "2006-01-02"},
+		{dt: arrow.FixedWidthTypes.Date64, input: "2006-01-02"},
+		{dt: arrow.FixedWidthTypes.Time32s, input: "21:14:00"},
+		{dt: arrow.FixedWidthTypes.Time32ms, input: "21:14:00.709"},
+		{dt: arrow.FixedWidthTypes.Time64us, input: "21:14:00.709229"},
+		{dt: arrow.FixedWidthTypes.Time64ns, input: "21:14:00.709227000"},
+		{dt: arrow.FixedWidthTypes.Timestamp_ns, input: "2006-01-02 15:04:05.999999999"},
+		{dt: arrow.FixedWidthTypes.Timestamp_us, input: "2006-01-02 15:04:05.999999999"},
+		{dt: arrow.FixedWidthTypes.Timestamp_ms, input: "2006-01-02 15:04:05.999999999"},
+		{dt: arrow.FixedWidthTypes.Timestamp_s, input: "2006-01-02 15:04:05.999999999"},
 		{dt: arrow.FixedWidthTypes.Duration_ns},
-		{dt: arrow.FixedWidthTypes.Duration_ns, str: "1ns"},
+		{dt: arrow.FixedWidthTypes.Duration_ns, input: "1ns"},
 		{dt: arrow.FixedWidthTypes.Duration_us},
-		{dt: arrow.FixedWidthTypes.Duration_us, str: "1us"},
+		{dt: arrow.FixedWidthTypes.Duration_us, input: "1us"},
 		{dt: arrow.FixedWidthTypes.Duration_ms},
-		{dt: arrow.FixedWidthTypes.Duration_ms, str: "1ms"},
+		{dt: arrow.FixedWidthTypes.Duration_ms, input: "1ms"},
 		{dt: arrow.FixedWidthTypes.Duration_s},
-		{dt: arrow.FixedWidthTypes.Duration_s, str: "1s"},
+		{dt: arrow.FixedWidthTypes.Duration_s, input: "1s"},
 		{dt: arrow.FixedWidthTypes.Float16},
 
-		{dt: arrow.FixedWidthTypes.DayTimeInterval, str: `{"days":1,"milliseconds":2}`},
-		{dt: arrow.FixedWidthTypes.MonthDayNanoInterval, str: `{"months":1,"days":2,"nanoseconds":3}`},
-		{dt: arrow.FixedWidthTypes.MonthInterval},
+		{dt: arrow.FixedWidthTypes.DayTimeInterval, input: map[string]any{"days": 1, "milliseconds": 2}},
+		{dt: arrow.FixedWidthTypes.MonthDayNanoInterval, input: map[string]any{"months": 1, "days": 2, "nanoseconds": 3}},
+		{dt: arrow.FixedWidthTypes.MonthInterval, input: map[string]any{"months": 1}},
+
+		{dt: arrow.StructOf(arrow.Field{Name: "i64", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "s", Type: arrow.BinaryTypes.String}), input: `{"i64": 1, "s": "foo"}`},
 	}
 
 	for idx, tc := range tl {
 		tc := tc
-		if tc.str == "" {
-			tc.str = "1"
+		if tc.input == nil {
+			tc.input = "1"
 		}
 
 		t.Run(strconv.Itoa(idx), func(t *testing.T) {
@@ -74,7 +76,7 @@ func TestNewScalar(t *testing.T) {
 				t.Fatalf("expected %v, got %v", tc.dt, s.DataType())
 			}
 
-			assert.NoErrorf(t, s.Set(tc.str), "failed with DataType %s", tc.dt.String())
+			assert.NoErrorf(t, s.Set(tc.input), "failed with DataType %s", tc.dt.String())
 			if t.Failed() {
 				return
 			}

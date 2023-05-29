@@ -168,6 +168,9 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.INTERVAL_MONTH_DAY_NANO:
 		return &MonthDayNanoInterval{}
 
+	case arrow.STRUCT:
+		return &Struct{Type: dt}
+
 	default:
 		panic("not implemented: " + dt.Name())
 	}
@@ -229,15 +232,32 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		bldr.(*array.DayTimeIntervalBuilder).Append(s.(*DayTimeInterval).Value)
 	case arrow.INTERVAL_MONTH_DAY_NANO:
 		bldr.(*array.MonthDayNanoIntervalBuilder).Append(s.(*MonthDayNanoInterval).Value)
+
+	case arrow.STRUCT:
+		sb := bldr.(*array.StructBuilder)
+		sb.Append(true)
+
+		v := s.(*Struct).Value
+		m := v.(map[string]any)
+		st := sb.Type().(*arrow.StructType)
+
+		for i, f := range st.Fields() {
+			sc := NewScalar(sb.FieldBuilder(i).Type())
+
+			if sv, ok := m[f.Name]; ok {
+				if err := sc.Set(sv); err != nil {
+					panic(err)
+				}
+			}
+
+			AppendToBuilder(sb.FieldBuilder(i), sc)
+		}
+
 	case arrow.LIST:
 		lb := bldr.(*array.ListBuilder)
-		if s.IsValid() {
-			lb.Append(true)
-			for _, v := range s.(*List).Value {
-				AppendToBuilder(lb.ValueBuilder(), v)
-			}
-		} else {
-			lb.AppendNull()
+		lb.Append(true)
+		for _, v := range s.(*List).Value {
+			AppendToBuilder(lb.ValueBuilder(), v)
 		}
 	case arrow.EXTENSION:
 		switch {

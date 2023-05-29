@@ -37,11 +37,29 @@ func (s *MonthInterval) Set(value any) error {
 			return nil
 		}
 		return s.Int.Set(value)
+	case []byte:
+		if len(v) == 0 {
+			s.Valid = false
+			return nil
+		}
+
+		var mi struct {
+			Months int32 `json:"months"`
+		}
+		if err := json.Unmarshal(v, &mi); err != nil {
+			return err
+		}
+		s.Valid = true
+		s.Value = int64(mi.Months)
+		return nil
 	case *string:
 		if v == nil {
 			return s.Int.Set(nil)
 		}
 		return s.Set(value)
+	case map[string]any:
+		b, _ := json.Marshal(v)
+		return s.Set(b)
 	default:
 		return s.Int.Set(value)
 	}
@@ -123,6 +141,9 @@ func (s *DayTimeInterval) Set(value any) error {
 			return s.Set(nil)
 		}
 		return s.Set(*v)
+	case map[string]any:
+		b, _ := json.Marshal(v)
+		return s.Set(b)
 	default:
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
@@ -212,6 +233,9 @@ func (s *MonthDayNanoInterval) Set(value any) error {
 			return s.Set(nil)
 		}
 		return s.Set(*v)
+	case map[string]any:
+		b, _ := json.Marshal(v)
+		return s.Set(b)
 	default:
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
