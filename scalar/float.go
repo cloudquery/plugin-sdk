@@ -1,6 +1,7 @@
 package scalar
 
 import (
+	"math"
 	"strconv"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -69,27 +70,50 @@ func (s *Float) Set(val any) error {
 	case int16:
 		s.Value = float64(value)
 	case int32:
-		s.Value = float64(value)
+		v := float64(value)
+		if err := s.validateValue(v); err != nil {
+			return err
+		}
+		s.Value = v
 	case int64:
-		s.Value = float64(value)
+		v := float64(value)
+		if err := s.validateValue(v); err != nil {
+			return err
+		}
+		s.Value = v
 	case uint8:
 		s.Value = float64(value)
 	case uint16:
 		s.Value = float64(value)
 	case uint32:
-		s.Value = float64(value)
+		v := float64(value)
+		if err := s.validateValue(v); err != nil {
+			return err
+		}
+		s.Value = v
 	case uint64:
-		s.Value = float64(value)
+		v := float64(value)
+		if err := s.validateValue(v); err != nil {
+			return err
+		}
+		s.Value = v
 	case float32:
 		s.Value = float64(value)
 	case float64:
-		s.Value = value
-	case string:
-		num, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			return &ValidationError{Type: arrow.PrimitiveTypes.Int8, Msg: "invalid string", Value: value}
+		v := float64(value)
+		if err := s.validateValue(v); err != nil {
+			return err
 		}
-		s.Value = num
+		s.Value = v
+	case string:
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return &ValidationError{Type: s.DataType(), Msg: "invalid string", Value: value}
+		}
+		if err := s.validateValue(v); err != nil {
+			return err
+		}
+		s.Value = v
 	case *int8:
 		return s.Set(*value)
 	case *int16:
@@ -117,5 +141,15 @@ func (s *Float) Set(val any) error {
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
 	s.Valid = true
+	return nil
+}
+
+func (s *Float) validateValue(value float64) error {
+	switch {
+	case arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Float32):
+		if value > math.MaxFloat32 {
+			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxFloat32", Value: value}
+		}
+	}
 	return nil
 }
