@@ -23,6 +23,8 @@ func (s *Float) DataType() arrow.DataType {
 		return arrow.PrimitiveTypes.Float64
 	case 32:
 		return arrow.PrimitiveTypes.Float32
+	case 16:
+		return arrow.FixedWidthTypes.Float16
 	default:
 		panic("invalid bit width")
 	}
@@ -144,8 +146,13 @@ func (s *Float) Set(val any) error {
 }
 
 func (s *Float) validateValue(value float64) error {
-	if arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Float32) && value > math.MaxFloat32 {
+	const maxFloat16 = 65504.0
+
+	switch {
+	case arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Float32) && value > math.MaxFloat32:
 		return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxFloat32", Value: value}
+	case arrow.TypeEqual(s.DataType(), arrow.FixedWidthTypes.Float16) && value > maxFloat16:
+		return &ValidationError{Type: s.DataType(), Msg: "value bigger than maxFloat16", Value: value}
 	}
 	return nil
 }

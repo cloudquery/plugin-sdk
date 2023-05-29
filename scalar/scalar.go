@@ -71,6 +71,8 @@ func NewScalar(dt arrow.DataType) Scalar {
 		return &Float{}
 	case arrow.FLOAT32:
 		return &Float{BitWidth: 32}
+	case arrow.FLOAT16:
+		return &Float{BitWidth: 16}
 	case arrow.BOOL:
 		return &Bool{}
 	case arrow.EXTENSION:
