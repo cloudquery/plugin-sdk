@@ -133,6 +133,33 @@ func NewScalar(dt arrow.DataType) Scalar {
 				Unit: arrow.Microsecond,
 			}
 		}
+	case arrow.TIME32, arrow.TIME64:
+		switch {
+		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Time32s):
+			return &Time{
+				Int:      Int{BitWidth: 64},
+				BitWidth: 32,
+				Unit:     arrow.Second,
+			}
+		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Time32ms):
+			return &Time{
+				Int:      Int{BitWidth: 64},
+				BitWidth: 32,
+				Unit:     arrow.Millisecond,
+			}
+		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Time64us):
+			return &Time{
+				Int:      Int{BitWidth: 64},
+				BitWidth: 64,
+				Unit:     arrow.Microsecond,
+			}
+		default:
+			return &Time{
+				Int:      Int{BitWidth: 64},
+				BitWidth: 64,
+				Unit:     arrow.Nanosecond,
+			}
+		}
 	default:
 		panic("not implemented: " + dt.Name())
 	}
@@ -184,6 +211,10 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		bldr.(*array.Date32Builder).Append(arrow.Date32(s.(*Date32).Value))
 	case arrow.DATE64:
 		bldr.(*array.Date64Builder).Append(arrow.Date64(s.(*Date64).Value))
+	case arrow.TIME32:
+		bldr.(*array.Time32Builder).Append(arrow.Time32(int32(s.(*Time).Value)))
+	case arrow.TIME64:
+		bldr.(*array.Time64Builder).Append(arrow.Time64(s.(*Time).Value))
 	case arrow.LIST:
 		lb := bldr.(*array.ListBuilder)
 		if s.IsValid() {

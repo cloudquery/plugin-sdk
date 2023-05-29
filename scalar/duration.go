@@ -34,3 +34,10 @@ func (s *Duration) Equal(rhs Scalar) bool {
 	}
 	return s.Valid == r.Valid && s.Unit == r.Unit && s.Value == r.Value
 }
+
+func (s *Duration) Set(value any) error {
+	if dur, ok := value.(arrow.Duration); ok {
+		return s.Int.Set(int64(dur))
+	}
+	return s.Int.Set(value)
+}
