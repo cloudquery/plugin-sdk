@@ -20,6 +20,10 @@ func NewMACBuilder(builder *array.ExtensionBuilder) *MACBuilder {
 	return &MACBuilder{ExtensionBuilder: builder}
 }
 
+func (b *MACBuilder) AppendEmptyValue() {
+	b.Append(make(net.HardwareAddr, 6))
+}
+
 func (b *MACBuilder) Append(v net.HardwareAddr) {
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append(v[:])
 }
