@@ -211,7 +211,7 @@ func (s *Int) validateValue(value int64) error {
 			return &ValidationError{Type: s.Type, Msg: "value bigger than MaxInt16", Value: value}
 		}
 	case arrow.TypeEqual(s.Type, arrow.PrimitiveTypes.Int32):
-		if value > math.MaxInt8 {
+		if value > math.MaxInt32 {
 			return &ValidationError{Type: s.Type, Msg: "value bigger than MaxInt32", Value: value}
 		}
 	}

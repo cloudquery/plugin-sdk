@@ -27,7 +27,7 @@ func TestInt8Set(t *testing.T) {
 		{source: float64(1), result: Int{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Int64}},
 		{source: "1", result: Int{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Int64}},
 		{source: _int8(1), result: Int{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Int64}},
-		{source: &Int{Value: 1, Valid: true}, result: Int{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Int64}},
+		{source: &Int{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Int64}, result: Int{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Int64}},
 	}
 
 	for i, tt := range successfulTests {
