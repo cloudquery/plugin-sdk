@@ -58,6 +58,8 @@ func (s *Date32) Set(val any) error {
 	}
 
 	switch value := val.(type) {
+	case arrow.Date32:
+		s.Value = int32(value)
 	case int:
 		s.Value = int32(value)
 	case int64:
@@ -71,8 +73,7 @@ func (s *Date32) Set(val any) error {
 		}
 		s.Value = int32(value)
 	case time.Time:
-		val := value.UTC().Unix() / 86400
-		return s.Set(val)
+		return s.Set(arrow.Date32FromTime(value))
 	case *time.Time:
 		if value == nil {
 			return nil
