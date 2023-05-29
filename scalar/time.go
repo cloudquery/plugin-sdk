@@ -37,10 +37,38 @@ func (s *Time) Equal(rhs Scalar) bool {
 }
 
 func (s *Time) Set(value any) error {
-	if t32, ok := value.(arrow.Time32); ok {
-		return s.Int.Set(int64(t32))
+	switch v := value.(type) {
+	case arrow.Time32:
+		return s.Int.Set(int64(v))
+	case arrow.Time64:
+		return s.Int.Set(int64(v))
+
+	case string:
+		switch s.BitWidth {
+		case 64:
+			t64, err := arrow.Time64FromString(v, s.Unit)
+			if err != nil {
+				return err
+			}
+			return s.Set(t64)
+		case 32:
+			t32, err := arrow.Time32FromString(v, s.Unit)
+			if err != nil {
+				return err
+			}
+			return s.Set(t32)
+		default:
+			return s.Int.Set(v)
+		}
+	case *string:
+		if v == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*v)
+	default:
+		return s.Int.Set(value)
 	}
-	return s.Int.Set(value)
 }
 
 func (s *Time) getBitWidth() uint8 {

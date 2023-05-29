@@ -1,6 +1,8 @@
 package scalar
 
 import (
+	"strings"
+
 	"github.com/apache/arrow/go/v13/arrow"
 )
 
@@ -24,6 +26,15 @@ func (s *Duration) DataType() arrow.DataType {
 	}
 }
 
+func (s *Duration) String() string {
+	if !s.Int.IsValid() {
+		return "(null)"
+	}
+
+	return s.Int.String() + s.Unit.String()
+
+}
+
 func (s *Duration) Equal(rhs Scalar) bool {
 	if rhs == nil {
 		return false
@@ -38,6 +49,17 @@ func (s *Duration) Equal(rhs Scalar) bool {
 func (s *Duration) Set(value any) error {
 	if dur, ok := value.(arrow.Duration); ok {
 		return s.Int.Set(int64(dur))
+	}
+	switch v := value.(type) {
+	case string:
+		stripped := strings.TrimSuffix(v, s.Unit.String())
+		return s.Int.Set(stripped)
+	case *string:
+		if v == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*v)
 	}
 	return s.Int.Set(value)
 }

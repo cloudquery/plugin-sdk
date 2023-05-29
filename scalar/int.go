@@ -130,7 +130,7 @@ func (s *Int) Set(val any) error {
 	case string:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			return &ValidationError{Type: s.DataType(), Msg: "invalid string", Value: v}
+			return &ValidationError{Type: s.DataType(), Msg: "invalid string", Value: value}
 		}
 		if err := s.validateValue(v); err != nil {
 			return err
