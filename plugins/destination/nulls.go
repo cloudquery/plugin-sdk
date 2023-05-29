@@ -8,14 +8,13 @@ import (
 
 func stripNullsFromLists(records []arrow.Record) {
 	for i := range records {
-		cols := make([]arrow.Array, records[i].NumCols())
-		for c := range records[i].Columns() {
-			if records[i].Column(c).DataType().ID() != arrow.LIST {
-				cols[c] = records[i].Column(c)
+		cols := records[i].Columns()
+		for c, col := range cols {
+			if col.DataType().ID() != arrow.LIST {
 				continue
 			}
 
-			list := records[i].Column(c).(*array.List)
+			list := col.(*array.List)
 			bldr := array.NewListBuilder(memory.DefaultAllocator, list.DataType().(*arrow.ListType).Elem())
 			for j := 0; j < list.Len(); j++ {
 				if list.IsNull(j) {
@@ -49,10 +48,9 @@ func (f AllowNullFunc) replaceNullsByEmpty(records []arrow.Record) {
 		return
 	}
 	for i := range records {
-		cols := make([]arrow.Array, records[i].NumCols())
+		cols := records[i].Columns()
 		for c, col := range records[i].Columns() {
-			if col.NullN() == 0 || f(records[i].Column(c).DataType()) {
-				cols[c] = col
+			if col.NullN() == 0 || f(col.DataType()) {
 				continue
 			}
 
@@ -69,5 +67,6 @@ func (f AllowNullFunc) replaceNullsByEmpty(records []arrow.Record) {
 			}
 			cols[c] = builder.NewArray()
 		}
+		records[i] = array.NewRecord(records[i].Schema(), cols, records[i].NumRows())
 	}
 }
