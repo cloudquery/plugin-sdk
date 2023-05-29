@@ -127,6 +127,7 @@ func (s *Timestamp) Set(val any) error {
 
 func (s *Timestamp) DecodeText(src []byte) error {
 	if len(src) == 0 {
+		s.Valid = false
 		return nil
 	}
 
