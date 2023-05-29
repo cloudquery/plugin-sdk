@@ -26,8 +26,8 @@ func TestNewScalar(t *testing.T) {
 
 		{dt: arrow.BinaryTypes.String},
 		{dt: arrow.BinaryTypes.Binary},
-		//{dt: arrow.BinaryTypes.LargeString},
-		//{dt: arrow.BinaryTypes.LargeBinary},
+		{dt: arrow.BinaryTypes.LargeString},
+		{dt: arrow.BinaryTypes.LargeBinary},
 
 		{dt: arrow.FixedWidthTypes.Boolean},
 		{dt: arrow.FixedWidthTypes.Date32},

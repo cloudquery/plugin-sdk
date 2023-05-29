@@ -51,6 +51,10 @@ func NewScalar(dt arrow.DataType) Scalar {
 		return &Binary{}
 	case arrow.STRING:
 		return &String{}
+	case arrow.LARGE_BINARY:
+		return &LargeBinary{}
+	case arrow.LARGE_STRING:
+		return &LargeString{}
 	case arrow.INT64:
 		return &Int{}
 	case arrow.INT32:

@@ -72,7 +72,7 @@ func (s *Binary) Set(val any) error {
 	return nil
 }
 
-func (*Binary) DataType() arrow.DataType {
+func (s *Binary) DataType() arrow.DataType {
 	return arrow.BinaryTypes.Binary
 }
 

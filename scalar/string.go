@@ -78,12 +78,37 @@ func (s *String) Set(val any) error {
 	return nil
 }
 
-type _smallString String
-
 type LargeString struct {
-	_smallString
+	s String
+}
+
+func (s *LargeString) IsValid() bool {
+	return s.s.Valid
 }
 
 func (*LargeString) DataType() arrow.DataType {
 	return arrow.BinaryTypes.LargeString
+}
+
+func (s *LargeString) String() string {
+	return s.s.String()
+}
+
+func (s *LargeString) Equal(rhs Scalar) bool {
+	if rhs == nil {
+		return false
+	}
+	r, ok := rhs.(*LargeString)
+	if !ok {
+		return false
+	}
+	return s.s.Valid == r.s.Valid && s.s.Value == r.s.Value
+}
+
+func (s *LargeString) Get() any {
+	return s.s.Get()
+}
+
+func (s *LargeString) Set(val any) error {
+	return s.s.Set(val)
 }
