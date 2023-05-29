@@ -8,9 +8,9 @@ import (
 )
 
 type Uint struct {
-	Valid bool
-	Value uint64
-	Type  arrow.DataType
+	Valid    bool
+	Value    uint64
+	BitWidth uint8 // defaults to 64
 }
 
 func (s *Uint) IsValid() bool {
@@ -18,7 +18,18 @@ func (s *Uint) IsValid() bool {
 }
 
 func (s *Uint) DataType() arrow.DataType {
-	return s.Type
+	switch s.BitWidth {
+	case 0, 64:
+		return arrow.PrimitiveTypes.Uint64
+	case 8:
+		return arrow.PrimitiveTypes.Uint8
+	case 16:
+		return arrow.PrimitiveTypes.Uint16
+	case 32:
+		return arrow.PrimitiveTypes.Uint32
+	default:
+		panic("invalid bit width")
+	}
 }
 
 func (s *Uint) String() string {
@@ -60,7 +71,7 @@ func (s *Uint) Set(val any) error {
 	switch value := val.(type) {
 	case int8:
 		if value < 0 {
-			return &ValidationError{Type: s.Type, Msg: "int8 less than 0", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "int8 less than 0", Value: value}
 		}
 		v := uint64(value)
 		if err := s.validateValue(v); err != nil {
@@ -69,7 +80,7 @@ func (s *Uint) Set(val any) error {
 		s.Value = v
 	case int16:
 		if value < 0 {
-			return &ValidationError{Type: s.Type, Msg: "int16 less than 0", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "int16 less than 0", Value: value}
 		}
 		v := uint64(value)
 		if err := s.validateValue(v); err != nil {
@@ -78,7 +89,7 @@ func (s *Uint) Set(val any) error {
 		s.Value = v
 	case int32:
 		if value < 0 {
-			return &ValidationError{Type: s.Type, Msg: "int32 less than 0", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "int32 less than 0", Value: value}
 		}
 		v := uint64(value)
 		if err := s.validateValue(v); err != nil {
@@ -87,12 +98,12 @@ func (s *Uint) Set(val any) error {
 		s.Value = v
 	case int64:
 		if value < 0 {
-			return &ValidationError{Type: s.Type, Msg: "int64 less than 0", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "int64 less than 0", Value: value}
 		}
 		s.Value = uint64(value)
 	case int:
 		if value < 0 {
-			return &ValidationError{Type: s.Type, Msg: "int less than 0", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "int less than 0", Value: value}
 		}
 		v := uint64(value)
 		if err := s.validateValue(v); err != nil {
@@ -127,7 +138,7 @@ func (s *Uint) Set(val any) error {
 		s.Value = v
 	case float32:
 		if value < 0 {
-			return &ValidationError{Type: s.Type, Msg: "float32 less than 0", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "float32 less than 0", Value: value}
 		}
 		v := uint64(value)
 		if err := s.validateValue(v); err != nil {
@@ -136,7 +147,7 @@ func (s *Uint) Set(val any) error {
 		s.Value = v
 	case float64:
 		if value < 0 {
-			return &ValidationError{Type: s.Type, Msg: "float64 less than 0", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "float64 less than 0", Value: value}
 		}
 		v := uint64(value)
 		if err := s.validateValue(v); err != nil {
@@ -146,7 +157,7 @@ func (s *Uint) Set(val any) error {
 	case string:
 		v, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
-			return &ValidationError{Type: s.Type, Msg: "invalid string", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "invalid string", Value: value}
 		}
 		if err := s.validateValue(v); err != nil {
 			return err
@@ -216,7 +227,7 @@ func (s *Uint) Set(val any) error {
 		if originalSrc, ok := underlyingNumberType(value); ok {
 			return s.Set(originalSrc)
 		}
-		return &ValidationError{Type: s.Type, Msg: noConversion, Value: value}
+		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
 	s.Valid = true
 	return nil
@@ -224,17 +235,17 @@ func (s *Uint) Set(val any) error {
 
 func (s *Uint) validateValue(value uint64) error {
 	switch {
-	case arrow.TypeEqual(s.Type, arrow.PrimitiveTypes.Uint8):
+	case arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Uint8):
 		if value > math.MaxUint8 {
-			return &ValidationError{Type: s.Type, Msg: "value bigger than MaxUint8", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxUint8", Value: value}
 		}
-	case arrow.TypeEqual(s.Type, arrow.PrimitiveTypes.Uint16):
+	case arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Uint16):
 		if value > math.MaxUint16 {
-			return &ValidationError{Type: s.Type, Msg: "value bigger than MaxUint16", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxUint16", Value: value}
 		}
-	case arrow.TypeEqual(s.Type, arrow.PrimitiveTypes.Uint32):
+	case arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Uint32):
 		if value > math.MaxUint32 {
-			return &ValidationError{Type: s.Type, Msg: "value bigger than MaxUint32", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxUint32", Value: value}
 		}
 	}
 	return nil

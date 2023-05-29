@@ -2,8 +2,6 @@ package scalar
 
 import (
 	"testing"
-
-	"github.com/apache/arrow/go/v13/arrow"
 )
 
 func TestUint64Set(t *testing.T) {
@@ -11,19 +9,19 @@ func TestUint64Set(t *testing.T) {
 		source any
 		result Uint
 	}{
-		{source: int8(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: int16(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: int32(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: int64(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: uint8(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: uint16(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: uint32(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: uint64(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: float32(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: float64(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: "1", result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: _int8(1), result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
-		{source: &Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}, result: Uint{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Uint64}},
+		{source: int8(1), result: Uint{Value: 1, Valid: true}},
+		{source: int16(1), result: Uint{Value: 1, Valid: true}},
+		{source: int32(1), result: Uint{Value: 1, Valid: true}},
+		{source: int64(1), result: Uint{Value: 1, Valid: true}},
+		{source: uint8(1), result: Uint{Value: 1, Valid: true}},
+		{source: uint16(1), result: Uint{Value: 1, Valid: true}},
+		{source: uint32(1), result: Uint{Value: 1, Valid: true}},
+		{source: uint64(1), result: Uint{Value: 1, Valid: true}},
+		{source: float32(1), result: Uint{Value: 1, Valid: true}},
+		{source: float64(1), result: Uint{Value: 1, Valid: true}},
+		{source: "1", result: Uint{Value: 1, Valid: true}},
+		{source: _int8(1), result: Uint{Value: 1, Valid: true}},
+		{source: &Uint{Value: 1, Valid: true}, result: Uint{Value: 1, Valid: true}},
 	}
 
 	for i, tt := range successfulTests {

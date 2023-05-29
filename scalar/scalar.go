@@ -52,25 +52,25 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.STRING:
 		return &String{}
 	case arrow.INT64:
-		return &Int{Type: arrow.PrimitiveTypes.Int64}
+		return &Int{}
 	case arrow.INT32:
-		return &Int{Type: arrow.PrimitiveTypes.Int32}
+		return &Int{BitWidth: 32}
 	case arrow.INT16:
-		return &Int{Type: arrow.PrimitiveTypes.Int16}
+		return &Int{BitWidth: 16}
 	case arrow.INT8:
-		return &Int{Type: arrow.PrimitiveTypes.Int8}
+		return &Int{BitWidth: 8}
 	case arrow.UINT64:
-		return &Uint{Type: arrow.PrimitiveTypes.Uint64}
+		return &Uint{}
 	case arrow.UINT32:
-		return &Uint{Type: arrow.PrimitiveTypes.Uint32}
+		return &Uint{BitWidth: 32}
 	case arrow.UINT16:
-		return &Uint{Type: arrow.PrimitiveTypes.Uint16}
+		return &Uint{BitWidth: 16}
 	case arrow.UINT8:
-		return &Uint{Type: arrow.PrimitiveTypes.Uint8}
-	case arrow.FLOAT32:
-		return &Float{Type: arrow.PrimitiveTypes.Float32}
+		return &Uint{BitWidth: 8}
 	case arrow.FLOAT64:
-		return &Float{Type: arrow.PrimitiveTypes.Float64}
+		return &Float{}
+	case arrow.FLOAT32:
+		return &Float{BitWidth: 32}
 	case arrow.BOOL:
 		return &Bool{}
 	case arrow.EXTENSION:

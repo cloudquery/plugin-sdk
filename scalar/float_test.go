@@ -2,8 +2,6 @@ package scalar
 
 import (
 	"testing"
-
-	"github.com/apache/arrow/go/v13/arrow"
 )
 
 func TestFloat32Set(t *testing.T) {
@@ -11,23 +9,23 @@ func TestFloat32Set(t *testing.T) {
 		source any
 		result Float
 	}{
-		{source: float32(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: float64(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: int8(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: int16(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: int32(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: int64(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: int8(-1), result: Float{Value: -1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: int16(-1), result: Float{Value: -1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: int32(-1), result: Float{Value: -1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: int64(-1), result: Float{Value: -1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: uint8(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: uint16(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: uint32(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: uint64(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: "1", result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: _int8(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
-		{source: &Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}, result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float32}},
+		{source: float32(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: float64(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: int8(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: int16(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: int32(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: int64(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: int8(-1), result: Float{Value: -1, Valid: true, BitWidth: 32}},
+		{source: int16(-1), result: Float{Value: -1, Valid: true, BitWidth: 32}},
+		{source: int32(-1), result: Float{Value: -1, Valid: true, BitWidth: 32}},
+		{source: int64(-1), result: Float{Value: -1, Valid: true, BitWidth: 32}},
+		{source: uint8(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: uint16(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: uint32(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: uint64(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: "1", result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: _int8(1), result: Float{Value: 1, Valid: true, BitWidth: 32}},
+		{source: &Float{Value: 1, Valid: true, BitWidth: 32}, result: Float{Value: 1, Valid: true, BitWidth: 32}},
 	}
 
 	for i, tt := range successfulTests {
@@ -48,23 +46,23 @@ func TestFloat64Set(t *testing.T) {
 		source any
 		result Float
 	}{
-		{source: float32(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: float64(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: int8(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: int16(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: int32(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: int64(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: int8(-1), result: Float{Value: -1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: int16(-1), result: Float{Value: -1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: int32(-1), result: Float{Value: -1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: int64(-1), result: Float{Value: -1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: uint8(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: uint16(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: uint32(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: uint64(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: "1", result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: _int8(1), result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
-		{source: &Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}, result: Float{Value: 1, Valid: true, Type: arrow.PrimitiveTypes.Float64}},
+		{source: float32(1), result: Float{Value: 1, Valid: true}},
+		{source: float64(1), result: Float{Value: 1, Valid: true}},
+		{source: int8(1), result: Float{Value: 1, Valid: true}},
+		{source: int16(1), result: Float{Value: 1, Valid: true}},
+		{source: int32(1), result: Float{Value: 1, Valid: true}},
+		{source: int64(1), result: Float{Value: 1, Valid: true}},
+		{source: int8(-1), result: Float{Value: -1, Valid: true}},
+		{source: int16(-1), result: Float{Value: -1, Valid: true}},
+		{source: int32(-1), result: Float{Value: -1, Valid: true}},
+		{source: int64(-1), result: Float{Value: -1, Valid: true}},
+		{source: uint8(1), result: Float{Value: 1, Valid: true}},
+		{source: uint16(1), result: Float{Value: 1, Valid: true}},
+		{source: uint32(1), result: Float{Value: 1, Valid: true}},
+		{source: uint64(1), result: Float{Value: 1, Valid: true}},
+		{source: "1", result: Float{Value: 1, Valid: true}},
+		{source: _int8(1), result: Float{Value: 1, Valid: true}},
+		{source: &Float{Value: 1, Valid: true}, result: Float{Value: 1, Valid: true}},
 	}
 
 	for i, tt := range successfulTests {

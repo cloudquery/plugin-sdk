@@ -7,9 +7,9 @@ import (
 )
 
 type Float struct {
-	Valid bool
-	Value float64
-	Type  arrow.DataType
+	Valid    bool
+	Value    float64
+	BitWidth uint8 // defaults to 64
 }
 
 func (s *Float) IsValid() bool {
@@ -17,7 +17,14 @@ func (s *Float) IsValid() bool {
 }
 
 func (s *Float) DataType() arrow.DataType {
-	return s.Type
+	switch s.BitWidth {
+	case 0, 64:
+		return arrow.PrimitiveTypes.Float64
+	case 32:
+		return arrow.PrimitiveTypes.Float32
+	default:
+		panic("invalid bit width")
+	}
 }
 
 func (s *Float) Get() any {
@@ -107,7 +114,7 @@ func (s *Float) Set(val any) error {
 		if originalSrc, ok := underlyingNumberType(value); ok {
 			return s.Set(originalSrc)
 		}
-		return &ValidationError{Type: s.Type, Msg: noConversion, Value: value}
+		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
 	s.Valid = true
 	return nil
