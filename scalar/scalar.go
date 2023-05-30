@@ -113,33 +113,16 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.DATE32:
 		return &Date32{}
 	case arrow.DURATION:
-		return &Duration{Int:  Int{BitWidth: 64}, Unit: dt.(*arrow.DurationType).Unit}
-	case arrow.TIME32, arrow.TIME64:
-		switch {
-		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Time32s):
-			return &Time{
-				Int:      Int{BitWidth: 64},
-				BitWidth: 32,
-				Unit:     arrow.Second,
-			}
-		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Time32ms):
-			return &Time{
-				Int:      Int{BitWidth: 64},
-				BitWidth: 32,
-				Unit:     arrow.Millisecond,
-			}
-		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Time64us):
-			return &Time{
-				Int:      Int{BitWidth: 64},
-				BitWidth: 64,
-				Unit:     arrow.Microsecond,
-			}
-		default:
-			return &Time{
-				Int:      Int{BitWidth: 64},
-				BitWidth: 64,
-				Unit:     arrow.Nanosecond,
-			}
+		return &Duration{Int: Int{BitWidth: 64}, Unit: dt.(*arrow.DurationType).Unit}
+	case arrow.TIME32:
+		return &Time{
+			Int:  Int{BitWidth: 32},
+			Unit: dt.(*arrow.Time32Type).Unit,
+		}
+	case arrow.TIME64:
+		return &Time{
+			Int:  Int{BitWidth: 64},
+			Unit: dt.(*arrow.Time64Type).Unit,
 		}
 
 	case arrow.INTERVAL_MONTHS:
