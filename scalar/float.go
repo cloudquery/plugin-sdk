@@ -198,15 +198,15 @@ func (s *Float) Set(val any) error {
 func (s *Float) validateValue(value float64) error {
 	const maxFloat16 = 65504.0
 
-	switch s.getBitWidth() {
-	case 16:
-		if value > maxFloat16 {
-			return &ValidationError{Type: s.DataType(), Msg: "value greater than maxFloat16", Value: value}
-		}
-	case 32:
-		if value > math.MaxFloat32 {
-			return &ValidationError{Type: s.DataType(), Msg: "value greater than MaxFloat32", Value: value}
-		}
+	switch {
+	case s.getBitWidth() == 16 && value > maxFloat16:
+		return &ValidationError{Type: s.DataType(), Msg: "value greater than maxFloat16", Value: value}
+	case s.getBitWidth() == 16 && value < -maxFloat16:
+		return &ValidationError{Type: s.DataType(), Msg: "value less than minFloat16", Value: value}
+	case s.getBitWidth() == 32 && value > math.MaxFloat32:
+		return &ValidationError{Type: s.DataType(), Msg: "value greater than MaxFloat32", Value: value}
+	case s.getBitWidth() == 32 && value < -math.MaxFloat32:
+		return &ValidationError{Type: s.DataType(), Msg: "value less than MinFloat32", Value: value}
 	}
 	return nil
 }

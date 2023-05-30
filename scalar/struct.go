@@ -54,11 +54,6 @@ func (s *Struct) Set(val any) error {
 		return s.Set(sc.Get())
 	}
 
-	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Pointer && !rv.Elem().IsValid() { // typed nil
-		s.Valid = false
-		return nil
-	}
-
 	switch value := val.(type) {
 	case string:
 		var x map[string]any
@@ -83,6 +78,11 @@ func (s *Struct) Set(val any) error {
 
 	default:
 		s.Value = val
+	}
+
+	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Pointer && !rv.Elem().IsValid() { // typed nil
+		s.Valid = false
+		return nil
 	}
 
 	s.Valid = true

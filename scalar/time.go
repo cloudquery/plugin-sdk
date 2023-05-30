@@ -10,7 +10,7 @@ type Time struct {
 }
 
 func (s *Time) DataType() arrow.DataType {
-	switch width := s.getBitWidth(); width {
+	switch s.getBitWidth() {
 	case 64:
 		return &arrow.Time64Type{Unit: s.Unit}
 	case 32:
@@ -35,7 +35,7 @@ func (s *Time) Get() any {
 	if !s.Valid {
 		return nil
 	}
-	switch s.Int.BitWidth {
+	switch s.getBitWidth() {
 	case 64:
 		return arrow.Time64(s.Int.Get().(int64))
 	case 32:

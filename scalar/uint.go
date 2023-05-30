@@ -108,21 +108,24 @@ func (s *Uint) Set(val any) error {
 	case uint:
 		return s.Set(uint64(value))
 	case float32:
-		if value < 0 {
+		switch {
+		case value < 0:
 			return &ValidationError{Type: s.DataType(), Msg: "float32 less than 0", Value: value}
-		} else if value > math.MaxUint64 {
-			return &ValidationError{Type: s.DataType(), Msg: "float32 is greater than MaxUint64", Value: value}
-		} else if s.getBitWidth() == 32 && value > math.MaxUint32 {
+		case s.getBitWidth() == 32 && value > math.MaxUint32:
 			return &ValidationError{Type: s.DataType(), Msg: "float32 is greater than MaxUint32", Value: value}
+		case value > math.MaxUint64:
+			return &ValidationError{Type: s.DataType(), Msg: "float32 is greater than MaxUint64", Value: value}
 		}
+
 		return s.Set(uint64(value))
 	case float64:
-		if value < 0 {
+		switch {
+		case value < 0:
 			return &ValidationError{Type: s.DataType(), Msg: "float64 less than 0", Value: value}
-		} else if value > math.MaxUint64 {
-			return &ValidationError{Type: s.DataType(), Msg: "float64 is greater than MaxUint64", Value: value}
-		} else if s.getBitWidth() == 32 && value > math.MaxUint32 {
+		case s.getBitWidth() == 32 && value > math.MaxUint32:
 			return &ValidationError{Type: s.DataType(), Msg: "float64 is greater than MaxUint32", Value: value}
+		case value > math.MaxUint64:
+			return &ValidationError{Type: s.DataType(), Msg: "float64 is greater than MaxUint64", Value: value}
 		}
 		return s.Set(uint64(value))
 	case string:
