@@ -83,11 +83,11 @@ func (s *Float) Set(val any) error {
 	case int64:
 		switch {
 		case s.getBitWidth() == 64 && value > maxSafeValue64:
-			return &ValidationError{Type: s.DataType(), Msg: "int64 bigger than maximum safe value of 2^53", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "int64 greater than maximum safe value of 2^53", Value: value}
 		case s.getBitWidth() == 64 && value < minSafeValue64:
 			return &ValidationError{Type: s.DataType(), Msg: "int64 smaller than minimum safe value of -2^53", Value: value}
 		case s.getBitWidth() == 32 && value > maxSafeValue32:
-			return &ValidationError{Type: s.DataType(), Msg: "int64 bigger than maximum safe value of 2^24", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "int64 greater than maximum safe value of 2^24", Value: value}
 		case s.getBitWidth() == 32 && value < minSafeValue32:
 			return &ValidationError{Type: s.DataType(), Msg: "int64 smaller than minimum safe value of -2^24", Value: value}
 		}
@@ -101,9 +101,9 @@ func (s *Float) Set(val any) error {
 	case uint64:
 		switch {
 		case s.getBitWidth() == 64 && value > maxSafeValue64:
-			return &ValidationError{Type: s.DataType(), Msg: "uint64 bigger than maximum safe value of 2^53", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "uint64 greater than maximum safe value of 2^53", Value: value}
 		case s.getBitWidth() == 32 && value > maxSafeValue32:
-			return &ValidationError{Type: s.DataType(), Msg: "uint64 bigger than maximum safe value of 2^24", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "uint64 greater than maximum safe value of 2^24", Value: value}
 		}
 		return s.Set(float64(value))
 	case float32:
@@ -201,11 +201,11 @@ func (s *Float) validateValue(value float64) error {
 	switch s.getBitWidth() {
 	case 16:
 		if value > maxFloat16 {
-			return &ValidationError{Type: s.DataType(), Msg: "value bigger than maxFloat16", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value greater than maxFloat16", Value: value}
 		}
 	case 32:
 		if value > math.MaxFloat32 {
-			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxFloat32", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value greater than MaxFloat32", Value: value}
 		}
 	}
 	return nil

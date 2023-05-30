@@ -83,7 +83,7 @@ func (s *Timestamp) Set(val any) error {
 		s.Value = time.Unix(value, 0).UTC()
 	case uint64:
 		if value > math.MaxInt64 {
-			return &ValidationError{Type: s.DataType(), Msg: "uint64 bigger than MaxInt64", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "uint64 greater than MaxInt64", Value: value}
 		}
 		s.Value = time.Unix(int64(value), 0).UTC()
 	case time.Time:

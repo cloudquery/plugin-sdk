@@ -110,11 +110,19 @@ func (s *Uint) Set(val any) error {
 	case float32:
 		if value < 0 {
 			return &ValidationError{Type: s.DataType(), Msg: "float32 less than 0", Value: value}
+		} else if value > math.MaxUint64 {
+			return &ValidationError{Type: s.DataType(), Msg: "float32 is greater than MaxUint64", Value: value}
+		} else if s.getBitWidth() == 32 && value > math.MaxUint32 {
+			return &ValidationError{Type: s.DataType(), Msg: "float32 is greater than MaxUint32", Value: value}
 		}
 		return s.Set(uint64(value))
 	case float64:
 		if value < 0 {
 			return &ValidationError{Type: s.DataType(), Msg: "float64 less than 0", Value: value}
+		} else if value > math.MaxUint64 {
+			return &ValidationError{Type: s.DataType(), Msg: "float64 is greater than MaxUint64", Value: value}
+		} else if s.getBitWidth() == 32 && value > math.MaxUint32 {
+			return &ValidationError{Type: s.DataType(), Msg: "float64 is greater than MaxUint32", Value: value}
 		}
 		return s.Set(uint64(value))
 	case string:
@@ -215,15 +223,15 @@ func (s *Uint) validateValue(value uint64) error {
 	switch s.getBitWidth() {
 	case 8:
 		if value > math.MaxUint8 {
-			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxUint8", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value greater than MaxUint8", Value: value}
 		}
 	case 16:
 		if value > math.MaxUint16 {
-			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxUint16", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value greater than MaxUint16", Value: value}
 		}
 	case 32:
 		if value > math.MaxUint32 {
-			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxUint32", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value greater than MaxUint32", Value: value}
 		}
 	}
 	return nil

@@ -75,6 +75,9 @@ func TestUintOverflows(t *testing.T) {
 		{source: uint64(math.MaxUint32 + 1), bitWidth: 32, expectError: true},
 		{source: float64(math.MaxUint32), bitWidth: 32, expectError: false},
 		{source: float64(math.MaxUint32 + 1), bitWidth: 32, expectError: true},
+
+		{source: float32(math.MaxFloat32), bitWidth: 64, expectError: true},
+		{source: float64(math.MaxFloat64), bitWidth: 64, expectError: true},
 	}
 	for idx, tc := range cases {
 		tc := tc
