@@ -28,7 +28,7 @@ func (s *Binary) Equal(rhs Scalar) bool {
 
 func (s *Binary) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return string(s.Value)
 }

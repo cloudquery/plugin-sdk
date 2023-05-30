@@ -28,7 +28,7 @@ func (s *Duration) DataType() arrow.DataType {
 
 func (s *Duration) String() string {
 	if !s.Int.IsValid() {
-		return "(null)"
+		return nullValueStr
 	}
 
 	return s.Int.String() + s.Unit.String()

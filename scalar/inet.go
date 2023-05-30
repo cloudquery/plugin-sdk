@@ -36,7 +36,7 @@ func (s *Inet) Equal(rhs Scalar) bool {
 
 func (s *Inet) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return s.Value.String()
 }

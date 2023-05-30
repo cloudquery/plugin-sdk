@@ -32,6 +32,8 @@ type Scalar interface {
 
 type Vector []Scalar
 
+const nullValueStr = array.NullValueStr
+
 func (v Vector) Equal(r Vector) bool {
 	if len(v) != len(r) {
 		return false
@@ -219,9 +221,9 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 	case arrow.DURATION:
 		bldr.(*array.DurationBuilder).Append(arrow.Duration(s.(*Duration).Value))
 	case arrow.DATE32:
-		bldr.(*array.Date32Builder).Append(arrow.Date32(s.(*Date32).Value))
+		bldr.(*array.Date32Builder).Append(s.(*Date32).Value)
 	case arrow.DATE64:
-		bldr.(*array.Date64Builder).Append(arrow.Date64(s.(*Date64).Value))
+		bldr.(*array.Date64Builder).Append(s.(*Date64).Value)
 	case arrow.TIME32:
 		bldr.(*array.Time32Builder).Append(arrow.Time32(int32(s.(*Time).Value)))
 	case arrow.TIME64:

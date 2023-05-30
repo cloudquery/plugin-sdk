@@ -51,7 +51,7 @@ func (s *JSON) Equal(rhs Scalar) bool {
 
 func (s *JSON) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return string(s.Value)
 }

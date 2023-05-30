@@ -22,7 +22,7 @@ func (*Mac) DataType() arrow.DataType {
 
 func (s *Mac) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return s.Value.String()
 }

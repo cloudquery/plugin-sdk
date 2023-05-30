@@ -47,7 +47,7 @@ func (s *Float) Equal(rhs Scalar) bool {
 
 func (s *Float) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return strconv.FormatFloat(s.Value, 'f', -1, 64)
 }

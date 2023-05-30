@@ -31,7 +31,7 @@ func (s *Struct) Equal(rhs Scalar) bool {
 
 func (s *Struct) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return s.Type.String() + " value"
 }

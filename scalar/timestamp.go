@@ -64,7 +64,7 @@ func (s *Timestamp) Equal(rhs Scalar) bool {
 
 func (s *Timestamp) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return s.Value.Format(time.RFC3339)
 }

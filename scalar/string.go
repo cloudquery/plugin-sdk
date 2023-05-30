@@ -21,7 +21,7 @@ func (*String) DataType() arrow.DataType {
 
 func (s *String) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return s.Value
 }

@@ -32,7 +32,7 @@ func (s *Bool) Equal(rhs Scalar) bool {
 
 func (s *Bool) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return strconv.FormatBool(s.Value)
 }

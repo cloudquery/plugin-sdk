@@ -34,7 +34,7 @@ func (s *Date32) Equal(rhs Scalar) bool {
 
 func (s *Date32) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return s.Value.FormattedString()
 }

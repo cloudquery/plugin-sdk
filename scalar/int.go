@@ -34,7 +34,7 @@ func (s *Int) DataType() arrow.DataType {
 
 func (s *Int) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return strconv.FormatInt(s.Value, 10)
 }

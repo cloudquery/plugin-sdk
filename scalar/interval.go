@@ -82,7 +82,7 @@ func (s *DayTimeInterval) IsValid() bool {
 
 func (s *DayTimeInterval) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	b, _ := json.Marshal(s.Value)
 	return string(b)
@@ -174,7 +174,7 @@ func (s *MonthDayNanoInterval) IsValid() bool {
 
 func (s *MonthDayNanoInterval) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	b, _ := json.Marshal(s.Value)
 	return string(b)
