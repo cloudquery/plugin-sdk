@@ -70,6 +70,8 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
+	testOpts.AllowNull.replaceNullsByEmpty(record1)
+	testOpts.AllowNull.replaceNullsByEmpty(record2)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(record1)
 		stripNullsFromLists(record2)

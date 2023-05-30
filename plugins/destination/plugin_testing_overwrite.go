@@ -44,6 +44,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		return fmt.Errorf("failed to write all: %w", err)
 	}
 	sortRecordsBySyncTime(table, resources)
+	testOpts.AllowNull.replaceNullsByEmpty(resources)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(resources)
 	}
@@ -85,6 +86,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
+	testOpts.AllowNull.replaceNullsByEmpty(updatedResource)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(updatedResource)
 	}

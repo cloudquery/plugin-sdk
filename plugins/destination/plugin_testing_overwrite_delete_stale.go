@@ -61,6 +61,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if len(resourcesRead) != 2 {
 		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
 	}
+	testOpts.AllowNull.replaceNullsByEmpty(resources)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(resources)
 	}
@@ -111,6 +112,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if len(resourcesRead) != 1 {
 		return fmt.Errorf("after overwrite expected 1 resource, got %d", len(resourcesRead))
 	}
+	testOpts.AllowNull.replaceNullsByEmpty(resources)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(resources)
 	}
@@ -128,6 +130,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	// we expect the only resource returned to match the updated resource we wrote
+	testOpts.AllowNull.replaceNullsByEmpty(updatedResources)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(updatedResources)
 	}
