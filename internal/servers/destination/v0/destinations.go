@@ -12,8 +12,8 @@ import (
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	"github.com/cloudquery/plugin-pb-go/specs"
 	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
@@ -22,7 +22,7 @@ import (
 
 type Server struct {
 	pb.UnimplementedDestinationServer
-	Plugin *destination.Plugin
+	Plugin *plugin.Plugin
 	Logger zerolog.Logger
 	spec   specs.Destination
 }
@@ -39,7 +39,8 @@ func (s *Server) Configure(ctx context.Context, req *pbBase.Configure_Request) (
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
 	s.spec = spec
-	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, s.Logger, spec)
+	specV3 := SpecV1ToV3(spec)
+	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, specV3)
 }
 
 func (s *Server) GetName(context.Context, *pbBase.GetName_Request) (*pbBase.GetName_Response, error) {
@@ -102,8 +103,9 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
 	eg, ctx := errgroup.WithContext(msg.Context())
+	sourceSpecV3 := SourceSpecV1ToV3(sourceSpec)
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceSpec, tables, syncTime, resources)
+		return s.Plugin.Write(ctx, sourceSpecV3, tables, syncTime, resources)
 	})
 	sourceColumn := &schemav2.Text{}
 	_ = sourceColumn.Set(sourceSpec.Name)

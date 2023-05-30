@@ -9,13 +9,17 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/cloudquery/plugin-sdk/v3/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 
+	pbDestinationV0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
+	pbDestinationV1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	pbdiscoveryv0 "github.com/cloudquery/plugin-pb-go/pb/discovery/v0"
-	pbv0 "github.com/cloudquery/plugin-pb-go/pb/plugin/v0"
-	discoveryServerV0 "github.com/cloudquery/plugin-sdk/v3/internal/servers/discovery/v0"
+	pbv3 "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	discoveryServerV0 "github.com/cloudquery/plugin-sdk/v4/internal/servers/discovery/v0"
 
-	serversv0 "github.com/cloudquery/plugin-sdk/v3/internal/servers/plugin/v0"
+	serverDestinationV0 "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v0"
+	serverDestinationV1 "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v1"
+	serversv3 "github.com/cloudquery/plugin-sdk/v4/internal/servers/plugin/v3"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -30,6 +34,7 @@ import (
 
 type pluginServe struct {
 	plugin    *plugin.Plugin
+	destinationV0V1Server bool
 	sentryDSN string
 }
 
@@ -38,6 +43,14 @@ type PluginOption func(*pluginServe)
 func WithPluginSentryDSN(dsn string) PluginOption {
 	return func(s *pluginServe) {
 		s.sentryDSN = dsn
+	}
+}
+
+// WithDestinationV0V1Server is used to include destination v0 and v1 server to work
+// with older sources
+func WithDestinationV0V1Server() PluginOption {
+	return func(s *pluginServe) {
+		s.destinationV0V1Server = true
 	}
 }
 
@@ -77,8 +90,8 @@ func newCmdPluginServe(serve *pluginServe) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: serveSourceShort,
-		Long:  serveSourceShort,
+		Short: servePluginShort,
+		Long:  servePluginShort,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			zerologLevel, err := zerolog.ParseLevel(logLevel.String())
@@ -95,10 +108,10 @@ func newCmdPluginServe(serve *pluginServe) *cobra.Command {
 			// opts.Plugin.Logger = logger
 			var listener net.Listener
 			if network == "test" {
-				testSourceListenerLock.Lock()
+				testPluginListenerLock.Lock()
 				listener = bufconn.Listen(testBufSize)
-				testSourceListener = listener.(*bufconn.Listener)
-				testSourceListenerLock.Unlock()
+				testPluginListener = listener.(*bufconn.Listener)
+				testPluginListenerLock.Unlock()
 			} else {
 				listener, err = net.Listen(network, address)
 				if err != nil {
@@ -120,12 +133,22 @@ func newCmdPluginServe(serve *pluginServe) *cobra.Command {
 				grpc.MaxSendMsgSize(MaxMsgSize),
 			)
 			serve.plugin.SetLogger(logger)
-			pbv0.RegisterPluginServer(s, &serversv0.Server{
+			pbv3.RegisterPluginServer(s, &serversv3.Server{
 				Plugin: serve.plugin,
 				Logger: logger,
 			})
+			if serve.destinationV0V1Server {
+				pbDestinationV1.RegisterDestinationServer(s, &serverDestinationV1.Server{
+					Plugin: serve.plugin,
+					Logger: logger,
+				})
+				pbDestinationV0.RegisterDestinationServer(s, &serverDestinationV0.Server{
+					Plugin: serve.plugin,
+					Logger: logger,
+				})
+			}
 			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.Server{
-				Versions: []string{"v2"},
+				Versions: []string{"v0", "v1", "v2", "v3"},
 			})
 
 			version := serve.plugin.Version()
@@ -211,11 +234,11 @@ func newCmdPluginDoc(serve *pluginServe) *cobra.Command {
 	format := newEnum([]string{"json", "markdown"}, "markdown")
 	cmd := &cobra.Command{
 		Use:   "doc <directory>",
-		Short: sourceDocShort,
-		Long:  sourceDocLong,
+		Short: pluginDocShort,
+		Long:  pluginDocLong,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pbFormat := pbv0.GenDocs_FORMAT(pbv0.GenDocs_FORMAT_value[format.Value])
+			pbFormat := pbv3.GenDocs_FORMAT(pbv3.GenDocs_FORMAT_value[format.Value])
 			return serve.plugin.GeneratePluginDocs(serve.plugin.StaticTables(), args[0], pbFormat)
 		},
 	}

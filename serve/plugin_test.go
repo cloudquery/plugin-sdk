@@ -12,10 +12,10 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
-	pb "github.com/cloudquery/plugin-pb-go/pb/source/v2"
-	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/source"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v0"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/plugins/source"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -25,7 +25,11 @@ type TestSourcePluginSpec struct {
 	Accounts []string `json:"accounts,omitempty" yaml:"accounts,omitempty"`
 }
 
-type testExecutionClient struct{}
+type testExecutionClient struct {
+	plugin.UnimplementedSync
+	plugin.UnimplementedWriter
+	plugin.UnimplementedRead
+}
 
 var _ schema.ClientMeta = &testExecutionClient{}
 
@@ -53,24 +57,28 @@ func (*testExecutionClient) ID() string {
 	return "testExecutionClient"
 }
 
-func newTestExecutionClient(context.Context, zerolog.Logger, specs.Source, source.Options) (schema.ClientMeta, error) {
+func (*testExecutionClient) Close(ctx context.Context) error {
+	return nil
+}
+
+func newTestExecutionClient(context.Context, zerolog.Logger, pb.Spec) (plugin.Client, error) {
 	return &testExecutionClient{}, nil
 }
 
 func bufSourceDialer(context.Context, string) (net.Conn, error) {
-	testSourceListenerLock.Lock()
-	defer testSourceListenerLock.Unlock()
-	return testSourceListener.Dial()
+	testPluginListenerLock.Lock()
+	defer testPluginListenerLock.Unlock()
+	return testPluginListener.Dial()
 }
 
 func TestSourceSuccess(t *testing.T) {
-	plugin := source.NewPlugin(
+	plugin := plugin.NewPlugin(
 		"testPlugin",
 		"v1.0.0",
-		[]*schema.Table{testTable("test_table"), testTable("test_table2")},
-		newTestExecutionClient)
+		newTestExecutionClient,
+		plugin.WithStaticTables([]*schema.Table{testTable("test_table"), testTable("test_table2")}))
 
-	cmd := newCmdSourceRoot(&sourceServe{
+	cmd := newCmdPluginRoot(&pluginServe{
 		plugin: plugin,
 	})
 	cmd.SetArgs([]string{"serve", "--network", "test"})
@@ -88,12 +96,12 @@ func TestSourceSuccess(t *testing.T) {
 		wg.Wait()
 	}()
 	for {
-		testSourceListenerLock.Lock()
-		if testSourceListener != nil {
-			testSourceListenerLock.Unlock()
+		testPluginListenerLock.Lock()
+		if testPluginListener != nil {
+			testPluginListenerLock.Unlock()
 			break
 		}
-		testSourceListenerLock.Unlock()
+		testPluginListenerLock.Unlock()
 		t.Log("waiting for grpc server to start")
 		time.Sleep(time.Millisecond * 200)
 	}
@@ -103,7 +111,7 @@ func TestSourceSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
-	c := pb.NewSourceClient(conn)
+	c := pb.NewPluginClient(conn)
 
 	getNameRes, err := c.GetName(ctx, &pb.GetName_Request{})
 	if err != nil {
@@ -121,21 +129,17 @@ func TestSourceSuccess(t *testing.T) {
 		t.Fatalf("Expected version to be v1.0.0 but got %s", getVersionResponse.Version)
 	}
 
-	spec := specs.Source{
-		Name:         "testSourcePlugin",
-		Version:      "v1.0.0",
-		Path:         "cloudquery/testSourcePlugin",
-		Registry:     specs.RegistryGithub,
-		Tables:       []string{"test_table"},
-		Spec:         TestSourcePluginSpec{Accounts: []string{"cloudquery/plugin-sdk"}},
-		Destinations: []string{"test"},
-	}
-	specMarshaled, err := json.Marshal(spec)
-	if err != nil {
-		t.Fatalf("Failed to marshal spec: %v", err)
+	spec := pb.Spec{
+		Name:    "testSourcePlugin",
+		Version: "v1.0.0",
+		Path:    "cloudquery/testSourcePlugin",
+		SyncSpec: &pb.SyncSpec{
+			Tables:       []string{"test_table"},
+			Destinations: []string{"test"},
+		},
 	}
 
-	getTablesRes, err := c.GetTables(ctx, &pb.GetTables_Request{})
+	getTablesRes, err := c.GetStaticTables(ctx, &pb.GetStaticTables_Request{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +152,7 @@ func TestSourceSuccess(t *testing.T) {
 	if len(tables) != 2 {
 		t.Fatalf("Expected 2 tables but got %d", len(tables))
 	}
-	if _, err := c.Init(ctx, &pb.Init_Request{Spec: specMarshaled}); err != nil {
+	if _, err := c.Init(ctx, &pb.Init_Request{Spec: &spec}); err != nil {
 		t.Fatal(err)
 	}
 

@@ -5,7 +5,8 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/cloudquery/plugin-sdk/v3/types"
+	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 )
 
 // Scalar represents a single value of a specific DataType as opposed to
@@ -30,6 +31,13 @@ type Scalar interface {
 }
 
 type Vector []Scalar
+
+func (v Vector) ToArrowRecord(sc *arrow.Schema) arrow.Record {
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+	AppendToRecordBuilder(bldr, v)
+	rec := bldr.NewRecord()
+	return rec
+}
 
 func (v Vector) Equal(r Vector) bool {
 	if len(v) != len(r) {

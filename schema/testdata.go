@@ -11,7 +11,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v3/types"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
 	"golang.org/x/exp/slices"
 )
@@ -28,6 +28,7 @@ type TestSourceOptions struct {
 	SkipTimes      bool // time of day types
 	SkipLargeTypes bool // e.g. large binary, large string
 	TimePrecision  time.Duration
+	SkipDecimals   bool
 }
 
 // TestSourceColumns returns columns for all Arrow types and composites thereof. TestSourceOptions controls

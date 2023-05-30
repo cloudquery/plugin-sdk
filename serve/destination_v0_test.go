@@ -16,27 +16,27 @@ import (
 	"github.com/cloudquery/plugin-pb-go/specs"
 	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/testdata"
-	"github.com/cloudquery/plugin-sdk/v3/internal/deprecated"
-	"github.com/cloudquery/plugin-sdk/v3/internal/memdb"
-	serversDestination "github.com/cloudquery/plugin-sdk/v3/internal/servers/destination/v0"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v4/internal/deprecated"
+	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
+	serversDestination "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v0"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func bufDestinationDialer(context.Context, string) (net.Conn, error) {
-	testDestinationListenerLock.Lock()
-	defer testDestinationListenerLock.Unlock()
-	return testDestinationListener.Dial()
+	testPluginListenerLock.Lock()
+	defer testPluginListenerLock.Unlock()
+	return testPluginListener.Dial()
 }
 
 func TestDestination(t *testing.T) {
-	plugin := destination.NewPlugin("testDestinationPlugin", "development", memdb.NewClient)
-	s := &destinationServe{
+	plugin := plugin.NewPlugin("testDestinationPlugin", "development", memdb.NewClient)
+	s := &pluginServe{
 		plugin: plugin,
 	}
-	cmd := newCmdDestinationRoot(s)
+	cmd := newCmdPluginRoot(s)
 	cmd.SetArgs([]string{"serve", "--network", "test"})
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -54,12 +54,12 @@ func TestDestination(t *testing.T) {
 
 	// wait for the server to start
 	for {
-		testDestinationListenerLock.Lock()
-		if testDestinationListener != nil {
-			testDestinationListenerLock.Unlock()
+		testPluginListenerLock.Lock()
+		if testPluginListener != nil {
+			testPluginListenerLock.Unlock()
 			break
 		}
-		testDestinationListenerLock.Unlock()
+		testPluginListenerLock.Unlock()
 		t.Log("waiting for grpc server to start")
 		time.Sleep(time.Millisecond * 200)
 	}
@@ -163,8 +163,8 @@ func TestDestination(t *testing.T) {
 	for resource := range readCh {
 		totalResources++
 		if !array.RecordEqual(destRecord, resource) {
-			diff := destination.RecordDiff(destRecord, resource)
-			t.Fatalf("expected %v but got %v. Diff: %v", destRecord, resource, diff)
+			// diff := destination.RecordDiff(destRecord, resource)
+			t.Fatalf("expected %v but got %v", destRecord, resource)
 		}
 	}
 	if totalResources != 1 {

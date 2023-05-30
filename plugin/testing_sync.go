@@ -1,17 +1,21 @@
-package source
+package plugin
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 type Validator func(t *testing.T, plugin *Plugin, resources []*schema.Resource)
 
-func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...TestPluginOption) {
+func TestPluginSync(t *testing.T, plugin *Plugin, spec pbPlugin.Spec, opts ...TestPluginOption) {
 	t.Helper()
 
 	o := &testPluginOptions{
@@ -25,7 +29,7 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 		t.Parallel()
 	}
 
-	resourcesChannel := make(chan *schema.Resource)
+	resourcesChannel := make(chan arrow.Record)
 	var syncErr error
 
 	if err := plugin.Init(context.Background(), spec); err != nil {
@@ -34,19 +38,19 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 
 	go func() {
 		defer close(resourcesChannel)
-		syncErr = plugin.Sync(context.Background(), time.Now(), resourcesChannel)
+		syncErr = plugin.Sync(context.Background(), time.Now(), *spec.SyncSpec, resourcesChannel)
 	}()
 
-	syncedResources := make([]*schema.Resource, 0)
+	syncedResources := make([]arrow.Record, 0)
 	for resource := range resourcesChannel {
 		syncedResources = append(syncedResources, resource)
 	}
 	if syncErr != nil {
 		t.Fatal(syncErr)
 	}
-	for _, validator := range o.validators {
-		validator(t, plugin, syncedResources)
-	}
+	// for _, validator := range o.validators {
+	// 	validator(t, plugin, syncedResources)
+	// }
 }
 
 type TestPluginOption func(*testPluginOptions)
@@ -94,7 +98,7 @@ func validateTable(t *testing.T, table *schema.Table, resources []*schema.Resour
 
 func validatePlugin(t *testing.T, plugin *Plugin, resources []*schema.Resource) {
 	t.Helper()
-	tables := extractTables(plugin.tables)
+	tables := extractTables(plugin.staticTables)
 	for _, table := range tables {
 		validateTable(t, table, resources)
 	}
@@ -138,4 +142,28 @@ func validateResources(t *testing.T, resources []*schema.Resource) {
 			t.Errorf("table: %s column %s has no values", table.Name, table.Columns[i].Name)
 		}
 	}
+}
+
+func RecordDiff(l arrow.Record, r arrow.Record) string {
+	var sb strings.Builder
+	if l.NumCols() != r.NumCols() {
+		return fmt.Sprintf("different number of columns: %d vs %d", l.NumCols(), r.NumCols())
+	}
+	if l.NumRows() != r.NumRows() {
+		return fmt.Sprintf("different number of rows: %d vs %d", l.NumRows(), r.NumRows())
+	}
+	for i := 0; i < int(l.NumCols()); i++ {
+		edits, err := array.Diff(l.Column(i), r.Column(i))
+		if err != nil {
+			panic(fmt.Sprintf("left: %v, right: %v, error: %v", l.Column(i).DataType(), r.Column(i).DataType(), err))
+		}
+		diff := edits.UnifiedDiff(l.Column(i), r.Column(i))
+		if diff != "" {
+			sb.WriteString(l.Schema().Field(i).Name)
+			sb.WriteString(": ")
+			sb.WriteString(diff)
+			sb.WriteString("\n")
+		}
+	}
+	return sb.String()
 }

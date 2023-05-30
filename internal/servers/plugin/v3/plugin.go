@@ -12,14 +12,10 @@ import (
 	"path/filepath"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
-	"github.com/apache/arrow/go/v13/arrow/memory"
-	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v0"
-	"github.com/cloudquery/plugin-sdk/v3/plugin"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/source"
-	"github.com/cloudquery/plugin-sdk/v3/scalar"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
@@ -34,7 +30,7 @@ type Server struct {
 	pb.UnimplementedPluginServer
 	Plugin *plugin.Plugin
 	Logger zerolog.Logger
-	spec pb.Spec
+	spec   pb.Spec
 }
 
 func (s *Server) GetStaticTables(context.Context, *pb.GetStaticTables_Request) (*pb.GetStaticTables_Response, error) {
@@ -81,23 +77,19 @@ func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Respo
 }
 
 func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
-	resources := make(chan *schema.Resource)
+	records := make(chan arrow.Record)
 	var syncErr error
 	ctx := stream.Context()
 
 	go func() {
-		defer close(resources)
-		err := s.Plugin.Sync(ctx, req.SyncTime.AsTime(), *req.SyncSpec, resources)
+		defer close(records)
+		err := s.Plugin.Sync(ctx, req.SyncTime.AsTime(), *req.SyncSpec, records)
 		if err != nil {
-			syncErr = fmt.Errorf("failed to sync resources: %w", err)
+			syncErr = fmt.Errorf("failed to sync records: %w", err)
 		}
 	}()
 
-	for resource := range resources {
-		vector := resource.GetValues()
-		bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
-		scalar.AppendToRecordBuilder(bldr, vector)
-		rec := bldr.NewRecord()
+	for rec := range records {
 
 		var buf bytes.Buffer
 		w := ipc.NewWriter(&buf, ipc.WithSchema(rec.Schema()))
@@ -111,9 +103,11 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		msg := &pb.Sync_Response{
 			Resource: buf.Bytes(),
 		}
-		err := checkMessageSize(msg, resource)
+		err := checkMessageSize(msg, rec)
 		if err != nil {
-			s.Logger.Warn().Str("table", resource.Table.Name).
+			sc := rec.Schema()
+			tName, _ := sc.Metadata().GetValue(schema.MetadataTableName)
+			s.Logger.Warn().Str("table", tName).
 				Int("bytes", len(msg.String())).
 				Msg("Row exceeding max bytes ignored")
 			continue
@@ -130,7 +124,7 @@ func (s *Server) GetMetrics(context.Context, *pb.GetMetrics_Request) (*pb.GetMet
 	// Aggregate metrics before sending to keep response size small.
 	// Temporary fix for https://github.com/cloudquery/cloudquery/issues/3962
 	m := s.Plugin.Metrics()
-	agg := &source.TableClientMetrics{}
+	agg := &plugin.TableClientMetrics{}
 	for _, table := range m.TableClient {
 		for _, tableClient := range table {
 			agg.Resources += tableClient.Resources
@@ -138,8 +132,8 @@ func (s *Server) GetMetrics(context.Context, *pb.GetMetrics_Request) (*pb.GetMet
 			agg.Panics += tableClient.Panics
 		}
 	}
-	b, err := json.Marshal(&source.Metrics{
-		TableClient: map[string]map[string]*source.TableClientMetrics{"": {"": agg}},
+	b, err := json.Marshal(&plugin.Metrics{
+		TableClient: map[string]map[string]*plugin.TableClientMetrics{"": {"": agg}},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal source metrics: %w", err)
@@ -255,7 +249,7 @@ func (s *Server) GenDocs(req *pb.GenDocs_Request, srv pb.Plugin_GenDocsServer) e
 		}
 		if err := srv.Send(&pb.GenDocs_Response{
 			Filename: f.Name(),
-			Content: content,
+			Content:  content,
 		}); err != nil {
 			return fmt.Errorf("failed to send file: %w", err)
 		}
@@ -263,12 +257,14 @@ func (s *Server) GenDocs(req *pb.GenDocs_Request, srv pb.Plugin_GenDocsServer) e
 	return nil
 }
 
-func checkMessageSize(msg proto.Message, resource *schema.Resource) error {
+func checkMessageSize(msg proto.Message, record arrow.Record) error {
 	size := proto.Size(msg)
 	// log error to Sentry if row exceeds half of the max size
 	if size > MaxMsgSize/2 {
+		sc := record.Schema()
+		tName, _ := sc.Metadata().GetValue(schema.MetadataTableName)
 		sentry.WithScope(func(scope *sentry.Scope) {
-			scope.SetTag("table", resource.Table.Name)
+			scope.SetTag("table", tName)
 			scope.SetExtra("bytes", size)
 			sentry.CurrentHub().CaptureMessage("Large message detected")
 		})

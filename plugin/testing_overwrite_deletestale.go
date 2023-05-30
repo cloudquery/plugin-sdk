@@ -1,4 +1,4 @@
-package destination
+package plugin
 
 import (
 	"context"
@@ -6,16 +6,16 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
-	"github.com/cloudquery/plugin-sdk/v3/types"
+	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testOpts PluginTestSuiteRunnerOptions) error {
-	spec.WriteMode = specs.WriteModeOverwriteDeleteStale
-	if err := p.Init(ctx, logger, spec); err != nil {
+func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec pbPlugin.Spec, testOpts PluginTestSuiteRunnerOptions) error {
+	spec.WriteSpec.WriteMode = pbPlugin.WRITE_MODE_WRITE_MODE_OVERWRITE_DELETE_STALE
+	if err := p.Init(ctx, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
@@ -32,9 +32,9 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	sourceName := "testOverwriteSource" + uuid.NewString()
-	sourceSpec := specs.Source{
+	sourceSpec := pbPlugin.Spec{
 		Name:    sourceName,
-		Backend: specs.BackendLocal,
+		// Backend: specs.BackendLocal,
 	}
 
 	opts := schema.GenTestDataOptions{
@@ -61,6 +61,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if len(resourcesRead) != 2 {
 		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
 	}
+	testOpts.AllowNull.replaceNullsByEmpty(resources)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(resources)
 	}
@@ -111,6 +112,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if len(resourcesRead) != 1 {
 		return fmt.Errorf("after overwrite expected 1 resource, got %d", len(resourcesRead))
 	}
+	testOpts.AllowNull.replaceNullsByEmpty(resources)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(resources)
 	}
@@ -128,6 +130,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	// we expect the only resource returned to match the updated resource we wrote
+	testOpts.AllowNull.replaceNullsByEmpty(updatedResources)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(updatedResources)
 	}

@@ -13,20 +13,21 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/ipc"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/internal/memdb"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestDestinationV1(t *testing.T) {
-	plugin := destination.NewPlugin("testDestinationPlugin", "development", memdb.NewClient)
-	s := &destinationServe{
+	plugin := plugin.NewPlugin("testDestinationPlugin", "development", memdb.NewClient)
+	s := &pluginServe{
 		plugin: plugin,
 	}
-	cmd := newCmdDestinationRoot(s)
+	cmd := newCmdPluginRoot(s)
 	cmd.SetArgs([]string{"serve", "--network", "test"})
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -44,12 +45,12 @@ func TestDestinationV1(t *testing.T) {
 
 	// wait for the server to start
 	for {
-		testDestinationListenerLock.Lock()
-		if testDestinationListener != nil {
-			testDestinationListenerLock.Unlock()
+		testPluginListenerLock.Lock()
+		if testPluginListener != nil {
+			testPluginListenerLock.Unlock()
 			break
 		}
-		testDestinationListenerLock.Unlock()
+		testPluginListenerLock.Unlock()
 		t.Log("waiting for grpc server to start")
 		time.Sleep(time.Millisecond * 200)
 	}

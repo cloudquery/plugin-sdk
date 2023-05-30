@@ -1,8 +1,7 @@
-package destination
+package plugin
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sort"
 	"strings"
@@ -11,9 +10,9 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
-	"github.com/cloudquery/plugin-sdk/v3/types"
+	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/rs/zerolog"
 )
 
@@ -23,11 +22,11 @@ type PluginTestSuite struct {
 
 // MigrateStrategy defines which tests we should include
 type MigrateStrategy struct {
-	AddColumn           specs.MigrateMode
-	AddColumnNotNull    specs.MigrateMode
-	RemoveColumn        specs.MigrateMode
-	RemoveColumnNotNull specs.MigrateMode
-	ChangeColumn        specs.MigrateMode
+	AddColumn           pbPlugin.WriteSpec_MIGRATE_MODE
+	AddColumnNotNull    pbPlugin.WriteSpec_MIGRATE_MODE
+	RemoveColumn        pbPlugin.WriteSpec_MIGRATE_MODE
+	RemoveColumnNotNull pbPlugin.WriteSpec_MIGRATE_MODE
+	ChangeColumn        pbPlugin.WriteSpec_MIGRATE_MODE
 }
 
 type PluginTestSuiteTests struct {
@@ -66,30 +65,6 @@ type PluginTestSuiteTests struct {
 	MigrateStrategyAppend    MigrateStrategy
 }
 
-func RecordDiff(l arrow.Record, r arrow.Record) string {
-	var sb strings.Builder
-	if l.NumCols() != r.NumCols() {
-		return fmt.Sprintf("different number of columns: %d vs %d", l.NumCols(), r.NumCols())
-	}
-	if l.NumRows() != r.NumRows() {
-		return fmt.Sprintf("different number of rows: %d vs %d", l.NumRows(), r.NumRows())
-	}
-	for i := 0; i < int(l.NumCols()); i++ {
-		edits, err := array.Diff(l.Column(i), r.Column(i))
-		if err != nil {
-			panic(fmt.Sprintf("left: %v, right: %v, error: %v", l.Column(i).DataType(), r.Column(i).DataType(), err))
-		}
-		diff := edits.UnifiedDiff(l.Column(i), r.Column(i))
-		if diff != "" {
-			sb.WriteString(l.Schema().Field(i).Name)
-			sb.WriteString(": ")
-			sb.WriteString(diff)
-			sb.WriteString("\n")
-		}
-	}
-	return sb.String()
-}
-
 func getTestLogger(t *testing.T) zerolog.Logger {
 	t.Helper()
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
@@ -101,8 +76,23 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 type NewPluginFunc func() *Plugin
 
 type PluginTestSuiteRunnerOptions struct {
-	IgnoreNullsInLists bool // strip nulls from lists before checking equality. Destination setups that don't support nulls in lists should set this to true.
+	// IgnoreNullsInLists allows stripping null values from lists before comparison.
+	// Destination setups that don't support nulls in lists should set this to true.
+	IgnoreNullsInLists bool
+
+	// AllowNull is a custom func to determine whether a data type may be correctly represented as null.
+	// Destinations that have problems representing some data types should provide a custom implementation here.
+	// If this param is empty, the default is to allow all data types to be nullable.
+	// When the value returned by this func is `true` the comparison is made with the empty value instead of null.
+	AllowNull AllowNullFunc
+
 	schema.TestSourceOptions
+}
+
+func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.AllowNull = allowNull
+	}
 }
 
 func WithTestIgnoreNullsInLists() func(o *PluginTestSuiteRunnerOptions) {
@@ -171,7 +161,13 @@ func WithTestSourceSkipLargeTypes() func(o *PluginTestSuiteRunnerOptions) {
 	}
 }
 
-func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs.Destination, tests PluginTestSuiteTests, testOptions ...func(o *PluginTestSuiteRunnerOptions)) {
+func WithTestSourceSkipDecimals() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipDecimals = true
+	}
+}
+
+func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec pbPlugin.Spec, tests PluginTestSuiteTests, testOptions ...func(o *PluginTestSuiteRunnerOptions)) {
 	t.Helper()
 	destSpec.Name = "testsuite"
 
@@ -226,8 +222,8 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipMigrateOverwrite {
 			t.Skip("skipping " + t.Name())
 		}
-		destSpec.WriteMode = specs.WriteModeOverwrite
-		destSpec.MigrateMode = specs.MigrateModeSafe
+		destSpec.WriteSpec.WriteMode = pbPlugin.WRITE_MODE_WRITE_MODE_OVERWRITE
+		destSpec.WriteSpec.MigrateMode = pbPlugin.WriteSpec_SAFE
 		destSpec.Name = "test_migrate_overwrite"
 		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite, opts)
 	})
@@ -237,8 +233,8 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipMigrateOverwriteForce {
 			t.Skip("skipping " + t.Name())
 		}
-		destSpec.WriteMode = specs.WriteModeOverwrite
-		destSpec.MigrateMode = specs.MigrateModeForced
+		destSpec.WriteSpec.WriteMode = pbPlugin.WRITE_MODE_WRITE_MODE_OVERWRITE
+		destSpec.WriteSpec.MigrateMode = pbPlugin.WriteSpec_FORCE
 		destSpec.Name = "test_migrate_overwrite_force"
 		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite, opts)
 	})
@@ -263,8 +259,8 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipMigrateAppend {
 			t.Skip("skipping " + t.Name())
 		}
-		destSpec.WriteMode = specs.WriteModeAppend
-		destSpec.MigrateMode = specs.MigrateModeSafe
+		destSpec.WriteSpec.WriteMode = pbPlugin.WRITE_MODE_WRITE_MODE_APPEND
+		destSpec.WriteSpec.MigrateMode = pbPlugin.WriteSpec_SAFE
 		destSpec.Name = "test_migrate_append"
 		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend, opts)
 	})
@@ -274,8 +270,8 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipMigrateAppendForce {
 			t.Skip("skipping " + t.Name())
 		}
-		destSpec.WriteMode = specs.WriteModeAppend
-		destSpec.MigrateMode = specs.MigrateModeForced
+		destSpec.WriteSpec.WriteMode = pbPlugin.WRITE_MODE_WRITE_MODE_APPEND
+		destSpec.WriteSpec.MigrateMode = pbPlugin.WriteSpec_FORCE
 		destSpec.Name = "test_migrate_append_force"
 		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend, opts)
 	})

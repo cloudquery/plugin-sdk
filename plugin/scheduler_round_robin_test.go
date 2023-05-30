@@ -3,7 +3,7 @@ package plugin
 import (
 	"testing"
 
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 func TestRoundRobinInterleave(t *testing.T) {
