@@ -186,6 +186,12 @@ func WithTestSourceSkipLargeTypes() func(o *PluginTestSuiteRunnerOptions) {
 	}
 }
 
+func WithTestSourceSkipDecimals() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipDecimals = true
+	}
+}
+
 func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs.Destination, tests PluginTestSuiteTests, testOptions ...func(o *PluginTestSuiteRunnerOptions)) {
 	t.Helper()
 	destSpec.Name = "testsuite"
