@@ -126,9 +126,6 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.STRUCT:
 		return &Struct{Type: dt.(*arrow.StructType)}
 
-	// case arrow.MAP:
-	//	return &Map{Type: dt.(*arrow.MapType)}
-
 	case arrow.DECIMAL128:
 		return &Decimal128{Type: dt.(*arrow.Decimal128Type)}
 	case arrow.DECIMAL256:
