@@ -126,8 +126,8 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.STRUCT:
 		return &Struct{Type: dt.(*arrow.StructType)}
 
-	case arrow.MAP:
-		return &Map{Type: dt.(*arrow.MapType)}
+	// case arrow.MAP:
+	//	return &Map{Type: dt.(*arrow.MapType)}
 
 	case arrow.DECIMAL128:
 		return &Decimal128{Type: dt.(*arrow.Decimal128Type)}
@@ -218,19 +218,6 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 
 			AppendToBuilder(sb.FieldBuilder(i), sc)
 		}
-
-	case arrow.MAP:
-		mb := bldr.(*array.MapBuilder)
-		mb.Append(true)
-
-		v := s.(*Map).Value
-		_ = v
-		//m := v.(map[any]any)
-		//mt := mb.Type().(*arrow.MapType)
-		//
-		//for i, f := range mt.Fields() {
-		//
-		//}
 
 	case arrow.LIST:
 		lb := bldr.(*array.ListBuilder)
