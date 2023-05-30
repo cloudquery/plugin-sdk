@@ -56,6 +56,9 @@ func TestNewScalar(t *testing.T) {
 		{dt: arrow.FixedWidthTypes.MonthInterval, input: map[string]any{"months": 1}},
 
 		{dt: arrow.StructOf(arrow.Field{Name: "i64", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "s", Type: arrow.BinaryTypes.String}), input: `{"i64": 1, "s": "foo"}`},
+		{dt: arrow.MapOf(arrow.BinaryTypes.String, arrow.PrimitiveTypes.Int64), input: `{"foo": 1, "bar": 2}`},
+		{dt: &arrow.Decimal128Type{Precision: 10, Scale: 5}},
+		{dt: &arrow.Decimal256Type{Precision: 10, Scale: 5}},
 	}
 
 	for _, tc := range tl {
@@ -71,7 +74,7 @@ func TestNewScalar(t *testing.T) {
 			defer bldr.Release()
 
 			s := NewScalar(tc.dt)
-			if s.DataType() != tc.dt {
+			if !arrow.TypeEqual(s.DataType(), tc.dt) {
 				t.Fatalf("expected %v, got %v", tc.dt, s.DataType())
 			}
 
@@ -101,6 +104,7 @@ func TestNewScalar(t *testing.T) {
 				tc.dt.ID() == arrow.TIME32,
 				tc.dt.ID() == arrow.TIME64,
 				tc.dt.ID() == arrow.TIMESTAMP,
+				arrow.IsDecimal(tc.dt.ID()),
 				arrow.IsNested(tc.dt.ID()):
 
 			case arrow.IsInteger(tc.dt.ID()), arrow.IsFloating(tc.dt.ID()):
@@ -108,19 +112,19 @@ func TestNewScalar(t *testing.T) {
 				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, i8))
 
 				var i16 *int16
-				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, i16))
+				t.Run("double_set_typed_nil_int16", genDoubleSetTest(tc.dt, tc.input, i16))
 
 				var i32 *int32
-				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, i32))
+				t.Run("double_set_typed_nil_int32", genDoubleSetTest(tc.dt, tc.input, i32))
 
 				var i64 *int64
-				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, i64))
+				t.Run("double_set_typed_nil_int64", genDoubleSetTest(tc.dt, tc.input, i64))
 
 				var f32 *float32
-				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, f32))
+				t.Run("double_set_typed_nil_f32", genDoubleSetTest(tc.dt, tc.input, f32))
 
 				var f64 *float64
-				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, f64))
+				t.Run("double_set_typed_nil_f64", genDoubleSetTest(tc.dt, tc.input, f64))
 
 			default:
 				var val []byte
@@ -138,7 +142,7 @@ func genDoubleSetTest(dt arrow.DataType, input any, setToNil any) func(t *testin
 		defer bldr.Release()
 
 		s := NewScalar(dt)
-		if s.DataType() != dt {
+		if !arrow.TypeEqual(s.DataType(), dt) {
 			t.Fatalf("expected %v, got %v", dt, s.DataType())
 		}
 

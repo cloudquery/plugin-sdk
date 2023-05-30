@@ -7,40 +7,40 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 )
 
-type Struct struct {
+type Map struct {
 	Valid bool
 	Value any
 
 	Type arrow.DataType
 }
 
-func (s *Struct) IsValid() bool {
+func (s *Map) IsValid() bool {
 	return s.Valid
 }
 
-func (s *Struct) Equal(rhs Scalar) bool {
+func (s *Map) Equal(rhs Scalar) bool {
 	if rhs == nil {
 		return false
 	}
-	r, ok := rhs.(*Struct)
+	r, ok := rhs.(*Map)
 	if !ok {
 		return false
 	}
 	return s.Valid == r.Valid && arrow.TypeEqual(s.Type, r.Type) && reflect.DeepEqual(s.Value, r.Value)
 }
 
-func (s *Struct) String() string {
+func (s *Map) String() string {
 	if !s.Valid {
 		return nullValueStr
 	}
 	return s.Type.String() + " value"
 }
 
-func (s *Struct) Get() any {
+func (s *Map) Get() any {
 	return s.Value
 }
 
-func (s *Struct) Set(val any) error {
+func (s *Map) Set(val any) error {
 	if val == nil {
 		s.Valid = false
 		return nil
@@ -69,6 +69,6 @@ func (s *Struct) Set(val any) error {
 	return nil
 }
 
-func (s *Struct) DataType() arrow.DataType {
+func (s *Map) DataType() arrow.DataType {
 	return s.Type
 }

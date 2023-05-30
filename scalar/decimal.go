@@ -9,14 +9,15 @@ import (
 type Decimal256 struct {
 	Valid bool
 	Value decimal256.Num
+	Type  arrow.DataType // Stores precision and scale
 }
 
 func (s *Decimal256) IsValid() bool {
 	return s.Valid
 }
 
-func (*Decimal256) DataType() arrow.DataType {
-	return &arrow.Decimal256Type{}
+func (s *Decimal256) DataType() arrow.DataType {
+	return s.Type
 }
 
 func (s *Decimal256) Equal(rhs Scalar) bool {
@@ -72,6 +73,34 @@ func (s *Decimal256) Set(val any) error {
 			return nil
 		}
 		return s.Set(*value)
+	case int64:
+		s.Value = decimal256.FromI64(value)
+	case uint64:
+		s.Value = decimal256.FromU64(value)
+	case string:
+		v, err := decimal256.FromString(value, s.Precision(), s.Scale())
+		if err != nil {
+			return err
+		}
+		s.Value = v
+	case *int64:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *uint64:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *string:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
 	default:
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
@@ -79,17 +108,26 @@ func (s *Decimal256) Set(val any) error {
 	return nil
 }
 
+func (s *Decimal256) Precision() int32 {
+	return s.Type.(arrow.DecimalType).GetPrecision()
+}
+
+func (s *Decimal256) Scale() int32 {
+	return s.Type.(arrow.DecimalType).GetScale()
+}
+
 type Decimal128 struct {
 	Valid bool
 	Value decimal128.Num
+	Type  arrow.DataType // Stores precision and scale
 }
 
 func (s *Decimal128) IsValid() bool {
 	return s.Valid
 }
 
-func (*Decimal128) DataType() arrow.DataType {
-	return &arrow.Decimal128Type{}
+func (s *Decimal128) DataType() arrow.DataType {
+	return s.Type
 }
 
 func (s *Decimal128) Equal(rhs Scalar) bool {
@@ -137,9 +175,45 @@ func (s *Decimal128) Set(val any) error {
 			return nil
 		}
 		return s.Set(*value)
+	case int64:
+		s.Value = decimal128.FromI64(value)
+	case uint64:
+		s.Value = decimal128.FromU64(value)
+	case string:
+		v, err := decimal128.FromString(value, s.Precision(), s.Scale())
+		if err != nil {
+			return err
+		}
+		s.Value = v
+	case *int64:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *uint64:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *string:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
 	default:
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
 	s.Valid = true
 	return nil
+}
+
+func (s *Decimal128) Precision() int32 {
+	return s.Type.(arrow.DecimalType).GetPrecision()
+}
+
+func (s *Decimal128) Scale() int32 {
+	return s.Type.(arrow.DecimalType).GetScale()
 }
