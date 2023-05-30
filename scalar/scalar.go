@@ -211,9 +211,13 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 				if err := sc.Set(sv); err != nil {
 					panic(err)
 				}
+				delete(m, f.Name)
 			}
 
 			AppendToBuilder(sb.FieldBuilder(i), sc)
+		}
+		if len(m) > 0 {
+			panic(fmt.Errorf("struct has extra fields: %+v", m))
 		}
 
 	case arrow.LIST:
