@@ -91,6 +91,9 @@ func (c Column) ToArrowField() arrow.Field {
 }
 
 func (c Column) String() string {
+	if c.Name == "" {
+		return "<empty>"
+	}
 	var sb strings.Builder
 	sb.WriteString(c.Name)
 	sb.WriteString(":")

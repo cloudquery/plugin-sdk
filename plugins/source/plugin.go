@@ -334,25 +334,6 @@ func (p *Plugin) Sync(ctx context.Context, syncTime time.Time, res chan<- *schem
 	return nil
 }
 
-func (p *Plugin) doSync(ctx context.Context, res chan<- *schema.Resource) error {
-	if p.unmanaged {
-		unmanagedClient := p.client.(UnmanagedClient)
-		if err := unmanagedClient.Sync(ctx, p.metrics, res); err != nil {
-			return fmt.Errorf("failed to sync unmanaged client: %w", err)
-		}
-		return nil
-	}
-	switch p.spec.Scheduler {
-	case specs.SchedulerDFS:
-		p.syncDfs(ctx, p.spec, p.client, p.sessionTables, res)
-	case specs.SchedulerRoundRobin:
-		p.syncRoundRobin(ctx, p.spec, p.client, p.sessionTables, res)
-	default:
-		return fmt.Errorf("unknown scheduler %s. Options are: %v", p.spec.Scheduler, specs.AllSchedulers.String())
-	}
-	return nil
-}
-
 func (p *Plugin) doSyncWithLimitedTypeSupport(ctx context.Context, res chan<- *schema.Resource) error {
 	// lazily populated map of tables that have been converted to limited type support
 	convertedTables := make(map[string]*schema.Table)
@@ -373,13 +354,35 @@ func (p *Plugin) doSyncWithLimitedTypeSupport(ctx context.Context, res chan<- *s
 	return syncErr
 }
 
+func (p *Plugin) doSync(ctx context.Context, res chan<- *schema.Resource) error {
+	if p.unmanaged {
+		unmanagedClient := p.client.(UnmanagedClient)
+		if err := unmanagedClient.Sync(ctx, p.metrics, res); err != nil {
+			return fmt.Errorf("failed to sync unmanaged client: %w", err)
+		}
+		return nil
+	}
+	switch p.spec.Scheduler {
+	case specs.SchedulerDFS:
+		p.syncDfs(ctx, p.spec, p.client, p.sessionTables, res)
+	case specs.SchedulerRoundRobin:
+		p.syncRoundRobin(ctx, p.spec, p.client, p.sessionTables, res)
+	default:
+		return fmt.Errorf("unknown scheduler %s. Options are: %v", p.spec.Scheduler, specs.AllSchedulers.String())
+	}
+	return nil
+}
+
 func convertResourceToLimitedTypeSupport(newTable *schema.Table, r *schema.Resource) *schema.Resource {
 	if newTable == nil {
 		newTable = convertTableToLimitedTypeSupport(r.Table)
 	}
 	newResource := schema.NewResourceData(newTable, r.Parent, r.Item)
 	for _, col := range r.Table.Columns {
-		newResource.Set(col.Name, r.Get(col.Name))
+		err := newResource.Set(col.Name, r.Get(col.Name))
+		if err != nil {
+			panic(fmt.Errorf("failed to set column %s: %w", col.Name, err))
+		}
 	}
 	return newResource
 }
@@ -457,8 +460,8 @@ func convertTableToLimitedTypeSupport(table *schema.Table) *schema.Table {
 	return newTable
 }
 
-func typeOneOf(dt arrow.DataType, types ...arrow.DataType) bool {
-	for _, t := range types {
+func typeOneOf(dt arrow.DataType, tps ...arrow.DataType) bool {
+	for _, t := range tps {
 		if arrow.TypeEqual(dt, t) {
 			return true
 		}
