@@ -113,28 +113,7 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.DATE32:
 		return &Date32{}
 	case arrow.DURATION:
-		switch {
-		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Duration_ms):
-			return &Duration{
-				Int:  Int{BitWidth: 64},
-				Unit: arrow.Millisecond,
-			}
-		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Duration_ns):
-			return &Duration{
-				Int:  Int{BitWidth: 64},
-				Unit: arrow.Nanosecond,
-			}
-		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Duration_s):
-			return &Duration{
-				Int:  Int{BitWidth: 64},
-				Unit: arrow.Second,
-			}
-		default:
-			return &Duration{
-				Int:  Int{BitWidth: 64},
-				Unit: arrow.Microsecond,
-			}
-		}
+		return &Duration{Int:  Int{BitWidth: 64}, Unit: dt.(*arrow.DurationType).Unit}
 	case arrow.TIME32, arrow.TIME64:
 		switch {
 		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Time32s):
