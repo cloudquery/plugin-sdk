@@ -1,8 +1,11 @@
 package scalar
 
 import (
+	"math"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFloat32Set(t *testing.T) {
@@ -83,5 +86,45 @@ func TestFloat64Set(t *testing.T) {
 		if !r.Equal(&tt.result) {
 			t.Errorf("%d: %v != %v", i, r, tt.result)
 		}
+	}
+}
+
+func TestFloatOverflows(t *testing.T) {
+	cases := []struct {
+		source      any
+		bitWidth    uint8
+		expectError bool
+	}{
+		{source: uint64(math.MaxInt32), bitWidth: 64, expectError: false},
+		{source: uint64(math.MaxInt32 + 1), bitWidth: 64, expectError: false},
+		{source: uint64(math.MaxInt64), bitWidth: 64, expectError: true},
+		{source: uint64(math.MaxUint32), bitWidth: 64, expectError: false},
+		{source: uint64(math.MaxUint64), bitWidth: 64, expectError: true},
+		{source: int64(math.MinInt64), bitWidth: 64, expectError: true},
+		{source: int64(math.MinInt32), bitWidth: 64, expectError: false},
+		{source: int64(math.MinInt32 - 1), bitWidth: 64, expectError: false},
+
+		{source: uint64(math.MaxInt16), bitWidth: 32, expectError: false},
+		{source: uint64(math.MaxInt16 + 1), bitWidth: 32, expectError: false},
+		{source: uint64(math.MaxInt32), bitWidth: 32, expectError: true},
+		{source: uint64(math.MaxUint16), bitWidth: 32, expectError: false},
+		{source: uint64(math.MaxUint32), bitWidth: 32, expectError: true},
+		{source: int64(math.MinInt32), bitWidth: 32, expectError: true},
+		{source: int64(math.MinInt16), bitWidth: 32, expectError: false},
+		{source: int64(math.MinInt16 - 1), bitWidth: 32, expectError: false},
+	}
+	for idx, tc := range cases {
+		tc := tc
+		t.Run(strconv.Itoa(idx), func(t *testing.T) {
+			t.Parallel()
+
+			r := Float{BitWidth: tc.bitWidth}
+			err := r.Set(tc.source)
+			if tc.expectError {
+				assert.Errorf(t, err, "with %T %#v", tc.source, tc.source)
+			} else {
+				assert.NoErrorf(t, err, "with %T %#v", tc.source, tc.source)
+			}
+		})
 	}
 }

@@ -66,22 +66,45 @@ func (s *Float) Set(val any) error {
 		return s.Set(sc.Get())
 	}
 
+	const (
+		minSafeValue64 = -2 << 53
+		maxSafeValue64 = 2 << 53
+		minSafeValue32 = -2 << 24
+		maxSafeValue32 = 2 << 24
+	)
+
 	switch value := val.(type) {
 	case int8:
-		return s.Set(float64(value))
+		return s.Set(int64(value))
 	case int16:
-		return s.Set(float64(value))
+		return s.Set(int64(value))
 	case int32:
-		return s.Set(float64(value))
+		return s.Set(int64(value))
 	case int64:
+		switch {
+		case s.getBitWidth() == 64 && value > maxSafeValue64:
+			return &ValidationError{Type: s.DataType(), Msg: "int64 bigger than maximum safe value of 2^53", Value: value}
+		case s.getBitWidth() == 64 && value < minSafeValue64:
+			return &ValidationError{Type: s.DataType(), Msg: "int64 smaller than minimum safe value of -2^53", Value: value}
+		case s.getBitWidth() == 32 && value > maxSafeValue32:
+			return &ValidationError{Type: s.DataType(), Msg: "int64 bigger than maximum safe value of 2^24", Value: value}
+		case s.getBitWidth() == 32 && value < minSafeValue32:
+			return &ValidationError{Type: s.DataType(), Msg: "int64 smaller than minimum safe value of -2^24", Value: value}
+		}
 		return s.Set(float64(value))
 	case uint8:
-		return s.Set(float64(value))
+		return s.Set(uint64(value))
 	case uint16:
-		return s.Set(float64(value))
+		return s.Set(uint64(value))
 	case uint32:
-		return s.Set(float64(value))
+		return s.Set(uint64(value))
 	case uint64:
+		switch {
+		case s.getBitWidth() == 64 && value > maxSafeValue64:
+			return &ValidationError{Type: s.DataType(), Msg: "uint64 bigger than maximum safe value of 2^53", Value: value}
+		case s.getBitWidth() == 32 && value > maxSafeValue32:
+			return &ValidationError{Type: s.DataType(), Msg: "uint64 bigger than maximum safe value of 2^24", Value: value}
+		}
 		return s.Set(float64(value))
 	case float32:
 		return s.Set(float64(value))
