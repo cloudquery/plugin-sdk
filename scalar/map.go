@@ -11,7 +11,7 @@ type Map struct {
 	Valid bool
 	Value any
 
-	Type arrow.DataType
+	Type *arrow.MapType
 }
 
 func (s *Map) IsValid() bool {

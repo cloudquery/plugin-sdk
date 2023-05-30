@@ -49,7 +49,7 @@ func (v Vector) Equal(r Vector) bool {
 func NewScalar(dt arrow.DataType) Scalar {
 	switch dt.ID() {
 	case arrow.TIMESTAMP:
-		return &Timestamp{Unit: dt.(*arrow.TimestampType).Unit}
+		return &Timestamp{Type: dt.(*arrow.TimestampType)}
 	case arrow.BINARY:
 		return &Binary{}
 	case arrow.STRING:
@@ -124,10 +124,10 @@ func NewScalar(dt arrow.DataType) Scalar {
 		return &MonthDayNanoInterval{}
 
 	case arrow.STRUCT:
-		return &Struct{Type: dt}
+		return &Struct{Type: dt.(*arrow.StructType)}
 
 	case arrow.MAP:
-		return &Map{Type: dt}
+		return &Map{Type: dt.(*arrow.MapType)}
 
 	case arrow.DECIMAL128:
 		return &Decimal128{Type: dt.(*arrow.Decimal128Type)}

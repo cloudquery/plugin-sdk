@@ -11,7 +11,7 @@ type Struct struct {
 	Valid bool
 	Value any
 
-	Type arrow.DataType
+	Type *arrow.StructType
 }
 
 func (s *Struct) IsValid() bool {
