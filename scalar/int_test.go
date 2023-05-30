@@ -33,17 +33,18 @@ func TestInt8Set(t *testing.T) {
 	}
 
 	for _, bitWidth := range []uint8{8, 16, 32, 64} {
+		bitWidth := bitWidth
 		t.Run(strconv.Itoa(int(bitWidth)), func(t *testing.T) {
 			t.Parallel()
 
 			for i, tt := range successfulTests {
 				r := Int{BitWidth: bitWidth}
-
 				err := r.Set(tt.source)
 				if err != nil {
 					t.Errorf("%d: %v", i, err)
 				}
 
+				tt.expect.BitWidth = bitWidth
 				if !r.Equal(&tt.expect) {
 					t.Errorf("%d: %v != %v", i, r, tt.expect)
 				}
@@ -94,14 +95,12 @@ func TestIntOverflows(t *testing.T) {
 			t.Parallel()
 
 			r := Int{BitWidth: tc.bitWidth}
-
 			err := r.Set(tc.source)
 			if tc.expectError {
 				assert.Errorf(t, err, "with %T %#v", tc.source, tc.source)
 			} else {
 				assert.NoErrorf(t, err, "with %T %#v", tc.source, tc.source)
 			}
-
 		})
 	}
 }
