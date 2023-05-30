@@ -1,4 +1,4 @@
-package memdb
+package plugin
 
 import (
 	"context"
@@ -7,14 +7,13 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
-	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
-var migrateStrategyOverwrite = plugin.MigrateStrategy{
+var migrateStrategyOverwrite = MigrateStrategy{
 	AddColumn:           pbPlugin.WriteSpec_FORCE,
 	AddColumnNotNull:    pbPlugin.WriteSpec_FORCE,
 	RemoveColumn:        pbPlugin.WriteSpec_FORCE,
@@ -22,7 +21,7 @@ var migrateStrategyOverwrite = plugin.MigrateStrategy{
 	ChangeColumn:        pbPlugin.WriteSpec_FORCE,
 }
 
-var migrateStrategyAppend = plugin.MigrateStrategy{
+var migrateStrategyAppend = MigrateStrategy{
 	AddColumn:           pbPlugin.WriteSpec_FORCE,
 	AddColumnNotNull:    pbPlugin.WriteSpec_FORCE,
 	RemoveColumn:        pbPlugin.WriteSpec_FORCE,
@@ -31,13 +30,13 @@ var migrateStrategyAppend = plugin.MigrateStrategy{
 }
 
 func TestPluginUnmanagedClient(t *testing.T) {
-	plugin.PluginTestSuiteRunner(
+	PluginTestSuiteRunner(
 		t,
-		func() *plugin.Plugin {
-			return plugin.NewPlugin("test", "development", NewClient)
+		func() *Plugin {
+			return NewPlugin("test", "development", NewMemDBClient)
 		},
 		pbPlugin.Spec{},
-		plugin.PluginTestSuiteTests{
+		PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
 		},
@@ -45,55 +44,55 @@ func TestPluginUnmanagedClient(t *testing.T) {
 }
 
 func TestPluginManagedClient(t *testing.T) {
-	plugin.PluginTestSuiteRunner(t,
-		func() *plugin.Plugin {
-			return plugin.NewPlugin("test", "development", NewClient, plugin.WithManagedWriter())
+	PluginTestSuiteRunner(t,
+		func() *Plugin {
+			return NewPlugin("test", "development", NewMemDBClient, WithManagedWriter())
 		},
 		pbPlugin.Spec{},
-		plugin.PluginTestSuiteTests{
+		PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
 		})
 }
 
 func TestPluginManagedClientWithSmallBatchSize(t *testing.T) {
-	plugin.PluginTestSuiteRunner(t,
-		func() *plugin.Plugin {
-			return plugin.NewPlugin("test", "development", NewClient, plugin.WithManagedWriter(),
-				plugin.WithDefaultBatchSize(1),
-				plugin.WithDefaultBatchSizeBytes(1))
+	PluginTestSuiteRunner(t,
+		func() *Plugin {
+			return NewPlugin("test", "development", NewMemDBClient, WithManagedWriter(),
+				WithDefaultBatchSize(1),
+				WithDefaultBatchSizeBytes(1))
 		}, pbPlugin.Spec{},
-		plugin.PluginTestSuiteTests{
+		PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
 		})
 }
 
 func TestPluginManagedClientWithLargeBatchSize(t *testing.T) {
-	plugin.PluginTestSuiteRunner(t,
-		func() *plugin.Plugin {
-			return plugin.NewPlugin("test", "development", NewClient, plugin.WithManagedWriter(),
-				plugin.WithDefaultBatchSize(100000000),
-				plugin.WithDefaultBatchSizeBytes(100000000))
+	PluginTestSuiteRunner(t,
+		func() *Plugin {
+			return NewPlugin("test", "development", NewMemDBClient, WithManagedWriter(),
+				WithDefaultBatchSize(100000000),
+				WithDefaultBatchSizeBytes(100000000))
 		},
 		pbPlugin.Spec{},
-		plugin.PluginTestSuiteTests{
+		PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
 		})
 }
 
 func TestPluginManagedClientWithCQPKs(t *testing.T) {
-	plugin.PluginTestSuiteRunner(t,
-		func() *plugin.Plugin {
-			return plugin.NewPlugin("test", "development", NewClient)
+	PluginTestSuiteRunner(t,
+		func() *Plugin {
+			return NewPlugin("test", "development", NewMemDBClient)
 		},
 		pbPlugin.Spec{
 			WriteSpec: &pbPlugin.WriteSpec{
 				PkMode: pbPlugin.WriteSpec_CQ_ID_ONLY,
 			},
 		},
-		plugin.PluginTestSuiteTests{
+		PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
 		})
@@ -101,7 +100,7 @@ func TestPluginManagedClientWithCQPKs(t *testing.T) {
 
 func TestPluginOnNewError(t *testing.T) {
 	ctx := context.Background()
-	p := plugin.NewPlugin("test", "development", NewClientErrOnNew)
+	p := NewPlugin("test", "development", NewMemDBClientErrOnNew)
 	err := p.Init(ctx, pbPlugin.Spec{})
 
 	if err == nil {
@@ -112,7 +111,7 @@ func TestPluginOnNewError(t *testing.T) {
 func TestOnWriteError(t *testing.T) {
 	ctx := context.Background()
 	newClientFunc := GetNewClient(WithErrOnWrite())
-	p := plugin.NewPlugin("test", "development", newClientFunc)
+	p := NewPlugin("test", "development", newClientFunc)
 	if err := p.Init(ctx, pbPlugin.Spec{}); err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +146,7 @@ func TestOnWriteError(t *testing.T) {
 func TestOnWriteCtxCancelled(t *testing.T) {
 	ctx := context.Background()
 	newClientFunc := GetNewClient(WithBlockingWrite())
-	p := plugin.NewPlugin("test", "development", newClientFunc)
+	p := NewPlugin("test", "development", newClientFunc)
 	if err := p.Init(ctx, pbPlugin.Spec{}); err != nil {
 		t.Fatal(err)
 	}
@@ -187,18 +186,20 @@ func TestPluginInit(t *testing.T) {
 		batchSizeObserved      uint64
 		batchSizeBytesObserved uint64
 	)
-	p := plugin.NewPlugin(
+	p := NewPlugin(
 		"test",
 		"development",
-		func(ctx context.Context, logger zerolog.Logger, s pbPlugin.Spec) (plugin.Client, error) {
+		func(ctx context.Context, logger zerolog.Logger, s pbPlugin.Spec) (Client, error) {
 			batchSizeObserved = s.WriteSpec.BatchSize
 			batchSizeBytesObserved = s.WriteSpec.BatchSizeBytes
-			return NewClient(ctx, logger, s)
+			return NewMemDBClient(ctx, logger, s)
 		},
-		plugin.WithDefaultBatchSize(batchSize),
-		plugin.WithDefaultBatchSizeBytes(batchSizeBytes),
+		WithDefaultBatchSize(batchSize),
+		WithDefaultBatchSizeBytes(batchSizeBytes),
 	)
-	require.NoError(t, p.Init(context.TODO(), pbPlugin.Spec{}))
+	require.NoError(t, p.Init(context.TODO(), pbPlugin.Spec{
+		WriteSpec: &pbPlugin.WriteSpec{},
+	}))
 
 	require.Equal(t, batchSize, batchSizeObserved)
 	require.Equal(t, batchSizeBytes, batchSizeBytesObserved)

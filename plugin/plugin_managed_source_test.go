@@ -8,7 +8,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v0"
+	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/google/go-cmp/cmp"

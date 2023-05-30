@@ -33,8 +33,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 
 	sourceName := "testOverwriteSource" + uuid.NewString()
 	sourceSpec := pbPlugin.Spec{
-		Name:    sourceName,
-		// Backend: specs.BackendLocal,
+		Name: sourceName,
+		BackendSpec: &pbPlugin.Spec{
+			Name: "local",
+			Path: "cloudquery/local",
+		},
 	}
 
 	opts := schema.GenTestDataOptions{

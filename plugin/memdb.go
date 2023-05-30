@@ -1,17 +1,14 @@
-package memdb
+package plugin
 
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync"
-	"testing"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
-	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
@@ -26,21 +23,21 @@ type client struct {
 	blockingWrite bool
 }
 
-type Option func(*client)
+type MemDBOption func(*client)
 
-func WithErrOnWrite() Option {
+func WithErrOnWrite() MemDBOption {
 	return func(c *client) {
 		c.errOnWrite = true
 	}
 }
 
-func WithBlockingWrite() Option {
+func WithBlockingWrite() MemDBOption {
 	return func(c *client) {
 		c.blockingWrite = true
 	}
 }
 
-func GetNewClient(options ...Option) plugin.NewClientFunc {
+func GetNewClient(options ...MemDBOption) NewClientFunc {
 	c := &client{
 		memoryDB:     make(map[string][]arrow.Record),
 		memoryDBLock: sync.RWMutex{},
@@ -48,20 +45,12 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 	for _, opt := range options {
 		opt(c)
 	}
-	return func(context.Context, zerolog.Logger, pbPlugin.Spec) (plugin.Client, error) {
+	return func(context.Context, zerolog.Logger, pbPlugin.Spec) (Client, error) {
 		return c, nil
 	}
 }
 
-func getTestLogger(t *testing.T) zerolog.Logger {
-	t.Helper()
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
-	return zerolog.New(zerolog.NewTestWriter(t)).Output(
-		zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.StampMicro},
-	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
-}
-
-func NewClient(_ context.Context, _ zerolog.Logger, spec pbPlugin.Spec) (plugin.Client, error) {
+func NewMemDBClient(_ context.Context, _ zerolog.Logger, spec pbPlugin.Spec) (Client, error) {
 	return &client{
 		memoryDB: make(map[string][]arrow.Record),
 		tables:   make(map[string]*schema.Table),
@@ -69,7 +58,7 @@ func NewClient(_ context.Context, _ zerolog.Logger, spec pbPlugin.Spec) (plugin.
 	}, nil
 }
 
-func NewClientErrOnNew(context.Context, zerolog.Logger, pbPlugin.Spec) (plugin.Client, error) {
+func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, pbPlugin.Spec) (Client, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
@@ -98,7 +87,7 @@ func (c *client) ID() string {
 	return "testDestinationMemDB"
 }
 
-func (c *client) Sync(ctx context.Context, metrics *plugin.Metrics, res chan<- arrow.Record) error {
+func (c *client) Sync(ctx context.Context, metrics *Metrics, res chan<- arrow.Record) error {
 	c.memoryDBLock.RLock()
 	for tableName := range c.memoryDB {
 		for _, row := range c.memoryDB[tableName] {
@@ -209,8 +198,8 @@ func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resou
 	return nil
 }
 
-func (*client) Metrics() plugin.Metrics {
-	return plugin.Metrics{}
+func (*client) Metrics() Metrics {
+	return Metrics{}
 }
 
 func (c *client) Close(context.Context) error {
