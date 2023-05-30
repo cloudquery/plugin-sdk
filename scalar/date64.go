@@ -3,7 +3,6 @@ package scalar
 import (
 	"encoding"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -11,7 +10,7 @@ import (
 
 type Date64 struct {
 	Valid bool
-	Value int64 // int64 milliseconds since the UNIX epoch
+	Value arrow.Date64
 }
 
 func (s *Date64) IsValid() bool {
@@ -37,7 +36,7 @@ func (s *Date64) String() string {
 	if !s.Valid {
 		return "(null)"
 	}
-	return arrow.Date64(s.Value).FormattedString()
+	return s.Value.FormattedString()
 }
 
 func (s *Date64) Get() any {
@@ -46,6 +45,7 @@ func (s *Date64) Get() any {
 
 func (s *Date64) Set(val any) error {
 	if val == nil {
+		s.Valid = false
 		return nil
 	}
 
@@ -59,20 +59,12 @@ func (s *Date64) Set(val any) error {
 
 	switch value := val.(type) {
 	case arrow.Date64:
-		s.Value = int64(value)
-	case int:
-		s.Value = int64(value)
-	case int64:
 		s.Value = value
-	case uint64:
-		if value > math.MaxInt64 {
-			return &ValidationError{Type: s.DataType(), Msg: "uint64 bigger than MaxInt64", Value: value}
-		}
-		s.Value = int64(value)
 	case time.Time:
 		return s.Set(arrow.Date64FromTime(value))
 	case *time.Time:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
@@ -89,6 +81,7 @@ func (s *Date64) Set(val any) error {
 		return s.Set(p)
 	case *string:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)

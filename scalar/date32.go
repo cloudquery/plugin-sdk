@@ -3,7 +3,6 @@ package scalar
 import (
 	"encoding"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -11,7 +10,7 @@ import (
 
 type Date32 struct {
 	Valid bool
-	Value int32 // days since unix epoch
+	Value arrow.Date32
 }
 
 func (s *Date32) IsValid() bool {
@@ -37,7 +36,7 @@ func (s *Date32) String() string {
 	if !s.Valid {
 		return "(null)"
 	}
-	return arrow.Date32(s.Value).FormattedString()
+	return s.Value.FormattedString()
 }
 
 func (s *Date32) Get() any {
@@ -46,6 +45,7 @@ func (s *Date32) Get() any {
 
 func (s *Date32) Set(val any) error {
 	if val == nil {
+		s.Valid = false
 		return nil
 	}
 
@@ -59,23 +59,12 @@ func (s *Date32) Set(val any) error {
 
 	switch value := val.(type) {
 	case arrow.Date32:
-		s.Value = int32(value)
-	case int:
-		s.Value = int32(value)
-	case int64:
-		if value > math.MaxInt32 {
-			return &ValidationError{Type: s.DataType(), Msg: "int64 bigger than MaxInt32", Value: value}
-		}
-		s.Value = int32(value)
-	case uint64:
-		if value > math.MaxInt32 {
-			return &ValidationError{Type: s.DataType(), Msg: "uint64 bigger than MaxInt32", Value: value}
-		}
-		s.Value = int32(value)
+		s.Value = value
 	case time.Time:
 		return s.Set(arrow.Date32FromTime(value))
 	case *time.Time:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
@@ -92,6 +81,7 @@ func (s *Date32) Set(val any) error {
 		return s.Set(p)
 	case *string:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)

@@ -3,6 +3,8 @@ package scalar
 import (
 	"testing"
 	"time"
+
+	"github.com/apache/arrow/go/v13/arrow"
 )
 
 func TestDate32Set(t *testing.T) {
@@ -10,9 +12,9 @@ func TestDate32Set(t *testing.T) {
 		source any
 		result Date32
 	}{
-		{source: time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local), result: Date32{Value: int32(time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local).Unix() / 86400), Valid: true}},
-		{source: time.Date(1999, 12, 31, 12, 59, 59, 0, time.Local), result: Date32{Value: int32(time.Date(1999, 12, 31, 0, 0, 0, 0, time.Local).Unix() / 86400), Valid: true}},
-		{source: "2150-10-15", result: Date32{Value: int32(time.Date(2150, 10, 15, 0, 0, 0, 0, time.UTC).Unix() / 86400), Valid: true}},
+		{source: time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local), result: Date32{Value: arrow.Date32FromTime(time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local)), Valid: true}},
+		{source: time.Date(1999, 12, 31, 12, 59, 59, 0, time.Local), result: Date32{Value: arrow.Date32FromTime(time.Date(1999, 12, 31, 0, 0, 0, 0, time.Local)), Valid: true}},
+		{source: "2150-10-15", result: Date32{Value: arrow.Date32FromTime(time.Date(2150, 10, 15, 0, 0, 0, 0, time.UTC)), Valid: true}},
 		{source: "", result: Date32{}},
 	}
 
