@@ -2,6 +2,7 @@ package scalar
 
 import (
 	"strings"
+	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 )
@@ -54,6 +55,14 @@ func (s *Duration) Set(value any) error {
 		stripped := strings.TrimSuffix(v, s.Unit.String())
 		return s.Int.Set(stripped)
 	case *string:
+		if v == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*v)
+	case time.Duration:
+		return s.Int.Set(v / s.Unit.Multiplier())
+	case *time.Duration:
 		if v == nil {
 			s.Valid = false
 			return nil
