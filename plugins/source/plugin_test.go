@@ -378,6 +378,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, scheduler specs.Scheduler, det
 		Concurrency:       1, // choose a very low value to check that we don't run into deadlocks
 		Scheduler:         scheduler,
 		DeterministicCQID: deterministicCQID,
+		TypeSupport:       specs.TypeSupportFull,
 	}
 	if err := plugin.Init(ctx, spec); err != nil {
 		t.Fatal(err)

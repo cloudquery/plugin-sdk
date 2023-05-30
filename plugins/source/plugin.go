@@ -186,9 +186,6 @@ func (p *Plugin) SetLogger(logger zerolog.Logger) {
 func (p *Plugin) Tables() schema.Tables {
 	// we don't apply limited type support here because we don't know the spec,
 	// and want docs to be generated for full table types
-	if p.spec.TypeSupport == specs.TypeSupportLimited {
-		return convertTablesToLimitedTypeSupport(p.tables)
-	}
 	return p.tables
 }
 
