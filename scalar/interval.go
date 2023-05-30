@@ -140,7 +140,8 @@ func (s *DayTimeInterval) Set(value any) error {
 		return nil
 	case *string:
 		if v == nil {
-			return s.Set(nil)
+			s.Valid = false
+			return nil
 		}
 		return s.Set(*v)
 	case map[string]any:
@@ -232,7 +233,8 @@ func (s *MonthDayNanoInterval) Set(value any) error {
 		return nil
 	case *string:
 		if v == nil {
-			return s.Set(nil)
+			s.Valid = false
+			return nil
 		}
 		return s.Set(*v)
 	case map[string]any:
