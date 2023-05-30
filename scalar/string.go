@@ -64,6 +64,7 @@ func (s *String) Set(val any) error {
 		s.Value = value.String()
 	case *string:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)

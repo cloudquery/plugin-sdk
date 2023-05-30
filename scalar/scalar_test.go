@@ -1,7 +1,6 @@
 package scalar
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -59,13 +58,13 @@ func TestNewScalar(t *testing.T) {
 		{dt: arrow.StructOf(arrow.Field{Name: "i64", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "s", Type: arrow.BinaryTypes.String}), input: `{"i64": 1, "s": "foo"}`},
 	}
 
-	for idx, tc := range tl {
+	for _, tc := range tl {
 		tc := tc
 		if tc.input == nil {
 			tc.input = "1"
 		}
 
-		t.Run(strconv.Itoa(idx), func(t *testing.T) {
+		t.Run("create_append:"+tc.dt.String(), func(t *testing.T) {
 			t.Parallel()
 
 			bldr := array.NewBuilder(memory.DefaultAllocator, tc.dt)
@@ -83,6 +82,76 @@ func TestNewScalar(t *testing.T) {
 
 			assert.Truef(t, s.IsValid(), "failed with DataType %s", tc.dt.String())
 			AppendToBuilder(bldr, s)
+
+			t.Run("double_set_nil", genDoubleSetTest(tc.dt, tc.input, nil))
+
+			if !arrow.IsNested(tc.dt.ID()) {
+				var str *string
+				t.Run("double_set_typed_nil_string", genDoubleSetTest(tc.dt, tc.input, str))
+			}
+
+			switch {
+			case
+				tc.dt.ID() == arrow.BOOL,
+				tc.dt.ID() == arrow.DATE32,
+				tc.dt.ID() == arrow.DATE64,
+				tc.dt.ID() == arrow.DURATION,
+				tc.dt.ID() == arrow.LARGE_STRING,
+				tc.dt.ID() == arrow.STRING,
+				tc.dt.ID() == arrow.TIME32,
+				tc.dt.ID() == arrow.TIME64,
+				tc.dt.ID() == arrow.TIMESTAMP,
+				arrow.IsNested(tc.dt.ID()):
+
+			case arrow.IsInteger(tc.dt.ID()), arrow.IsFloating(tc.dt.ID()):
+				var i8 *int8
+				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, i8))
+
+				var i16 *int16
+				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, i16))
+
+				var i32 *int32
+				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, i32))
+
+				var i64 *int64
+				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, i64))
+
+				var f32 *float32
+				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, f32))
+
+				var f64 *float64
+				t.Run("double_set_typed_nil_int8", genDoubleSetTest(tc.dt, tc.input, f64))
+
+			default:
+				var val []byte
+				t.Run("double_set_typed_nil_byteslice", genDoubleSetTest(tc.dt, tc.input, val))
+			}
 		})
+	}
+}
+
+func genDoubleSetTest(dt arrow.DataType, input any, setToNil any) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		bldr := array.NewBuilder(memory.DefaultAllocator, dt)
+		defer bldr.Release()
+
+		s := NewScalar(dt)
+		if s.DataType() != dt {
+			t.Fatalf("expected %v, got %v", dt, s.DataType())
+		}
+
+		assert.NoErrorf(t, s.Set(input), "failed with DataType %s", dt.String())
+		if t.Failed() {
+			return
+		}
+
+		assert.NoErrorf(t, s.Set(setToNil), "failed with DataType %s", dt.String())
+		if t.Failed() {
+			return
+		}
+
+		assert.Falsef(t, s.IsValid(), "failed with DataType %s", dt.String())
 	}
 }

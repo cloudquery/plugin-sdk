@@ -163,63 +163,81 @@ func (s *Uint) Set(val any) error {
 			return err
 		}
 		s.Value = v
+	case *string:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
 	case *int8:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *int16:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *int32:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *int64:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *int:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *uint8:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *uint16:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *uint32:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *uint64:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *uint:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *float32:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *float64:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)

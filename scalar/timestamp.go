@@ -75,6 +75,7 @@ func (s *Timestamp) Get() any {
 
 func (s *Timestamp) Set(val any) error {
 	if val == nil {
+		s.Valid = false
 		return nil
 	}
 
@@ -100,6 +101,7 @@ func (s *Timestamp) Set(val any) error {
 		s.Value = value.UTC()
 	case *time.Time:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
@@ -107,6 +109,7 @@ func (s *Timestamp) Set(val any) error {
 		return s.DecodeText([]byte(value))
 	case *string:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)

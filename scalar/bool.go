@@ -67,6 +67,10 @@ func (s *Bool) Set(val any) error {
 	case *bool:
 		return s.Set(*value)
 	case *string:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
 		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingBoolType(value); ok {

@@ -54,12 +54,17 @@ func (s *Binary) Set(val any) error {
 	switch value := val.(type) {
 	case []byte:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		s.Value = value
 	case string:
 		s.Value = []byte(value)
 	case *string:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
 		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingBytesType(value); ok {
