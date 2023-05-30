@@ -21,12 +21,12 @@ func (s *Uint) DataType() arrow.DataType {
 	switch s.getBitWidth() {
 	case 64:
 		return arrow.PrimitiveTypes.Uint64
-	case 8:
-		return arrow.PrimitiveTypes.Uint8
-	case 16:
-		return arrow.PrimitiveTypes.Uint16
 	case 32:
 		return arrow.PrimitiveTypes.Uint32
+	case 16:
+		return arrow.PrimitiveTypes.Uint16
+	case 8:
+		return arrow.PrimitiveTypes.Uint8
 	default:
 		panic("invalid bit width")
 	}
