@@ -33,7 +33,8 @@ func (s *Struct) String() string {
 	if !s.Valid {
 		return nullValueStr
 	}
-	return s.Type.String() + " value"
+	b, _ := json.Marshal(s.Value)
+	return string(b)
 }
 
 func (s *Struct) Get() any {
