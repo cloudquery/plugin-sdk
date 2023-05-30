@@ -16,7 +16,7 @@ func (s *Time) DataType() arrow.DataType {
 	case 32:
 		return &arrow.Time32Type{Unit: s.Unit}
 	default:
-		panic("unsupported bit width " + strconv.Itoa(width))
+		panic("unsupported bit width")
 	}
 }
 
