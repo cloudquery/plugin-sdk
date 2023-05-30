@@ -34,6 +34,10 @@ type Vector []Scalar
 
 const nullValueStr = array.NullValueStr
 
+type bitwidther interface {
+	BitWidth() int
+}
+
 func (v Vector) Equal(r Vector) bool {
 	if len(v) != len(r) {
 		return false
@@ -126,6 +130,16 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.STRUCT:
 		return &Struct{Type: dt}
 
+	case arrow.DECIMAL:
+		switch dt.(bitwidther).BitWidth() {
+		case 128:
+			return &Decimal128{}
+		case 256:
+			return &Decimal256{}
+		default:
+			panic("unhandled decimal bitwidth")
+		}
+
 	default:
 		panic("not implemented: " + dt.Name())
 	}
@@ -187,6 +201,12 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		bldr.(*array.DayTimeIntervalBuilder).Append(s.(*DayTimeInterval).Value)
 	case arrow.INTERVAL_MONTH_DAY_NANO:
 		bldr.(*array.MonthDayNanoIntervalBuilder).Append(s.(*MonthDayNanoInterval).Value)
+	case arrow.DECIMAL:
+		if b, ok := bldr.(*array.Decimal128Builder); ok {
+			b.Append(s.(*Decimal128).Value)
+			return
+		}
+		bldr.(*array.Decimal256Builder).Append(s.(*Decimal256).Value)
 
 	case arrow.STRUCT:
 		sb := bldr.(*array.StructBuilder)
