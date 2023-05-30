@@ -101,8 +101,23 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 type NewPluginFunc func() *Plugin
 
 type PluginTestSuiteRunnerOptions struct {
-	IgnoreNullsInLists bool // strip nulls from lists before checking equality. Destination setups that don't support nulls in lists should set this to true.
+	// IgnoreNullsInLists allows stripping null values from lists before comparison.
+	// Destination setups that don't support nulls in lists should set this to true.
+	IgnoreNullsInLists bool
+
+	// AllowNull is a custom func to determine whether a data type may be correctly represented as null.
+	// Destinations that have problems representing some data types should provide a custom implementation here.
+	// If this param is empty, the default is to allow all data types to be nullable.
+	// When the value returned by this func is `true` the comparison is made with the empty value instead of null.
+	AllowNull AllowNullFunc
+
 	schema.TestSourceOptions
+}
+
+func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.AllowNull = allowNull
+	}
 }
 
 func WithTestIgnoreNullsInLists() func(o *PluginTestSuiteRunnerOptions) {
@@ -168,6 +183,12 @@ func WithTestSourceSkipTimes() func(o *PluginTestSuiteRunnerOptions) {
 func WithTestSourceSkipLargeTypes() func(o *PluginTestSuiteRunnerOptions) {
 	return func(o *PluginTestSuiteRunnerOptions) {
 		o.SkipLargeTypes = true
+	}
+}
+
+func WithTestSourceSkipDecimals() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipDecimals = true
 	}
 }
 

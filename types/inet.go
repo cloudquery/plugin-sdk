@@ -20,6 +20,11 @@ func NewInetBuilder(builder *array.ExtensionBuilder) *InetBuilder {
 	return &InetBuilder{ExtensionBuilder: builder}
 }
 
+func (b *InetBuilder) AppendEmptyValue() {
+	const zeroIPNet = "0.0.0.0/0"
+	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append([]byte(zeroIPNet))
+}
+
 func (b *InetBuilder) Append(v *net.IPNet) {
 	if v == nil {
 		b.AppendNull()

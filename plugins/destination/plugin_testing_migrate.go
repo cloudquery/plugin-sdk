@@ -54,6 +54,8 @@ func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.
 	if err := p.writeAll(ctx, sourceSpec, syncTime, resource2); err != nil {
 		return fmt.Errorf("failed to write one after migration: %w", err)
 	}
+
+	testOpts.AllowNull.replaceNullsByEmpty(resource2)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(resource2)
 	}

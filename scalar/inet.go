@@ -41,9 +41,21 @@ func (s *Inet) String() string {
 	return s.Value.String()
 }
 
+func (s *Inet) Get() any {
+	return s.Value
+}
+
 func (s *Inet) Set(val any) error {
 	if val == nil {
 		return nil
+	}
+
+	if sc, ok := val.(Scalar); ok {
+		if !sc.IsValid() {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(sc.Get())
 	}
 
 	switch value := val.(type) {

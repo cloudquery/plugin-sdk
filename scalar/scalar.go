@@ -24,6 +24,8 @@ type Scalar interface {
 	// Validate() error
 	// tries to set the value of the scalar to the given value
 	Set(val any) error
+
+	Get() any
 	Equal(other Scalar) bool
 }
 

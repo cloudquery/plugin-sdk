@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.0](https://github.com/cloudquery/plugin-sdk/compare/v3.6.7...v3.7.0) (2023-05-30)
+
+
+### Features
+
+* **test:** Add `AllowNull` option for test data ([#913](https://github.com/cloudquery/plugin-sdk/issues/913)) ([9b911eb](https://github.com/cloudquery/plugin-sdk/commit/9b911eb7ea5566a8a5979443bea21a45779b4691))
+
+
+### Bug Fixes
+
+* Test Decimal type, map type and larger number ranges ([#905](https://github.com/cloudquery/plugin-sdk/issues/905)) ([9a3b4ad](https://github.com/cloudquery/plugin-sdk/commit/9a3b4ad3380f95ae6eabb59203d2a608e80ef59e))
+
+## [3.6.7](https://github.com/cloudquery/plugin-sdk/compare/v3.6.6...v3.6.7) (2023-05-26)
+
+
+### Bug Fixes
+
+* Update Arrow to latest cqmain branch ([#910](https://github.com/cloudquery/plugin-sdk/issues/910)) ([1295559](https://github.com/cloudquery/plugin-sdk/commit/12955593507984fa51c1130732a34df1b256d800))
+
+## [3.6.6](https://github.com/cloudquery/plugin-sdk/compare/v3.6.5...v3.6.6) (2023-05-26)
+
+
+### Bug Fixes
+
+* Use backtick around types ([#908](https://github.com/cloudquery/plugin-sdk/issues/908)) ([858fe54](https://github.com/cloudquery/plugin-sdk/commit/858fe5429bf17ab32a07957a1a60433a8780ace5))
+
+## [3.6.5](https://github.com/cloudquery/plugin-sdk/compare/v3.6.4...v3.6.5) (2023-05-26)
+
+
+### Bug Fixes
+
+* Transform `[]any` as `JSON` ([#906](https://github.com/cloudquery/plugin-sdk/issues/906)) ([7719677](https://github.com/cloudquery/plugin-sdk/commit/771967717617e40ef809882dbdaed83d6bfad116))
+
+## [3.6.4](https://github.com/cloudquery/plugin-sdk/compare/v3.6.3...v3.6.4) (2023-05-25)
+
+
+### Bug Fixes
+
+* Scalar set now accepts scalar type ([#902](https://github.com/cloudquery/plugin-sdk/issues/902)) ([1ff2229](https://github.com/cloudquery/plugin-sdk/commit/1ff222910356762ea2c7f48c4bc2ee3c19769e26))
+
 ## [3.6.3](https://github.com/cloudquery/plugin-sdk/compare/v3.6.2...v3.6.3) (2023-05-24)
 
 

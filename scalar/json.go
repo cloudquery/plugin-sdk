@@ -22,6 +22,10 @@ func (*JSON) DataType() arrow.DataType {
 	return types.ExtensionTypes.JSON
 }
 
+func (s *JSON) Get() any {
+	return s.Value
+}
+
 func (s *JSON) Equal(rhs Scalar) bool {
 	if rhs == nil {
 		return false
@@ -55,6 +59,14 @@ func (s *JSON) String() string {
 func (s *JSON) Set(val any) error {
 	if val == nil {
 		return nil
+	}
+
+	if sc, ok := val.(Scalar); ok {
+		if !sc.IsValid() {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(sc.Get())
 	}
 
 	switch value := val.(type) {
