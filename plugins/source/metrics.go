@@ -172,9 +172,9 @@ func (s *Metrics) InProgressTables() []string {
 		for _, clientMetrics := range tableMetrics {
 			clientMetrics.mutex.Lock()
 			endTime := clientMetrics.endTime
-			starTime := clientMetrics.startTime
+			startTime := clientMetrics.startTime
 			clientMetrics.mutex.Unlock()
-			if endTime.IsZero() && !starTime.IsZero() {
+			if endTime.IsZero() && !startTime.IsZero() {
 				inProgressTables = append(inProgressTables, table)
 				break
 			}
@@ -193,8 +193,9 @@ func (s *Metrics) QueuedTables() []string {
 		for _, clientMetrics := range tableMetrics {
 			clientMetrics.mutex.Lock()
 			startTime := clientMetrics.startTime
+			endTime := clientMetrics.endTime
 			clientMetrics.mutex.Unlock()
-			if startTime.IsZero() {
+			if startTime.IsZero() && endTime.IsZero() {
 				queuedTables = append(queuedTables, table)
 				break
 			}
