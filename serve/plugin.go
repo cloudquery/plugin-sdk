@@ -33,9 +33,9 @@ import (
 )
 
 type pluginServe struct {
-	plugin    *plugin.Plugin
+	plugin                *plugin.Plugin
 	destinationV0V1Server bool
-	sentryDSN string
+	sentryDSN             string
 }
 
 type PluginOption func(*pluginServe)

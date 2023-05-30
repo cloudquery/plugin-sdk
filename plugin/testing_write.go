@@ -170,7 +170,9 @@ func WithTestSourceSkipDecimals() func(o *PluginTestSuiteRunnerOptions) {
 func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec pbPlugin.Spec, tests PluginTestSuiteTests, testOptions ...func(o *PluginTestSuiteRunnerOptions)) {
 	t.Helper()
 	destSpec.Name = "testsuite"
-
+	if destSpec.WriteSpec == nil {
+		destSpec.WriteSpec = &pbPlugin.WriteSpec{}
+	}
 	suite := &PluginTestSuite{
 		tests: tests,
 	}

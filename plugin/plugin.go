@@ -49,6 +49,10 @@ func (UnimplementedWriter) Write(ctx context.Context, tables schema.Tables, res 
 	return fmt.Errorf("not implemented")
 }
 
+func (UnimplementedWriter) WriteTableBatch(ctx context.Context, table *schema.Table, data []arrow.Record) error {
+	return fmt.Errorf("not implemented")
+}
+
 func (UnimplementedWriter) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
 	return fmt.Errorf("not implemented")
 }
@@ -111,8 +115,8 @@ type Plugin struct {
 	syncTime         time.Time
 
 	managedWriter bool
-	workers     map[string]*worker
-	workersLock *sync.Mutex
+	workers       map[string]*worker
+	workersLock   *sync.Mutex
 
 	batchTimeout          time.Duration
 	defaultBatchSize      int
@@ -310,7 +314,7 @@ func (p *Plugin) Init(ctx context.Context, spec pbPlugin.Spec) error {
 		if p.maxDepth > maxAllowedDepth {
 			return fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth)
 		}
-	} else {
+	} else if tables != nil {
 		tables, err = tables.FilterDfs(spec.SyncSpec.Tables, spec.SyncSpec.SkipTables, true)
 		if err != nil {
 			return fmt.Errorf("failed to filter tables: %w", err)
