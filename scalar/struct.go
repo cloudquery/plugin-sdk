@@ -54,22 +54,37 @@ func (s *Struct) Set(val any) error {
 		return s.Set(sc.Get())
 	}
 
-	if str, ok := val.(string); ok {
-		var x map[string]any
-		if err := json.Unmarshal([]byte(str), &x); err != nil {
-			return err
-		}
-		s.Value = x
-		s.Valid = true
-		return nil
-	}
-
-	if !reflect.ValueOf(val).IsValid() {
+	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Pointer && !rv.Elem().IsValid() { // typed nil
 		s.Valid = false
 		return nil
 	}
 
-	s.Value = val
+	switch value := val.(type) {
+	case string:
+		var x map[string]any
+		if err := json.Unmarshal([]byte(value), &x); err != nil {
+			return err
+		}
+		s.Value = x
+
+	case []byte:
+		var x map[string]any
+		if err := json.Unmarshal(value, &x); err != nil {
+			return err
+		}
+		s.Value = x
+
+	case *string:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+
+	default:
+		s.Value = val
+	}
+
 	s.Valid = true
 	return nil
 }

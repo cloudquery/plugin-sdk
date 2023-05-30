@@ -88,10 +88,8 @@ func TestNewScalar(t *testing.T) {
 
 			t.Run("double_set_nil", genDoubleSetTest(tc.dt, tc.input, nil))
 
-			if !arrow.IsNested(tc.dt.ID()) {
-				var str *string
-				t.Run("double_set_typed_nil_string", genDoubleSetTest(tc.dt, tc.input, str))
-			}
+			var str *string
+			t.Run("double_set_typed_nil_string", genDoubleSetTest(tc.dt, tc.input, str))
 
 			switch {
 			case
@@ -146,16 +144,16 @@ func genDoubleSetTest(dt arrow.DataType, input any, setToNil any) func(t *testin
 			t.Fatalf("expected %v, got %v", dt, s.DataType())
 		}
 
-		assert.NoErrorf(t, s.Set(input), "failed with DataType %s", dt.String())
+		assert.NoError(t, s.Set(input))
 		if t.Failed() {
 			return
 		}
 
-		assert.NoErrorf(t, s.Set(setToNil), "failed with DataType %s", dt.String())
+		assert.NoError(t, s.Set(setToNil))
 		if t.Failed() {
 			return
 		}
 
-		assert.Falsef(t, s.IsValid(), "failed with DataType %s", dt.String())
+		assert.False(t, s.IsValid())
 	}
 }
