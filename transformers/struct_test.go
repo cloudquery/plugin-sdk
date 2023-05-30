@@ -2,7 +2,6 @@ package transformers
 
 import (
 	"net"
-	"reflect"
 	"testing"
 	"time"
 
@@ -26,7 +25,7 @@ type (
 		StringCol string  `json:"string_col,omitempty"`
 		FloatCol  float64 `json:"float_col,omitempty"`
 		BoolCol   bool    `json:"bool_col,omitempty"`
-		StructCol struct {
+		JSONCol   struct {
 			IntCol    int    `json:"int_col,omitempty"`
 			StringCol string `json:"string_col,omitempty"`
 		}
@@ -100,12 +99,8 @@ var (
 			Type: arrow.FixedWidthTypes.Boolean,
 		},
 		{
-			Name: "struct_col",
-			Type: arrow.StructOf(
-				[]arrow.Field{
-					{Name: "int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
-					{Name: "string_col", Type: arrow.BinaryTypes.String, Nullable: true},
-				}...),
+			Name: "json_col",
+			Type: types.ExtensionTypes.JSON,
 		},
 		{
 			Name: "int_array_col",
@@ -182,35 +177,12 @@ var (
 				PrimaryKey: true,
 			}),
 	}
-	expectedStructType = arrow.StructOf([]arrow.Field{
-		{Name: "int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
-		{Name: "int64_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
-		{Name: "string_col", Type: arrow.BinaryTypes.String, Nullable: true},
-		{Name: "float_col", Type: arrow.PrimitiveTypes.Float64, Nullable: true},
-		{Name: "bool_col", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
-		{Name: "struct_col", Type: arrow.StructOf([]arrow.Field{
-			{Name: "int_col", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
-			{Name: "string_col", Type: arrow.BinaryTypes.String, Nullable: true},
-		}...), Nullable: true},
-		{Name: "int_array_col", Type: arrow.ListOf(arrow.PrimitiveTypes.Int64), Nullable: true},
-		{Name: "int_pointer_array_col", Type: arrow.ListOf(arrow.PrimitiveTypes.Int64), Nullable: true},
-		{Name: "string_array_col", Type: arrow.ListOf(arrow.BinaryTypes.String), Nullable: true},
-		{Name: "string_pointer_array_col", Type: arrow.ListOf(arrow.BinaryTypes.String), Nullable: true},
-		{Name: "inet_col", Type: types.ExtensionTypes.Inet, Nullable: true},
-		{Name: "inet_pointer_col", Type: types.ExtensionTypes.Inet, Nullable: true},
-		{Name: "byte_array_col", Type: arrow.BinaryTypes.Binary, Nullable: true},
-		{Name: "any_array_col", Type: types.ExtensionTypes.JSON, Nullable: true},
-		{Name: "time_col", Type: arrow.FixedWidthTypes.Timestamp_us, Nullable: true},
-		{Name: "time_pointer_col", Type: arrow.FixedWidthTypes.Timestamp_us, Nullable: true},
-		{Name: "json_tag", Type: arrow.BinaryTypes.String, Nullable: true},
-		{Name: "no_json_tag", Type: arrow.BinaryTypes.String, Nullable: true},
-	}...)
 	expectedTestTableNonEmbeddedStruct = schema.Table{
 		Name: "test_struct",
 		Columns: schema.ColumnList{
 			schema.Column{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
 			// Should not be unwrapped
-			schema.Column{Name: "test_struct", Type: expectedStructType},
+			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
 			// Should be unwrapped
 			schema.Column{Name: "non_embedded_embedded_string", Type: arrow.BinaryTypes.String},
 			schema.Column{Name: "non_embedded_int_col", Type: arrow.PrimitiveTypes.Int64},
@@ -225,7 +197,7 @@ var (
 				PrimaryKey: true,
 			},
 			// Should not be unwrapped
-			schema.Column{Name: "test_struct", Type: expectedStructType},
+			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
 			// Should be unwrapped
 			schema.Column{
 				Name: "non_embedded_embedded_string",
@@ -240,7 +212,7 @@ var (
 			// shouldn't be PK
 			schema.Column{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
 			// Should not be unwrapped
-			schema.Column{Name: "test_struct", Type: expectedStructType},
+			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
 			// Should be unwrapped
 			schema.Column{
 				Name: "non_embedded_embedded_string",
@@ -442,52 +414,5 @@ func TestTableFromGoStruct(t *testing.T) {
 				t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
 			}
 		})
-	}
-}
-
-func TestGoStructToArrowStruct(t *testing.T) {
-	type Inner struct {
-		String     string `json:"string"`
-		InnerInner struct {
-			String string `json:"string"`
-		}
-	}
-	type Self struct {
-		Self *Self `json:"self"`
-	}
-	type TestStruct struct {
-		String      string   `json:"string"`
-		Int         int      `json:"int"`
-		Float       float64  `json:"float"`
-		Bool        bool     `json:"bool"`
-		Bytes       []byte   `json:"bytes"`
-		StringSlice []string `json:"string_slice"`
-		Inner       Inner    `json:"inner"`
-		Self        Self     `json:"self"`
-		Interface   any      `json:"interface"`
-	}
-	s := TestStruct{}
-	got, err := goStructToArrowStruct(reflect.TypeOf(s))
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := arrow.StructOf(
-		arrow.Field{Name: "string", Type: arrow.BinaryTypes.String, Nullable: true},
-		arrow.Field{Name: "int", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
-		arrow.Field{Name: "float", Type: arrow.PrimitiveTypes.Float64, Nullable: true},
-		arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
-		arrow.Field{Name: "bytes", Type: arrow.BinaryTypes.Binary, Nullable: true},
-		arrow.Field{Name: "string_slice", Type: arrow.ListOf(arrow.BinaryTypes.String), Nullable: true},
-		arrow.Field{Name: "inner", Type: arrow.StructOf(
-			arrow.Field{Name: "string", Type: arrow.BinaryTypes.String, Nullable: true},
-			arrow.Field{Name: "inner_inner", Type: arrow.StructOf(
-				arrow.Field{Name: "string", Type: arrow.BinaryTypes.String, Nullable: true},
-			), Nullable: true},
-		), Nullable: true},
-		arrow.Field{Name: "self", Type: arrow.StructOf(arrow.Field{Name: "self", Type: types.ExtensionTypes.JSON, Nullable: true}), Nullable: true},
-		arrow.Field{Name: "interface", Type: types.ExtensionTypes.JSON, Nullable: true},
-	)
-	if !arrow.TypeEqual(got, want) {
-		t.Fatalf("type does not match expected. got %v, want %v", got, want)
 	}
 }
