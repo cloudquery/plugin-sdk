@@ -53,7 +53,7 @@ func (s *Time) Set(value any) error {
 		return s.Int.Set(int64(v))
 
 	case string:
-		switch s.BitWidth {
+		switch s.getBitWidth() {
 		case 64:
 			t64, err := arrow.Time64FromString(v, s.Unit)
 			if err != nil {
