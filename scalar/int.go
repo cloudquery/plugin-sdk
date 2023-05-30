@@ -231,21 +231,21 @@ func (s *Int) validateValue(value int64) error {
 			return &ValidationError{Type: s.DataType(), Msg: "value greater than MaxInt8", Value: value}
 		}
 		if value < math.MinInt8 {
-			return &ValidationError{Type: s.DataType(), Msg: "value smaller than MinInt8", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value less than MinInt8", Value: value}
 		}
 	case 16:
 		if value > math.MaxInt16 {
 			return &ValidationError{Type: s.DataType(), Msg: "value greater than MaxInt16", Value: value}
 		}
 		if value < math.MinInt16 {
-			return &ValidationError{Type: s.DataType(), Msg: "value smaller than MinInt16", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value less than MinInt16", Value: value}
 		}
 	case 32:
 		if value > math.MaxInt32 {
 			return &ValidationError{Type: s.DataType(), Msg: "value greater than MaxInt32", Value: value}
 		}
 		if value < math.MinInt32 {
-			return &ValidationError{Type: s.DataType(), Msg: "value smaller than MinInt32", Value: value}
+			return &ValidationError{Type: s.DataType(), Msg: "value less than MinInt32", Value: value}
 		}
 	}
 	return nil
