@@ -49,16 +49,7 @@ func (v Vector) Equal(r Vector) bool {
 func NewScalar(dt arrow.DataType) Scalar {
 	switch dt.ID() {
 	case arrow.TIMESTAMP:
-		switch {
-		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Timestamp_ms):
-			return &Timestamp{Unit: arrow.Millisecond}
-		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Timestamp_ns):
-			return &Timestamp{Unit: arrow.Nanosecond}
-		case arrow.TypeEqual(dt, arrow.FixedWidthTypes.Timestamp_s):
-			return &Timestamp{Unit: arrow.Second}
-		default:
-			return &Timestamp{Unit: arrow.Microsecond}
-		}
+		return &Timestamp{Unit: dt.(*arrow.TimestampType).Unit}
 	case arrow.BINARY:
 		return &Binary{}
 	case arrow.STRING:
