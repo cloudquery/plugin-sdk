@@ -304,7 +304,12 @@ func DefaultTypeTransformer(v reflect.StructField) (arrow.DataType, error) {
 	return defaultGoTypeToSchemaType(v.Type)
 }
 
-func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
+func defaultGoTypeToSchemaType(v reflect.Type, ancestors ...reflect.Type) (arrow.DataType, error) {
+	if funk.Contains(ancestors, v) {
+		// recursive type
+		return types.ExtensionTypes.JSON, nil
+	}
+
 	// Non primitive types
 	if v == reflect.TypeOf(net.IP{}) {
 		return types.ExtensionTypes.Inet, nil
@@ -313,15 +318,33 @@ func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 	k := v.Kind()
 	switch k {
 	case reflect.Pointer:
-		return defaultGoTypeToSchemaType(v.Elem())
+		ancestors = append(ancestors, v)
+		return defaultGoTypeToSchemaType(v.Elem(), ancestors...)
 	case reflect.String:
 		return arrow.BinaryTypes.String, nil
 	case reflect.Bool:
 		return arrow.FixedWidthTypes.Boolean, nil
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Int8:
+		return arrow.PrimitiveTypes.Int8, nil
+	case reflect.Int16:
+		return arrow.PrimitiveTypes.Int16, nil
+	case reflect.Int32:
+		return arrow.PrimitiveTypes.Int32, nil
+	case reflect.Int,
+		reflect.Int64:
 		return arrow.PrimitiveTypes.Int64, nil
-	case reflect.Float32, reflect.Float64:
+	case reflect.Uint8:
+		return arrow.PrimitiveTypes.Uint8, nil
+	case reflect.Uint16:
+		return arrow.PrimitiveTypes.Uint16, nil
+	case reflect.Uint32:
+		return arrow.PrimitiveTypes.Uint32, nil
+	case reflect.Uint,
+		reflect.Uint64:
+		return arrow.PrimitiveTypes.Uint64, nil
+	case reflect.Float32:
+		return arrow.PrimitiveTypes.Float32, nil
+	case reflect.Float64:
 		return arrow.PrimitiveTypes.Float64, nil
 	case reflect.Map:
 		return types.ExtensionTypes.JSON, nil
@@ -329,7 +352,8 @@ func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 		if v == reflect.TypeOf(time.Time{}) {
 			return arrow.FixedWidthTypes.Timestamp_us, nil
 		}
-		return types.ExtensionTypes.JSON, nil
+		ancestors = append(ancestors, v)
+		return goStructToArrowStruct(v, ancestors...)
 	case reflect.Slice:
 		switch v.Elem().Kind() {
 		case reflect.Uint8:
@@ -338,7 +362,7 @@ func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 			return types.ExtensionTypes.JSON, nil
 		}
 
-		elemValueType, err := defaultGoTypeToSchemaType(v.Elem())
+		elemValueType, err := defaultGoTypeToSchemaType(v.Elem(), ancestors...)
 		if err != nil {
 			return nil, err
 		}
@@ -347,7 +371,8 @@ func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 			return elemValueType, nil
 		}
 		return arrow.ListOf(elemValueType), nil
-
+	case reflect.Interface:
+		return types.ExtensionTypes.JSON, nil
 	default:
 		return nil, fmt.Errorf("unsupported type: %s", k)
 	}
@@ -367,4 +392,28 @@ func DefaultNameTransformer(field reflect.StructField) (string, error) {
 		}
 	}
 	return defaultCaser.ToSnake(name), nil
+}
+
+func goStructToArrowStruct(v reflect.Type, ancestors ...reflect.Type) (arrow.DataType, error) {
+	fields := make([]arrow.Field, 0, v.NumField())
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if field.PkgPath != "" {
+			// ignore unexported fields
+			continue
+		}
+		name, err := DefaultNameTransformer(field)
+		if err != nil {
+			return nil, err
+		}
+		if name == "" {
+			continue
+		}
+		columnType, err := defaultGoTypeToSchemaType(field.Type, ancestors...)
+		if err != nil {
+			return nil, err
+		}
+		fields = append(fields, arrow.Field{Name: name, Type: columnType, Nullable: true})
+	}
+	return arrow.StructOf(fields...), nil
 }

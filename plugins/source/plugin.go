@@ -6,12 +6,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v3/backend"
 	"github.com/cloudquery/plugin-sdk/v3/caser"
 	"github.com/cloudquery/plugin-sdk/v3/internal/backends/local"
 	"github.com/cloudquery/plugin-sdk/v3/internal/backends/nop"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/semaphore"
 )
@@ -182,6 +184,11 @@ func (p *Plugin) SetLogger(logger zerolog.Logger) {
 
 // Tables returns all tables supported by this source plugin
 func (p *Plugin) Tables() schema.Tables {
+	// we don't apply limited type support here because we don't know the spec,
+	// and want docs to be generated for full table types
+	if p.spec.TypeSupport == specs.TypeSupportLimited {
+		return convertTablesToLimitedTypeSupport(p.tables)
+	}
 	return p.tables
 }
 
@@ -190,20 +197,27 @@ func (p *Plugin) HasDynamicTables() bool {
 }
 
 func (p *Plugin) GetDynamicTables() schema.Tables {
+	if p.spec.TypeSupport == specs.TypeSupportLimited {
+		return convertTablesToLimitedTypeSupport(p.sessionTables)
+	}
 	return p.sessionTables
 }
 
 // TablesForSpec returns all tables supported by this source plugin that match the given spec.
 // It validates the tables part of the spec and will return an error if it is found to be invalid.
-// This is deprecated method
+// Deprecated
 func (p *Plugin) TablesForSpec(spec specs.Source) (schema.Tables, error) {
 	spec.SetDefaults()
 	if err := spec.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid spec: %w", err)
 	}
+
 	tables, err := p.tables.FilterDfs(spec.Tables, spec.SkipTables, spec.SkipDependentTables)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter tables: %w", err)
+	}
+	if p.spec.TypeSupport == specs.TypeSupportLimited {
+		tables = convertTablesToLimitedTypeSupport(tables)
 	}
 	return tables, nil
 }
@@ -309,24 +323,150 @@ func (p *Plugin) Sync(ctx context.Context, syncTime time.Time, res chan<- *schem
 	}
 
 	startTime := time.Now()
+	var err error
+	if p.spec.TypeSupport == specs.TypeSupportLimited {
+		err = p.doSyncWithLimitedTypeSupport(ctx, res)
+	} else {
+		err = p.doSync(ctx, res)
+	}
+	if err != nil {
+		return err
+	}
+
+	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
+	return nil
+}
+
+func (p *Plugin) doSync(ctx context.Context, res chan<- *schema.Resource) error {
 	if p.unmanaged {
 		unmanagedClient := p.client.(UnmanagedClient)
 		if err := unmanagedClient.Sync(ctx, p.metrics, res); err != nil {
 			return fmt.Errorf("failed to sync unmanaged client: %w", err)
 		}
-	} else {
-		switch p.spec.Scheduler {
-		case specs.SchedulerDFS:
-			p.syncDfs(ctx, p.spec, p.client, p.sessionTables, res)
-		case specs.SchedulerRoundRobin:
-			p.syncRoundRobin(ctx, p.spec, p.client, p.sessionTables, res)
-		default:
-			return fmt.Errorf("unknown scheduler %s. Options are: %v", p.spec.Scheduler, specs.AllSchedulers.String())
+		return nil
+	}
+	switch p.spec.Scheduler {
+	case specs.SchedulerDFS:
+		p.syncDfs(ctx, p.spec, p.client, p.sessionTables, res)
+	case specs.SchedulerRoundRobin:
+		p.syncRoundRobin(ctx, p.spec, p.client, p.sessionTables, res)
+	default:
+		return fmt.Errorf("unknown scheduler %s. Options are: %v", p.spec.Scheduler, specs.AllSchedulers.String())
+	}
+	return nil
+}
+
+func (p *Plugin) doSyncWithLimitedTypeSupport(ctx context.Context, res chan<- *schema.Resource) error {
+	// lazily populated map of tables that have been converted to limited type support
+	convertedTables := make(map[string]*schema.Table)
+	newChan := make(chan *schema.Resource)
+	var syncErr error
+	go func() {
+		defer close(newChan)
+		syncErr = p.doSync(ctx, newChan)
+	}()
+	for r := range newChan {
+		table, ok := convertedTables[r.Table.Name]
+		if !ok {
+			table = convertTableToLimitedTypeSupport(r.Table)
+			convertedTables[r.Table.Name] = table
+		}
+		res <- convertResourceToLimitedTypeSupport(table, r)
+	}
+	return syncErr
+}
+
+func convertResourceToLimitedTypeSupport(newTable *schema.Table, r *schema.Resource) *schema.Resource {
+	if newTable == nil {
+		newTable = convertTableToLimitedTypeSupport(r.Table)
+	}
+	newResource := schema.NewResourceData(newTable, r.Parent, r.Item)
+	for _, col := range r.Table.Columns {
+		newResource.Set(col.Name, r.Get(col.Name))
+	}
+	return newResource
+}
+
+func convertTablesToLimitedTypeSupport(tables schema.Tables) schema.Tables {
+	newTables := make(schema.Tables, len(tables))
+	for i, table := range tables {
+		newTables[i] = convertTableToLimitedTypeSupport(table)
+		newTables[i].Relations = convertTablesToLimitedTypeSupport(table.Relations)
+		for r := range newTables[i].Relations {
+			newTables[i].Relations[r].Parent = newTables[i]
 		}
 	}
+	return newTables
+}
 
-	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
-	return nil
+func convertTableToLimitedTypeSupport(table *schema.Table) *schema.Table {
+	newTable := table.Copy(nil)
+	for c, col := range newTable.Columns {
+		switch {
+		case typeOneOf(col.Type,
+			arrow.FixedWidthTypes.Boolean,
+			arrow.PrimitiveTypes.Int64,
+			arrow.PrimitiveTypes.Float64,
+			arrow.BinaryTypes.Binary,
+			arrow.BinaryTypes.String,
+			types.ExtensionTypes.UUID,
+			types.ExtensionTypes.JSON,
+			types.ExtensionTypes.Inet,
+			types.ExtensionTypes.MAC,
+			arrow.FixedWidthTypes.Timestamp_us,
+			arrow.ListOf(arrow.BinaryTypes.String),
+			arrow.ListOf(arrow.PrimitiveTypes.Int64),
+			arrow.ListOf(types.ExtensionTypes.UUID),
+			arrow.ListOf(types.ExtensionTypes.Inet),
+			arrow.ListOf(types.ExtensionTypes.MAC)):
+			// these types were supported by CQTypes and don't need to be converted
+			continue
+		case typeOneOf(col.Type,
+			arrow.PrimitiveTypes.Int8,
+			arrow.PrimitiveTypes.Int16,
+			arrow.PrimitiveTypes.Int32,
+			arrow.PrimitiveTypes.Uint8,
+			arrow.PrimitiveTypes.Uint16,
+			arrow.PrimitiveTypes.Uint32,
+			arrow.PrimitiveTypes.Uint64):
+			newTable.Columns[c].Type = arrow.PrimitiveTypes.Int64
+		case typeOneOf(col.Type,
+			arrow.PrimitiveTypes.Float32):
+			newTable.Columns[c].Type = arrow.PrimitiveTypes.Float64
+		case typeOneOf(col.Type,
+			arrow.FixedWidthTypes.Timestamp_s,
+			arrow.FixedWidthTypes.Timestamp_ms,
+			arrow.FixedWidthTypes.Timestamp_ns):
+			newTable.Columns[c].Type = arrow.FixedWidthTypes.Timestamp_us
+		case typeOneOf(col.Type,
+			arrow.BinaryTypes.LargeString):
+			newTable.Columns[c].Type = arrow.BinaryTypes.String
+		case typeOneOf(col.Type,
+			arrow.BinaryTypes.LargeBinary):
+			newTable.Columns[c].Type = arrow.BinaryTypes.Binary
+		case typeOneOf(col.Type,
+			arrow.ListOf(arrow.PrimitiveTypes.Int8),
+			arrow.ListOf(arrow.PrimitiveTypes.Int16),
+			arrow.ListOf(arrow.PrimitiveTypes.Int32),
+			arrow.ListOf(arrow.PrimitiveTypes.Uint8),
+			arrow.ListOf(arrow.PrimitiveTypes.Uint16),
+			arrow.ListOf(arrow.PrimitiveTypes.Uint32),
+			arrow.ListOf(arrow.PrimitiveTypes.Uint64)):
+			newTable.Columns[c].Type = arrow.ListOf(arrow.PrimitiveTypes.Int64)
+		default:
+			newTable.Columns[c].Type = types.ExtensionTypes.JSON
+		}
+	}
+	return newTable
+}
+
+func typeOneOf(dt arrow.DataType, types ...arrow.DataType) bool {
+	for _, t := range types {
+		if arrow.TypeEqual(dt, t) {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *Plugin) Close(ctx context.Context) error {

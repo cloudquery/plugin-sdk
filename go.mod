@@ -26,6 +26,7 @@ require (
 	google.golang.org/protobuf v1.30.0
 )
 
+replace github.com/cloudquery/plugin-pb-go v1.0.8 => ../plugin-pb-go
 replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230526062000-b3fdc24ed8d6
 
 require (

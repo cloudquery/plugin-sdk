@@ -121,7 +121,6 @@ var testTables = []*schema.Table{
 
 func TestGeneratePluginDocs(t *testing.T) {
 	p := NewPlugin("test", "v1.0.0", testTables, newTestExecutionClient)
-
 	cup := cupaloy.New(cupaloy.SnapshotSubdirectory("testdata"))
 
 	t.Run("Markdown", func(t *testing.T) {
