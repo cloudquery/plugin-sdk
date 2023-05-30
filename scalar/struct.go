@@ -64,6 +64,11 @@ func (s *Struct) Set(val any) error {
 		return nil
 	}
 
+	if !reflect.ValueOf(val).IsValid() {
+		s.Valid = false
+		return nil
+	}
+
 	s.Value = val
 	s.Valid = true
 	return nil
