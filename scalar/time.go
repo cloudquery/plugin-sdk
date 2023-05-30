@@ -10,17 +10,13 @@ type Time struct {
 }
 
 func (s *Time) DataType() arrow.DataType {
-	switch {
-	case s.Unit == arrow.Second && s.Int.BitWidth == 32:
-		return arrow.FixedWidthTypes.Time32s
-	case s.Unit == arrow.Millisecond && s.Int.BitWidth == 32:
-		return arrow.FixedWidthTypes.Time32ms
-	case s.Unit == arrow.Nanosecond && s.Int.BitWidth == 64:
-		return arrow.FixedWidthTypes.Time64ns
-	case s.Unit == arrow.Microsecond && s.Int.BitWidth == 64:
-		return arrow.FixedWidthTypes.Time64us
+	switch width := s.getBitWidth(); width {
+	case 64:
+		return &arrow.Time64Type{Unit: s.Unit}
+	case 32:
+		return &arrow.Time32Type{Unit: s.Unit}
 	default:
-		panic("unknown time unit")
+		panic("unsupported bit width " + strconv.Itoa(width))
 	}
 }
 
