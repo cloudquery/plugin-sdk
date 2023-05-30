@@ -40,6 +40,8 @@ type (
 
 		ByteArrayCol []byte `json:"byte_array_col,omitempty"`
 
+		AnyArrayCol []any `json:"any_array_col,omitempty"`
+
 		TimeCol        time.Time  `json:"time_col,omitempty"`
 		TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
 		JSONTag        *string    `json:"json_tag"`
@@ -127,6 +129,10 @@ var (
 		{
 			Name: "byte_array_col",
 			Type: arrow.BinaryTypes.Binary,
+		},
+		{
+			Name: "any_array_col",
+			Type: types.ExtensionTypes.JSON,
 		},
 		{
 			Name: "time_col",

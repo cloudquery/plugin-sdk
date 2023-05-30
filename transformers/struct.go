@@ -331,9 +331,13 @@ func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 		}
 		return types.ExtensionTypes.JSON, nil
 	case reflect.Slice:
-		if v.Elem().Kind() == reflect.Uint8 {
+		switch v.Elem().Kind() {
+		case reflect.Uint8:
 			return arrow.BinaryTypes.Binary, nil
+		case reflect.Interface:
+			return types.ExtensionTypes.JSON, nil
 		}
+
 		elemValueType, err := defaultGoTypeToSchemaType(v.Elem())
 		if err != nil {
 			return nil, err
