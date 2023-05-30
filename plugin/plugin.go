@@ -7,14 +7,17 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/backend"
-	"github.com/cloudquery/plugin-sdk/v3/caser"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v4/backend"
+	"github.com/cloudquery/plugin-sdk/v4/caser"
+	"github.com/cloudquery/plugin-sdk/v4/scalar"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/semaphore"
 
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v0"
+	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 )
 
 type Options struct {
@@ -25,28 +28,40 @@ type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, 
 
 type NewClientFunc func(context.Context, zerolog.Logger, pbPlugin.Spec) (Client, error)
 
-type UnmanagedClient interface {
-	schema.ClientMeta
-	Sync(ctx context.Context, metrics *Metrics, syncSpec pbPlugin.SyncSpec, res chan<- *schema.Resource) error
-}
-
 type Client interface {
-	Sync(ctx context.Context, metrics *Metrics, res chan<- *schema.Resource) error
+	ID() string
+	Sync(ctx context.Context, metrics *Metrics, res chan<- arrow.Record) error
 	Migrate(ctx context.Context, tables schema.Tables) error
+	WriteTableBatch(ctx context.Context, table *schema.Table, data []arrow.Record) error
 	Write(ctx context.Context, tables schema.Tables, res <-chan arrow.Record) error
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error
+	Close(ctx context.Context) error
 }
 
 type UnimplementedWriter struct{}
 
-func (UnimplementedWriter) WriteTableBatch(context.Context, *schema.Table, []arrow.Record) error {
+func (UnimplementedWriter) Migrate(ctx context.Context, tables schema.Tables) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (UnimplementedWriter) Write(ctx context.Context, tables schema.Tables, res <-chan arrow.Record) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (UnimplementedWriter) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
 	return fmt.Errorf("not implemented")
 }
 
 type UnimplementedSync struct{}
 
-func (UnimplementedSync) Sync(ctx context.Context, metrics *Metrics, res chan<- *schema.Resource) error {
+func (UnimplementedSync) Sync(ctx context.Context, metrics *Metrics, res chan<- arrow.Record) error {
+	return fmt.Errorf("not implemented")
+}
+
+type UnimplementedRead struct{}
+
+func (UnimplementedRead) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -94,6 +109,14 @@ type Plugin struct {
 	// titleTransformer allows the plugin to control how table names get turned into titles for generated documentation
 	titleTransformer func(*schema.Table) string
 	syncTime         time.Time
+
+	managedWriter bool
+	workers     map[string]*worker
+	workersLock *sync.Mutex
+
+	batchTimeout          time.Duration
+	defaultBatchSize      int
+	defaultBatchSizeBytes int
 }
 
 const (
@@ -168,10 +191,11 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 	p := Plugin{
 		name:             name,
 		version:          version,
-		internalColumns:    true,
-		caser:              caser.New(),
-		titleTransformer:   DefaultTitleTransformer,
-		newClient: 				newClient,
+		internalColumns:  true,
+		caser:            caser.New(),
+		titleTransformer: DefaultTitleTransformer,
+		newClient:        newClient,
+		metrics:          &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 	}
 	for _, opt := range options {
 		opt(&p)
@@ -204,7 +228,6 @@ func (p *Plugin) Version() string {
 	return p.version
 }
 
-
 func (p *Plugin) SetLogger(logger zerolog.Logger) {
 	p.logger = logger.With().Str("module", p.name+"-src").Logger()
 }
@@ -220,6 +243,21 @@ func (p *Plugin) HasDynamicTables() bool {
 
 func (p *Plugin) DynamicTables() schema.Tables {
 	return p.sessionTables
+}
+
+func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]arrow.Record, error) {
+	var readErr error
+	ch := make(chan arrow.Record)
+	go func() {
+		defer close(ch)
+		readErr = p.Read(ctx, table, sourceName, ch)
+	}()
+	// nolint:prealloc
+	var resources []arrow.Record
+	for resource := range ch {
+		resources = append(resources, resource)
+	}
+	return resources, readErr
 }
 
 func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error {
@@ -243,6 +281,43 @@ func (p *Plugin) Init(ctx context.Context, spec pbPlugin.Spec) error {
 	}
 	p.spec = spec
 
+	tables := p.staticTables
+	if p.getDynamicTables != nil {
+		tables, err = p.getDynamicTables(ctx, p.client)
+		if err != nil {
+			return fmt.Errorf("failed to get dynamic tables: %w", err)
+		}
+
+		tables, err = tables.FilterDfs(spec.SyncSpec.Tables, spec.SyncSpec.SkipTables, true)
+		if err != nil {
+			return fmt.Errorf("failed to filter tables: %w", err)
+		}
+		if len(tables) == 0 {
+			return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
+		}
+
+		setParents(tables, nil)
+		if err := transformTables(tables); err != nil {
+			return err
+		}
+		if p.internalColumns {
+			if err := p.addInternalColumns(tables); err != nil {
+				return err
+			}
+		}
+
+		p.maxDepth = maxDepth(tables)
+		if p.maxDepth > maxAllowedDepth {
+			return fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth)
+		}
+	} else {
+		tables, err = tables.FilterDfs(spec.SyncSpec.Tables, spec.SyncSpec.SkipTables, true)
+		if err != nil {
+			return fmt.Errorf("failed to filter tables: %w", err)
+		}
+	}
+	p.sessionTables = tables
+
 	return nil
 }
 
@@ -252,6 +327,41 @@ func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
 
 func (p *Plugin) writeUnmanaged(ctx context.Context, _ specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
 	return p.client.Write(ctx, tables, res)
+}
+
+// this function is currently used mostly for testing so it's not a public api
+func (p *Plugin) writeOne(ctx context.Context, sourceSpec pbPlugin.Spec, syncTime time.Time, resource arrow.Record) error {
+	resources := []arrow.Record{resource}
+	return p.writeAll(ctx, sourceSpec, syncTime, resources)
+}
+
+// this function is currently used mostly for testing so it's not a public api
+func (p *Plugin) writeAll(ctx context.Context, sourceSpec pbPlugin.Spec, syncTime time.Time, resources []arrow.Record) error {
+	ch := make(chan arrow.Record, len(resources))
+	for _, resource := range resources {
+		ch <- resource
+	}
+	close(ch)
+	tables := make(schema.Tables, 0)
+	tableNames := make(map[string]struct{})
+	for _, resource := range resources {
+		sc := resource.Schema()
+		tableMD := sc.Metadata()
+		name, found := tableMD.GetValue(schema.MetadataTableName)
+		if !found {
+			return fmt.Errorf("missing table name")
+		}
+		if _, ok := tableNames[name]; ok {
+			continue
+		}
+		table, err := schema.NewTableFromArrowSchema(resource.Schema())
+		if err != nil {
+			return err
+		}
+		tables = append(tables, table)
+		tableNames[table.Name] = struct{}{}
+	}
+	return p.Write(ctx, sourceSpec, tables, syncTime, ch)
 }
 
 func (p *Plugin) Write(ctx context.Context, sourceSpec pbPlugin.Spec, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
@@ -281,8 +391,23 @@ func (p *Plugin) DeleteStale(ctx context.Context, tables schema.Tables, sourceNa
 	return p.client.DeleteStale(ctx, tables, sourceName, syncTime)
 }
 
+func (p *Plugin) syncAll(ctx context.Context, syncTime time.Time, syncSpec pbPlugin.SyncSpec) ([]arrow.Record, error) {
+	var err error
+	ch := make(chan arrow.Record)
+	go func() {
+		defer close(ch)
+		err = p.Sync(ctx, syncTime, syncSpec, ch)
+	}()
+	// nolint:prealloc
+	var resources []arrow.Record
+	for resource := range ch {
+		resources = append(resources, resource)
+	}
+	return resources, err
+}
+
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *Plugin) Sync(ctx context.Context, syncTime time.Time, syncSpec pbPlugin.SyncSpec, res chan<- *schema.Resource) error {
+func (p *Plugin) Sync(ctx context.Context, syncTime time.Time, syncSpec pbPlugin.SyncSpec, res chan<- arrow.Record) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}
@@ -291,18 +416,28 @@ func (p *Plugin) Sync(ctx context.Context, syncTime time.Time, syncSpec pbPlugin
 
 	startTime := time.Now()
 	if p.unmanaged {
-		unmanagedClient := p.client.(UnmanagedClient)
-		if err := unmanagedClient.Sync(ctx, p.metrics, syncSpec, res); err != nil {
+		if err := p.client.Sync(ctx, p.metrics, res); err != nil {
 			return fmt.Errorf("failed to sync unmanaged client: %w", err)
 		}
 	} else {
-		switch syncSpec.Scheduler {
-		case pbPlugin.SyncSpec_SCHEDULER_DFS:
-			p.syncDfs(ctx, syncSpec, p.client, p.sessionTables, res)
-		case pbPlugin.SyncSpec_SCHEDULER_ROUND_ROBIN:
-			p.syncRoundRobin(ctx, syncSpec, p.client, p.sessionTables, res)
-		default:
-			return fmt.Errorf("unknown scheduler %s. Options are: %v", syncSpec.Scheduler, specs.AllSchedulers.String())
+		resources := make(chan *schema.Resource)
+		go func() {
+			defer close(resources)
+			switch syncSpec.Scheduler {
+			case pbPlugin.SyncSpec_SCHEDULER_DFS:
+				p.syncDfs(ctx, syncSpec, p.client, p.sessionTables, resources)
+			case pbPlugin.SyncSpec_SCHEDULER_ROUND_ROBIN:
+				p.syncRoundRobin(ctx, syncSpec, p.client, p.sessionTables, resources)
+			default:
+				panic(fmt.Errorf("unknown scheduler %s. Options are: %v", syncSpec.Scheduler, specs.AllSchedulers.String()))
+			}
+		}()
+		for resource := range resources {
+			vector := resource.GetValues()
+			bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
+			scalar.AppendToRecordBuilder(bldr, vector)
+			rec := bldr.NewRecord()
+			res <- rec
 		}
 	}
 
@@ -322,5 +457,5 @@ func (p *Plugin) Close(ctx context.Context) error {
 		}
 		p.backend = nil
 	}
-	return nil
+	return p.client.Close(ctx)
 }

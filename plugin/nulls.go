@@ -1,4 +1,4 @@
-package destination
+package plugin
 
 import (
 	"github.com/apache/arrow/go/v13/arrow"
@@ -69,4 +69,8 @@ func (f AllowNullFunc) replaceNullsByEmpty(records []arrow.Record) {
 		}
 		records[i] = array.NewRecord(records[i].Schema(), cols, records[i].NumRows())
 	}
+<<<<<<< HEAD:plugins/destination/nulls.go
 }
+=======
+}
+>>>>>>> 5ba1713 (wip):plugin/nulls.go

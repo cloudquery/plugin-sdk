@@ -1,19 +1,20 @@
-package destination
+package plugin
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
-func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testOpts PluginTestSuiteRunnerOptions) error {
-	spec.WriteMode = specs.WriteModeAppend
-	if err := p.Init(ctx, logger, spec); err != nil {
+func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec pbPlugin.Spec, testOpts PluginTestSuiteRunnerOptions) error {
+	spec.WriteSpec.WriteMode = pbPlugin.WRITE_MODE_WRITE_MODE_APPEND
+	if err := p.Init(ctx, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
@@ -27,7 +28,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 	}
 
 	sourceName := "testAppendSource" + uuid.NewString()
-	specSource := specs.Source{
+	specSource := pbPlugin.Spec{
 		Name: sourceName,
 	}
 
