@@ -130,9 +130,9 @@ func NewScalar(dt arrow.DataType) Scalar {
 		return &Map{Type: dt}
 
 	case arrow.DECIMAL128:
-		return &Decimal128{Type: dt}
+		return &Decimal128{Type: dt.(*arrow.Decimal128Type)}
 	case arrow.DECIMAL256:
-		return &Decimal256{Type: dt}
+		return &Decimal256{Type: dt.(*arrow.Decimal256Type)}
 
 	default:
 		panic("not implemented: " + dt.Name())

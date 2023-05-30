@@ -9,7 +9,7 @@ import (
 type Decimal256 struct {
 	Valid bool
 	Value decimal256.Num
-	Type  arrow.DataType // Stores precision and scale
+	Type  *arrow.Decimal256Type // Stores precision and scale
 }
 
 func (s *Decimal256) IsValid() bool {
@@ -78,7 +78,7 @@ func (s *Decimal256) Set(val any) error {
 	case uint64:
 		s.Value = decimal256.FromU64(value)
 	case string:
-		v, err := decimal256.FromString(value, s.Precision(), s.Scale())
+		v, err := decimal256.FromString(value, s.Type.Precision, s.Type.Scale)
 		if err != nil {
 			return err
 		}
@@ -108,18 +108,10 @@ func (s *Decimal256) Set(val any) error {
 	return nil
 }
 
-func (s *Decimal256) Precision() int32 {
-	return s.Type.(arrow.DecimalType).GetPrecision()
-}
-
-func (s *Decimal256) Scale() int32 {
-	return s.Type.(arrow.DecimalType).GetScale()
-}
-
 type Decimal128 struct {
 	Valid bool
 	Value decimal128.Num
-	Type  arrow.DataType // Stores precision and scale
+	Type  *arrow.Decimal128Type // Stores precision and scale
 }
 
 func (s *Decimal128) IsValid() bool {
@@ -180,7 +172,7 @@ func (s *Decimal128) Set(val any) error {
 	case uint64:
 		s.Value = decimal128.FromU64(value)
 	case string:
-		v, err := decimal128.FromString(value, s.Precision(), s.Scale())
+		v, err := decimal128.FromString(value, s.Type.Precision, s.Type.Scale)
 		if err != nil {
 			return err
 		}
@@ -208,12 +200,4 @@ func (s *Decimal128) Set(val any) error {
 	}
 	s.Valid = true
 	return nil
-}
-
-func (s *Decimal128) Precision() int32 {
-	return s.Type.(arrow.DecimalType).GetPrecision()
-}
-
-func (s *Decimal128) Scale() int32 {
-	return s.Type.(arrow.DecimalType).GetScale()
 }
