@@ -5,29 +5,27 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/apache/arrow/go/v12/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
-	"github.com/cloudquery/plugin-sdk/v2/testdata"
-	"github.com/cloudquery/plugin-sdk/v2/types"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, mem memory.Allocator, p *Plugin, logger zerolog.Logger, spec specs.Destination) error {
+func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec specs.Destination, testOpts PluginTestSuiteRunnerOptions) error {
 	spec.WriteMode = specs.WriteModeOverwriteDeleteStale
 	if err := p.Init(ctx, logger, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
-	table := testdata.TestTable(tableName)
-	incTable := testdata.TestTable(tableName + "_incremental")
+	table := schema.TestTable(tableName, testOpts.TestSourceOptions)
+	incTable := schema.TestTable(tableName+"_incremental", testOpts.TestSourceOptions)
 	incTable.IsIncremental = true
 	syncTime := time.Now().UTC().Round(1 * time.Second)
-	tables := []*arrow.Schema{
-		table.ToArrowSchema(),
-		incTable.ToArrowSchema(),
+	tables := schema.Tables{
+		table,
+		incTable,
 	}
 	if err := p.Migrate(ctx, tables); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
@@ -39,26 +37,22 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		Backend: specs.BackendLocal,
 	}
 
-	opts := testdata.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   syncTime,
-		MaxRows:    2,
+	opts := schema.GenTestDataOptions{
+		SourceName:    sourceName,
+		SyncTime:      syncTime,
+		MaxRows:       2,
+		TimePrecision: testOpts.TimePrecision,
 	}
-	resources := testdata.GenTestData(mem, table.ToArrowSchema(), opts)
-	incResources := testdata.GenTestData(mem, incTable.ToArrowSchema(), opts)
+	resources := schema.GenTestData(table, opts)
+	incResources := schema.GenTestData(incTable, opts)
 	allResources := resources
 	allResources = append(allResources, incResources...)
-	defer func() {
-		for _, r := range allResources {
-			r.Release()
-		}
-	}()
 	if err := p.writeAll(ctx, sourceSpec, syncTime, allResources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
 	sortRecordsBySyncTime(table, resources)
 
-	resourcesRead, err := p.readAll(ctx, table.ToArrowSchema(), sourceName)
+	resourcesRead, err := p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
@@ -67,18 +61,22 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if len(resourcesRead) != 2 {
 		return fmt.Errorf("expected 2 resources, got %d", len(resourcesRead))
 	}
-	if !array.RecordEqual(resources[0], resourcesRead[0]) {
+	testOpts.AllowNull.replaceNullsByEmpty(resources)
+	if testOpts.IgnoreNullsInLists {
+		stripNullsFromLists(resources)
+	}
+	if !array.RecordApproxEqual(resources[0], resourcesRead[0]) {
 		diff := RecordDiff(resources[0], resourcesRead[0])
 		return fmt.Errorf("expected first resource to be equal. diff: %s", diff)
 	}
 
-	if !array.RecordEqual(resources[1], resourcesRead[1]) {
+	if !array.RecordApproxEqual(resources[1], resourcesRead[1]) {
 		diff := RecordDiff(resources[1], resourcesRead[1])
 		return fmt.Errorf("expected second resource to be equal. diff: %s", diff)
 	}
 
 	// read from incremental table
-	resourcesRead, err = p.readAll(ctx, incTable.ToArrowSchema(), sourceName)
+	resourcesRead, err = p.readAll(ctx, incTable, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
@@ -88,21 +86,25 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 
 	secondSyncTime := syncTime.Add(time.Second).UTC()
 	// copy first resource but update the sync time
-	u := resources[0].Column(2).(*types.UUIDArray).Value(0)
-	opts = testdata.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   secondSyncTime,
-		StableUUID: *u,
-		MaxRows:    1,
+	cqIDInds := resources[0].Schema().FieldIndices(schema.CqIDColumn.Name)
+	u := resources[0].Column(cqIDInds[0]).(*types.UUIDArray).Value(0)
+	opts = schema.GenTestDataOptions{
+		SourceName:    sourceName,
+		SyncTime:      secondSyncTime,
+		StableUUID:    u,
+		MaxRows:       1,
+		TimePrecision: testOpts.TimePrecision,
 	}
-	updatedResources := testdata.GenTestData(mem, table.ToArrowSchema(), opts)[0]
-	defer updatedResources.Release()
+	updatedResources := schema.GenTestData(table, opts)
+	updatedIncResources := schema.GenTestData(incTable, opts)
+	allUpdatedResources := updatedResources
+	allUpdatedResources = append(allUpdatedResources, updatedIncResources...)
 
-	if err := p.writeOne(ctx, sourceSpec, secondSyncTime, updatedResources); err != nil {
-		return fmt.Errorf("failed to write one second time: %w", err)
+	if err := p.writeAll(ctx, sourceSpec, secondSyncTime, allUpdatedResources); err != nil {
+		return fmt.Errorf("failed to write all second time: %w", err)
 	}
 
-	resourcesRead, err = p.readAll(ctx, table.ToArrowSchema(), sourceName)
+	resourcesRead, err = p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
@@ -110,12 +112,16 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if len(resourcesRead) != 1 {
 		return fmt.Errorf("after overwrite expected 1 resource, got %d", len(resourcesRead))
 	}
-	if array.RecordEqual(resources[0], resourcesRead[0]) {
+	testOpts.AllowNull.replaceNullsByEmpty(resources)
+	if testOpts.IgnoreNullsInLists {
+		stripNullsFromLists(resources)
+	}
+	if array.RecordApproxEqual(resources[0], resourcesRead[0]) {
 		diff := RecordDiff(resources[0], resourcesRead[0])
 		return fmt.Errorf("after overwrite expected first resource to be different. diff: %s", diff)
 	}
 
-	resourcesRead, err = p.readAll(ctx, tables[0], sourceName)
+	resourcesRead, err = p.readAll(ctx, table, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
@@ -124,19 +130,23 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	// we expect the only resource returned to match the updated resource we wrote
-	if !array.RecordEqual(updatedResources, resourcesRead[0]) {
-		diff := RecordDiff(updatedResources, resourcesRead[0])
+	testOpts.AllowNull.replaceNullsByEmpty(updatedResources)
+	if testOpts.IgnoreNullsInLists {
+		stripNullsFromLists(updatedResources)
+	}
+	if !array.RecordApproxEqual(updatedResources[0], resourcesRead[0]) {
+		diff := RecordDiff(updatedResources[0], resourcesRead[0])
 		return fmt.Errorf("after delete stale expected resource to be equal. diff: %s", diff)
 	}
 
-	// we expect the incremental table to still have 2 resources, because delete-stale should
+	// we expect the incremental table to still have 3 resources, because delete-stale should
 	// not apply there
-	resourcesRead, err = p.readAll(ctx, tables[1], sourceName)
+	resourcesRead, err = p.readAll(ctx, incTable, sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to read all from incremental table: %w", err)
 	}
-	if len(resourcesRead) != 2 {
-		return fmt.Errorf("expected 2 resources in incremental table after delete-stale, got %d", len(resourcesRead))
+	if len(resourcesRead) != 3 {
+		return fmt.Errorf("expected 3 resources in incremental table after delete-stale, got %d", len(resourcesRead))
 	}
 
 	return nil

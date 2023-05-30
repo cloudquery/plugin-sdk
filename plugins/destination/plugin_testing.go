@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/apache/arrow/go/v12/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/rs/zerolog"
 )
 
@@ -77,7 +77,7 @@ func RecordDiff(l arrow.Record, r arrow.Record) string {
 	for i := 0; i < int(l.NumCols()); i++ {
 		edits, err := array.Diff(l.Column(i), r.Column(i))
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("left: %v, right: %v, error: %v", l.Column(i).DataType(), r.Column(i).DataType(), err))
 		}
 		diff := edits.UnifiedDiff(l.Column(i), r.Column(i))
 		if diff != "" {
@@ -100,13 +100,115 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 
 type NewPluginFunc func() *Plugin
 
-func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs.Destination, tests PluginTestSuiteTests) {
+type PluginTestSuiteRunnerOptions struct {
+	// IgnoreNullsInLists allows stripping null values from lists before comparison.
+	// Destination setups that don't support nulls in lists should set this to true.
+	IgnoreNullsInLists bool
+
+	// AllowNull is a custom func to determine whether a data type may be correctly represented as null.
+	// Destinations that have problems representing some data types should provide a custom implementation here.
+	// If this param is empty, the default is to allow all data types to be nullable.
+	// When the value returned by this func is `true` the comparison is made with the empty value instead of null.
+	AllowNull AllowNullFunc
+
+	schema.TestSourceOptions
+}
+
+func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.AllowNull = allowNull
+	}
+}
+
+func WithTestIgnoreNullsInLists() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.IgnoreNullsInLists = true
+	}
+}
+
+func WithTestSourceTimePrecision(precision time.Duration) func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.TimePrecision = precision
+	}
+}
+
+func WithTestSourceSkipLists() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipLists = true
+	}
+}
+
+func WithTestSourceSkipTimestamps() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipTimestamps = true
+	}
+}
+
+func WithTestSourceSkipDates() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipDates = true
+	}
+}
+
+func WithTestSourceSkipMaps() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipMaps = true
+	}
+}
+
+func WithTestSourceSkipStructs() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipStructs = true
+	}
+}
+
+func WithTestSourceSkipIntervals() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipIntervals = true
+	}
+}
+
+func WithTestSourceSkipDurations() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipDurations = true
+	}
+}
+
+func WithTestSourceSkipTimes() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipTimes = true
+	}
+}
+
+func WithTestSourceSkipLargeTypes() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipLargeTypes = true
+	}
+}
+
+func WithTestSourceSkipDecimals() func(o *PluginTestSuiteRunnerOptions) {
+	return func(o *PluginTestSuiteRunnerOptions) {
+		o.SkipDecimals = true
+	}
+}
+
+func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs.Destination, tests PluginTestSuiteTests, testOptions ...func(o *PluginTestSuiteRunnerOptions)) {
 	t.Helper()
 	destSpec.Name = "testsuite"
 
 	suite := &PluginTestSuite{
 		tests: tests,
 	}
+
+	opts := PluginTestSuiteRunnerOptions{
+		TestSourceOptions: schema.TestSourceOptions{
+			TimePrecision: time.Microsecond,
+		},
+	}
+	for _, o := range testOptions {
+		o(&opts)
+	}
+
 	ctx := context.Background()
 	logger := getTestLogger(t)
 
@@ -115,11 +217,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipOverwrite {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.Name = "test_write_overwrite"
 		p := newPlugin()
-		if err := suite.destinationPluginTestWriteOverwrite(ctx, mem, p, logger, destSpec); err != nil {
+		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, destSpec, opts); err != nil {
 			t.Fatal(err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -132,11 +232,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipOverwrite || suite.tests.SkipDeleteStale {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.Name = "test_write_overwrite_delete_stale"
 		p := newPlugin()
-		if err := suite.destinationPluginTestWriteOverwriteDeleteStale(ctx, mem, p, logger, destSpec); err != nil {
+		if err := suite.destinationPluginTestWriteOverwriteDeleteStale(ctx, p, logger, destSpec, opts); err != nil {
 			t.Fatal(err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -149,11 +247,10 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipMigrateOverwrite {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.WriteMode = specs.WriteModeOverwrite
+		destSpec.MigrateMode = specs.MigrateModeSafe
 		destSpec.Name = "test_migrate_overwrite"
-		suite.destinationPluginTestMigrate(ctx, mem, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite, opts)
 	})
 
 	t.Run("TestMigrateOverwriteForce", func(t *testing.T) {
@@ -161,12 +258,10 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipMigrateOverwriteForce {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.WriteMode = specs.WriteModeOverwrite
 		destSpec.MigrateMode = specs.MigrateModeForced
 		destSpec.Name = "test_migrate_overwrite_force"
-		suite.destinationPluginTestMigrate(ctx, mem, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyOverwrite, opts)
 	})
 
 	t.Run("TestWriteAppend", func(t *testing.T) {
@@ -174,11 +269,9 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipAppend {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.Name = "test_write_append"
 		p := newPlugin()
-		if err := suite.destinationPluginTestWriteAppend(ctx, mem, p, logger, destSpec); err != nil {
+		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, destSpec, opts); err != nil {
 			t.Fatal(err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -188,14 +281,13 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 
 	t.Run("TestMigrateAppend", func(t *testing.T) {
 		t.Helper()
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		if suite.tests.SkipMigrateAppend {
 			t.Skip("skipping " + t.Name())
 		}
 		destSpec.WriteMode = specs.WriteModeAppend
+		destSpec.MigrateMode = specs.MigrateModeSafe
 		destSpec.Name = "test_migrate_append"
-		suite.destinationPluginTestMigrate(ctx, mem, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend, opts)
 	})
 
 	t.Run("TestMigrateAppendForce", func(t *testing.T) {
@@ -203,19 +295,25 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, destSpec specs
 		if suite.tests.SkipMigrateAppendForce {
 			t.Skip("skipping " + t.Name())
 		}
-		mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-		defer mem.AssertSize(t, 0)
 		destSpec.WriteMode = specs.WriteModeAppend
 		destSpec.MigrateMode = specs.MigrateModeForced
 		destSpec.Name = "test_migrate_append_force"
-		suite.destinationPluginTestMigrate(ctx, mem, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend)
+		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, destSpec, tests.MigrateStrategyAppend, opts)
 	})
 }
 
 func sortRecordsBySyncTime(table *schema.Table, records []arrow.Record) {
 	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
+	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
 	sort.Slice(records, func(i, j int) bool {
 		// sort by sync time, then UUID
-		return records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond).Before(records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond))
+		first := records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
+		second := records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
+		if first.Equal(second) {
+			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
+			secondUUID := records[j].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
+			return strings.Compare(firstUUID, secondUUID) < 0
+		}
+		return first.Before(second)
 	})
 }

@@ -8,9 +8,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/cloudquery/plugin-sdk/v2/helpers"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/helpers"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/getsentry/sentry-go"
 	"golang.org/x/sync/semaphore"
 )
@@ -98,8 +98,12 @@ func (p *Plugin) syncDfs(ctx context.Context, spec specs.Source, client schema.C
 }
 
 func (p *Plugin) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
-	var validationErr *schema.ValidationError
 	clientName := client.ID()
+
+	p.metrics.MarkStart(table, clientName)
+	defer p.Metrics().MarkEnd(table, clientName)
+
+	var validationErr *schema.ValidationError
 	logger := p.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
 	if parent == nil { // Log only for root tables, otherwise we spam too much.

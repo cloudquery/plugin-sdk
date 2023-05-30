@@ -5,11 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
-	"github.com/cloudquery/plugin-sdk/v2/testdata"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -141,26 +140,23 @@ func TestOnWriteError(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := testdata.TestTable("test")
-	tables := []*arrow.Schema{
-		table.ToArrowSchema(),
+	table := schema.TestTable("test", schema.TestSourceOptions{})
+	tables := schema.Tables{
+		table,
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
-	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-	defer mem.AssertSize(t, 0)
 	ch := make(chan arrow.Record, 1)
-	opts := testdata.GenTestDataOptions{
+	opts := schema.GenTestDataOptions{
 		SourceName: "test",
 		SyncTime:   time.Now(),
 		MaxRows:    1,
 		StableUUID: uuid.Nil,
 	}
-	record := testdata.GenTestData(mem, table.ToArrowSchema(), opts)[0]
-	defer record.Release()
+	record := schema.GenTestData(table, opts)[0]
 	ch <- record
 	close(ch)
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
@@ -179,27 +175,24 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	if err := p.Init(ctx, getTestLogger(t), specs.Destination{}); err != nil {
 		t.Fatal(err)
 	}
-	table := testdata.TestTable("test")
-	tables := []*arrow.Schema{
-		table.ToArrowSchema(),
+	table := schema.TestTable("test", schema.TestSourceOptions{})
+	tables := schema.Tables{
+		table,
 	}
 	sourceName := "TestDestinationOnWriteError"
 	syncTime := time.Now()
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
-	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-	defer mem.AssertSize(t, 0)
 	ch := make(chan arrow.Record, 1)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	opts := testdata.GenTestDataOptions{
+	opts := schema.GenTestDataOptions{
 		SourceName: "test",
 		SyncTime:   time.Now(),
 		MaxRows:    1,
 		StableUUID: uuid.Nil,
 	}
-	record := testdata.GenTestData(mem, table.ToArrowSchema(), opts)[0]
-	defer record.Release()
+	record := schema.GenTestData(table, opts)[0]
 	ch <- record
 	defer cancel()
 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)

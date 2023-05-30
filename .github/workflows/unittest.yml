@@ -13,6 +13,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
@@ -24,10 +25,10 @@ jobs:
       - run: go build ./...
       - name: Run tests
         if: matrix.os != 'ubuntu-latest'
-        run: go test -race ./...
+        run: go test -tags=assert -race ./...
       - name: Run tests
         if: matrix.os == 'ubuntu-latest'
-        run: go test -race -coverprofile=coverage.out ./...
+        run: go test -tags=assert -race -coverprofile=coverage.out ./...
       - name: Run benchmark
         if: matrix.os == 'ubuntu-latest'
         run: make benchmark-ci
@@ -48,4 +49,4 @@ jobs:
         run: go test -race -coverprofile=coverage.out -covermode=atomic  ./...
       - name: Upload coverage to Codecov
         if: always() && matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@cc7fb3f71c712c470a895ac29f8a1fd0fcb52c8a
+        uses: codecov/codecov-action@894ff025c7b54547a9a2a1e9f228beae737ad3c2

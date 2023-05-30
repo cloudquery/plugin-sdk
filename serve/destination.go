@@ -9,11 +9,14 @@ import (
 	"sync"
 	"syscall"
 
-	pbv0 "github.com/cloudquery/plugin-sdk/v2/internal/pb/destination/v0"
-	pbdiscoveryv0 "github.com/cloudquery/plugin-sdk/v2/internal/pb/discovery/v0"
-	servers "github.com/cloudquery/plugin-sdk/v2/internal/servers/destination/v0"
-	discoveryServerV0 "github.com/cloudquery/plugin-sdk/v2/internal/servers/discovery/v0"
-	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
+	pbv0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
+	pbv1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
+	pbdiscoveryv0 "github.com/cloudquery/plugin-pb-go/pb/discovery/v0"
+	servers "github.com/cloudquery/plugin-sdk/v3/internal/servers/destination/v0"
+	serversv1 "github.com/cloudquery/plugin-sdk/v3/internal/servers/destination/v1"
+	discoveryServerV0 "github.com/cloudquery/plugin-sdk/v3/internal/servers/discovery/v0"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/getsentry/sentry-go"
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -108,15 +111,19 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
-				grpc.MaxRecvMsgSize(pbv0.MaxMsgSize),
-				grpc.MaxSendMsgSize(pbv0.MaxMsgSize),
+				grpc.MaxRecvMsgSize(MaxMsgSize),
+				grpc.MaxSendMsgSize(MaxMsgSize),
 			)
 			pbv0.RegisterDestinationServer(s, &servers.Server{
 				Plugin: serve.plugin,
 				Logger: logger,
 			})
+			pbv1.RegisterDestinationServer(s, &serversv1.Server{
+				Plugin: serve.plugin,
+				Logger: logger,
+			})
 			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.Server{
-				Versions: []string{"v0"},
+				Versions: []string{"v0", "v1"},
 			})
 			version := serve.plugin.Version()
 
@@ -144,6 +151,16 @@ func newCmdDestinationServe(serve *destinationServe) *cobra.Command {
 					log.Error().Err(err).Msg("Error initializing sentry")
 				}
 			}
+
+			if err := types.RegisterAllExtensions(); err != nil {
+				return err
+			}
+			defer func() {
+				if err := types.UnregisterAllExtensions(); err != nil {
+					logger.Error().Err(err).Msg("Failed to unregister extensions")
+				}
+			}()
+
 			ctx := cmd.Context()
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)

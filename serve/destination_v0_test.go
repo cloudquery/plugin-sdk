@@ -8,18 +8,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/apache/arrow/go/v12/arrow/memory"
-	clients "github.com/cloudquery/plugin-sdk/v2/clients/destination/v0"
-	"github.com/cloudquery/plugin-sdk/v2/internal/deprecated"
-	"github.com/cloudquery/plugin-sdk/v2/internal/memdb"
-	"github.com/cloudquery/plugin-sdk/v2/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow/memory"
+	pbBase "github.com/cloudquery/plugin-pb-go/pb/base/v0"
+	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/testdata"
+	"github.com/cloudquery/plugin-sdk/v3/internal/deprecated"
+	"github.com/cloudquery/plugin-sdk/v3/internal/memdb"
+	serversDestination "github.com/cloudquery/plugin-sdk/v3/internal/servers/destination/v0"
+	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func bufDestinationDialer(context.Context, string) (net.Conn, error) {
@@ -66,75 +69,97 @@ func TestDestination(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
-	c, err := clients.NewClient(ctx, specs.RegistryGrpc, "", "", clients.WithGrpcConn(conn), clients.WithNoSentry())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := c.Terminate(); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	if err := c.Initialize(ctx, specs.Destination{
+	c := pb.NewDestinationClient(conn)
+	spec := specs.Destination{
 		WriteMode: specs.WriteModeAppend,
-	}); err != nil {
-		t.Fatal(err)
 	}
-
-	name, err := c.Name(ctx)
+	specBytes, err := json.Marshal(spec)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if name != "testDestinationPlugin" {
-		t.Fatalf("expected name to be testDestinationPlugin but got %s", name)
+	if _, err := c.Configure(ctx, &pbBase.Configure_Request{Config: specBytes}); err != nil {
+		t.Fatal(err)
 	}
 
-	version, err := c.Version(ctx)
+	getNameRes, err := c.GetName(ctx, &pbBase.GetName_Request{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if version != "development" {
-		t.Fatalf("expected version to be development but got %s", version)
+	if getNameRes.Name != "testDestinationPlugin" {
+		t.Fatalf("expected name to be testDestinationPlugin but got %s", getNameRes.Name)
+	}
+
+	getVersionRes, err := c.GetVersion(ctx, &pbBase.GetVersion_Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if getVersionRes.Version != "development" {
+		t.Fatalf("expected version to be development but got %s", getVersionRes.Version)
 	}
 
 	tableName := "test_destination_serve"
 	sourceName := "test_destination_serve_source"
 	syncTime := time.Now()
-	table := testdata.TestTable(tableName)
-	tables := schema.Tables{table}
+	tableV2 := testdata.TestTable(tableName)
+	tablesV2 := schemav2.Tables{tableV2}
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
-	if err := c.Migrate(ctx, tables); err != nil {
-		t.Fatal(err)
-	}
-
-	destResource := schema.DestinationResource{
-		TableName: tableName,
-		Data:      deprecated.GenTestData(table),
-	}
-	_ = destResource.Data[0].Set(sourceName)
-	_ = destResource.Data[1].Set(syncTime)
-	destRecord := schema.CQTypesOneToRecord(memory.DefaultAllocator, destResource.Data, table.ToArrowSchema())
-	b, err := json.Marshal(destResource)
+	tablesV2Bytes, err := json.Marshal(tablesV2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// testdata.GenTestData(table)
-	resources := make(chan []byte, 1)
-	resources <- b
-	close(resources)
-	if err := c.Write2(ctx, sourceSpec, tables, syncTime, resources); err != nil {
+	if _, err := c.Migrate(ctx, &pb.Migrate_Request{
+		Tables: tablesV2Bytes,
+	}); err != nil {
 		t.Fatal(err)
 	}
 
+	destResource := schemav2.DestinationResource{
+		TableName: tableName,
+		Data:      deprecated.GenTestData(tableV2),
+	}
+	_ = destResource.Data[0].Set(sourceName)
+	_ = destResource.Data[1].Set(syncTime)
+	destResourceBytes, err := json.Marshal(destResource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceSpecBytes, err := json.Marshal(sourceSpec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeClient, err := c.Write2(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeClient.Send(&pb.Write2_Request{
+		SourceSpec: sourceSpecBytes,
+		Source:     sourceSpec.Name,
+		Timestamp:  timestamppb.New(syncTime.Truncate(time.Microsecond)),
+		Tables:     tablesV2Bytes,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := writeClient.Send(&pb.Write2_Request{
+		Resource: destResourceBytes,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := writeClient.CloseAndRecv(); err != nil {
+		t.Fatal(err)
+	}
+	// serversDestination
+	table := serversDestination.TableV2ToV3(tableV2)
 	readCh := make(chan arrow.Record, 1)
-	if err := plugin.Read(ctx, table.ToArrowSchema(), sourceName, readCh); err != nil {
+	if err := plugin.Read(ctx, table, sourceName, readCh); err != nil {
 		t.Fatal(err)
 	}
 	close(readCh)
 	totalResources := 0
+	destRecord := serversDestination.CQTypesOneToRecord(memory.DefaultAllocator, destResource.Data, table.ToArrowSchema())
 	for resource := range readCh {
 		totalResources++
 		if !array.RecordEqual(destRecord, resource) {
@@ -145,17 +170,20 @@ func TestDestination(t *testing.T) {
 	if totalResources != 1 {
 		t.Fatalf("expected 1 resource but got %d", totalResources)
 	}
-
-	if err := c.DeleteStale(ctx, nil, "testSource", time.Now()); err != nil {
-		t.Fatalf("failed to call DeleteStale: %v", err)
+	if _, err := c.DeleteStale(ctx, &pb.DeleteStale_Request{
+		Source:    "testSource",
+		Timestamp: timestamppb.New(time.Now().Truncate(time.Microsecond)),
+		Tables:    tablesV2Bytes,
+	}); err != nil {
+		t.Fatal(err)
 	}
 
-	_, err = c.GetMetrics(ctx)
+	_, err = c.GetMetrics(ctx, &pb.GetDestinationMetrics_Request{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := c.Close(ctx); err != nil {
+	if _, err := c.Close(ctx, &pb.Close_Request{}); err != nil {
 		t.Fatalf("failed to call Close: %v", err)
 	}
 

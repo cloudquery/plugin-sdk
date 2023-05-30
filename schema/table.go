@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/cloudquery/plugin-sdk/v2/internal/glob"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v3/internal/glob"
+	"golang.org/x/exp/slices"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -50,27 +51,27 @@ type TableColumnChange struct {
 
 type Table struct {
 	// Name of table
-	Name string `json:"name"`
+	Name string
 	// Title to be used in documentation (optional: will be generated from name if not set)
-	Title string `json:"title"`
+	Title string
 	// table description
-	Description string `json:"description"`
+	Description string
 	// Columns are the set of fields that are part of this table
-	Columns ColumnList `json:"columns"`
+	Columns ColumnList
 	// Relations are a set of related tables defines
-	Relations Tables `json:"relations"`
+	Relations Tables
 	// Transform
-	Transform Transform `json:"-"`
+	Transform Transform
 	// Resolver is the main entry point to fetching table data and
-	Resolver TableResolver `json:"-"`
+	Resolver TableResolver
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
-	Multiplex Multiplexer `json:"-"`
+	Multiplex Multiplexer
 	// PostResourceResolver is called after all columns have been resolved, but before the Resource is sent to be inserted. The ordering of resolvers is:
 	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
-	PostResourceResolver RowResolver `json:"-"`
+	PostResourceResolver RowResolver
 	// PreResourceResolver is called before all columns are resolved but after Resource is created. The ordering of resolvers is:
 	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
-	PreResourceResolver RowResolver `json:"-"`
+	PreResourceResolver RowResolver
 	// IsIncremental is a flag that indicates if the table is incremental or not. This flag mainly affects how the table is
 	// documented.
 	IsIncremental bool
@@ -80,18 +81,58 @@ type Table struct {
 	// have at least one row.
 	// When IgnoreInTests is true, integration tests won't fetch from this table.
 	// Used when it is hard to create a reproducible environment with a row in this table.
-	IgnoreInTests bool `json:"ignore_in_tests"`
+	IgnoreInTests bool
 
 	// Parent is the parent table in case this table is called via parent table (i.e. relation)
-	Parent *Table `json:"-"`
+	Parent *Table
 
-	PkConstraintName string `json:"pk_constraint_name"`
+	PkConstraintName string
 }
 
 var (
 	reValidTableName  = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
+
+func NewTablesFromArrowSchemas(schemas []*arrow.Schema) (Tables, error) {
+	tables := make(Tables, len(schemas))
+	for i, schema := range schemas {
+		table, err := NewTableFromArrowSchema(schema)
+		if err != nil {
+			return nil, err
+		}
+		tables[i] = table
+	}
+	return tables, nil
+}
+
+// Create a CloudQuery Table abstraction from an arrow schema
+// arrow schema is a low level representation of a table that can be sent
+// over the wire in a cross-language way
+func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
+	tableMD := sc.Metadata()
+	name, found := tableMD.GetValue(MetadataTableName)
+	if !found {
+		return nil, fmt.Errorf("missing table name")
+	}
+	description, _ := tableMD.GetValue(MetadataTableDescription)
+	constraintName, _ := tableMD.GetValue(MetadataConstraintName)
+	fields := sc.Fields()
+	columns := make(ColumnList, len(fields))
+	for i, field := range fields {
+		columns[i] = NewColumnFromArrowField(field)
+	}
+	table := &Table{
+		Name:             name,
+		Description:      description,
+		PkConstraintName: constraintName,
+		Columns:          columns,
+	}
+	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
+		table.IsIncremental = isIncremental == MetadataTrue
+	}
+	return table, nil
+}
 
 func (t TableColumnChangeType) String() string {
 	switch t {
@@ -132,9 +173,10 @@ func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool, skipDependent
 }
 
 func (tt Tables) ToArrowSchemas() Schemas {
-	schemas := make(Schemas, 0, len(tt.FlattenTables()))
-	for _, t := range tt.FlattenTables() {
-		schemas = append(schemas, t.ToArrowSchema())
+	flattened := tt.FlattenTables()
+	schemas := make(Schemas, len(flattened))
+	for i, t := range flattened {
+		schemas[i] = t.ToArrowSchema()
 	}
 	return schemas
 }
@@ -187,10 +229,22 @@ func (tt Tables) FilterDfs(tables, skipTables []string, skipDependentTables bool
 func (tt Tables) FlattenTables() Tables {
 	tables := make(Tables, 0, len(tt))
 	for _, t := range tt {
-		tables = append(tables, t)
+		table := *t
+		table.Relations = nil
+		tables = append(tables, &table)
 		tables = append(tables, t.Relations.FlattenTables()...)
 	}
-	return tables
+
+	seen := make(map[string]struct{})
+	deduped := make(Tables, 0, len(tables))
+	for _, t := range tables {
+		if _, found := seen[t.Name]; !found {
+			deduped = append(deduped, t)
+			seen[t.Name] = struct{}{}
+		}
+	}
+
+	return slices.Clip(deduped)
 }
 
 func (tt Tables) TableNames() []string {
@@ -301,8 +355,33 @@ func (t *Table) ValidateName() error {
 	return nil
 }
 
+func (t *Table) PrimaryKeysIndexes() []int {
+	var primaryKeys []int
+	for i, c := range t.Columns {
+		if c.PrimaryKey {
+			primaryKeys = append(primaryKeys, i)
+		}
+	}
+
+	return primaryKeys
+}
+
 func (t *Table) ToArrowSchema() *arrow.Schema {
-	return CQSchemaToArrow(t)
+	fields := make([]arrow.Field, len(t.Columns))
+	md := map[string]string{
+		MetadataTableName:        t.Name,
+		MetadataTableDescription: t.Description,
+		MetadataConstraintName:   t.PkConstraintName,
+		MetadataIncremental:      MetadataFalse,
+	}
+	if t.IsIncremental {
+		md[MetadataIncremental] = MetadataTrue
+	}
+	schemaMd := arrow.MetadataFrom(md)
+	for i, c := range t.Columns {
+		fields[i] = c.ToArrowField()
+	}
+	return arrow.NewSchema(fields, &schemaMd)
 }
 
 // Get Changes returns changes between two tables when t is the new one and old is the old one.
@@ -320,7 +399,7 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 			continue
 		}
 		// Column type or options (e.g. PK, Not Null) changed in the new table definition
-		if c.Type != otherColumn.Type || c.CreationOptions.NotNull != otherColumn.CreationOptions.NotNull || c.CreationOptions.PrimaryKey != otherColumn.CreationOptions.PrimaryKey {
+		if !arrow.TypeEqual(c.Type, otherColumn.Type) || c.NotNull != otherColumn.NotNull || c.PrimaryKey != otherColumn.PrimaryKey {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeUpdate,
 				ColumnName: c.Name,
@@ -360,8 +439,7 @@ func (t *Table) ValidateDuplicateColumns() error {
 
 func (t *Table) ValidateColumnNames() error {
 	for _, c := range t.Columns {
-		ok := reValidColumnName.MatchString(c.Name)
-		if !ok {
+		if !ValidColumnName(c.Name) {
 			return fmt.Errorf("column name %q on table %q is not valid: column names must contain only lower-case letters, numbers and underscores, and must start with a lower-case letter or underscore", c.Name, t.Name)
 		}
 	}
@@ -392,7 +470,7 @@ func (t *Table) OverwriteOrAddColumn(column *Column) {
 func (t *Table) PrimaryKeys() []string {
 	var primaryKeys []string
 	for _, c := range t.Columns {
-		if c.CreationOptions.PrimaryKey {
+		if c.PrimaryKey {
 			primaryKeys = append(primaryKeys, c.Name)
 		}
 	}
@@ -403,7 +481,7 @@ func (t *Table) PrimaryKeys() []string {
 func (t *Table) IncrementalKeys() []string {
 	var incrementalKeys []string
 	for _, c := range t.Columns {
-		if c.CreationOptions.IncrementalKey {
+		if c.IncrementalKey {
 			incrementalKeys = append(incrementalKeys, c.Name)
 		}
 	}
@@ -429,4 +507,8 @@ func (t *Table) Copy(parent *Table) *Table {
 		c.Relations[i] = t.Relations[i].Copy(&c)
 	}
 	return &c
+}
+
+func ValidColumnName(name string) bool {
+	return reValidColumnName.MatchString(name)
 }

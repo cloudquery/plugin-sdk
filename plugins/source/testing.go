@@ -3,9 +3,10 @@ package source
 import (
 	"context"
 	"testing"
+	"time"
 
-	"github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v2/specs"
+	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
 )
 
 type Validator func(t *testing.T, plugin *Plugin, resources []*schema.Resource)
@@ -33,7 +34,7 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec specs.Source, opts ...Tes
 
 	go func() {
 		defer close(resourcesChannel)
-		syncErr = plugin.Sync(context.Background(), resourcesChannel)
+		syncErr = plugin.Sync(context.Background(), time.Now(), resourcesChannel)
 	}()
 
 	syncedResources := make([]*schema.Resource, 0)
@@ -123,7 +124,7 @@ func validateResources(t *testing.T, resources []*schema.Resource) {
 			if value == nil {
 				continue
 			}
-			if value.Get() != nil && value.Get() != schema.Undefined {
+			if value.IsValid() {
 				columnsWithValues[i] = true
 			}
 		}

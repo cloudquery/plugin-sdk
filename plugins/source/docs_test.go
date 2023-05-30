@@ -7,8 +7,10 @@ import (
 	"path"
 	"testing"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/bradleyjkemp/cupaloy/v2"
-	"github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v3/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,17 +21,33 @@ var testTables = []*schema.Table{
 		Columns: []schema.Column{
 			{
 				Name: "int_col",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 			{
-				Name:            "id_col",
-				Type:            schema.TypeInt,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Name:       "id_col",
+				Type:       arrow.PrimitiveTypes.Int64,
+				PrimaryKey: true,
 			},
 			{
-				Name:            "id_col2",
-				Type:            schema.TypeInt,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true},
+				Name:       "id_col2",
+				Type:       arrow.PrimitiveTypes.Int64,
+				PrimaryKey: true,
+			},
+			{
+				Name: "json_col",
+				Type: types.ExtensionTypes.JSON,
+			},
+			{
+				Name: "list_col",
+				Type: arrow.ListOf(arrow.PrimitiveTypes.Int64),
+			},
+			{
+				Name: "map_col",
+				Type: arrow.MapOf(arrow.BinaryTypes.String, arrow.PrimitiveTypes.Int64),
+			},
+			{
+				Name: "struct_col",
+				Type: arrow.StructOf(arrow.Field{Name: "string_field", Type: arrow.BinaryTypes.String}, arrow.Field{Name: "int_field", Type: arrow.PrimitiveTypes.Int64}),
 			},
 		},
 		Relations: []*schema.Table{
@@ -39,7 +57,7 @@ var testTables = []*schema.Table{
 				Columns: []schema.Column{
 					{
 						Name: "string_col",
-						Type: schema.TypeString,
+						Type: arrow.BinaryTypes.String,
 					},
 				},
 				Relations: []*schema.Table{
@@ -49,7 +67,7 @@ var testTables = []*schema.Table{
 						Columns: []schema.Column{
 							{
 								Name: "string_col",
-								Type: schema.TypeString,
+								Type: arrow.BinaryTypes.String,
 							},
 						},
 					},
@@ -59,7 +77,7 @@ var testTables = []*schema.Table{
 						Columns: []schema.Column{
 							{
 								Name: "string_col",
-								Type: schema.TypeString,
+								Type: arrow.BinaryTypes.String,
 							},
 						},
 					},
@@ -71,7 +89,7 @@ var testTables = []*schema.Table{
 				Columns: []schema.Column{
 					{
 						Name: "string_col",
-						Type: schema.TypeString,
+						Type: arrow.BinaryTypes.String,
 					},
 				},
 			},
@@ -84,17 +102,18 @@ var testTables = []*schema.Table{
 		Columns: []schema.Column{
 			{
 				Name: "int_col",
-				Type: schema.TypeInt,
+				Type: arrow.PrimitiveTypes.Int64,
 			},
 			{
-				Name:            "id_col",
-				Type:            schema.TypeInt,
-				CreationOptions: schema.ColumnCreationOptions{PrimaryKey: true, IncrementalKey: true},
+				Name:           "id_col",
+				Type:           arrow.PrimitiveTypes.Int64,
+				PrimaryKey:     true,
+				IncrementalKey: true,
 			},
 			{
-				Name:            "id_col2",
-				Type:            schema.TypeInt,
-				CreationOptions: schema.ColumnCreationOptions{IncrementalKey: true},
+				Name:           "id_col2",
+				Type:           arrow.PrimitiveTypes.Int64,
+				IncrementalKey: true,
 			},
 		},
 	},
@@ -102,6 +121,8 @@ var testTables = []*schema.Table{
 
 func TestGeneratePluginDocs(t *testing.T) {
 	p := NewPlugin("test", "v1.0.0", testTables, newTestExecutionClient)
+
+	cup := cupaloy.New(cupaloy.SnapshotSubdirectory("testdata"))
 
 	t.Run("Markdown", func(t *testing.T) {
 		tmpdir := t.TempDir()
@@ -117,7 +138,7 @@ func TestGeneratePluginDocs(t *testing.T) {
 				output := path.Join(tmpdir, exp)
 				got, err := os.ReadFile(output)
 				require.NoError(t, err)
-				cupaloy.SnapshotT(t, got)
+				cup.SnapshotT(t, got)
 			})
 		}
 	})
@@ -136,7 +157,7 @@ func TestGeneratePluginDocs(t *testing.T) {
 				output := path.Join(tmpdir, exp)
 				got, err := os.ReadFile(output)
 				require.NoError(t, err)
-				cupaloy.SnapshotT(t, got)
+				cup.SnapshotT(t, got)
 			})
 		}
 	})

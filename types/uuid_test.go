@@ -3,8 +3,8 @@ package types
 import (
 	"testing"
 
-	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/apache/arrow/go/v12/arrow/memory"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +27,7 @@ func TestUUIDBuilder(t *testing.T) {
 		uuid.MustParse("00000000-0000-0000-0000-000000000003"),
 		uuid.MustParse("00000000-0000-0000-0000-000000000004"),
 	}
-	b.AppendValues(values, []bool{true, true})
+	b.AppendValues(values, nil)
 
 	require.Equal(t, 6, b.Len(), "unexpected Len()")
 

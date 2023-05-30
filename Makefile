@@ -1,16 +1,10 @@
 .PHONY: test
 test:
-	go test -race ./...
+	go test -tags=assert -race ./...
 
 .PHONY: lint
 lint:
 	golangci-lint run
-
-.PHONY: gen-proto
-gen-proto:
-	protoc --proto_path=. --go_out . --go_opt=module="github.com/cloudquery/plugin-sdk/v2" --go-grpc_out=. --go-grpc_opt=module="github.com/cloudquery/plugin-sdk/v2" cloudquery/base/v0/base.proto cloudquery/destination/v0/destination.proto cloudquery/source/v0/source.proto
-	protoc --proto_path=. --go_out . --go_opt=module="github.com/cloudquery/plugin-sdk/v2" --go-grpc_out=. --go-grpc_opt=module="github.com/cloudquery/plugin-sdk/v2" cloudquery/source/v1/source.proto
-	protoc --proto_path=. --go_out . --go_opt=module="github.com/cloudquery/plugin-sdk/v2" --go-grpc_out=. --go-grpc_opt=module="github.com/cloudquery/plugin-sdk/v2" cloudquery/discovery/v0/discovery.proto
 
 .PHONY: benchmark
 benchmark:

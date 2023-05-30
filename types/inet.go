@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/goccy/go-json"
 )
 
@@ -16,27 +16,40 @@ type InetBuilder struct {
 	*array.ExtensionBuilder
 }
 
-func NewInetBuilder(bldr *array.ExtensionBuilder) *InetBuilder {
-	b := &InetBuilder{
-		ExtensionBuilder: bldr,
+func NewInetBuilder(builder *array.ExtensionBuilder) *InetBuilder {
+	return &InetBuilder{ExtensionBuilder: builder}
+}
+
+func (b *InetBuilder) AppendEmptyValue() {
+	const zeroIPNet = "0.0.0.0/0"
+	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append([]byte(zeroIPNet))
+}
+
+func (b *InetBuilder) Append(v *net.IPNet) {
+	if v == nil {
+		b.AppendNull()
+		return
 	}
-	return b
+	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append([]byte(v.String()))
 }
 
-func (b *InetBuilder) Append(v net.IPNet) {
-	b.ExtensionBuilder.Builder.(*array.StringBuilder).Append(v.String())
+func (b *InetBuilder) UnsafeAppend(v *net.IPNet) {
+	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).UnsafeAppend([]byte(v.String()))
 }
 
-func (b *InetBuilder) UnsafeAppend(v net.IPNet) {
-	b.ExtensionBuilder.Builder.(*array.StringBuilder).UnsafeAppend([]byte(v.String()))
-}
+func (b *InetBuilder) AppendValues(v []*net.IPNet, valid []bool) {
+	if len(v) != len(valid) && len(valid) != 0 {
+		panic("len(v) != len(valid) && len(valid) != 0")
+	}
 
-func (b *InetBuilder) AppendValues(v []net.IPNet, valid []bool) {
-	data := make([]string, len(v))
+	data := make([][]byte, len(v))
 	for i, v := range v {
-		data[i] = v.String()
+		if len(valid) > 0 && !valid[i] {
+			continue
+		}
+		data[i] = []byte(v.String())
 	}
-	b.ExtensionBuilder.Builder.(*array.StringBuilder).AppendValues(data, valid)
+	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).AppendValues(data, valid)
 }
 
 func (b *InetBuilder) AppendValueFromString(s string) error {
@@ -48,7 +61,7 @@ func (b *InetBuilder) AppendValueFromString(s string) error {
 	if err != nil {
 		return err
 	}
-	b.Append(*data)
+	b.Append(data)
 	return nil
 }
 
@@ -58,20 +71,18 @@ func (b *InetBuilder) UnmarshalOne(dec *json.Decoder) error {
 		return err
 	}
 
-	var val net.IPNet
+	var val *net.IPNet
 	switch v := t.(type) {
 	case string:
-		_, data, err := net.ParseCIDR(v)
+		_, val, err = net.ParseCIDR(v)
 		if err != nil {
 			return err
 		}
-		val = *data
 	case []byte:
-		_, data, err := net.ParseCIDR(string(v))
+		_, val, err = net.ParseCIDR(string(v))
 		if err != nil {
 			return err
 		}
-		val = *data
 	case nil:
 		b.AppendNull()
 		return nil
@@ -111,13 +122,17 @@ func (b *InetBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *InetBuilder) NewInetArray() *InetArray {
+	return b.NewExtensionArray().(*InetArray)
+}
+
 // InetArray is a simple array which is a FixedSizeBinary(16)
 type InetArray struct {
 	array.ExtensionArrayBase
 }
 
-func (a InetArray) String() string {
-	arr := a.Storage().(*array.String)
+func (a *InetArray) String() string {
+	arr := a.Storage().(*array.Binary)
 	o := new(strings.Builder)
 	o.WriteString("[")
 	for i := 0; i < arr.Len(); i++ {
@@ -126,38 +141,57 @@ func (a InetArray) String() string {
 		}
 		switch {
 		case a.IsNull(i):
-			o.WriteString("(null)")
+			o.WriteString(array.NullValueStr)
 		default:
-			fmt.Fprintf(o, "\"%s\"", arr.Value(i))
+			fmt.Fprintf(o, "%q", a.ValueStr(i))
 		}
 	}
 	o.WriteString("]")
 	return o.String()
 }
 
+func (a *InetArray) Value(i int) *net.IPNet {
+	if a.IsNull(i) {
+		return nil
+	}
+	_, ipnet, err := net.ParseCIDR(string(a.Storage().(*array.Binary).Value(i)))
+	if err != nil {
+		panic(fmt.Errorf("invalid ip+net: %w", err))
+	}
+
+	return ipnet
+}
+
 func (a *InetArray) ValueStr(i int) string {
-	arr := a.Storage().(*array.String)
 	switch {
 	case a.IsNull(i):
-		return "(null)"
+		return array.NullValueStr
 	default:
-		return arr.Value(i)
+		return a.Value(i).String()
 	}
 }
 
 func (a *InetArray) GetOneForMarshal(i int) any {
-	arr := a.Storage().(*array.String)
-	if a.IsValid(i) {
-		_, ipnet, err := net.ParseCIDR(arr.Value(i))
-		if err != nil {
-			panic(fmt.Errorf("invalid ip+net: %w", err))
-		}
-		return ipnet.String()
+	if a.IsNull(i) {
+		return nil
 	}
-	return nil
+	return string(a.Storage().(*array.Binary).Value(i))
 }
 
-// InetType is a simple extension type that represents a StringType
+func (a *InetArray) MarshalJSON() ([]byte, error) {
+	arr := a.Storage().(*array.Binary)
+	values := make([]any, a.Len())
+	for i := 0; i < a.Len(); i++ {
+		if a.IsValid(i) {
+			values[i] = string(arr.Value(i))
+		} else {
+			values[i] = nil
+		}
+	}
+	return json.Marshal(values)
+}
+
+// InetType is a simple extension type that represents a BinaryType
 // to be used for representing IP Addresses and CIDRs
 type InetType struct {
 	arrow.ExtensionBase
@@ -166,41 +200,44 @@ type InetType struct {
 // NewInetType is a convenience function to create an instance of InetType
 // with the correct storage type
 func NewInetType() *InetType {
-	return &InetType{
-		ExtensionBase: arrow.ExtensionBase{
-			Storage: &arrow.StringType{}}}
+	return &InetType{ExtensionBase: arrow.ExtensionBase{Storage: &arrow.BinaryType{}}}
 }
 
-func (InetType) ArrayType() reflect.Type {
+// ArrayType returns TypeOf(InetArray{}) for constructing Inet arrays
+func (*InetType) ArrayType() reflect.Type {
 	return reflect.TypeOf(InetArray{})
 }
 
-func (InetType) ExtensionName() string {
+func (*InetType) ExtensionName() string {
+	return "inet"
+}
+
+func (*InetType) String() string {
 	return "inet"
 }
 
 // Serialize returns "inet-serialized" for testing proper metadata passing
-func (InetType) Serialize() string {
+func (*InetType) Serialize() string {
 	return "inet-serialized"
 }
 
-// Deserialize expects storageType to be StringType and the data to be
+// Deserialize expects storageType to be BinaryType and the data to be
 // "inet-serialized" in order to correctly create a InetType for testing deserialize.
-func (InetType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
+func (*InetType) Deserialize(storageType arrow.DataType, data string) (arrow.ExtensionType, error) {
 	if data != "inet-serialized" {
 		return nil, fmt.Errorf("type identifier did not match: '%s'", data)
 	}
-	if !arrow.TypeEqual(storageType, &arrow.StringType{}) {
+	if !arrow.TypeEqual(storageType, &arrow.BinaryType{}) {
 		return nil, fmt.Errorf("invalid storage type for InetType: %s", storageType.Name())
 	}
 	return NewInetType(), nil
 }
 
-// InetType are equal if both are named "inet"
-func (u InetType) ExtensionEquals(other arrow.ExtensionType) bool {
+// ExtensionEquals returns true if both extensions have the same name
+func (u *InetType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return u.ExtensionName() == other.ExtensionName()
 }
 
-func (InetType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
+func (*InetType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
 	return NewInetBuilder(bldr)
 }
