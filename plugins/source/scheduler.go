@@ -156,7 +156,6 @@ func (p *Plugin) periodicMetricLogger(ctx context.Context, wg *sync.WaitGroup) {
 
 			if len(inProgressTables) <= periodicMetricLoggerLogTablesLimit {
 				logLine.Strs("in_progress_tables", inProgressTables)
-
 			}
 
 			if len(queuedTables) <= periodicMetricLoggerLogTablesLimit {
