@@ -37,7 +37,18 @@ func (s *Timestamp) IsValid() bool {
 }
 
 func (s *Timestamp) DataType() arrow.DataType {
-	return &arrow.TimestampType{Unit: s.Unit}
+	switch s.Unit {
+	case arrow.Second:
+		return arrow.FixedWidthTypes.Timestamp_s
+	case arrow.Millisecond:
+		return arrow.FixedWidthTypes.Timestamp_ms
+	case arrow.Nanosecond:
+		return arrow.FixedWidthTypes.Timestamp_ns
+	case arrow.Microsecond:
+		return arrow.FixedWidthTypes.Timestamp_us
+	default:
+		panic("unknown timestamp unit")
+	}
 }
 
 func (s *Timestamp) Equal(rhs Scalar) bool {
