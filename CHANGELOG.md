@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.0](https://github.com/cloudquery/plugin-sdk/compare/v3.6.7...v3.7.0) (2023-05-30)
+
+
+### Features
+
+* **test:** Add `AllowNull` option for test data ([#913](https://github.com/cloudquery/plugin-sdk/issues/913)) ([9b911eb](https://github.com/cloudquery/plugin-sdk/commit/9b911eb7ea5566a8a5979443bea21a45779b4691))
+
+
+### Bug Fixes
+
+* Test Decimal type, map type and larger number ranges ([#905](https://github.com/cloudquery/plugin-sdk/issues/905)) ([9a3b4ad](https://github.com/cloudquery/plugin-sdk/commit/9a3b4ad3380f95ae6eabb59203d2a608e80ef59e))
+
 ## [3.6.7](https://github.com/cloudquery/plugin-sdk/compare/v3.6.6...v3.6.7) (2023-05-26)
 
 
