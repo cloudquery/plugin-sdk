@@ -68,7 +68,7 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.LARGE_STRING:
 		return &LargeString{}
 	case arrow.INT64:
-		return &Int{}
+		return &Int{BitWidth: 64}
 	case arrow.INT32:
 		return &Int{BitWidth: 32}
 	case arrow.INT16:
@@ -76,7 +76,7 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.INT8:
 		return &Int{BitWidth: 8}
 	case arrow.UINT64:
-		return &Uint{}
+		return &Uint{BitWidth: 64}
 	case arrow.UINT32:
 		return &Uint{BitWidth: 32}
 	case arrow.UINT16:
@@ -84,7 +84,7 @@ func NewScalar(dt arrow.DataType) Scalar {
 	case arrow.UINT8:
 		return &Uint{BitWidth: 8}
 	case arrow.FLOAT64:
-		return &Float{}
+		return &Float{BitWidth: 64}
 	case arrow.FLOAT32:
 		return &Float{BitWidth: 32}
 	case arrow.FLOAT16:
