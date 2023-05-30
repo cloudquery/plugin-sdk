@@ -73,96 +73,56 @@ func (s *Uint) Set(val any) error {
 		if value < 0 {
 			return &ValidationError{Type: s.DataType(), Msg: "int8 less than 0", Value: value}
 		}
-		v := uint64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(uint64(value))
 	case int16:
 		if value < 0 {
 			return &ValidationError{Type: s.DataType(), Msg: "int16 less than 0", Value: value}
 		}
-		v := uint64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(uint64(value))
 	case int32:
 		if value < 0 {
 			return &ValidationError{Type: s.DataType(), Msg: "int32 less than 0", Value: value}
 		}
-		v := uint64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(uint64(value))
 	case int64:
 		if value < 0 {
 			return &ValidationError{Type: s.DataType(), Msg: "int64 less than 0", Value: value}
 		}
-		s.Value = uint64(value)
+		return s.Set(uint64(value))
 	case int:
 		if value < 0 {
 			return &ValidationError{Type: s.DataType(), Msg: "int less than 0", Value: value}
 		}
-		v := uint64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(uint64(value))
 	case uint8:
-		v := uint64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(uint64(value))
 	case uint16:
-		v := uint64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(uint64(value))
 	case uint32:
-		v := uint64(value)
-		if err := s.validateValue(v); err != nil {
+		return s.Set(uint64(value))
+	case uint64:
+		if err := s.validateValue(value); err != nil {
 			return err
 		}
-		s.Value = v
-	case uint64:
 		s.Value = value
 	case uint:
-		v := uint64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(uint64(value))
 	case float32:
 		if value < 0 {
 			return &ValidationError{Type: s.DataType(), Msg: "float32 less than 0", Value: value}
 		}
-		v := uint64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(uint64(value))
 	case float64:
 		if value < 0 {
 			return &ValidationError{Type: s.DataType(), Msg: "float64 less than 0", Value: value}
 		}
-		v := uint64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(uint64(value))
 	case string:
 		v, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
 			return &ValidationError{Type: s.DataType(), Msg: "invalid string", Value: value}
 		}
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(v)
 	case *string:
 		if value == nil {
 			s.Valid = false

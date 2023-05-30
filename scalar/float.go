@@ -68,39 +68,23 @@ func (s *Float) Set(val any) error {
 
 	switch value := val.(type) {
 	case int8:
-		s.Value = float64(value)
+		return s.Set(float64(value))
 	case int16:
-		s.Value = float64(value)
+		return s.Set(float64(value))
 	case int32:
-		v := float64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(float64(value))
 	case int64:
-		v := float64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(float64(value))
 	case uint8:
-		s.Value = float64(value)
+		return s.Set(float64(value))
 	case uint16:
-		s.Value = float64(value)
+		return s.Set(float64(value))
 	case uint32:
-		v := float64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(float64(value))
 	case uint64:
-		v := float64(value)
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(float64(value))
 	case float32:
-		s.Value = float64(value)
+		return s.Set(float64(value))
 	case float64:
 		if err := s.validateValue(value); err != nil {
 			return err
@@ -111,10 +95,7 @@ func (s *Float) Set(val any) error {
 		if err != nil {
 			return &ValidationError{Type: s.DataType(), Msg: "invalid string", Value: value}
 		}
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(v)
 	case *string:
 		if value == nil {
 			s.Valid = false

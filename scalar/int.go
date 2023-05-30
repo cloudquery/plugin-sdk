@@ -88,6 +88,9 @@ func (s *Int) Set(val any) error {
 		}
 		s.Value = v
 	case int64:
+		if err := s.validateValue(value); err != nil {
+			return err
+		}
 		s.Value = value
 	case int:
 		v := int64(value)
@@ -117,25 +120,22 @@ func (s *Int) Set(val any) error {
 		if value > math.MaxInt64 {
 			return &ValidationError{Type: s.DataType(), Msg: "uint64 bigger than MaxInt64", Value: value}
 		}
-		s.Value = int64(value)
+		return s.Set(int64(value))
 	case uint:
 		if value > math.MaxInt64 {
 			return &ValidationError{Type: s.DataType(), Msg: "uint bigger than MaxInt64", Value: value}
 		}
-		s.Value = int64(value)
+		return s.Set(int64(value))
 	case float32:
-		s.Value = int64(value)
+		return s.Set(int64(value))
 	case float64:
-		s.Value = int64(value)
+		return s.Set(int64(value))
 	case string:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return &ValidationError{Type: s.DataType(), Msg: "invalid string", Value: value}
 		}
-		if err := s.validateValue(v); err != nil {
-			return err
-		}
-		s.Value = v
+		return s.Set(v)
 	case *int8:
 		if value == nil {
 			s.Valid = false
@@ -230,13 +230,22 @@ func (s *Int) validateValue(value int64) error {
 		if value > math.MaxInt8 {
 			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxInt8", Value: value}
 		}
+		if value < math.MinInt8 {
+			return &ValidationError{Type: s.DataType(), Msg: "value smaller than MinInt8", Value: value}
+		}
 	case 16:
 		if value > math.MaxInt16 {
 			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxInt16", Value: value}
 		}
+		if value < math.MinInt16 {
+			return &ValidationError{Type: s.DataType(), Msg: "value smaller than MinInt16", Value: value}
+		}
 	case 32:
 		if value > math.MaxInt32 {
 			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxInt32", Value: value}
+		}
+		if value < math.MinInt32 {
+			return &ValidationError{Type: s.DataType(), Msg: "value smaller than MinInt32", Value: value}
 		}
 	}
 	return nil
