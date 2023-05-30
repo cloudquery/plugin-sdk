@@ -1,17 +1,16 @@
-package destination
+package plugin
 
 import (
 	"context"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/internal/pk"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v4/internal/pk"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 type worker struct {
@@ -33,7 +32,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 				}
 				return
 			}
-			if len(resources) == p.spec.BatchSize || sizeBytes+util.TotalRecordSize(r) > int64(p.spec.BatchSizeBytes) {
+			if uint64(len(resources)) == p.spec.WriteSpec.BatchSize || sizeBytes+util.TotalRecordSize(r) > int64(p.spec.WriteSpec.BatchSizeBytes) {
 				p.flush(ctx, metrics, table, resources)
 				resources = resources[:0] // allows for mem reuse
 				sizeBytes = 0
@@ -67,10 +66,10 @@ func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Tabl
 	if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
 		p.logger.Err(err).Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 		// we don't return an error as we need to continue until channel is closed otherwise there will be a deadlock
-		atomic.AddUint64(&metrics.Errors, uint64(batchSize))
+		// atomic.AddUint64(&metrics.Errors, uint64(batchSize))
 	} else {
 		p.logger.Info().Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
-		atomic.AddUint64(&metrics.Writes, uint64(batchSize))
+		// atomic.AddUint64(&metrics.Writes, uint64(batchSize))
 	}
 }
 

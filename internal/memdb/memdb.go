@@ -10,15 +10,15 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
 
 // client is mostly used for testing the destination plugin.
 type client struct {
-	spec          specs.Destination
+	spec          pbPlugin.Spec
 	memoryDB      map[string][]arrow.Record
 	tables        map[string]*schema.Table
 	memoryDBLock  sync.RWMutex
@@ -40,7 +40,7 @@ func WithBlockingWrite() Option {
 	}
 }
 
-func GetNewClient(options ...Option) destination.NewClientFunc {
+func GetNewClient(options ...Option) plugin.NewClientFunc {
 	c := &client{
 		memoryDB:     make(map[string][]arrow.Record),
 		memoryDBLock: sync.RWMutex{},
@@ -48,7 +48,7 @@ func GetNewClient(options ...Option) destination.NewClientFunc {
 	for _, opt := range options {
 		opt(c)
 	}
-	return func(context.Context, zerolog.Logger, specs.Destination) (destination.Client, error) {
+	return func(context.Context, zerolog.Logger, pbPlugin.Spec) (plugin.Client, error) {
 		return c, nil
 	}
 }
@@ -61,7 +61,7 @@ func getTestLogger(t *testing.T) zerolog.Logger {
 	).Level(zerolog.DebugLevel).With().Timestamp().Logger()
 }
 
-func NewClient(_ context.Context, _ zerolog.Logger, spec specs.Destination) (destination.Client, error) {
+func NewClient(_ context.Context, _ zerolog.Logger, spec pbPlugin.Spec) (plugin.Client, error) {
 	return &client{
 		memoryDB: make(map[string][]arrow.Record),
 		tables:   make(map[string]*schema.Table),
@@ -69,7 +69,7 @@ func NewClient(_ context.Context, _ zerolog.Logger, spec specs.Destination) (des
 	}, nil
 }
 
-func NewClientErrOnNew(context.Context, zerolog.Logger, specs.Destination) (destination.Client, error) {
+func NewClientErrOnNew(context.Context, zerolog.Logger, pbPlugin.Spec) (plugin.Client, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
@@ -92,6 +92,21 @@ func (c *client) overwrite(table *schema.Table, data arrow.Record) {
 		}
 	}
 	c.memoryDB[tableName] = append(c.memoryDB[tableName], data)
+}
+
+func (c *client) ID() string {
+	return "testDestinationMemDB"
+}
+
+func (c *client) Sync(ctx context.Context, metrics *plugin.Metrics, res chan<- arrow.Record) error {
+	c.memoryDBLock.RLock()
+	for tableName := range c.memoryDB {
+		for _, row := range c.memoryDB[tableName] {
+			res <- row
+		}
+	}
+	c.memoryDBLock.RUnlock()
+	return nil
 }
 
 func (c *client) Migrate(_ context.Context, tables schema.Tables) error {
@@ -160,7 +175,7 @@ func (c *client) Write(ctx context.Context, _ schema.Tables, resources <-chan ar
 			return fmt.Errorf("table name not found in schema metadata")
 		}
 		table := c.tables[tableName]
-		if c.spec.WriteMode == specs.WriteModeAppend {
+		if c.spec.WriteSpec.WriteMode == pbPlugin.WRITE_MODE_WRITE_MODE_APPEND {
 			c.memoryDB[tableName] = append(c.memoryDB[tableName], resource)
 		} else {
 			c.overwrite(table, resource)
@@ -184,7 +199,7 @@ func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resou
 	tableName := table.Name
 	for _, resource := range resources {
 		c.memoryDBLock.Lock()
-		if c.spec.WriteMode == specs.WriteModeAppend {
+		if c.spec.WriteSpec.WriteMode == pbPlugin.WRITE_MODE_WRITE_MODE_APPEND {
 			c.memoryDB[tableName] = append(c.memoryDB[tableName], resource)
 		} else {
 			c.overwrite(table, resource)
@@ -194,8 +209,8 @@ func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, resou
 	return nil
 }
 
-func (*client) Metrics() destination.Metrics {
-	return destination.Metrics{}
+func (*client) Metrics() plugin.Metrics {
+	return plugin.Metrics{}
 }
 
 func (c *client) Close(context.Context) error {

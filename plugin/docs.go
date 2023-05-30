@@ -11,9 +11,9 @@ import (
 	"sort"
 	"text/template"
 
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v0"
-	"github.com/cloudquery/plugin-sdk/v3/caser"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/caser"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 //go:embed templates/*.go.tpl

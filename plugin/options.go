@@ -2,16 +2,17 @@ package plugin
 
 import (
 	"context"
+	"time"
 
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 type GetTables func(ctx context.Context, c Client) (schema.Tables, error)
 
 type Option func(*Plugin)
 
-// WithDynamicTableOption allows the plugin to return list of tables after call to New
-func WithDynamicTableOption(getDynamicTables GetTables) Option {
+// WithDynamicTable allows the plugin to return list of tables after call to New
+func WithDynamicTable(getDynamicTables GetTables) Option {
 	return func(p *Plugin) {
 		p.getDynamicTables = getDynamicTables
 	}
@@ -38,9 +39,33 @@ func WithTitleTransformer(t func(*schema.Table) string) Option {
 	}
 }
 
-
 func WithStaticTables(tables schema.Tables) Option {
 	return func(p *Plugin) {
 		p.staticTables = tables
+	}
+}
+
+
+func WithManagedWriter() Option {
+	return func(p *Plugin) {
+		p.managedWriter = true
+	}
+}
+
+func WithBatchTimeout(seconds int) Option {
+	return func(p *Plugin) {
+		p.batchTimeout = time.Duration(seconds) * time.Second
+	}
+}
+
+func WithDefaultBatchSize(defaultBatchSize int) Option {
+	return func(p *Plugin) {
+		p.defaultBatchSize = defaultBatchSize
+	}
+}
+
+func WithDefaultBatchSizeBytes(defaultBatchSizeBytes int) Option {
+	return func(p *Plugin) {
+		p.defaultBatchSizeBytes = defaultBatchSizeBytes
 	}
 }

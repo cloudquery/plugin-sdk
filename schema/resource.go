@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/cloudquery/plugin-sdk/v3/scalar"
+	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/google/uuid"
 	"golang.org/x/exp/slices"
 )

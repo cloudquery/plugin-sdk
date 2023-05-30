@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/cloudquery/plugin-sdk/v3/internal/glob"
+	"github.com/cloudquery/plugin-sdk/v4/internal/glob"
 	"golang.org/x/exp/slices"
 )
 
