@@ -13,18 +13,7 @@ type Duration struct {
 }
 
 func (s *Duration) DataType() arrow.DataType {
-	switch s.Unit {
-	case arrow.Second:
-		return arrow.FixedWidthTypes.Duration_s
-	case arrow.Millisecond:
-		return arrow.FixedWidthTypes.Duration_ms
-	case arrow.Nanosecond:
-		return arrow.FixedWidthTypes.Duration_ns
-	case arrow.Microsecond:
-		return arrow.FixedWidthTypes.Duration_us
-	default:
-		panic("unknown duration unit")
-	}
+	return &arrow.DurationType{Unit: s.Unit}
 }
 
 func (s *Duration) String() string {
