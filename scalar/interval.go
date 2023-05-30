@@ -10,6 +10,10 @@ type MonthInterval struct {
 	Int
 }
 
+type monthIntervalData struct {
+	Months int32 `json:"months"`
+}
+
 func (*MonthInterval) DataType() arrow.DataType {
 	return arrow.FixedWidthTypes.MonthInterval
 }
@@ -43,9 +47,7 @@ func (s *MonthInterval) Set(value any) error {
 			return nil
 		}
 
-		var mi struct {
-			Months int32 `json:"months"`
-		}
+		var mi monthIntervalData
 		if err := json.Unmarshal(v, &mi); err != nil {
 			return err
 		}
