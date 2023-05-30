@@ -78,12 +78,12 @@ func TestNewScalar(t *testing.T) {
 				t.Fatalf("expected %v, got %v", tc.dt, s.DataType())
 			}
 
-			assert.NoErrorf(t, s.Set(tc.input), "failed with DataType %s", tc.dt.String())
+			assert.NoError(t, s.Set(tc.input))
 			if t.Failed() {
 				return
 			}
 
-			assert.Truef(t, s.IsValid(), "failed with DataType %s", tc.dt.String())
+			assert.True(t, s.IsValid())
 			AppendToBuilder(bldr, s)
 
 			t.Run("double_set_nil", genDoubleSetTest(tc.dt, tc.input, nil))
