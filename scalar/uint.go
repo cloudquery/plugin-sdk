@@ -252,16 +252,16 @@ func (s *Uint) Set(val any) error {
 }
 
 func (s *Uint) validateValue(value uint64) error {
-	switch {
-	case arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Uint8):
+	switch s.getBitWidth() {
+	case 8:
 		if value > math.MaxUint8 {
 			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxUint8", Value: value}
 		}
-	case arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Uint16):
+	case 16:
 		if value > math.MaxUint16 {
 			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxUint16", Value: value}
 		}
-	case arrow.TypeEqual(s.DataType(), arrow.PrimitiveTypes.Uint32):
+	case 32:
 		if value > math.MaxUint32 {
 			return &ValidationError{Type: s.DataType(), Msg: "value bigger than MaxUint32", Value: value}
 		}
