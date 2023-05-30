@@ -45,7 +45,6 @@ func WithStaticTables(tables schema.Tables) Option {
 	}
 }
 
-
 func WithManagedWriter() Option {
 	return func(p *Plugin) {
 		p.managedWriter = true
