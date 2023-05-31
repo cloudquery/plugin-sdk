@@ -31,6 +31,21 @@ func (s *Time) Equal(rhs Scalar) bool {
 	return s.Valid == r.Valid && s.Unit == r.Unit && s.getBitWidth() == r.getBitWidth() && s.Value == r.Value
 }
 
+func (s *Time) String() string {
+	if !s.Valid {
+		return nullValueStr
+	}
+
+	switch s.getBitWidth() {
+	case 64:
+		return arrow.Time64(s.Int.Value).FormattedString(s.Unit)
+	case 32:
+		return arrow.Time32(s.Int.Value).FormattedString(s.Unit)
+	default:
+		panic("unsupported bit width")
+	}
+}
+
 func (s *Time) Get() any {
 	if !s.Valid {
 		return nil
