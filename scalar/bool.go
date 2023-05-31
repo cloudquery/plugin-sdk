@@ -65,6 +65,10 @@ func (s *Bool) Set(val any) error {
 		}
 		s.Value = bb
 	case *bool:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
 		return s.Set(*value)
 	case *string:
 		if value == nil {
