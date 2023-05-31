@@ -20,6 +20,12 @@ import (
 	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 )
 
+const (
+	defaultBatchTimeoutSeconds = 20
+	defaultBatchSize           = 10000
+	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
+)
+
 type Options struct {
 	Backend backend.Backend
 }
@@ -193,13 +199,17 @@ func maxDepth(tables schema.Tables) uint64 {
 
 func NewPlugin(name string, version string, newClient NewClientFunc, options ...Option) *Plugin {
 	p := Plugin{
-		name:             name,
-		version:          version,
-		internalColumns:  true,
-		caser:            caser.New(),
-		titleTransformer: DefaultTitleTransformer,
-		newClient:        newClient,
-		metrics:          &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
+		name:                  name,
+		version:               version,
+		internalColumns:       true,
+		caser:                 caser.New(),
+		titleTransformer:      DefaultTitleTransformer,
+		newClient:             newClient,
+		metrics:               &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
+		workersLock:           &sync.Mutex{},
+		batchTimeout:          time.Duration(defaultBatchTimeoutSeconds) * time.Second,
+		defaultBatchSize:      defaultBatchSize,
+		defaultBatchSizeBytes: defaultBatchSizeBytes,
 	}
 	for _, opt := range options {
 		opt(&p)
@@ -272,12 +282,30 @@ func (p *Plugin) Metrics() *Metrics {
 	return p.metrics
 }
 
+func (p *Plugin) setSpecDefaults(spec *pbPlugin.Spec) {
+	if spec.WriteSpec == nil {
+		spec.WriteSpec = &pbPlugin.WriteSpec{
+			BatchSize: uint64(p.defaultBatchSize),
+			BatchSizeBytes: uint64(p.defaultBatchSizeBytes),
+		}
+	}
+	if spec.WriteSpec.BatchSize == 0 {
+		spec.WriteSpec.BatchSize = uint64(p.defaultBatchSize)
+	}
+	if spec.WriteSpec.BatchSizeBytes == 0 {
+		spec.WriteSpec.BatchSizeBytes = uint64(p.defaultBatchSizeBytes)
+	}
+	if spec.SyncSpec == nil {
+		spec.SyncSpec = &pbPlugin.SyncSpec{}
+	}
+}
+
 func (p *Plugin) Init(ctx context.Context, spec pbPlugin.Spec) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
-
+	p.setSpecDefaults(&spec)
 	var err error
 	p.client, err = p.newClient(ctx, p.logger, spec)
 	if err != nil {

@@ -79,11 +79,11 @@ type templateData struct {
 }
 
 // GeneratePluginDocs creates table documentation for the source plugin based on its list of tables
-func (p *Plugin) GeneratePluginDocs(tables schema.Tables, dir string, format pbPlugin.GenDocs_FORMAT) error {
+func (p *Plugin) GeneratePluginDocs(dir string, format pbPlugin.GenDocs_FORMAT) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
-
+	tables := p.staticTables
 	setDestinationManagedCqColumns(tables)
 
 	sortedTables := make(schema.Tables, 0, len(tables))
