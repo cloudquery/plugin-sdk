@@ -1,15 +1,16 @@
 package serve
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 
 	pbDestinationV0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	pbDestinationV1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
@@ -34,8 +35,11 @@ import (
 
 type pluginServe struct {
 	plugin                *plugin.Plugin
+	args 								[]string
 	destinationV0V1Server bool
 	sentryDSN             string
+	testListener bool
+	testListenerConn *bufconn.Listener
 }
 
 type PluginOption func(*pluginServe)
@@ -54,28 +58,48 @@ func WithDestinationV0V1Server() PluginOption {
 	}
 }
 
-// lis used for unit testing grpc server and client
-var testPluginListener *bufconn.Listener
-var testPluginListenerLock sync.Mutex
+// WithArgs used to serve the plugin with predefined args instead of os.Args
+func WithArgs(args ...string) PluginOption {
+	return func(s *pluginServe) {
+		s.args = args
+	}
+}
+
+// WithTestListener means that the plugin will be served with an in-memory listener
+// available via testListener() method instead of a network listener.
+func WithTestListener() PluginOption {
+	return func(s *pluginServe) {
+		s.testListener = true
+		s.testListenerConn = bufconn.Listen(testBufSize)
+	}
+}
 
 const servePluginShort = `Start plugin server`
 
-func Plugin(plugin *plugin.Plugin, opts ...PluginOption) {
+func Plugin(plugin *plugin.Plugin, opts ...PluginOption) *pluginServe{
 	s := &pluginServe{
 		plugin: plugin,
 	}
 	for _, opt := range opts {
 		opt(s)
 	}
-	if err := newCmdPluginRoot(s).Execute(); err != nil {
-		sentry.CaptureMessage(err.Error())
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	return s
 }
 
-// nolint:dupl
-func newCmdPluginServe(serve *pluginServe) *cobra.Command {
+func (s *pluginServe) bufPluginDialer(context.Context, string) (net.Conn, error) {
+	return s.testListenerConn.Dial()
+}
+
+func (s *pluginServe) Serve(ctx context.Context) error {
+	types.RegisterAllExtensions()
+	cmd := s.newCmdPluginRoot()
+	if s.args != nil {
+		cmd.SetArgs(s.args)
+	}
+	return cmd.ExecuteContext(ctx)
+}
+
+func (serve *pluginServe) newCmdPluginServe() *cobra.Command {
 	var address string
 	var network string
 	var noSentry bool
@@ -107,11 +131,8 @@ func newCmdPluginServe(serve *pluginServe) *cobra.Command {
 
 			// opts.Plugin.Logger = logger
 			var listener net.Listener
-			if network == "test" {
-				testPluginListenerLock.Lock()
-				listener = bufconn.Listen(testBufSize)
-				testPluginListener = listener.(*bufconn.Listener)
-				testPluginListenerLock.Unlock()
+			if serve.testListener {
+				listener = serve.testListenerConn
 			} else {
 				listener, err = net.Listen(network, address)
 				if err != nil {
@@ -230,7 +251,7 @@ doc --format json .
 `
 )
 
-func newCmdPluginDoc(serve *pluginServe) *cobra.Command {
+func (serve *pluginServe) newCmdPluginDoc() *cobra.Command {
 	format := newEnum([]string{"json", "markdown"}, "markdown")
 	cmd := &cobra.Command{
 		Use:   "doc <directory>",
@@ -239,19 +260,19 @@ func newCmdPluginDoc(serve *pluginServe) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pbFormat := pbv3.GenDocs_FORMAT(pbv3.GenDocs_FORMAT_value[format.Value])
-			return serve.plugin.GeneratePluginDocs(serve.plugin.StaticTables(), args[0], pbFormat)
+			return serve.plugin.GeneratePluginDocs(args[0], pbFormat)
 		},
 	}
 	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
 	return cmd
 }
 
-func newCmdPluginRoot(serve *pluginServe) *cobra.Command {
+func (serve *pluginServe) newCmdPluginRoot() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: fmt.Sprintf("%s <command>", serve.plugin.Name()),
 	}
-	cmd.AddCommand(newCmdPluginServe(serve))
-	cmd.AddCommand(newCmdPluginDoc(serve))
+	cmd.AddCommand(serve.newCmdPluginServe())
+	cmd.AddCommand(serve.newCmdPluginDoc())
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	cmd.Version = serve.plugin.Version()
 	return cmd

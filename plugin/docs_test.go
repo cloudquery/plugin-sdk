@@ -9,6 +9,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/bradleyjkemp/cupaloy/v2"
+	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/stretchr/testify/require"
@@ -120,14 +121,14 @@ var testTables = []*schema.Table{
 }
 
 func TestGeneratePluginDocs(t *testing.T) {
-	p := NewPlugin("test", "v1.0.0", testTables, newTestExecutionClient)
+	p := NewPlugin("test", "v1.0.0", newTestExecutionClient, WithStaticTables(testTables))
 
 	cup := cupaloy.New(cupaloy.SnapshotSubdirectory("testdata"))
 
 	t.Run("Markdown", func(t *testing.T) {
 		tmpdir := t.TempDir()
 
-		err := p.GeneratePluginDocs(tmpdir, "markdown")
+		err := p.GeneratePluginDocs(tmpdir, pbPlugin.GenDocs_FORMAT_MARKDOWN)
 		if err != nil {
 			t.Fatalf("unexpected error calling GeneratePluginDocs: %v", err)
 		}
@@ -146,7 +147,7 @@ func TestGeneratePluginDocs(t *testing.T) {
 	t.Run("JSON", func(t *testing.T) {
 		tmpdir := t.TempDir()
 
-		err := p.GeneratePluginDocs(tmpdir, "json")
+		err := p.GeneratePluginDocs(tmpdir, pbPlugin.GenDocs_FORMAT_JSON)
 		if err != nil {
 			t.Fatalf("unexpected error calling GeneratePluginDocs: %v", err)
 		}

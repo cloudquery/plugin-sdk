@@ -5,16 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"net"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
-	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v0"
+	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
-	"github.com/cloudquery/plugin-sdk/v4/plugins/source"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
@@ -65,23 +62,13 @@ func newTestExecutionClient(context.Context, zerolog.Logger, pb.Spec) (plugin.Cl
 	return &testExecutionClient{}, nil
 }
 
-func bufSourceDialer(context.Context, string) (net.Conn, error) {
-	testPluginListenerLock.Lock()
-	defer testPluginListenerLock.Unlock()
-	return testPluginListener.Dial()
-}
-
 func TestSourceSuccess(t *testing.T) {
-	plugin := plugin.NewPlugin(
+	p := plugin.NewPlugin(
 		"testPlugin",
 		"v1.0.0",
 		newTestExecutionClient,
 		plugin.WithStaticTables([]*schema.Table{testTable("test_table"), testTable("test_table2")}))
-
-	cmd := newCmdPluginRoot(&pluginServe{
-		plugin: plugin,
-	})
-	cmd.SetArgs([]string{"serve", "--network", "test"})
+	srv := Plugin(p, WithArgs("serve"), WithTestListener())
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
@@ -89,25 +76,15 @@ func TestSourceSuccess(t *testing.T) {
 	var serverErr error
 	go func() {
 		defer wg.Done()
-		serverErr = cmd.ExecuteContext(ctx)
+		serverErr = srv.Serve(ctx)
 	}()
 	defer func() {
 		cancel()
 		wg.Wait()
 	}()
-	for {
-		testPluginListenerLock.Lock()
-		if testPluginListener != nil {
-			testPluginListenerLock.Unlock()
-			break
-		}
-		testPluginListenerLock.Unlock()
-		t.Log("waiting for grpc server to start")
-		time.Sleep(time.Millisecond * 200)
-	}
 
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufSourceDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -216,7 +193,7 @@ func TestSourceSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var stats source.Metrics
+	var stats plugin.Metrics
 	if err := json.Unmarshal(getMetricsRes.Metrics, &stats); err != nil {
 		t.Fatal(err)
 	}
