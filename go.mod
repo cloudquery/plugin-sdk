@@ -26,9 +26,7 @@ require (
 	google.golang.org/protobuf v1.30.0
 )
 
-//replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230526062000-b3fdc24ed8d6
-// TODO: update once https://github.com/apache/arrow/pull/35823 is merged
-replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230530185835-e288089848ae
+replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230531175333-b1f2ea85de82
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
