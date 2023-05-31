@@ -112,7 +112,9 @@ func TestOnWriteError(t *testing.T) {
 	ctx := context.Background()
 	newClientFunc := GetNewClient(WithErrOnWrite())
 	p := NewPlugin("test", "development", newClientFunc)
-	if err := p.Init(ctx, pbPlugin.Spec{}); err != nil {
+	if err := p.Init(ctx, pbPlugin.Spec{
+		WriteSpec: &pbPlugin.WriteSpec{},
+	}); err != nil {
 		t.Fatal(err)
 	}
 	table := schema.TestTable("test", schema.TestSourceOptions{})
@@ -147,7 +149,9 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	ctx := context.Background()
 	newClientFunc := GetNewClient(WithBlockingWrite())
 	p := NewPlugin("test", "development", newClientFunc)
-	if err := p.Init(ctx, pbPlugin.Spec{}); err != nil {
+	if err := p.Init(ctx, pbPlugin.Spec{
+		WriteSpec: &pbPlugin.WriteSpec{},
+	}); err != nil {
 		t.Fatal(err)
 	}
 	table := schema.TestTable("test", schema.TestSourceOptions{})
@@ -178,8 +182,8 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 
 func TestPluginInit(t *testing.T) {
 	const (
-		batchSize      = 100
-		batchSizeBytes = 1000
+		batchSize      = uint64(100)
+		batchSizeBytes = uint64(1000)
 	)
 
 	var (
@@ -194,8 +198,8 @@ func TestPluginInit(t *testing.T) {
 			batchSizeBytesObserved = s.WriteSpec.BatchSizeBytes
 			return NewMemDBClient(ctx, logger, s)
 		},
-		WithDefaultBatchSize(batchSize),
-		WithDefaultBatchSizeBytes(batchSizeBytes),
+		WithDefaultBatchSize(int(batchSize)),
+		WithDefaultBatchSizeBytes(int(batchSizeBytes)),
 	)
 	require.NoError(t, p.Init(context.TODO(), pbPlugin.Spec{
 		WriteSpec: &pbPlugin.WriteSpec{},

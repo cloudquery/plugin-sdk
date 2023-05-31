@@ -45,9 +45,11 @@ func (s *Server) GetStaticTables(context.Context, *pb.GetStaticTables_Request) (
 }
 
 func (s *Server) GetDynamicTables(context.Context, *pb.GetDynamicTables_Request) (*pb.GetDynamicTables_Response, error) {
-	// TODO: Fix this
-	tables := s.Plugin.StaticTables().ToArrowSchemas()
-	encoded, err := tables.Encode()
+	tables := s.Plugin.DynamicTables()
+	if tables == nil {
+		return &pb.GetDynamicTables_Response{}, nil
+	}
+	encoded, err := tables.ToArrowSchemas().Encode()
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode tables: %w", err)
 	}
@@ -80,6 +82,10 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	records := make(chan arrow.Record)
 	var syncErr error
 	ctx := stream.Context()
+
+	if req.SyncSpec == nil {
+		req.SyncSpec = &pb.SyncSpec{}
+	}
 
 	go func() {
 		defer close(records)
@@ -229,7 +235,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 func (s *Server) GenDocs(req *pb.GenDocs_Request, srv pb.Plugin_GenDocsServer) error {
 	tmpDir := os.TempDir()
 	defer os.RemoveAll(tmpDir)
-	err := s.Plugin.GeneratePluginDocs(s.Plugin.StaticTables(), tmpDir, req.Format)
+	err := s.Plugin.GeneratePluginDocs(tmpDir, req.Format)
 	if err != nil {
 		return fmt.Errorf("failed to generate docs: %w", err)
 	}

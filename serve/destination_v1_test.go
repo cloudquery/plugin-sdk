@@ -13,9 +13,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/ipc"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
-	"github.com/cloudquery/plugin-sdk/v4/plugins/destination"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -23,12 +21,8 @@ import (
 )
 
 func TestDestinationV1(t *testing.T) {
-	plugin := plugin.NewPlugin("testDestinationPlugin", "development", memdb.NewClient)
-	s := &pluginServe{
-		plugin: plugin,
-	}
-	cmd := newCmdPluginRoot(s)
-	cmd.SetArgs([]string{"serve", "--network", "test"})
+	p := plugin.NewPlugin("testDestinationPlugin", "development", plugin.NewMemDBClient)
+	srv := Plugin(p, WithArgs("serve"), WithDestinationV0V1Server(), WithTestListener())
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
@@ -36,27 +30,15 @@ func TestDestinationV1(t *testing.T) {
 	var serverErr error
 	go func() {
 		defer wg.Done()
-		serverErr = cmd.ExecuteContext(ctx)
+		serverErr = srv.Serve(ctx)
 	}()
 	defer func() {
 		cancel()
 		wg.Wait()
 	}()
 
-	// wait for the server to start
-	for {
-		testPluginListenerLock.Lock()
-		if testPluginListener != nil {
-			testPluginListenerLock.Unlock()
-			break
-		}
-		testPluginListenerLock.Unlock()
-		t.Log("waiting for grpc server to start")
-		time.Sleep(time.Millisecond * 200)
-	}
-
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDestinationDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -148,7 +130,7 @@ func TestDestinationV1(t *testing.T) {
 	}
 	// serversDestination
 	readCh := make(chan arrow.Record, 1)
-	if err := plugin.Read(ctx, table, sourceName, readCh); err != nil {
+	if err := p.Read(ctx, table, sourceName, readCh); err != nil {
 		t.Fatal(err)
 	}
 	close(readCh)
@@ -156,8 +138,8 @@ func TestDestinationV1(t *testing.T) {
 	for resource := range readCh {
 		totalResources++
 		if !array.RecordEqual(rec, resource) {
-			diff := destination.RecordDiff(rec, resource)
-			t.Fatalf("expected %v but got %v. Diff: %v", rec, resource, diff)
+			diff := plugin.RecordDiff(rec, resource)
+			t.Fatalf("diff at %d: %s", totalResources, diff)
 		}
 	}
 	if totalResources != 1 {
