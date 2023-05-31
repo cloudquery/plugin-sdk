@@ -8,7 +8,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFloat32Set(t *testing.T) {
+var nilPointerInt8 *int8
+var nilPointerInt16 *int16
+var nilPointerInt32 *int32
+var nilPointerInt64 *int64
+var nilPointerUint8 *uint8
+var nilPointerUint16 *uint16
+var nilPointerUint32 *uint32
+var nilPointerUint64 *uint64
+var nilPointerFloat32 *float32
+var nilPointerFloat64 *float64
+
+func TestFloatAllWidthsSet(t *testing.T) {
 	successfulTests := []struct {
 		source any
 		expect Float
@@ -30,6 +41,16 @@ func TestFloat32Set(t *testing.T) {
 		{source: "1", expect: Float{Value: 1, Valid: true}},
 		{source: _int8(1), expect: Float{Value: 1, Valid: true}},
 		{source: &Float{Value: 1, Valid: true, BitWidth: 32}, expect: Float{Value: 1, Valid: true}},
+		{source: nilPointerInt8, expect: Float{Valid: false}},
+		{source: nilPointerInt16, expect: Float{Valid: false}},
+		{source: nilPointerInt32, expect: Float{Valid: false}},
+		{source: nilPointerInt64, expect: Float{Valid: false}},
+		{source: nilPointerUint8, expect: Float{Valid: false}},
+		{source: nilPointerUint16, expect: Float{Valid: false}},
+		{source: nilPointerUint32, expect: Float{Valid: false}},
+		{source: nilPointerUint64, expect: Float{Valid: false}},
+		{source: nilPointerFloat32, expect: Float{Valid: false}},
+		{source: nilPointerFloat64, expect: Float{Valid: false}},
 	}
 
 	for _, bitWidth := range []uint8{8, 16, 32, 64} {
@@ -74,6 +95,16 @@ func TestFloat64Set(t *testing.T) {
 		{source: "1", result: Float{Value: 1, Valid: true}},
 		{source: _int8(1), result: Float{Value: 1, Valid: true}},
 		{source: &Float{Value: 1, Valid: true}, result: Float{Value: 1, Valid: true}},
+		{source: nilPointerInt8, result: Float{Valid: false}},
+		{source: nilPointerInt16, result: Float{Valid: false}},
+		{source: nilPointerInt32, result: Float{Valid: false}},
+		{source: nilPointerInt64, result: Float{Valid: false}},
+		{source: nilPointerUint8, result: Float{Valid: false}},
+		{source: nilPointerUint16, result: Float{Valid: false}},
+		{source: nilPointerUint32, result: Float{Valid: false}},
+		{source: nilPointerUint64, result: Float{Valid: false}},
+		{source: nilPointerFloat32, result: Float{Valid: false}},
+		{source: nilPointerFloat64, result: Float{Valid: false}},
 	}
 
 	for i, tt := range successfulTests {
