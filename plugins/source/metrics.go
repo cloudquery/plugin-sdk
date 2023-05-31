@@ -172,8 +172,9 @@ func (s *Metrics) InProgressTables() []string {
 		for _, clientMetrics := range tableMetrics {
 			clientMetrics.mutex.Lock()
 			endTime := clientMetrics.endTime
+			startTime := clientMetrics.startTime
 			clientMetrics.mutex.Unlock()
-			if endTime.IsZero() {
+			if endTime.IsZero() && !startTime.IsZero() {
 				inProgressTables = append(inProgressTables, table)
 				break
 			}
@@ -183,4 +184,24 @@ func (s *Metrics) InProgressTables() []string {
 	slices.Sort(inProgressTables)
 
 	return inProgressTables
+}
+
+func (s *Metrics) QueuedTables() []string {
+	var queuedTables []string
+
+	for table, tableMetrics := range s.TableClient {
+		for _, clientMetrics := range tableMetrics {
+			clientMetrics.mutex.Lock()
+			startTime := clientMetrics.startTime
+			endTime := clientMetrics.endTime
+			clientMetrics.mutex.Unlock()
+			if startTime.IsZero() && endTime.IsZero() {
+				queuedTables = append(queuedTables, table)
+				break
+			}
+		}
+	}
+
+	slices.Sort(queuedTables)
+	return queuedTables
 }

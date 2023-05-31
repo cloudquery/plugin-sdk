@@ -71,8 +71,42 @@ func TestInProgressTables(t *testing.T) {
 		Panics:    3,
 		startTime: time.Now(),
 	}
-
+	s.TableClient["test_table_running3"] = make(map[string]*TableClientMetrics)
+	s.TableClient["test_table_running3"]["testExecutionClient"] = &TableClientMetrics{}
 	assert.ElementsMatch(t, []string{"test_table_running1", "test_table_running2"}, s.InProgressTables())
+}
+
+func TestQueuedTables(t *testing.T) {
+	s := &Metrics{
+		TableClient: make(map[string]map[string]*TableClientMetrics),
+	}
+	s.TableClient["test_table_done"] = make(map[string]*TableClientMetrics)
+	s.TableClient["test_table_done"]["testExecutionClient"] = &TableClientMetrics{
+		Resources: 1,
+		Errors:    2,
+		Panics:    3,
+		startTime: time.Now(),
+		endTime:   time.Now().Add(time.Second),
+	}
+
+	s.TableClient["test_table_running1"] = make(map[string]*TableClientMetrics)
+	s.TableClient["test_table_running1"]["testExecutionClient"] = &TableClientMetrics{
+		Resources: 1,
+		Errors:    2,
+		Panics:    3,
+		startTime: time.Now(),
+	}
+
+	s.TableClient["test_table_running2"] = make(map[string]*TableClientMetrics)
+	s.TableClient["test_table_running2"]["testExecutionClient"] = &TableClientMetrics{
+		Resources: 1,
+		Errors:    2,
+		Panics:    3,
+		startTime: time.Now(),
+	}
+	s.TableClient["test_table_running3"] = make(map[string]*TableClientMetrics)
+	s.TableClient["test_table_running3"]["testExecutionClient"] = &TableClientMetrics{}
+	assert.ElementsMatch(t, []string{"test_table_running3"}, s.QueuedTables())
 }
 
 type MockClientMeta struct {
