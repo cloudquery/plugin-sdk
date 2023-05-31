@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/cloudquery/plugin-sdk/v3/types"
@@ -65,12 +64,12 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(resources)
 	}
-	if !array.RecordApproxEqual(resources[0], resourcesRead[0]) {
+	if !recordApproxEqual(resources[0], resourcesRead[0]) {
 		diff := RecordDiff(resources[0], resourcesRead[0])
 		return fmt.Errorf("expected first resource to be equal. diff: %s", diff)
 	}
 
-	if !array.RecordApproxEqual(resources[1], resourcesRead[1]) {
+	if !recordApproxEqual(resources[1], resourcesRead[1]) {
 		diff := RecordDiff(resources[1], resourcesRead[1])
 		return fmt.Errorf("expected second resource to be equal. diff: %s", diff)
 	}
@@ -116,7 +115,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(resources)
 	}
-	if array.RecordApproxEqual(resources[0], resourcesRead[0]) {
+	if recordApproxEqual(resources[0], resourcesRead[0]) {
 		diff := RecordDiff(resources[0], resourcesRead[0])
 		return fmt.Errorf("after overwrite expected first resource to be different. diff: %s", diff)
 	}
@@ -134,7 +133,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(updatedResources)
 	}
-	if !array.RecordApproxEqual(updatedResources[0], resourcesRead[0]) {
+	if !recordApproxEqual(updatedResources[0], resourcesRead[0]) {
 		diff := RecordDiff(updatedResources[0], resourcesRead[0])
 		return fmt.Errorf("after delete stale expected resource to be equal. diff: %s", diff)
 	}

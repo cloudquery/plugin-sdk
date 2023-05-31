@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/cloudquery/plugin-sdk/v3/types"
@@ -69,7 +68,7 @@ func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.
 		if len(resourcesRead) != 2 {
 			return fmt.Errorf("expected 2 resources after write, got %d", len(resourcesRead))
 		}
-		if !array.RecordApproxEqual(resourcesRead[1], resource2[0]) {
+		if !recordApproxEqual(resourcesRead[1], resource2[0]) {
 			diff := RecordDiff(resourcesRead[1], resource2[0])
 			return fmt.Errorf("resource1 and resource2 are not equal. diff: %s", diff)
 		}
@@ -77,7 +76,7 @@ func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.
 		if len(resourcesRead) != 1 {
 			return fmt.Errorf("expected 1 resource after write, got %d", len(resourcesRead))
 		}
-		if !array.RecordApproxEqual(resourcesRead[0], resource2[0]) {
+		if !recordApproxEqual(resourcesRead[0], resource2[0]) {
 			diff := RecordDiff(resourcesRead[0], resource2[0])
 			return fmt.Errorf("resource1 and resource2 are not equal. diff: %s", diff)
 		}
