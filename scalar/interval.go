@@ -29,6 +29,15 @@ func (s *MonthInterval) Equal(rhs Scalar) bool {
 	return s.Valid == r.Valid && s.Value == r.Value
 }
 
+func (s *MonthInterval) String() string {
+	if !s.Valid {
+		return nullValueStr
+	}
+
+	b, _ := json.Marshal(monthIntervalData{Months: int32(s.Value)})
+	return string(b)
+}
+
 func (s *MonthInterval) Set(value any) error {
 	if mi, ok := value.(arrow.MonthInterval); ok {
 		return s.Int.Set(int32(mi))
