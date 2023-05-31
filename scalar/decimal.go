@@ -35,7 +35,7 @@ func (s *Decimal256) String() string {
 	if !s.Valid {
 		return nullValueStr
 	}
-	return s.DataType().String() + " value"
+	return s.Value.ToString(s.Type.Scale)
 }
 
 func (s *Decimal256) Get() any {
@@ -137,7 +137,7 @@ func (s *Decimal128) String() string {
 	if !s.Valid {
 		return nullValueStr
 	}
-	return s.DataType().String() + " value"
+	return s.Value.ToString(s.Type.Scale)
 }
 
 func (s *Decimal128) Get() any {
