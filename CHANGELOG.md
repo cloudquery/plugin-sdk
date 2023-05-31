@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0](https://github.com/cloudquery/plugin-sdk/compare/v3.7.0...v3.8.0) (2023-05-31)
+
+
+### Features
+
+* Add the names of tables to the periodic logger ([#738](https://github.com/cloudquery/plugin-sdk/issues/738)) ([72e1d49](https://github.com/cloudquery/plugin-sdk/commit/72e1d496cbed1e76c273ac5592419ac136c6ab2a))
+* Separate Queued Tables from In Progress Tables ([#920](https://github.com/cloudquery/plugin-sdk/issues/920)) ([dcb5d26](https://github.com/cloudquery/plugin-sdk/commit/dcb5d26b3ee22de436327b9d9c7f0c514abf1ada))
+
 ## [3.7.0](https://github.com/cloudquery/plugin-sdk/compare/v3.6.7...v3.7.0) (2023-05-30)
 
 
