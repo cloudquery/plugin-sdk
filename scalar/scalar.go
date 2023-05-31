@@ -7,6 +7,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/float16"
 	"github.com/cloudquery/plugin-sdk/v3/types"
+	"golang.org/x/exp/maps"
 )
 
 // Scalar represents a single value of a specific DataType as opposed to
@@ -202,8 +203,12 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 
 		v := s.(*Struct).Value
 		m := v.(map[string]any)
-		st := sb.Type().(*arrow.StructType)
+		names := make(map[string]struct{}, len(m))
+		for k := range m {
+			names[k] = struct{}{}
+		}
 
+		st := sb.Type().(*arrow.StructType)
 		for i, f := range st.Fields() {
 			sc := NewScalar(sb.FieldBuilder(i).Type())
 
@@ -211,13 +216,13 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 				if err := sc.Set(sv); err != nil {
 					panic(err)
 				}
-				delete(m, f.Name)
+				delete(names, f.Name)
 			}
 
 			AppendToBuilder(sb.FieldBuilder(i), sc)
 		}
-		if len(m) > 0 {
-			panic(fmt.Errorf("struct has extra fields: %+v", m))
+		if len(names) > 0 {
+			panic(fmt.Errorf("struct has extra fields: %+v", maps.Keys(names)))
 		}
 
 	case arrow.LIST:
