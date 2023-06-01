@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.0](https://github.com/cloudquery/plugin-sdk/compare/v3.9.0...v3.10.0) (2023-06-01)
+
+
+### Features
+
+* **scalar:** Support all int variations in decimal scalar ([#937](https://github.com/cloudquery/plugin-sdk/issues/937)) ([159e975](https://github.com/cloudquery/plugin-sdk/commit/159e975b3bd4f74925760507f7115f1880d19f21))
+* **scalar:** Support pointer dereferencing in decimal ([#938](https://github.com/cloudquery/plugin-sdk/issues/938)) ([181e676](https://github.com/cloudquery/plugin-sdk/commit/181e6765bf8d8c22b1ccc276dc3258d1f25eeec3))
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 7f8dd24 ([#936](https://github.com/cloudquery/plugin-sdk/issues/936)) ([8cfc215](https://github.com/cloudquery/plugin-sdk/commit/8cfc2151893bf6c175ea517e1879e33063a261dc))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to c1359c5 ([#933](https://github.com/cloudquery/plugin-sdk/issues/933)) ([dab8d86](https://github.com/cloudquery/plugin-sdk/commit/dab8d86804cb47dc0a8ef6244b91763306f456bc))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to c67fb39 ([#935](https://github.com/cloudquery/plugin-sdk/issues/935)) ([82f5f60](https://github.com/cloudquery/plugin-sdk/commit/82f5f60bb010e1430d3e7f0303c398c69a3ce301))
+
 ## [3.9.0](https://github.com/cloudquery/plugin-sdk/compare/v3.8.1...v3.9.0) (2023-06-01)
 
 
