@@ -26,6 +26,8 @@ func TestDecimal128Set(t *testing.T) {
 	uint32Val := uint32(1)
 	uint64Val := uint64(1)
 
+	intValPointer := &intVal
+
 	successfulTests := []struct {
 		source      any
 		decimalType *arrow.Decimal128Type
@@ -53,6 +55,7 @@ func TestDecimal128Set(t *testing.T) {
 		{source: &uint16Val, expect: Decimal128{Value: decimal128.FromU64(1), Valid: true}},
 		{source: &uint32Val, expect: Decimal128{Value: decimal128.FromU64(1), Valid: true}},
 		{source: &uint64Val, expect: Decimal128{Value: decimal128.FromU64(1), Valid: true}},
+		{source: &intValPointer, expect: Decimal128{Value: decimal128.FromI64(1), Valid: true}},
 	}
 
 	for i, tt := range successfulTests {
@@ -81,6 +84,8 @@ func TestDecimal256Set(t *testing.T) {
 	uint32Val := uint32(1)
 	uint64Val := uint64(1)
 
+	intValPointer := &intVal
+
 	successfulTests := []struct {
 		source      any
 		decimalType *arrow.Decimal256Type
@@ -108,6 +113,7 @@ func TestDecimal256Set(t *testing.T) {
 		{source: &uint16Val, expect: Decimal256{Value: decimal256.FromU64(1), Valid: true}},
 		{source: &uint32Val, expect: Decimal256{Value: decimal256.FromU64(1), Valid: true}},
 		{source: &uint64Val, expect: Decimal256{Value: decimal256.FromU64(1), Valid: true}},
+		{source: &intValPointer, expect: Decimal256{Value: decimal256.FromI64(1), Valid: true}},
 	}
 
 	for i, tt := range successfulTests {
