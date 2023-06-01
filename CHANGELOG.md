@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.1](https://github.com/cloudquery/plugin-sdk/compare/v3.8.0...v3.8.1) (2023-06-01)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v13 digest to cbc17a9 ([#924](https://github.com/cloudquery/plugin-sdk/issues/924)) ([dd0789e](https://github.com/cloudquery/plugin-sdk/commit/dd0789e1ca0cfd8dc8d458e234cecc210c29929f))
+* **deps:** Update golang.org/x/exp digest to 2e198f4 ([#926](https://github.com/cloudquery/plugin-sdk/issues/926)) ([97440df](https://github.com/cloudquery/plugin-sdk/commit/97440df046469c800a8cc1c5e49956484fb809ac))
+* **deps:** Update google.golang.org/genproto digest to e85fd2c ([#927](https://github.com/cloudquery/plugin-sdk/issues/927)) ([b185a17](https://github.com/cloudquery/plugin-sdk/commit/b185a17ede3866754782bda305ef7102abf1b565))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to e85fd2c ([#928](https://github.com/cloudquery/plugin-sdk/issues/928)) ([c23f09d](https://github.com/cloudquery/plugin-sdk/commit/c23f09dc406eb71df10c8f6d04c1e518cb85311c))
+* **test:** Use `array.WithUnorderedMapKeys` ([#921](https://github.com/cloudquery/plugin-sdk/issues/921)) ([ac2cfbd](https://github.com/cloudquery/plugin-sdk/commit/ac2cfbdc09521ae78d648fe841354351348496cb))
+
+## [3.8.0](https://github.com/cloudquery/plugin-sdk/compare/v3.7.0...v3.8.0) (2023-05-31)
+
+
+### Features
+
+* Add the names of tables to the periodic logger ([#738](https://github.com/cloudquery/plugin-sdk/issues/738)) ([72e1d49](https://github.com/cloudquery/plugin-sdk/commit/72e1d496cbed1e76c273ac5592419ac136c6ab2a))
+* Separate Queued Tables from In Progress Tables ([#920](https://github.com/cloudquery/plugin-sdk/issues/920)) ([dcb5d26](https://github.com/cloudquery/plugin-sdk/commit/dcb5d26b3ee22de436327b9d9c7f0c514abf1ada))
+
+## [3.7.0](https://github.com/cloudquery/plugin-sdk/compare/v3.6.7...v3.7.0) (2023-05-30)
+
+
+### Features
+
+* **test:** Add `AllowNull` option for test data ([#913](https://github.com/cloudquery/plugin-sdk/issues/913)) ([9b911eb](https://github.com/cloudquery/plugin-sdk/commit/9b911eb7ea5566a8a5979443bea21a45779b4691))
+
+
+### Bug Fixes
+
+* Test Decimal type, map type and larger number ranges ([#905](https://github.com/cloudquery/plugin-sdk/issues/905)) ([9a3b4ad](https://github.com/cloudquery/plugin-sdk/commit/9a3b4ad3380f95ae6eabb59203d2a608e80ef59e))
+
 ## [3.6.7](https://github.com/cloudquery/plugin-sdk/compare/v3.6.6...v3.6.7) (2023-05-26)
 
 

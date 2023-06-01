@@ -225,8 +225,8 @@ func mapOfColumns(baseColumns []Column) []Column {
 	for i := 0; i < len(columns); i += 2 {
 		// we focus on string and int keys for now
 		n := i / 2
-		columns[i] = Column{Name: "int_" + baseColumns[n].Name + "_map", Type: arrow.MapOf(arrow.BinaryTypes.String, baseColumns[n].Type)}
-		columns[i+1] = Column{Name: "string_" + baseColumns[n].Name + "_map", Type: arrow.MapOf(arrow.PrimitiveTypes.Int64, baseColumns[n].Type)}
+		columns[i] = Column{Name: "string_" + baseColumns[n].Name + "_map", Type: arrow.MapOf(arrow.BinaryTypes.String, baseColumns[n].Type)}
+		columns[i+1] = Column{Name: "int_" + baseColumns[n].Name + "_map", Type: arrow.MapOf(arrow.PrimitiveTypes.Int64, baseColumns[n].Type)}
 	}
 	return columns
 }

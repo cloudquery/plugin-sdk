@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v3/schema"
 	"github.com/google/uuid"
@@ -70,21 +69,23 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		return fmt.Errorf("expected %d resources, got %d", expectedResource, len(resourcesRead))
 	}
 
+	testOpts.AllowNull.replaceNullsByEmpty(record1)
+	testOpts.AllowNull.replaceNullsByEmpty(record2)
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(record1)
 		stripNullsFromLists(record2)
 	}
-	if !array.RecordApproxEqual(record1[0], resourcesRead[0]) {
+	if !recordApproxEqual(record1[0], resourcesRead[0]) {
 		diff := RecordDiff(record1[0], resourcesRead[0])
 		return fmt.Errorf("first expected resource diff at row 0: %s", diff)
 	}
-	if !array.RecordApproxEqual(record1[1], resourcesRead[1]) {
+	if !recordApproxEqual(record1[1], resourcesRead[1]) {
 		diff := RecordDiff(record1[1], resourcesRead[1])
 		return fmt.Errorf("first expected resource diff at row 1: %s", diff)
 	}
 
 	if !s.tests.SkipSecondAppend {
-		if !array.RecordApproxEqual(record2[0], resourcesRead[2]) {
+		if !recordApproxEqual(record2[0], resourcesRead[2]) {
 			diff := RecordDiff(record2[0], resourcesRead[2])
 			return fmt.Errorf("second expected resource diff: %s", diff)
 		}
