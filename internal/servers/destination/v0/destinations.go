@@ -10,7 +10,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	pbBase "github.com/cloudquery/plugin-pb-go/pb/base/v0"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
-	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-pb-go/specs/v0"
 	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -22,9 +22,11 @@ import (
 
 type Server struct {
 	pb.UnimplementedDestinationServer
-	Plugin *plugin.Plugin
-	Logger zerolog.Logger
-	spec   specs.Destination
+	Plugin      *plugin.Plugin
+	Logger      zerolog.Logger
+	spec        specs.Destination
+	writeMode   plugin.WriteMode
+	migrateMode plugin.MigrateMode
 }
 
 func (*Server) GetProtocolVersion(context.Context, *pbBase.GetProtocolVersion_Request) (*pbBase.GetProtocolVersion_Response, error) {
@@ -39,8 +41,21 @@ func (s *Server) Configure(ctx context.Context, req *pbBase.Configure_Request) (
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
 	s.spec = spec
-	specV3 := SpecV1ToV3(spec)
-	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, specV3)
+	switch s.spec.WriteMode {
+	case specs.WriteModeAppend:
+		s.writeMode = plugin.WriteModeAppend
+	case specs.WriteModeOverwrite:
+		s.writeMode = plugin.WriteModeOverwrite
+	case specs.WriteModeOverwriteDeleteStale:
+		s.writeMode = plugin.WriteModeOverwriteDeleteStale
+	}
+	switch s.spec.MigrateMode {
+	case specs.MigrateModeSafe:
+		s.migrateMode = plugin.MigrateModeSafe
+	case specs.MigrateModeForced:
+		s.migrateMode = plugin.MigrateModeForced
+	}
+	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, nil)
 }
 
 func (s *Server) GetName(context.Context, *pbBase.GetName_Request) (*pbBase.GetName_Response, error) {
@@ -64,7 +79,16 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
 
-	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
+	var migrateMode plugin.MigrateMode
+	switch s.spec.MigrateMode {
+	case specs.MigrateModeSafe:
+		migrateMode = plugin.MigrateModeSafe
+	case specs.MigrateModeForced:
+		migrateMode = plugin.MigrateModeForced
+	default:
+		return nil, status.Errorf(codes.InvalidArgument, "invalid migrate mode: %v", s.spec.MigrateMode)
+	}
+	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables, migrateMode)
 }
 
 func (*Server) Write(pb.Destination_WriteServer) error {
@@ -103,9 +127,9 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
 	eg, ctx := errgroup.WithContext(msg.Context())
-	sourceSpecV3 := SourceSpecV1ToV3(sourceSpec)
+	sourceName := r.Source
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceSpecV3, tables, syncTime, resources)
+		return s.Plugin.Write(ctx, sourceName, tables, syncTime, s.writeMode, resources)
 	})
 	sourceColumn := &schemav2.Text{}
 	_ = sourceColumn.Set(sourceSpec.Name)

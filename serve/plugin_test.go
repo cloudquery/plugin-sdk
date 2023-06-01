@@ -58,11 +58,11 @@ func (*testExecutionClient) Close(ctx context.Context) error {
 	return nil
 }
 
-func newTestExecutionClient(context.Context, zerolog.Logger, pb.Spec) (plugin.Client, error) {
+func newTestExecutionClient(context.Context, zerolog.Logger, any) (plugin.Client, error) {
 	return &testExecutionClient{}, nil
 }
 
-func TestSourceSuccess(t *testing.T) {
+func TestPlugin(t *testing.T) {
 	p := plugin.NewPlugin(
 		"testPlugin",
 		"v1.0.0",
@@ -106,16 +106,6 @@ func TestSourceSuccess(t *testing.T) {
 		t.Fatalf("Expected version to be v1.0.0 but got %s", getVersionResponse.Version)
 	}
 
-	spec := pb.Spec{
-		Name:    "testSourcePlugin",
-		Version: "v1.0.0",
-		Path:    "cloudquery/testSourcePlugin",
-		SyncSpec: &pb.SyncSpec{
-			Tables:       []string{"test_table"},
-			Destinations: []string{"test"},
-		},
-	}
-
 	getTablesRes, err := c.GetStaticTables(ctx, &pb.GetStaticTables_Request{})
 	if err != nil {
 		t.Fatal(err)
@@ -129,7 +119,7 @@ func TestSourceSuccess(t *testing.T) {
 	if len(tables) != 2 {
 		t.Fatalf("Expected 2 tables but got %d", len(tables))
 	}
-	if _, err := c.Init(ctx, &pb.Init_Request{Spec: &spec}); err != nil {
+	if _, err := c.Init(ctx, &pb.Init_Request{}); err != nil {
 		t.Fatal(err)
 	}
 

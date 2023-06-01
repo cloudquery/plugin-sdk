@@ -9,8 +9,6 @@ import (
 	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/require"
 )
 
 var migrateStrategyOverwrite = MigrateStrategy{
@@ -178,33 +176,4 @@ func TestOnWriteCtxCancelled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestPluginInit(t *testing.T) {
-	const (
-		batchSize      = uint64(100)
-		batchSizeBytes = uint64(1000)
-	)
-
-	var (
-		batchSizeObserved      uint64
-		batchSizeBytesObserved uint64
-	)
-	p := NewPlugin(
-		"test",
-		"development",
-		func(ctx context.Context, logger zerolog.Logger, s pbPlugin.Spec) (Client, error) {
-			batchSizeObserved = s.WriteSpec.BatchSize
-			batchSizeBytesObserved = s.WriteSpec.BatchSizeBytes
-			return NewMemDBClient(ctx, logger, s)
-		},
-		WithDefaultBatchSize(int(batchSize)),
-		WithDefaultBatchSizeBytes(int(batchSizeBytes)),
-	)
-	require.NoError(t, p.Init(context.TODO(), pbPlugin.Spec{
-		WriteSpec: &pbPlugin.WriteSpec{},
-	}))
-
-	require.Equal(t, batchSize, batchSizeObserved)
-	require.Equal(t, batchSizeBytes, batchSizeBytesObserved)
 }

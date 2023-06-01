@@ -10,7 +10,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
-	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-pb-go/specs/v0"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
@@ -21,9 +21,11 @@ import (
 
 type Server struct {
 	pb.UnimplementedDestinationServer
-	Plugin *plugin.Plugin
-	Logger zerolog.Logger
-	spec   specs.Destination
+	Plugin      *plugin.Plugin
+	Logger      zerolog.Logger
+	spec        specs.Destination
+	writeMode   plugin.WriteMode
+	migrateMode plugin.MigrateMode
 }
 
 func (s *Server) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.Configure_Response, error) {
@@ -32,8 +34,21 @@ func (s *Server) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
 	s.spec = spec
-	specV3 := SpecV1ToV3(spec)
-	return &pb.Configure_Response{}, s.Plugin.Init(ctx, specV3)
+	switch s.spec.WriteMode {
+	case specs.WriteModeAppend:
+		s.writeMode = plugin.WriteModeAppend
+	case specs.WriteModeOverwrite:
+		s.writeMode = plugin.WriteModeOverwrite
+	case specs.WriteModeOverwriteDeleteStale:
+		s.writeMode = plugin.WriteModeOverwriteDeleteStale
+	}
+	switch s.spec.MigrateMode {
+	case specs.MigrateModeSafe:
+		s.migrateMode = plugin.MigrateModeSafe
+	case specs.MigrateModeForced:
+		s.migrateMode = plugin.MigrateModeForced
+	}
+	return &pb.Configure_Response{}, s.Plugin.Init(ctx, s.spec.Spec)
 }
 
 func (s *Server) GetName(context.Context, *pb.GetName_Request) (*pb.GetName_Response, error) {
@@ -59,7 +74,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	}
 	s.setPKsForTables(tables)
 
-	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
+	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables, s.migrateMode)
 }
 
 // Note the order of operations in this method is important!
@@ -97,9 +112,10 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 	syncTime := r.Timestamp.AsTime()
 	s.setPKsForTables(tables)
 	eg, ctx := errgroup.WithContext(msg.Context())
-	sourceSpecV3 := SourceSpecV1ToV3(sourceSpec)
+	sourceName := r.Source
+
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceSpecV3, tables, syncTime, resources)
+		return s.Plugin.Write(ctx, sourceName, tables, syncTime, s.writeMode, resources)
 	})
 
 	for {

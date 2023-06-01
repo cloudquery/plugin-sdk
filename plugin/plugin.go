@@ -7,17 +7,12 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/apache/arrow/go/v13/arrow/memory"
-	"github.com/cloudquery/plugin-pb-go/specs"
+	"github.com/cloudquery/plugin-pb-go/specs/v0"
 	"github.com/cloudquery/plugin-sdk/v4/backend"
 	"github.com/cloudquery/plugin-sdk/v4/caser"
-	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/semaphore"
-
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 )
 
 const (
@@ -32,14 +27,14 @@ type Options struct {
 
 type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, Options) (schema.ClientMeta, error)
 
-type NewClientFunc func(context.Context, zerolog.Logger, pbPlugin.Spec) (Client, error)
+type NewClientFunc func(context.Context, zerolog.Logger, any) (Client, error)
 
 type Client interface {
 	ID() string
-	Sync(ctx context.Context, metrics *Metrics, res chan<- arrow.Record) error
-	Migrate(ctx context.Context, tables schema.Tables) error
-	WriteTableBatch(ctx context.Context, table *schema.Table, data []arrow.Record) error
-	Write(ctx context.Context, tables schema.Tables, res <-chan arrow.Record) error
+	Sync(ctx context.Context, res chan<- arrow.Record) error
+	Migrate(ctx context.Context, tables schema.Tables, migrateMode MigrateMode) error
+	WriteTableBatch(ctx context.Context, table *schema.Table, writeMode WriteMode, data []arrow.Record) error
+	Write(ctx context.Context, tables schema.Tables, writeMode WriteMode, res <-chan arrow.Record) error
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
 	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error
 	Close(ctx context.Context) error
@@ -65,7 +60,7 @@ func (UnimplementedWriter) DeleteStale(ctx context.Context, tables schema.Tables
 
 type UnimplementedSync struct{}
 
-func (UnimplementedSync) Sync(ctx context.Context, metrics *Metrics, res chan<- arrow.Record) error {
+func (UnimplementedSync) Sync(ctx context.Context, res chan<- arrow.Record) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -110,15 +105,17 @@ type Plugin struct {
 	// backend is the backend used to store the cursor state
 	backend backend.Backend
 	// spec is the spec the client was initialized with
-	spec pbPlugin.Spec
+	spec any
 	// NoInternalColumns if set to true will not add internal columns to tables such as _cq_id and _cq_parent_id
 	// useful for sources such as PostgreSQL and other databases
 	internalColumns bool
-	// unmanaged if set to true then the plugin will call Sync directly and not use the scheduler
-	unmanaged bool
+	// unmanagedSync if set to true then the plugin will call Sync directly and not use the scheduler
+	unmanagedSync bool
 	// titleTransformer allows the plugin to control how table names get turned into titles for generated documentation
-	titleTransformer func(*schema.Table) string
-	syncTime         time.Time
+	titleTransformer  func(*schema.Table) string
+	syncTime          time.Time
+	sourceName        string
+	deterministicCQId bool
 
 	managedWriter bool
 	workers       map[string]*worker
@@ -146,7 +143,7 @@ func (p *Plugin) addInternalColumns(tables []*schema.Table) error {
 		cqSourceName := schema.CqSourceNameColumn
 		cqSyncTime := schema.CqSyncTimeColumn
 		cqSourceName.Resolver = func(_ context.Context, _ schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
-			return resource.Set(c.Name, p.spec.Name)
+			return resource.Set(c.Name, p.sourceName)
 		}
 		cqSyncTime.Resolver = func(_ context.Context, _ schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
 			return resource.Set(c.Name, p.syncTime)
@@ -197,6 +194,8 @@ func maxDepth(tables schema.Tables) uint64 {
 	return depth
 }
 
+// NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
+// Depending on the options, it can be write only plugin, read only plugin or both.
 func NewPlugin(name string, version string, newClient NewClientFunc, options ...Option) *Plugin {
 	p := Plugin{
 		name:                  name,
@@ -206,6 +205,7 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 		titleTransformer:      DefaultTitleTransformer,
 		newClient:             newClient,
 		metrics:               &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
+		workers:               make(map[string]*worker),
 		workersLock:           &sync.Mutex{},
 		batchTimeout:          time.Duration(defaultBatchTimeoutSeconds) * time.Second,
 		defaultBatchSize:      defaultBatchSize,
@@ -215,6 +215,10 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 		opt(&p)
 	}
 	if p.staticTables != nil {
+		setParents(p.staticTables, nil)
+		if err := transformTables(p.staticTables); err != nil {
+			panic(err)
+		}
 		if p.internalColumns {
 			if err := p.addInternalColumns(p.staticTables); err != nil {
 				panic(err)
@@ -246,66 +250,16 @@ func (p *Plugin) SetLogger(logger zerolog.Logger) {
 	p.logger = logger.With().Str("module", p.name+"-src").Logger()
 }
 
-// Tables returns all tables supported by this source plugin
-func (p *Plugin) StaticTables() schema.Tables {
-	return p.staticTables
-}
-
-func (p *Plugin) HasDynamicTables() bool {
-	return p.getDynamicTables != nil
-}
-
-func (p *Plugin) DynamicTables() schema.Tables {
-	return p.sessionTables
-}
-
-func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]arrow.Record, error) {
-	var readErr error
-	ch := make(chan arrow.Record)
-	go func() {
-		defer close(ch)
-		readErr = p.Read(ctx, table, sourceName, ch)
-	}()
-	// nolint:prealloc
-	var resources []arrow.Record
-	for resource := range ch {
-		resources = append(resources, resource)
-	}
-	return resources, readErr
-}
-
-func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error {
-	return p.client.Read(ctx, table, sourceName, res)
-}
-
 func (p *Plugin) Metrics() *Metrics {
 	return p.metrics
 }
 
-func (p *Plugin) setSpecDefaults(spec *pbPlugin.Spec) {
-	if spec.WriteSpec == nil {
-		spec.WriteSpec = &pbPlugin.WriteSpec{
-			BatchSize: uint64(p.defaultBatchSize),
-			BatchSizeBytes: uint64(p.defaultBatchSizeBytes),
-		}
-	}
-	if spec.WriteSpec.BatchSize == 0 {
-		spec.WriteSpec.BatchSize = uint64(p.defaultBatchSize)
-	}
-	if spec.WriteSpec.BatchSizeBytes == 0 {
-		spec.WriteSpec.BatchSizeBytes = uint64(p.defaultBatchSizeBytes)
-	}
-	if spec.SyncSpec == nil {
-		spec.SyncSpec = &pbPlugin.SyncSpec{}
-	}
-}
-
-func (p *Plugin) Init(ctx context.Context, spec pbPlugin.Spec) error {
+// Init initializes the plugin with the given spec.
+func (p *Plugin) Init(ctx context.Context, spec any) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
-	p.setSpecDefaults(&spec)
 	var err error
 	p.client, err = p.newClient(ctx, p.logger, spec)
 	if err != nil {
@@ -313,167 +267,6 @@ func (p *Plugin) Init(ctx context.Context, spec pbPlugin.Spec) error {
 	}
 	p.spec = spec
 
-	tables := p.staticTables
-	if p.getDynamicTables != nil {
-		tables, err = p.getDynamicTables(ctx, p.client)
-		if err != nil {
-			return fmt.Errorf("failed to get dynamic tables: %w", err)
-		}
-
-		tables, err = tables.FilterDfs(spec.SyncSpec.Tables, spec.SyncSpec.SkipTables, true)
-		if err != nil {
-			return fmt.Errorf("failed to filter tables: %w", err)
-		}
-		if len(tables) == 0 {
-			return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
-		}
-
-		setParents(tables, nil)
-		if err := transformTables(tables); err != nil {
-			return err
-		}
-		if p.internalColumns {
-			if err := p.addInternalColumns(tables); err != nil {
-				return err
-			}
-		}
-
-		p.maxDepth = maxDepth(tables)
-		if p.maxDepth > maxAllowedDepth {
-			return fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth)
-		}
-	} else if tables != nil {
-		tables, err = tables.FilterDfs(spec.SyncSpec.Tables, spec.SyncSpec.SkipTables, true)
-		if err != nil {
-			return fmt.Errorf("failed to filter tables: %w", err)
-		}
-	}
-	p.sessionTables = tables
-
-	return nil
-}
-
-func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables) error {
-	return p.client.Migrate(ctx, tables)
-}
-
-func (p *Plugin) writeUnmanaged(ctx context.Context, _ specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
-	return p.client.Write(ctx, tables, res)
-}
-
-// this function is currently used mostly for testing so it's not a public api
-func (p *Plugin) writeOne(ctx context.Context, sourceSpec pbPlugin.Spec, syncTime time.Time, resource arrow.Record) error {
-	resources := []arrow.Record{resource}
-	return p.writeAll(ctx, sourceSpec, syncTime, resources)
-}
-
-// this function is currently used mostly for testing so it's not a public api
-func (p *Plugin) writeAll(ctx context.Context, sourceSpec pbPlugin.Spec, syncTime time.Time, resources []arrow.Record) error {
-	ch := make(chan arrow.Record, len(resources))
-	for _, resource := range resources {
-		ch <- resource
-	}
-	close(ch)
-	tables := make(schema.Tables, 0)
-	tableNames := make(map[string]struct{})
-	for _, resource := range resources {
-		sc := resource.Schema()
-		tableMD := sc.Metadata()
-		name, found := tableMD.GetValue(schema.MetadataTableName)
-		if !found {
-			return fmt.Errorf("missing table name")
-		}
-		if _, ok := tableNames[name]; ok {
-			continue
-		}
-		table, err := schema.NewTableFromArrowSchema(resource.Schema())
-		if err != nil {
-			return err
-		}
-		tables = append(tables, table)
-		tableNames[table.Name] = struct{}{}
-	}
-	return p.Write(ctx, sourceSpec, tables, syncTime, ch)
-}
-
-func (p *Plugin) Write(ctx context.Context, sourceSpec pbPlugin.Spec, tables schema.Tables, syncTime time.Time, res <-chan arrow.Record) error {
-	syncTime = syncTime.UTC()
-	if err := p.client.Write(ctx, tables, res); err != nil {
-		return err
-	}
-	if p.spec.WriteSpec.WriteMode == pbPlugin.WRITE_MODE_WRITE_MODE_OVERWRITE_DELETE_STALE {
-		tablesToDelete := tables
-		if sourceSpec.BackendSpec != nil {
-			tablesToDelete = make(schema.Tables, 0, len(tables))
-			for _, t := range tables {
-				if !t.IsIncremental {
-					tablesToDelete = append(tablesToDelete, t)
-				}
-			}
-		}
-		if err := p.DeleteStale(ctx, tablesToDelete, sourceSpec.Name, syncTime); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (p *Plugin) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
-	syncTime = syncTime.UTC()
-	return p.client.DeleteStale(ctx, tables, sourceName, syncTime)
-}
-
-func (p *Plugin) syncAll(ctx context.Context, syncTime time.Time, syncSpec pbPlugin.SyncSpec) ([]arrow.Record, error) {
-	var err error
-	ch := make(chan arrow.Record)
-	go func() {
-		defer close(ch)
-		err = p.Sync(ctx, syncTime, syncSpec, ch)
-	}()
-	// nolint:prealloc
-	var resources []arrow.Record
-	for resource := range ch {
-		resources = append(resources, resource)
-	}
-	return resources, err
-}
-
-// Sync is syncing data from the requested tables in spec to the given channel
-func (p *Plugin) Sync(ctx context.Context, syncTime time.Time, syncSpec pbPlugin.SyncSpec, res chan<- arrow.Record) error {
-	if !p.mu.TryLock() {
-		return fmt.Errorf("plugin already in use")
-	}
-	defer p.mu.Unlock()
-	p.syncTime = syncTime
-
-	startTime := time.Now()
-	if p.unmanaged {
-		if err := p.client.Sync(ctx, p.metrics, res); err != nil {
-			return fmt.Errorf("failed to sync unmanaged client: %w", err)
-		}
-	} else {
-		resources := make(chan *schema.Resource)
-		go func() {
-			defer close(resources)
-			switch syncSpec.Scheduler {
-			case pbPlugin.SyncSpec_SCHEDULER_DFS:
-				p.syncDfs(ctx, syncSpec, p.client, p.sessionTables, resources)
-			case pbPlugin.SyncSpec_SCHEDULER_ROUND_ROBIN:
-				p.syncRoundRobin(ctx, syncSpec, p.client, p.sessionTables, resources)
-			default:
-				panic(fmt.Errorf("unknown scheduler %s. Options are: %v", syncSpec.Scheduler, specs.AllSchedulers.String()))
-			}
-		}()
-		for resource := range resources {
-			vector := resource.GetValues()
-			bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
-			scalar.AppendToRecordBuilder(bldr, vector)
-			rec := bldr.NewRecord()
-			res <- rec
-		}
-	}
-
-	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return nil
 }
 

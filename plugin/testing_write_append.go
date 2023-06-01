@@ -6,31 +6,26 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
-func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, spec pbPlugin.Spec, testOpts PluginTestSuiteRunnerOptions) error {
-	spec.WriteSpec.WriteMode = pbPlugin.WRITE_MODE_WRITE_MODE_APPEND
-	if err := p.Init(ctx, spec); err != nil {
+func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, p *Plugin, logger zerolog.Logger, migrateMode MigrateMode, writeMode WriteMode, testOpts PluginTestSuiteRunnerOptions) error {
+	if err := p.Init(ctx, nil); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
-	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
+	tableName := fmt.Sprintf("cq_write_append_%d", time.Now().Unix())
 	table := schema.TestTable(tableName, testOpts.TestSourceOptions)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := schema.Tables{
 		table,
 	}
-	if err := p.Migrate(ctx, tables); err != nil {
+	if err := p.Migrate(ctx, tables, migrateMode); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
 	sourceName := "testAppendSource" + uuid.NewString()
-	specSource := pbPlugin.Spec{
-		Name: sourceName,
-	}
 
 	opts := schema.GenTestDataOptions{
 		SourceName:    sourceName,
@@ -39,7 +34,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		TimePrecision: testOpts.TimePrecision,
 	}
 	record1 := schema.GenTestData(table, opts)
-	if err := p.writeAll(ctx, specSource, syncTime, record1); err != nil {
+	if err := p.writeAll(ctx, sourceName, syncTime, writeMode, record1); err != nil {
 		return fmt.Errorf("failed to write record first time: %w", err)
 	}
 
@@ -50,7 +45,7 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 
 	if !s.tests.SkipSecondAppend {
 		// write second time
-		if err := p.writeAll(ctx, specSource, secondSyncTime, record2); err != nil {
+		if err := p.writeAll(ctx, sourceName, secondSyncTime, writeMode, record2); err != nil {
 			return fmt.Errorf("failed to write one second time: %w", err)
 		}
 	}
