@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// nolint:dupl
 func TestDecimal128Set(t *testing.T) {
 	str := "100.32"
 	decimalType := &arrow.Decimal128Type{Precision: 5, Scale: 2}
@@ -63,6 +64,7 @@ func TestDecimal128Set(t *testing.T) {
 	}
 }
 
+// nolint:dupl
 func TestDecimal256Set(t *testing.T) {
 	str := "100.32"
 	decimalType := &arrow.Decimal256Type{Precision: 5, Scale: 2}
