@@ -23,7 +23,7 @@ func (s *List) DataType() arrow.DataType {
 
 func (s *List) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	var sb strings.Builder
 	sb.WriteString("[")

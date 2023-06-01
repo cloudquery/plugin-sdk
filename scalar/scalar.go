@@ -5,7 +5,9 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow/float16"
 	"github.com/cloudquery/plugin-sdk/v3/types"
+	"golang.org/x/exp/maps"
 )
 
 // Scalar represents a single value of a specific DataType as opposed to
@@ -31,6 +33,8 @@ type Scalar interface {
 
 type Vector []Scalar
 
+const nullValueStr = array.NullValueStr
+
 func (v Vector) Equal(r Vector) bool {
 	if len(v) != len(r) {
 		return false
@@ -46,19 +50,37 @@ func (v Vector) Equal(r Vector) bool {
 func NewScalar(dt arrow.DataType) Scalar {
 	switch dt.ID() {
 	case arrow.TIMESTAMP:
-		return &Timestamp{}
+		return &Timestamp{Type: dt.(*arrow.TimestampType)}
 	case arrow.BINARY:
 		return &Binary{}
 	case arrow.STRING:
 		return &String{}
+	case arrow.LARGE_BINARY:
+		return &LargeBinary{}
+	case arrow.LARGE_STRING:
+		return &LargeString{}
 	case arrow.INT64:
-		return &Int64{}
+		return &Int{BitWidth: 64}
+	case arrow.INT32:
+		return &Int{BitWidth: 32}
+	case arrow.INT16:
+		return &Int{BitWidth: 16}
+	case arrow.INT8:
+		return &Int{BitWidth: 8}
 	case arrow.UINT64:
-		return &Uint64{}
-	case arrow.FLOAT32:
-		return &Float32{}
+		return &Uint{BitWidth: 64}
+	case arrow.UINT32:
+		return &Uint{BitWidth: 32}
+	case arrow.UINT16:
+		return &Uint{BitWidth: 16}
+	case arrow.UINT8:
+		return &Uint{BitWidth: 8}
 	case arrow.FLOAT64:
-		return &Float64{}
+		return &Float{BitWidth: 64}
+	case arrow.FLOAT32:
+		return &Float{BitWidth: 32}
+	case arrow.FLOAT16:
+		return &Float{BitWidth: 16}
 	case arrow.BOOL:
 		return &Bool{}
 	case arrow.EXTENSION:
@@ -78,6 +100,38 @@ func NewScalar(dt arrow.DataType) Scalar {
 		return &List{
 			Type: dt,
 		}
+	case arrow.DATE64:
+		return &Date64{}
+	case arrow.DATE32:
+		return &Date32{}
+	case arrow.DURATION:
+		return &Duration{Int: Int{BitWidth: 64}, Unit: dt.(*arrow.DurationType).Unit}
+	case arrow.TIME32:
+		return &Time{
+			Int:  Int{BitWidth: 32},
+			Unit: dt.(*arrow.Time32Type).Unit,
+		}
+	case arrow.TIME64:
+		return &Time{
+			Int:  Int{BitWidth: 64},
+			Unit: dt.(*arrow.Time64Type).Unit,
+		}
+
+	case arrow.INTERVAL_MONTHS:
+		return &MonthInterval{Int{BitWidth: 32}}
+	case arrow.INTERVAL_DAY_TIME:
+		return &DayTimeInterval{}
+	case arrow.INTERVAL_MONTH_DAY_NANO:
+		return &MonthDayNanoInterval{}
+
+	case arrow.STRUCT:
+		return &Struct{Type: dt.(*arrow.StructType)}
+
+	case arrow.DECIMAL128:
+		return &Decimal128{Type: dt.(*arrow.Decimal128Type)}
+	case arrow.DECIMAL256:
+		return &Decimal256{Type: dt.(*arrow.Decimal256Type)}
+
 	default:
 		panic("not implemented: " + dt.Name())
 	}
@@ -95,27 +149,87 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		bldr.(*array.BinaryBuilder).Append(s.(*LargeBinary).Value)
 	case arrow.STRING:
 		bldr.(*array.StringBuilder).Append(s.(*String).Value)
+	case arrow.LARGE_STRING:
+		bldr.(*array.LargeStringBuilder).Append(s.(*LargeString).s.Value)
 	case arrow.INT64:
-		bldr.(*array.Int64Builder).Append(s.(*Int64).Value)
+		bldr.(*array.Int64Builder).Append(s.(*Int).Value)
+	case arrow.INT32:
+		bldr.(*array.Int32Builder).Append(int32(s.(*Int).Value))
+	case arrow.INT16:
+		bldr.(*array.Int16Builder).Append(int16(s.(*Int).Value))
+	case arrow.INT8:
+		bldr.(*array.Int8Builder).Append(int8(s.(*Int).Value))
 	case arrow.UINT64:
-		bldr.(*array.Uint64Builder).Append(s.(*Uint64).Value)
+		bldr.(*array.Uint64Builder).Append(s.(*Uint).Value)
+	case arrow.UINT32:
+		bldr.(*array.Uint32Builder).Append(uint32(s.(*Uint).Value))
+	case arrow.UINT16:
+		bldr.(*array.Uint16Builder).Append(uint16(s.(*Uint).Value))
+	case arrow.UINT8:
+		bldr.(*array.Uint8Builder).Append(uint8(s.(*Uint).Value))
+	case arrow.FLOAT16:
+		bldr.(*array.Float16Builder).Append(float16.New(float32(s.(*Float).Value)))
 	case arrow.FLOAT32:
-		bldr.(*array.Float32Builder).Append(s.(*Float32).Value)
+		bldr.(*array.Float32Builder).Append(float32(s.(*Float).Value))
 	case arrow.FLOAT64:
-		bldr.(*array.Float64Builder).Append(s.(*Float64).Value)
+		bldr.(*array.Float64Builder).Append(s.(*Float).Value)
 	case arrow.BOOL:
 		bldr.(*array.BooleanBuilder).Append(s.(*Bool).Value)
 	case arrow.TIMESTAMP:
 		bldr.(*array.TimestampBuilder).Append(arrow.Timestamp(s.(*Timestamp).Value.UnixMicro()))
+	case arrow.DURATION:
+		bldr.(*array.DurationBuilder).Append(arrow.Duration(s.(*Duration).Value))
+	case arrow.DATE32:
+		bldr.(*array.Date32Builder).Append(s.(*Date32).Value)
+	case arrow.DATE64:
+		bldr.(*array.Date64Builder).Append(s.(*Date64).Value)
+	case arrow.TIME32:
+		bldr.(*array.Time32Builder).Append(arrow.Time32(int32(s.(*Time).Value)))
+	case arrow.TIME64:
+		bldr.(*array.Time64Builder).Append(arrow.Time64(s.(*Time).Value))
+	case arrow.INTERVAL_MONTHS:
+		bldr.(*array.MonthIntervalBuilder).Append(arrow.MonthInterval(int32(s.(*MonthInterval).Value)))
+	case arrow.INTERVAL_DAY_TIME:
+		bldr.(*array.DayTimeIntervalBuilder).Append(s.(*DayTimeInterval).Value)
+	case arrow.INTERVAL_MONTH_DAY_NANO:
+		bldr.(*array.MonthDayNanoIntervalBuilder).Append(s.(*MonthDayNanoInterval).Value)
+	case arrow.DECIMAL128:
+		bldr.(*array.Decimal128Builder).Append(s.(*Decimal128).Value)
+	case arrow.DECIMAL256:
+		bldr.(*array.Decimal256Builder).Append(s.(*Decimal256).Value)
+	case arrow.STRUCT:
+		sb := bldr.(*array.StructBuilder)
+		sb.Append(true)
+
+		v := s.(*Struct).Value
+		m := v.(map[string]any)
+		names := make(map[string]struct{}, len(m))
+		for k := range m {
+			names[k] = struct{}{}
+		}
+
+		st := sb.Type().(*arrow.StructType)
+		for i, f := range st.Fields() {
+			sc := NewScalar(sb.FieldBuilder(i).Type())
+
+			if sv, ok := m[f.Name]; ok {
+				if err := sc.Set(sv); err != nil {
+					panic(err)
+				}
+				delete(names, f.Name)
+			}
+
+			AppendToBuilder(sb.FieldBuilder(i), sc)
+		}
+		if len(names) > 0 {
+			panic(fmt.Errorf("struct has extra fields: %+v", maps.Keys(names)))
+		}
+
 	case arrow.LIST:
 		lb := bldr.(*array.ListBuilder)
-		if s.IsValid() {
-			lb.Append(true)
-			for _, v := range s.(*List).Value {
-				AppendToBuilder(lb.ValueBuilder(), v)
-			}
-		} else {
-			lb.AppendNull()
+		lb.Append(true)
+		for _, v := range s.(*List).Value {
+			AppendToBuilder(lb.ValueBuilder(), v)
 		}
 	case arrow.EXTENSION:
 		switch {

@@ -3,6 +3,8 @@ package scalar
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type TimestampSt struct {
@@ -48,5 +50,16 @@ func TestTimestampSet(t *testing.T) {
 		if !r.Equal(&tt.result) {
 			t.Errorf("%d: %v != %v", i, r, tt.result)
 		}
+	}
+}
+
+func TestTimestampDoubleSet(t *testing.T) {
+	var r Timestamp
+	assert.NoError(t, r.Set("2105-07-23 22:23:37.75007611 +0000 UTC"))
+
+	r2 := r
+	assert.NoError(t, r.Set(""))
+	if r.Equal(&r2) {
+		t.Errorf("%v = %v, expected null", r, r2)
 	}
 }

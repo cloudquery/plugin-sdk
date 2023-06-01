@@ -32,7 +32,7 @@ func (s *Bool) Equal(rhs Scalar) bool {
 
 func (s *Bool) String() string {
 	if !s.Valid {
-		return "(null)"
+		return nullValueStr
 	}
 	return strconv.FormatBool(s.Value)
 }
@@ -65,8 +65,16 @@ func (s *Bool) Set(val any) error {
 		}
 		s.Value = bb
 	case *bool:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
 		return s.Set(*value)
 	case *string:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
 		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingBoolType(value); ok {
