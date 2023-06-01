@@ -1,11 +1,73 @@
 package plugin
 
 import (
+	"bytes"
 	"context"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
+
+type MigrateMode int
+
+const (
+	MigrateModeSafe MigrateMode = iota
+	MigrateModeForced
+)
+
+var (
+	migrateModeStrings = []string{"safe", "forced"}
+)
+
+func (m MigrateMode) String() string {
+	return migrateModeStrings[m]
+}
+
+type WriteMode int
+
+const (
+	WriteModeOverwriteDeleteStale WriteMode = iota
+	WriteModeOverwrite
+	WriteModeAppend
+)
+
+var (
+	writeModeStrings = []string{"overwrite-delete-stale", "overwrite", "append"}
+)
+
+func (m WriteMode) String() string {
+	return writeModeStrings[m]
+}
+
+type Scheduler int
+
+const (
+	SchedulerDFS Scheduler = iota
+	SchedulerRoundRobin
+)
+
+var AllSchedulers = Schedulers{SchedulerDFS, SchedulerRoundRobin}
+var AllSchedulerNames = [...]string{
+	SchedulerDFS:        "dfs",
+	SchedulerRoundRobin: "round-robin",
+}
+
+type Schedulers []Scheduler
+
+func (s Schedulers) String() string {
+	var buffer bytes.Buffer
+	for i, scheduler := range s {
+		if i > 0 {
+			buffer.WriteString(", ")
+		}
+		buffer.WriteString(scheduler.String())
+	}
+	return buffer.String()
+}
+
+func (s Scheduler) String() string {
+	return AllSchedulerNames[s]
+}
 
 type GetTables func(ctx context.Context, c Client) (schema.Tables, error)
 
@@ -25,9 +87,9 @@ func WithNoInternalColumns() Option {
 	}
 }
 
-func WithUnmanaged() Option {
+func WithUnmanagedSync() Option {
 	return func(p *Plugin) {
-		p.unmanaged = true
+		p.unmanagedSync = true
 	}
 }
 

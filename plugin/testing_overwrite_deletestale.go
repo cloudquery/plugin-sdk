@@ -6,19 +6,18 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec pbPlugin.Spec, testOpts PluginTestSuiteRunnerOptions) error {
-	spec.WriteSpec.WriteMode = pbPlugin.WRITE_MODE_WRITE_MODE_OVERWRITE_DELETE_STALE
+func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx context.Context, p *Plugin, logger zerolog.Logger, spec any, testOpts PluginTestSuiteRunnerOptions) error {
+	writeMode := WriteModeOverwriteDeleteStale
 	if err := p.Init(ctx, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
-	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
+	tableName := fmt.Sprintf("cq_overwrite_delete_stale_%d", time.Now().Unix())
 	table := schema.TestTable(tableName, testOpts.TestSourceOptions)
 	incTable := schema.TestTable(tableName+"_incremental", testOpts.TestSourceOptions)
 	incTable.IsIncremental = true
@@ -27,18 +26,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		table,
 		incTable,
 	}
-	if err := p.Migrate(ctx, tables); err != nil {
+	if err := p.Migrate(ctx, tables, MigrateModeSafe); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
 	sourceName := "testOverwriteSource" + uuid.NewString()
-	sourceSpec := pbPlugin.Spec{
-		Name: sourceName,
-		BackendSpec: &pbPlugin.Spec{
-			Name: "local",
-			Path: "cloudquery/local",
-		},
-	}
 
 	opts := schema.GenTestDataOptions{
 		SourceName:    sourceName,
@@ -50,7 +42,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	incResources := schema.GenTestData(incTable, opts)
 	allResources := resources
 	allResources = append(allResources, incResources...)
-	if err := p.writeAll(ctx, sourceSpec, syncTime, allResources); err != nil {
+	if err := p.writeAll(ctx, sourceName, syncTime, writeMode, allResources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
 	sortRecordsBySyncTime(table, resources)
@@ -103,7 +95,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	allUpdatedResources := updatedResources
 	allUpdatedResources = append(allUpdatedResources, updatedIncResources...)
 
-	if err := p.writeAll(ctx, sourceSpec, secondSyncTime, allUpdatedResources); err != nil {
+	if err := p.writeAll(ctx, sourceName, secondSyncTime, writeMode, allUpdatedResources); err != nil {
 		return fmt.Errorf("failed to write all second time: %w", err)
 	}
 

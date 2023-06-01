@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -30,7 +29,6 @@ type Server struct {
 	pb.UnimplementedPluginServer
 	Plugin *plugin.Plugin
 	Logger zerolog.Logger
-	spec   pb.Spec
 }
 
 func (s *Server) GetStaticTables(context.Context, *pb.GetStaticTables_Request) (*pb.GetStaticTables_Response, error) {
@@ -71,10 +69,9 @@ func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVer
 }
 
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
-	if err := s.Plugin.Init(ctx, *req.Spec); err != nil {
+	if err := s.Plugin.Init(ctx, req.Spec); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
-	s.spec = *req.Spec
 	return &pb.Init_Response{}, nil
 }
 
@@ -83,20 +80,27 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	var syncErr error
 	ctx := stream.Context()
 
-	if req.SyncSpec == nil {
-		req.SyncSpec = &pb.SyncSpec{}
+	syncOptions := plugin.SyncOptions{
+		Tables:      req.Tables,
+		SkipTables:  req.SkipTables,
+		Concurrency: req.Concurrency,
+		Scheduler:   plugin.SchedulerDFS,
 	}
+	if req.Scheduler == pb.SCHEDULER_SCHEDULER_ROUND_ROBIN {
+		syncOptions.Scheduler = plugin.SchedulerRoundRobin
+	}
+
+	sourceName := req.SourceName
 
 	go func() {
 		defer close(records)
-		err := s.Plugin.Sync(ctx, req.SyncTime.AsTime(), *req.SyncSpec, records)
+		err := s.Plugin.Sync(ctx, sourceName, req.SyncTime.AsTime(), syncOptions, records)
 		if err != nil {
 			syncErr = fmt.Errorf("failed to sync records: %w", err)
 		}
 	}()
 
 	for rec := range records {
-
 		var buf bytes.Buffer
 		w := ipc.NewWriter(&buf, ipc.WithSchema(rec.Schema()))
 		if err := w.Write(rec); err != nil {
@@ -158,8 +162,18 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create tables: %v", err)
 	}
-	s.setPKsForTables(tables)
-	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
+	if req.PkMode == pb.PK_MODE_CQ_ID_ONLY {
+		setCQIDAsPrimaryKeysForTables(tables)
+	}
+	migrateMode := plugin.MigrateModeSafe
+	switch req.MigrateMode {
+	case pb.MIGRATE_MODE_SAFE:
+		migrateMode = plugin.MigrateModeSafe
+	case pb.MIGRATE_MODE_FORCE:
+		migrateMode = plugin.MigrateModeForced
+	}
+	// switch req.
+	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables, migrateMode)
 }
 
 func (s *Server) Write(msg pb.Plugin_WriteServer) error {
@@ -181,12 +195,23 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "failed to create tables: %v", err)
 	}
-	s.setPKsForTables(tables)
-	sourceSpec := *r.SourceSpec
-	syncTime := r.Timestamp.AsTime()
+	if r.PkMode == pb.PK_MODE_CQ_ID_ONLY {
+		setCQIDAsPrimaryKeysForTables(tables)
+	}
+	sourceName := r.SourceName
+	syncTime := r.SyncTime.AsTime()
+	writeMode := plugin.WriteModeOverwrite
+	switch r.WriteMode {
+	case pb.WRITE_MODE_WRITE_MODE_APPEND:
+		writeMode = plugin.WriteModeAppend
+	case pb.WRITE_MODE_WRITE_MODE_OVERWRITE:
+		writeMode = plugin.WriteModeOverwrite
+	case pb.WRITE_MODE_WRITE_MODE_OVERWRITE_DELETE_STALE:
+		writeMode = plugin.WriteModeOverwriteDeleteStale
+	}
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceSpec, tables, syncTime, resources)
+		return s.Plugin.Write(ctx, sourceName, tables, syncTime, writeMode, resources)
 	})
 
 	for {
@@ -233,15 +258,18 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 }
 
 func (s *Server) GenDocs(req *pb.GenDocs_Request, srv pb.Plugin_GenDocsServer) error {
-	tmpDir := os.TempDir()
+	tmpDir, err := os.MkdirTemp("", "cloudquery-docs")
+	if err != nil {
+		return fmt.Errorf("failed to create tmp dir: %w", err)
+	}
 	defer os.RemoveAll(tmpDir)
-	err := s.Plugin.GeneratePluginDocs(tmpDir, req.Format)
+	err = s.Plugin.GeneratePluginDocs(tmpDir, req.Format)
 	if err != nil {
 		return fmt.Errorf("failed to generate docs: %w", err)
 	}
 
 	// list files in tmpDir
-	files, err := ioutil.ReadDir(tmpDir)
+	files, err := os.ReadDir(tmpDir)
 	if err != nil {
 		return fmt.Errorf("failed to read tmp dir: %w", err)
 	}
@@ -279,12 +307,6 @@ func checkMessageSize(msg proto.Message, record arrow.Record) error {
 		return errors.New("message exceeds max size")
 	}
 	return nil
-}
-
-func (s *Server) setPKsForTables(tables schema.Tables) {
-	if s.spec.WriteSpec.PkMode == pb.WriteSpec_CQ_ID_ONLY {
-		setCQIDAsPrimaryKeysForTables(tables)
-	}
 }
 
 func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {

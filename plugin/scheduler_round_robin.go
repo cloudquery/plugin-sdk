@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"golang.org/x/sync/semaphore"
 )
@@ -14,8 +13,8 @@ type tableClient struct {
 	client schema.ClientMeta
 }
 
-func (p *Plugin) syncRoundRobin(ctx context.Context, spec pbPlugin.SyncSpec, client Client, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
-	tableConcurrency := max(spec.Concurrency/minResourceConcurrency, minTableConcurrency)
+func (p *Plugin) syncRoundRobin(ctx context.Context, options SyncOptions, client Client, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
+	tableConcurrency := max(uint64(options.Concurrency/minResourceConcurrency), minTableConcurrency)
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
 
 	p.tableSems = make([]*semaphore.Weighted, p.maxDepth)

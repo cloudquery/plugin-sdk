@@ -9,13 +9,12 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-type Validator func(t *testing.T, plugin *Plugin, resources []*schema.Resource)
+type Validator func(t *testing.T, plugin *Plugin, resources []arrow.Record)
 
-func TestPluginSync(t *testing.T, plugin *Plugin, spec pbPlugin.Spec, opts ...TestPluginOption) {
+func TestPluginSync(t *testing.T, plugin *Plugin, sourceName string, spec any, options SyncOptions, opts ...TestPluginOption) {
 	t.Helper()
 
 	o := &testPluginOptions{
@@ -38,7 +37,7 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec pbPlugin.Spec, opts ...Te
 
 	go func() {
 		defer close(resourcesChannel)
-		syncErr = plugin.Sync(context.Background(), time.Now(), *spec.SyncSpec, resourcesChannel)
+		syncErr = plugin.Sync(context.Background(), sourceName, time.Now(), options, resourcesChannel)
 	}()
 
 	syncedResources := make([]arrow.Record, 0)
@@ -48,9 +47,9 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec pbPlugin.Spec, opts ...Te
 	if syncErr != nil {
 		t.Fatal(syncErr)
 	}
-	// for _, validator := range o.validators {
-	// 	validator(t, plugin, syncedResources)
-	// }
+	for _, validator := range o.validators {
+		validator(t, plugin, syncedResources)
+	}
 }
 
 type TestPluginOption func(*testPluginOptions)
@@ -72,13 +71,18 @@ type testPluginOptions struct {
 	validators []Validator
 }
 
-func getTableResources(t *testing.T, table *schema.Table, resources []*schema.Resource) []*schema.Resource {
+func getTableResources(t *testing.T, table *schema.Table, resources []arrow.Record) []arrow.Record {
 	t.Helper()
 
-	tableResources := make([]*schema.Resource, 0)
+	tableResources := make([]arrow.Record, 0)
 
 	for _, resource := range resources {
-		if resource.Table.Name == table.Name {
+		md := resource.Schema().Metadata()
+		tableName, ok := md.GetValue(schema.MetadataTableName)
+		if !ok {
+			t.Errorf("Expected table name to be set in metadata")
+		}
+		if tableName == table.Name {
 			tableResources = append(tableResources, resource)
 		}
 	}
@@ -86,17 +90,17 @@ func getTableResources(t *testing.T, table *schema.Table, resources []*schema.Re
 	return tableResources
 }
 
-func validateTable(t *testing.T, table *schema.Table, resources []*schema.Resource) {
+func validateTable(t *testing.T, table *schema.Table, resources []arrow.Record) {
 	t.Helper()
 	tableResources := getTableResources(t, table, resources)
 	if len(tableResources) == 0 {
 		t.Errorf("Expected table %s to be synced but it was not found", table.Name)
 		return
 	}
-	validateResources(t, tableResources)
+	validateResources(t, table, tableResources)
 }
 
-func validatePlugin(t *testing.T, plugin *Plugin, resources []*schema.Resource) {
+func validatePlugin(t *testing.T, plugin *Plugin, resources []arrow.Record) {
 	t.Helper()
 	tables := extractTables(plugin.staticTables)
 	for _, table := range tables {
@@ -115,21 +119,18 @@ func extractTables(tables schema.Tables) []*schema.Table {
 
 // Validates that every column has at least one non-nil value.
 // Also does some additional validations.
-func validateResources(t *testing.T, resources []*schema.Resource) {
+func validateResources(t *testing.T, table *schema.Table, resources []arrow.Record) {
 	t.Helper()
-
-	table := resources[0].Table
 
 	// A set of column-names that have values in at least one of the resources.
 	columnsWithValues := make([]bool, len(table.Columns))
 
 	for _, resource := range resources {
-		for i, value := range resource.GetValues() {
-			if value == nil {
-				continue
-			}
-			if value.IsValid() {
-				columnsWithValues[i] = true
+		for _, arr := range resource.Columns() {
+			for i := 0; i < arr.Len(); i++ {
+				if arr.IsValid(i) {
+					columnsWithValues[i] = true
+				}
 			}
 		}
 	}

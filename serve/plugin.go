@@ -33,19 +33,19 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-type pluginServe struct {
+type PluginServe struct {
 	plugin                *plugin.Plugin
-	args 								[]string
+	args                  []string
 	destinationV0V1Server bool
 	sentryDSN             string
-	testListener bool
-	testListenerConn *bufconn.Listener
+	testListener          bool
+	testListenerConn      *bufconn.Listener
 }
 
-type PluginOption func(*pluginServe)
+type PluginOption func(*PluginServe)
 
 func WithPluginSentryDSN(dsn string) PluginOption {
-	return func(s *pluginServe) {
+	return func(s *PluginServe) {
 		s.sentryDSN = dsn
 	}
 }
@@ -53,14 +53,14 @@ func WithPluginSentryDSN(dsn string) PluginOption {
 // WithDestinationV0V1Server is used to include destination v0 and v1 server to work
 // with older sources
 func WithDestinationV0V1Server() PluginOption {
-	return func(s *pluginServe) {
+	return func(s *PluginServe) {
 		s.destinationV0V1Server = true
 	}
 }
 
 // WithArgs used to serve the plugin with predefined args instead of os.Args
 func WithArgs(args ...string) PluginOption {
-	return func(s *pluginServe) {
+	return func(s *PluginServe) {
 		s.args = args
 	}
 }
@@ -68,7 +68,7 @@ func WithArgs(args ...string) PluginOption {
 // WithTestListener means that the plugin will be served with an in-memory listener
 // available via testListener() method instead of a network listener.
 func WithTestListener() PluginOption {
-	return func(s *pluginServe) {
+	return func(s *PluginServe) {
 		s.testListener = true
 		s.testListenerConn = bufconn.Listen(testBufSize)
 	}
@@ -76,9 +76,9 @@ func WithTestListener() PluginOption {
 
 const servePluginShort = `Start plugin server`
 
-func Plugin(plugin *plugin.Plugin, opts ...PluginOption) *pluginServe{
-	s := &pluginServe{
-		plugin: plugin,
+func Plugin(p *plugin.Plugin, opts ...PluginOption) *PluginServe {
+	s := &PluginServe{
+		plugin: p,
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -86,12 +86,14 @@ func Plugin(plugin *plugin.Plugin, opts ...PluginOption) *pluginServe{
 	return s
 }
 
-func (s *pluginServe) bufPluginDialer(context.Context, string) (net.Conn, error) {
+func (s *PluginServe) bufPluginDialer(context.Context, string) (net.Conn, error) {
 	return s.testListenerConn.Dial()
 }
 
-func (s *pluginServe) Serve(ctx context.Context) error {
-	types.RegisterAllExtensions()
+func (s *PluginServe) Serve(ctx context.Context) error {
+	if err := types.RegisterAllExtensions(); err != nil {
+		return err
+	}
 	cmd := s.newCmdPluginRoot()
 	if s.args != nil {
 		cmd.SetArgs(s.args)
@@ -99,7 +101,7 @@ func (s *pluginServe) Serve(ctx context.Context) error {
 	return cmd.ExecuteContext(ctx)
 }
 
-func (serve *pluginServe) newCmdPluginServe() *cobra.Command {
+func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	var address string
 	var network string
 	var noSentry bool
@@ -131,8 +133,8 @@ func (serve *pluginServe) newCmdPluginServe() *cobra.Command {
 
 			// opts.Plugin.Logger = logger
 			var listener net.Listener
-			if serve.testListener {
-				listener = serve.testListenerConn
+			if s.testListener {
+				listener = s.testListenerConn
 			} else {
 				listener, err = net.Listen(network, address)
 				if err != nil {
@@ -143,7 +145,7 @@ func (serve *pluginServe) newCmdPluginServe() *cobra.Command {
 			// unlike destination plugins that can accept multiple connections
 			limitListener := netutil.LimitListener(listener, 1)
 			// See logging pattern https://github.com/grpc-ecosystem/go-grpc-middleware/blob/v2/providers/zerolog/examples_test.go
-			s := grpc.NewServer(
+			grpcServer := grpc.NewServer(
 				grpc.ChainUnaryInterceptor(
 					logging.UnaryServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
@@ -153,30 +155,30 @@ func (serve *pluginServe) newCmdPluginServe() *cobra.Command {
 				grpc.MaxRecvMsgSize(MaxMsgSize),
 				grpc.MaxSendMsgSize(MaxMsgSize),
 			)
-			serve.plugin.SetLogger(logger)
-			pbv3.RegisterPluginServer(s, &serversv3.Server{
-				Plugin: serve.plugin,
+			s.plugin.SetLogger(logger)
+			pbv3.RegisterPluginServer(grpcServer, &serversv3.Server{
+				Plugin: s.plugin,
 				Logger: logger,
 			})
-			if serve.destinationV0V1Server {
-				pbDestinationV1.RegisterDestinationServer(s, &serverDestinationV1.Server{
-					Plugin: serve.plugin,
+			if s.destinationV0V1Server {
+				pbDestinationV1.RegisterDestinationServer(grpcServer, &serverDestinationV1.Server{
+					Plugin: s.plugin,
 					Logger: logger,
 				})
-				pbDestinationV0.RegisterDestinationServer(s, &serverDestinationV0.Server{
-					Plugin: serve.plugin,
+				pbDestinationV0.RegisterDestinationServer(grpcServer, &serverDestinationV0.Server{
+					Plugin: s.plugin,
 					Logger: logger,
 				})
 			}
-			pbdiscoveryv0.RegisterDiscoveryServer(s, &discoveryServerV0.Server{
+			pbdiscoveryv0.RegisterDiscoveryServer(grpcServer, &discoveryServerV0.Server{
 				Versions: []string{"v0", "v1", "v2", "v3"},
 			})
 
-			version := serve.plugin.Version()
+			version := s.plugin.Version()
 
-			if serve.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {
+			if s.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {
 				err = sentry.Init(sentry.ClientOptions{
-					Dsn:              serve.sentryDSN,
+					Dsn:              s.sentryDSN,
 					Debug:            false,
 					AttachStacktrace: false,
 					Release:          version,
@@ -210,15 +212,15 @@ func (serve *pluginServe) newCmdPluginServe() *cobra.Command {
 				select {
 				case sig := <-c:
 					logger.Info().Str("address", listener.Addr().String()).Str("signal", sig.String()).Msg("Got stop signal. Source plugin server shutting down")
-					s.Stop()
+					grpcServer.Stop()
 				case <-ctx.Done():
 					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Source plugin server shutting down")
-					s.Stop()
+					grpcServer.Stop()
 				}
 			}()
 
 			logger.Info().Str("address", listener.Addr().String()).Msg("Source plugin server listening")
-			if err := s.Serve(limitListener); err != nil {
+			if err := grpcServer.Serve(limitListener); err != nil {
 				return fmt.Errorf("failed to serve: %w", err)
 			}
 			return nil
@@ -251,7 +253,7 @@ doc --format json .
 `
 )
 
-func (serve *pluginServe) newCmdPluginDoc() *cobra.Command {
+func (s *PluginServe) newCmdPluginDoc() *cobra.Command {
 	format := newEnum([]string{"json", "markdown"}, "markdown")
 	cmd := &cobra.Command{
 		Use:   "doc <directory>",
@@ -260,20 +262,20 @@ func (serve *pluginServe) newCmdPluginDoc() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pbFormat := pbv3.GenDocs_FORMAT(pbv3.GenDocs_FORMAT_value[format.Value])
-			return serve.plugin.GeneratePluginDocs(args[0], pbFormat)
+			return s.plugin.GeneratePluginDocs(args[0], pbFormat)
 		},
 	}
 	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
 	return cmd
 }
 
-func (serve *pluginServe) newCmdPluginRoot() *cobra.Command {
+func (s *PluginServe) newCmdPluginRoot() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: fmt.Sprintf("%s <command>", serve.plugin.Name()),
+		Use: fmt.Sprintf("%s <command>", s.plugin.Name()),
 	}
-	cmd.AddCommand(serve.newCmdPluginServe())
-	cmd.AddCommand(serve.newCmdPluginDoc())
+	cmd.AddCommand(s.newCmdPluginServe())
+	cmd.AddCommand(s.newCmdPluginDoc())
 	cmd.CompletionOptions.DisableDefaultCmd = true
-	cmd.Version = serve.plugin.Version()
+	cmd.Version = s.plugin.Version()
 	return cmd
 }

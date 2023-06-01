@@ -8,17 +8,16 @@ import (
 	"sync"
 	"sync/atomic"
 
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/getsentry/sentry-go"
 	"golang.org/x/sync/semaphore"
 )
 
-func (p *Plugin) syncDfs(ctx context.Context, spec pbPlugin.SyncSpec, client Client, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
+func (p *Plugin) syncDfs(ctx context.Context, options SyncOptions, client Client, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree.
-	tableConcurrency := max(spec.Concurrency/minResourceConcurrency, minTableConcurrency)
+	tableConcurrency := max(uint64(options.Concurrency/minResourceConcurrency), minTableConcurrency)
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
 
 	p.tableSems = make([]*semaphore.Weighted, p.maxDepth)
@@ -173,7 +172,7 @@ func (p *Plugin) resolveResourcesDfs(ctx context.Context, table *schema.Table, c
 					return
 				}
 
-				if err := resolvedResource.CalculateCQID(p.spec.SyncSpec.DetrministicCqId); err != nil {
+				if err := resolvedResource.CalculateCQID(p.deterministicCQId); err != nil {
 					tableMetrics := p.metrics.TableClient[table.Name][client.ID()]
 					p.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
 					if _, found := sentValidationErrors.LoadOrStore(table.Name, struct{}{}); !found {
