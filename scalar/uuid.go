@@ -63,8 +63,15 @@ func (s *UUID) Set(src any) error {
 		return s.Set(value2)
 	case [16]byte:
 		s.Value = uuid.UUID(value)
+	case *[]byte:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
 	case []byte:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		if len(value) != 16 {
@@ -79,6 +86,7 @@ func (s *UUID) Set(src any) error {
 		s.Value = uuidVal
 	case *string:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)

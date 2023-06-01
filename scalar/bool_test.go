@@ -5,6 +5,9 @@ import (
 )
 
 func TestBoolSet(t *testing.T) {
+	var nilPointerBool *bool
+	var nilPointerString *string
+
 	successfulTests := []struct {
 		source any
 		result Bool
@@ -19,6 +22,8 @@ func TestBoolSet(t *testing.T) {
 		{source: _bool(false), result: Bool{Value: false, Valid: true}},
 		{source: &Bool{Value: true, Valid: true}, result: Bool{Value: true, Valid: true}},
 		{source: nil, result: Bool{}},
+		{source: nilPointerBool, result: Bool{}},
+		{source: nilPointerString, result: Bool{}},
 	}
 
 	for i, tt := range successfulTests {

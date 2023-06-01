@@ -3,6 +3,9 @@ package scalar
 import "testing"
 
 func TestBinarySet(t *testing.T) {
+	var nilPointerByteArray *[]byte
+	var nilPointerString *string
+
 	successfulTests := []struct {
 		source any
 		result Binary
@@ -12,6 +15,8 @@ func TestBinarySet(t *testing.T) {
 		{source: []byte(nil), result: Binary{}},
 		{source: _byteSlice{1, 2, 3}, result: Binary{Value: []byte{1, 2, 3}, Valid: true}},
 		{source: _byteSlice(nil), result: Binary{}},
+		{source: nilPointerByteArray, result: Binary{}},
+		{source: nilPointerString, result: Binary{}},
 	}
 
 	for i, tt := range successfulTests {

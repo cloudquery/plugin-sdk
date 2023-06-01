@@ -14,6 +14,9 @@ func (s StringUUIDType) String() string {
 }
 
 func TestUUIDSet(t *testing.T) {
+	var nilPointerByteArray *[]byte
+	var nilPointerString *string
+
 	successfulTests := []struct {
 		source any
 		result UUID
@@ -54,6 +57,8 @@ func TestUUIDSet(t *testing.T) {
 			source: &UUID{Value: [16]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, Valid: true},
 			result: UUID{Value: [16]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, Valid: true},
 		},
+		{source: nilPointerByteArray, result: UUID{}},
+		{source: nilPointerString, result: UUID{}},
 	}
 
 	for i, tt := range successfulTests {
