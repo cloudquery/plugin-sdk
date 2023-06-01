@@ -8,7 +8,6 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/util"
-	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v4/internal/pk"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
@@ -20,7 +19,7 @@ type worker struct {
 	flush chan chan bool
 }
 
-func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, ch <-chan arrow.Record, flush <-chan chan bool) {
+func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Table, writeMode WriteMode, ch <-chan arrow.Record, flush <-chan chan bool) {
 	sizeBytes := int64(0)
 	resources := make([]arrow.Record, 0)
 	for {
@@ -28,12 +27,12 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 		case r, ok := <-ch:
 			if !ok {
 				if len(resources) > 0 {
-					p.flush(ctx, metrics, table, resources)
+					p.flush(ctx, metrics, table, writeMode, resources)
 				}
 				return
 			}
-			if uint64(len(resources)) == p.spec.WriteSpec.BatchSize || sizeBytes+util.TotalRecordSize(r) > int64(p.spec.WriteSpec.BatchSizeBytes) {
-				p.flush(ctx, metrics, table, resources)
+			if uint64(len(resources)) == 1000 || sizeBytes+util.TotalRecordSize(r) > int64(1000) {
+				p.flush(ctx, metrics, table, writeMode, resources)
 				resources = make([]arrow.Record, 0)
 				sizeBytes = 0
 			}
@@ -41,13 +40,13 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 			sizeBytes += util.TotalRecordSize(r)
 		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
-				p.flush(ctx, metrics, table, resources)
+				p.flush(ctx, metrics, table, writeMode, resources)
 				resources = make([]arrow.Record, 0)
 				sizeBytes = 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
-				p.flush(ctx, metrics, table, resources)
+				p.flush(ctx, metrics, table, writeMode, resources)
 				resources = make([]arrow.Record, 0)
 				sizeBytes = 0
 			}
@@ -56,11 +55,11 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 	}
 }
 
-func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, resources []arrow.Record) {
+func (p *Plugin) flush(ctx context.Context, metrics *Metrics, table *schema.Table, writeMode WriteMode, resources []arrow.Record) {
 	resources = p.removeDuplicatesByPK(table, resources)
 	start := time.Now()
 	batchSize := len(resources)
-	if err := p.client.WriteTableBatch(ctx, table, resources); err != nil {
+	if err := p.client.WriteTableBatch(ctx, table, writeMode, resources); err != nil {
 		p.logger.Err(err).Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 		// we don't return an error as we need to continue until channel is closed otherwise there will be a deadlock
 		// atomic.AddUint64(&metrics.Errors, uint64(batchSize))
@@ -97,7 +96,7 @@ func (*Plugin) removeDuplicatesByPK(table *schema.Table, resources []arrow.Recor
 	return res
 }
 
-func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
+func (p *Plugin) writeManagedTableBatch(ctx context.Context, tables schema.Tables, writeMode WriteMode, res <-chan arrow.Record) error {
 	workers := make(map[string]*worker, len(tables))
 	metrics := &Metrics{}
 
@@ -117,7 +116,7 @@ func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tab
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				p.worker(ctx, metrics, table, ch, flush)
+				p.worker(ctx, metrics, table, writeMode, ch, flush)
 			}()
 		} else {
 			p.workers[table.Name].count++

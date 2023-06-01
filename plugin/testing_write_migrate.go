@@ -9,7 +9,6 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
@@ -21,19 +20,16 @@ func tableUUIDSuffix() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "_")
 }
 
-func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.Logger, spec pbPlugin.Spec, target *schema.Table, source *schema.Table, mode pbPlugin.WriteSpec_MIGRATE_MODE, testOpts PluginTestSuiteRunnerOptions) error {
-	if err := p.Init(ctx, spec); err != nil {
+func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.Logger, target *schema.Table, source *schema.Table, mode MigrateMode, writeMode WriteMode, testOpts PluginTestSuiteRunnerOptions) error {
+	if err := p.Init(ctx, nil); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
 
-	if err := p.Migrate(ctx, schema.Tables{source}); err != nil {
+	if err := p.Migrate(ctx, schema.Tables{source}, mode); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
 	sourceName := target.Name
-	sourceSpec := pbPlugin.Spec{
-		Name: sourceName,
-	}
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	opts := schema.GenTestDataOptions{
 		SourceName:    sourceName,
@@ -42,16 +38,16 @@ func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.
 		TimePrecision: testOpts.TimePrecision,
 	}
 	resource1 := schema.GenTestData(source, opts)[0]
-	if err := p.writeOne(ctx, sourceSpec, syncTime, resource1); err != nil {
+	if err := p.writeOne(ctx, sourceName, syncTime, writeMode, resource1); err != nil {
 		return fmt.Errorf("failed to write one: %w", err)
 	}
 
-	if err := p.Migrate(ctx, schema.Tables{target}); err != nil {
+	if err := p.Migrate(ctx, schema.Tables{target}, mode); err != nil {
 		return fmt.Errorf("failed to migrate existing table: %w", err)
 	}
 	opts.SyncTime = syncTime.Add(time.Second).UTC()
 	resource2 := schema.GenTestData(target, opts)
-	if err := p.writeAll(ctx, sourceSpec, syncTime, resource2); err != nil {
+	if err := p.writeAll(ctx, sourceName, syncTime, writeMode, resource2); err != nil {
 		return fmt.Errorf("failed to write one after migration: %w", err)
 	}
 
@@ -65,7 +61,7 @@ func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.
 		return fmt.Errorf("failed to read all: %w", err)
 	}
 	sortRecordsBySyncTime(target, resourcesRead)
-	if mode == pbPlugin.WriteSpec_SAFE {
+	if mode == MigrateModeSafe {
 		if len(resourcesRead) != 2 {
 			return fmt.Errorf("expected 2 resources after write, got %d", len(resourcesRead))
 		}
@@ -91,14 +87,13 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	t *testing.T,
 	newPlugin NewPluginFunc,
 	logger zerolog.Logger,
-	spec pbPlugin.Spec,
+	migrateMode MigrateMode,
+	writeMode WriteMode,
 	strategy MigrateStrategy,
 	testOpts PluginTestSuiteRunnerOptions,
 ) {
-	spec.WriteSpec.BatchSize = 1
-
 	t.Run("add_column", func(t *testing.T) {
-		if strategy.AddColumn == pbPlugin.WriteSpec_FORCE && spec.WriteSpec.MigrateMode == pbPlugin.WriteSpec_SAFE {
+		if strategy.AddColumn == MigrateModeForced && migrateMode == MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -125,7 +120,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 		}
 
 		p := newPlugin()
-		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.AddColumn, testOpts); err != nil {
+		if err := testMigration(ctx, t, p, logger, target, source, strategy.AddColumn, writeMode, testOpts); err != nil {
 			t.Fatalf("failed to migrate %s: %v", tableName, err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -134,7 +129,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("add_column_not_null", func(t *testing.T) {
-		if strategy.AddColumnNotNull == pbPlugin.WriteSpec_FORCE && spec.WriteSpec.MigrateMode == pbPlugin.WriteSpec_SAFE {
+		if strategy.AddColumnNotNull == MigrateModeForced && migrateMode == MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -159,7 +154,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
 		p := newPlugin()
-		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.AddColumnNotNull, testOpts); err != nil {
+		if err := testMigration(ctx, t, p, logger, target, source, strategy.AddColumnNotNull, writeMode, testOpts); err != nil {
 			t.Fatalf("failed to migrate add_column_not_null: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -168,7 +163,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("remove_column", func(t *testing.T) {
-		if strategy.RemoveColumn == pbPlugin.WriteSpec_FORCE && spec.WriteSpec.MigrateMode == pbPlugin.WriteSpec_SAFE {
+		if strategy.RemoveColumn == MigrateModeForced && migrateMode == MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -192,7 +187,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			}}
 
 		p := newPlugin()
-		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.RemoveColumn, testOpts); err != nil {
+		if err := testMigration(ctx, t, p, logger, target, source, strategy.RemoveColumn, writeMode, testOpts); err != nil {
 			t.Fatalf("failed to migrate remove_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -201,7 +196,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("remove_column_not_null", func(t *testing.T) {
-		if strategy.RemoveColumnNotNull == pbPlugin.WriteSpec_FORCE && spec.WriteSpec.MigrateMode == pbPlugin.WriteSpec_SAFE {
+		if strategy.RemoveColumnNotNull == MigrateModeForced && migrateMode == MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -226,7 +221,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			}}
 
 		p := newPlugin()
-		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.RemoveColumnNotNull, testOpts); err != nil {
+		if err := testMigration(ctx, t, p, logger, target, source, strategy.RemoveColumnNotNull, writeMode, testOpts); err != nil {
 			t.Fatalf("failed to migrate remove_column_not_null: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -235,7 +230,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("change_column", func(t *testing.T) {
-		if strategy.ChangeColumn == pbPlugin.WriteSpec_FORCE && spec.WriteSpec.MigrateMode == pbPlugin.WriteSpec_SAFE {
+		if strategy.ChangeColumn == MigrateModeForced && migrateMode == MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -260,7 +255,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 			}}
 
 		p := newPlugin()
-		if err := testMigration(ctx, t, p, logger, spec, target, source, strategy.ChangeColumn, testOpts); err != nil {
+		if err := testMigration(ctx, t, p, logger, target, source, strategy.ChangeColumn, writeMode, testOpts); err != nil {
 			t.Fatalf("failed to migrate change_column: %v", err)
 		}
 		if err := p.Close(ctx); err != nil {
@@ -273,12 +268,10 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 		table := schema.TestTable(tableName, testOpts.TestSourceOptions)
 
 		p := newPlugin()
-		require.NoError(t, p.Init(ctx, spec))
-		require.NoError(t, p.Migrate(ctx, schema.Tables{table}))
+		require.NoError(t, p.Init(ctx, nil))
+		require.NoError(t, p.Migrate(ctx, schema.Tables{table}, MigrateModeSafe))
 
-		nonForced := spec
-		nonForced.WriteSpec.MigrateMode = pbPlugin.WriteSpec_SAFE
-		require.NoError(t, p.Init(ctx, nonForced))
-		require.NoError(t, p.Migrate(ctx, schema.Tables{table}))
+		require.NoError(t, p.Init(ctx, MigrateModeSafe))
+		require.NoError(t, p.Migrate(ctx, schema.Tables{table}, MigrateModeSafe))
 	})
 }

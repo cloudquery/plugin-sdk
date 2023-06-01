@@ -6,32 +6,27 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
-	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
-func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec pbPlugin.Spec, testOpts PluginTestSuiteRunnerOptions) error {
-	spec.WriteSpec.WriteMode = pbPlugin.WRITE_MODE_WRITE_MODE_OVERWRITE
+func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context, p *Plugin, logger zerolog.Logger, spec any, testOpts PluginTestSuiteRunnerOptions) error {
 	if err := p.Init(ctx, spec); err != nil {
 		return fmt.Errorf("failed to init plugin: %w", err)
 	}
-	tableName := fmt.Sprintf("cq_%s_%d", spec.Name, time.Now().Unix())
+	tableName := fmt.Sprintf("cq_test_write_overwrite_%d", time.Now().Unix())
 	table := schema.TestTable(tableName, testOpts.TestSourceOptions)
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	tables := schema.Tables{
 		table,
 	}
-	if err := p.Migrate(ctx, tables); err != nil {
+	if err := p.Migrate(ctx, tables, MigrateModeSafe); err != nil {
 		return fmt.Errorf("failed to migrate tables: %w", err)
 	}
 
 	sourceName := "testOverwriteSource" + uuid.NewString()
-	sourceSpec := pbPlugin.Spec{
-		Name: sourceName,
-	}
 
 	opts := schema.GenTestDataOptions{
 		SourceName:    sourceName,
@@ -40,7 +35,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 		TimePrecision: testOpts.TimePrecision,
 	}
 	resources := schema.GenTestData(table, opts)
-	if err := p.writeAll(ctx, sourceSpec, syncTime, resources); err != nil {
+	if err := p.writeAll(ctx, sourceName, syncTime, WriteModeOverwrite, resources); err != nil {
 		return fmt.Errorf("failed to write all: %w", err)
 	}
 	sortRecordsBySyncTime(table, resources)
@@ -82,7 +77,7 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	}
 	updatedResource := schema.GenTestData(table, opts)
 	// write second time
-	if err := p.writeAll(ctx, sourceSpec, secondSyncTime, updatedResource); err != nil {
+	if err := p.writeAll(ctx, sourceName, secondSyncTime, WriteModeOverwrite, updatedResource); err != nil {
 		return fmt.Errorf("failed to write one second time: %w", err)
 	}
 
