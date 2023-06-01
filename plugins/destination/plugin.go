@@ -294,12 +294,6 @@ func (p *Plugin) Close(ctx context.Context) error {
 
 func checkDestinationColumns(tables schema.Tables) error {
 	for _, table := range tables {
-		if table.Columns.Index(schema.CqSourceNameColumn.Name) == -1 {
-			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", table.Name, schema.CqSourceNameColumn.Name)
-		}
-		if table.Columns.Index(schema.CqSyncTimeColumn.Name) == -1 {
-			return fmt.Errorf("table %s is missing column %s. please consider upgrading source plugin", table.Name, schema.CqSourceNameColumn.Name)
-		}
 		column := table.Columns.Get(schema.CqIDColumn.Name)
 		if column != nil {
 			if !column.NotNull {
