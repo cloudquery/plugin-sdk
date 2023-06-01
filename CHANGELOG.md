@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.0](https://github.com/cloudquery/plugin-sdk/compare/v3.8.1...v3.9.0) (2023-06-01)
+
+
+### Features
+
+* More scalars ([#914](https://github.com/cloudquery/plugin-sdk/issues/914)) ([f8625e2](https://github.com/cloudquery/plugin-sdk/commit/f8625e25ed202711c16343799ad72a48232f1e5c))
+
+
+### Bug Fixes
+
+* **scalar:** Handle nil pointer to []byte in uuid and binary ([#922](https://github.com/cloudquery/plugin-sdk/issues/922)) ([dac967a](https://github.com/cloudquery/plugin-sdk/commit/dac967a57b36856d51ddaa6c2c71744cbf43e18a))
+* **testdata:** Match map field names with type ([#930](https://github.com/cloudquery/plugin-sdk/issues/930)) ([cec067d](https://github.com/cloudquery/plugin-sdk/commit/cec067d4902c8590f8295d5b97b0683a73d28d3c))
+
 ## [3.8.1](https://github.com/cloudquery/plugin-sdk/compare/v3.8.0...v3.8.1) (2023-06-01)
 
 
