@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.1](https://github.com/cloudquery/plugin-sdk/compare/v3.8.0...v3.8.1) (2023-06-01)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v13 digest to cbc17a9 ([#924](https://github.com/cloudquery/plugin-sdk/issues/924)) ([dd0789e](https://github.com/cloudquery/plugin-sdk/commit/dd0789e1ca0cfd8dc8d458e234cecc210c29929f))
+* **deps:** Update golang.org/x/exp digest to 2e198f4 ([#926](https://github.com/cloudquery/plugin-sdk/issues/926)) ([97440df](https://github.com/cloudquery/plugin-sdk/commit/97440df046469c800a8cc1c5e49956484fb809ac))
+* **deps:** Update google.golang.org/genproto digest to e85fd2c ([#927](https://github.com/cloudquery/plugin-sdk/issues/927)) ([b185a17](https://github.com/cloudquery/plugin-sdk/commit/b185a17ede3866754782bda305ef7102abf1b565))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to e85fd2c ([#928](https://github.com/cloudquery/plugin-sdk/issues/928)) ([c23f09d](https://github.com/cloudquery/plugin-sdk/commit/c23f09dc406eb71df10c8f6d04c1e518cb85311c))
+* **test:** Use `array.WithUnorderedMapKeys` ([#921](https://github.com/cloudquery/plugin-sdk/issues/921)) ([ac2cfbd](https://github.com/cloudquery/plugin-sdk/commit/ac2cfbdc09521ae78d648fe841354351348496cb))
+
 ## [3.8.0](https://github.com/cloudquery/plugin-sdk/compare/v3.7.0...v3.8.0) (2023-05-31)
 
 
