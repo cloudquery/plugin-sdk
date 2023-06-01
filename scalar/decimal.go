@@ -166,6 +166,9 @@ func (s *Decimal256) Set(val any) error {
 		}
 		return s.Set(*value)
 	default:
+		if originalSrc, ok := underlyingPtrType(val); ok {
+			return s.Set(originalSrc)
+		}
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
 	s.Valid = true
@@ -324,6 +327,9 @@ func (s *Decimal128) Set(val any) error {
 		}
 		return s.Set(*value)
 	default:
+		if originalSrc, ok := underlyingPtrType(val); ok {
+			return s.Set(originalSrc)
+		}
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
 	s.Valid = true
