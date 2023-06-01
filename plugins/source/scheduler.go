@@ -146,15 +146,20 @@ func (p *Plugin) periodicMetricLogger(ctx context.Context, wg *sync.WaitGroup) {
 			return
 		case <-ticker.C:
 			inProgressTables := p.metrics.InProgressTables()
-
+			queuedTables := p.metrics.QueuedTables()
 			logLine := p.logger.Info().
 				Uint64("total_resources", p.metrics.TotalResourcesAtomic()).
 				Uint64("total_errors", p.metrics.TotalErrorsAtomic()).
 				Uint64("total_panics", p.metrics.TotalPanicsAtomic()).
-				Int("num_in_progress_tables", len(inProgressTables))
+				Int("num_in_progress_tables", len(inProgressTables)).
+				Int("num_queued_tables", len(queuedTables))
 
 			if len(inProgressTables) <= periodicMetricLoggerLogTablesLimit {
 				logLine.Strs("in_progress_tables", inProgressTables)
+			}
+
+			if len(queuedTables) <= periodicMetricLoggerLogTablesLimit {
+				logLine.Strs("queued_tables", queuedTables)
 			}
 
 			logLine.Msg("Sync in progress")
