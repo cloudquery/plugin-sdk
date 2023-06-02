@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.2](https://github.com/cloudquery/plugin-sdk/compare/v3.10.1...v3.10.2) (2023-06-02)
+
+
+### Bug Fixes
+
+* Remove uint validation ([#942](https://github.com/cloudquery/plugin-sdk/issues/942)) ([4df3b46](https://github.com/cloudquery/plugin-sdk/commit/4df3b46b9180a415bc42b40648653e5dd8ba84fd))
+
 ## [3.10.1](https://github.com/cloudquery/plugin-sdk/compare/v3.10.0...v3.10.1) (2023-06-02)
 
 
