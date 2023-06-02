@@ -117,14 +117,8 @@ func (s *Int) Set(val any) error {
 		}
 		s.Value = v
 	case uint64:
-		if value > math.MaxInt64 {
-			return &ValidationError{Type: s.DataType(), Msg: "uint64 greater than MaxInt64", Value: value}
-		}
 		return s.Set(int64(value))
 	case uint:
-		if value > math.MaxInt64 {
-			return &ValidationError{Type: s.DataType(), Msg: "uint greater than MaxInt64", Value: value}
-		}
 		return s.Set(int64(value))
 	case float32:
 		return s.Set(int64(value))
