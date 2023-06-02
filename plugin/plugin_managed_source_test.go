@@ -9,6 +9,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/google/go-cmp/cmp"
@@ -358,18 +359,18 @@ func (testRand) Read(p []byte) (n int, err error) {
 
 func TestManagedSync(t *testing.T) {
 	uuid.SetRand(testRand{})
-	for _, scheduler := range pbPlugin.SyncSpec_SCHEDULER_value {
+	for _, scheduler := range plugin.AllSchedulers {
 		for _, tc := range syncTestCases {
 			tc := tc
 			tc.table = tc.table.Copy(nil)
-			t.Run(tc.table.Name+"_"+pbPlugin.SyncSpec_SCHEDULER(scheduler).String(), func(t *testing.T) {
-				testSyncTable(t, tc, pbPlugin.SyncSpec_SCHEDULER(scheduler), tc.deterministicCQID)
+			t.Run(tc.table.Name+"_"+scheduler.String(), func(t *testing.T) {
+				testSyncTable(t, tc, scheduler, tc.deterministicCQID)
 			})
 		}
 	}
 }
 
-func testSyncTable(t *testing.T, tc syncTestCase, scheduler pbPlugin.SyncSpec_SCHEDULER, deterministicCQID bool) {
+func testSyncTable(t *testing.T, tc syncTestCase, scheduler plugin.Scheduler, deterministicCQID bool) {
 	ctx := context.Background()
 	tables := []*schema.Table{
 		tc.table,
@@ -382,23 +383,18 @@ func testSyncTable(t *testing.T, tc syncTestCase, scheduler pbPlugin.SyncSpec_SC
 		WithStaticTables(tables),
 	)
 	plugin.SetLogger(zerolog.New(zerolog.NewTestWriter(t)))
-	spec := pbPlugin.Spec{
-		Name:    "testSource",
-		Path:    "cloudquery/testSource",
-		Version: "v1.0.0",
-		SyncSpec: &pbPlugin.SyncSpec{
-			Tables:           []string{"*"},
-			Destinations:     []string{"test"},
-			Concurrency:      1, // choose a very low value to check that we don't run into deadlocks
-			Scheduler:        scheduler,
-			DetrministicCqId: deterministicCQID,
-		},
-	}
-	if err := plugin.Init(ctx, spec); err != nil {
+	sourceName := "testSource"
+
+	if err := plugin.Init(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
 
-	records, err := plugin.syncAll(ctx, testSyncTime, *spec.SyncSpec)
+	records, err := plugin.syncAll(ctx, sourceName, testSyncTime, SyncOptions{
+		Tables:            []string{"*"},
+		Concurrency:       1,
+		Scheduler:         scheduler,
+		DeterministicCQID: deterministicCQID,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
