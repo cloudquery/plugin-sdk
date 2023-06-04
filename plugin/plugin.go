@@ -29,9 +29,13 @@ type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, 
 
 type NewClientFunc func(context.Context, zerolog.Logger, any) (Client, error)
 
-type Client interface {
+type ManagedSyncClient interface {
 	ID() string
-	Sync(ctx context.Context, res chan<- arrow.Record) error
+}
+
+type Client interface {
+	NewManagedSyncClient(ctx context.Context, options SyncOptions) (ManagedSyncClient, error)
+	Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error
 	Migrate(ctx context.Context, tables schema.Tables, migrateMode MigrateMode) error
 	WriteTableBatch(ctx context.Context, table *schema.Table, writeMode WriteMode, data []arrow.Record) error
 	Write(ctx context.Context, tables schema.Tables, writeMode WriteMode, res <-chan arrow.Record) error
@@ -42,15 +46,15 @@ type Client interface {
 
 type UnimplementedWriter struct{}
 
-func (UnimplementedWriter) Migrate(ctx context.Context, tables schema.Tables) error {
+func (UnimplementedWriter) Migrate(ctx context.Context, tables schema.Tables, migrateMode MigrateMode) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (UnimplementedWriter) Write(ctx context.Context, tables schema.Tables, res <-chan arrow.Record) error {
+func (UnimplementedWriter) Write(ctx context.Context, tables schema.Tables, writeMode WriteMode, res <-chan arrow.Record) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (UnimplementedWriter) WriteTableBatch(ctx context.Context, table *schema.Table, data []arrow.Record) error {
+func (UnimplementedWriter) WriteTableBatch(ctx context.Context, table *schema.Table, writeMode WriteMode, data []arrow.Record) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -60,7 +64,7 @@ func (UnimplementedWriter) DeleteStale(ctx context.Context, tables schema.Tables
 
 type UnimplementedSync struct{}
 
-func (UnimplementedSync) Sync(ctx context.Context, res chan<- arrow.Record) error {
+func (UnimplementedSync) Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error {
 	return fmt.Errorf("not implemented")
 }
 

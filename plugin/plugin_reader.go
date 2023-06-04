@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/apache/arrow/go/v13/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/state"
+	"github.com/google/uuid"
 )
+
+
 
 type SyncOptions struct {
 	Tables            []string
@@ -18,6 +19,7 @@ type SyncOptions struct {
 	Concurrency       int64
 	Scheduler         Scheduler
 	DeterministicCQID bool
+	StateBackend      state.Client
 }
 
 // Tables returns all tables supported by this source plugin
@@ -52,6 +54,10 @@ func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName strin
 	return p.client.Read(ctx, table, sourceName, res)
 }
 
+func (p *Plugin) Acknowledge(ctx context.Context, recordUUID uuid.UUID) error {
+	return nil
+}
+
 func (p *Plugin) syncAll(ctx context.Context, sourceName string, syncTime time.Time, options SyncOptions) ([]arrow.Record, error) {
 	var err error
 	ch := make(chan arrow.Record)
@@ -68,40 +74,21 @@ func (p *Plugin) syncAll(ctx context.Context, sourceName string, syncTime time.T
 }
 
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *Plugin) Sync(ctx context.Context, sourceName string, syncTime time.Time, syncOptions SyncOptions, res chan<- arrow.Record) error {
+func (p *Plugin) Sync(ctx context.Context, sourceName string, syncTime time.Time, options SyncOptions, res chan<- arrow.Record) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
 	p.syncTime = syncTime
-
 	startTime := time.Now()
+
 	if p.unmanagedSync {
-		if err := p.client.Sync(ctx, res); err != nil {
+		if err := p.client.Sync(ctx, options, res); err != nil {
 			return fmt.Errorf("failed to sync unmanaged client: %w", err)
 		}
 	} else {
-		if len(p.sessionTables) == 0 {
-			return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
-		}
-		resources := make(chan *schema.Resource)
-		go func() {
-			defer close(resources)
-			switch syncOptions.Scheduler {
-			case SchedulerDFS:
-				p.syncDfs(ctx, syncOptions, p.client, p.sessionTables, resources)
-			case SchedulerRoundRobin:
-				p.syncRoundRobin(ctx, syncOptions, p.client, p.sessionTables, resources)
-			default:
-				panic(fmt.Errorf("unknown scheduler %s", syncOptions.Scheduler))
-			}
-		}()
-		for resource := range resources {
-			vector := resource.GetValues()
-			bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
-			scalar.AppendToRecordBuilder(bldr, vector)
-			rec := bldr.NewRecord()
-			res <- rec
+		if err := p.managedSync(ctx, sourceName, syncTime, options, res); err != nil {
+			return fmt.Errorf("failed to sync managed client: %w", err)
 		}
 	}
 

@@ -84,7 +84,11 @@ func (c *client) ID() string {
 	return "testDestinationMemDB"
 }
 
-func (c *client) Sync(ctx context.Context, res chan<- arrow.Record) error {
+func (c *client) NewManagedSyncClient(context.Context, SyncOptions) (ManagedSyncClient, error) {
+	return nil, fmt.Errorf("not supported")
+}
+
+func (c *client) Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error {
 	c.memoryDBLock.RLock()
 	for tableName := range c.memoryDB {
 		for _, row := range c.memoryDB[tableName] {

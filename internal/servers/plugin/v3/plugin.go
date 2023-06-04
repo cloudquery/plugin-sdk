@@ -12,6 +12,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
+	"github.com/cloudquery/plugin-pb-go/managedplugin"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -29,6 +30,8 @@ type Server struct {
 	pb.UnimplementedPluginServer
 	Plugin *plugin.Plugin
 	Logger zerolog.Logger
+	Directory string
+	NoSentry 	bool
 }
 
 func (s *Server) GetStaticTables(context.Context, *pb.GetStaticTables_Request) (*pb.GetStaticTables_Response, error) {
@@ -91,6 +94,29 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	}
 
 	sourceName := req.SourceName
+
+	if req.StateBackend != nil {
+		opts := []managedplugin.Option{
+			managedplugin.WithLogger(s.Logger),
+			managedplugin.WithDirectory(s.Directory),
+		}
+		if s.NoSentry {
+			opts = append(opts, managedplugin.WithNoSentry())
+		}
+		statePlugin, err := managedplugin.NewClient(ctx, managedplugin.Config{
+			Path: req.StateBackend.Path,
+			Registry: managedplugin.Registry(req.StateBackend.Registry),
+			Version: req.StateBackend.Version,
+		}, opts...)
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to create state plugin: %v", err)
+		}
+		stateClient, err := newStateClient(ctx, statePlugin.Conn, *req.StateBackend)
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to create state client: %v", err)
+		}
+		syncOptions.StateBackend = stateClient
+	}
 
 	go func() {
 		defer close(records)
@@ -172,7 +198,6 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	case pb.MIGRATE_MODE_FORCE:
 		migrateMode = plugin.MigrateModeForced
 	}
-	// switch req.
 	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables, migrateMode)
 }
 
@@ -316,4 +341,8 @@ func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 		}
 		setCQIDAsPrimaryKeysForTables(table.Relations)
 	}
+}
+
+func (s *Server) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {
+	return &pb.Close_Response{}, s.Plugin.Close(ctx)
 }
