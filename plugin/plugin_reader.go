@@ -11,21 +11,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Operation int
-
-const (
-	OperationEqual Operation = iota
-	OperationNotEqual
-	OperationGreaterThan
-	OperationLessThan
-)
-
-type WhereClause struct {
-	ColumnName string
-	Operation  Operation
-	Value      string
-}
-
 type SyncOptions struct {
 	Tables            []string
 	SkipTables        []string
@@ -79,25 +64,6 @@ func (p *Plugin) HasDynamicTables() bool {
 func (p *Plugin) DynamicTables() schema.Tables {
 	return p.sessionTables
 }
-
-// func (p *Plugin) readAll(ctx context.Context, table *schema.Table, sourceName string) ([]arrow.Record, error) {
-// 	var readErr error
-// 	ch := make(chan arrow.Record)
-// 	go func() {
-// 		defer close(ch)
-// 		readErr = p.Read(ctx, table, sourceName, ch)
-// 	}()
-// 	// nolint:prealloc
-// 	var resources []arrow.Record
-// 	for resource := range ch {
-// 		resources = append(resources, resource)
-// 	}
-// 	return resources, readErr
-// }
-
-// func (p *Plugin) Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error {
-// 	return p.client.Read(ctx, table, sourceName, res)
-// }
 
 func (p *Plugin) syncAll(ctx context.Context, options SyncOptions) ([]arrow.Record, error) {
 	var err error
