@@ -9,7 +9,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
-	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/google/go-cmp/cmp"
@@ -359,7 +358,7 @@ func (testRand) Read(p []byte) (n int, err error) {
 
 func TestManagedSync(t *testing.T) {
 	uuid.SetRand(testRand{})
-	for _, scheduler := range plugin.AllSchedulers {
+	for _, scheduler := range AllSchedulers {
 		for _, tc := range syncTestCases {
 			tc := tc
 			tc.table = tc.table.Copy(nil)
@@ -370,7 +369,7 @@ func TestManagedSync(t *testing.T) {
 	}
 }
 
-func testSyncTable(t *testing.T, tc syncTestCase, scheduler plugin.Scheduler, deterministicCQID bool) {
+func testSyncTable(t *testing.T, tc syncTestCase, scheduler Scheduler, deterministicCQID bool) {
 	ctx := context.Background()
 	tables := []*schema.Table{
 		tc.table,

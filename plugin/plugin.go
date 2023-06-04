@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/cloudquery/plugin-pb-go/specs/v0"
-	"github.com/cloudquery/plugin-sdk/v4/backend"
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
@@ -20,12 +18,6 @@ const (
 	defaultBatchSize           = 10000
 	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
 )
-
-type Options struct {
-	Backend backend.Backend
-}
-
-type NewExecutionClientFunc func(context.Context, zerolog.Logger, specs.Source, Options) (schema.ClientMeta, error)
 
 type NewClientFunc func(context.Context, zerolog.Logger, any) (Client, error)
 
@@ -40,7 +32,7 @@ type Client interface {
 	WriteTableBatch(ctx context.Context, table *schema.Table, writeMode WriteMode, data []arrow.Record) error
 	Write(ctx context.Context, tables schema.Tables, writeMode WriteMode, res <-chan arrow.Record) error
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error
+	// Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error
 	Close(ctx context.Context) error
 }
 
@@ -106,8 +98,6 @@ type Plugin struct {
 	client Client
 	// sessionTables are the
 	sessionTables schema.Tables
-	// backend is the backend used to store the cursor state
-	backend backend.Backend
 	// spec is the spec the client was initialized with
 	spec any
 	// NoInternalColumns if set to true will not add internal columns to tables such as _cq_id and _cq_parent_id
@@ -279,12 +269,5 @@ func (p *Plugin) Close(ctx context.Context) error {
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
-	if p.backend != nil {
-		err := p.backend.Close(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to close backend: %w", err)
-		}
-		p.backend = nil
-	}
 	return p.client.Close(ctx)
 }

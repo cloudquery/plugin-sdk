@@ -13,11 +13,11 @@ type MigrateMode int
 
 const (
 	MigrateModeSafe MigrateMode = iota
-	MigrateModeForced
+	MigrateModeForce
 )
 
 var (
-	migrateModeStrings = []string{"safe", "forced"}
+	migrateModeStrings = []string{"safe", "force"}
 )
 
 func (m MigrateMode) String() string {
@@ -48,7 +48,6 @@ func RegistryFromString(s string) (Registry, error) {
 		return RegistryGithub, fmt.Errorf("unknown registry %s", s)
 	}
 }
-
 
 type WriteMode int
 

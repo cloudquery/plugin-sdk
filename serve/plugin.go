@@ -159,8 +159,8 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			)
 			s.plugin.SetLogger(logger)
 			pbv3.RegisterPluginServer(grpcServer, &serversv3.Server{
-				Plugin: s.plugin,
-				Logger: logger,
+				Plugin:   s.plugin,
+				Logger:   logger,
 				NoSentry: noSentry,
 			})
 			if s.destinationV0V1Server {
@@ -177,7 +177,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				Versions: []string{"v0", "v1", "v2", "v3"},
 			})
 			pbdiscoveryv1.RegisterDiscoveryServer(grpcServer, &discoveryServerV1.Server{
-				Versions: []uint64{0,1,2,3},
+				Versions: []uint64{0, 1, 2, 3},
 			})
 
 			version := s.plugin.Version()

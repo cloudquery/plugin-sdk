@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -37,7 +36,7 @@ func TestPluginSync(t *testing.T, plugin *Plugin, sourceName string, spec any, o
 
 	go func() {
 		defer close(resourcesChannel)
-		syncErr = plugin.Sync(context.Background(), sourceName, time.Now(), options, resourcesChannel)
+		syncErr = plugin.Sync(context.Background(), options, resourcesChannel)
 	}()
 
 	syncedResources := make([]arrow.Record, 0)
