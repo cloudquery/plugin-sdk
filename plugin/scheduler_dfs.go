@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-func (p *Plugin) syncDfs(ctx context.Context, options SyncOptions, client Client, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
+func (p *Plugin) syncDfs(ctx context.Context, options SyncOptions, client ManagedSyncClient, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree.
 	tableConcurrency := max(uint64(options.Concurrency/minResourceConcurrency), minTableConcurrency)
