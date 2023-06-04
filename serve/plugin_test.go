@@ -58,6 +58,10 @@ func (*testExecutionClient) Close(ctx context.Context) error {
 	return nil
 }
 
+func (c *testExecutionClient) NewManagedSyncClient(ctx context.Context, options plugin.SyncOptions) (plugin.ManagedSyncClient, error) {
+	return c, nil
+}
+
 func newTestExecutionClient(context.Context, zerolog.Logger, any) (plugin.Client, error) {
 	return &testExecutionClient{}, nil
 }

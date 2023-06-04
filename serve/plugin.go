@@ -15,8 +15,10 @@ import (
 	pbDestinationV0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	pbDestinationV1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	pbdiscoveryv0 "github.com/cloudquery/plugin-pb-go/pb/discovery/v0"
+	pbdiscoveryv1 "github.com/cloudquery/plugin-pb-go/pb/discovery/v1"
 	pbv3 "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	discoveryServerV0 "github.com/cloudquery/plugin-sdk/v4/internal/servers/discovery/v0"
+	discoveryServerV1 "github.com/cloudquery/plugin-sdk/v4/internal/servers/discovery/v1"
 
 	serverDestinationV0 "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v0"
 	serverDestinationV1 "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v1"
@@ -159,6 +161,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			pbv3.RegisterPluginServer(grpcServer, &serversv3.Server{
 				Plugin: s.plugin,
 				Logger: logger,
+				NoSentry: noSentry,
 			})
 			if s.destinationV0V1Server {
 				pbDestinationV1.RegisterDestinationServer(grpcServer, &serverDestinationV1.Server{
@@ -172,6 +175,9 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			}
 			pbdiscoveryv0.RegisterDiscoveryServer(grpcServer, &discoveryServerV0.Server{
 				Versions: []string{"v0", "v1", "v2", "v3"},
+			})
+			pbdiscoveryv1.RegisterDiscoveryServer(grpcServer, &discoveryServerV1.Server{
+				Versions: []uint64{0,1,2,3},
 			})
 
 			version := s.plugin.Version()

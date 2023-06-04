@@ -13,7 +13,7 @@ type tableClient struct {
 	client schema.ClientMeta
 }
 
-func (p *Plugin) syncRoundRobin(ctx context.Context, options SyncOptions, client Client, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
+func (p *Plugin) syncRoundRobin(ctx context.Context, options SyncOptions, client ManagedSyncClient, tables schema.Tables, resolvedResources chan<- *schema.Resource) {
 	tableConcurrency := max(uint64(options.Concurrency/minResourceConcurrency), minTableConcurrency)
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
 

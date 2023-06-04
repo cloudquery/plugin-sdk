@@ -10,6 +10,9 @@ import (
 )
 
 func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables, migrateMode MigrateMode) error {
+	if p.client == nil {
+		return fmt.Errorf("plugin is not initialized")
+	}
 	return p.client.Migrate(ctx, tables, migrateMode)
 }
 
