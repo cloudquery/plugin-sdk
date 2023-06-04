@@ -46,7 +46,7 @@ func (s *Server) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.
 	case specs.MigrateModeSafe:
 		s.migrateMode = plugin.MigrateModeSafe
 	case specs.MigrateModeForced:
-		s.migrateMode = plugin.MigrateModeForced
+		s.migrateMode = plugin.MigrateModeForce
 	}
 	return &pb.Configure_Response{}, s.Plugin.Init(ctx, s.spec.Spec)
 }

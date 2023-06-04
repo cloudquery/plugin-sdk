@@ -23,11 +23,11 @@ const keyColumn = "key"
 const valueColumn = "value"
 
 type ClientV3 struct {
-	client pbPlugin.PluginClient
+	client        pbPlugin.PluginClient
 	encodedTables [][]byte
-	mem map[string]string
-	keys []string
-	values []string
+	mem           map[string]string
+	keys          []string
+	values        []string
 }
 
 func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec pbPlugin.StateBackendSpec) (state.Client, error) {
@@ -42,8 +42,8 @@ func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec pbPlugin.St
 
 	c := &ClientV3{
 		client: pbPlugin.NewPluginClient(conn),
-		mem: make(map[string]string),
-		keys: make([]string, 0),
+		mem:    make(map[string]string),
+		keys:   make([]string, 0),
 		values: make([]string, 0),
 	}
 	name := spec.Name
@@ -51,8 +51,8 @@ func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec pbPlugin.St
 		Name: stateTablePrefix + name,
 		Columns: []schema.Column{
 			{
-				Name: keyColumn,
-				Type: arrow.BinaryTypes.String,
+				Name:       keyColumn,
+				Type:       arrow.BinaryTypes.String,
 				PrimaryKey: true,
 			},
 			{
@@ -74,7 +74,7 @@ func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec pbPlugin.St
 	}
 
 	if _, err := c.client.Migrate(ctx, &pbPlugin.Migrate_Request{
-		Tables: c.encodedTables,
+		Tables:      c.encodedTables,
 		MigrateMode: pbPlugin.MIGRATE_MODE_SAFE,
 	}); err != nil {
 		return nil, err
@@ -116,7 +116,6 @@ func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec pbPlugin.St
 	return c, nil
 }
 
-
 func (c *ClientV3) SetKey(ctx context.Context, key string, value string) error {
 	c.mem[key] = value
 	return nil
@@ -157,7 +156,7 @@ func (c *ClientV3) flush(ctx context.Context) error {
 	return nil
 }
 
-func (c *ClientV3) GetKey(ctx context.Context, key string) (string, error) { 
+func (c *ClientV3) GetKey(ctx context.Context, key string) (string, error) {
 	if val, ok := c.mem[key]; ok {
 		return val, nil
 	}

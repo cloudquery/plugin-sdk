@@ -53,7 +53,7 @@ func (s *Server) Configure(ctx context.Context, req *pbBase.Configure_Request) (
 	case specs.MigrateModeSafe:
 		s.migrateMode = plugin.MigrateModeSafe
 	case specs.MigrateModeForced:
-		s.migrateMode = plugin.MigrateModeForced
+		s.migrateMode = plugin.MigrateModeForce
 	}
 	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, nil)
 }
@@ -84,7 +84,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	case specs.MigrateModeSafe:
 		migrateMode = plugin.MigrateModeSafe
 	case specs.MigrateModeForced:
-		migrateMode = plugin.MigrateModeForced
+		migrateMode = plugin.MigrateModeForce
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "invalid migrate mode: %v", s.spec.MigrateMode)
 	}

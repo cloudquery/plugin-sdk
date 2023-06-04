@@ -47,7 +47,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 	sortRecordsBySyncTime(table, resources)
 
-	resourcesRead, err := p.readAll(ctx, table, sourceName)
+	resourcesRead, err := p.syncAll(ctx, SyncOptions{
+		Tables:     []string{tableName},
+		SyncTime:   syncTime,
+		SourceName: sourceName,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
@@ -71,7 +75,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 	}
 
 	// read from incremental table
-	resourcesRead, err = p.readAll(ctx, incTable, sourceName)
+	resourcesRead, err = p.syncAll(ctx, SyncOptions{
+		Tables:     []string{tableName},
+		SyncTime:   syncTime,
+		SourceName: sourceName,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
@@ -99,7 +107,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		return fmt.Errorf("failed to write all second time: %w", err)
 	}
 
-	resourcesRead, err = p.readAll(ctx, table, sourceName)
+	resourcesRead, err = p.syncAll(ctx, SyncOptions{
+		Tables:     []string{tableName},
+		SyncTime:   secondSyncTime,
+		SourceName: sourceName,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
@@ -116,7 +128,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 		return fmt.Errorf("after overwrite expected first resource to be different. diff: %s", diff)
 	}
 
-	resourcesRead, err = p.readAll(ctx, table, sourceName)
+	resourcesRead, err = p.syncAll(ctx, SyncOptions{
+		Tables:     []string{tableName},
+		SyncTime:   syncTime,
+		SourceName: sourceName,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}
@@ -136,7 +152,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwriteDeleteStale(ctx conte
 
 	// we expect the incremental table to still have 3 resources, because delete-stale should
 	// not apply there
-	resourcesRead, err = p.readAll(ctx, incTable, sourceName)
+	resourcesRead, err = p.syncAll(ctx, SyncOptions{
+		Tables:     []string{incTable.Name},
+		SyncTime:   secondSyncTime,
+		SourceName: sourceName,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to read all from incremental table: %w", err)
 	}

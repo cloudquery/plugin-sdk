@@ -130,7 +130,9 @@ func TestDestination(t *testing.T) {
 	// serversDestination
 	table := serversDestination.TableV2ToV3(tableV2)
 	readCh := make(chan arrow.Record, 1)
-	if err := p.Read(ctx, table, sourceName, readCh); err != nil {
+	if err := p.Sync(ctx, plugin.SyncOptions{
+		Tables: []string{tableName},
+	}, readCh); err != nil {
 		t.Fatal(err)
 	}
 	close(readCh)
