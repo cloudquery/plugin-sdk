@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -12,7 +11,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-func (p *Plugin) managedSync(ctx context.Context, sourceName string, syncTime time.Time, options SyncOptions, res chan<- arrow.Record) error {
+func (p *Plugin) managedSync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error {
 	if len(p.sessionTables) == 0 {
 		return fmt.Errorf("no tables to sync - please check your spec 'tables' and 'skip_tables' settings")
 	}

@@ -56,7 +56,10 @@ func testMigration(ctx context.Context, _ *testing.T, p *Plugin, logger zerolog.
 		stripNullsFromLists(resource2)
 	}
 
-	resourcesRead, err := p.readAll(ctx, target, sourceName)
+	resourcesRead, err := p.syncAll(ctx, SyncOptions{
+		Tables:     []string{target.Name},
+		SourceName: sourceName,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
@@ -93,7 +96,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	testOpts PluginTestSuiteRunnerOptions,
 ) {
 	t.Run("add_column", func(t *testing.T) {
-		if strategy.AddColumn == MigrateModeForced && migrateMode == MigrateModeSafe {
+		if strategy.AddColumn == MigrateModeForce && migrateMode == MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -129,7 +132,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("add_column_not_null", func(t *testing.T) {
-		if strategy.AddColumnNotNull == MigrateModeForced && migrateMode == MigrateModeSafe {
+		if strategy.AddColumnNotNull == MigrateModeForce && migrateMode == MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -163,7 +166,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("remove_column", func(t *testing.T) {
-		if strategy.RemoveColumn == MigrateModeForced && migrateMode == MigrateModeSafe {
+		if strategy.RemoveColumn == MigrateModeForce && migrateMode == MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -196,7 +199,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("remove_column_not_null", func(t *testing.T) {
-		if strategy.RemoveColumnNotNull == MigrateModeForced && migrateMode == MigrateModeSafe {
+		if strategy.RemoveColumnNotNull == MigrateModeForce && migrateMode == MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}
@@ -230,7 +233,7 @@ func (*PluginTestSuite) destinationPluginTestMigrate(
 	})
 
 	t.Run("change_column", func(t *testing.T) {
-		if strategy.ChangeColumn == MigrateModeForced && migrateMode == MigrateModeSafe {
+		if strategy.ChangeColumn == MigrateModeForce && migrateMode == MigrateModeSafe {
 			t.Skip("skipping as migrate mode is safe")
 			return
 		}

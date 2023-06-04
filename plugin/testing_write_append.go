@@ -50,7 +50,11 @@ func (s *PluginTestSuite) destinationPluginTestWriteAppend(ctx context.Context, 
 		}
 	}
 
-	resourcesRead, err := p.readAll(ctx, tables[0], sourceName)
+	resourcesRead, err := p.syncAll(ctx, SyncOptions{
+		Tables:     []string{tableName},
+		SyncTime:   secondSyncTime,
+		SourceName: sourceName,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}

@@ -28,10 +28,10 @@ const MaxMsgSize = 100 * 1024 * 1024 // 100 MiB
 
 type Server struct {
 	pb.UnimplementedPluginServer
-	Plugin *plugin.Plugin
-	Logger zerolog.Logger
+	Plugin    *plugin.Plugin
+	Logger    zerolog.Logger
 	Directory string
-	NoSentry 	bool
+	NoSentry  bool
 }
 
 func (s *Server) GetStaticTables(context.Context, *pb.GetStaticTables_Request) (*pb.GetStaticTables_Response, error) {
@@ -93,7 +93,7 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		syncOptions.Scheduler = plugin.SchedulerRoundRobin
 	}
 
-	sourceName := req.SourceName
+	// sourceName := req.SourceName
 
 	if req.StateBackend != nil {
 		opts := []managedplugin.Option{
@@ -104,9 +104,9 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			opts = append(opts, managedplugin.WithNoSentry())
 		}
 		statePlugin, err := managedplugin.NewClient(ctx, managedplugin.Config{
-			Path: req.StateBackend.Path,
+			Path:     req.StateBackend.Path,
 			Registry: managedplugin.Registry(req.StateBackend.Registry),
-			Version: req.StateBackend.Version,
+			Version:  req.StateBackend.Version,
 		}, opts...)
 		if err != nil {
 			return status.Errorf(codes.Internal, "failed to create state plugin: %v", err)
@@ -117,10 +117,17 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		}
 		syncOptions.StateBackend = stateClient
 	}
+	if req.SyncTime != nil {
+		syncOptions.SyncTime = req.SyncTime.AsTime()
+	}
+
+	if req.SourceName != "" {
+		syncOptions.SourceName = req.SourceName
+	}
 
 	go func() {
 		defer close(records)
-		err := s.Plugin.Sync(ctx, sourceName, req.SyncTime.AsTime(), syncOptions, records)
+		err := s.Plugin.Sync(ctx, syncOptions, records)
 		if err != nil {
 			syncErr = fmt.Errorf("failed to sync records: %w", err)
 		}
@@ -196,7 +203,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	case pb.MIGRATE_MODE_SAFE:
 		migrateMode = plugin.MigrateModeSafe
 	case pb.MIGRATE_MODE_FORCE:
-		migrateMode = plugin.MigrateModeForced
+		migrateMode = plugin.MigrateModeForce
 	}
 	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables, migrateMode)
 }

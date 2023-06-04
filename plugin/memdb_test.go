@@ -12,19 +12,19 @@ import (
 )
 
 var migrateStrategyOverwrite = MigrateStrategy{
-	AddColumn:           pbPlugin.WriteSpec_FORCE,
-	AddColumnNotNull:    pbPlugin.WriteSpec_FORCE,
-	RemoveColumn:        pbPlugin.WriteSpec_FORCE,
-	RemoveColumnNotNull: pbPlugin.WriteSpec_FORCE,
-	ChangeColumn:        pbPlugin.WriteSpec_FORCE,
+	AddColumn:           MigrateModeForce,
+	AddColumnNotNull:    MigrateModeForce,
+	RemoveColumn:        MigrateModeForce,
+	RemoveColumnNotNull: MigrateModeForce,
+	ChangeColumn:        MigrateModeForce,
 }
 
 var migrateStrategyAppend = MigrateStrategy{
-	AddColumn:           pbPlugin.WriteSpec_FORCE,
-	AddColumnNotNull:    pbPlugin.WriteSpec_FORCE,
-	RemoveColumn:        pbPlugin.WriteSpec_FORCE,
-	RemoveColumnNotNull: pbPlugin.WriteSpec_FORCE,
-	ChangeColumn:        pbPlugin.WriteSpec_FORCE,
+	AddColumn:           MigrateModeForce,
+	AddColumnNotNull:    MigrateModeForce,
+	RemoveColumn:        MigrateModeForce,
+	RemoveColumnNotNull: MigrateModeForce,
+	ChangeColumn:        MigrateModeForce,
 }
 
 func TestPluginUnmanagedClient(t *testing.T) {
@@ -33,7 +33,7 @@ func TestPluginUnmanagedClient(t *testing.T) {
 		func() *Plugin {
 			return NewPlugin("test", "development", NewMemDBClient)
 		},
-		pbPlugin.Spec{},
+		nil,
 		PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
@@ -46,7 +46,7 @@ func TestPluginManagedClient(t *testing.T) {
 		func() *Plugin {
 			return NewPlugin("test", "development", NewMemDBClient, WithManagedWriter())
 		},
-		pbPlugin.Spec{},
+		nil,
 		PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
@@ -59,7 +59,7 @@ func TestPluginManagedClientWithSmallBatchSize(t *testing.T) {
 			return NewPlugin("test", "development", NewMemDBClient, WithManagedWriter(),
 				WithDefaultBatchSize(1),
 				WithDefaultBatchSizeBytes(1))
-		}, pbPlugin.Spec{},
+		}, nil,
 		PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
@@ -73,7 +73,7 @@ func TestPluginManagedClientWithLargeBatchSize(t *testing.T) {
 				WithDefaultBatchSize(100000000),
 				WithDefaultBatchSizeBytes(100000000))
 		},
-		pbPlugin.Spec{},
+		nil,
 		PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
@@ -99,7 +99,7 @@ func TestPluginManagedClientWithCQPKs(t *testing.T) {
 func TestPluginOnNewError(t *testing.T) {
 	ctx := context.Background()
 	p := NewPlugin("test", "development", NewMemDBClientErrOnNew)
-	err := p.Init(ctx, pbPlugin.Spec{})
+	err := p.Init(ctx, nil)
 
 	if err == nil {
 		t.Fatal("expected error")
@@ -110,9 +110,7 @@ func TestOnWriteError(t *testing.T) {
 	ctx := context.Background()
 	newClientFunc := GetNewClient(WithErrOnWrite())
 	p := NewPlugin("test", "development", newClientFunc)
-	if err := p.Init(ctx, pbPlugin.Spec{
-		WriteSpec: &pbPlugin.WriteSpec{},
-	}); err != nil {
+	if err := p.Init(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
 	table := schema.TestTable("test", schema.TestSourceOptions{})

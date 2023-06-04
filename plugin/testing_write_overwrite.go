@@ -43,7 +43,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(resources)
 	}
-	resourcesRead, err := p.readAll(ctx, table, sourceName)
+	resourcesRead, err := p.syncAll(ctx, SyncOptions{
+		Tables:     []string{tableName},
+		SyncTime:   syncTime,
+		SourceName: sourceName,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to read all: %w", err)
 	}
@@ -85,7 +89,11 @@ func (*PluginTestSuite) destinationPluginTestWriteOverwrite(ctx context.Context,
 	if testOpts.IgnoreNullsInLists {
 		stripNullsFromLists(updatedResource)
 	}
-	resourcesRead, err = p.readAll(ctx, table, sourceName)
+	resourcesRead, err = p.syncAll(ctx, SyncOptions{
+		Tables:     []string{tableName},
+		SyncTime:   secondSyncTime,
+		SourceName: sourceName,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to read all second time: %w", err)
 	}

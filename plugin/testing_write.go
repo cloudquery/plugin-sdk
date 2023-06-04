@@ -227,7 +227,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		if suite.tests.SkipMigrateOverwriteForce {
 			t.Skip("skipping " + t.Name())
 		}
-		migrateMode := MigrateModeForced
+		migrateMode := MigrateModeForce
 		writeMode := WriteModeOverwrite
 		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, migrateMode, writeMode, tests.MigrateStrategyOverwrite, opts)
 	})
@@ -263,7 +263,7 @@ func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, test
 		if suite.tests.SkipMigrateAppendForce {
 			t.Skip("skipping " + t.Name())
 		}
-		migrateMode := MigrateModeForced
+		migrateMode := MigrateModeForce
 		writeMode := WriteModeAppend
 		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, migrateMode, writeMode, tests.MigrateStrategyAppend, opts)
 	})

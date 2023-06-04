@@ -30,7 +30,9 @@ func TestPluginUnmanagedSync(t *testing.T) {
 	if err := p.writeAll(ctx, sourceName, syncTime, WriteModeOverwrite, testRecords); err != nil {
 		t.Fatal(err)
 	}
-	gotRecords, err := p.readAll(ctx, testTable, "test")
+	gotRecords, err := p.syncAll(ctx, SyncOptions{
+		Tables: []string{testTable.Name},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +42,9 @@ func TestPluginUnmanagedSync(t *testing.T) {
 	if !array.RecordEqual(testRecords[0], gotRecords[0]) {
 		t.Fatal("records are not equal")
 	}
-	records, err := p.syncAll(ctx, sourceName, syncTime, SyncOptions{})
+	records, err := p.syncAll(ctx, SyncOptions{
+		Tables: []string{testTable.Name},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +60,9 @@ func TestPluginUnmanagedSync(t *testing.T) {
 	if err := p.DeleteStale(ctx, schema.Tables{testTable}, "test", newSyncTime); err != nil {
 		t.Fatal(err)
 	}
-	records, err = p.syncAll(ctx, sourceName, syncTime, SyncOptions{})
+	records, err = p.syncAll(ctx, SyncOptions{
+		Tables: []string{testTable.Name},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
