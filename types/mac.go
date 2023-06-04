@@ -20,10 +20,6 @@ func NewMACBuilder(builder *array.ExtensionBuilder) *MACBuilder {
 	return &MACBuilder{ExtensionBuilder: builder}
 }
 
-func (b *MACBuilder) AppendEmptyValue() {
-	b.Append(make(net.HardwareAddr, 6))
-}
-
 func (b *MACBuilder) Append(v net.HardwareAddr) {
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append(v[:])
 }
@@ -147,7 +143,12 @@ func (a *MACArray) Value(i int) net.HardwareAddr {
 	if a.IsNull(i) {
 		return nil
 	}
-	return net.HardwareAddr(a.Storage().(*array.Binary).Value(i))
+	b := a.Storage().(*array.Binary).Value(i)
+	if len(b) == 0 {
+		return make(net.HardwareAddr, 6)
+	}
+
+	return net.HardwareAddr(b)
 }
 
 func (a *MACArray) ValueStr(i int) string {

@@ -20,11 +20,6 @@ func NewInetBuilder(builder *array.ExtensionBuilder) *InetBuilder {
 	return &InetBuilder{ExtensionBuilder: builder}
 }
 
-func (b *InetBuilder) AppendEmptyValue() {
-	const zeroIPNet = "0.0.0.0/0"
-	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append([]byte(zeroIPNet))
-}
-
 func (b *InetBuilder) Append(v *net.IPNet) {
 	if v == nil {
 		b.AppendNull()
@@ -153,6 +148,13 @@ func (a *InetArray) String() string {
 func (a *InetArray) Value(i int) *net.IPNet {
 	if a.IsNull(i) {
 		return nil
+	}
+	cidr := string(a.Storage().(*array.Binary).Value(i))
+	if len(cidr) == 0 {
+		return &net.IPNet{
+			IP:   net.IPv4zero,
+			Mask: make(net.IPMask, 4),
+		}
 	}
 	_, ipnet, err := net.ParseCIDR(string(a.Storage().(*array.Binary).Value(i)))
 	if err != nil {
