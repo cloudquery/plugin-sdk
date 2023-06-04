@@ -25,10 +25,6 @@ func (b *InetBuilder) Append(v *net.IPNet) {
 		b.AppendNull()
 		return
 	}
-	if len(v.IP) == 0 && len(v.Mask) == 0 {
-		b.AppendEmptyValue()
-		return
-	}
 	b.ExtensionBuilder.Builder.(*array.BinaryBuilder).Append([]byte(v.String()))
 }
 
