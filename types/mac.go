@@ -145,7 +145,8 @@ func (a *MACArray) Value(i int) net.HardwareAddr {
 	}
 	b := a.Storage().(*array.Binary).Value(i)
 	if len(b) == 0 {
-		return make(net.HardwareAddr, 6)
+		const minMACLen = 6
+		return make(net.HardwareAddr, minMACLen)
 	}
 
 	return net.HardwareAddr(b)
