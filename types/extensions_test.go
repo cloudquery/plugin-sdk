@@ -100,3 +100,46 @@ func TestValueStrRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+func TestStorageArrayConv(t *testing.T) {
+	const amount = 100
+	cases := []arrow.ExtensionType{ExtensionTypes.UUID, ExtensionTypes.MAC, ExtensionTypes.JSON, ExtensionTypes.Inet}
+	for _, dt := range cases {
+		t.Run(dt.String(), func(t *testing.T) {
+			storageBuilder := array.NewBuilder(memory.DefaultAllocator, dt.StorageType())
+			defer storageBuilder.Release()
+			builder := array.NewBuilder(memory.DefaultAllocator, dt)
+			defer builder.Release()
+
+			for i := 0; i < amount; i++ {
+				if i%2 == 0 {
+					storageBuilder.AppendNull()
+					builder.AppendNull()
+					continue
+				}
+				storageBuilder.AppendEmptyValue()
+				builder.AppendEmptyValue()
+			}
+
+			storage := storageBuilder.NewArray()
+			defer storage.Release()
+			arr := builder.NewArray().(array.ExtensionArray)
+			defer arr.Release()
+
+			// check matching
+			assert.True(t, array.Equal(storage, arr.Storage()))
+
+			// check that creating extension from storage matches
+			fromStorage := array.NewExtensionArrayWithStorage(dt, storage)
+			defer fromStorage.Release()
+
+			assert.True(t, array.Equal(arr, fromStorage))
+
+			// assert that no issues are in the fromStorage array
+			for i := 0; i < fromStorage.Len(); i++ {
+				assert.NotPanics(t, func() { fromStorage.ValueStr(i) })
+				assert.Equal(t, arr.ValueStr(i), fromStorage.ValueStr(i))
+			}
+		})
+	}
+}
