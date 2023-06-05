@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.3](https://github.com/cloudquery/plugin-sdk/compare/v3.10.2...v3.10.3) (2023-06-05)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 20b0de9 ([#947](https://github.com/cloudquery/plugin-sdk/issues/947)) ([32a0c05](https://github.com/cloudquery/plugin-sdk/commit/32a0c053deae5dad2ffc5a6c61932d573cf2b5a6))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 6d34568 ([#944](https://github.com/cloudquery/plugin-sdk/issues/944)) ([f92fd66](https://github.com/cloudquery/plugin-sdk/commit/f92fd66282f258888787aa0924263052fb6315d3))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to c655015 ([#946](https://github.com/cloudquery/plugin-sdk/issues/946)) ([4b6e3a3](https://github.com/cloudquery/plugin-sdk/commit/4b6e3a33bad11fb97422887c7f0c0e50f9e00e41))
+* **types:** Extensions conversion with storage ([#948](https://github.com/cloudquery/plugin-sdk/issues/948)) ([1132c02](https://github.com/cloudquery/plugin-sdk/commit/1132c0227cc8db45d3eefa147aebbe9e32941ec4))
+
 ## [3.10.2](https://github.com/cloudquery/plugin-sdk/compare/v3.10.1...v3.10.2) (2023-06-02)
 
 
