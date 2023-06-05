@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -83,7 +84,10 @@ func (p *Plugin) GeneratePluginDocs(dir string, format pbPlugin.GenDocs_FORMAT) 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
-	tables := p.staticTables
+	tables, err := p.Tables(context.Background())
+	if err != nil {
+		return err
+	}
 	setDestinationManagedCqColumns(tables)
 
 	sortedTables := make(schema.Tables, 0, len(tables))

@@ -39,14 +39,6 @@ func (s *Scheduler) syncRoundRobin(ctx context.Context, resolvedResources chan<-
 		s.metrics.initWithClients(table, clients)
 	}
 
-	// We start a goroutine that logs the metrics periodically.
-	// It needs its own waitgroup
-	// var logWg sync.WaitGroup
-	// logWg.Add(1)
-
-	// logCtx, logCancel := context.WithCancel(ctx)
-	// go p.periodicMetricLogger(logCtx, &logWg)
-
 	tableClients := roundRobinInterleave(s.tables, preInitialisedClients)
 
 	var wg sync.WaitGroup
@@ -56,9 +48,6 @@ func (s *Scheduler) syncRoundRobin(ctx context.Context, resolvedResources chan<-
 		if err := s.tableSems[0].Acquire(ctx, 1); err != nil {
 			// This means context was cancelled
 			wg.Wait()
-			// gracefully shut down the logger goroutine
-			// logCancel()
-			// logWg.Wait()
 			return
 		}
 		wg.Add(1)
@@ -75,10 +64,6 @@ func (s *Scheduler) syncRoundRobin(ctx context.Context, resolvedResources chan<-
 
 	// Wait for all the worker goroutines to finish
 	wg.Wait()
-
-	// gracefully shut down the logger goroutine
-	// logCancel()
-	// logWg.Wait()
 }
 
 // interleave table-clients so that we get:

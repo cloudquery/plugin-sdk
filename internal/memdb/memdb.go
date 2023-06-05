@@ -1,4 +1,4 @@
-package plugin
+package memdb
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
@@ -35,7 +36,7 @@ func WithBlockingWrite() MemDBOption {
 	}
 }
 
-func GetNewClient(options ...MemDBOption) NewClientFunc {
+func GetNewClient(options ...MemDBOption) plugin.NewClientFunc {
 	c := &client{
 		memoryDB:     make(map[string][]arrow.Record),
 		memoryDBLock: sync.RWMutex{},
@@ -43,19 +44,19 @@ func GetNewClient(options ...MemDBOption) NewClientFunc {
 	for _, opt := range options {
 		opt(c)
 	}
-	return func(context.Context, zerolog.Logger, any) (Client, error) {
+	return func(context.Context, zerolog.Logger, any) (plugin.Client, error) {
 		return c, nil
 	}
 }
 
-func NewMemDBClient(_ context.Context, _ zerolog.Logger, spec any) (Client, error) {
+func NewMemDBClient(_ context.Context, _ zerolog.Logger, spec any) (plugin.Client, error) {
 	return &client{
 		memoryDB: make(map[string][]arrow.Record),
 		tables:   make(map[string]*schema.Table),
 	}, nil
 }
 
-func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte) (Client, error) {
+func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte) (plugin.Client, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
@@ -84,11 +85,7 @@ func (c *client) ID() string {
 	return "testDestinationMemDB"
 }
 
-func (c *client) NewManagedSyncClient(context.Context, SyncOptions) (ManagedSyncClient, error) {
-	return nil, fmt.Errorf("not supported")
-}
-
-func (c *client) Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error {
+func (c *client) Sync(ctx context.Context, options plugin.SyncOptions, res chan<- arrow.Record) error {
 	c.memoryDBLock.RLock()
 	for tableName := range c.memoryDB {
 		for _, row := range c.memoryDB[tableName] {
@@ -99,7 +96,15 @@ func (c *client) Sync(ctx context.Context, options SyncOptions, res chan<- arrow
 	return nil
 }
 
-func (c *client) Migrate(_ context.Context, tables schema.Tables, migrateMode MigrateMode) error {
+func (c *client) Tables(ctx context.Context) (schema.Tables, error) {
+	tables := make(schema.Tables, 0, len(c.tables))
+	for _, table := range c.tables {
+		tables = append(tables, table)
+	}
+	return tables, nil
+}
+
+func (c *client) Migrate(_ context.Context, tables schema.Tables, options plugin.MigrateOptions) error {
 	for _, table := range tables {
 		tableName := table.Name
 		memTable := c.memoryDB[tableName]
@@ -120,32 +125,7 @@ func (c *client) Migrate(_ context.Context, tables schema.Tables, migrateMode Mi
 	return nil
 }
 
-func (c *client) Read(_ context.Context, table *schema.Table, source string, res chan<- arrow.Record) error {
-	tableName := table.Name
-	if c.memoryDB[tableName] == nil {
-		return nil
-	}
-	sourceColIndex := table.Columns.Index(schema.CqSourceNameColumn.Name)
-	if sourceColIndex == -1 {
-		return fmt.Errorf("table %s doesn't have source column", tableName)
-	}
-	var sortedRes []arrow.Record
-	c.memoryDBLock.RLock()
-	for _, row := range c.memoryDB[tableName] {
-		arr := row.Column(sourceColIndex)
-		if arr.(*array.String).Value(0) == source {
-			sortedRes = append(sortedRes, row)
-		}
-	}
-	c.memoryDBLock.RUnlock()
-
-	for _, row := range sortedRes {
-		res <- row
-	}
-	return nil
-}
-
-func (c *client) Write(ctx context.Context, _ schema.Tables, writeMode WriteMode, resources <-chan arrow.Record) error {
+func (c *client) Write(ctx context.Context, options plugin.WriteOptions, resources <-chan arrow.Record) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -165,7 +145,7 @@ func (c *client) Write(ctx context.Context, _ schema.Tables, writeMode WriteMode
 			return fmt.Errorf("table name not found in schema metadata")
 		}
 		table := c.tables[tableName]
-		if writeMode == WriteModeAppend {
+		if options.WriteMode == plugin.WriteModeAppend {
 			c.memoryDB[tableName] = append(c.memoryDB[tableName], resource)
 		} else {
 			c.overwrite(table, resource)
@@ -175,33 +155,6 @@ func (c *client) Write(ctx context.Context, _ schema.Tables, writeMode WriteMode
 	return nil
 }
 
-func (c *client) WriteTableBatch(ctx context.Context, table *schema.Table, writeMode WriteMode, resources []arrow.Record) error {
-	if c.errOnWrite {
-		return fmt.Errorf("errOnWrite")
-	}
-	if c.blockingWrite {
-		<-ctx.Done()
-		if c.errOnWrite {
-			return fmt.Errorf("errOnWrite")
-		}
-		return nil
-	}
-	tableName := table.Name
-	for _, resource := range resources {
-		c.memoryDBLock.Lock()
-		if writeMode == WriteModeAppend {
-			c.memoryDB[tableName] = append(c.memoryDB[tableName], resource)
-		} else {
-			c.overwrite(table, resource)
-		}
-		c.memoryDBLock.Unlock()
-	}
-	return nil
-}
-
-func (*client) Metrics() Metrics {
-	return Metrics{}
-}
 
 func (c *client) Close(context.Context) error {
 	c.memoryDB = nil

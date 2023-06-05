@@ -11,7 +11,7 @@ import (
 
 func TestPluginUnmanagedSync(t *testing.T) {
 	ctx := context.Background()
-	p := NewPlugin("test", "v0.0.0", NewMemDBClient, WithUnmanagedSync())
+	p := NewPlugin("test", "v0.0.0", NewMemDBClient)
 	testTable := schema.TestTable("test_table", schema.TestSourceOptions{})
 	syncTime := time.Now().UTC()
 	sourceName := "test"
@@ -74,30 +74,3 @@ func TestPluginUnmanagedSync(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-
-// func TestPluginInit(t *testing.T) {
-// 	const (
-// 		batchSize      = uint64(100)
-// 		batchSizeBytes = uint64(1000)
-// 	)
-
-// 	var (
-// 		batchSizeObserved      uint64
-// 		batchSizeBytesObserved uint64
-// 	)
-// 	p := NewPlugin(
-// 		"test",
-// 		"development",
-// 		func(ctx context.Context, logger zerolog.Logger, s any) (Client, error) {
-// 			batchSizeObserved = s.WriteSpec.BatchSize
-// 			batchSizeBytesObserved = s.WriteSpec.BatchSizeBytes
-// 			return NewMemDBClient(ctx, logger, s)
-// 		},
-// 		WithDefaultBatchSize(int(batchSize)),
-// 		WithDefaultBatchSizeBytes(int(batchSizeBytes)),
-// 	)
-// 	require.NoError(t, p.Init(context.TODO(), nil))
-
-// 	require.Equal(t, batchSize, batchSizeObserved)
-// 	require.Equal(t, batchSizeBytes, batchSizeBytesObserved)
-// }

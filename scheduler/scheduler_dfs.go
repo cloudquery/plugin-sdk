@@ -55,14 +55,6 @@ func (s *Scheduler) syncDfs(ctx context.Context, resolvedResources chan<- *schem
 		s.metrics.initWithClients(table, clients)
 	}
 
-	// We start a goroutine that logs the metrics periodically.
-	// It needs its own waitgroup
-	// var logWg sync.WaitGroup
-	// logWg.Add(1)
-
-	// logCtx, logCancel := context.WithCancel(ctx)
-	// go s.periodicMetricLogger(logCtx, &logWg)
-
 	var wg sync.WaitGroup
 	for i, table := range s.tables {
 		table := table
@@ -72,9 +64,6 @@ func (s *Scheduler) syncDfs(ctx context.Context, resolvedResources chan<- *schem
 			if err := s.tableSems[0].Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				wg.Wait()
-				// gracefully shut down the logger goroutine
-				// logCancel()
-				// logWg.Wait()
 				return
 			}
 			wg.Add(1)
@@ -90,10 +79,6 @@ func (s *Scheduler) syncDfs(ctx context.Context, resolvedResources chan<- *schem
 
 	// Wait for all the worker goroutines to finish
 	wg.Wait()
-
-	// gracefully shut down the logger goroutine
-	// logCancel()
-	// logWg.Wait()
 }
 
 func (s *Scheduler) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
@@ -140,7 +125,7 @@ func (s *Scheduler) resolveTableDfs(ctx context.Context, table *schema.Table, cl
 	// we don't need any waitgroups here because we are waiting for the channel to close
 	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
 		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("table sync finished")
-		// s.logTablesMetrics(table.Relations, client)
+		s.logTablesMetrics(table.Relations, client)
 	}
 }
 

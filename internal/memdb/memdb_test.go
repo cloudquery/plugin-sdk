@@ -1,4 +1,4 @@
-package plugin
+package memdb
 
 import (
 	"context"
@@ -7,90 +7,52 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/google/uuid"
 )
 
-var migrateStrategyOverwrite = MigrateStrategy{
-	AddColumn:           MigrateModeForce,
-	AddColumnNotNull:    MigrateModeForce,
-	RemoveColumn:        MigrateModeForce,
-	RemoveColumnNotNull: MigrateModeForce,
-	ChangeColumn:        MigrateModeForce,
+var migrateStrategyOverwrite = plugin.MigrateStrategy{
+	AddColumn:           plugin.MigrateModeForce,
+	AddColumnNotNull:    plugin.MigrateModeForce,
+	RemoveColumn:        plugin.MigrateModeForce,
+	RemoveColumnNotNull: plugin.MigrateModeForce,
+	ChangeColumn:        plugin.MigrateModeForce,
 }
 
-var migrateStrategyAppend = MigrateStrategy{
-	AddColumn:           MigrateModeForce,
-	AddColumnNotNull:    MigrateModeForce,
-	RemoveColumn:        MigrateModeForce,
-	RemoveColumnNotNull: MigrateModeForce,
-	ChangeColumn:        MigrateModeForce,
+var migrateStrategyAppend = plugin.MigrateStrategy{
+	AddColumn:           plugin.MigrateModeForce,
+	AddColumnNotNull:    plugin.MigrateModeForce,
+	RemoveColumn:        plugin.MigrateModeForce,
+	RemoveColumnNotNull: plugin.MigrateModeForce,
+	ChangeColumn:        plugin.MigrateModeForce,
 }
 
 func TestPluginUnmanagedClient(t *testing.T) {
-	PluginTestSuiteRunner(
+	plugin.PluginTestSuiteRunner(
 		t,
-		func() *Plugin {
-			return NewPlugin("test", "development", NewMemDBClient)
+		func() *plugin.Plugin {
+			return plugin.NewPlugin("test", "development", NewMemDBClient)
 		},
 		nil,
-		PluginTestSuiteTests{
+		plugin.PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
 		},
 	)
 }
 
-func TestPluginManagedClient(t *testing.T) {
-	PluginTestSuiteRunner(t,
-		func() *Plugin {
-			return NewPlugin("test", "development", NewMemDBClient, WithManagedWriter())
-		},
-		nil,
-		PluginTestSuiteTests{
-			MigrateStrategyOverwrite: migrateStrategyOverwrite,
-			MigrateStrategyAppend:    migrateStrategyAppend,
-		})
-}
-
-func TestPluginManagedClientWithSmallBatchSize(t *testing.T) {
-	PluginTestSuiteRunner(t,
-		func() *Plugin {
-			return NewPlugin("test", "development", NewMemDBClient, WithManagedWriter(),
-				WithDefaultBatchSize(1),
-				WithDefaultBatchSizeBytes(1))
-		}, nil,
-		PluginTestSuiteTests{
-			MigrateStrategyOverwrite: migrateStrategyOverwrite,
-			MigrateStrategyAppend:    migrateStrategyAppend,
-		})
-}
-
-func TestPluginManagedClientWithLargeBatchSize(t *testing.T) {
-	PluginTestSuiteRunner(t,
-		func() *Plugin {
-			return NewPlugin("test", "development", NewMemDBClient, WithManagedWriter(),
-				WithDefaultBatchSize(100000000),
-				WithDefaultBatchSizeBytes(100000000))
-		},
-		nil,
-		PluginTestSuiteTests{
-			MigrateStrategyOverwrite: migrateStrategyOverwrite,
-			MigrateStrategyAppend:    migrateStrategyAppend,
-		})
-}
-
 func TestPluginManagedClientWithCQPKs(t *testing.T) {
-	PluginTestSuiteRunner(t,
-		func() *Plugin {
-			return NewPlugin("test", "development", NewMemDBClient)
+	plugin.PluginTestSuiteRunner(t,
+		func() *plugin.Plugin {
+			return plugin.NewPlugin("test", "development", NewMemDBClient)
 		},
 		pbPlugin.Spec{
 			WriteSpec: &pbPlugin.WriteSpec{
 				PkMode: pbPlugin.WriteSpec_CQ_ID_ONLY,
 			},
 		},
-		PluginTestSuiteTests{
+		plugin.PluginTestSuiteTests{
 			MigrateStrategyOverwrite: migrateStrategyOverwrite,
 			MigrateStrategyAppend:    migrateStrategyAppend,
 		})
@@ -98,7 +60,7 @@ func TestPluginManagedClientWithCQPKs(t *testing.T) {
 
 func TestPluginOnNewError(t *testing.T) {
 	ctx := context.Background()
-	p := NewPlugin("test", "development", NewMemDBClientErrOnNew)
+	p := plugin.NewPlugin("test", "development", NewMemDBClientErrOnNew)
 	err := p.Init(ctx, nil)
 
 	if err == nil {
@@ -109,7 +71,7 @@ func TestPluginOnNewError(t *testing.T) {
 func TestOnWriteError(t *testing.T) {
 	ctx := context.Background()
 	newClientFunc := GetNewClient(WithErrOnWrite())
-	p := NewPlugin("test", "development", newClientFunc)
+	p := plugin.NewPlugin("test", "development", newClientFunc)
 	if err := p.Init(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +106,7 @@ func TestOnWriteError(t *testing.T) {
 func TestOnWriteCtxCancelled(t *testing.T) {
 	ctx := context.Background()
 	newClientFunc := GetNewClient(WithBlockingWrite())
-	p := NewPlugin("test", "development", newClientFunc)
+	p := plugin.NewPlugin("test", "development", newClientFunc)
 	if err := p.Init(ctx, pbPlugin.Spec{
 		WriteSpec: &pbPlugin.WriteSpec{},
 	}); err != nil {
