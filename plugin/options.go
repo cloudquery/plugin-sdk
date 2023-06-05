@@ -1,10 +1,7 @@
 package plugin
 
 import (
-	"bytes"
-	"context"
 	"fmt"
-	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
@@ -65,46 +62,8 @@ func (m WriteMode) String() string {
 	return writeModeStrings[m]
 }
 
-type Scheduler int
-
-const (
-	SchedulerDFS Scheduler = iota
-	SchedulerRoundRobin
-)
-
-var AllSchedulers = Schedulers{SchedulerDFS, SchedulerRoundRobin}
-var AllSchedulerNames = [...]string{
-	SchedulerDFS:        "dfs",
-	SchedulerRoundRobin: "round-robin",
-}
-
-type Schedulers []Scheduler
-
-func (s Schedulers) String() string {
-	var buffer bytes.Buffer
-	for i, scheduler := range s {
-		if i > 0 {
-			buffer.WriteString(", ")
-		}
-		buffer.WriteString(scheduler.String())
-	}
-	return buffer.String()
-}
-
-func (s Scheduler) String() string {
-	return AllSchedulerNames[s]
-}
-
-type GetTables func(ctx context.Context, c Client) (schema.Tables, error)
-
 type Option func(*Plugin)
 
-// WithDynamicTable allows the plugin to return list of tables after call to New
-func WithDynamicTable(getDynamicTables GetTables) Option {
-	return func(p *Plugin) {
-		p.getDynamicTables = getDynamicTables
-	}
-}
 
 // WithNoInternalColumns won't add internal columns (_cq_id, _cq_parent_cq_id) to the plugin tables
 func WithNoInternalColumns() Option {
@@ -118,35 +77,5 @@ func WithNoInternalColumns() Option {
 func WithTitleTransformer(t func(*schema.Table) string) Option {
 	return func(p *Plugin) {
 		p.titleTransformer = t
-	}
-}
-
-func WithStaticTables(tables schema.Tables) Option {
-	return func(p *Plugin) {
-		p.staticTables = tables
-	}
-}
-
-func WithManagedWriter() Option {
-	return func(p *Plugin) {
-		p.managedWriter = true
-	}
-}
-
-func WithBatchTimeout(seconds int) Option {
-	return func(p *Plugin) {
-		p.batchTimeout = time.Duration(seconds) * time.Second
-	}
-}
-
-func WithDefaultBatchSize(defaultBatchSize int) Option {
-	return func(p *Plugin) {
-		p.defaultBatchSize = defaultBatchSize
-	}
-}
-
-func WithDefaultBatchSizeBytes(defaultBatchSizeBytes int) Option {
-	return func(p *Plugin) {
-		p.defaultBatchSizeBytes = defaultBatchSizeBytes
 	}
 }

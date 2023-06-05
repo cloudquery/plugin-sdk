@@ -134,14 +134,14 @@ func (s *Scheduler) Sync(ctx context.Context, res chan<- arrow.Record) error {
 	return nil
 }
 
-// func (p *Scheduler) logTablesMetrics(tables schema.Tables, client schema.ClientMeta) {
-// 	clientName := client.ID()
-// 	for _, table := range tables {
-// 		metrics := p.metrics.TableClient[table.Name][clientName]
-// 		p.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Uint64("errors", metrics.Errors).Msg("table sync finished")
-// 		p.logTablesMetrics(table.Relations, client)
-// 	}
-// }
+func (p *Scheduler) logTablesMetrics(tables schema.Tables, client schema.ClientMeta) {
+	clientName := client.ID()
+	for _, table := range tables {
+		metrics := p.metrics.TableClient[table.Name][clientName]
+		p.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Uint64("errors", metrics.Errors).Msg("table sync finished")
+		p.logTablesMetrics(table.Relations, client)
+	}
+}
 
 func (p *Scheduler) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item any) *schema.Resource {
 	var validationErr *schema.ValidationError
@@ -244,26 +244,6 @@ func (p *Scheduler) resolveColumn(ctx context.Context, logger zerolog.Logger, ta
 		}
 	}
 }
-
-// func (p *Scheduler) periodicMetricLogger(ctx context.Context, wg *sync.WaitGroup) {
-// 	defer wg.Done()
-
-// 	ticker := time.NewTicker(periodicMetricLoggerInterval)
-// 	defer ticker.Stop()
-
-// 	for {
-// 		select {
-// 		case <-ctx.Done():
-// 			return
-// 		case <-ticker.C:
-// 			p.logger.Info().
-// 				Uint64("total_resources", p.metrics.TotalResourcesAtomic()).
-// 				Uint64("total_errors", p.metrics.TotalErrorsAtomic()).
-// 				Uint64("total_panics", p.metrics.TotalPanicsAtomic()).
-// 				Msg("Sync in progress")
-// 		}
-// 	}
-// }
 
 // unparam's suggestion to remove the second parameter is not good advice here.
 // nolint:unparam

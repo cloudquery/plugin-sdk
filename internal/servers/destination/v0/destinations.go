@@ -3,7 +3,6 @@ package destination
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -212,13 +211,13 @@ func SetDestinationManagedCqColumns(tables []*schema.Table) {
 }
 
 func (s *Server) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) (*pb.GetDestinationMetrics_Response, error) {
-	stats := s.Plugin.Metrics()
-	b, err := json.Marshal(stats)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal stats: %w", err)
-	}
+	// stats := s.Plugin.Metrics()
+	// b, err := json.Marshal(stats)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to marshal stats: %w", err)
+	// }
 	return &pb.GetDestinationMetrics_Response{
-		Metrics: b,
+		// Metrics: b,
 	}, nil
 }
 
