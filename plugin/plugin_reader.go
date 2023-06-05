@@ -25,7 +25,6 @@ type SyncOptions struct {
 }
 
 type ReadOnlyClient interface {
-	NewManagedSyncClient(ctx context.Context, options SyncOptions) (ManagedSyncClient, error)
 	Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error
 	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error
 	Close(ctx context.Context) error
@@ -89,14 +88,8 @@ func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- arrow
 	p.syncTime = options.SyncTime
 	startTime := time.Now()
 
-	if p.unmanagedSync {
-		if err := p.client.Sync(ctx, options, res); err != nil {
-			return fmt.Errorf("failed to sync unmanaged client: %w", err)
-		}
-	} else {
-		if err := p.managedSync(ctx, options, res); err != nil {
-			return fmt.Errorf("failed to sync managed client: %w", err)
-		}
+	if err := p.client.Sync(ctx, options, res); err != nil {
+		return fmt.Errorf("failed to sync unmanaged client: %w", err)
 	}
 
 	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
