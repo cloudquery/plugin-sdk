@@ -69,7 +69,7 @@ type Plugin struct {
 	// useful for sources such as PostgreSQL and other databases
 	internalColumns bool
 	// titleTransformer allows the plugin to control how table names get turned into titles for generated documentation
-	titleTransformer  func(*schema.Table) string
+	titleTransformer func(*schema.Table) string
 }
 
 const (
