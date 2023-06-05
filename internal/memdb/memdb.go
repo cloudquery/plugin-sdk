@@ -155,7 +155,6 @@ func (c *client) Write(ctx context.Context, options plugin.WriteOptions, resourc
 	return nil
 }
 
-
 func (c *client) Close(context.Context) error {
 	c.memoryDB = nil
 	return nil

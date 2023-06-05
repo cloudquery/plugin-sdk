@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
@@ -43,7 +41,6 @@ func (s *Server) GetTables(context.Context, *pb.GetTables_Request) (*pb.GetTable
 		Tables: encoded,
 	}, nil
 }
-
 
 func (s *Server) GetName(context.Context, *pb.GetName_Request) (*pb.GetName_Response, error) {
 	return &pb.GetName_Response{
@@ -246,40 +243,6 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 			return status.Errorf(codes.InvalidArgument, "failed to read resource: %v", err)
 		}
 	}
-}
-
-func (s *Server) GenDocs(req *pb.GenDocs_Request, srv pb.Plugin_GenDocsServer) error {
-	tmpDir, err := os.MkdirTemp("", "cloudquery-docs")
-	if err != nil {
-		return fmt.Errorf("failed to create tmp dir: %w", err)
-	}
-	defer os.RemoveAll(tmpDir)
-	err = s.Plugin.GeneratePluginDocs(tmpDir, req.Format)
-	if err != nil {
-		return fmt.Errorf("failed to generate docs: %w", err)
-	}
-
-	// list files in tmpDir
-	files, err := os.ReadDir(tmpDir)
-	if err != nil {
-		return fmt.Errorf("failed to read tmp dir: %w", err)
-	}
-	for _, f := range files {
-		if f.IsDir() {
-			continue
-		}
-		content, err := os.ReadFile(filepath.Join(tmpDir, f.Name()))
-		if err != nil {
-			return fmt.Errorf("failed to read file: %w", err)
-		}
-		if err := srv.Send(&pb.GenDocs_Response{
-			Filename: f.Name(),
-			Content:  content,
-		}); err != nil {
-			return fmt.Errorf("failed to send file: %w", err)
-		}
-	}
-	return nil
 }
 
 func checkMessageSize(msg proto.Message, record arrow.Record) error {
