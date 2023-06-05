@@ -3,7 +3,6 @@ package plugin
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -161,29 +160,6 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	}
 
 	return syncErr
-}
-
-func (s *Server) GetMetrics(context.Context, *pb.GetMetrics_Request) (*pb.GetMetrics_Response, error) {
-	// Aggregate metrics before sending to keep response size small.
-	// Temporary fix for https://github.com/cloudquery/cloudquery/issues/3962
-	m := s.Plugin.Metrics()
-	agg := &plugin.TableClientMetrics{}
-	for _, table := range m.TableClient {
-		for _, tableClient := range table {
-			agg.Resources += tableClient.Resources
-			agg.Errors += tableClient.Errors
-			agg.Panics += tableClient.Panics
-		}
-	}
-	b, err := json.Marshal(&plugin.Metrics{
-		TableClient: map[string]map[string]*plugin.TableClientMetrics{"": {"": agg}},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal source metrics: %w", err)
-	}
-	return &pb.GetMetrics_Response{
-		Metrics: b,
-	}, nil
 }
 
 func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migrate_Response, error) {

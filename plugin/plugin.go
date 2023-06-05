@@ -26,13 +26,11 @@ type ManagedSyncClient interface {
 }
 
 type Client interface {
-	NewManagedSyncClient(ctx context.Context, options SyncOptions) (ManagedSyncClient, error)
 	Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error
 	Migrate(ctx context.Context, tables schema.Tables, migrateMode MigrateMode) error
 	WriteTableBatch(ctx context.Context, table *schema.Table, writeMode WriteMode, data []arrow.Record) error
 	Write(ctx context.Context, tables schema.Tables, writeMode WriteMode, res <-chan arrow.Record) error
 	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
-	// Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error
 	Close(ctx context.Context) error
 }
 
