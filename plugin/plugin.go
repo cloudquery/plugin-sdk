@@ -7,10 +7,8 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
-	"golang.org/x/sync/semaphore"
 )
 
 type NewClientFunc func(context.Context, zerolog.Logger, any) (Client, error)
@@ -59,14 +57,8 @@ type Plugin struct {
 	newClient NewClientFunc
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
 	logger zerolog.Logger
-	// resourceSem is a semaphore that limits the number of concurrent resources being fetched
-	resourceSem *semaphore.Weighted
-	// tableSem is a semaphore that limits the number of concurrent tables being fetched
-	tableSems []*semaphore.Weighted
 	// maxDepth is the max depth of tables
 	maxDepth uint64
-	// caser
-	caser *caser.Caser
 	// mu is a mutex that limits the number of concurrent init/syncs (can only be one at a time)
 	mu sync.Mutex
 	// client is the initialized session client
@@ -78,9 +70,6 @@ type Plugin struct {
 	internalColumns bool
 	// titleTransformer allows the plugin to control how table names get turned into titles for generated documentation
 	titleTransformer  func(*schema.Table) string
-	syncTime          time.Time
-	sourceName        string
-	deterministicCQId bool
 }
 
 const (
@@ -108,7 +97,6 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 		name:             name,
 		version:          version,
 		internalColumns:  true,
-		caser:            caser.New(),
 		titleTransformer: DefaultTitleTransformer,
 		newClient:        newClient,
 	}
