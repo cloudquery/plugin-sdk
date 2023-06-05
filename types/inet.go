@@ -153,10 +153,10 @@ func (a *InetArray) Value(i int) *net.IPNet {
 	if len(cidr) == 0 {
 		return &net.IPNet{
 			IP:   net.IPv4zero,
-			Mask: make(net.IPMask, 4),
+			Mask: make(net.IPMask, len(net.IPv4zero)),
 		}
 	}
-	_, ipnet, err := net.ParseCIDR(string(a.Storage().(*array.Binary).Value(i)))
+	_, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
 		panic(fmt.Errorf("invalid ip+net: %w", err))
 	}
