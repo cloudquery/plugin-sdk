@@ -33,30 +33,17 @@ type Server struct {
 	NoSentry  bool
 }
 
-func (s *Server) GetStaticTables(context.Context, *pb.GetStaticTables_Request) (*pb.GetStaticTables_Response, error) {
-	tables := s.Plugin.StaticTables().ToArrowSchemas()
+func (s *Server) GetTables(context.Context, *pb.GetTables_Request) (*pb.GetTables_Response, error) {
+	tables := s.Plugin.Tables().ToArrowSchemas()
 	encoded, err := tables.Encode()
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode tables: %w", err)
 	}
-	return &pb.GetStaticTables_Response{
+	return &pb.GetTables_Response{
 		Tables: encoded,
 	}, nil
 }
 
-func (s *Server) GetDynamicTables(context.Context, *pb.GetDynamicTables_Request) (*pb.GetDynamicTables_Response, error) {
-	tables := s.Plugin.DynamicTables()
-	if tables == nil {
-		return &pb.GetDynamicTables_Response{}, nil
-	}
-	encoded, err := tables.ToArrowSchemas().Encode()
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode tables: %w", err)
-	}
-	return &pb.GetDynamicTables_Response{
-		Tables: encoded,
-	}, nil
-}
 
 func (s *Server) GetName(context.Context, *pb.GetName_Request) (*pb.GetName_Response, error) {
 	return &pb.GetName_Response{
@@ -86,10 +73,6 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		Tables:      req.Tables,
 		SkipTables:  req.SkipTables,
 		Concurrency: req.Concurrency,
-		Scheduler:   plugin.SchedulerDFS,
-	}
-	if req.Scheduler == pb.SCHEDULER_SCHEDULER_ROUND_ROBIN {
-		syncOptions.Scheduler = plugin.SchedulerRoundRobin
 	}
 
 	// sourceName := req.SourceName

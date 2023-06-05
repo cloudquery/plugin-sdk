@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/state"
 	"github.com/rs/zerolog"
 )
@@ -15,7 +14,6 @@ type SyncOptions struct {
 	Tables            []string
 	SkipTables        []string
 	Concurrency       int64
-	Scheduler         Scheduler
 	DeterministicCQID bool
 	// SyncTime if specified then this will be add to every table as _sync_time column
 	SyncTime time.Time
@@ -26,7 +24,6 @@ type SyncOptions struct {
 
 type ReadOnlyClient interface {
 	Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error
-	Read(ctx context.Context, table *schema.Table, sourceName string, res chan<- arrow.Record) error
 	Close(ctx context.Context) error
 }
 
@@ -51,18 +48,6 @@ func NewReadOnlyPlugin(name string, version string, newClient NewReadOnlyClientF
 	return NewPlugin(name, version, newClientWrapper, options...)
 }
 
-// Tables returns all tables supported by this source plugin
-func (p *Plugin) StaticTables() schema.Tables {
-	return p.staticTables
-}
-
-func (p *Plugin) HasDynamicTables() bool {
-	return p.getDynamicTables != nil
-}
-
-func (p *Plugin) DynamicTables() schema.Tables {
-	return p.sessionTables
-}
 
 func (p *Plugin) syncAll(ctx context.Context, options SyncOptions) ([]arrow.Record, error) {
 	var err error
@@ -86,12 +71,12 @@ func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- arrow
 	}
 	defer p.mu.Unlock()
 	p.syncTime = options.SyncTime
-	startTime := time.Now()
+	// startTime := time.Now()
 
 	if err := p.client.Sync(ctx, options, res); err != nil {
 		return fmt.Errorf("failed to sync unmanaged client: %w", err)
 	}
 
-	p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
+	// p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return nil
 }

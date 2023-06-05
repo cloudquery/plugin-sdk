@@ -9,21 +9,33 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables, migrateMode MigrateMode) error {
+type WriteOptions struct {
+	// WriteMode is the mode to write to the database
+	WriteMode WriteMode
+	// Predefined tables are available if tables are known at the start of the write
+	Tables schema.Tables
+}
+
+type MigrateOptions struct {
+	// MigrateMode is the mode to migrate the database
+	MigrateMode MigrateMode
+}
+
+func (p *Plugin) Migrate(ctx context.Context, tables schema.Tables, options MigrateOptions) error {
 	if p.client == nil {
 		return fmt.Errorf("plugin is not initialized")
 	}
-	return p.client.Migrate(ctx, tables, migrateMode)
+	return p.client.Migrate(ctx, tables, options)
 }
 
 // this function is currently used mostly for testing so it's not a public api
-func (p *Plugin) writeOne(ctx context.Context, sourceName string, syncTime time.Time, writeMode WriteMode, resource arrow.Record) error {
+func (p *Plugin) writeOne(ctx context.Context, options WriteOptions, resource arrow.Record) error {
 	resources := []arrow.Record{resource}
-	return p.writeAll(ctx, sourceName, syncTime, writeMode, resources)
+	return p.writeAll(ctx, options, resources)
 }
 
 // this function is currently used mostly for testing so it's not a public api
-func (p *Plugin) writeAll(ctx context.Context, sourceName string, syncTime time.Time, writeMode WriteMode, resources []arrow.Record) error {
+func (p *Plugin) writeAll(ctx context.Context, options WriteOptions, resources []arrow.Record) error {
 	ch := make(chan arrow.Record, len(resources))
 	for _, resource := range resources {
 		ch <- resource
@@ -48,21 +60,14 @@ func (p *Plugin) writeAll(ctx context.Context, sourceName string, syncTime time.
 		tables = append(tables, table)
 		tableNames[table.Name] = struct{}{}
 	}
-	return p.Write(ctx, sourceName, tables, syncTime, writeMode, ch)
+	options.Tables = tables
+	return p.Write(ctx, options, ch)
 }
 
-func (p *Plugin) Write(ctx context.Context, sourceName string, tables schema.Tables, syncTime time.Time, writeMode WriteMode, res <-chan arrow.Record) error {
-	syncTime = syncTime.UTC()
-	if p.managedWriter {
-		if err := p.writeManagedTableBatch(ctx, tables, writeMode, res); err != nil {
-			return err
-		}
-	} else {
-		if err := p.client.Write(ctx, tables, writeMode, res); err != nil {
-			return err
-		}
+func (p *Plugin) Write(ctx context.Context, options WriteOptions, res <-chan arrow.Record) error {
+	if err := p.client.Write(ctx, options, res); err != nil {
+		return err
 	}
-
 	return nil
 }
 
