@@ -48,7 +48,6 @@ func NewReadOnlyPlugin(name string, version string, newClient NewReadOnlyClientF
 	return NewPlugin(name, version, newClientWrapper, options...)
 }
 
-
 func (p *Plugin) syncAll(ctx context.Context, options SyncOptions) ([]arrow.Record, error) {
 	var err error
 	ch := make(chan arrow.Record)
