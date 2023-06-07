@@ -239,9 +239,9 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
 		}
 	}
-	//if columnType == nil {
-	//	return nil // ignored
-	//}
+	if columnType == nil {
+		return nil // ignored
+	}
 
 	path := field.Name
 	name, err := t.nameTransformer(field)
