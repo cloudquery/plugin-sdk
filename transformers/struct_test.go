@@ -2,6 +2,7 @@ package transformers
 
 import (
 	"net"
+	"reflect"
 	"testing"
 	"time"
 
@@ -73,6 +74,11 @@ type (
 	testFunnyStruct struct {
 		AFunnyLookingField      string `json:"OS-EXT:a-funny-looking-field"`
 		AFieldWithCamelCaseName string `json:"camelCaseName"`
+	}
+
+	testStructWithCustomAny struct {
+		IntCol     int `json:"int_col"`
+		Properties any
 	}
 )
 
@@ -269,6 +275,20 @@ var (
 			},
 		},
 	}
+
+	expectedTestTableStructWithCustomAny = schema.Table{
+		Name: "test_embedded_struct_with_custom_any",
+		Columns: schema.ColumnList{
+			{
+				Name: "int_col",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+			{
+				Name: "properties",
+				Type: types.ExtensionTypes.JSON,
+			},
+		},
+	}
 )
 
 func TestTableFromGoStruct(t *testing.T) {
@@ -389,10 +409,27 @@ func TestTableFromGoStruct(t *testing.T) {
 			},
 			want: expectedFunnyTable,
 		},
+		{
+			name: "Should be able to override any-type fields with a type",
+			args: args{
+				testStruct: testStructWithCustomAny{},
+				options: []StructTransformerOption{
+					WithTypeTransformer(func(f reflect.StructField) (arrow.DataType, error) {
+						if f.Type.Kind() == reflect.Interface {
+							return types.ExtensionTypes.JSON, nil
+						}
+						return nil, nil
+					}),
+				},
+			},
+			want: expectedTestTableStructWithCustomAny,
+		},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			table := schema.Table{
 				Name:    "test",
 				Columns: schema.ColumnList{},
@@ -405,11 +442,21 @@ func TestTableFromGoStruct(t *testing.T) {
 				}
 				t.Fatal(err)
 			}
+			if tt.wantErr {
+				t.Fatal("expected error, got none")
+			}
+
 			for i, col := range table.Columns {
 				if !arrow.TypeEqual(col.Type, tt.want.Columns[i].Type) {
-					t.Fatalf("column %s does not match expected type. got %v, want %v", col.Name, col.Type, tt.want.Columns[i].Type)
+					t.Fatalf("column %q does not match expected type. got %v, want %v", col.Name, col.Type, tt.want.Columns[i].Type)
 				}
 			}
+			for _, exc := range tt.want.Columns {
+				if c := table.Column(exc.Name); c == nil {
+					t.Fatalf("column %q not found. want: %v", exc.Name, exc.Type)
+				}
+			}
+
 			if diff := cmp.Diff(table.PrimaryKeys(), tt.want.PrimaryKeys()); diff != "" {
 				t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
 			}
