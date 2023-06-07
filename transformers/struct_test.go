@@ -76,7 +76,7 @@ type (
 		AFieldWithCamelCaseName string `json:"camelCaseName"`
 	}
 
-	testStructWithCustomAny struct {
+	testStructWithAny struct {
 		IntCol     int `json:"int_col"`
 		Properties any
 	}
@@ -276,6 +276,16 @@ var (
 		},
 	}
 
+	expectedTestTableStructWithAny = schema.Table{
+		Name: "test_embedded_struct_with_any",
+		Columns: schema.ColumnList{
+			{
+				Name: "int_col",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+		},
+	}
+
 	expectedTestTableStructWithCustomAny = schema.Table{
 		Name: "test_embedded_struct_with_custom_any",
 		Columns: schema.ColumnList{
@@ -410,9 +420,16 @@ func TestTableFromGoStruct(t *testing.T) {
 			want: expectedFunnyTable,
 		},
 		{
+			name: "Ignore any-type fields by default",
+			args: args{
+				testStruct: testStructWithAny{},
+			},
+			want: expectedTestTableStructWithAny,
+		},
+		{
 			name: "Should be able to override any-type fields with a type",
 			args: args{
-				testStruct: testStructWithCustomAny{},
+				testStruct: testStructWithAny{},
 				options: []StructTransformerOption{
 					WithTypeTransformer(func(f reflect.StructField) (arrow.DataType, error) {
 						if f.Type.Kind() == reflect.Interface {
