@@ -26,7 +26,7 @@ require (
 	google.golang.org/protobuf v1.30.0
 )
 
-replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230607172337-e258cfb80ccd
+replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230608001318-8f72077aac49
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
