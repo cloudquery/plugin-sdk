@@ -13,7 +13,7 @@ import (
 
 type Validator func(t *testing.T, plugin *Plugin, resources []arrow.Record)
 
-func TestPluginSync(t *testing.T, plugin *Plugin, sourceName string, spec any, options SyncOptions, opts ...TestPluginOption) {
+func TestPluginSync(t *testing.T, plugin *Plugin, spec any, options SyncOptions, opts ...TestPluginOption) {
 	t.Helper()
 
 	o := &testPluginOptions{
@@ -101,19 +101,13 @@ func validateTable(t *testing.T, table *schema.Table, resources []arrow.Record) 
 
 func validatePlugin(t *testing.T, plugin *Plugin, resources []arrow.Record) {
 	t.Helper()
-	tables := extractTables(plugin.staticTables)
-	for _, table := range tables {
+	tables, err := plugin.Tables(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range tables.FlattenTables() {
 		validateTable(t, table, resources)
 	}
-}
-
-func extractTables(tables schema.Tables) []*schema.Table {
-	result := make([]*schema.Table, 0)
-	for _, table := range tables {
-		result = append(result, table)
-		result = append(result, extractTables(table.Relations)...)
-	}
-	return result
 }
 
 // Validates that every column has at least one non-nil value.

@@ -3,7 +3,6 @@ package serve
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"sync"
 	"testing"
@@ -11,67 +10,18 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type TestSourcePluginSpec struct {
-	Accounts []string `json:"accounts,omitempty" yaml:"accounts,omitempty"`
-}
-
-type testExecutionClient struct {
-	plugin.UnimplementedSync
-	plugin.UnimplementedWriter
-	plugin.UnimplementedRead
-}
-
-var _ schema.ClientMeta = &testExecutionClient{}
-
-// var errTestExecutionClientErr = fmt.Errorf("error in newTestExecutionClientErr")
-
-func testTable(name string) *schema.Table {
-	return &schema.Table{
-		Name: name,
-		Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- any) error {
-			res <- map[string]any{
-				"TestColumn": 3,
-			}
-			return nil
-		},
-		Columns: []schema.Column{
-			{
-				Name: "test_column",
-				Type: arrow.PrimitiveTypes.Int64,
-			},
-		},
-	}
-}
-
-func (*testExecutionClient) ID() string {
-	return "testExecutionClient"
-}
-
-func (*testExecutionClient) Close(ctx context.Context) error {
-	return nil
-}
-
-func (c *testExecutionClient) NewManagedSyncClient(ctx context.Context, options plugin.SyncOptions) (plugin.ManagedSyncClient, error) {
-	return c, nil
-}
-
-func newTestExecutionClient(context.Context, zerolog.Logger, any) (plugin.Client, error) {
-	return &testExecutionClient{}, nil
-}
-
-func TestPlugin(t *testing.T) {
+func TestPluginServe(t *testing.T) {
 	p := plugin.NewPlugin(
 		"testPlugin",
 		"v1.0.0",
-		newTestExecutionClient,
-		plugin.WithStaticTables([]*schema.Table{testTable("test_table"), testTable("test_table2")}))
+		memdb.NewMemDBClient)
 	srv := Plugin(p, WithArgs("serve"), WithTestListener())
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -110,7 +60,7 @@ func TestPlugin(t *testing.T) {
 		t.Fatalf("Expected version to be v1.0.0 but got %s", getVersionResponse.Version)
 	}
 
-	getTablesRes, err := c.GetStaticTables(ctx, &pb.GetStaticTables_Request{})
+	getTablesRes, err := c.GetTables(ctx, &pb.GetTables_Request{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,19 +75,6 @@ func TestPlugin(t *testing.T) {
 	}
 	if _, err := c.Init(ctx, &pb.Init_Request{}); err != nil {
 		t.Fatal(err)
-	}
-
-	getTablesForSpecRes, err := c.GetDynamicTables(ctx, &pb.GetDynamicTables_Request{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	tables, err = schema.NewTablesFromBytes(getTablesForSpecRes.Tables)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(tables) != 1 {
-		t.Fatalf("Expected 1 table but got %d", len(tables))
 	}
 
 	syncClient, err := c.Sync(ctx, &pb.Sync_Request{})
@@ -181,28 +118,6 @@ func TestPlugin(t *testing.T) {
 	}
 	if totalResources != 1 {
 		t.Fatalf("Expected 1 resource on channel but got %d", totalResources)
-	}
-
-	getMetricsRes, err := c.GetMetrics(ctx, &pb.GetMetrics_Request{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	var stats plugin.Metrics
-	if err := json.Unmarshal(getMetricsRes.Metrics, &stats); err != nil {
-		t.Fatal(err)
-	}
-
-	clientStats := stats.TableClient[""][""]
-	if clientStats.Resources != 1 {
-		t.Fatalf("Expected 1 resource but got %d", clientStats.Resources)
-	}
-
-	if clientStats.Errors != 0 {
-		t.Fatalf("Expected 0 errors but got %d", clientStats.Errors)
-	}
-
-	if clientStats.Panics != 0 {
-		t.Fatalf("Expected 0 panics but got %d", clientStats.Panics)
 	}
 
 	cancel()

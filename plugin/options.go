@@ -1,9 +1,5 @@
 package plugin
 
-import (
-	"github.com/cloudquery/plugin-sdk/v4/schema"
-)
-
 type MigrateMode int
 
 const (
@@ -36,18 +32,3 @@ func (m WriteMode) String() string {
 }
 
 type Option func(*Plugin)
-
-// WithNoInternalColumns won't add internal columns (_cq_id, _cq_parent_cq_id) to the plugin tables
-func WithNoInternalColumns() Option {
-	return func(p *Plugin) {
-		p.internalColumns = false
-	}
-}
-
-// WithTitleTransformer allows the plugin to control how table names get turned into titles for the
-// generated documentation.
-func WithTitleTransformer(t func(*schema.Table) string) Option {
-	return func(p *Plugin) {
-		p.titleTransformer = t
-	}
-}

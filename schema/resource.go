@@ -97,6 +97,11 @@ func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 }
 
 func (r *Resource) storeCQID(value uuid.UUID) error {
+	// We skeep if _cq_id is not present.
+	// Mostly the problem here is because the transformaiton step is baked into the the resolving step
+	if r.Table.Columns.Get(CqIDColumn.Name) == nil {
+		return nil
+	}
 	b, err := value.MarshalBinary()
 	if err != nil {
 		return err

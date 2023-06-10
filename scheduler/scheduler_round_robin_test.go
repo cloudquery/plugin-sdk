@@ -6,13 +6,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-type testExecutionClient struct {
-}
-
-func (t *testExecutionClient) ID() string {
-	return "test"
-}
-
 func TestRoundRobinInterleave(t *testing.T) {
 	table1 := &schema.Table{Name: "test_table"}
 	table2 := &schema.Table{Name: "test_table2"}
