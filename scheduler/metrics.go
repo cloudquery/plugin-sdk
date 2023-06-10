@@ -7,6 +7,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
+// Metrics is deprecated as we move toward open telemetry for tracing and metrics
 type Metrics struct {
 	TableClient map[string]map[string]*TableClientMetrics
 }

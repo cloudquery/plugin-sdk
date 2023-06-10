@@ -2,21 +2,33 @@ package plugin
 
 import (
 	"context"
-	"os"
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
-	"github.com/rs/zerolog"
 )
 
 type PluginTestSuite struct {
 	tests PluginTestSuiteTests
+
+	plugin *Plugin
+
+	// AllowNull is a custom func to determine whether a data type may be correctly represented as null.
+	// Destinations that have problems representing some data types should provide a custom implementation here.
+	// If this param is empty, the default is to allow all data types to be nullable.
+	// When the value returned by this func is `true` the comparison is made with the empty value instead of null.
+	allowNull AllowNullFunc
+
+	// IgnoreNullsInLists allows stripping null values from lists before comparison.
+	// Destination setups that don't support nulls in lists should set this to true.
+	ignoreNullsInLists bool
+
+	// genDataOptions define how to generate test data and which data types to skip
+	genDatOptions schema.TestSourceOptions
 }
 
 // MigrateStrategy defines which tests we should include
@@ -29,244 +41,97 @@ type MigrateStrategy struct {
 }
 
 type PluginTestSuiteTests struct {
-	// SkipOverwrite skips testing for "overwrite" mode. Use if the destination
-	// plugin doesn't support this feature.
-	SkipOverwrite bool
+	// SkipUpsert skips testing with MessageInsert and Upsert=true.
+	// Usually when a destination is not supporting primary keys
+	SkipUpsert bool
 
-	// SkipDeleteStale skips testing "delete-stale" mode. Use if the destination
-	// plugin doesn't support this feature.
-	SkipDeleteStale bool
+	// SkipDelete skips testing MessageDelete events.
+	SkipDelete bool
 
-	// SkipAppend skips testing for "append" mode. Use if the destination
-	// plugin doesn't support this feature.
-	SkipAppend bool
+	// SkipAppend skips testing MessageInsert and Upsert=false.
+	SkipInsert bool
 
-	// SkipSecondAppend skips the second append step in the test.
-	// This is useful in cases like cloud storage where you can't append to an
-	// existing object after the file has been closed.
-	SkipSecondAppend bool
+	// SkipMigrate skips testing migration
+	SkipMigrate bool
 
-	// SkipMigrateAppend skips a test for the migrate function where a column is added,
-	// data is appended, then the column is removed and more data appended, checking that the migrations handle
-	// this correctly.
-	SkipMigrateAppend bool
-	// SkipMigrateAppendForce skips a test for the migrate function where a column is changed in force mode
-	SkipMigrateAppendForce bool
-
-	// SkipMigrateOverwrite skips a test for the migrate function where a column is added,
-	// data is appended, then the column is removed and more data overwritten, checking that the migrations handle
-	// this correctly.
-	SkipMigrateOverwrite bool
-	// SkipMigrateOverwriteForce skips a test for the migrate function where a column is changed in force mode
-	SkipMigrateOverwriteForce bool
-
-	MigrateStrategyOverwrite MigrateStrategy
-	MigrateStrategyAppend    MigrateStrategy
-}
-
-func getTestLogger(t *testing.T) zerolog.Logger {
-	t.Helper()
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
-	return zerolog.New(zerolog.NewTestWriter(t)).Output(
-		zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.StampMicro},
-	).Level(zerolog.TraceLevel).With().Timestamp().Logger()
+	// MigrateStrategy defines which tests should work with force migration
+	// and which should pass with safe migration
+	MigrateStrategy MigrateStrategy
 }
 
 type NewPluginFunc func() *Plugin
 
-type PluginTestSuiteRunnerOptions struct {
-	// IgnoreNullsInLists allows stripping null values from lists before comparison.
-	// Destination setups that don't support nulls in lists should set this to true.
-	IgnoreNullsInLists bool
-
-	// AllowNull is a custom func to determine whether a data type may be correctly represented as null.
-	// Destinations that have problems representing some data types should provide a custom implementation here.
-	// If this param is empty, the default is to allow all data types to be nullable.
-	// When the value returned by this func is `true` the comparison is made with the empty value instead of null.
-	AllowNull AllowNullFunc
-
-	schema.TestSourceOptions
-}
-
-func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.AllowNull = allowNull
+func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *PluginTestSuite) {
+	return func(o *PluginTestSuite) {
+		o.allowNull = allowNull
 	}
 }
 
-func WithTestIgnoreNullsInLists() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.IgnoreNullsInLists = true
+func WithTestIgnoreNullsInLists() func(o *PluginTestSuite) {
+	return func(o *PluginTestSuite) {
+		o.ignoreNullsInLists = true
 	}
 }
 
-func WithTestSourceTimePrecision(precision time.Duration) func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.TimePrecision = precision
+func WithTestDataOptions(opts schema.TestSourceOptions) func(o *PluginTestSuite) {
+	return func(o *PluginTestSuite) {
+		o.genDatOptions = opts
 	}
 }
 
-func WithTestSourceSkipLists() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.SkipLists = true
-	}
-}
-
-func WithTestSourceSkipTimestamps() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.SkipTimestamps = true
-	}
-}
-
-func WithTestSourceSkipDates() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.SkipDates = true
-	}
-}
-
-func WithTestSourceSkipMaps() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.SkipMaps = true
-	}
-}
-
-func WithTestSourceSkipStructs() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.SkipStructs = true
-	}
-}
-
-func WithTestSourceSkipIntervals() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.SkipIntervals = true
-	}
-}
-
-func WithTestSourceSkipDurations() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.SkipDurations = true
-	}
-}
-
-func WithTestSourceSkipTimes() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.SkipTimes = true
-	}
-}
-
-func WithTestSourceSkipLargeTypes() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.SkipLargeTypes = true
-	}
-}
-
-func WithTestSourceSkipDecimals() func(o *PluginTestSuiteRunnerOptions) {
-	return func(o *PluginTestSuiteRunnerOptions) {
-		o.SkipDecimals = true
-	}
-}
-
-func PluginTestSuiteRunner(t *testing.T, newPlugin NewPluginFunc, spec any, tests PluginTestSuiteTests, testOptions ...func(o *PluginTestSuiteRunnerOptions)) {
+func PluginTestSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, opts ...func(o *PluginTestSuite)) {
 	t.Helper()
 	suite := &PluginTestSuite{
-		tests: tests,
+		tests:  tests,
+		plugin: p,
 	}
 
-	opts := PluginTestSuiteRunnerOptions{
-		TestSourceOptions: schema.TestSourceOptions{
-			TimePrecision: time.Microsecond,
-		},
-	}
-	for _, o := range testOptions {
-		o(&opts)
+	for _, opt := range opts {
+		opt(suite)
 	}
 
 	ctx := context.Background()
-	logger := getTestLogger(t)
 
-	t.Run("TestWriteOverwrite", func(t *testing.T) {
+	t.Run("TestUpsert", func(t *testing.T) {
 		t.Helper()
-		if suite.tests.SkipOverwrite {
+		if suite.tests.SkipUpsert {
 			t.Skip("skipping " + t.Name())
 		}
-		p := newPlugin()
-		if err := suite.destinationPluginTestWriteOverwrite(ctx, p, logger, spec, opts); err != nil {
-			t.Fatal(err)
-		}
-		if err := p.Close(ctx); err != nil {
+		if err := suite.testUpsert(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
 
-	t.Run("TestWriteOverwriteDeleteStale", func(t *testing.T) {
+	t.Run("TestInsert", func(t *testing.T) {
 		t.Helper()
-		if suite.tests.SkipOverwrite || suite.tests.SkipDeleteStale {
+		if suite.tests.SkipInsert {
 			t.Skip("skipping " + t.Name())
 		}
-		p := newPlugin()
-		if err := suite.destinationPluginTestWriteOverwriteDeleteStale(ctx, p, logger, spec, opts); err != nil {
-			t.Fatal(err)
-		}
-		if err := p.Close(ctx); err != nil {
+		if err := suite.testInsert(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
 
-	t.Run("TestMigrateOverwrite", func(t *testing.T) {
+	t.Run("TestDelete", func(t *testing.T) {
 		t.Helper()
-		if suite.tests.SkipMigrateOverwrite {
+		if suite.tests.SkipDelete {
+			t.Skip("skipping " + t.Name())
+		}
+		if err := suite.testDelete(ctx); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("TestMigrate", func(t *testing.T) {
+		t.Helper()
+		if suite.tests.SkipMigrate {
 			t.Skip("skipping " + t.Name())
 		}
 		migrateMode := MigrateModeSafe
 		writeMode := WriteModeOverwrite
-		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, migrateMode, writeMode, tests.MigrateStrategyOverwrite, opts)
+		suite.destinationPluginTestMigrate(ctx, t, p, migrateMode, writeMode, tests.MigrateStrategyOverwrite, opts)
 	})
 
-	t.Run("TestMigrateOverwriteForce", func(t *testing.T) {
-		t.Helper()
-		if suite.tests.SkipMigrateOverwriteForce {
-			t.Skip("skipping " + t.Name())
-		}
-		migrateMode := MigrateModeForce
-		writeMode := WriteModeOverwrite
-		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, migrateMode, writeMode, tests.MigrateStrategyOverwrite, opts)
-	})
-
-	t.Run("TestWriteAppend", func(t *testing.T) {
-		t.Helper()
-		if suite.tests.SkipAppend {
-			t.Skip("skipping " + t.Name())
-		}
-		migrateMode := MigrateModeSafe
-		writeMode := WriteModeOverwrite
-		p := newPlugin()
-		if err := suite.destinationPluginTestWriteAppend(ctx, p, logger, migrateMode, writeMode, opts); err != nil {
-			t.Fatal(err)
-		}
-		if err := p.Close(ctx); err != nil {
-			t.Fatal(err)
-		}
-	})
-
-	t.Run("TestMigrateAppend", func(t *testing.T) {
-		t.Helper()
-		if suite.tests.SkipMigrateAppend {
-			t.Skip("skipping " + t.Name())
-		}
-		migrateMode := MigrateModeSafe
-		writeMode := WriteModeAppend
-		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, migrateMode, writeMode, tests.MigrateStrategyAppend, opts)
-	})
-
-	t.Run("TestMigrateAppendForce", func(t *testing.T) {
-		t.Helper()
-		if suite.tests.SkipMigrateAppendForce {
-			t.Skip("skipping " + t.Name())
-		}
-		migrateMode := MigrateModeForce
-		writeMode := WriteModeAppend
-		suite.destinationPluginTestMigrate(ctx, t, newPlugin, logger, migrateMode, writeMode, tests.MigrateStrategyAppend, opts)
-	})
 }
 
 func sortRecordsBySyncTime(table *schema.Table, records []arrow.Record) {

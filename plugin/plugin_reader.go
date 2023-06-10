@@ -3,9 +3,8 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/state"
 	"github.com/rs/zerolog"
 )
@@ -15,15 +14,12 @@ type SyncOptions struct {
 	SkipTables        []string
 	Concurrency       int64
 	DeterministicCQID bool
-	// SyncTime if specified then this will be add to every table as _sync_time column
-	SyncTime time.Time
-	// If spceified then this will be added to every table as _source_name column
-	SourceName   string
-	StateBackend state.Client
+	StateBackend      state.Client
 }
 
 type ReadOnlyClient interface {
-	Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error
+	Tables(ctx context.Context) (schema.Tables, error)
+	Sync(ctx context.Context, options SyncOptions, res chan<- Message) error
 	Close(ctx context.Context) error
 }
 
@@ -48,15 +44,15 @@ func NewReadOnlyPlugin(name string, version string, newClient NewReadOnlyClientF
 	return NewPlugin(name, version, newClientWrapper, options...)
 }
 
-func (p *Plugin) syncAll(ctx context.Context, options SyncOptions) ([]arrow.Record, error) {
+func (p *Plugin) syncAll(ctx context.Context, options SyncOptions) (Messages, error) {
 	var err error
-	ch := make(chan arrow.Record)
+	ch := make(chan Message)
 	go func() {
 		defer close(ch)
 		err = p.Sync(ctx, options, ch)
 	}()
 	// nolint:prealloc
-	var resources []arrow.Record
+	var resources []Message
 	for resource := range ch {
 		resources = append(resources, resource)
 	}
@@ -64,12 +60,12 @@ func (p *Plugin) syncAll(ctx context.Context, options SyncOptions) ([]arrow.Reco
 }
 
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error {
+func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- Message) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
-	p.syncTime = options.SyncTime
+	// p.syncTime = options.SyncTime
 	// startTime := time.Now()
 
 	if err := p.client.Sync(ctx, options, res); err != nil {

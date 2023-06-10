@@ -5,22 +5,6 @@
     "description": "Description for incremental table",
     "columns": [
       {
-        "name": "_cq_source_name",
-        "type": "utf8"
-      },
-      {
-        "name": "_cq_sync_time",
-        "type": "timestamp[us, tz=UTC]"
-      },
-      {
-        "name": "_cq_id",
-        "type": "uuid"
-      },
-      {
-        "name": "_cq_parent_id",
-        "type": "uuid"
-      },
-      {
         "name": "int_col",
         "type": "int64"
       },
@@ -43,22 +27,6 @@
     "title": "Test Table",
     "description": "Description for test table",
     "columns": [
-      {
-        "name": "_cq_source_name",
-        "type": "utf8"
-      },
-      {
-        "name": "_cq_sync_time",
-        "type": "timestamp[us, tz=UTC]"
-      },
-      {
-        "name": "_cq_id",
-        "type": "uuid"
-      },
-      {
-        "name": "_cq_parent_id",
-        "type": "uuid"
-      },
       {
         "name": "int_col",
         "type": "int64"
@@ -97,23 +65,6 @@
         "description": "Description for relational table",
         "columns": [
           {
-            "name": "_cq_source_name",
-            "type": "utf8"
-          },
-          {
-            "name": "_cq_sync_time",
-            "type": "timestamp[us, tz=UTC]"
-          },
-          {
-            "name": "_cq_id",
-            "type": "uuid",
-            "is_primary_key": true
-          },
-          {
-            "name": "_cq_parent_id",
-            "type": "uuid"
-          },
-          {
             "name": "string_col",
             "type": "utf8"
           }
@@ -124,23 +75,6 @@
             "title": "Relation Relation Table A",
             "description": "Description for relational table's relation",
             "columns": [
-              {
-                "name": "_cq_source_name",
-                "type": "utf8"
-              },
-              {
-                "name": "_cq_sync_time",
-                "type": "timestamp[us, tz=UTC]"
-              },
-              {
-                "name": "_cq_id",
-                "type": "uuid",
-                "is_primary_key": true
-              },
-              {
-                "name": "_cq_parent_id",
-                "type": "uuid"
-              },
               {
                 "name": "string_col",
                 "type": "utf8"
@@ -153,23 +87,6 @@
             "title": "Relation Relation Table B",
             "description": "Description for relational table's relation",
             "columns": [
-              {
-                "name": "_cq_source_name",
-                "type": "utf8"
-              },
-              {
-                "name": "_cq_sync_time",
-                "type": "timestamp[us, tz=UTC]"
-              },
-              {
-                "name": "_cq_id",
-                "type": "uuid",
-                "is_primary_key": true
-              },
-              {
-                "name": "_cq_parent_id",
-                "type": "uuid"
-              },
               {
                 "name": "string_col",
                 "type": "utf8"
@@ -184,23 +101,6 @@
         "title": "Relation Table2",
         "description": "Description for second relational table",
         "columns": [
-          {
-            "name": "_cq_source_name",
-            "type": "utf8"
-          },
-          {
-            "name": "_cq_sync_time",
-            "type": "timestamp[us, tz=UTC]"
-          },
-          {
-            "name": "_cq_id",
-            "type": "uuid",
-            "is_primary_key": true
-          },
-          {
-            "name": "_cq_parent_id",
-            "type": "uuid"
-          },
           {
             "name": "string_col",
             "type": "utf8"

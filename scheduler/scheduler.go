@@ -57,8 +57,6 @@ func (s SchedulerStrategy) String() string {
 	return AllSchedulerNames[s]
 }
 
-const periodicMetricLoggerInterval = 30 * time.Second
-
 type Option func(*Scheduler)
 
 func WithLogger(logger zerolog.Logger) Option {
@@ -76,6 +74,12 @@ func WithDeterministicCQId(deterministicCQId bool) Option {
 func WithConcurrency(concurrency uint64) Option {
 	return func(s *Scheduler) {
 		s.concurrency = concurrency
+	}
+}
+
+func WithSchedulerStrategy(strategy SchedulerStrategy) Option {
+	return func(s *Scheduler) {
+		s.strategy = strategy
 	}
 }
 
@@ -104,9 +108,13 @@ func NewScheduler(tables schema.Tables, client schema.ClientMeta, opts ...Option
 		metrics:     &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:       caser.New(),
 		concurrency: defaultConcurrency,
+		maxDepth:    maxDepth(tables),
 	}
 	for _, opt := range opts {
 		opt(&s)
+	}
+	if s.maxDepth > 3 {
+		panic(fmt.Errorf("max depth of %d is not supported for scheduler", s.maxDepth))
 	}
 	return &s
 }
@@ -243,6 +251,20 @@ func (p *Scheduler) resolveColumn(ctx context.Context, logger zerolog.Logger, ta
 			}
 		}
 	}
+}
+
+func maxDepth(tables schema.Tables) uint64 {
+	var depth uint64
+	if len(tables) == 0 {
+		return 0
+	}
+	for _, table := range tables {
+		newDepth := 1 + maxDepth(table.Relations)
+		if newDepth > depth {
+			depth = newDepth
+		}
+	}
+	return depth
 }
 
 // unparam's suggestion to remove the second parameter is not good advice here.
