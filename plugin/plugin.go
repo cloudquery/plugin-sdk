@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
@@ -15,30 +13,20 @@ type NewClientFunc func(context.Context, zerolog.Logger, any) (Client, error)
 
 type Client interface {
 	Tables(ctx context.Context) (schema.Tables, error)
-	Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error
-	Migrate(ctx context.Context, tables schema.Tables, migrateMode MigrateOptions) error
-	Write(ctx context.Context, options WriteOptions, res <-chan arrow.Record) error
-	DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error
+	Sync(ctx context.Context, options SyncOptions, res chan<- Message) error
+	Write(ctx context.Context, options WriteOptions, res <-chan Message) error
 	Close(ctx context.Context) error
 }
 
 type UnimplementedWriter struct{}
 
-func (UnimplementedWriter) Migrate(ctx context.Context, tables schema.Tables, migrateMode MigrateMode) error {
-	return fmt.Errorf("not implemented")
-}
-
-func (UnimplementedWriter) Write(ctx context.Context, tables schema.Tables, writeMode WriteMode, res <-chan arrow.Record) error {
-	return fmt.Errorf("not implemented")
-}
-
-func (UnimplementedWriter) DeleteStale(ctx context.Context, tables schema.Tables, sourceName string, syncTime time.Time) error {
+func (UnimplementedWriter) Write(ctx context.Context, options WriteOptions, res <-chan Message) error {
 	return fmt.Errorf("not implemented")
 }
 
 type UnimplementedSync struct{}
 
-func (UnimplementedSync) Sync(ctx context.Context, options SyncOptions, res chan<- arrow.Record) error {
+func (UnimplementedSync) Sync(ctx context.Context, options SyncOptions, res chan<- Message) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -57,8 +45,6 @@ type Plugin struct {
 	newClient NewClientFunc
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
 	logger zerolog.Logger
-	// maxDepth is the max depth of tables
-	maxDepth uint64
 	// mu is a mutex that limits the number of concurrent init/syncs (can only be one at a time)
 	mu sync.Mutex
 	// client is the initialized session client
@@ -68,8 +54,6 @@ type Plugin struct {
 	// NoInternalColumns if set to true will not add internal columns to tables such as _cq_id and _cq_parent_id
 	// useful for sources such as PostgreSQL and other databases
 	internalColumns bool
-	// titleTransformer allows the plugin to control how table names get turned into titles for generated documentation
-	titleTransformer func(*schema.Table) string
 }
 
 const (
@@ -94,11 +78,10 @@ func maxDepth(tables schema.Tables) uint64 {
 // Depending on the options, it can be write only plugin, read only plugin or both.
 func NewPlugin(name string, version string, newClient NewClientFunc, options ...Option) *Plugin {
 	p := Plugin{
-		name:             name,
-		version:          version,
-		internalColumns:  true,
-		titleTransformer: DefaultTitleTransformer,
-		newClient:        newClient,
+		name:            name,
+		version:         version,
+		internalColumns: true,
+		newClient:       newClient,
 	}
 	for _, opt := range options {
 		opt(&p)
@@ -124,22 +107,6 @@ func (p *Plugin) Tables(ctx context.Context) (schema.Tables, error) {
 	tables, err := p.client.Tables(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tables: %w", err)
-	}
-	setParents(tables, nil)
-	if err := transformTables(tables); err != nil {
-		return nil, err
-	}
-	if p.internalColumns {
-		if err := p.addInternalColumns(tables); err != nil {
-			return nil, err
-		}
-	}
-	p.maxDepth = maxDepth(tables)
-	if p.maxDepth > maxAllowedDepth {
-		return nil, fmt.Errorf("max depth of tables is %d, max allowed is %d", p.maxDepth, maxAllowedDepth)
-	}
-	if err := p.validate(tables); err != nil {
-		return nil, err
 	}
 	return tables, nil
 }

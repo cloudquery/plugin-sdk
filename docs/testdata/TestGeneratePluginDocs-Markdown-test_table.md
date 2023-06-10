@@ -16,10 +16,6 @@ The following tables depend on test_table:
 
 | Name          | Type          |
 | ------------- | ------------- |
-|_cq_source_name|utf8|
-|_cq_sync_time|timestamp[us, tz=UTC]|
-|_cq_id|uuid|
-|_cq_parent_id|uuid|
 |int_col|int64|
 |id_col (PK)|int64|
 |id_col2 (PK)|int64|
