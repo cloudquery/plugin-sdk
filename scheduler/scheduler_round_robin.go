@@ -14,7 +14,7 @@ type tableClient struct {
 }
 
 func (s *Scheduler) syncRoundRobin(ctx context.Context, resolvedResources chan<- *schema.Resource) {
-	tableConcurrency := max(uint64(s.concurrency/minResourceConcurrency), minTableConcurrency)
+	tableConcurrency := max(s.concurrency/minResourceConcurrency, minTableConcurrency)
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
 
 	s.tableSems = make([]*semaphore.Weighted, s.maxDepth)

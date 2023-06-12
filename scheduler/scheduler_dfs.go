@@ -17,7 +17,7 @@ import (
 func (s *Scheduler) syncDfs(ctx context.Context, resolvedResources chan<- *schema.Resource) {
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree.
-	tableConcurrency := max(uint64(s.concurrency/minResourceConcurrency), minTableConcurrency)
+	tableConcurrency := max(s.concurrency/minResourceConcurrency, minTableConcurrency)
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
 
 	s.tableSems = make([]*semaphore.Weighted, s.maxDepth)

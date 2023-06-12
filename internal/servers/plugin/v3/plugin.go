@@ -1,14 +1,12 @@
 package plugin
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/ipc"
 	"github.com/cloudquery/plugin-pb-go/managedplugin"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -19,6 +17,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const MaxMsgSize = 100 * 1024 * 1024 // 100 MiB
@@ -31,9 +30,12 @@ type Server struct {
 	NoSentry  bool
 }
 
-func (s *Server) GetTables(context.Context, *pb.GetTables_Request) (*pb.GetTables_Response, error) {
-	tables := s.Plugin.Tables().ToArrowSchemas()
-	encoded, err := tables.Encode()
+func (s *Server) GetTables(ctx context.Context, _ *pb.GetTables_Request) (*pb.GetTables_Response, error) {
+	tables, err := s.Plugin.Tables(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get tables: %v", err)
+	}
+	encoded, err := tables.ToArrowSchemas().Encode()
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode tables: %w", err)
 	}
@@ -62,7 +64,7 @@ func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Respo
 }
 
 func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
-	records := make(chan arrow.Record)
+	msgs := make(chan plugin.Message)
 	var syncErr error
 	ctx := stream.Context()
 
@@ -71,8 +73,6 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		SkipTables:  req.SkipTables,
 		Concurrency: req.Concurrency,
 	}
-
-	// sourceName := req.SourceName
 
 	if req.StateBackend != nil {
 		opts := []managedplugin.Option{
@@ -90,51 +90,69 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		if err != nil {
 			return status.Errorf(codes.Internal, "failed to create state plugin: %v", err)
 		}
-		stateClient, err := newStateClient(ctx, statePlugin.Conn, *req.StateBackend)
+		stateClient, err := newStateClient(ctx, statePlugin.Conn, req.StateBackend)
 		if err != nil {
 			return status.Errorf(codes.Internal, "failed to create state client: %v", err)
 		}
 		syncOptions.StateBackend = stateClient
 	}
-	if req.SyncTime != nil {
-		syncOptions.SyncTime = req.SyncTime.AsTime()
-	}
-
-	if req.SourceName != "" {
-		syncOptions.SourceName = req.SourceName
-	}
 
 	go func() {
-		defer close(records)
-		err := s.Plugin.Sync(ctx, syncOptions, records)
+		defer close(msgs)
+		err := s.Plugin.Sync(ctx, syncOptions, msgs)
 		if err != nil {
 			syncErr = fmt.Errorf("failed to sync records: %w", err)
 		}
 	}()
 
-	for rec := range records {
-		var buf bytes.Buffer
-		w := ipc.NewWriter(&buf, ipc.WithSchema(rec.Schema()))
-		if err := w.Write(rec); err != nil {
-			return status.Errorf(codes.Internal, "failed to write record: %v", err)
-		}
-		if err := w.Close(); err != nil {
-			return status.Errorf(codes.Internal, "failed to close writer: %v", err)
+	pbMsg := &pb.Sync_Response{}
+	for msg := range msgs {
+		switch m := msg.(type) {
+		case *plugin.MessageCreateTable:
+			m.Table.ToArrowSchema()
+			pbMsg.Message = &pb.Sync_Response_CreateTable{
+				CreateTable: &pb.MessageCreateTable{
+					Table:        nil,
+					MigrateForce: m.MigrateForce,
+				},
+			}
+		case *plugin.MessageInsert:
+			recordBytes, err := schema.RecordToBytes(m.Record)
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+			}
+			pbMsg.Message = &pb.Sync_Response_Insert{
+				Insert: &pb.MessageInsert{
+					Record: recordBytes,
+					Upsert: m.Upsert,
+				},
+			}
+		case *plugin.MessageDeleteStale:
+			tableBytes, err := m.Table.ToArrowSchemaBytes()
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+			}
+			pbMsg.Message = &pb.Sync_Response_Delete{
+				Delete: &pb.MessageDeleteStale{
+					Table:      tableBytes,
+					SourceName: m.SourceName,
+					SyncTime:   timestamppb.New(m.SyncTime),
+				},
+			}
+		default:
+			return status.Errorf(codes.Internal, "unknown message type: %T", msg)
 		}
 
-		msg := &pb.Sync_Response{
-			Resource: buf.Bytes(),
-		}
-		err := checkMessageSize(msg, rec)
-		if err != nil {
-			sc := rec.Schema()
-			tName, _ := sc.Metadata().GetValue(schema.MetadataTableName)
-			s.Logger.Warn().Str("table", tName).
-				Int("bytes", len(msg.String())).
-				Msg("Row exceeding max bytes ignored")
-			continue
-		}
-		if err := stream.Send(msg); err != nil {
+		// err := checkMessageSize(msg, rec)
+		// if err != nil {
+		// 	sc := rec.Schema()
+		// 	tName, _ := sc.Metadata().GetValue(schema.MetadataTableName)
+		// 	s.Logger.Warn().Str("table", tName).
+		// 		Int("bytes", len(msg.String())).
+		// 		Msg("Row exceeding max bytes ignored")
+		// 	continue
+		// }
+		if err := stream.Send(pbMsg); err != nil {
 			return status.Errorf(codes.Internal, "failed to send resource: %v", err)
 		}
 	}
@@ -142,105 +160,82 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	return syncErr
 }
 
-func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migrate_Response, error) {
-	schemas, err := schema.NewSchemasFromBytes(req.Tables)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "failed to create schemas: %v", err)
-	}
-	tables, err := schema.NewTablesFromArrowSchemas(schemas)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "failed to create tables: %v", err)
-	}
-	if req.PkMode == pb.PK_MODE_CQ_ID_ONLY {
-		setCQIDAsPrimaryKeysForTables(tables)
-	}
-	migrateMode := plugin.MigrateModeSafe
-	switch req.MigrateMode {
-	case pb.MIGRATE_MODE_SAFE:
-		migrateMode = plugin.MigrateModeSafe
-	case pb.MIGRATE_MODE_FORCE:
-		migrateMode = plugin.MigrateModeForce
-	}
-	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables, migrateMode)
-}
-
 func (s *Server) Write(msg pb.Plugin_WriteServer) error {
-	resources := make(chan arrow.Record)
+	msgs := make(chan plugin.Message)
 
-	r, err := msg.Recv()
-	if err != nil {
-		if err == io.EOF {
-			return msg.SendAndClose(&pb.Write_Response{})
-		}
-		return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
-	}
-
-	schemas, err := schema.NewSchemasFromBytes(r.Tables)
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "failed to create schemas: %v", err)
-	}
-	tables, err := schema.NewTablesFromArrowSchemas(schemas)
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "failed to create tables: %v", err)
-	}
-	if r.PkMode == pb.PK_MODE_CQ_ID_ONLY {
-		setCQIDAsPrimaryKeysForTables(tables)
-	}
-	sourceName := r.SourceName
-	syncTime := r.SyncTime.AsTime()
-	writeMode := plugin.WriteModeOverwrite
-	switch r.WriteMode {
-	case pb.WRITE_MODE_WRITE_MODE_APPEND:
-		writeMode = plugin.WriteModeAppend
-	case pb.WRITE_MODE_WRITE_MODE_OVERWRITE:
-		writeMode = plugin.WriteModeOverwrite
-	case pb.WRITE_MODE_WRITE_MODE_OVERWRITE_DELETE_STALE:
-		writeMode = plugin.WriteModeOverwriteDeleteStale
-	}
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceName, tables, syncTime, writeMode, resources)
+		return s.Plugin.Write(ctx, plugin.WriteOptions{}, msgs)
 	})
 
 	for {
 		r, err := msg.Recv()
 		if err == io.EOF {
-			close(resources)
+			close(msgs)
 			if err := eg.Wait(); err != nil {
 				return status.Errorf(codes.Internal, "write failed: %v", err)
 			}
 			return msg.SendAndClose(&pb.Write_Response{})
 		}
 		if err != nil {
-			close(resources)
+			close(msgs)
 			if wgErr := eg.Wait(); wgErr != nil {
 				return status.Errorf(codes.Internal, "failed to receive msg: %v and write failed: %v", err, wgErr)
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
-		rdr, err := ipc.NewReader(bytes.NewReader(r.Resource))
-		if err != nil {
-			close(resources)
+		var pluginMessage plugin.Message
+		var pbMsgConvertErr error
+		switch pbMsg := r.Message.(type) {
+		case *pb.Write_Request_CreateTable:
+			table, err := schema.NewTableFromBytes(pbMsg.CreateTable.Table)
+			if err != nil {
+				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table: %v", err)
+				break
+			}
+			pluginMessage = &plugin.MessageCreateTable{
+				Table:        table,
+				MigrateForce: pbMsg.CreateTable.MigrateForce,
+			}
+		case *pb.Write_Request_Insert:
+			record, err := schema.NewRecordFromBytes(pbMsg.Insert.Record)
+			if err != nil {
+				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+				break
+			}
+			pluginMessage = &plugin.MessageInsert{
+				Record: record,
+				Upsert: pbMsg.Insert.Upsert,
+			}
+		case *pb.Write_Request_Delete:
+			table, err := schema.NewTableFromBytes(pbMsg.Delete.Table)
+			if err != nil {
+				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+				break
+			}
+			pluginMessage = &plugin.MessageDeleteStale{
+				Table:      table,
+				SourceName: pbMsg.Delete.SourceName,
+				SyncTime:   pbMsg.Delete.SyncTime.AsTime(),
+			}
+		}
+
+		if pbMsgConvertErr != nil {
+			close(msgs)
 			if wgErr := eg.Wait(); wgErr != nil {
-				return status.Errorf(codes.InvalidArgument, "failed to create reader: %v and write failed: %v", err, wgErr)
+				return status.Errorf(codes.Internal, "failed to convert message: %v and write failed: %v", pbMsgConvertErr, wgErr)
 			}
-			return status.Errorf(codes.InvalidArgument, "failed to create reader: %v", err)
+			return pbMsgConvertErr
 		}
-		for rdr.Next() {
-			rec := rdr.Record()
-			rec.Retain()
-			select {
-			case resources <- rec:
-			case <-ctx.Done():
-				close(resources)
-				if err := eg.Wait(); err != nil {
-					return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
-				}
-				return status.Errorf(codes.Internal, "Context done: %v", ctx.Err())
+
+		select {
+		case msgs <- pluginMessage:
+		case <-ctx.Done():
+			close(msgs)
+			if err := eg.Wait(); err != nil {
+				return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
 			}
-		}
-		if err := rdr.Err(); err != nil {
-			return status.Errorf(codes.InvalidArgument, "failed to read resource: %v", err)
+			return status.Errorf(codes.Internal, "Context done: %v", ctx.Err())
 		}
 	}
 }
@@ -261,15 +256,6 @@ func checkMessageSize(msg proto.Message, record arrow.Record) error {
 		return errors.New("message exceeds max size")
 	}
 	return nil
-}
-
-func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
-	for _, table := range tables {
-		for i, col := range table.Columns {
-			table.Columns[i].PrimaryKey = col.Name == schema.CqIDColumn.Name
-		}
-		setCQIDAsPrimaryKeysForTables(table.Relations)
-	}
 }
 
 func (s *Server) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {

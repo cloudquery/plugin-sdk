@@ -1,11 +1,13 @@
 package schema
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"regexp"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/ipc"
 	"github.com/cloudquery/plugin-sdk/v4/internal/glob"
 	"golang.org/x/exp/slices"
 )
@@ -104,6 +106,14 @@ func NewTablesFromArrowSchemas(schemas []*arrow.Schema) (Tables, error) {
 		tables[i] = table
 	}
 	return tables, nil
+}
+
+func NewTableFromBytes(b []byte) (*Table, error) {
+	sc, err := NewSchemaFromBytes(b)
+	if err != nil {
+		return nil, err
+	}
+	return NewTableFromArrowSchema(sc)
 }
 
 // Create a CloudQuery Table abstraction from an arrow schema
@@ -364,6 +374,15 @@ func (t *Table) PrimaryKeysIndexes() []int {
 	}
 
 	return primaryKeys
+}
+func (t *Table) ToArrowSchemaBytes() ([]byte, error) {
+	sc := t.ToArrowSchema()
+	var buf bytes.Buffer
+	wr := ipc.NewWriter(&buf, ipc.WithSchema(sc))
+	if err := wr.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func (t *Table) ToArrowSchema() *arrow.Schema {
