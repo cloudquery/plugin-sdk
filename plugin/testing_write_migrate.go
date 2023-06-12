@@ -17,7 +17,7 @@ func tableUUIDSuffix() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "_")
 }
 
-func (s *PluginTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, strategy MigrateMode, mode MigrateMode) error {
+func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, strategy MigrateMode, mode MigrateMode) error {
 	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageCreateTable{
 		Table: source,
 	}); err != nil {
@@ -41,7 +41,7 @@ func (s *PluginTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	messages, err := s.plugin.syncAll(ctx, SyncOptions{
+	messages, err := s.plugin.SyncAll(ctx, SyncOptions{
 		Tables: []string{source.Name},
 	})
 	if err != nil {
@@ -53,8 +53,8 @@ func (s *PluginTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	}
 
 	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageCreateTable{
-		Table: target,
-		Force: strategy == MigrateModeForce,
+		Table:        target,
+		MigrateForce: strategy == MigrateModeForce,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
@@ -65,7 +65,7 @@ func (s *PluginTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	messages, err = s.plugin.syncAll(ctx, SyncOptions{
+	messages, err = s.plugin.SyncAll(ctx, SyncOptions{
 		Tables: []string{source.Name},
 	})
 	if err != nil {
@@ -86,7 +86,7 @@ func (s *PluginTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	return nil
 }
 
-func (s *PluginTestSuite) testMigrate(
+func (s *WriterTestSuite) testMigrate(
 	ctx context.Context,
 	t *testing.T,
 	mode MigrateMode,

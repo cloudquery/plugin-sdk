@@ -11,7 +11,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-func (s *PluginTestSuite) testUpsert(ctx context.Context) error {
+func (s *WriterTestSuite) testUpsert(ctx context.Context) error {
 	tableName := fmt.Sprintf("cq_test_upsert_%d", time.Now().Unix())
 	table := &schema.Table{
 		Name: tableName,
@@ -27,15 +27,16 @@ func (s *PluginTestSuite) testUpsert(ctx context.Context) error {
 
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 	bldr.Field(0).(*array.StringBuilder).Append("foo")
+	record := bldr.NewRecord()
 
 	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
-		Record: bldr.NewRecord(),
+		Record: record,
 		Upsert: true,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	messages, err := s.plugin.syncAll(ctx, SyncOptions{
+	messages, err := s.plugin.SyncAll(ctx, SyncOptions{
 		Tables: []string{tableName},
 	})
 	if err != nil {
@@ -47,13 +48,13 @@ func (s *PluginTestSuite) testUpsert(ctx context.Context) error {
 	}
 
 	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
-		Record: bldr.NewRecord(),
+		Record: record,
 		Upsert: true,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	messages, err = s.plugin.syncAll(ctx, SyncOptions{
+	messages, err = s.plugin.SyncAll(ctx, SyncOptions{
 		Tables: []string{tableName},
 	})
 	if err != nil {

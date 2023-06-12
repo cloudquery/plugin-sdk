@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	pbBase "github.com/cloudquery/plugin-pb-go/pb/base/v0"
@@ -16,6 +15,7 @@ import (
 	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/testdata"
 	"github.com/cloudquery/plugin-sdk/v4/internal/deprecated"
+	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
 	serversDestination "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v0"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"google.golang.org/grpc"
@@ -24,7 +24,7 @@ import (
 )
 
 func TestDestination(t *testing.T) {
-	p := plugin.NewPlugin("testDestinationPlugin", "development", plugin.NewMemDBClient)
+	p := plugin.NewPlugin("testDestinationPlugin", "development", memdb.NewMemDBClient)
 	srv := Plugin(p, WithArgs("serve"), WithDestinationV0V1Server(), WithTestListener())
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -129,20 +129,20 @@ func TestDestination(t *testing.T) {
 	}
 	// serversDestination
 	table := serversDestination.TableV2ToV3(tableV2)
-	readCh := make(chan arrow.Record, 1)
-	if err := p.Sync(ctx, plugin.SyncOptions{
+	msgs, err := p.SyncAll(ctx, plugin.SyncOptions{
 		Tables: []string{tableName},
-	}, readCh); err != nil {
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	close(readCh)
 	totalResources := 0
 	destRecord := serversDestination.CQTypesOneToRecord(memory.DefaultAllocator, destResource.Data, table.ToArrowSchema())
-	for resource := range readCh {
+	for _, msg := range msgs {
 		totalResources++
-		if !array.RecordEqual(destRecord, resource) {
+		m := msg.(*plugin.MessageInsert)
+		if !array.RecordEqual(destRecord, m.Record) {
 			// diff := destination.RecordDiff(destRecord, resource)
-			t.Fatalf("expected %v but got %v", destRecord, resource)
+			t.Fatalf("expected %v but got %v", destRecord, m.Record)
 		}
 	}
 	if totalResources != 1 {

@@ -27,33 +27,33 @@ const (
 	defaultConcurrency     = 200000
 )
 
-type SchedulerStrategy int
+type Strategy int
 
 const (
-	SchedulerDFS SchedulerStrategy = iota
-	SchedulerRoundRobin
+	StrategyDFS Strategy = iota
+	StrategyRoundRobin
 )
 
-var AllSchedulers = Schedulers{SchedulerDFS, SchedulerRoundRobin}
+var AllSchedulers = Strategies{StrategyDFS, StrategyRoundRobin}
 var AllSchedulerNames = [...]string{
-	SchedulerDFS:        "dfs",
-	SchedulerRoundRobin: "round-robin",
+	StrategyDFS:        "dfs",
+	StrategyRoundRobin: "round-robin",
 }
 
-type Schedulers []SchedulerStrategy
+type Strategies []Strategy
 
-func (s Schedulers) String() string {
+func (s Strategies) String() string {
 	var buffer bytes.Buffer
-	for i, scheduler := range s {
+	for i, strategy := range s {
 		if i > 0 {
 			buffer.WriteString(", ")
 		}
-		buffer.WriteString(scheduler.String())
+		buffer.WriteString(strategy.String())
 	}
 	return buffer.String()
 }
 
-func (s SchedulerStrategy) String() string {
+func (s Strategy) String() string {
 	return AllSchedulerNames[s]
 }
 
@@ -77,7 +77,7 @@ func WithConcurrency(concurrency uint64) Option {
 	}
 }
 
-func WithSchedulerStrategy(strategy SchedulerStrategy) Option {
+func WithSchedulerStrategy(strategy Strategy) Option {
 	return func(s *Scheduler) {
 		s.strategy = strategy
 	}
@@ -87,7 +87,7 @@ type Scheduler struct {
 	tables   schema.Tables
 	client   schema.ClientMeta
 	caser    *caser.Caser
-	strategy SchedulerStrategy
+	strategy Strategy
 	// status sync metrics
 	metrics  *Metrics
 	maxDepth uint64
@@ -124,9 +124,9 @@ func (s *Scheduler) Sync(ctx context.Context, res chan<- arrow.Record) error {
 	go func() {
 		defer close(resources)
 		switch s.strategy {
-		case SchedulerDFS:
+		case StrategyDFS:
 			s.syncDfs(ctx, resources)
-		case SchedulerRoundRobin:
+		case StrategyRoundRobin:
 			s.syncRoundRobin(ctx, resources)
 		default:
 			panic(fmt.Errorf("unknown scheduler %s", s.strategy))
@@ -142,24 +142,24 @@ func (s *Scheduler) Sync(ctx context.Context, res chan<- arrow.Record) error {
 	return nil
 }
 
-func (p *Scheduler) logTablesMetrics(tables schema.Tables, client schema.ClientMeta) {
+func (s *Scheduler) logTablesMetrics(tables schema.Tables, client schema.ClientMeta) {
 	clientName := client.ID()
 	for _, table := range tables {
-		metrics := p.metrics.TableClient[table.Name][clientName]
-		p.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Uint64("errors", metrics.Errors).Msg("table sync finished")
-		p.logTablesMetrics(table.Relations, client)
+		metrics := s.metrics.TableClient[table.Name][clientName]
+		s.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Uint64("errors", metrics.Errors).Msg("table sync finished")
+		s.logTablesMetrics(table.Relations, client)
 	}
 }
 
-func (p *Scheduler) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item any) *schema.Resource {
+func (s *Scheduler) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item any) *schema.Resource {
 	var validationErr *schema.ValidationError
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	resource := schema.NewResourceData(table, parent, item)
 	objectStartTime := time.Now()
 	clientID := client.ID()
-	tableMetrics := p.metrics.TableClient[table.Name][clientID]
-	logger := p.logger.With().Str("table", table.Name).Str("client", clientID).Logger()
+	tableMetrics := s.metrics.TableClient[table.Name][clientID]
+	logger := s.logger.With().Str("table", table.Name).Str("client", clientID).Logger()
 	defer func() {
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
@@ -186,7 +186,7 @@ func (p *Scheduler) resolveResource(ctx context.Context, table *schema.Table, cl
 	}
 
 	for _, c := range table.Columns {
-		p.resolveColumn(ctx, logger, tableMetrics, client, resource, c)
+		s.resolveColumn(ctx, logger, tableMetrics, client, resource, c)
 	}
 
 	if table.PostResourceResolver != nil {
@@ -205,7 +205,7 @@ func (p *Scheduler) resolveResource(ctx context.Context, table *schema.Table, cl
 	return resource
 }
 
-func (p *Scheduler) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
+func (s *Scheduler) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
 	var validationErr *schema.ValidationError
 	columnStartTime := time.Now()
 	defer func() {
@@ -235,7 +235,7 @@ func (p *Scheduler) resolveColumn(ctx context.Context, logger zerolog.Logger, ta
 		}
 	} else {
 		// base use case: try to get column with CamelCase name
-		v := funk.Get(resource.GetItem(), p.caser.ToPascal(c.Name), funk.WithAllowZero())
+		v := funk.Get(resource.GetItem(), s.caser.ToPascal(c.Name), funk.WithAllowZero())
 		if v != nil {
 			err := resource.Set(c.Name, v)
 			if err != nil {

@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
+	"github.com/apache/arrow/go/v13/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -60,6 +62,10 @@ func TestPluginServe(t *testing.T) {
 		t.Fatalf("Expected version to be v1.0.0 but got %s", getVersionResponse.Version)
 	}
 
+	if _, err := c.Init(ctx, &pb.Init_Request{}); err != nil {
+		t.Fatal(err)
+	}
+
 	getTablesRes, err := c.GetTables(ctx, &pb.GetTables_Request{})
 	if err != nil {
 		t.Fatal(err)
@@ -70,14 +76,58 @@ func TestPluginServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(tables) != 2 {
-		t.Fatalf("Expected 2 tables but got %d", len(tables))
+	if len(tables) != 0 {
+		t.Fatalf("Expected 0 tables but got %d", len(tables))
 	}
-	if _, err := c.Init(ctx, &pb.Init_Request{}); err != nil {
+	testTable := schema.Table{
+		Name: "test_table",
+		Columns: []schema.Column{
+			{
+				Name: "col1",
+				Type: arrow.BinaryTypes.String,
+			},
+		},
+	}
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, testTable.ToArrowSchema())
+	bldr.Field(0).(*array.StringBuilder).Append("test")
+	record := bldr.NewRecord()
+	recordBytes, err := schema.RecordToBytes(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tableBytes, err := testTable.ToArrowSchemaBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeClient, err := c.Write(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeClient.Send(&pb.Write_Request{
+		Message: &pb.Write_Request_CreateTable{
+			CreateTable: &pb.MessageCreateTable{
+				Table: tableBytes,
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeClient.Send(&pb.Write_Request{
+		Message: &pb.Write_Request_Insert{
+			Insert: &pb.MessageInsert{
+				Record: recordBytes,
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writeClient.CloseAndRecv(); err != nil {
 		t.Fatal(err)
 	}
 
-	syncClient, err := c.Sync(ctx, &pb.Sync_Request{})
+	syncClient, err := c.Sync(ctx, &pb.Sync_Request{
+		Tables: []string{"test_table"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +140,8 @@ func TestPluginServe(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		rdr, err := ipc.NewReader(bytes.NewReader(r.Resource))
+		m := r.Message.(*pb.Sync_Response_Insert)
+		rdr, err := ipc.NewReader(bytes.NewReader(m.Insert.Record))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -111,8 +162,8 @@ func TestPluginServe(t *testing.T) {
 		if tableName != "test_table" {
 			t.Fatalf("Expected resource with table name test_table. got: %s", tableName)
 		}
-		if len(resource.Columns()) != 5 {
-			t.Fatalf("Expected resource with data length 3 but got %d", len(resource.Columns()))
+		if len(resource.Columns()) != 1 {
+			t.Fatalf("Expected resource with data length 1 but got %d", len(resource.Columns()))
 		}
 		totalResources++
 	}

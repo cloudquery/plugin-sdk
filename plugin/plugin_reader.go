@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cloudquery/plugin-sdk/v4/internal/glob"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/state"
 	"github.com/rs/zerolog"
@@ -21,6 +22,20 @@ type ReadOnlyClient interface {
 	Tables(ctx context.Context) (schema.Tables, error)
 	Sync(ctx context.Context, options SyncOptions, res chan<- Message) error
 	Close(ctx context.Context) error
+}
+
+func IsTable(name string, includeTablesPattern []string, skipTablesPattern []string) bool {
+	for _, pattern := range skipTablesPattern {
+		if glob.Glob(pattern, name) {
+			return false
+		}
+	}
+	for _, pattern := range includeTablesPattern {
+		if glob.Glob(pattern, name) {
+			return true
+		}
+	}
+	return false
 }
 
 type NewReadOnlyClientFunc func(context.Context, zerolog.Logger, any) (ReadOnlyClient, error)
@@ -44,7 +59,7 @@ func NewReadOnlyPlugin(name string, version string, newClient NewReadOnlyClientF
 	return NewPlugin(name, version, newClientWrapper, options...)
 }
 
-func (p *Plugin) syncAll(ctx context.Context, options SyncOptions) (Messages, error) {
+func (p *Plugin) SyncAll(ctx context.Context, options SyncOptions) (Messages, error) {
 	var err error
 	ch := make(chan Message)
 	go func() {

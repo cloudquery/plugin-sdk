@@ -7,10 +7,10 @@ import (
 )
 
 // Set parent links on relational tables
-func setParents(tables schema.Tables, parent *schema.Table) {
+func SetParents(tables schema.Tables, parent *schema.Table) {
 	for _, table := range tables {
 		table.Parent = parent
-		setParents(table.Relations, table)
+		SetParents(table.Relations, table)
 	}
 }
 
