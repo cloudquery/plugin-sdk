@@ -80,7 +80,6 @@ func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- Messa
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
-	// p.syncTime = options.SyncTime
 	// startTime := time.Now()
 
 	if err := p.client.Sync(ctx, options, res); err != nil {
