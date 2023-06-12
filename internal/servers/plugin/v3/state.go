@@ -23,14 +23,13 @@ const keyColumn = "key"
 const valueColumn = "value"
 
 type ClientV3 struct {
-	client        pbPlugin.PluginClient
-	encodedTables [][]byte
-	mem           map[string]string
-	keys          []string
-	values        []string
+	client pbPlugin.PluginClient
+	mem    map[string]string
+	keys   []string
+	values []string
 }
 
-func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec pbPlugin.StateBackendSpec) (state.Client, error) {
+func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec *pbPlugin.StateBackendSpec) (state.Client, error) {
 	discoveryClient := pbDiscovery.NewDiscoveryClient(conn)
 	versions, err := discoveryClient.GetVersions(ctx, &pbDiscovery.GetVersions_Request{})
 	if err != nil {
@@ -61,8 +60,7 @@ func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec pbPlugin.St
 			},
 		},
 	}
-	tables := schema.Tables{table}
-	c.encodedTables, err = tables.ToArrowSchemas().Encode()
+	tableBytes, err := table.ToArrowSchemaBytes()
 	if err != nil {
 		return nil, err
 	}
@@ -73,9 +71,17 @@ func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec pbPlugin.St
 		return nil, err
 	}
 
-	if _, err := c.client.Migrate(ctx, &pbPlugin.Migrate_Request{
-		Tables:      c.encodedTables,
-		MigrateMode: pbPlugin.MIGRATE_MODE_SAFE,
+	writeClient, err := c.client.Write(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := writeClient.Send(&pbPlugin.Write_Request{
+		Message: &pbPlugin.Write_Request_CreateTable{
+			CreateTable: &pbPlugin.MessageCreateTable{
+				Table: tableBytes,
+			},
+		},
 	}); err != nil {
 		return nil, err
 	}
@@ -94,7 +100,11 @@ func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec pbPlugin.St
 			}
 			return nil, err
 		}
-		rdr, err := ipc.NewReader(bytes.NewReader(res.Resource))
+		insertMessage := res.GetInsert()
+		if insertMessage == nil {
+			return nil, fmt.Errorf("unexpected message type %T", res)
+		}
+		rdr, err := ipc.NewReader(bytes.NewReader(insertMessage.Record))
 		if err != nil {
 			return nil, err
 		}
@@ -141,12 +151,12 @@ func (c *ClientV3) flush(ctx context.Context) error {
 		return err
 	}
 	if err := writeClient.Send(&pbPlugin.Write_Request{
-		WriteMode: pbPlugin.WRITE_MODE_WRITE_MODE_OVERWRITE,
-	}); err != nil {
-		return err
-	}
-	if err := writeClient.Send(&pbPlugin.Write_Request{
-		Resource: buf.Bytes(),
+		Message: &pbPlugin.Write_Request_Insert{
+			Insert: &pbPlugin.MessageInsert{
+				Record: buf.Bytes(),
+				Upsert: true,
+			},
+		},
 	}); err != nil {
 		return err
 	}

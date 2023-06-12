@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	"github.com/cloudquery/plugin-pb-go/specs/v0"
+	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"google.golang.org/grpc"
@@ -21,7 +21,7 @@ import (
 )
 
 func TestDestinationV1(t *testing.T) {
-	p := plugin.NewPlugin("testDestinationPlugin", "development", plugin.NewMemDBClient)
+	p := plugin.NewPlugin("testDestinationPlugin", "development", memdb.NewMemDBClient)
 	srv := Plugin(p, WithArgs("serve"), WithDestinationV0V1Server(), WithTestListener())
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -129,19 +129,20 @@ func TestDestinationV1(t *testing.T) {
 		t.Fatal(err)
 	}
 	// serversDestination
-	readCh := make(chan arrow.Record, 1)
-	if err := p.Sync(ctx, plugin.SyncOptions{
+	msgs, err := p.SyncAll(ctx, plugin.SyncOptions{
 		Tables: []string{tableName},
-	}, readCh); err != nil {
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	close(readCh)
 	totalResources := 0
-	for resource := range readCh {
+	for _, msg := range msgs {
 		totalResources++
-		if !array.RecordEqual(rec, resource) {
-			diff := plugin.RecordDiff(rec, resource)
-			t.Fatalf("diff at %d: %s", totalResources, diff)
+		m := msg.(*plugin.MessageInsert)
+		if !array.RecordEqual(rec, m.Record) {
+			// diff := plugin.RecordDiff(rec, resource)
+			// t.Fatalf("diff at %d: %s", totalResources, diff)
+			t.Fatalf("expected %v but got %v", rec, m.Record)
 		}
 	}
 	if totalResources != 1 {

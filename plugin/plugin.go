@@ -104,6 +104,9 @@ func (p *Plugin) SetLogger(logger zerolog.Logger) {
 }
 
 func (p *Plugin) Tables(ctx context.Context) (schema.Tables, error) {
+	if p.client == nil {
+		return nil, fmt.Errorf("plugin not initialized")
+	}
 	tables, err := p.client.Tables(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tables: %w", err)
@@ -132,5 +135,8 @@ func (p *Plugin) Close(ctx context.Context) error {
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
+	if p.client == nil {
+		return nil
+	}
 	return p.client.Close(ctx)
 }

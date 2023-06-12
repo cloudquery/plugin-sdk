@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"sync"
 
-	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
+	"github.com/apache/arrow/go/v13/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	"github.com/cloudquery/plugin-pb-go/specs/v0"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -23,7 +25,6 @@ type Server struct {
 	Plugin      *plugin.Plugin
 	Logger      zerolog.Logger
 	spec        specs.Destination
-	writeMode   plugin.WriteMode
 	migrateMode plugin.MigrateMode
 }
 
@@ -33,20 +34,6 @@ func (s *Server) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
 	s.spec = spec
-	switch s.spec.WriteMode {
-	case specs.WriteModeAppend:
-		s.writeMode = plugin.WriteModeAppend
-	case specs.WriteModeOverwrite:
-		s.writeMode = plugin.WriteModeOverwrite
-	case specs.WriteModeOverwriteDeleteStale:
-		s.writeMode = plugin.WriteModeOverwriteDeleteStale
-	}
-	switch s.spec.MigrateMode {
-	case specs.MigrateModeSafe:
-		s.migrateMode = plugin.MigrateModeSafe
-	case specs.MigrateModeForced:
-		s.migrateMode = plugin.MigrateModeForce
-	}
 	return &pb.Configure_Response{}, s.Plugin.Init(ctx, s.spec.Spec)
 }
 
@@ -73,13 +60,28 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	}
 	s.setPKsForTables(tables)
 
-	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables, s.migrateMode)
+	writeCh := make(chan plugin.Message)
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return s.Plugin.Write(ctx, plugin.WriteOptions{}, writeCh)
+	})
+	for _, table := range tables {
+		writeCh <- &plugin.MessageCreateTable{
+			Table:        table,
+			MigrateForce: s.migrateMode == plugin.MigrateModeForce,
+		}
+	}
+	close(writeCh)
+	if err := eg.Wait(); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to write: %v", err)
+	}
+	return &pb.Migrate_Response{}, nil
 }
 
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *Server) Write(msg pb.Destination_WriteServer) error {
-	resources := make(chan arrow.Record)
+	msgs := make(chan plugin.Message)
 
 	r, err := msg.Recv()
 	if err != nil {
@@ -108,26 +110,31 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal source spec: %v", err)
 		}
 	}
-	syncTime := r.Timestamp.AsTime()
 	s.setPKsForTables(tables)
 	eg, ctx := errgroup.WithContext(msg.Context())
-	sourceName := r.Source
 
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceName, tables, syncTime, s.writeMode, resources)
+		return s.Plugin.Write(ctx, plugin.WriteOptions{}, msgs)
 	})
+
+	for _, table := range tables {
+		msgs <- &plugin.MessageCreateTable{
+			Table:        table,
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
+		}
+	}
 
 	for {
 		r, err := msg.Recv()
 		if err == io.EOF {
-			close(resources)
+			close(msgs)
 			if err := eg.Wait(); err != nil {
 				return status.Errorf(codes.Internal, "write failed: %v", err)
 			}
 			return msg.SendAndClose(&pb.Write_Response{})
 		}
 		if err != nil {
-			close(resources)
+			close(msgs)
 			if wgErr := eg.Wait(); wgErr != nil {
 				return status.Errorf(codes.Internal, "failed to receive msg: %v and write failed: %v", err, wgErr)
 			}
@@ -135,7 +142,7 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 		}
 		rdr, err := ipc.NewReader(bytes.NewReader(r.Resource))
 		if err != nil {
-			close(resources)
+			close(msgs)
 			if wgErr := eg.Wait(); wgErr != nil {
 				return status.Errorf(codes.InvalidArgument, "failed to create reader: %v and write failed: %v", err, wgErr)
 			}
@@ -144,10 +151,14 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 		for rdr.Next() {
 			rec := rdr.Record()
 			rec.Retain()
+			msg := &plugin.MessageInsert{
+				Record: rec,
+				Upsert: s.spec.WriteMode == specs.WriteModeOverwrite || s.spec.WriteMode == specs.WriteModeOverwriteDeleteStale,
+			}
 			select {
-			case resources <- rec:
+			case msgs <- msg:
 			case <-ctx.Done():
-				close(resources)
+				close(msgs)
 				if err := eg.Wait(); err != nil {
 					return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
 				}
@@ -190,11 +201,27 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create tables: %v", err)
 	}
 
-	if err := s.Plugin.DeleteStale(ctx, tables, req.Source, req.Timestamp.AsTime()); err != nil {
-		return nil, err
+	msgs := make(chan plugin.Message)
+	var writeErr error
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		writeErr = s.Plugin.Write(ctx, plugin.WriteOptions{}, msgs)
+	}()
+	for _, table := range tables {
+		bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+		bldr.Field(table.Columns.Index(schema.CqSourceNameColumn.Name)).(*array.StringBuilder).Append(req.Source)
+		bldr.Field(table.Columns.Index(schema.CqSyncTimeColumn.Name)).(*array.TimestampBuilder).AppendTime(req.Timestamp.AsTime())
+		msgs <- &plugin.MessageDeleteStale{
+			Table:      table,
+			SourceName: req.Source,
+			SyncTime:   req.Timestamp.AsTime(),
+		}
 	}
-
-	return &pb.DeleteStale_Response{}, nil
+	close(msgs)
+	wg.Wait()
+	return &pb.DeleteStale_Response{}, writeErr
 }
 
 func (s *Server) setPKsForTables(tables schema.Tables) {

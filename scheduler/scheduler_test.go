@@ -3,29 +3,22 @@ package scheduler
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
 type testExecutionClient struct {
 }
 
-func (t *testExecutionClient) ID() string {
+func (*testExecutionClient) ID() string {
 	return "test"
 }
 
 var _ schema.ClientMeta = &testExecutionClient{}
-
-var deterministicStableUUID = uuid.MustParse("c25355aab52c5b70a4e0c9991f5a3b87")
-var randomStableUUID = uuid.MustParse("00000000000040008000000000000000")
-
-var testSyncTime = time.Now()
 
 func testResolverSuccess(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 	res <- map[string]any{
@@ -173,10 +166,6 @@ var syncTestCases = []syncTestCase{
 		table: testTableSuccess(),
 		data: []scalar.Vector{
 			{
-				// &scalar.String{Value: "testSource", Valid: true},
-				// &scalar.Timestamp{Value: testSyncTime, Valid: true},
-				// &scalar.UUID{Value: randomStableUUID, Valid: true},
-				// &scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
 			},
 		},
@@ -196,17 +185,9 @@ var syncTestCases = []syncTestCase{
 		table: testTableRelationSuccess(),
 		data: []scalar.Vector{
 			{
-				// &scalar.String{Value: "testSource", Valid: true},
-				// &scalar.Timestamp{Value: testSyncTime, Valid: true},
-				// &scalar.UUID{Value: randomStableUUID, Valid: true},
-				// &scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
 			},
 			{
-				// &scalar.String{Value: "testSource", Valid: true},
-				// &scalar.Timestamp{Value: testSyncTime, Valid: true},
-				// &scalar.UUID{Value: randomStableUUID, Valid: true},
-				// &scalar.UUID{Value: randomStableUUID, Valid: true},
 				&scalar.Int64{Value: 3, Valid: true},
 			},
 		},
@@ -216,10 +197,6 @@ var syncTestCases = []syncTestCase{
 		table: testTableSuccessWithPK(),
 		data: []scalar.Vector{
 			{
-				// &scalar.String{Value: "testSource", Valid: true},
-				// &scalar.Timestamp{Value: testSyncTime, Valid: true},
-				// &scalar.UUID{Value: deterministicStableUUID, Valid: true},
-				// &scalar.UUID{},
 				&scalar.Int64{Value: 3, Valid: true},
 			},
 		},
@@ -240,7 +217,7 @@ func TestScheduler(t *testing.T) {
 	}
 }
 
-func testSyncTable(t *testing.T, tc syncTestCase, strategy SchedulerStrategy, deterministicCQID bool) {
+func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, deterministicCQID bool) {
 	ctx := context.Background()
 	tables := []*schema.Table{
 		tc.table,
@@ -249,7 +226,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy SchedulerStrategy, de
 	opts := []Option{
 		WithLogger(zerolog.New(zerolog.NewTestWriter(t))),
 		WithSchedulerStrategy(strategy),
-		// WithDeterministicCQId(deterministicCQID),
+		WithDeterministicCQId(deterministicCQID),
 	}
 	sc := NewScheduler(tables, &c, opts...)
 	records := make(chan arrow.Record, 10)

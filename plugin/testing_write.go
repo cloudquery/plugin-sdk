@@ -2,17 +2,13 @@ package plugin
 
 import (
 	"context"
-	"sort"
-	"strings"
 	"testing"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/cloudquery/plugin-sdk/v4/types"
 )
 
-type PluginTestSuite struct {
+type WriterTestSuite struct {
 	tests PluginTestSuiteTests
 
 	plugin *Plugin
@@ -45,8 +41,8 @@ type PluginTestSuiteTests struct {
 	// Usually when a destination is not supporting primary keys
 	SkipUpsert bool
 
-	// SkipDelete skips testing MessageDelete events.
-	SkipDelete bool
+	// SkipDeleteStale skips testing MessageDelete events.
+	SkipDeleteStale bool
 
 	// SkipAppend skips testing MessageInsert and Upsert=false.
 	SkipInsert bool
@@ -61,27 +57,27 @@ type PluginTestSuiteTests struct {
 
 type NewPluginFunc func() *Plugin
 
-func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *PluginTestSuite) {
-	return func(o *PluginTestSuite) {
+func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *WriterTestSuite) {
+	return func(o *WriterTestSuite) {
 		o.allowNull = allowNull
 	}
 }
 
-func WithTestIgnoreNullsInLists() func(o *PluginTestSuite) {
-	return func(o *PluginTestSuite) {
+func WithTestIgnoreNullsInLists() func(o *WriterTestSuite) {
+	return func(o *WriterTestSuite) {
 		o.ignoreNullsInLists = true
 	}
 }
 
-func WithTestDataOptions(opts schema.TestSourceOptions) func(o *PluginTestSuite) {
-	return func(o *PluginTestSuite) {
+func WithTestDataOptions(opts schema.TestSourceOptions) func(o *WriterTestSuite) {
+	return func(o *WriterTestSuite) {
 		o.genDatOptions = opts
 	}
 }
 
-func PluginTestSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, opts ...func(o *PluginTestSuite)) {
+func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, opts ...func(o *WriterTestSuite)) {
 	t.Helper()
-	suite := &PluginTestSuite{
+	suite := &WriterTestSuite{
 		tests:  tests,
 		plugin: p,
 	}
@@ -112,12 +108,12 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, 
 		}
 	})
 
-	t.Run("TestDelete", func(t *testing.T) {
+	t.Run("TestDeleteStale", func(t *testing.T) {
 		t.Helper()
-		if suite.tests.SkipDelete {
+		if suite.tests.SkipDeleteStale {
 			t.Skip("skipping " + t.Name())
 		}
-		if err := suite.testDelete(ctx); err != nil {
+		if err := suite.testDeleteStale(ctx); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -127,25 +123,7 @@ func PluginTestSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, 
 		if suite.tests.SkipMigrate {
 			t.Skip("skipping " + t.Name())
 		}
-		migrateMode := MigrateModeSafe
-		writeMode := WriteModeOverwrite
-		suite.destinationPluginTestMigrate(ctx, t, p, migrateMode, writeMode, tests.MigrateStrategyOverwrite, opts)
-	})
-
-}
-
-func sortRecordsBySyncTime(table *schema.Table, records []arrow.Record) {
-	syncTimeIndex := table.Columns.Index(schema.CqSyncTimeColumn.Name)
-	cqIDIndex := table.Columns.Index(schema.CqIDColumn.Name)
-	sort.Slice(records, func(i, j int) bool {
-		// sort by sync time, then UUID
-		first := records[i].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
-		second := records[j].Column(syncTimeIndex).(*array.Timestamp).Value(0).ToTime(arrow.Millisecond)
-		if first.Equal(second) {
-			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
-			secondUUID := records[j].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
-			return strings.Compare(firstUUID, secondUUID) < 0
-		}
-		return first.Before(second)
+		suite.testMigrate(ctx, t, MigrateModeSafe)
+		suite.testMigrate(ctx, t, MigrateModeForce)
 	})
 }

@@ -13,7 +13,7 @@ import (
 type testBatchClient struct {
 }
 
-func (c *testBatchClient) WriteTableBatch(ctx context.Context, table *schema.Table, resources []arrow.Record) error {
+func (c *testBatchClient) WriteTableBatch(context.Context, *schema.Table, []arrow.Record) error {
 	return nil
 }
 
