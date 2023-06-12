@@ -100,11 +100,12 @@ func (*Plugin) removeDuplicatesByPK(table *schema.Table, resources []arrow.Recor
 
 func (p *Plugin) writeManagedTableBatch(ctx context.Context, _ specs.Source, tables schema.Tables, _ time.Time, res <-chan arrow.Record) error {
 	workers := make(map[string]*worker, len(tables))
-	metrics := &Metrics{}
 
 	p.workersLock.Lock()
 	for _, table := range tables {
 		table := table
+		metrics := &Metrics{}
+		p.metrics[table.Name] = metrics
 		if p.workers[table.Name] == nil {
 			ch := make(chan arrow.Record)
 			flush := make(chan chan bool)

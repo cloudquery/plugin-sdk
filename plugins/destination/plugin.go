@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -164,8 +165,8 @@ func (p *Plugin) Metrics() Metrics {
 		metrics := Metrics{}
 		p.metricsLock.RLock()
 		for _, m := range p.metrics {
-			metrics.Errors += m.Errors
-			metrics.Writes += m.Writes
+			metrics.Errors += atomic.LoadUint64(&m.Errors)
+			metrics.Writes += atomic.LoadUint64(&m.Writes)
 		}
 		p.metricsLock.RUnlock()
 		return metrics
