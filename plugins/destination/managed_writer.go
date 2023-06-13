@@ -55,16 +55,6 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 			done <- true
 		case <-ctx.Done():
 			// this means the request was cancelled
-			func() {
-				// we need to use a separate ctx
-				ctx, cancel := context.WithTimeout(context.Background(), p.batchTimeout)
-				defer cancel()
-
-				p.flush(ctx, metrics, table, resources)
-
-				resources = resources[:0]
-				sizeBytes = 0
-			}()
 			return // after this NO other call will succeed
 		}
 	}
