@@ -9,9 +9,14 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/internal/pk"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
+
+type Writer interface {
+	Write(ctx context.Context, res <-chan plugin.Message) error
+}
 
 const (
 	defaultBatchTimeoutSeconds = 20
