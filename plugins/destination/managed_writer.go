@@ -35,7 +35,7 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 			}
 			if len(resources) == p.spec.BatchSize || sizeBytes+util.TotalRecordSize(r) > int64(p.spec.BatchSizeBytes) {
 				p.flush(ctx, metrics, table, resources)
-				resources = make([]arrow.Record, 0)
+				resources = resources[:0] // allows for mem reuse
 				sizeBytes = 0
 			}
 			resources = append(resources, r)
@@ -43,16 +43,19 @@ func (p *Plugin) worker(ctx context.Context, metrics *Metrics, table *schema.Tab
 		case <-time.After(p.batchTimeout):
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
-				resources = make([]arrow.Record, 0)
+				resources = resources[:0] // allows for mem reuse
 				sizeBytes = 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
 				p.flush(ctx, metrics, table, resources)
-				resources = make([]arrow.Record, 0)
+				resources = resources[:0] // allows for mem reuse
 				sizeBytes = 0
 			}
 			done <- true
+		case <-ctx.Done():
+			// this means the request was cancelled
+			return // after this NO other call will succeed
 		}
 	}
 }
