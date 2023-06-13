@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.5](https://github.com/cloudquery/plugin-sdk/compare/v3.10.4...v3.10.5) (2023-06-13)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 0f7bd3b ([#961](https://github.com/cloudquery/plugin-sdk/issues/961)) ([21f3b68](https://github.com/cloudquery/plugin-sdk/commit/21f3b68d45d79e9e726cbe395044a3560145003d))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 6b7fa9c ([#962](https://github.com/cloudquery/plugin-sdk/issues/962)) ([78eecf2](https://github.com/cloudquery/plugin-sdk/commit/78eecf2f4cf4027c7c37c8297ff7845debf49fd8))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 71dfe94 ([#953](https://github.com/cloudquery/plugin-sdk/issues/953)) ([b48ae1a](https://github.com/cloudquery/plugin-sdk/commit/b48ae1a546a5f4e73e88793da9afda3b91f3ba08))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 7f6aaff ([#963](https://github.com/cloudquery/plugin-sdk/issues/963)) ([8c7acdd](https://github.com/cloudquery/plugin-sdk/commit/8c7acdd63318bdc270b6fd1141db14148f7ba68c))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 8f72077 ([#958](https://github.com/cloudquery/plugin-sdk/issues/958)) ([6f6c993](https://github.com/cloudquery/plugin-sdk/commit/6f6c9936e24f9460c253a297df44415dd4eef64f))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 90670b8 ([#955](https://github.com/cloudquery/plugin-sdk/issues/955)) ([047ab30](https://github.com/cloudquery/plugin-sdk/commit/047ab3066139a00ad665b8ff766bd7f57e70803f))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to b359e74 ([#960](https://github.com/cloudquery/plugin-sdk/issues/960)) ([7e95e7d](https://github.com/cloudquery/plugin-sdk/commit/7e95e7dbadd1b12772eadc8607f267310ca5583e))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to d8eacf8 ([#966](https://github.com/cloudquery/plugin-sdk/issues/966)) ([2d32679](https://github.com/cloudquery/plugin-sdk/commit/2d3267979a6c66c7fd89a284e2d369b10338a7af))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to e258cfb ([#957](https://github.com/cloudquery/plugin-sdk/issues/957)) ([df842e0](https://github.com/cloudquery/plugin-sdk/commit/df842e01437f51b835f83683001c4fb15fc36b7a))
+* **transformers:** Ability to transform `any` with TypeTransformer ([#956](https://github.com/cloudquery/plugin-sdk/issues/956)) ([c989c28](https://github.com/cloudquery/plugin-sdk/commit/c989c288ab2fa6f34f6dd71ed7a8fc4597db085e))
+
 ## [3.10.4](https://github.com/cloudquery/plugin-sdk/compare/v3.10.3...v3.10.4) (2023-06-06)
 
 
