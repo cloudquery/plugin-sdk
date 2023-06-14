@@ -3,6 +3,7 @@ package writers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -12,58 +13,184 @@ import (
 )
 
 type testMixedBatchClient struct {
+	receivedBatches [][]plugin.Message
 }
 
-func (c *testMixedBatchClient) CreateTableBatch(ctx context.Context, resources []plugin.MessageCreateTable) error {
+func (c *testMixedBatchClient) CreateTableBatch(ctx context.Context, msgs []plugin.MessageCreateTable) error {
+	m := make([]plugin.Message, len(msgs))
+	for i, msg := range msgs {
+		m[i] = msg
+	}
+	c.receivedBatches = append(c.receivedBatches, m)
 	return nil
 }
 
-func (c *testMixedBatchClient) InsertBatch(ctx context.Context, resources []plugin.MessageInsert) error {
+func (c *testMixedBatchClient) InsertBatch(ctx context.Context, msgs []plugin.MessageInsert) error {
+	m := make([]plugin.Message, len(msgs))
+	for i, msg := range msgs {
+		m[i] = msg
+	}
+	c.receivedBatches = append(c.receivedBatches, m)
 	return nil
 }
 
-func (c *testMixedBatchClient) DeleteStaleBatch(ctx context.Context, resources []plugin.MessageDeleteStale) error {
+func (c *testMixedBatchClient) DeleteStaleBatch(ctx context.Context, msgs []plugin.MessageDeleteStale) error {
+	m := make([]plugin.Message, len(msgs))
+	for i, msg := range msgs {
+		m[i] = msg
+	}
+	c.receivedBatches = append(c.receivedBatches, m)
 	return nil
 }
 
 func TestMixedBatchWriter(t *testing.T) {
 	ctx := context.Background()
-	tables := schema.Tables{
+
+	// message to create table1
+	table1 := &schema.Table{
+		Name: "table1",
+		Columns: []schema.Column{
+			{
+				Name: "id",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+		},
+	}
+	msgCreateTable1 := plugin.MessageCreateTable{
+		Table:        table1,
+		MigrateForce: false,
+	}
+
+	// message to create table2
+	table2 := &schema.Table{
+		Name: "table2",
+		Columns: []schema.Column{
+			{
+				Name: "id",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+		},
+	}
+	msgCreateTable2 := plugin.MessageCreateTable{
+		Table:        table2,
+		MigrateForce: false,
+	}
+
+	// message to insert into table1
+	bldr1 := array.NewRecordBuilder(memory.DefaultAllocator, table1.ToArrowSchema())
+	bldr1.Field(0).(*array.Int64Builder).Append(1)
+	rec1 := bldr1.NewRecord()
+	msgInsertTable1 := plugin.MessageInsert{
+		Record: rec1,
+	}
+
+	// message to insert into table2
+	bldr2 := array.NewRecordBuilder(memory.DefaultAllocator, table1.ToArrowSchema())
+	bldr2.Field(0).(*array.Int64Builder).Append(1)
+	rec2 := bldr2.NewRecord()
+	msgInsertTable2 := plugin.MessageInsert{
+		Record: rec2,
+		Upsert: false,
+	}
+
+	// message to delete stale from table1
+	msgDeleteStale1 := plugin.MessageDeleteStale{
+		Table:      table1,
+		SourceName: "my-source",
+		SyncTime:   time.Now(),
+	}
+	msgDeleteStale2 := plugin.MessageDeleteStale{
+		Table:      table1,
+		SourceName: "my-source",
+		SyncTime:   time.Now(),
+	}
+
+	testCases := []struct {
+		name        string
+		messages    []plugin.Message
+		wantBatches [][]plugin.Message
+	}{
 		{
-			Name: "table1",
-			Columns: []schema.Column{
-				{
-					Name: "id",
-					Type: arrow.PrimitiveTypes.Int64,
-				},
+			name: "create table, insert, delete stale",
+			messages: []plugin.Message{
+				msgCreateTable1,
+				msgCreateTable2,
+				msgInsertTable1,
+				msgInsertTable2,
+				msgDeleteStale1,
+				msgDeleteStale2,
+			},
+			wantBatches: [][]plugin.Message{
+				{msgCreateTable1, msgCreateTable2},
+				{msgInsertTable1, msgInsertTable2},
+				{msgDeleteStale1, msgDeleteStale2},
 			},
 		},
 		{
-			Name: "table2",
-			Columns: []schema.Column{
-				{
-					Name: "id",
-					Type: arrow.PrimitiveTypes.Int64,
-				},
+			name: "interleaved messages",
+			messages: []plugin.Message{
+				msgCreateTable1,
+				msgInsertTable1,
+				msgDeleteStale1,
+				msgCreateTable2,
+				msgInsertTable2,
+				msgDeleteStale2,
+			},
+			wantBatches: [][]plugin.Message{
+				{msgCreateTable1},
+				{msgInsertTable1},
+				{msgDeleteStale1},
+				{msgCreateTable2},
+				{msgInsertTable2},
+				{msgDeleteStale2},
+			},
+		},
+		{
+			name: "interleaved messages",
+			messages: []plugin.Message{
+				msgCreateTable1,
+				msgCreateTable2,
+				msgInsertTable1,
+				msgDeleteStale2,
+				msgInsertTable2,
+				msgDeleteStale1,
+			},
+			wantBatches: [][]plugin.Message{
+				{msgCreateTable1, msgCreateTable2},
+				{msgInsertTable1},
+				{msgDeleteStale2},
+				{msgInsertTable2},
+				{msgDeleteStale1},
 			},
 		},
 	}
 
-	wr, err := NewMixedBatchWriter(tables, &testMixedBatchClient{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	ch := make(chan plugin.Message, 1)
-
-	bldr := array.NewRecordBuilder(memory.DefaultAllocator, tables[0].ToArrowSchema())
-	bldr.Field(0).(*array.Int64Builder).Append(1)
-	rec := bldr.NewRecord()
-	msg := plugin.MessageInsert{
-		Record: rec,
-	}
-	ch <- msg
-	close(ch)
-	if err := wr.Write(ctx, ch); err != nil {
-		t.Fatal(err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tables := schema.Tables([]*schema.Table{table1, table2})
+			client := &testMixedBatchClient{
+				receivedBatches: make([][]plugin.Message, 0),
+			}
+			wr, err := NewMixedBatchWriter(tables, client)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ch := make(chan plugin.Message, len(tc.messages))
+			for _, msg := range tc.messages {
+				ch <- msg
+			}
+			close(ch)
+			if err := wr.Write(ctx, ch); err != nil {
+				t.Fatal(err)
+			}
+			if len(client.receivedBatches) != len(tc.wantBatches) {
+				t.Fatalf("got %d batches, want %d", len(client.receivedBatches), len(tc.wantBatches))
+			}
+			for i, wantBatch := range tc.wantBatches {
+				if len(client.receivedBatches[i]) != len(wantBatch) {
+					t.Fatalf("got %d messages in batch %d, want %d", len(client.receivedBatches[i]), i, len(wantBatch))
+				}
+			}
+		})
 	}
 }
