@@ -63,9 +63,8 @@ func WithMixedBatchWriterSizeBytes(size int) MixedBatchWriterOption {
 	}
 }
 
-func NewMixedBatchWriter(tables schema.Tables, client MixedBatchClient, opts ...MixedBatchWriterOption) (*MixedBatchWriter, error) {
+func NewMixedBatchWriter(client MixedBatchClient, opts ...MixedBatchWriterOption) (*MixedBatchWriter, error) {
 	c := &MixedBatchWriter{
-		tables:         tables,
 		client:         client,
 		logger:         zerolog.Nop(),
 		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
