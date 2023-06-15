@@ -31,6 +31,10 @@ type Message any
 
 type Messages []Message
 
+type CreateTables []*MessageCreateTable
+
+type Inserts []*MessageInsert
+
 func (messages Messages) InsertItems() int64 {
 	items := int64(0)
 	for _, msg := range messages {
@@ -40,4 +44,27 @@ func (messages Messages) InsertItems() int64 {
 		}
 	}
 	return items
+}
+
+func (m CreateTables) Exists(tableName string) bool {
+	for _, table := range m {
+		if table.Table.Name == tableName {
+			return true
+		}
+	}
+	return false
+}
+
+func (m Inserts) Exists(tableName string) bool {
+	for _, insert := range m {
+		md := insert.Record.Schema().Metadata()
+		tableNameMeta, ok := md.GetValue(schema.MetadataTableName)
+		if !ok {
+			continue
+		}
+		if tableNameMeta == tableName {
+			return true
+		}
+	}
+	return false
 }
