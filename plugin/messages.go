@@ -7,14 +7,27 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
+type Message interface {
+	GetTable() *schema.Table
+}
+
 type MessageCreateTable struct {
 	Table        *schema.Table
 	MigrateForce bool
 }
 
+func (m MessageCreateTable) GetTable() *schema.Table {
+	return m.Table
+}
+
 type MessageInsert struct {
+	Table  *schema.Table
 	Record arrow.Record
 	Upsert bool
+}
+
+func (m MessageInsert) GetTable() *schema.Table {
+	return m.Table
 }
 
 // MessageDeleteStale is a pretty specific message which requires the destination to be aware of a CLI use-case
@@ -27,7 +40,9 @@ type MessageDeleteStale struct {
 	SyncTime   time.Time
 }
 
-type Message any
+func (m MessageDeleteStale) GetTable() *schema.Table {
+	return m.Table
+}
 
 type Messages []Message
 
