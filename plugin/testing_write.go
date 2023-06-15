@@ -27,8 +27,8 @@ type WriterTestSuite struct {
 	genDatOptions schema.TestSourceOptions
 }
 
-// NonForceMigrations defines which migrations are supported by the plugin in non-force mode
-type NonForceMigrations struct {
+// SafeMigrations defines which migrations are supported by the plugin in safe migrate mode
+type SafeMigrations struct {
 	AddColumn           bool
 	AddColumnNotNull    bool
 	RemoveColumn        bool
@@ -50,9 +50,9 @@ type PluginTestSuiteTests struct {
 	// SkipMigrate skips testing migration
 	SkipMigrate bool
 
-	// NonForceMigrations defines which tests should work with force migration
+	// SafeMigrations defines which tests should work with force migration
 	// and which should pass with safe migration
-	NonForceMigrations NonForceMigrations
+	SafeMigrations SafeMigrations
 }
 
 type NewPluginFunc func() *Plugin
