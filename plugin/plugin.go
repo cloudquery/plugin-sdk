@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
@@ -16,6 +17,7 @@ type NewClientFunc func(context.Context, zerolog.Logger, any) (Client, error)
 type Client interface {
 	Tables(ctx context.Context) (schema.Tables, error)
 	Sync(ctx context.Context, options SyncOptions, res chan<- Message) error
+	Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error
 	Write(ctx context.Context, options WriteOptions, res <-chan Message) error
 	Close(ctx context.Context) error
 }
@@ -24,6 +26,10 @@ type UnimplementedWriter struct{}
 
 func (UnimplementedWriter) Write(ctx context.Context, options WriteOptions, res <-chan Message) error {
 	return ErrNotImplemented
+}
+
+func (UnimplementedWriter) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
+	return fmt.Errorf("not implemented")
 }
 
 type UnimplementedSync struct{}
