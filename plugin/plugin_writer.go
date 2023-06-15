@@ -5,6 +5,7 @@ import (
 )
 
 type WriteOptions struct {
+	MigrateForce bool
 }
 
 // this function is currently used mostly for testing so it's not a public api

@@ -65,12 +65,13 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	writeCh := make(chan plugin.Message)
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{}, writeCh)
+		return s.Plugin.Write(ctx, plugin.WriteOptions{
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
+		}, writeCh)
 	})
 	for _, table := range tables {
 		writeCh <- &plugin.MessageCreateTable{
-			Table:        table,
-			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
+			Table: table,
 		}
 	}
 	close(writeCh)
@@ -118,13 +119,14 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	eg, ctx := errgroup.WithContext(msg.Context())
 	// sourceName := r.Source
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{}, msgs)
+		return s.Plugin.Write(ctx, plugin.WriteOptions{
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
+		}, msgs)
 	})
 
 	for _, table := range tables {
 		msgs <- &plugin.MessageCreateTable{
-			Table:        table,
-			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
+			Table: table,
 		}
 	}
 

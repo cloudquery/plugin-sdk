@@ -103,6 +103,17 @@ func TestPluginServe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	if err := writeClient.Send(&pb.Write_Request{
+		Message: &pb.Write_Request_Options{
+			Options: &pb.WriteOptions{
+				MigrateForce: true,
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
 	if err := writeClient.Send(&pb.Write_Request{
 		Message: &pb.Write_Request_CreateTable{
 			CreateTable: &pb.MessageCreateTable{
