@@ -167,11 +167,10 @@ func TestMixedBatchWriter(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tables := schema.Tables([]*schema.Table{table1, table2})
 			client := &testMixedBatchClient{
 				receivedBatches: make([][]plugin.Message, 0),
 			}
-			wr, err := NewMixedBatchWriter(tables, client)
+			wr, err := NewMixedBatchWriter(client)
 			if err != nil {
 				t.Fatal(err)
 			}
