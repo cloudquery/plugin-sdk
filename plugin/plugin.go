@@ -75,7 +75,7 @@ func maxDepth(tables schema.Tables) uint64 {
 }
 
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
-// Depending on the options, it can be write only plugin, read only plugin or both.
+// Depending on the options, it can be a write-only plugin, read-only plugin, or both.
 func NewPlugin(name string, version string, newClient NewClientFunc, options ...Option) *Plugin {
 	p := Plugin{
 		name:            name,
