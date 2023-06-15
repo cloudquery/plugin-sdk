@@ -17,7 +17,7 @@ func TestPlugin(t *testing.T) {
 		t,
 		p,
 		plugin.PluginTestSuiteTests{
-			NonForceMigrations: plugin.NonForceMigrations{},
+			SafeMigrations: plugin.SafeMigrations{},
 		},
 	)
 }
