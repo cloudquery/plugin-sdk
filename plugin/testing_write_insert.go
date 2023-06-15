@@ -44,9 +44,6 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 	readRecords, err := s.plugin.readAll(ctx, table)
-	// messages, err := s.plugin.SyncAll(ctx, SyncOptions{
-	// 	Tables: []string{tableName},
-	// })
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
@@ -64,9 +61,6 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 	}
 
 	readRecords, err = s.plugin.readAll(ctx, table)
-	// messages, err = s.plugin.SyncAll(ctx, SyncOptions{
-	// 	Tables: []string{tableName},
-	// })
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
