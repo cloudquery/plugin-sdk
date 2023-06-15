@@ -11,6 +11,14 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
+func TotalRows(records []arrow.Record) int64 {
+	totalRows := int64(0)
+	for _, record := range records {
+		totalRows += record.NumRows()
+	}
+	return totalRows
+}
+
 func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 	tableName := fmt.Sprintf("cq_test_insert_%d", time.Now().Unix())
 	table := &schema.Table{
@@ -35,14 +43,16 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
-
-	messages, err := s.plugin.SyncAll(ctx, SyncOptions{
-		Tables: []string{tableName},
-	})
+	readRecords, err := s.plugin.readAll(ctx, table)
+	// messages, err := s.plugin.SyncAll(ctx, SyncOptions{
+	// 	Tables: []string{tableName},
+	// })
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	totalItems := messages.InsertItems()
+	
+
+	totalItems := TotalRows(readRecords)
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
@@ -53,14 +63,15 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	messages, err = s.plugin.SyncAll(ctx, SyncOptions{
-		Tables: []string{tableName},
-	})
+	readRecords, err = s.plugin.readAll(ctx, table)
+	// messages, err = s.plugin.SyncAll(ctx, SyncOptions{
+	// 	Tables: []string{tableName},
+	// })
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
 
-	totalItems = messages.InsertItems()
+	totalItems = TotalRows(readRecords)
 	if totalItems != 2 {
 		return fmt.Errorf("expected 2 item, got %d", totalItems)
 	}

@@ -106,6 +106,19 @@ func NewBatchWriter(client BatchWriterClient, opts ...Option) (*BatchWriter, err
 	return c, nil
 }
 
+func (w *BatchWriter) Flush(ctx context.Context) error {
+	w.workersLock.RLock()
+	for _, worker := range w.workers {
+		done := make(chan bool)
+		worker.flush <- done
+		<-done
+	}
+	w.workersLock.RUnlock()
+	w.flushCreateTables(ctx)
+	w.flushDeleteStaleTables(ctx)
+	return nil
+}
+
 func (w *BatchWriter) Close(ctx context.Context) error {
 	w.workersLock.Lock()
 	defer w.workersLock.Unlock()

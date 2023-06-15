@@ -45,13 +45,15 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	messages, err := s.plugin.SyncAll(ctx, SyncOptions{
-		Tables: []string{source.Name},
-	})
+	// messages, err := s.plugin.SyncAll(ctx, SyncOptions{
+	// 	Tables: []string{source.Name},
+	// })
+	records, err := s.plugin.readAll(ctx, source)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	totalItems := messages.InsertItems()
+	// totalItems := messages.InsertItems()
+	totalItems := TotalRows(records)
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
@@ -68,20 +70,28 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	messages, err = s.plugin.SyncAll(ctx, SyncOptions{
-		Tables: []string{source.Name},
-	})
+	// messages, err = s.plugin.SyncAll(ctx, SyncOptions{
+	// 	Tables: []string{source.Name},
+	// })
+	records, err = s.plugin.readAll(ctx, source)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
+<<<<<<< HEAD
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
 	if !writeOptionMigrateForce || supportsSafeMigrate {
 		totalItems = messages.InsertItems()
+=======
+	if !writeOptionMigrateForce || supportNonForce {
+		// totalItems = messages.InsertItems()
+		totalItems = TotalRows(records)
+>>>>>>> a0daa22 (use read method instead of sync for write testing)
 		if totalItems != 2 {
 			return fmt.Errorf("expected 2 item, got %d", totalItems)
 		}
 	} else {
-		totalItems = messages.InsertItems()
+		// totalItems = messages.InsertItems()
+		totalItems = TotalRows(records)
 		if totalItems != 1 {
 			return fmt.Errorf("expected 1 item, got %d", totalItems)
 		}
