@@ -17,7 +17,7 @@ func tableUUIDSuffix() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "_")
 }
 
-func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportNonForce bool, writeOptionMigrateForce bool) error {
+func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
 	if err := s.plugin.writeOne(ctx, WriteOptions{
 		writeOptionMigrateForce,
 	}, &MessageCreateTable{
@@ -74,7 +74,8 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	if !writeOptionMigrateForce || supportNonForce {
+	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
+	if !writeOptionMigrateForce || supportsSafeMigrate {
 		totalItems = messages.InsertItems()
 		if totalItems != 2 {
 			return fmt.Errorf("expected 2 item, got %d", totalItems)
@@ -95,7 +96,7 @@ func (s *WriterTestSuite) testMigrate(
 	forceMigrate bool,
 ) {
 	t.Run("add_column", func(t *testing.T) {
-		if !forceMigrate && !s.tests.NonForceMigrations.AddColumn {
+		if !forceMigrate && !s.tests.SafeMigrations.AddColumn {
 			t.Skip("skipping test: add_column")
 		}
 		tableName := "add_column_" + tableUUIDSuffix()
@@ -113,13 +114,13 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		}
-		if err := s.migrate(ctx, target, source, s.tests.NonForceMigrations.AddColumn, forceMigrate); err != nil {
+		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.AddColumn, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate %s: %v", tableName, err)
 		}
 	})
 
 	t.Run("add_column_not_null", func(t *testing.T) {
-		if !forceMigrate && !s.tests.NonForceMigrations.AddColumnNotNull {
+		if !forceMigrate && !s.tests.SafeMigrations.AddColumnNotNull {
 			t.Skip("skipping test: add_column_not_null")
 		}
 		tableName := "add_column_not_null_" + tableUUIDSuffix()
@@ -136,13 +137,13 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.NonForceMigrations.AddColumnNotNull, forceMigrate); err != nil {
+		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.AddColumnNotNull, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate add_column_not_null: %v", err)
 		}
 	})
 
 	t.Run("remove_column", func(t *testing.T) {
-		if !forceMigrate && !s.tests.NonForceMigrations.RemoveColumn {
+		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumn {
 			t.Skip("skipping test: remove_column")
 		}
 		tableName := "remove_column_" + tableUUIDSuffix()
@@ -157,13 +158,13 @@ func (s *WriterTestSuite) testMigrate(
 			Columns: schema.ColumnList{
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.NonForceMigrations.RemoveColumn, forceMigrate); err != nil {
+		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveColumn, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate remove_column: %v", err)
 		}
 	})
 
 	t.Run("remove_column_not_null", func(t *testing.T) {
-		if !forceMigrate && !s.tests.NonForceMigrations.RemoveColumnNotNull {
+		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumnNotNull {
 			t.Skip("skipping test: remove_column_not_null")
 		}
 		tableName := "remove_column_not_null_" + tableUUIDSuffix()
@@ -179,13 +180,13 @@ func (s *WriterTestSuite) testMigrate(
 			Columns: schema.ColumnList{
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.NonForceMigrations.RemoveColumnNotNull, forceMigrate); err != nil {
+		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveColumnNotNull, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate remove_column_not_null: %v", err)
 		}
 	})
 
 	t.Run("change_column", func(t *testing.T) {
-		if !forceMigrate && !s.tests.NonForceMigrations.ChangeColumn {
+		if !forceMigrate && !s.tests.SafeMigrations.ChangeColumn {
 			t.Skip("skipping test: change_column")
 		}
 		tableName := "change_column_" + tableUUIDSuffix()
@@ -201,7 +202,7 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.BinaryTypes.String, NotNull: true},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.NonForceMigrations.ChangeColumn, forceMigrate); err != nil {
+		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.ChangeColumn, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate change_column: %v", err)
 		}
 	})
