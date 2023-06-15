@@ -5,6 +5,20 @@ import "strings"
 // The character which is treated like a glob
 const GLOB = "*"
 
+func IncludeTable(name string, tables []string, skipTables []string) bool {
+	for _, t := range skipTables {
+		if Glob(t, name) {
+			return false
+		}
+	}
+	for _, t := range tables {
+		if Glob(t, name) {
+			return true
+		}
+	}
+	return false
+}
+
 // Glob will test a string pattern, potentially containing globs, against a
 // subject string. The result is a simple true/false, determining whether or
 // not the glob pattern matched the subject text.

@@ -40,13 +40,15 @@ func (s *WriterTestSuite) testUpsert(ctx context.Context) error {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	messages, err := s.plugin.SyncAll(ctx, SyncOptions{
-		Tables: []string{tableName},
-	})
+	// messages, err := s.plugin.SyncAll(ctx, SyncOptions{
+	// 	Tables: []string{tableName},
+	// })
+	records, err := s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	totalItems := messages.InsertItems()
+	// totalItems := messages.InsertItems()
+	totalItems := TotalRows(records)
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
@@ -60,14 +62,16 @@ func (s *WriterTestSuite) testUpsert(ctx context.Context) error {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	messages, err = s.plugin.SyncAll(ctx, SyncOptions{
-		Tables: []string{tableName},
-	})
+	// messages, err = s.plugin.SyncAll(ctx, SyncOptions{
+	// 	Tables: []string{tableName},
+	// })
+	records, err = s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
 
-	totalItems = messages.InsertItems()
+	// totalItems = messages.InsertItems()
+	totalItems = TotalRows(records)
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}

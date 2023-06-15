@@ -8,7 +8,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
-	"github.com/cloudquery/plugin-sdk/v4/internal/glob"
+	"github.com/cloudquery/plugin-sdk/v4/glob"
 	"golang.org/x/exp/slices"
 )
 

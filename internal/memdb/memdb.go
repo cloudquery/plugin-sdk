@@ -84,6 +84,17 @@ func (c *client) ID() string {
 	return "testDestinationMemDB"
 }
 
+func (c *client) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
+	c.memoryDBLock.RLock()
+	defer c.memoryDBLock.RUnlock()
+
+	tableName := table.Name
+	for _, row := range c.memoryDB[tableName] {
+		res <- row
+	}
+	return nil
+}
+
 func (c *client) Sync(ctx context.Context, options plugin.SyncOptions, res chan<- plugin.Message) error {
 	c.memoryDBLock.RLock()
 

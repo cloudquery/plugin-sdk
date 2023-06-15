@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
@@ -22,6 +23,11 @@ func newTestPluginClient(context.Context, zerolog.Logger, any) (Client, error) {
 func (c *testPluginClient) Tables(ctx context.Context) (schema.Tables, error) {
 	return schema.Tables{}, nil
 }
+
+func (c *testPluginClient) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
+	return nil
+}
+
 func (c *testPluginClient) Sync(ctx context.Context, options SyncOptions, res chan<- Message) error {
 	for _, msg := range c.messages {
 		res <- msg
