@@ -26,7 +26,7 @@ require (
 	google.golang.org/protobuf v1.30.0
 )
 
-replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230614001223-4d762310b3c9
+replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230615001300-d86471932763
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
