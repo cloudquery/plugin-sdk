@@ -57,8 +57,7 @@ func TestMixedBatchWriter(t *testing.T) {
 		},
 	}
 	msgCreateTable1 := plugin.MessageCreateTable{
-		Table:        table1,
-		MigrateForce: false,
+		Table: table1,
 	}
 
 	// message to create table2
@@ -72,8 +71,7 @@ func TestMixedBatchWriter(t *testing.T) {
 		},
 	}
 	msgCreateTable2 := plugin.MessageCreateTable{
-		Table:        table2,
-		MigrateForce: false,
+		Table: table2,
 	}
 
 	// message to insert into table1

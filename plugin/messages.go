@@ -12,8 +12,7 @@ type Message interface {
 }
 
 type MessageCreateTable struct {
-	Table        *schema.Table
-	MigrateForce bool
+	Table *schema.Table
 }
 
 func (m MessageCreateTable) GetTable() *schema.Table {

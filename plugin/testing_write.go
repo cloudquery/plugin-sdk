@@ -27,13 +27,13 @@ type WriterTestSuite struct {
 	genDatOptions schema.TestSourceOptions
 }
 
-// MigrateStrategy defines which tests we should include
-type MigrateStrategy struct {
-	AddColumn           MigrateMode
-	AddColumnNotNull    MigrateMode
-	RemoveColumn        MigrateMode
-	RemoveColumnNotNull MigrateMode
-	ChangeColumn        MigrateMode
+// NonForceMigrations defines which migrations are supported by the plugin in non-force mode
+type NonForceMigrations struct {
+	AddColumn           bool
+	AddColumnNotNull    bool
+	RemoveColumn        bool
+	RemoveColumnNotNull bool
+	ChangeColumn        bool
 }
 
 type PluginTestSuiteTests struct {
@@ -50,9 +50,9 @@ type PluginTestSuiteTests struct {
 	// SkipMigrate skips testing migration
 	SkipMigrate bool
 
-	// MigrateStrategy defines which tests should work with force migration
+	// NonForceMigrations defines which tests should work with force migration
 	// and which should pass with safe migration
-	MigrateStrategy MigrateStrategy
+	NonForceMigrations NonForceMigrations
 }
 
 type NewPluginFunc func() *Plugin
@@ -123,7 +123,7 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, 
 		if suite.tests.SkipMigrate {
 			t.Skip("skipping " + t.Name())
 		}
-		suite.testMigrate(ctx, t, MigrateModeSafe)
-		suite.testMigrate(ctx, t, MigrateModeForce)
+		suite.testMigrate(ctx, t, false)
+		suite.testMigrate(ctx, t, true)
 	})
 }
