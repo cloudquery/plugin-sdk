@@ -3,54 +3,194 @@ package writers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 type testBatchClient struct {
+	createTables []*plugin.MessageCreateTable
+	inserts      []*plugin.MessageInsert
+	deleteStales []*plugin.MessageDeleteStale
 }
 
-func (c *testBatchClient) WriteTableBatch(context.Context, *schema.Table, []arrow.Record) error {
+func (c *testBatchClient) CreateTables(_ context.Context, msgs []*plugin.MessageCreateTable) error {
+	c.createTables = append(c.createTables, msgs...)
 	return nil
 }
 
-func TestBatchWriter(t *testing.T) {
-	ctx := context.Background()
-	tables := schema.Tables{
-		{
-			Name: "table1",
-			Columns: []schema.Column{
-				{
-					Name: "id",
-					Type: arrow.PrimitiveTypes.Int64,
-				},
-			},
-		},
-		{
-			Name: "table2",
-			Columns: []schema.Column{
-				{
-					Name: "id",
-					Type: arrow.PrimitiveTypes.Int64,
-				},
-			},
-		},
-	}
+func (c *testBatchClient) WriteTableBatch(_ context.Context, _ string, _ bool, msgs []*plugin.MessageInsert) error {
+	c.inserts = append(c.inserts, msgs...)
+	return nil
+}
+func (c *testBatchClient) DeleteStale(_ context.Context, msgs []*plugin.MessageDeleteStale) error {
+	c.deleteStales = append(c.deleteStales, msgs...)
+	return nil
+}
 
-	wr, err := NewBatchWriter(tables, &testBatchClient{})
+var batchTestTables = schema.Tables{
+	{
+		Name: "table1",
+		Columns: []schema.Column{
+			{
+				Name: "id",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+		},
+	},
+	{
+		Name: "table2",
+		Columns: []schema.Column{
+			{
+				Name: "id",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+		},
+	},
+}
+
+// TestBatchFlushDifferentMessages tests that if writer receives a message of a new type all other pending
+// batches are flushed.
+func TestBatchFlushDifferentMessages(t *testing.T) {
+	ctx := context.Background()
+
+	testClient := &testBatchClient{}
+	wr, err := NewBatchWriter(testClient)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ch := make(chan arrow.Record, 1)
 
-	bldr := array.NewRecordBuilder(memory.DefaultAllocator, tables[0].ToArrowSchema())
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, batchTestTables[0].ToArrowSchema())
 	bldr.Field(0).(*array.Int64Builder).Append(1)
-	ch <- bldr.NewRecord()
-	close(ch)
-	if err := wr.Write(ctx, ch); err != nil {
+	record := bldr.NewRecord()
+	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageCreateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
+	}
+	if len(testClient.createTables) != 0 {
+		t.Fatalf("expected 0 create table messages, got %d", len(testClient.createTables))
+	}
+	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{Record: record}}); err != nil {
+		t.Fatal(err)
+	}
+	if len(testClient.createTables) != 1 {
+		t.Fatalf("expected 1 create table messages, got %d", len(testClient.createTables))
+	}
+
+	if len(testClient.inserts) != 0 {
+		t.Fatalf("expected 0 insert messages, got %d", len(testClient.inserts))
+	}
+
+	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageCreateTable{Table: batchTestTables[0]}}); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(testClient.inserts) != 1 {
+		t.Fatalf("expected 1 insert messages, got %d", len(testClient.inserts))
+	}
+}
+
+func TestBatchSize(t *testing.T) {
+	ctx := context.Background()
+
+	testClient := &testBatchClient{}
+	wr, err := NewBatchWriter(testClient, WithBatchSize(2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
+	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{
+		Record: record,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(testClient.inserts) != 0 {
+		t.Fatalf("expected 0 create table messages, got %d", len(testClient.inserts))
+	}
+
+	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{
+		Record: record,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	// we need to wait for the batch to be flushed
+	time.Sleep(time.Second * 2)
+
+	if len(testClient.inserts) != 2 {
+		t.Fatalf("expected 2 create table messages, got %d", len(testClient.inserts))
+	}
+}
+
+func TestBatchTimeout(t *testing.T) {
+	ctx := context.Background()
+
+	testClient := &testBatchClient{}
+	wr, err := NewBatchWriter(testClient, WithBatchTimeout(time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
+	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{
+		Record: record,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(testClient.inserts) != 0 {
+		t.Fatalf("expected 0 create table messages, got %d", len(testClient.inserts))
+	}
+
+	// we need to wait for the batch to be flushed
+	time.Sleep(time.Millisecond * 250)
+
+	if len(testClient.inserts) != 0 {
+		t.Fatalf("expected 0 create table messages, got %d", len(testClient.inserts))
+	}
+
+	// we need to wait for the batch to be flushed
+	time.Sleep(time.Second * 1)
+
+	if len(testClient.inserts) != 1 {
+		t.Fatalf("expected 1 create table messages, got %d", len(testClient.inserts))
+	}
+}
+
+func TestBatchUpserts(t *testing.T) {
+	ctx := context.Background()
+
+	testClient := &testBatchClient{}
+	wr, err := NewBatchWriter(testClient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
+	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{
+		Record: record,
+		Upsert: true,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(testClient.inserts) != 0 {
+		t.Fatalf("expected 0 create table messages, got %d", len(testClient.inserts))
+	}
+
+	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{
+		Record: record,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	// we need to wait for the batch to be flushed
+	time.Sleep(time.Second * 2)
+
+	if len(testClient.inserts) != 1 {
+		t.Fatalf("expected 1 create table messages, got %d", len(testClient.inserts))
 	}
 }
