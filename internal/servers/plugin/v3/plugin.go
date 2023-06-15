@@ -112,8 +112,7 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			m.Table.ToArrowSchema()
 			pbMsg.Message = &pb.Sync_Response_CreateTable{
 				CreateTable: &pb.MessageCreateTable{
-					Table:        nil,
-					MigrateForce: m.MigrateForce,
+					Table: nil,
 				},
 			}
 		case *plugin.MessageInsert:
@@ -162,10 +161,19 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 
 func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 	msgs := make(chan plugin.Message)
-
+	r, err := msg.Recv()
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
+	}
+	pbWriteOptions, ok := r.Message.(*pb.Write_Request_Options)
+	if !ok {
+		return status.Errorf(codes.Internal, "expected options message, got %T", r.Message)
+	}
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{}, msgs)
+		return s.Plugin.Write(ctx, plugin.WriteOptions{
+			MigrateForce: pbWriteOptions.Options.MigrateForce,
+		}, msgs)
 	})
 
 	for {
@@ -194,8 +202,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				break
 			}
 			pluginMessage = &plugin.MessageCreateTable{
-				Table:        table,
-				MigrateForce: pbMsg.CreateTable.MigrateForce,
+				Table: table,
 			}
 		case *pb.Write_Request_Insert:
 			record, err := schema.NewRecordFromBytes(pbMsg.Insert.Record)

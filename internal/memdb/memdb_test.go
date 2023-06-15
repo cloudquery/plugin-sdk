@@ -13,17 +13,11 @@ func TestPlugin(t *testing.T) {
 	if err := p.Init(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
-	plugin.PluginTestSuiteRunner(
+	plugin.TestWriterSuiteRunner(
 		t,
 		p,
 		plugin.PluginTestSuiteTests{
-			MigrateStrategy: plugin.MigrateStrategy{
-				AddColumn:           plugin.MigrateModeForce,
-				AddColumnNotNull:    plugin.MigrateModeForce,
-				RemoveColumn:        plugin.MigrateModeForce,
-				RemoveColumnNotNull: plugin.MigrateModeForce,
-				ChangeColumn:        plugin.MigrateModeForce,
-			},
+			NonForceMigrations: plugin.NonForceMigrations{},
 		},
 	)
 }

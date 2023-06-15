@@ -17,8 +17,10 @@ func tableUUIDSuffix() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "_")
 }
 
-func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, strategy MigrateMode, mode MigrateMode) error {
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageCreateTable{
+func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportNonForce bool, writeOptionMigrateForce bool) error {
+	if err := s.plugin.writeOne(ctx, WriteOptions{
+		writeOptionMigrateForce,
+	}, &MessageCreateTable{
 		Table: source,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
@@ -35,7 +37,9 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 
 	resource1 := schema.GenTestData(source, opts)[0]
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
+	if err := s.plugin.writeOne(ctx, WriteOptions{
+		MigrateForce: writeOptionMigrateForce,
+	}, &MessageInsert{
 		Record: resource1,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
@@ -52,9 +56,8 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageCreateTable{
-		Table:        target,
-		MigrateForce: strategy == MigrateModeForce,
+	if err := s.plugin.writeOne(ctx, WriteOptions{MigrateForce: writeOptionMigrateForce}, &MessageCreateTable{
+		Table: target,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
@@ -71,7 +74,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	if strategy == MigrateModeSafe || mode == MigrateModeSafe {
+	if !writeOptionMigrateForce || supportNonForce {
 		totalItems = messages.InsertItems()
 		if totalItems != 2 {
 			return fmt.Errorf("expected 2 item, got %d", totalItems)
@@ -89,12 +92,11 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 func (s *WriterTestSuite) testMigrate(
 	ctx context.Context,
 	t *testing.T,
-	mode MigrateMode,
+	forceMigrate bool,
 ) {
 	t.Run("add_column", func(t *testing.T) {
-		if s.tests.MigrateStrategy.AddColumn == MigrateModeForce && mode == MigrateModeSafe {
-			t.Skip("skipping as migrate mode is safe")
-			return
+		if !forceMigrate && !s.tests.NonForceMigrations.AddColumn {
+			t.Skip("skipping test: add_column")
 		}
 		tableName := "add_column_" + tableUUIDSuffix()
 		source := &schema.Table{
@@ -111,15 +113,14 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		}
-		if err := s.migrate(ctx, target, source, s.tests.MigrateStrategy.AddColumn, mode); err != nil {
+		if err := s.migrate(ctx, target, source, s.tests.NonForceMigrations.AddColumn, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate %s: %v", tableName, err)
 		}
 	})
 
 	t.Run("add_column_not_null", func(t *testing.T) {
-		if s.tests.MigrateStrategy.AddColumnNotNull == MigrateModeForce && mode == MigrateModeSafe {
-			t.Skip("skipping as migrate mode is safe")
-			return
+		if !forceMigrate && !s.tests.NonForceMigrations.AddColumnNotNull {
+			t.Skip("skipping test: add_column_not_null")
 		}
 		tableName := "add_column_not_null_" + tableUUIDSuffix()
 		source := &schema.Table{
@@ -135,15 +136,14 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.MigrateStrategy.AddColumnNotNull, mode); err != nil {
+		if err := s.migrate(ctx, target, source, s.tests.NonForceMigrations.AddColumnNotNull, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate add_column_not_null: %v", err)
 		}
 	})
 
 	t.Run("remove_column", func(t *testing.T) {
-		if s.tests.MigrateStrategy.RemoveColumn == MigrateModeForce && mode == MigrateModeSafe {
-			t.Skip("skipping as migrate mode is safe")
-			return
+		if !forceMigrate && !s.tests.NonForceMigrations.RemoveColumn {
+			t.Skip("skipping test: remove_column")
 		}
 		tableName := "remove_column_" + tableUUIDSuffix()
 		source := &schema.Table{
@@ -157,15 +157,14 @@ func (s *WriterTestSuite) testMigrate(
 			Columns: schema.ColumnList{
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.MigrateStrategy.RemoveColumn, mode); err != nil {
+		if err := s.migrate(ctx, target, source, s.tests.NonForceMigrations.RemoveColumn, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate remove_column: %v", err)
 		}
 	})
 
 	t.Run("remove_column_not_null", func(t *testing.T) {
-		if s.tests.MigrateStrategy.RemoveColumnNotNull == MigrateModeForce && mode == MigrateModeSafe {
-			t.Skip("skipping as migrate mode is safe")
-			return
+		if !forceMigrate && !s.tests.NonForceMigrations.RemoveColumnNotNull {
+			t.Skip("skipping test: remove_column_not_null")
 		}
 		tableName := "remove_column_not_null_" + tableUUIDSuffix()
 		source := &schema.Table{
@@ -180,15 +179,14 @@ func (s *WriterTestSuite) testMigrate(
 			Columns: schema.ColumnList{
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.MigrateStrategy.RemoveColumnNotNull, mode); err != nil {
+		if err := s.migrate(ctx, target, source, s.tests.NonForceMigrations.RemoveColumnNotNull, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate remove_column_not_null: %v", err)
 		}
 	})
 
 	t.Run("change_column", func(t *testing.T) {
-		if s.tests.MigrateStrategy.ChangeColumn == MigrateModeForce && mode == MigrateModeSafe {
-			t.Skip("skipping as migrate mode is safe")
-			return
+		if !forceMigrate && !s.tests.NonForceMigrations.ChangeColumn {
+			t.Skip("skipping test: change_column")
 		}
 		tableName := "change_column_" + tableUUIDSuffix()
 		source := &schema.Table{
@@ -203,7 +201,7 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "id", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.BinaryTypes.String, NotNull: true},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.MigrateStrategy.ChangeColumn, mode); err != nil {
+		if err := s.migrate(ctx, target, source, s.tests.NonForceMigrations.ChangeColumn, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate change_column: %v", err)
 		}
 	})
