@@ -16,7 +16,7 @@ type testMixedBatchClient struct {
 	receivedBatches [][]plugin.Message
 }
 
-func (c *testMixedBatchClient) CreateTableBatch(ctx context.Context, msgs []plugin.MessageCreateTable) error {
+func (c *testMixedBatchClient) CreateTableBatch(ctx context.Context, msgs []*plugin.MessageCreateTable, options plugin.WriteOptions) error {
 	m := make([]plugin.Message, len(msgs))
 	for i, msg := range msgs {
 		m[i] = msg
@@ -25,7 +25,7 @@ func (c *testMixedBatchClient) CreateTableBatch(ctx context.Context, msgs []plug
 	return nil
 }
 
-func (c *testMixedBatchClient) InsertBatch(ctx context.Context, msgs []plugin.MessageInsert) error {
+func (c *testMixedBatchClient) InsertBatch(ctx context.Context, msgs []*plugin.MessageInsert, options plugin.WriteOptions) error {
 	m := make([]plugin.Message, len(msgs))
 	for i, msg := range msgs {
 		m[i] = msg
@@ -34,7 +34,7 @@ func (c *testMixedBatchClient) InsertBatch(ctx context.Context, msgs []plugin.Me
 	return nil
 }
 
-func (c *testMixedBatchClient) DeleteStaleBatch(ctx context.Context, msgs []plugin.MessageDeleteStale) error {
+func (c *testMixedBatchClient) DeleteStaleBatch(ctx context.Context, msgs []*plugin.MessageDeleteStale, options plugin.WriteOptions) error {
 	m := make([]plugin.Message, len(msgs))
 	for i, msg := range msgs {
 		m[i] = msg
@@ -42,6 +42,8 @@ func (c *testMixedBatchClient) DeleteStaleBatch(ctx context.Context, msgs []plug
 	c.receivedBatches = append(c.receivedBatches, m)
 	return nil
 }
+
+var _ MixedBatchClient = (*testMixedBatchClient)(nil)
 
 func TestMixedBatchWriter(t *testing.T) {
 	ctx := context.Background()
@@ -56,7 +58,7 @@ func TestMixedBatchWriter(t *testing.T) {
 			},
 		},
 	}
-	msgCreateTable1 := plugin.MessageCreateTable{
+	msgCreateTable1 := &plugin.MessageCreateTable{
 		Table: table1,
 	}
 
@@ -70,7 +72,7 @@ func TestMixedBatchWriter(t *testing.T) {
 			},
 		},
 	}
-	msgCreateTable2 := plugin.MessageCreateTable{
+	msgCreateTable2 := &plugin.MessageCreateTable{
 		Table: table2,
 	}
 
@@ -78,7 +80,7 @@ func TestMixedBatchWriter(t *testing.T) {
 	bldr1 := array.NewRecordBuilder(memory.DefaultAllocator, table1.ToArrowSchema())
 	bldr1.Field(0).(*array.Int64Builder).Append(1)
 	rec1 := bldr1.NewRecord()
-	msgInsertTable1 := plugin.MessageInsert{
+	msgInsertTable1 := &plugin.MessageInsert{
 		Record: rec1,
 	}
 
@@ -86,18 +88,18 @@ func TestMixedBatchWriter(t *testing.T) {
 	bldr2 := array.NewRecordBuilder(memory.DefaultAllocator, table1.ToArrowSchema())
 	bldr2.Field(0).(*array.Int64Builder).Append(1)
 	rec2 := bldr2.NewRecord()
-	msgInsertTable2 := plugin.MessageInsert{
+	msgInsertTable2 := &plugin.MessageInsert{
 		Record: rec2,
 		Upsert: false,
 	}
 
 	// message to delete stale from table1
-	msgDeleteStale1 := plugin.MessageDeleteStale{
+	msgDeleteStale1 := &plugin.MessageDeleteStale{
 		Table:      table1,
 		SourceName: "my-source",
 		SyncTime:   time.Now(),
 	}
-	msgDeleteStale2 := plugin.MessageDeleteStale{
+	msgDeleteStale2 := &plugin.MessageDeleteStale{
 		Table:      table1,
 		SourceName: "my-source",
 		SyncTime:   time.Now(),
@@ -177,7 +179,7 @@ func TestMixedBatchWriter(t *testing.T) {
 				ch <- msg
 			}
 			close(ch)
-			if err := wr.Write(ctx, ch); err != nil {
+			if err := wr.Write(ctx, plugin.WriteOptions{}, ch); err != nil {
 				t.Fatal(err)
 			}
 			if len(client.receivedBatches) != len(tc.wantBatches) {
