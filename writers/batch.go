@@ -12,6 +12,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/semaphore"
 )
 
 type Writer interface {
@@ -20,19 +21,25 @@ type Writer interface {
 
 const (
 	defaultBatchTimeoutSeconds = 20
+	defaultMaxWorkers          = int64(10000)
 	defaultBatchSize           = 10000
 	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
 )
 
 type BatchWriterClient interface {
-	WriteTableBatch(ctx context.Context, table *schema.Table, resources []arrow.Record) error
+	CreateTables(context.Context, []*plugin.MessageCreateTable) error
+	WriteTableBatch(ctx context.Context, name string, upsert bool, msgs []*plugin.MessageInsert) error
+	DeleteStale(context.Context, []*plugin.MessageDeleteStale) error
 }
 
 type BatchWriter struct {
-	tables      schema.Tables
-	client      BatchWriterClient
-	workers     map[string]*worker
-	workersLock *sync.Mutex
+	client              BatchWriterClient
+	semaphore           *semaphore.Weighted
+	workers             map[string]*worker
+	workersLock         *sync.RWMutex
+	workersWaitGroup    *sync.WaitGroup
+	createTableMessages []*plugin.MessageCreateTable
+	deleteStaleMessages []*plugin.MessageDeleteStale
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
@@ -54,6 +61,12 @@ func WithBatchTimeout(timeout time.Duration) Option {
 	}
 }
 
+func WithMaxWorkers(n int64) Option {
+	return func(p *BatchWriter) {
+		p.semaphore = semaphore.NewWeighted(n)
+	}
+}
+
 func WithBatchSize(size int) Option {
 	return func(p *BatchWriter) {
 		p.batchSize = size
@@ -69,56 +82,80 @@ func WithBatchSizeBytes(size int) Option {
 type worker struct {
 	count int
 	wg    *sync.WaitGroup
-	ch    chan arrow.Record
+	ch    chan *plugin.MessageInsert
 	flush chan chan bool
 }
 
-func NewBatchWriter(tables schema.Tables, client BatchWriterClient, opts ...Option) (*BatchWriter, error) {
+func NewBatchWriter(client BatchWriterClient, opts ...Option) (*BatchWriter, error) {
 	c := &BatchWriter{
-		tables:         tables,
-		client:         client,
-		workers:        make(map[string]*worker),
-		workersLock:    &sync.Mutex{},
-		logger:         zerolog.Nop(),
-		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
-		batchSize:      defaultBatchSize,
-		batchSizeBytes: defaultBatchSizeBytes,
+		client:           client,
+		workers:          make(map[string]*worker),
+		workersLock:      &sync.RWMutex{},
+		workersWaitGroup: &sync.WaitGroup{},
+		logger:           zerolog.Nop(),
+		batchTimeout:     defaultBatchTimeoutSeconds * time.Second,
+		batchSize:        defaultBatchSize,
+		batchSizeBytes:   defaultBatchSizeBytes,
+		semaphore:        semaphore.NewWeighted(defaultMaxWorkers),
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
+	c.createTableMessages = make([]*plugin.MessageCreateTable, 0, c.batchSize)
+	c.deleteStaleMessages = make([]*plugin.MessageDeleteStale, 0, c.batchSize)
 	return c, nil
 }
 
-func (w *BatchWriter) worker(ctx context.Context, table *schema.Table, ch <-chan arrow.Record, flush <-chan chan bool) {
+func (w *BatchWriter) Close(ctx context.Context) error {
+	w.workersLock.Lock()
+	defer w.workersLock.Unlock()
+	for _, w := range w.workers {
+		close(w.ch)
+	}
+	w.workersWaitGroup.Wait()
+
+	return nil
+}
+
+func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *plugin.MessageInsert, flush <-chan chan bool) {
 	sizeBytes := int64(0)
-	resources := make([]arrow.Record, 0)
+	resources := make([]*plugin.MessageInsert, 0)
+	upsertBatch := false
 	for {
 		select {
 		case r, ok := <-ch:
 			if !ok {
 				if len(resources) > 0 {
-					w.flush(ctx, table, resources)
+					w.flush(ctx, tableName, upsertBatch, resources)
 				}
 				return
 			}
-			if uint64(len(resources)) == 1000 || sizeBytes+util.TotalRecordSize(r) > int64(1000) {
-				w.flush(ctx, table, resources)
-				resources = make([]arrow.Record, 0)
+			if upsertBatch != r.Upsert {
+				w.flush(ctx, tableName, upsertBatch, resources)
+				resources = make([]*plugin.MessageInsert, 0)
+				sizeBytes = 0
+				upsertBatch = r.Upsert
+				resources = append(resources, r)
+				sizeBytes = util.TotalRecordSize(r.Record)
+			} else {
+				resources = append(resources, r)
+				sizeBytes += util.TotalRecordSize(r.Record)
+			}
+			if len(resources) >= w.batchSize || sizeBytes+util.TotalRecordSize(r.Record) >= int64(w.batchSizeBytes) {
+				w.flush(ctx, tableName, upsertBatch, resources)
+				resources = make([]*plugin.MessageInsert, 0)
 				sizeBytes = 0
 			}
-			resources = append(resources, r)
-			sizeBytes += util.TotalRecordSize(r)
 		case <-time.After(w.batchTimeout):
 			if len(resources) > 0 {
-				w.flush(ctx, table, resources)
-				resources = make([]arrow.Record, 0)
+				w.flush(ctx, tableName, upsertBatch, resources)
+				resources = make([]*plugin.MessageInsert, 0)
 				sizeBytes = 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
-				w.flush(ctx, table, resources)
-				resources = make([]arrow.Record, 0)
+				w.flush(ctx, tableName, upsertBatch, resources)
+				resources = make([]*plugin.MessageInsert, 0)
 				sizeBytes = 0
 			}
 			done <- true
@@ -126,14 +163,14 @@ func (w *BatchWriter) worker(ctx context.Context, table *schema.Table, ch <-chan
 	}
 }
 
-func (w *BatchWriter) flush(ctx context.Context, table *schema.Table, resources []arrow.Record) {
-	resources = w.removeDuplicatesByPK(table, resources)
+func (w *BatchWriter) flush(ctx context.Context, tableName string, upsertBatch bool, resources []*plugin.MessageInsert) {
+	// resources = w.removeDuplicatesByPK(table, resources)
 	start := time.Now()
 	batchSize := len(resources)
-	if err := w.client.WriteTableBatch(ctx, table, resources); err != nil {
-		w.logger.Err(err).Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
+	if err := w.client.WriteTableBatch(ctx, tableName, upsertBatch, resources); err != nil {
+		w.logger.Err(err).Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 	} else {
-		w.logger.Info().Str("table", table.Name).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+		w.logger.Info().Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 	}
 }
 
@@ -164,68 +201,122 @@ func (*BatchWriter) removeDuplicatesByPK(table *schema.Table, resources []arrow.
 	return res
 }
 
-func (w *BatchWriter) Write(ctx context.Context, res <-chan arrow.Record) error {
-	workers := make(map[string]*worker, len(w.tables))
+func (w *BatchWriter) flushCreateTables(ctx context.Context) error {
+	if err := w.client.CreateTables(ctx, w.createTableMessages); err != nil {
+		return err
+	}
+	w.createTableMessages = w.createTableMessages[:0]
+	return nil
+}
 
-	w.workersLock.Lock()
-	for _, table := range w.tables {
-		table := table
-		if w.workers[table.Name] == nil {
-			ch := make(chan arrow.Record)
-			flush := make(chan chan bool)
-			wg := &sync.WaitGroup{}
-			w.workers[table.Name] = &worker{
-				count: 1,
-				ch:    ch,
-				flush: flush,
-				wg:    wg,
+func (w *BatchWriter) flushDeleteStaleTables(ctx context.Context) error {
+	if err := w.client.DeleteStale(ctx, w.deleteStaleMessages); err != nil {
+		return err
+	}
+	w.deleteStaleMessages = w.deleteStaleMessages[:0]
+	return nil
+}
+
+func (w *BatchWriter) flushInsert(ctx context.Context, tableName string) {
+	w.workersLock.RLock()
+	worker, ok := w.workers[tableName]
+	if !ok {
+		w.workersLock.RUnlock()
+		// no tables to flush
+		return
+	}
+	w.workersLock.RUnlock()
+	ch := make(chan bool)
+	worker.flush <- ch
+	<-ch
+}
+
+func (w *BatchWriter) writeAll(ctx context.Context, msgs []plugin.Message) error {
+	ch := make(chan plugin.Message, len(msgs))
+	for _, msg := range msgs {
+		ch <- msg
+	}
+	close(ch)
+	return w.Write(ctx, ch)
+}
+
+func (w *BatchWriter) Write(ctx context.Context, msgs <-chan plugin.Message) error {
+	for msg := range msgs {
+		switch m := msg.(type) {
+		case *plugin.MessageDeleteStale:
+			if len(w.createTableMessages) > 0 {
+				if err := w.flushCreateTables(ctx); err != nil {
+					return err
+				}
 			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				w.worker(ctx, table, ch, flush)
-			}()
-		} else {
-			w.workers[table.Name].count++
+			w.flushInsert(ctx, m.Table.Name)
+			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
+			if len(w.deleteStaleMessages) > w.batchSize {
+				if err := w.flushDeleteStaleTables(ctx); err != nil {
+					return err
+				}
+			}
+		case *plugin.MessageInsert:
+			if len(w.createTableMessages) > 0 {
+				if err := w.flushCreateTables(ctx); err != nil {
+					return err
+				}
+			}
+			if len(w.deleteStaleMessages) > 0 {
+				if err := w.flushDeleteStaleTables(ctx); err != nil {
+					return err
+				}
+			}
+			if err := w.startWorker(ctx, m); err != nil {
+				return err
+			}
+		case *plugin.MessageCreateTable:
+			w.flushInsert(ctx, m.Table.Name)
+			if len(w.deleteStaleMessages) > 0 {
+				if err := w.flushDeleteStaleTables(ctx); err != nil {
+					return err
+				}
+			}
+			w.createTableMessages = append(w.createTableMessages, m)
+			if len(w.createTableMessages) > w.batchSize {
+				if err := w.flushCreateTables(ctx); err != nil {
+					return err
+				}
+			}
 		}
-		// we save this locally because we don't want to access the map after that so we can
-		// keep the workersLock for as short as possible
-		workers[table.Name] = w.workers[table.Name]
 	}
-	w.workersLock.Unlock()
+	return nil
+}
 
-	for r := range res {
-		tableName, ok := r.Schema().Metadata().GetValue(schema.MetadataTableName)
-		if !ok {
-			return fmt.Errorf("missing table name in record metadata")
-		}
-		if _, ok := workers[tableName]; !ok {
-			return fmt.Errorf("table %s not found in destination", tableName)
-		}
-		workers[tableName].ch <- r
+func (w *BatchWriter) startWorker(ctx context.Context, msg *plugin.MessageInsert) error {
+	w.workersLock.RLock()
+	md := msg.Record.Schema().Metadata()
+	tableName, ok := md.GetValue(schema.MetadataTableName)
+	if !ok {
+		w.workersLock.RUnlock()
+		return fmt.Errorf("table name not found in metadata")
 	}
-
-	// flush and wait for all workers to finish flush before finish and calling delete stale
-	// This is because destinations can be longed lived and called from multiple sources
-	flushChannels := make(map[string]chan bool, len(workers))
-	for tableName, w := range workers {
-		flushCh := make(chan bool)
-		flushChannels[tableName] = flushCh
-		w.flush <- flushCh
+	wr, ok := w.workers[tableName]
+	w.workersLock.RUnlock()
+	if ok {
+		w.workers[tableName].ch <- msg
+		return nil
 	}
-	for tableName := range flushChannels {
-		<-flushChannels[tableName]
-	}
-
 	w.workersLock.Lock()
-	for tableName := range workers {
-		w.workers[tableName].count--
-		if w.workers[tableName].count == 0 {
-			close(w.workers[tableName].ch)
-			w.workers[tableName].wg.Wait()
-			delete(w.workers, tableName)
-		}
+	ch := make(chan *plugin.MessageInsert)
+	flush := make(chan chan bool)
+	wr = &worker{
+		count: 1,
+		ch:    ch,
+		flush: flush,
 	}
+	w.workers[tableName] = wr
 	w.workersLock.Unlock()
+	w.workersWaitGroup.Add(1)
+	go func() {
+		defer w.workersWaitGroup.Done()
+		w.worker(ctx, tableName, ch, flush)
+	}()
+	ch <- msg
 	return nil
 }
