@@ -9,6 +9,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var ErrNotImplemented = fmt.Errorf("not implemented")
+
 type NewClientFunc func(context.Context, zerolog.Logger, any) (Client, error)
 
 type Client interface {
@@ -21,17 +23,17 @@ type Client interface {
 type UnimplementedWriter struct{}
 
 func (UnimplementedWriter) Write(ctx context.Context, options WriteOptions, res <-chan Message) error {
-	return fmt.Errorf("not implemented")
+	return ErrNotImplemented
 }
 
 type UnimplementedSync struct{}
 
 func (UnimplementedSync) Sync(ctx context.Context, options SyncOptions, res chan<- Message) error {
-	return fmt.Errorf("not implemented")
+	return ErrNotImplemented
 }
 
 func (UnimplementedSync) Tables(ctx context.Context) (schema.Tables, error) {
-	return nil, fmt.Errorf("not implemented")
+	return nil, ErrNotImplemented
 }
 
 // Plugin is the base structure required to pass to sdk.serve

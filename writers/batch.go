@@ -16,7 +16,7 @@ import (
 )
 
 type Writer interface {
-	Write(ctx context.Context, res <-chan plugin.Message) error
+	Write(ctx context.Context, writeOptions plugin.WriteOptions, res <-chan plugin.Message) error
 }
 
 const (
