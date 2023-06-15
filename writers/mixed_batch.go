@@ -2,6 +2,7 @@ package writers
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/util"
@@ -20,9 +21,9 @@ var allMsgTypes = []int{msgTypeCreateTable, msgTypeInsert, msgTypeDeleteStale}
 
 // MixedBatchClient is a client that will receive batches of messages with a mixture of tables.
 type MixedBatchClient interface {
-	CreateTableBatch(ctx context.Context, messages []plugin.MessageCreateTable) error
-	InsertBatch(ctx context.Context, messages []plugin.MessageInsert) error
-	DeleteStaleBatch(ctx context.Context, messages []plugin.MessageDeleteStale) error
+	CreateTableBatch(ctx context.Context, messages []*plugin.MessageCreateTable, options plugin.WriteOptions) error
+	InsertBatch(ctx context.Context, messages []*plugin.MessageInsert, options plugin.WriteOptions) error
+	DeleteStaleBatch(ctx context.Context, messages []*plugin.MessageDeleteStale, options plugin.WriteOptions) error
 }
 
 type MixedBatchWriter struct {
@@ -79,30 +80,33 @@ func NewMixedBatchWriter(client MixedBatchClient, opts ...MixedBatchWriterOption
 
 func msgID(msg plugin.Message) int {
 	switch msg.(type) {
-	case plugin.MessageCreateTable:
+	case plugin.MessageCreateTable, *plugin.MessageCreateTable:
 		return msgTypeCreateTable
-	case plugin.MessageInsert:
+	case plugin.MessageInsert, *plugin.MessageInsert:
 		return msgTypeInsert
-	case plugin.MessageDeleteStale:
+	case plugin.MessageDeleteStale, *plugin.MessageDeleteStale:
 		return msgTypeDeleteStale
 	}
-	panic("unknown message type")
+	panic("unknown message type: " + reflect.TypeOf(msg).Name())
 }
 
 // Write starts listening for messages on the msgChan channel and writes them to the client in batches.
-func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan plugin.Message) error {
-	createTable := &batchManager[plugin.MessageCreateTable]{
-		batch:     make([]plugin.MessageCreateTable, 0, w.batchSize),
-		writeFunc: w.client.CreateTableBatch,
+func (w *MixedBatchWriter) Write(ctx context.Context, options plugin.WriteOptions, msgChan <-chan plugin.Message) error {
+	createTable := &batchManager[*plugin.MessageCreateTable]{
+		batch:        make([]*plugin.MessageCreateTable, 0, w.batchSize),
+		writeFunc:    w.client.CreateTableBatch,
+		writeOptions: options,
 	}
 	insert := &insertBatchManager{
-		batch:             make([]plugin.MessageInsert, 0, w.batchSize),
+		batch:             make([]*plugin.MessageInsert, 0, w.batchSize),
 		writeFunc:         w.client.InsertBatch,
 		maxBatchSizeBytes: int64(w.batchSizeBytes),
+		writeOptions:      options,
 	}
-	deleteStale := &batchManager[plugin.MessageDeleteStale]{
-		batch:     make([]plugin.MessageDeleteStale, 0, w.batchSize),
-		writeFunc: w.client.DeleteStaleBatch,
+	deleteStale := &batchManager[*plugin.MessageDeleteStale]{
+		batch:        make([]*plugin.MessageDeleteStale, 0, w.batchSize),
+		writeFunc:    w.client.DeleteStaleBatch,
+		writeOptions: options,
 	}
 	flush := func(msgType int) error {
 		switch msgType {
@@ -127,11 +131,11 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan plugin.Mess
 		}
 		prevMsgType = msgType
 		switch v := msg.(type) {
-		case plugin.MessageCreateTable:
+		case *plugin.MessageCreateTable:
 			err = createTable.append(ctx, v)
-		case plugin.MessageInsert:
+		case *plugin.MessageInsert:
 			err = insert.append(ctx, v)
-		case plugin.MessageDeleteStale:
+		case *plugin.MessageDeleteStale:
 			err = deleteStale.append(ctx, v)
 		default:
 			panic("unknown message type")
@@ -140,13 +144,17 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan plugin.Mess
 			return err
 		}
 	}
+	if prevMsgType == -1 {
+		return nil
+	}
 	return flush(prevMsgType)
 }
 
 // generic batch manager for most message types
 type batchManager[T plugin.Message] struct {
-	batch     []T
-	writeFunc func(ctx context.Context, messages []T) error
+	batch        []T
+	writeFunc    func(ctx context.Context, messages []T, options plugin.WriteOptions) error
+	writeOptions plugin.WriteOptions
 }
 
 func (m *batchManager[T]) append(ctx context.Context, msg T) error {
@@ -164,7 +172,7 @@ func (m *batchManager[T]) flush(ctx context.Context) error {
 		return nil
 	}
 
-	err := m.writeFunc(ctx, m.batch)
+	err := m.writeFunc(ctx, m.batch, m.writeOptions)
 	if err != nil {
 		return err
 	}
@@ -174,13 +182,14 @@ func (m *batchManager[T]) flush(ctx context.Context) error {
 
 // special batch manager for insert messages that also keeps track of the total size of the batch
 type insertBatchManager struct {
-	batch             []plugin.MessageInsert
-	writeFunc         func(ctx context.Context, messages []plugin.MessageInsert) error
+	batch             []*plugin.MessageInsert
+	writeFunc         func(ctx context.Context, messages []*plugin.MessageInsert, writeOptions plugin.WriteOptions) error
 	curBatchSizeBytes int64
 	maxBatchSizeBytes int64
+	writeOptions      plugin.WriteOptions
 }
 
-func (m *insertBatchManager) append(ctx context.Context, msg plugin.MessageInsert) error {
+func (m *insertBatchManager) append(ctx context.Context, msg *plugin.MessageInsert) error {
 	if len(m.batch) == cap(m.batch) || m.curBatchSizeBytes+util.TotalRecordSize(msg.Record) > m.maxBatchSizeBytes {
 		if err := m.flush(ctx); err != nil {
 			return err
@@ -196,7 +205,7 @@ func (m *insertBatchManager) flush(ctx context.Context) error {
 		return nil
 	}
 
-	err := m.writeFunc(ctx, m.batch)
+	err := m.writeFunc(ctx, m.batch, m.writeOptions)
 	if err != nil {
 		return err
 	}

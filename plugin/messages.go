@@ -20,13 +20,16 @@ func (m MessageCreateTable) GetTable() *schema.Table {
 }
 
 type MessageInsert struct {
-	Table  *schema.Table
 	Record arrow.Record
 	Upsert bool
 }
 
 func (m MessageInsert) GetTable() *schema.Table {
-	return m.Table
+	table, err := schema.NewTableFromArrowSchema(m.Record.Schema())
+	if err != nil {
+		panic(err)
+	}
+	return table
 }
 
 // MessageDeleteStale is a pretty specific message which requires the destination to be aware of a CLI use-case

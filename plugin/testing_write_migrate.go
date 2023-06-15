@@ -19,7 +19,7 @@ func tableUUIDSuffix() string {
 
 func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
 	if err := s.plugin.writeOne(ctx, WriteOptions{
-		writeOptionMigrateForce,
+		MigrateForce: writeOptionMigrateForce,
 	}, &MessageCreateTable{
 		Table: source,
 	}); err != nil {
