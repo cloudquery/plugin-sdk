@@ -153,12 +153,7 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 		for rdr.Next() {
 			rec := rdr.Record()
 			rec.Retain()
-			table, err := schema.NewTableFromArrowSchema(rec.Schema())
-			if err != nil {
-				return status.Errorf(codes.InvalidArgument, "failed to create table: %v", err)
-			}
 			msg := &plugin.MessageInsert{
-				Table:  table,
 				Record: rec,
 				Upsert: s.spec.WriteMode == specs.WriteModeOverwrite || s.spec.WriteMode == specs.WriteModeOverwriteDeleteStale,
 			}
