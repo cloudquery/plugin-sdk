@@ -8,7 +8,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	// "github.com/cloudquery/plugin-sdk/v4/types"
 )
 
 func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
@@ -38,9 +37,6 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	// messages, err := s.plugin.SyncAll(ctx, SyncOptions{
-	// 	Tables: []string{tableName},
-	// })
 	records, err := s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
@@ -63,9 +59,6 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 		return fmt.Errorf("failed to delete stale records: %w", err)
 	}
 
-	// messages, err = s.plugin.SyncAll(ctx, SyncOptions{
-	// 	Tables: []string{tableName},
-	// })
 	records, err = s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
