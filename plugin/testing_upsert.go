@@ -19,9 +19,7 @@ func (s *WriterTestSuite) testUpsert(ctx context.Context) error {
 			{Name: "name", Type: arrow.BinaryTypes.String, PrimaryKey: true},
 		},
 	}
-	if err := s.plugin.writeOne(ctx, WriteOptions{
-		EnablePrimaryKeys: true,
-	}, &MessageCreateTable{
+	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageCreateTable{
 		Table: table,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
@@ -31,9 +29,7 @@ func (s *WriterTestSuite) testUpsert(ctx context.Context) error {
 	bldr.Field(0).(*array.StringBuilder).Append("foo")
 	record := bldr.NewRecord()
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{
-		EnablePrimaryKeys: true,
-	}, &MessageInsert{
+	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
 		Record: record,
 		Upsert: true,
 	}); err != nil {
@@ -42,16 +38,14 @@ func (s *WriterTestSuite) testUpsert(ctx context.Context) error {
 
 	records, err := s.plugin.readAll(ctx, table)
 	if err != nil {
-		return fmt.Errorf("failed to sync: %w", err)
+		return fmt.Errorf("failed to readAll: %w", err)
 	}
 	totalItems := TotalRows(records)
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{
-		EnablePrimaryKeys: true,
-	}, &MessageInsert{
+	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
 		Record: record,
 		Upsert: true,
 	}); err != nil {

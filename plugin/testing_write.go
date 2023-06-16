@@ -76,7 +76,6 @@ func WithTestDataOptions(opts schema.TestSourceOptions) func(o *WriterTestSuite)
 }
 
 func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, opts ...func(o *WriterTestSuite)) {
-	t.Helper()
 	suite := &WriterTestSuite{
 		tests:  tests,
 		plugin: p,
@@ -89,7 +88,6 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, 
 	ctx := context.Background()
 
 	t.Run("TestUpsert", func(t *testing.T) {
-		t.Helper()
 		if suite.tests.SkipUpsert {
 			t.Skip("skipping " + t.Name())
 		}
@@ -99,7 +97,6 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, 
 	})
 
 	t.Run("TestInsert", func(t *testing.T) {
-		t.Helper()
 		if suite.tests.SkipInsert {
 			t.Skip("skipping " + t.Name())
 		}
@@ -109,7 +106,6 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, 
 	})
 
 	t.Run("TestDeleteStale", func(t *testing.T) {
-		t.Helper()
 		if suite.tests.SkipDeleteStale {
 			t.Skip("skipping " + t.Name())
 		}
@@ -119,7 +115,6 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, 
 	})
 
 	t.Run("TestMigrate", func(t *testing.T) {
-		t.Helper()
 		if suite.tests.SkipMigrate {
 			t.Skip("skipping " + t.Name())
 		}

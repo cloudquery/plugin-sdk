@@ -15,30 +15,27 @@ var ErrNotImplemented = fmt.Errorf("not implemented")
 type NewClientFunc func(context.Context, zerolog.Logger, any) (Client, error)
 
 type Client interface {
-	Tables(ctx context.Context) (schema.Tables, error)
-	Sync(ctx context.Context, options SyncOptions, res chan<- Message) error
-	Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error
-	Write(ctx context.Context, options WriteOptions, res <-chan Message) error
-	Close(ctx context.Context) error
+	SourceClient
+	DestinationClient
 }
 
-type UnimplementedWriter struct{}
+type UnimplementedDestination struct{}
 
-func (UnimplementedWriter) Write(ctx context.Context, options WriteOptions, res <-chan Message) error {
+func (UnimplementedDestination) Write(ctx context.Context, options WriteOptions, res <-chan Message) error {
 	return ErrNotImplemented
 }
 
-func (UnimplementedWriter) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
+func (UnimplementedDestination) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
 	return fmt.Errorf("not implemented")
 }
 
-type UnimplementedSync struct{}
+type UnimplementedSource struct{}
 
-func (UnimplementedSync) Sync(ctx context.Context, options SyncOptions, res chan<- Message) error {
+func (UnimplementedSource) Sync(ctx context.Context, options SyncOptions, res chan<- Message) error {
 	return ErrNotImplemented
 }
 
-func (UnimplementedSync) Tables(ctx context.Context) (schema.Tables, error) {
+func (UnimplementedSource) Tables(ctx context.Context) (schema.Tables, error) {
 	return nil, ErrNotImplemented
 }
 
