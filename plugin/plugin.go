@@ -13,7 +13,7 @@ import (
 
 var ErrNotImplemented = fmt.Errorf("not implemented")
 
-type NewClientFunc func(context.Context, zerolog.Logger, any) (Client, error)
+type NewClientFunc func(context.Context, zerolog.Logger, []byte) (Client, error)
 
 type Client interface {
 	SourceClient
@@ -120,13 +120,8 @@ func (p *Plugin) Tables(ctx context.Context) (schema.Tables, error) {
 	return tables, nil
 }
 
-// GetSpec returns an empty struct to be filled with the plugin's configuration.
-func (p *Plugin) GetSpec() any {
-	return p.client.GetSpec()
-}
-
 // Init initializes the plugin with the given spec.
-func (p *Plugin) Init(ctx context.Context, spec any) error {
+func (p *Plugin) Init(ctx context.Context, spec []byte) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}

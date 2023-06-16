@@ -24,6 +24,9 @@ type client struct {
 
 type Option func(*client)
 
+type Spec struct {
+}
+
 func WithErrOnWrite() Option {
 	return func(c *client) {
 		c.errOnWrite = true
@@ -44,12 +47,12 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 	for _, opt := range options {
 		opt(c)
 	}
-	return func(context.Context, zerolog.Logger, any) (plugin.Client, error) {
+	return func(context.Context, zerolog.Logger, []byte) (plugin.Client, error) {
 		return c, nil
 	}
 }
 
-func NewMemDBClient(_ context.Context, _ zerolog.Logger, spec any) (plugin.Client, error) {
+func NewMemDBClient(_ context.Context, _ zerolog.Logger, spec []byte) (plugin.Client, error) {
 	return &client{
 		memoryDB: make(map[string][]arrow.Record),
 		tables:   make(map[string]*schema.Table),
@@ -86,7 +89,7 @@ func (c *client) ID() string {
 }
 
 func (c *client) GetSpec() any {
-	return &struct{}{}
+	return &Spec{}
 }
 
 func (c *client) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
