@@ -14,7 +14,7 @@ import (
 )
 
 func tableUUIDSuffix() string {
-	return strings.ReplaceAll(uuid.NewString(), "-", "_")
+	return strings.ReplaceAll(uuid.NewString(), "-", "_")[:8] // use only first 8 chars
 }
 
 func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
@@ -40,7 +40,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
 		Record: resource1,
 	}); err != nil {
-		return fmt.Errorf("failed to insert record: %w", err)
+		return fmt.Errorf("failed to insert first record: %w", err)
 	}
 
 	records, err := s.plugin.readAll(ctx, source)
@@ -62,7 +62,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
 		Record: resource2,
 	}); err != nil {
-		return fmt.Errorf("failed to insert record: %w", err)
+		return fmt.Errorf("failed to insert second record: %w", err)
 	}
 
 	records, err = s.plugin.readAll(ctx, target)
