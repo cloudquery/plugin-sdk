@@ -40,7 +40,11 @@ func (s *Server) Configure(ctx context.Context, req *pbBase.Configure_Request) (
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
 	s.spec = spec
-	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, nil)
+	pluginSpec, err := json.Marshal(s.spec.Spec)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
+	}
+	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec)
 }
 
 func (s *Server) GetName(context.Context, *pbBase.GetName_Request) (*pbBase.GetName_Response, error) {
