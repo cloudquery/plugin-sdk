@@ -77,8 +77,8 @@ func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec *pbPlugin.S
 	}
 
 	if err := writeClient.Send(&pbPlugin.Write_Request{
-		Message: &pbPlugin.Write_Request_CreateTable{
-			CreateTable: &pbPlugin.MessageCreateTable{
+		Message: &pbPlugin.Write_Request_MigrateTable{
+			MigrateTable: &pbPlugin.MessageMigrateTable{
 				Table: tableBytes,
 			},
 		},

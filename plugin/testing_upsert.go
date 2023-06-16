@@ -19,7 +19,7 @@ func (s *WriterTestSuite) testUpsert(ctx context.Context) error {
 			{Name: "name", Type: arrow.BinaryTypes.String, PrimaryKey: true},
 		},
 	}
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageCreateTable{
+	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageMigrateTable{
 		Table: table,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)

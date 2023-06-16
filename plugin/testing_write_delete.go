@@ -20,7 +20,7 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 			schema.CqSyncTimeColumn,
 		},
 	}
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageCreateTable{
+	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageMigrateTable{
 		Table: table,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
