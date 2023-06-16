@@ -14,7 +14,7 @@ import (
 )
 
 type testBatchClient struct {
-	mutex 			 *sync.Mutex
+	mutex         *sync.Mutex
 	migrateTables []*message.MigrateTable
 	inserts       []*message.Insert
 	deleteStales  []*message.DeleteStale
@@ -114,7 +114,6 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 	if testClient.InsertsLen() != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
-
 
 	if err := wr.writeAll(ctx, []message.Message{&message.MigrateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
