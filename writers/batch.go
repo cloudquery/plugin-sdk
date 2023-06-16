@@ -13,7 +13,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
-	"golang.org/x/sync/semaphore"
 )
 
 type Writer interface {
@@ -22,7 +21,6 @@ type Writer interface {
 
 const (
 	defaultBatchTimeoutSeconds = 20
-	defaultMaxWorkers          = int64(10000)
 	defaultBatchSize           = 10000
 	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
 )
@@ -35,11 +33,13 @@ type BatchWriterClient interface {
 
 type BatchWriter struct {
 	client               BatchWriterClient
-	semaphore            *semaphore.Weighted
 	workers              map[string]*worker
 	workersLock          *sync.RWMutex
 	workersWaitGroup     *sync.WaitGroup
+
+	migrateTableLock 	   *sync.Mutex
 	migrateTableMessages []*message.MigrateTable
+	deleteStaleLock      *sync.Mutex
 	deleteStaleMessages  []*message.DeleteStale
 
 	logger         zerolog.Logger
@@ -62,12 +62,6 @@ func WithBatchTimeout(timeout time.Duration) Option {
 	}
 }
 
-func WithMaxWorkers(n int64) Option {
-	return func(p *BatchWriter) {
-		p.semaphore = semaphore.NewWeighted(n)
-	}
-}
-
 func WithBatchSize(size int) Option {
 	return func(p *BatchWriter) {
 		p.batchSize = size
@@ -82,7 +76,6 @@ func WithBatchSizeBytes(size int) Option {
 
 type worker struct {
 	count int
-	wg    *sync.WaitGroup
 	ch    chan *message.Insert
 	flush chan chan bool
 }
@@ -93,11 +86,12 @@ func NewBatchWriter(client BatchWriterClient, opts ...Option) (*BatchWriter, err
 		workers:          make(map[string]*worker),
 		workersLock:      &sync.RWMutex{},
 		workersWaitGroup: &sync.WaitGroup{},
+		migrateTableLock: &sync.Mutex{},
+		deleteStaleLock:  &sync.Mutex{},
 		logger:           zerolog.Nop(),
 		batchTimeout:     defaultBatchTimeoutSeconds * time.Second,
 		batchSize:        defaultBatchSize,
 		batchSizeBytes:   defaultBatchSizeBytes,
-		semaphore:        semaphore.NewWeighted(defaultMaxWorkers),
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -216,6 +210,11 @@ func (*BatchWriter) removeDuplicatesByPK(table *schema.Table, resources []arrow.
 }
 
 func (w *BatchWriter) flushMigrateTables(ctx context.Context) error {
+	w.migrateTableLock.Lock()
+	defer w.migrateTableLock.Unlock()
+	if len(w.migrateTableMessages) == 0 {
+		return nil
+	}
 	if err := w.client.MigrateTables(ctx, w.migrateTableMessages); err != nil {
 		return err
 	}
@@ -224,6 +223,11 @@ func (w *BatchWriter) flushMigrateTables(ctx context.Context) error {
 }
 
 func (w *BatchWriter) flushDeleteStaleTables(ctx context.Context) error {
+	w.deleteStaleLock.Lock()
+	defer w.deleteStaleLock.Unlock()
+	if len(w.deleteStaleMessages) == 0 {
+		return nil
+	}
 	if err := w.client.DeleteStale(ctx, w.deleteStaleMessages); err != nil {
 		return err
 	}
@@ -258,41 +262,39 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.Message) er
 	for msg := range msgs {
 		switch m := msg.(type) {
 		case *message.DeleteStale:
-			if len(w.migrateTableMessages) > 0 {
-				if err := w.flushMigrateTables(ctx); err != nil {
-					return err
-				}
+			if err := w.flushMigrateTables(ctx); err != nil {
+				return err
 			}
 			w.flushInsert(ctx, m.Table.Name)
+			w.deleteStaleLock.Lock()
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
-			if len(w.deleteStaleMessages) > w.batchSize {
+			l := len(w.deleteStaleMessages)
+			w.deleteStaleLock.Unlock()
+			if l > w.batchSize {
 				if err := w.flushDeleteStaleTables(ctx); err != nil {
 					return err
 				}
 			}
 		case *message.Insert:
-			if len(w.migrateTableMessages) > 0 {
-				if err := w.flushMigrateTables(ctx); err != nil {
-					return err
-				}
+			if err := w.flushMigrateTables(ctx); err != nil {
+				return err
 			}
-			if len(w.deleteStaleMessages) > 0 {
-				if err := w.flushDeleteStaleTables(ctx); err != nil {
-					return err
-				}
+			if err := w.flushDeleteStaleTables(ctx); err != nil {
+				return err
 			}
 			if err := w.startWorker(ctx, m); err != nil {
 				return err
 			}
 		case *message.MigrateTable:
 			w.flushInsert(ctx, m.Table.Name)
-			if len(w.deleteStaleMessages) > 0 {
-				if err := w.flushDeleteStaleTables(ctx); err != nil {
-					return err
-				}
+			if err := w.flushDeleteStaleTables(ctx); err != nil {
+				return err
 			}
+			w.migrateTableLock.Lock()
 			w.migrateTableMessages = append(w.migrateTableMessages, m)
-			if len(w.migrateTableMessages) > w.batchSize {
+			l := len(w.migrateTableMessages)
+			w.migrateTableLock.Unlock()
+			if l > w.batchSize {
 				if err := w.flushMigrateTables(ctx); err != nil {
 					return err
 				}
@@ -313,7 +315,7 @@ func (w *BatchWriter) startWorker(ctx context.Context, msg *message.Insert) erro
 	wr, ok := w.workers[tableName]
 	w.workersLock.RUnlock()
 	if ok {
-		w.workers[tableName].ch <- msg
+		wr.ch <- msg
 		return nil
 	}
 	w.workersLock.Lock()
