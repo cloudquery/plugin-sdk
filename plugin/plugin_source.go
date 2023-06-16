@@ -19,7 +19,7 @@ type SyncOptions struct {
 	StateBackend      state.Client
 }
 
-type ReadOnlyClient interface {
+type SourceClient interface {
 	Tables(ctx context.Context) (schema.Tables, error)
 	Sync(ctx context.Context, options SyncOptions, res chan<- Message) error
 	Close(ctx context.Context) error
@@ -39,21 +39,21 @@ func IsTable(name string, includeTablesPattern []string, skipTablesPattern []str
 	return false
 }
 
-type NewReadOnlyClientFunc func(context.Context, zerolog.Logger, any) (ReadOnlyClient, error)
+type NewReadOnlyClientFunc func(context.Context, zerolog.Logger, any) (SourceClient, error)
 
-// NewReadOnlyPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
-// this plugin will only support read operations. For ReadWrite plugin use NewPlugin.
-func NewReadOnlyPlugin(name string, version string, newClient NewReadOnlyClientFunc, options ...Option) *Plugin {
+// NewSourcePlugin returns a new CloudQuery Plugin with the given name, version and implementation.
+// Source plugins only support read operations. For Read & Write plugin use NewPlugin.
+func NewSourcePlugin(name string, version string, newClient NewReadOnlyClientFunc, options ...Option) *Plugin {
 	newClientWrapper := func(ctx context.Context, logger zerolog.Logger, any any) (Client, error) {
-		readOnlyClient, err := newClient(ctx, logger, any)
+		sourceClient, err := newClient(ctx, logger, any)
 		if err != nil {
 			return nil, err
 		}
 		wrapperClient := struct {
-			ReadOnlyClient
-			UnimplementedWriter
+			SourceClient
+			UnimplementedDestination
 		}{
-			ReadOnlyClient: readOnlyClient,
+			SourceClient: sourceClient,
 		}
 		return wrapperClient, nil
 	}
