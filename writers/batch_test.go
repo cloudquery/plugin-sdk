@@ -2,6 +2,7 @@ package writers
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -13,21 +14,46 @@ import (
 )
 
 type testBatchClient struct {
+	mutex 			 *sync.Mutex
 	migrateTables []*message.MigrateTable
 	inserts       []*message.Insert
 	deleteStales  []*message.DeleteStale
 }
 
+func (c *testBatchClient) MigrateTablesLen() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return len(c.migrateTables)
+}
+
+func (c *testBatchClient) InsertsLen() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return len(c.inserts)
+}
+
+func (c *testBatchClient) DeleteStalesLen() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return len(c.deleteStales)
+}
+
 func (c *testBatchClient) MigrateTables(_ context.Context, msgs []*message.MigrateTable) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	c.migrateTables = append(c.migrateTables, msgs...)
 	return nil
 }
 
 func (c *testBatchClient) WriteTableBatch(_ context.Context, _ string, _ bool, msgs []*message.Insert) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	c.inserts = append(c.inserts, msgs...)
 	return nil
 }
 func (c *testBatchClient) DeleteStale(_ context.Context, msgs []*message.DeleteStale) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	c.deleteStales = append(c.deleteStales, msgs...)
 	return nil
 }
@@ -58,7 +84,9 @@ var batchTestTables = schema.Tables{
 func TestBatchFlushDifferentMessages(t *testing.T) {
 	ctx := context.Background()
 
-	testClient := &testBatchClient{}
+	testClient := &testBatchClient{
+		mutex: &sync.Mutex{},
+	}
 	wr, err := NewBatchWriter(testClient)
 	if err != nil {
 		t.Fatal(err)
@@ -70,33 +98,40 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 	if err := wr.writeAll(ctx, []message.Message{&message.MigrateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
 	}
-	if len(testClient.migrateTables) != 0 {
-		t.Fatalf("expected 0 create table messages, got %d", len(testClient.migrateTables))
+
+	if testClient.MigrateTablesLen() != 0 {
+		t.Fatalf("expected 0 create table messages, got %d", testClient.MigrateTablesLen())
 	}
+
 	if err := wr.writeAll(ctx, []message.Message{&message.Insert{Record: record}}); err != nil {
 		t.Fatal(err)
 	}
-	if len(testClient.migrateTables) != 1 {
-		t.Fatalf("expected 1 create table messages, got %d", len(testClient.migrateTables))
+
+	if testClient.MigrateTablesLen() != 1 {
+		t.Fatalf("expected 1 migrate table messages, got %d", testClient.MigrateTablesLen())
 	}
 
-	if len(testClient.inserts) != 0 {
-		t.Fatalf("expected 0 insert messages, got %d", len(testClient.inserts))
+	if testClient.InsertsLen() != 0 {
+		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
+
 
 	if err := wr.writeAll(ctx, []message.Message{&message.MigrateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
 	}
 
-	if len(testClient.inserts) != 1 {
-		t.Fatalf("expected 1 insert messages, got %d", len(testClient.inserts))
+	if testClient.InsertsLen() != 1 {
+		t.Fatalf("expected 1 insert messages, got %d", testClient.InsertsLen())
 	}
+
 }
 
 func TestBatchSize(t *testing.T) {
 	ctx := context.Background()
 
-	testClient := &testBatchClient{}
+	testClient := &testBatchClient{
+		mutex: &sync.Mutex{},
+	}
 	wr, err := NewBatchWriter(testClient, WithBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
@@ -109,8 +144,8 @@ func TestBatchSize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(testClient.inserts) != 0 {
-		t.Fatalf("expected 0 create table messages, got %d", len(testClient.inserts))
+	if testClient.InsertsLen() != 0 {
+		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
 
 	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
@@ -121,15 +156,17 @@ func TestBatchSize(t *testing.T) {
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 2)
 
-	if len(testClient.inserts) != 2 {
-		t.Fatalf("expected 2 create table messages, got %d", len(testClient.inserts))
+	if testClient.InsertsLen() != 2 {
+		t.Fatalf("expected 2 insert messages, got %d", testClient.InsertsLen())
 	}
 }
 
 func TestBatchTimeout(t *testing.T) {
 	ctx := context.Background()
 
-	testClient := &testBatchClient{}
+	testClient := &testBatchClient{
+		mutex: &sync.Mutex{},
+	}
 	wr, err := NewBatchWriter(testClient, WithBatchTimeout(time.Second))
 	if err != nil {
 		t.Fatal(err)
@@ -142,29 +179,31 @@ func TestBatchTimeout(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(testClient.inserts) != 0 {
-		t.Fatalf("expected 0 create table messages, got %d", len(testClient.inserts))
+	if testClient.InsertsLen() != 0 {
+		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
 
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Millisecond * 250)
 
-	if len(testClient.inserts) != 0 {
-		t.Fatalf("expected 0 create table messages, got %d", len(testClient.inserts))
+	if testClient.InsertsLen() != 0 {
+		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
 
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 1)
 
-	if len(testClient.inserts) != 1 {
-		t.Fatalf("expected 1 create table messages, got %d", len(testClient.inserts))
+	if testClient.InsertsLen() != 1 {
+		t.Fatalf("expected 1 insert messages, got %d", testClient.InsertsLen())
 	}
 }
 
 func TestBatchUpserts(t *testing.T) {
 	ctx := context.Background()
 
-	testClient := &testBatchClient{}
+	testClient := &testBatchClient{
+		mutex: &sync.Mutex{},
+	}
 	wr, err := NewBatchWriter(testClient)
 	if err != nil {
 		t.Fatal(err)
@@ -178,8 +217,8 @@ func TestBatchUpserts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(testClient.inserts) != 0 {
-		t.Fatalf("expected 0 create table messages, got %d", len(testClient.inserts))
+	if testClient.InsertsLen() != 0 {
+		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
 
 	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
@@ -190,7 +229,7 @@ func TestBatchUpserts(t *testing.T) {
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 2)
 
-	if len(testClient.inserts) != 1 {
-		t.Fatalf("expected 1 create table messages, got %d", len(testClient.inserts))
+	if testClient.InsertsLen() != 1 {
+		t.Fatalf("expected 1 insert messages, got %d", testClient.InsertsLen())
 	}
 }
