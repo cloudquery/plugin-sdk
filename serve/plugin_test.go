@@ -21,7 +21,7 @@ import (
 
 func TestPluginServe(t *testing.T) {
 	p := plugin.NewPlugin(
-		"testPlugin",
+		"testPluginV3",
 		"v1.0.0",
 		memdb.NewMemDBClient)
 	srv := Plugin(p, WithArgs("serve"), WithTestListener())
@@ -44,14 +44,15 @@ func TestPluginServe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
+
 	c := pb.NewPluginClient(conn)
 
 	getNameRes, err := c.GetName(ctx, &pb.GetName_Request{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if getNameRes.Name != "testPlugin" {
-		t.Fatalf("expected name to be testPlugin but got %s", getNameRes.Name)
+	if getNameRes.Name != "testPluginV3" {
+		t.Fatalf("expected name to be testPluginV3 but got %s", getNameRes.Name)
 	}
 
 	getVersionResponse, err := c.GetVersion(ctx, &pb.GetVersion_Request{})
