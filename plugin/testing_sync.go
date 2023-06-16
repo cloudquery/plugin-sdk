@@ -14,7 +14,7 @@ import (
 
 type Validator func(t *testing.T, plugin *Plugin, resources []message.Message)
 
-func TestPluginSync(t *testing.T, plugin *Plugin, spec any, options SyncOptions, opts ...TestPluginOption) {
+func TestPluginSync(t *testing.T, plugin *Plugin, spec []byte, options SyncOptions, opts ...TestPluginOption) {
 	t.Helper()
 
 	o := &testPluginOptions{

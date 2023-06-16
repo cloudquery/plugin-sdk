@@ -46,8 +46,8 @@ type NewSourceClientFunc func(context.Context, zerolog.Logger, any) (SourceClien
 // NewSourcePlugin returns a new CloudQuery Plugin with the given name, version and implementation.
 // Source plugins only support read operations. For Read & Write plugin use NewPlugin.
 func NewSourcePlugin(name string, version string, newClient NewSourceClientFunc, options ...Option) *Plugin {
-	newClientWrapper := func(ctx context.Context, logger zerolog.Logger, any any) (Client, error) {
-		sourceClient, err := newClient(ctx, logger, any)
+	newClientWrapper := func(ctx context.Context, logger zerolog.Logger, spec []byte) (Client, error) {
+		sourceClient, err := newClient(ctx, logger, spec)
 		if err != nil {
 			return nil, err
 		}

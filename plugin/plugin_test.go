@@ -17,7 +17,7 @@ type testPluginClient struct {
 	messages []message.Message
 }
 
-func newTestPluginClient(context.Context, zerolog.Logger, any) (Client, error) {
+func newTestPluginClient(context.Context, zerolog.Logger, []byte) (Client, error) {
 	return &testPluginClient{}, nil
 }
 
@@ -52,7 +52,7 @@ func (c *testPluginClient) Close(context.Context) error {
 func TestPluginSuccess(t *testing.T) {
 	ctx := context.Background()
 	p := NewPlugin("test", "v1.0.0", newTestPluginClient)
-	if err := p.Init(ctx, &testPluginSpec{}); err != nil {
+	if err := p.Init(ctx, []byte("")); err != nil {
 		t.Fatal(err)
 	}
 	tables, err := p.Tables(ctx)
