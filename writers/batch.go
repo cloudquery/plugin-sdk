@@ -32,12 +32,12 @@ type BatchWriterClient interface {
 }
 
 type BatchWriter struct {
-	client               BatchWriterClient
-	workers              map[string]*worker
-	workersLock          *sync.RWMutex
-	workersWaitGroup     *sync.WaitGroup
+	client           BatchWriterClient
+	workers          map[string]*worker
+	workersLock      *sync.RWMutex
+	workersWaitGroup *sync.WaitGroup
 
-	migrateTableLock 	   *sync.Mutex
+	migrateTableLock     *sync.Mutex
 	migrateTableMessages []*message.MigrateTable
 	deleteStaleLock      *sync.Mutex
 	deleteStaleMessages  []*message.DeleteStale

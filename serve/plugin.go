@@ -30,7 +30,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/thoas/go-funk"
-	"golang.org/x/net/netutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -96,6 +95,7 @@ func (s *PluginServe) Serve(ctx context.Context) error {
 	if err := types.RegisterAllExtensions(); err != nil {
 		return err
 	}
+	defer types.UnregisterAllExtensions()
 	cmd := s.newCmdPluginRoot()
 	if s.args != nil {
 		cmd.SetArgs(s.args)
@@ -132,7 +132,6 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			} else {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
-
 			// opts.Plugin.Logger = logger
 			var listener net.Listener
 			if s.testListener {
@@ -143,9 +142,10 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 					return fmt.Errorf("failed to listen %s:%s: %w", network, address, err)
 				}
 			}
+			defer listener.Close()
 			// source plugins can only accept one connection at a time
 			// unlike destination plugins that can accept multiple connections
-			limitListener := netutil.LimitListener(listener, 1)
+			// limitListener := netutil.LimitListener(listener, 1)
 			// See logging pattern https://github.com/grpc-ecosystem/go-grpc-middleware/blob/v2/providers/zerolog/examples_test.go
 			grpcServer := grpc.NewServer(
 				grpc.ChainUnaryInterceptor(
@@ -226,7 +226,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			}()
 
 			logger.Info().Str("address", listener.Addr().String()).Msg("Source plugin server listening")
-			if err := grpcServer.Serve(limitListener); err != nil {
+			if err := grpcServer.Serve(listener); err != nil {
 				return fmt.Errorf("failed to serve: %w", err)
 			}
 			return nil
