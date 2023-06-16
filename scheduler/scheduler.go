@@ -9,10 +9,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/caser"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/getsentry/sentry-go"
@@ -83,6 +83,10 @@ func WithSchedulerStrategy(strategy Strategy) Option {
 	}
 }
 
+type Client interface {
+	ID() string
+}
+
 type Scheduler struct {
 	tables   schema.Tables
 	client   schema.ClientMeta
@@ -119,7 +123,7 @@ func NewScheduler(tables schema.Tables, client schema.ClientMeta, opts ...Option
 	return &s
 }
 
-func (s *Scheduler) Sync(ctx context.Context, res chan<- arrow.Record) error {
+func (s *Scheduler) Sync(ctx context.Context, res chan<- message.Message) error {
 	resources := make(chan *schema.Resource)
 	go func() {
 		defer close(resources)
@@ -137,12 +141,12 @@ func (s *Scheduler) Sync(ctx context.Context, res chan<- arrow.Record) error {
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
 		scalar.AppendToRecordBuilder(bldr, vector)
 		rec := bldr.NewRecord()
-		res <- rec
+		res <- &message.Insert{Record: rec}
 	}
 	return nil
 }
 
-func (s *Scheduler) logTablesMetrics(tables schema.Tables, client schema.ClientMeta) {
+func (s *Scheduler) logTablesMetrics(tables schema.Tables, client Client) {
 	clientName := client.ID()
 	for _, table := range tables {
 		metrics := s.metrics.TableClient[table.Name][clientName]

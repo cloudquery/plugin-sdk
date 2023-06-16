@@ -1,4 +1,4 @@
-package plugin
+package message
 
 import (
 	"time"
@@ -11,20 +11,20 @@ type Message interface {
 	GetTable() *schema.Table
 }
 
-type MessageMigrateTable struct {
+type MigrateTable struct {
 	Table *schema.Table
 }
 
-func (m MessageMigrateTable) GetTable() *schema.Table {
+func (m MigrateTable) GetTable() *schema.Table {
 	return m.Table
 }
 
-type MessageInsert struct {
+type Insert struct {
 	Record arrow.Record
 	Upsert bool
 }
 
-func (m MessageInsert) GetTable() *schema.Table {
+func (m Insert) GetTable() *schema.Table {
 	table, err := schema.NewTableFromArrowSchema(m.Record.Schema())
 	if err != nil {
 		panic(err)
@@ -32,31 +32,31 @@ func (m MessageInsert) GetTable() *schema.Table {
 	return table
 }
 
-// MessageDeleteStale is a pretty specific message which requires the destination to be aware of a CLI use-case
+// DeleteStale is a pretty specific message which requires the destination to be aware of a CLI use-case
 // thus it might be deprecated in the future
 // in favour of MessageDelete or MessageRawQuery
 // The message indeciates that the destination needs to run something like "DELETE FROM table WHERE _cq_source_name=$1 and sync_time < $2"
-type MessageDeleteStale struct {
+type DeleteStale struct {
 	Table      *schema.Table
 	SourceName string
 	SyncTime   time.Time
 }
 
-func (m MessageDeleteStale) GetTable() *schema.Table {
+func (m DeleteStale) GetTable() *schema.Table {
 	return m.Table
 }
 
 type Messages []Message
 
-type MigrateTables []*MessageMigrateTable
+type MigrateTables []*MigrateTable
 
-type Inserts []*MessageInsert
+type Inserts []*Insert
 
 func (messages Messages) InsertItems() int64 {
 	items := int64(0)
 	for _, msg := range messages {
 		switch m := msg.(type) {
-		case *MessageInsert:
+		case *Insert:
 			items += m.Record.NumRows()
 		}
 	}

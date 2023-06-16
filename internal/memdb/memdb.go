@@ -7,6 +7,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
@@ -84,6 +85,10 @@ func (c *client) ID() string {
 	return "testDestinationMemDB"
 }
 
+func (c *client) GetSpec() any {
+	return &struct{}{}
+}
+
 func (c *client) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
 	c.memoryDBLock.RLock()
 	defer c.memoryDBLock.RUnlock()
@@ -95,15 +100,15 @@ func (c *client) Read(ctx context.Context, table *schema.Table, res chan<- arrow
 	return nil
 }
 
-func (c *client) Sync(ctx context.Context, options plugin.SyncOptions, res chan<- plugin.Message) error {
+func (c *client) Sync(ctx context.Context, options plugin.SyncOptions, res chan<- message.Message) error {
 	c.memoryDBLock.RLock()
 
 	for tableName := range c.memoryDB {
-		if !plugin.IsTable(tableName, options.Tables, options.SkipTables) {
+		if !plugin.MatchesTable(tableName, options.Tables, options.SkipTables) {
 			continue
 		}
 		for _, row := range c.memoryDB[tableName] {
-			res <- &plugin.MessageInsert{
+			res <- &message.Insert{
 				Record: row,
 				Upsert: false,
 			}
@@ -139,7 +144,7 @@ func (c *client) migrate(_ context.Context, table *schema.Table) {
 	c.tables[tableName] = table
 }
 
-func (c *client) Write(ctx context.Context, options plugin.WriteOptions, msgs <-chan plugin.Message) error {
+func (c *client) Write(ctx context.Context, options plugin.WriteOptions, msgs <-chan message.Message) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -155,11 +160,11 @@ func (c *client) Write(ctx context.Context, options plugin.WriteOptions, msgs <-
 		c.memoryDBLock.Lock()
 
 		switch msg := msg.(type) {
-		case *plugin.MessageMigrateTable:
+		case *message.MigrateTable:
 			c.migrate(ctx, msg.Table)
-		case *plugin.MessageDeleteStale:
+		case *message.DeleteStale:
 			c.deleteStale(ctx, msg)
-		case *plugin.MessageInsert:
+		case *message.Insert:
 			sc := msg.Record.Schema()
 			tableName, ok := sc.Metadata().GetValue(schema.MetadataTableName)
 			if !ok {
@@ -183,7 +188,7 @@ func (c *client) Close(context.Context) error {
 	return nil
 }
 
-func (c *client) deleteStale(_ context.Context, msg *plugin.MessageDeleteStale) {
+func (c *client) deleteStale(_ context.Context, msg *message.DeleteStale) {
 	var filteredTable []arrow.Record
 	tableName := msg.Table.Name
 	for i, row := range c.memoryDB[tableName] {
