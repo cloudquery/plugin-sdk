@@ -37,9 +37,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 
 	resource1 := schema.GenTestData(source, opts)[0]
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{
-		MigrateForce: writeOptionMigrateForce,
-	}, &MessageInsert{
+	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
 		Record: resource1,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
@@ -60,15 +58,16 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
+	resource2 := schema.GenTestData(target, opts)[0]
 	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
-		Record: resource1,
+		Record: resource2,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	records, err = s.plugin.readAll(ctx, source)
+	records, err = s.plugin.readAll(ctx, target)
 	if err != nil {
-		return fmt.Errorf("failed to sync: %w", err)
+		return fmt.Errorf("failed to readAll: %w", err)
 	}
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
 	if !writeOptionMigrateForce || supportsSafeMigrate {
@@ -91,11 +90,15 @@ func (s *WriterTestSuite) testMigrate(
 	t *testing.T,
 	forceMigrate bool,
 ) {
-	t.Run("add_column", func(t *testing.T) {
+	suffix := "_safe"
+	if forceMigrate {
+		suffix = "_force"
+	}
+	t.Run("add_column"+suffix, func(t *testing.T) {
 		if !forceMigrate && !s.tests.SafeMigrations.AddColumn {
 			t.Skip("skipping test: add_column")
 		}
-		tableName := "add_column_" + tableUUIDSuffix()
+		tableName := "add_column" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -115,11 +118,11 @@ func (s *WriterTestSuite) testMigrate(
 		}
 	})
 
-	t.Run("add_column_not_null", func(t *testing.T) {
+	t.Run("add_column_not_null"+suffix, func(t *testing.T) {
 		if !forceMigrate && !s.tests.SafeMigrations.AddColumnNotNull {
 			t.Skip("skipping test: add_column_not_null")
 		}
-		tableName := "add_column_not_null_" + tableUUIDSuffix()
+		tableName := "add_column_not_null" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -138,11 +141,11 @@ func (s *WriterTestSuite) testMigrate(
 		}
 	})
 
-	t.Run("remove_column", func(t *testing.T) {
+	t.Run("remove_column"+suffix, func(t *testing.T) {
 		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumn {
 			t.Skip("skipping test: remove_column")
 		}
-		tableName := "remove_column_" + tableUUIDSuffix()
+		tableName := "remove_column" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -159,11 +162,11 @@ func (s *WriterTestSuite) testMigrate(
 		}
 	})
 
-	t.Run("remove_column_not_null", func(t *testing.T) {
+	t.Run("remove_column_not_null"+suffix, func(t *testing.T) {
 		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumnNotNull {
 			t.Skip("skipping test: remove_column_not_null")
 		}
-		tableName := "remove_column_not_null_" + tableUUIDSuffix()
+		tableName := "remove_column_not_null" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -181,11 +184,11 @@ func (s *WriterTestSuite) testMigrate(
 		}
 	})
 
-	t.Run("change_column", func(t *testing.T) {
+	t.Run("change_column"+suffix, func(t *testing.T) {
 		if !forceMigrate && !s.tests.SafeMigrations.ChangeColumn {
 			t.Skip("skipping test: change_column")
 		}
-		tableName := "change_column_" + tableUUIDSuffix()
+		tableName := "change_column" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
