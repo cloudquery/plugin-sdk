@@ -17,8 +17,10 @@ func TestPluginDocs(t *testing.T) {
 	if err := p.Init(context.Background(), nil); err != nil {
 		t.Fatal(err)
 	}
-	srv := Plugin(p, WithArgs("doc", tmpDir), WithTestListener())
-	if err := srv.newCmdPluginDoc().Execute(); err != nil {
+	srv := Plugin(p)
+	cmd := srv.newCmdPluginRoot()
+	cmd.SetArgs([]string{"doc", tmpDir})
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 }
