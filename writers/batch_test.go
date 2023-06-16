@@ -8,26 +8,26 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 type testBatchClient struct {
-	migrateTables []*plugin.MessageMigrateTable
-	inserts       []*plugin.MessageInsert
-	deleteStales  []*plugin.MessageDeleteStale
+	migrateTables []*message.MigrateTable
+	inserts       []*message.Insert
+	deleteStales  []*message.DeleteStale
 }
 
-func (c *testBatchClient) MigrateTables(_ context.Context, msgs []*plugin.MessageMigrateTable) error {
+func (c *testBatchClient) MigrateTables(_ context.Context, msgs []*message.MigrateTable) error {
 	c.migrateTables = append(c.migrateTables, msgs...)
 	return nil
 }
 
-func (c *testBatchClient) WriteTableBatch(_ context.Context, _ string, _ bool, msgs []*plugin.MessageInsert) error {
+func (c *testBatchClient) WriteTableBatch(_ context.Context, _ string, _ bool, msgs []*message.Insert) error {
 	c.inserts = append(c.inserts, msgs...)
 	return nil
 }
-func (c *testBatchClient) DeleteStale(_ context.Context, msgs []*plugin.MessageDeleteStale) error {
+func (c *testBatchClient) DeleteStale(_ context.Context, msgs []*message.DeleteStale) error {
 	c.deleteStales = append(c.deleteStales, msgs...)
 	return nil
 }
@@ -67,13 +67,13 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, batchTestTables[0].ToArrowSchema())
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	record := bldr.NewRecord()
-	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageMigrateTable{Table: batchTestTables[0]}}); err != nil {
+	if err := wr.writeAll(ctx, []message.Message{&message.MigrateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
 	}
 	if len(testClient.migrateTables) != 0 {
 		t.Fatalf("expected 0 create table messages, got %d", len(testClient.migrateTables))
 	}
-	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{Record: record}}); err != nil {
+	if err := wr.writeAll(ctx, []message.Message{&message.Insert{Record: record}}); err != nil {
 		t.Fatal(err)
 	}
 	if len(testClient.migrateTables) != 1 {
@@ -84,7 +84,7 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 		t.Fatalf("expected 0 insert messages, got %d", len(testClient.inserts))
 	}
 
-	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageMigrateTable{Table: batchTestTables[0]}}); err != nil {
+	if err := wr.writeAll(ctx, []message.Message{&message.MigrateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -103,7 +103,7 @@ func TestBatchSize(t *testing.T) {
 	}
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
 	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
-	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{
+	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
 		Record: record,
 	}}); err != nil {
 		t.Fatal(err)
@@ -113,7 +113,7 @@ func TestBatchSize(t *testing.T) {
 		t.Fatalf("expected 0 create table messages, got %d", len(testClient.inserts))
 	}
 
-	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{
+	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
 		Record: record,
 	}}); err != nil {
 		t.Fatal(err)
@@ -136,7 +136,7 @@ func TestBatchTimeout(t *testing.T) {
 	}
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
 	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
-	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{
+	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
 		Record: record,
 	}}); err != nil {
 		t.Fatal(err)
@@ -171,7 +171,7 @@ func TestBatchUpserts(t *testing.T) {
 	}
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
 	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
-	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{
+	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
 		Record: record,
 		Upsert: true,
 	}}); err != nil {
@@ -182,7 +182,7 @@ func TestBatchUpserts(t *testing.T) {
 		t.Fatalf("expected 0 create table messages, got %d", len(testClient.inserts))
 	}
 
-	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{
+	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
 		Record: record,
 	}}); err != nil {
 		t.Fatal(err)

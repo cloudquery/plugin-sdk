@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-pb-go/managedplugin"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/getsentry/sentry-go"
@@ -57,14 +59,18 @@ func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVer
 }
 
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
-	if err := s.Plugin.Init(ctx, req.Spec); err != nil {
+	pluginSpec := s.Plugin.GetSpec()
+	if err := json.Unmarshal(req.GetSpec(), &pluginSpec); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal plugin spec: %v", err)
+	}
+	if err := s.Plugin.Init(ctx, pluginSpec); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
 	return &pb.Init_Response{}, nil
 }
 
 func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
-	msgs := make(chan plugin.Message)
+	msgs := make(chan message.Message)
 	var syncErr error
 	ctx := stream.Context()
 
@@ -108,14 +114,14 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	pbMsg := &pb.Sync_Response{}
 	for msg := range msgs {
 		switch m := msg.(type) {
-		case *plugin.MessageMigrateTable:
+		case *message.MigrateTable:
 			m.Table.ToArrowSchema()
 			pbMsg.Message = &pb.Sync_Response_MigrateTable{
 				MigrateTable: &pb.MessageMigrateTable{
 					Table: nil,
 				},
 			}
-		case *plugin.MessageInsert:
+		case *message.Insert:
 			recordBytes, err := schema.RecordToBytes(m.Record)
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
@@ -126,7 +132,7 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 					Upsert: m.Upsert,
 				},
 			}
-		case *plugin.MessageDeleteStale:
+		case *message.DeleteStale:
 			tableBytes, err := m.Table.ToArrowSchemaBytes()
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
@@ -160,7 +166,7 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 }
 
 func (s *Server) Write(msg pb.Plugin_WriteServer) error {
-	msgs := make(chan plugin.Message)
+	msgs := make(chan message.Message)
 	r, err := msg.Recv()
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
@@ -192,7 +198,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
-		var pluginMessage plugin.Message
+		var pluginMessage message.Message
 		var pbMsgConvertErr error
 		switch pbMsg := r.Message.(type) {
 		case *pb.Write_Request_MigrateTable:
@@ -201,7 +207,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table: %v", err)
 				break
 			}
-			pluginMessage = &plugin.MessageMigrateTable{
+			pluginMessage = &message.MigrateTable{
 				Table: table,
 			}
 		case *pb.Write_Request_Insert:
@@ -210,7 +216,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
 				break
 			}
-			pluginMessage = &plugin.MessageInsert{
+			pluginMessage = &message.Insert{
 				Record: record,
 				Upsert: pbMsg.Insert.Upsert,
 			}
@@ -220,7 +226,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
 				break
 			}
-			pluginMessage = &plugin.MessageDeleteStale{
+			pluginMessage = &message.DeleteStale{
 				Table:      table,
 				SourceName: pbMsg.Delete.SourceName,
 				SyncTime:   pbMsg.Delete.SyncTime.AsTime(),

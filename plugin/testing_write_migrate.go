@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ func tableUUIDSuffix() string {
 func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
 	if err := s.plugin.writeOne(ctx, WriteOptions{
 		MigrateForce: writeOptionMigrateForce,
-	}, &MessageMigrateTable{
+	}, &message.MigrateTable{
 		Table: source,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
@@ -37,7 +38,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 
 	resource1 := schema.GenTestData(source, opts)[0]
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
+	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
 		Record: resource1,
 	}); err != nil {
 		return fmt.Errorf("failed to insert first record: %w", err)
@@ -52,14 +53,14 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{MigrateForce: writeOptionMigrateForce}, &MessageMigrateTable{
+	if err := s.plugin.writeOne(ctx, WriteOptions{MigrateForce: writeOptionMigrateForce}, &message.MigrateTable{
 		Table: target,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
 	resource2 := schema.GenTestData(target, opts)[0]
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageInsert{
+	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
 		Record: resource2,
 	}); err != nil {
 		return fmt.Errorf("failed to insert second record: %w", err)

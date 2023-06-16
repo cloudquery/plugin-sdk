@@ -12,6 +12,7 @@ import (
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	"github.com/cloudquery/plugin-pb-go/specs/v0"
 	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
@@ -62,7 +63,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	tables := TablesV2ToV3(tablesV2).FlattenTables()
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
-	writeCh := make(chan plugin.Message)
+	writeCh := make(chan message.Message)
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
 		return s.Plugin.Write(ctx, plugin.WriteOptions{
@@ -70,7 +71,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 		}, writeCh)
 	})
 	for _, table := range tables {
-		writeCh <- &plugin.MessageMigrateTable{
+		writeCh <- &message.MigrateTable{
 			Table: table,
 		}
 	}
@@ -88,7 +89,7 @@ func (*Server) Write(pb.Destination_WriteServer) error {
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *Server) Write2(msg pb.Destination_Write2Server) error {
-	msgs := make(chan plugin.Message)
+	msgs := make(chan message.Message)
 
 	r, err := msg.Recv()
 	if err != nil {
@@ -125,7 +126,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	})
 
 	for _, table := range tables {
-		msgs <- &plugin.MessageMigrateTable{
+		msgs <- &message.MigrateTable{
 			Table: table,
 		}
 	}
@@ -175,7 +176,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			origResource.Data = append([]schemav2.CQType{sourceColumn, syncTimeColumn}, origResource.Data...)
 		}
 		convertedResource := CQTypesToRecord(memory.DefaultAllocator, []schemav2.CQTypes{origResource.Data}, table.ToArrowSchema())
-		msg := &plugin.MessageInsert{
+		msg := &message.Insert{
 			Record: convertedResource,
 			Upsert: s.spec.WriteMode == specs.WriteModeOverwrite || s.spec.WriteMode == specs.WriteModeOverwriteDeleteStale,
 		}
@@ -235,7 +236,7 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 	tables := TablesV2ToV3(tablesV2).FlattenTables()
 	SetDestinationManagedCqColumns(tables)
 
-	msgs := make(chan plugin.Message)
+	msgs := make(chan message.Message)
 	var writeErr error
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -247,7 +248,7 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 		bldr.Field(table.Columns.Index(schema.CqSourceNameColumn.Name)).(*array.StringBuilder).Append(req.Source)
 		bldr.Field(table.Columns.Index(schema.CqSyncTimeColumn.Name)).(*array.TimestampBuilder).AppendTime(req.Timestamp.AsTime())
-		msgs <- &plugin.MessageDeleteStale{
+		msgs <- &message.DeleteStale{
 			Table:      table,
 			SourceName: req.Source,
 			SyncTime:   req.Timestamp.AsTime(),

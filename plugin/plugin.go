@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
@@ -21,7 +22,7 @@ type Client interface {
 
 type UnimplementedDestination struct{}
 
-func (UnimplementedDestination) Write(ctx context.Context, options WriteOptions, res <-chan Message) error {
+func (UnimplementedDestination) Write(ctx context.Context, options WriteOptions, res <-chan message.Message) error {
 	return ErrNotImplemented
 }
 
@@ -31,7 +32,7 @@ func (UnimplementedDestination) Read(ctx context.Context, table *schema.Table, r
 
 type UnimplementedSource struct{}
 
-func (UnimplementedSource) Sync(ctx context.Context, options SyncOptions, res chan<- Message) error {
+func (UnimplementedSource) Sync(ctx context.Context, options SyncOptions, res chan<- message.Message) error {
 	return ErrNotImplemented
 }
 
@@ -117,6 +118,11 @@ func (p *Plugin) Tables(ctx context.Context) (schema.Tables, error) {
 		return nil, fmt.Errorf("failed to get tables: %w", err)
 	}
 	return tables, nil
+}
+
+// GetSpec returns an empty struct to be filled with the plugin's configuration.
+func (p *Plugin) GetSpec() any {
+	return p.client.GetSpec()
 }
 
 // Init initializes the plugin with the given spec.

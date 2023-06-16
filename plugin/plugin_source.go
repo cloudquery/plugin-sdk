@@ -6,6 +6,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/state"
 	"github.com/rs/zerolog"
@@ -20,12 +21,13 @@ type SyncOptions struct {
 }
 
 type SourceClient interface {
-	Tables(ctx context.Context) (schema.Tables, error)
-	Sync(ctx context.Context, options SyncOptions, res chan<- Message) error
+	GetSpec() any
 	Close(ctx context.Context) error
+	Tables(ctx context.Context) (schema.Tables, error)
+	Sync(ctx context.Context, options SyncOptions, res chan<- message.Message) error
 }
 
-func IsTable(name string, includeTablesPattern []string, skipTablesPattern []string) bool {
+func MatchesTable(name string, includeTablesPattern []string, skipTablesPattern []string) bool {
 	for _, pattern := range skipTablesPattern {
 		if glob.Glob(pattern, name) {
 			return false
@@ -39,11 +41,11 @@ func IsTable(name string, includeTablesPattern []string, skipTablesPattern []str
 	return false
 }
 
-type NewReadOnlyClientFunc func(context.Context, zerolog.Logger, any) (SourceClient, error)
+type NewSourceClientFunc func(context.Context, zerolog.Logger, any) (SourceClient, error)
 
 // NewSourcePlugin returns a new CloudQuery Plugin with the given name, version and implementation.
 // Source plugins only support read operations. For Read & Write plugin use NewPlugin.
-func NewSourcePlugin(name string, version string, newClient NewReadOnlyClientFunc, options ...Option) *Plugin {
+func NewSourcePlugin(name string, version string, newClient NewSourceClientFunc, options ...Option) *Plugin {
 	newClientWrapper := func(ctx context.Context, logger zerolog.Logger, any any) (Client, error) {
 		sourceClient, err := newClient(ctx, logger, any)
 		if err != nil {
@@ -75,15 +77,15 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table) ([]arrow.Reco
 	return records, err
 }
 
-func (p *Plugin) SyncAll(ctx context.Context, options SyncOptions) (Messages, error) {
+func (p *Plugin) SyncAll(ctx context.Context, options SyncOptions) (message.Messages, error) {
 	var err error
-	ch := make(chan Message)
+	ch := make(chan message.Message)
 	go func() {
 		defer close(ch)
 		err = p.Sync(ctx, options, ch)
 	}()
 	// nolint:prealloc
-	var resources []Message
+	var resources []message.Message
 	for resource := range ch {
 		resources = append(resources, resource)
 	}
@@ -91,7 +93,7 @@ func (p *Plugin) SyncAll(ctx context.Context, options SyncOptions) (Messages, er
 }
 
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- Message) error {
+func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- message.Message) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}
