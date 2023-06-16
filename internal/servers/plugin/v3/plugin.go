@@ -108,10 +108,10 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	pbMsg := &pb.Sync_Response{}
 	for msg := range msgs {
 		switch m := msg.(type) {
-		case *plugin.MessageCreateTable:
+		case *plugin.MessageMigrateTable:
 			m.Table.ToArrowSchema()
-			pbMsg.Message = &pb.Sync_Response_CreateTable{
-				CreateTable: &pb.MessageCreateTable{
+			pbMsg.Message = &pb.Sync_Response_MigrateTable{
+				MigrateTable: &pb.MessageMigrateTable{
 					Table: nil,
 				},
 			}
@@ -195,13 +195,13 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 		var pluginMessage plugin.Message
 		var pbMsgConvertErr error
 		switch pbMsg := r.Message.(type) {
-		case *pb.Write_Request_CreateTable:
-			table, err := schema.NewTableFromBytes(pbMsg.CreateTable.Table)
+		case *pb.Write_Request_MigrateTable:
+			table, err := schema.NewTableFromBytes(pbMsg.MigrateTable.Table)
 			if err != nil {
 				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table: %v", err)
 				break
 			}
-			pluginMessage = &plugin.MessageCreateTable{
+			pluginMessage = &plugin.MessageMigrateTable{
 				Table: table,
 			}
 		case *pb.Write_Request_Insert:

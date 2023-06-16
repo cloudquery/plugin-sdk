@@ -70,7 +70,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 		}, writeCh)
 	})
 	for _, table := range tables {
-		writeCh <- &plugin.MessageCreateTable{
+		writeCh <- &plugin.MessageMigrateTable{
 			Table: table,
 		}
 	}
@@ -125,7 +125,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	})
 
 	for _, table := range tables {
-		msgs <- &plugin.MessageCreateTable{
+		msgs <- &plugin.MessageMigrateTable{
 			Table: table,
 		}
 	}

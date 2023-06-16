@@ -27,7 +27,7 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 			{Name: "name", Type: arrow.BinaryTypes.String},
 		},
 	}
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageCreateTable{
+	if err := s.plugin.writeOne(ctx, WriteOptions{}, &MessageMigrateTable{
 		Table: table,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
@@ -47,7 +47,6 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	
 
 	totalItems := TotalRows(readRecords)
 	if totalItems != 1 {

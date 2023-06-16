@@ -16,7 +16,7 @@ type testMixedBatchClient struct {
 	receivedBatches [][]plugin.Message
 }
 
-func (c *testMixedBatchClient) CreateTableBatch(ctx context.Context, msgs []*plugin.MessageCreateTable, options plugin.WriteOptions) error {
+func (c *testMixedBatchClient) MigrateTableBatch(ctx context.Context, msgs []*plugin.MessageMigrateTable, options plugin.WriteOptions) error {
 	m := make([]plugin.Message, len(msgs))
 	for i, msg := range msgs {
 		m[i] = msg
@@ -58,7 +58,7 @@ func TestMixedBatchWriter(t *testing.T) {
 			},
 		},
 	}
-	msgCreateTable1 := &plugin.MessageCreateTable{
+	msgMigrateTable1 := &plugin.MessageMigrateTable{
 		Table: table1,
 	}
 
@@ -72,7 +72,7 @@ func TestMixedBatchWriter(t *testing.T) {
 			},
 		},
 	}
-	msgCreateTable2 := &plugin.MessageCreateTable{
+	msgMigrateTable2 := &plugin.MessageMigrateTable{
 		Table: table2,
 	}
 
@@ -113,15 +113,15 @@ func TestMixedBatchWriter(t *testing.T) {
 		{
 			name: "create table, insert, delete stale",
 			messages: []plugin.Message{
-				msgCreateTable1,
-				msgCreateTable2,
+				msgMigrateTable1,
+				msgMigrateTable2,
 				msgInsertTable1,
 				msgInsertTable2,
 				msgDeleteStale1,
 				msgDeleteStale2,
 			},
 			wantBatches: [][]plugin.Message{
-				{msgCreateTable1, msgCreateTable2},
+				{msgMigrateTable1, msgMigrateTable2},
 				{msgInsertTable1, msgInsertTable2},
 				{msgDeleteStale1, msgDeleteStale2},
 			},
@@ -129,18 +129,18 @@ func TestMixedBatchWriter(t *testing.T) {
 		{
 			name: "interleaved messages",
 			messages: []plugin.Message{
-				msgCreateTable1,
+				msgMigrateTable1,
 				msgInsertTable1,
 				msgDeleteStale1,
-				msgCreateTable2,
+				msgMigrateTable2,
 				msgInsertTable2,
 				msgDeleteStale2,
 			},
 			wantBatches: [][]plugin.Message{
-				{msgCreateTable1},
+				{msgMigrateTable1},
 				{msgInsertTable1},
 				{msgDeleteStale1},
-				{msgCreateTable2},
+				{msgMigrateTable2},
 				{msgInsertTable2},
 				{msgDeleteStale2},
 			},
@@ -148,15 +148,15 @@ func TestMixedBatchWriter(t *testing.T) {
 		{
 			name: "interleaved messages",
 			messages: []plugin.Message{
-				msgCreateTable1,
-				msgCreateTable2,
+				msgMigrateTable1,
+				msgMigrateTable2,
 				msgInsertTable1,
 				msgDeleteStale2,
 				msgInsertTable2,
 				msgDeleteStale1,
 			},
 			wantBatches: [][]plugin.Message{
-				{msgCreateTable1, msgCreateTable2},
+				{msgMigrateTable1, msgMigrateTable2},
 				{msgInsertTable1},
 				{msgDeleteStale2},
 				{msgInsertTable2},

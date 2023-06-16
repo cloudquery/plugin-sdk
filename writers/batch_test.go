@@ -13,13 +13,13 @@ import (
 )
 
 type testBatchClient struct {
-	createTables []*plugin.MessageCreateTable
-	inserts      []*plugin.MessageInsert
-	deleteStales []*plugin.MessageDeleteStale
+	migrateTables []*plugin.MessageMigrateTable
+	inserts       []*plugin.MessageInsert
+	deleteStales  []*plugin.MessageDeleteStale
 }
 
-func (c *testBatchClient) CreateTables(_ context.Context, msgs []*plugin.MessageCreateTable) error {
-	c.createTables = append(c.createTables, msgs...)
+func (c *testBatchClient) MigrateTables(_ context.Context, msgs []*plugin.MessageMigrateTable) error {
+	c.migrateTables = append(c.migrateTables, msgs...)
 	return nil
 }
 
@@ -67,24 +67,24 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, batchTestTables[0].ToArrowSchema())
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	record := bldr.NewRecord()
-	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageCreateTable{Table: batchTestTables[0]}}); err != nil {
+	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageMigrateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
 	}
-	if len(testClient.createTables) != 0 {
-		t.Fatalf("expected 0 create table messages, got %d", len(testClient.createTables))
+	if len(testClient.migrateTables) != 0 {
+		t.Fatalf("expected 0 create table messages, got %d", len(testClient.migrateTables))
 	}
 	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageInsert{Record: record}}); err != nil {
 		t.Fatal(err)
 	}
-	if len(testClient.createTables) != 1 {
-		t.Fatalf("expected 1 create table messages, got %d", len(testClient.createTables))
+	if len(testClient.migrateTables) != 1 {
+		t.Fatalf("expected 1 create table messages, got %d", len(testClient.migrateTables))
 	}
 
 	if len(testClient.inserts) != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", len(testClient.inserts))
 	}
 
-	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageCreateTable{Table: batchTestTables[0]}}); err != nil {
+	if err := wr.writeAll(ctx, []plugin.Message{&plugin.MessageMigrateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
 	}
 

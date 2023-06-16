@@ -61,7 +61,7 @@ func TestPluginSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := p.WriteAll(ctx, WriteOptions{}, []Message{
-		MessageCreateTable{},
+		MessageMigrateTable{},
 	}); err != nil {
 		t.Fatal(err)
 	}

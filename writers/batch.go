@@ -27,19 +27,19 @@ const (
 )
 
 type BatchWriterClient interface {
-	CreateTables(context.Context, []*plugin.MessageCreateTable) error
+	MigrateTables(context.Context, []*plugin.MessageMigrateTable) error
 	WriteTableBatch(ctx context.Context, name string, upsert bool, msgs []*plugin.MessageInsert) error
 	DeleteStale(context.Context, []*plugin.MessageDeleteStale) error
 }
 
 type BatchWriter struct {
-	client              BatchWriterClient
-	semaphore           *semaphore.Weighted
-	workers             map[string]*worker
-	workersLock         *sync.RWMutex
-	workersWaitGroup    *sync.WaitGroup
-	createTableMessages []*plugin.MessageCreateTable
-	deleteStaleMessages []*plugin.MessageDeleteStale
+	client               BatchWriterClient
+	semaphore            *semaphore.Weighted
+	workers              map[string]*worker
+	workersLock          *sync.RWMutex
+	workersWaitGroup     *sync.WaitGroup
+	migrateTableMessages []*plugin.MessageMigrateTable
+	deleteStaleMessages  []*plugin.MessageDeleteStale
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
@@ -101,7 +101,7 @@ func NewBatchWriter(client BatchWriterClient, opts ...Option) (*BatchWriter, err
 	for _, opt := range opts {
 		opt(c)
 	}
-	c.createTableMessages = make([]*plugin.MessageCreateTable, 0, c.batchSize)
+	c.migrateTableMessages = make([]*plugin.MessageMigrateTable, 0, c.batchSize)
 	c.deleteStaleMessages = make([]*plugin.MessageDeleteStale, 0, c.batchSize)
 	return c, nil
 }
@@ -114,7 +114,7 @@ func (w *BatchWriter) Flush(ctx context.Context) error {
 		<-done
 	}
 	w.workersLock.RUnlock()
-	w.flushCreateTables(ctx)
+	w.flushMigrateTables(ctx)
 	w.flushDeleteStaleTables(ctx)
 	return nil
 }
@@ -214,11 +214,11 @@ func (*BatchWriter) removeDuplicatesByPK(table *schema.Table, resources []arrow.
 	return res
 }
 
-func (w *BatchWriter) flushCreateTables(ctx context.Context) error {
-	if err := w.client.CreateTables(ctx, w.createTableMessages); err != nil {
+func (w *BatchWriter) flushMigrateTables(ctx context.Context) error {
+	if err := w.client.MigrateTables(ctx, w.migrateTableMessages); err != nil {
 		return err
 	}
-	w.createTableMessages = w.createTableMessages[:0]
+	w.migrateTableMessages = w.migrateTableMessages[:0]
 	return nil
 }
 
@@ -257,8 +257,8 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan plugin.Message) err
 	for msg := range msgs {
 		switch m := msg.(type) {
 		case *plugin.MessageDeleteStale:
-			if len(w.createTableMessages) > 0 {
-				if err := w.flushCreateTables(ctx); err != nil {
+			if len(w.migrateTableMessages) > 0 {
+				if err := w.flushMigrateTables(ctx); err != nil {
 					return err
 				}
 			}
@@ -270,8 +270,8 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan plugin.Message) err
 				}
 			}
 		case *plugin.MessageInsert:
-			if len(w.createTableMessages) > 0 {
-				if err := w.flushCreateTables(ctx); err != nil {
+			if len(w.migrateTableMessages) > 0 {
+				if err := w.flushMigrateTables(ctx); err != nil {
 					return err
 				}
 			}
@@ -283,16 +283,16 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan plugin.Message) err
 			if err := w.startWorker(ctx, m); err != nil {
 				return err
 			}
-		case *plugin.MessageCreateTable:
+		case *plugin.MessageMigrateTable:
 			w.flushInsert(ctx, m.Table.Name)
 			if len(w.deleteStaleMessages) > 0 {
 				if err := w.flushDeleteStaleTables(ctx); err != nil {
 					return err
 				}
 			}
-			w.createTableMessages = append(w.createTableMessages, m)
-			if len(w.createTableMessages) > w.batchSize {
-				if err := w.flushCreateTables(ctx); err != nil {
+			w.migrateTableMessages = append(w.migrateTableMessages, m)
+			if len(w.migrateTableMessages) > w.batchSize {
+				if err := w.flushMigrateTables(ctx); err != nil {
 					return err
 				}
 			}

@@ -11,11 +11,11 @@ type Message interface {
 	GetTable() *schema.Table
 }
 
-type MessageCreateTable struct {
+type MessageMigrateTable struct {
 	Table *schema.Table
 }
 
-func (m MessageCreateTable) GetTable() *schema.Table {
+func (m MessageMigrateTable) GetTable() *schema.Table {
 	return m.Table
 }
 
@@ -48,7 +48,7 @@ func (m MessageDeleteStale) GetTable() *schema.Table {
 
 type Messages []Message
 
-type CreateTables []*MessageCreateTable
+type MigrateTables []*MessageMigrateTable
 
 type Inserts []*MessageInsert
 
@@ -63,7 +63,7 @@ func (messages Messages) InsertItems() int64 {
 	return items
 }
 
-func (m CreateTables) Exists(tableName string) bool {
+func (m MigrateTables) Exists(tableName string) bool {
 	for _, table := range m {
 		if table.Table.Name == tableName {
 			return true

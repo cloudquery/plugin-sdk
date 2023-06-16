@@ -12,16 +12,16 @@ import (
 )
 
 const (
-	msgTypeCreateTable = iota
+	msgTypeMigrateTable = iota
 	msgTypeInsert
 	msgTypeDeleteStale
 )
 
-var allMsgTypes = []int{msgTypeCreateTable, msgTypeInsert, msgTypeDeleteStale}
+var allMsgTypes = []int{msgTypeMigrateTable, msgTypeInsert, msgTypeDeleteStale}
 
 // MixedBatchClient is a client that will receive batches of messages with a mixture of tables.
 type MixedBatchClient interface {
-	CreateTableBatch(ctx context.Context, messages []*plugin.MessageCreateTable, options plugin.WriteOptions) error
+	MigrateTableBatch(ctx context.Context, messages []*plugin.MessageMigrateTable, options plugin.WriteOptions) error
 	InsertBatch(ctx context.Context, messages []*plugin.MessageInsert, options plugin.WriteOptions) error
 	DeleteStaleBatch(ctx context.Context, messages []*plugin.MessageDeleteStale, options plugin.WriteOptions) error
 }
@@ -80,8 +80,8 @@ func NewMixedBatchWriter(client MixedBatchClient, opts ...MixedBatchWriterOption
 
 func msgID(msg plugin.Message) int {
 	switch msg.(type) {
-	case plugin.MessageCreateTable, *plugin.MessageCreateTable:
-		return msgTypeCreateTable
+	case plugin.MessageMigrateTable, *plugin.MessageMigrateTable:
+		return msgTypeMigrateTable
 	case plugin.MessageInsert, *plugin.MessageInsert:
 		return msgTypeInsert
 	case plugin.MessageDeleteStale, *plugin.MessageDeleteStale:
@@ -92,9 +92,9 @@ func msgID(msg plugin.Message) int {
 
 // Write starts listening for messages on the msgChan channel and writes them to the client in batches.
 func (w *MixedBatchWriter) Write(ctx context.Context, options plugin.WriteOptions, msgChan <-chan plugin.Message) error {
-	createTable := &batchManager[*plugin.MessageCreateTable]{
-		batch:        make([]*plugin.MessageCreateTable, 0, w.batchSize),
-		writeFunc:    w.client.CreateTableBatch,
+	migrateTable := &batchManager[*plugin.MessageMigrateTable]{
+		batch:        make([]*plugin.MessageMigrateTable, 0, w.batchSize),
+		writeFunc:    w.client.MigrateTableBatch,
 		writeOptions: options,
 	}
 	insert := &insertBatchManager{
@@ -110,8 +110,8 @@ func (w *MixedBatchWriter) Write(ctx context.Context, options plugin.WriteOption
 	}
 	flush := func(msgType int) error {
 		switch msgType {
-		case msgTypeCreateTable:
-			return createTable.flush(ctx)
+		case msgTypeMigrateTable:
+			return migrateTable.flush(ctx)
 		case msgTypeInsert:
 			return insert.flush(ctx)
 		case msgTypeDeleteStale:
@@ -131,8 +131,8 @@ func (w *MixedBatchWriter) Write(ctx context.Context, options plugin.WriteOption
 		}
 		prevMsgType = msgType
 		switch v := msg.(type) {
-		case *plugin.MessageCreateTable:
-			err = createTable.append(ctx, v)
+		case *plugin.MessageMigrateTable:
+			err = migrateTable.append(ctx, v)
 		case *plugin.MessageInsert:
 			err = insert.append(ctx, v)
 		case *plugin.MessageDeleteStale:
