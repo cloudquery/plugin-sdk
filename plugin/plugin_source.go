@@ -21,7 +21,6 @@ type SyncOptions struct {
 }
 
 type SourceClient interface {
-	GetSpec() any
 	Close(ctx context.Context) error
 	Tables(ctx context.Context) (schema.Tables, error)
 	Sync(ctx context.Context, options SyncOptions, res chan<- message.Message) error

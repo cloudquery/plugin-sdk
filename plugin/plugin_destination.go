@@ -13,7 +13,6 @@ type WriteOptions struct {
 }
 
 type DestinationClient interface {
-	GetSpec() any
 	Close(ctx context.Context) error
 	Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error
 	Write(ctx context.Context, options WriteOptions, res <-chan message.Message) error
