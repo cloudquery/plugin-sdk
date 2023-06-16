@@ -115,8 +115,8 @@ func TestPluginServe(t *testing.T) {
 	}
 
 	if err := writeClient.Send(&pb.Write_Request{
-		Message: &pb.Write_Request_CreateTable{
-			CreateTable: &pb.MessageCreateTable{
+		Message: &pb.Write_Request_MigrateTable{
+			MigrateTable: &pb.MessageMigrateTable{
 				Table: tableBytes,
 			},
 		},

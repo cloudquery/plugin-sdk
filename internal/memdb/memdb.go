@@ -155,7 +155,7 @@ func (c *client) Write(ctx context.Context, options plugin.WriteOptions, msgs <-
 		c.memoryDBLock.Lock()
 
 		switch msg := msg.(type) {
-		case *plugin.MessageCreateTable:
+		case *plugin.MessageMigrateTable:
 			c.migrate(ctx, msg.Table)
 		case *plugin.MessageDeleteStale:
 			c.deleteStale(ctx, msg)
