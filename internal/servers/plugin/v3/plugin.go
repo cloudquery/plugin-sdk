@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -59,11 +58,7 @@ func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVer
 }
 
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
-	pluginSpec := s.Plugin.GetSpec()
-	if err := json.Unmarshal(req.GetSpec(), &pluginSpec); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal plugin spec: %v", err)
-	}
-	if err := s.Plugin.Init(ctx, pluginSpec); err != nil {
+	if err := s.Plugin.Init(ctx, req.Spec); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
 	return &pb.Init_Response{}, nil

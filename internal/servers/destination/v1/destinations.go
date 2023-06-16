@@ -35,7 +35,11 @@ func (s *Server) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
 	s.spec = spec
-	return &pb.Configure_Response{}, s.Plugin.Init(ctx, s.spec.Spec)
+	pluginSpec, err := json.Marshal(s.spec.Spec)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
+	}
+	return &pb.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec)
 }
 
 func (s *Server) GetName(context.Context, *pb.GetName_Request) (*pb.GetName_Response, error) {
