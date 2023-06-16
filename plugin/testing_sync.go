@@ -8,10 +8,11 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-type Validator func(t *testing.T, plugin *Plugin, resources []arrow.Record)
+type Validator func(t *testing.T, plugin *Plugin, resources []message.Message)
 
 func TestPluginSync(t *testing.T, plugin *Plugin, spec any, options SyncOptions, opts ...TestPluginOption) {
 	t.Helper()
@@ -27,7 +28,7 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec any, options SyncOptions,
 		t.Parallel()
 	}
 
-	resourcesChannel := make(chan arrow.Record)
+	resourcesChannel := make(chan message.Message)
 	var syncErr error
 
 	if err := plugin.Init(context.Background(), spec); err != nil {
@@ -39,7 +40,7 @@ func TestPluginSync(t *testing.T, plugin *Plugin, spec any, options SyncOptions,
 		syncErr = plugin.Sync(context.Background(), options, resourcesChannel)
 	}()
 
-	syncedResources := make([]arrow.Record, 0)
+	syncedResources := make([]message.Message, 0)
 	for resource := range resourcesChannel {
 		syncedResources = append(syncedResources, resource)
 	}
@@ -70,28 +71,32 @@ type testPluginOptions struct {
 	validators []Validator
 }
 
-func getTableResources(t *testing.T, table *schema.Table, resources []arrow.Record) []arrow.Record {
+func getTableResources(t *testing.T, table *schema.Table, messages []message.Message) []arrow.Record {
 	t.Helper()
 
 	tableResources := make([]arrow.Record, 0)
-
-	for _, resource := range resources {
-		md := resource.Schema().Metadata()
-		tableName, ok := md.GetValue(schema.MetadataTableName)
-		if !ok {
-			t.Errorf("Expected table name to be set in metadata")
-		}
-		if tableName == table.Name {
-			tableResources = append(tableResources, resource)
+	for _, msg := range messages {
+		switch v := msg.(type) {
+		case *message.Insert:
+			md := v.Record.Schema().Metadata()
+			tableName, ok := md.GetValue(schema.MetadataTableName)
+			if !ok {
+				t.Errorf("Expected table name to be set in metadata")
+			}
+			if tableName == table.Name {
+				tableResources = append(tableResources, v.Record)
+			}
+		default:
+			t.Errorf("Unexpected message type %T", v)
 		}
 	}
 
 	return tableResources
 }
 
-func validateTable(t *testing.T, table *schema.Table, resources []arrow.Record) {
+func validateTable(t *testing.T, table *schema.Table, messages []message.Message) {
 	t.Helper()
-	tableResources := getTableResources(t, table, resources)
+	tableResources := getTableResources(t, table, messages)
 	if len(tableResources) == 0 {
 		t.Errorf("Expected table %s to be synced but it was not found", table.Name)
 		return
@@ -99,7 +104,7 @@ func validateTable(t *testing.T, table *schema.Table, resources []arrow.Record) 
 	validateResources(t, table, tableResources)
 }
 
-func validatePlugin(t *testing.T, plugin *Plugin, resources []arrow.Record) {
+func validatePlugin(t *testing.T, plugin *Plugin, resources []message.Message) {
 	t.Helper()
 	tables, err := plugin.Tables(context.Background())
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
@@ -13,11 +14,15 @@ type testPluginSpec struct {
 }
 
 type testPluginClient struct {
-	messages []Message
+	messages []message.Message
 }
 
 func newTestPluginClient(context.Context, zerolog.Logger, any) (Client, error) {
 	return &testPluginClient{}, nil
+}
+
+func (c *testPluginClient) GetSpec() any {
+	return &struct{}{}
 }
 
 func (c *testPluginClient) Tables(ctx context.Context) (schema.Tables, error) {
@@ -28,13 +33,13 @@ func (c *testPluginClient) Read(ctx context.Context, table *schema.Table, res ch
 	return nil
 }
 
-func (c *testPluginClient) Sync(ctx context.Context, options SyncOptions, res chan<- Message) error {
+func (c *testPluginClient) Sync(ctx context.Context, options SyncOptions, res chan<- message.Message) error {
 	for _, msg := range c.messages {
 		res <- msg
 	}
 	return nil
 }
-func (c *testPluginClient) Write(ctx context.Context, options WriteOptions, res <-chan Message) error {
+func (c *testPluginClient) Write(ctx context.Context, options WriteOptions, res <-chan message.Message) error {
 	for msg := range res {
 		c.messages = append(c.messages, msg)
 	}
@@ -60,8 +65,8 @@ func TestPluginSuccess(t *testing.T) {
 	if err := p.WriteAll(ctx, WriteOptions{}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.WriteAll(ctx, WriteOptions{}, []Message{
-		MessageMigrateTable{},
+	if err := p.WriteAll(ctx, WriteOptions{}, []message.Message{
+		message.MigrateTable{},
 	}); err != nil {
 		t.Fatal(err)
 	}

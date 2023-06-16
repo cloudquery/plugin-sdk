@@ -6,6 +6,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
@@ -229,25 +230,31 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 		WithDeterministicCQId(deterministicCQID),
 	}
 	sc := NewScheduler(tables, &c, opts...)
-	records := make(chan arrow.Record, 10)
-	if err := sc.Sync(ctx, records); err != nil {
+	msgs := make(chan message.Message, 10)
+	if err := sc.Sync(ctx, msgs); err != nil {
 		t.Fatal(err)
 	}
-	close(records)
+	close(msgs)
 
 	var i int
-	for record := range records {
+	for msg := range msgs {
 		if tc.data == nil {
-			t.Fatalf("Unexpected resource %v", record)
+			t.Fatalf("Unexpected message %v", msg)
 		}
 		if i >= len(tc.data) {
 			t.Fatalf("expected %d resources. got %d", len(tc.data), i)
 		}
-		rec := tc.data[i].ToArrowRecord(record.Schema())
-		if !array.RecordEqual(rec, record) {
-			t.Fatalf("expected at i=%d: %v. got %v", i, tc.data[i], record)
+		switch v := msg.(type) {
+		case *message.Insert:
+			record := v.Record
+			rec := tc.data[i].ToArrowRecord(record.Schema())
+			if !array.RecordEqual(rec, record) {
+				t.Fatalf("expected at i=%d: %v. got %v", i, tc.data[i], record)
+			}
+			i++
+		default:
+			t.Fatalf("expected insert message. got %v", msg)
 		}
-		i++
 	}
 	if len(tc.data) != i {
 		t.Fatalf("expected %d resources. got %d", len(tc.data), i)

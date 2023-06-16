@@ -37,14 +37,14 @@ type SafeMigrations struct {
 }
 
 type PluginTestSuiteTests struct {
-	// SkipUpsert skips testing with MessageInsert and Upsert=true.
+	// SkipUpsert skips testing with message.Insert and Upsert=true.
 	// Usually when a destination is not supporting primary keys
 	SkipUpsert bool
 
-	// SkipDeleteStale skips testing MessageDelete events.
+	// SkipDeleteStale skips testing message.Delete events.
 	SkipDeleteStale bool
 
-	// SkipAppend skips testing MessageInsert and Upsert=false.
+	// SkipAppend skips testing message.Insert and Upsert=false.
 	SkipInsert bool
 
 	// SkipMigrate skips testing migration
