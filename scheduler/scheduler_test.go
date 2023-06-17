@@ -229,9 +229,9 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 		WithSchedulerStrategy(strategy),
 		WithDeterministicCQId(deterministicCQID),
 	}
-	sc := NewScheduler(tables, &c, opts...)
+	sc := NewScheduler(&c, opts...)
 	msgs := make(chan message.Message, 10)
-	if err := sc.Sync(ctx, msgs); err != nil {
+	if err := sc.Sync(ctx, tables, msgs); err != nil {
 		t.Fatal(err)
 	}
 	close(msgs)

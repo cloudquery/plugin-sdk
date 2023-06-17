@@ -24,7 +24,7 @@ type Insert struct {
 	Upsert bool
 }
 
-func (m Insert) GetTable() *schema.Table {
+func (m *Insert) GetTable() *schema.Table {
 	table, err := schema.NewTableFromArrowSchema(m.Record.Schema())
 	if err != nil {
 		panic(err)
@@ -63,6 +63,17 @@ func (messages Messages) InsertItems() int64 {
 	return items
 }
 
+func (messages Messages) InsertMessage() Inserts {
+	inserts := []*Insert{}
+	for _, msg := range messages {
+		switch m := msg.(type) {
+		case *Insert:
+			inserts = append(inserts, m)
+		}
+	}
+	return inserts
+}
+
 func (m MigrateTables) Exists(tableName string) bool {
 	for _, table := range m {
 		if table.Table.Name == tableName {
@@ -84,4 +95,19 @@ func (m Inserts) Exists(tableName string) bool {
 		}
 	}
 	return false
+}
+
+func (m Inserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
+	res := []arrow.Record{}
+	for _, insert := range m {
+		md := insert.Record.Schema().Metadata()
+		tableNameMeta, ok := md.GetValue(schema.MetadataTableName)
+		if !ok {
+			continue
+		}
+		if tableNameMeta == table.Name {
+			res = append(res, insert.Record)
+		}
+	}
+	return res
 }

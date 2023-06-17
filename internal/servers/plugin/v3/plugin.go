@@ -70,9 +70,8 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	ctx := stream.Context()
 
 	syncOptions := plugin.SyncOptions{
-		Tables:      req.Tables,
-		SkipTables:  req.SkipTables,
-		Concurrency: req.Concurrency,
+		Tables:     req.Tables,
+		SkipTables: req.SkipTables,
 	}
 
 	if req.StateBackend != nil {
