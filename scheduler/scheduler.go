@@ -25,6 +25,7 @@ const (
 	minTableConcurrency    = 1
 	minResourceConcurrency = 100
 	defaultConcurrency     = 200000
+	defaultMaxDepth        = 4
 )
 
 type Strategy int
@@ -77,6 +78,12 @@ func WithConcurrency(concurrency uint64) Option {
 	}
 }
 
+func WithMaxDepth(maxDepth uint64) Option {
+	return func(s *Scheduler) {
+		s.maxDepth = maxDepth
+	}
+}
+
 func WithSchedulerStrategy(strategy Strategy) Option {
 	return func(s *Scheduler) {
 		s.strategy = strategy
@@ -105,25 +112,46 @@ type Scheduler struct {
 	concurrency       uint64
 }
 
-func NewScheduler(tables schema.Tables, client schema.ClientMeta, opts ...Option) *Scheduler {
+func NewScheduler(client schema.ClientMeta, opts ...Option) *Scheduler {
 	s := Scheduler{
-		tables:      tables,
 		client:      client,
 		metrics:     &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:       caser.New(),
 		concurrency: defaultConcurrency,
-		maxDepth:    maxDepth(tables),
+		maxDepth:    defaultMaxDepth,
 	}
 	for _, opt := range opts {
 		opt(&s)
 	}
-	if s.maxDepth > 3 {
-		panic(fmt.Errorf("max depth of %d is not supported for scheduler", s.maxDepth))
-	}
 	return &s
 }
 
-func (s *Scheduler) Sync(ctx context.Context, res chan<- message.Message) error {
+// SyncAll is mostly used for testing as it will sync all tables and can run out of memory
+// in the real world. Should use Sync for production.
+func (s *Scheduler) SyncAll(ctx context.Context, tables schema.Tables) (message.Messages, error) {
+	res := make(chan message.Message)
+	go func() {
+		defer close(res)
+		s.Sync(ctx, tables, res)
+	}()
+	var messages []message.Message
+	for msg := range res {
+		messages = append(messages, msg)
+	}
+	return messages, nil
+}
+
+func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- message.Message) error {
+
+	if len(tables) == 0 {
+		return nil
+	}
+
+	if maxDepth(tables) > s.maxDepth {
+		return fmt.Errorf("max depth exceeded, max depth is %d", s.maxDepth)
+	}
+	s.tables = tables
+
 	resources := make(chan *schema.Resource)
 	go func() {
 		defer close(resources)

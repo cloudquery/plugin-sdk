@@ -15,7 +15,6 @@ import (
 type SyncOptions struct {
 	Tables            []string
 	SkipTables        []string
-	Concurrency       int64
 	DeterministicCQID bool
 	StateBackend      state.Client
 }

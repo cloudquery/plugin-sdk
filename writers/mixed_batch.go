@@ -81,11 +81,11 @@ func NewMixedBatchWriter(client MixedBatchClient, opts ...MixedBatchWriterOption
 
 func msgID(msg message.Message) int {
 	switch msg.(type) {
-	case message.MigrateTable, *message.MigrateTable:
+	case *message.MigrateTable:
 		return msgTypeMigrateTable
-	case message.Insert, *message.Insert:
+	case *message.Insert:
 		return msgTypeInsert
-	case message.DeleteStale, *message.DeleteStale:
+	case *message.DeleteStale:
 		return msgTypeDeleteStale
 	}
 	panic("unknown message type: " + reflect.TypeOf(msg).Name())
