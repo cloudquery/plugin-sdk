@@ -8,7 +8,7 @@ import (
 
 type Server struct {
 	pb.UnimplementedDiscoveryServer
-	Versions []uint64
+	Versions []int32
 }
 
 func (s *Server) GetVersions(context.Context, *pb.GetVersions_Request) (*pb.GetVersions_Response, error) {
