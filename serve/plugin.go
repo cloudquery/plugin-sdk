@@ -177,7 +177,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				Versions: []string{"v0", "v1", "v2", "v3"},
 			})
 			pbdiscoveryv1.RegisterDiscoveryServer(grpcServer, &discoveryServerV1.Server{
-				Versions: []uint64{0, 1, 2, 3},
+				Versions: []int32{0, 1, 2, 3},
 			})
 
 			version := s.plugin.Version()
