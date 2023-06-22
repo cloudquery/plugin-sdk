@@ -78,6 +78,28 @@ func TestRecordToBytesAndNewRecordFromBytes(t *testing.T) {
 	}
 }
 
+func TestSchemaToBytesAndNewSchemaFromBytes(t *testing.T) {
+	md := arrow.NewMetadata([]string{"key"}, []string{"value"})
+	schema := arrow.NewSchema(
+		[]arrow.Field{
+			{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+			{Name: "name", Type: arrow.BinaryTypes.String},
+		},
+		&md,
+	)
+	b, err := ToBytes(schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decodedSchema, err := NewFromBytes(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !schema.Equal(decodedSchema) {
+		t.Fatalf("schema differs from expected after NewSchemaFromBytes. \nBefore: %v,\nAfter: %v", schema, decodedSchema)
+	}
+}
+
 func RecordDiff(l arrow.Record, r arrow.Record) string {
 	var sb strings.Builder
 	if l.NumCols() != r.NumCols() {

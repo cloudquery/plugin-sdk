@@ -142,7 +142,6 @@ func (s *Scheduler) SyncAll(ctx context.Context, tables schema.Tables) (message.
 }
 
 func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- message.Message) error {
-
 	if len(tables) == 0 {
 		return nil
 	}
@@ -151,6 +150,13 @@ func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- m
 		return fmt.Errorf("max depth exceeded, max depth is %d", s.maxDepth)
 	}
 	s.tables = tables
+
+	// send migrate messages first
+	for _, table := range tables {
+		res <- &message.MigrateTable{
+			Table: table,
+		}
+	}
 
 	resources := make(chan *schema.Resource)
 	go func() {
