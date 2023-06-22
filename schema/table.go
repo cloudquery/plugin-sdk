@@ -109,7 +109,7 @@ func NewTablesFromArrowSchemas(schemas []*arrow.Schema) (Tables, error) {
 }
 
 func NewTableFromBytes(b []byte) (*Table, error) {
-	sc, err := NewSchemaFromBytes(b)
+	sc, err := NewFromBytes(b)
 	if err != nil {
 		return nil, err
 	}

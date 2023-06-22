@@ -52,6 +52,15 @@ func (s Schemas) Encode() ([][]byte, error) {
 	return ret, nil
 }
 
+func ToBytes(schema *arrow.Schema) ([]byte, error) {
+	var buf bytes.Buffer
+	wr := ipc.NewWriter(&buf, ipc.WithSchema(schema))
+	if err := wr.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 func RecordToBytes(record arrow.Record) ([]byte, error) {
 	var buf bytes.Buffer
 	wr := ipc.NewWriter(&buf, ipc.WithSchema(record.Schema()))
@@ -77,7 +86,7 @@ func NewRecordFromBytes(b []byte) (arrow.Record, error) {
 	return nil, nil
 }
 
-func NewSchemaFromBytes(b []byte) (*arrow.Schema, error) {
+func NewFromBytes(b []byte) (*arrow.Schema, error) {
 	rdr, err := ipc.NewReader(bytes.NewReader(b))
 	if err != nil {
 		return nil, err
@@ -89,7 +98,7 @@ func NewSchemasFromBytes(b [][]byte) (Schemas, error) {
 	var err error
 	ret := make([]*arrow.Schema, len(b))
 	for i, buf := range b {
-		ret[i], err = NewSchemaFromBytes(buf)
+		ret[i], err = NewFromBytes(buf)
 		if err != nil {
 			return nil, err
 		}

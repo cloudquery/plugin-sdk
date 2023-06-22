@@ -28,6 +28,7 @@ require (
 replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230610001216-0f7bd3beda2c
 
 replace github.com/cloudquery/plugin-pb-go => ../plugin-pb-go
+replace github.com/cloudquery/plugin-pb-go => ../plugin-pb-go
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
