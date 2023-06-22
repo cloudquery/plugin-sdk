@@ -32,6 +32,7 @@ replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13
 >>>>>>> 7e5547e (more wip)
 
 replace github.com/cloudquery/plugin-pb-go => ../plugin-pb-go
+replace github.com/cloudquery/plugin-pb-go => ../plugin-pb-go
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect

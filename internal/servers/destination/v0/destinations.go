@@ -10,7 +10,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	pbBase "github.com/cloudquery/plugin-pb-go/pb/base/v0"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
-	"github.com/cloudquery/plugin-pb-go/specs/v0"
+	"github.com/cloudquery/plugin-pb-go/specs"
 	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
