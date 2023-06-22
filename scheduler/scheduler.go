@@ -152,7 +152,7 @@ func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- m
 	s.tables = tables
 
 	// send migrate messages first
-	for _, table := range tables {
+	for _, table := range tables.FlattenTables() {
 		res <- &message.MigrateTable{
 			Table: table,
 		}
