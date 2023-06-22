@@ -82,7 +82,7 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		if s.NoSentry {
 			opts = append(opts, managedplugin.WithNoSentry())
 		}
-		statePlugin, err := managedplugin.NewClient(ctx, managedplugin.Config{
+		statePlugin, err := managedplugin.NewClient(ctx, managedplugin.PluginDestination, managedplugin.Config{
 			Path:     req.StateBackend.Path,
 			Registry: managedplugin.Registry(req.StateBackend.Registry),
 			Version:  req.StateBackend.Version,
