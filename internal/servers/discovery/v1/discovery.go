@@ -12,9 +12,5 @@ type Server struct {
 }
 
 func (s *Server) GetVersions(context.Context, *pb.GetVersions_Request) (*pb.GetVersions_Response, error) {
-	v := make([]int32, len(s.Versions))
-	for i := range s.Versions {
-		v[i] = int32(s.Versions[i])
-	}
-	return &pb.GetVersions_Response{Versions: v}, nil
+	return &pb.GetVersions_Response{Versions: s.Versions}, nil
 }

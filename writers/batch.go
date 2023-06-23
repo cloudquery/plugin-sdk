@@ -27,19 +27,19 @@ const (
 
 type BatchWriterClient interface {
 	MigrateTables(context.Context, []*message.MigrateTable) error
-	WriteTableBatch(ctx context.Context, name string, upsert bool, msgs []*message.Insert) error
+	WriteTableBatch(ctx context.Context, name string, msgs []*message.Insert) error
 	DeleteStale(context.Context, []*message.DeleteStale) error
 }
 
 type BatchWriter struct {
 	client           BatchWriterClient
 	workers          map[string]*worker
-	workersLock      *sync.RWMutex
-	workersWaitGroup *sync.WaitGroup
+	workersLock      sync.RWMutex
+	workersWaitGroup sync.WaitGroup
 
-	migrateTableLock     *sync.Mutex
+	migrateTableLock     sync.Mutex
 	migrateTableMessages []*message.MigrateTable
-	deleteStaleLock      *sync.Mutex
+	deleteStaleLock      sync.Mutex
 	deleteStaleMessages  []*message.DeleteStale
 
 	logger         zerolog.Logger
@@ -82,16 +82,12 @@ type worker struct {
 
 func NewBatchWriter(client BatchWriterClient, opts ...Option) (*BatchWriter, error) {
 	c := &BatchWriter{
-		client:           client,
-		workers:          make(map[string]*worker),
-		workersLock:      &sync.RWMutex{},
-		workersWaitGroup: &sync.WaitGroup{},
-		migrateTableLock: &sync.Mutex{},
-		deleteStaleLock:  &sync.Mutex{},
-		logger:           zerolog.Nop(),
-		batchTimeout:     defaultBatchTimeoutSeconds * time.Second,
-		batchSize:        defaultBatchSize,
-		batchSizeBytes:   defaultBatchSizeBytes,
+		client:         client,
+		workers:        make(map[string]*worker),
+		logger:         zerolog.Nop(),
+		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
+		batchSize:      defaultBatchSize,
+		batchSizeBytes: defaultBatchSizeBytes,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -128,41 +124,32 @@ func (w *BatchWriter) Close(ctx context.Context) error {
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.Insert, flush <-chan chan bool) {
 	sizeBytes := int64(0)
 	resources := make([]*message.Insert, 0)
-	upsertBatch := false
 	for {
 		select {
 		case r, ok := <-ch:
 			if !ok {
 				if len(resources) > 0 {
-					w.flush(ctx, tableName, upsertBatch, resources)
+					w.flush(ctx, tableName, resources)
 				}
 				return
 			}
-			if upsertBatch != r.Upsert {
-				w.flush(ctx, tableName, upsertBatch, resources)
-				resources = make([]*message.Insert, 0)
-				sizeBytes = 0
-				upsertBatch = r.Upsert
-				resources = append(resources, r)
-				sizeBytes = util.TotalRecordSize(r.Record)
-			} else {
-				resources = append(resources, r)
-				sizeBytes += util.TotalRecordSize(r.Record)
-			}
+			resources = append(resources, r)
+			sizeBytes += util.TotalRecordSize(r.Record)
+
 			if len(resources) >= w.batchSize || sizeBytes+util.TotalRecordSize(r.Record) >= int64(w.batchSizeBytes) {
-				w.flush(ctx, tableName, upsertBatch, resources)
+				w.flush(ctx, tableName, resources)
 				resources = make([]*message.Insert, 0)
 				sizeBytes = 0
 			}
 		case <-time.After(w.batchTimeout):
 			if len(resources) > 0 {
-				w.flush(ctx, tableName, upsertBatch, resources)
+				w.flush(ctx, tableName, resources)
 				resources = make([]*message.Insert, 0)
 				sizeBytes = 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
-				w.flush(ctx, tableName, upsertBatch, resources)
+				w.flush(ctx, tableName, resources)
 				resources = make([]*message.Insert, 0)
 				sizeBytes = 0
 			}
@@ -174,11 +161,11 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 	}
 }
 
-func (w *BatchWriter) flush(ctx context.Context, tableName string, upsertBatch bool, resources []*message.Insert) {
+func (w *BatchWriter) flush(ctx context.Context, tableName string, resources []*message.Insert) {
 	// resources = w.removeDuplicatesByPK(table, resources)
 	start := time.Now()
 	batchSize := len(resources)
-	if err := w.client.WriteTableBatch(ctx, tableName, upsertBatch, resources); err != nil {
+	if err := w.client.WriteTableBatch(ctx, tableName, resources); err != nil {
 		w.logger.Err(err).Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 	} else {
 		w.logger.Info().Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")

@@ -14,7 +14,7 @@ import (
 )
 
 type testBatchClient struct {
-	mutex         *sync.Mutex
+	mutex         sync.Mutex
 	migrateTables []*message.MigrateTable
 	inserts       []*message.Insert
 	deleteStales  []*message.DeleteStale
@@ -45,7 +45,7 @@ func (c *testBatchClient) MigrateTables(_ context.Context, msgs []*message.Migra
 	return nil
 }
 
-func (c *testBatchClient) WriteTableBatch(_ context.Context, _ string, _ bool, msgs []*message.Insert) error {
+func (c *testBatchClient) WriteTableBatch(_ context.Context, _ string, msgs []*message.Insert) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.inserts = append(c.inserts, msgs...)
@@ -84,9 +84,7 @@ var batchTestTables = schema.Tables{
 func TestBatchFlushDifferentMessages(t *testing.T) {
 	ctx := context.Background()
 
-	testClient := &testBatchClient{
-		mutex: &sync.Mutex{},
-	}
+	testClient := &testBatchClient{}
 	wr, err := NewBatchWriter(testClient)
 	if err != nil {
 		t.Fatal(err)
@@ -128,9 +126,7 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 func TestBatchSize(t *testing.T) {
 	ctx := context.Background()
 
-	testClient := &testBatchClient{
-		mutex: &sync.Mutex{},
-	}
+	testClient := &testBatchClient{}
 	wr, err := NewBatchWriter(testClient, WithBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
@@ -163,9 +159,7 @@ func TestBatchSize(t *testing.T) {
 func TestBatchTimeout(t *testing.T) {
 	ctx := context.Background()
 
-	testClient := &testBatchClient{
-		mutex: &sync.Mutex{},
-	}
+	testClient := &testBatchClient{}
 	wr, err := NewBatchWriter(testClient, WithBatchTimeout(time.Second))
 	if err != nil {
 		t.Fatal(err)
@@ -200,18 +194,19 @@ func TestBatchTimeout(t *testing.T) {
 func TestBatchUpserts(t *testing.T) {
 	ctx := context.Background()
 
-	testClient := &testBatchClient{
-		mutex: &sync.Mutex{},
-	}
-	wr, err := NewBatchWriter(testClient)
+	testClient := &testBatchClient{}
+	wr, err := NewBatchWriter(testClient, WithBatchSize(2), WithBatchTimeout(time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}
-	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
-	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
+	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64, PrimaryKey: true}}}
+
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+	bldr.Field(0).(*array.Int64Builder).Append(1)
+	record := bldr.NewRecord()
+
 	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
 		Record: record,
-		Upsert: true,
 	}}); err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +223,7 @@ func TestBatchUpserts(t *testing.T) {
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 2)
 
-	if testClient.InsertsLen() != 1 {
-		t.Fatalf("expected 1 insert messages, got %d", testClient.InsertsLen())
+	if testClient.InsertsLen() != 2 {
+		t.Fatalf("expected 2 insert messages, got %d", testClient.InsertsLen())
 	}
 }

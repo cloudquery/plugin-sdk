@@ -91,7 +91,6 @@ func TestMixedBatchWriter(t *testing.T) {
 	rec2 := bldr2.NewRecord()
 	msgInsertTable2 := &message.Insert{
 		Record: rec2,
-		Upsert: false,
 	}
 
 	// message to delete stale from table1

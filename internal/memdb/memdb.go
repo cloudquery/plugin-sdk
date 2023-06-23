@@ -43,6 +43,7 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 	c := &client{
 		memoryDB:     make(map[string][]arrow.Record),
 		memoryDBLock: sync.RWMutex{},
+		tables:       make(map[string]*schema.Table),
 	}
 	for _, opt := range options {
 		opt(c)
@@ -52,11 +53,8 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 	}
 }
 
-func NewMemDBClient(_ context.Context, _ zerolog.Logger, spec []byte) (plugin.Client, error) {
-	return &client{
-		memoryDB: make(map[string][]arrow.Record),
-		tables:   make(map[string]*schema.Table),
-	}, nil
+func NewMemDBClient(ctx context.Context, l zerolog.Logger, spec []byte) (plugin.Client, error) {
+	return GetNewClient()(ctx, l, spec)
 }
 
 func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, any) (plugin.Client, error) {
@@ -64,8 +62,13 @@ func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, any) (plugin.Client
 }
 
 func (c *client) overwrite(table *schema.Table, data arrow.Record) {
-	pksIndex := table.PrimaryKeysIndexes()
 	tableName := table.Name
+	pksIndex := table.PrimaryKeysIndexes()
+	if len(pksIndex) == 0 {
+		c.memoryDB[tableName] = append(c.memoryDB[tableName], data)
+		return
+	}
+
 	for i, row := range c.memoryDB[tableName] {
 		found := true
 		for _, pkIndex := range pksIndex {
@@ -113,7 +116,6 @@ func (c *client) Sync(ctx context.Context, options plugin.SyncOptions, res chan<
 		for _, row := range c.memoryDB[tableName] {
 			res <- &message.Insert{
 				Record: row,
-				Upsert: false,
 			}
 		}
 	}
@@ -174,11 +176,7 @@ func (c *client) Write(ctx context.Context, options plugin.WriteOptions, msgs <-
 				return fmt.Errorf("table name not found in schema metadata")
 			}
 			table := c.tables[tableName]
-			if msg.Upsert {
-				c.overwrite(table, msg.Record)
-			} else {
-				c.memoryDB[tableName] = append(c.memoryDB[tableName], msg.Record)
-			}
+			c.overwrite(table, msg.Record)
 		}
 
 		c.memoryDBLock.Unlock()

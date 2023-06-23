@@ -21,7 +21,6 @@ func (m MigrateTable) GetTable() *schema.Table {
 
 type Insert struct {
 	Record arrow.Record
-	Upsert bool
 }
 
 func (m *Insert) GetTable() *schema.Table {

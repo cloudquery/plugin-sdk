@@ -32,7 +32,6 @@ func (s *WriterTestSuite) testUpsert(ctx context.Context) error {
 
 	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
 		Record: record,
-		Upsert: true,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
@@ -48,7 +47,6 @@ func (s *WriterTestSuite) testUpsert(ctx context.Context) error {
 
 	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
 		Record: record,
-		Upsert: true,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}

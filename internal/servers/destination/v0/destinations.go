@@ -182,7 +182,6 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 		convertedResource := CQTypesToRecord(memory.DefaultAllocator, []schemav2.CQTypes{origResource.Data}, table.ToArrowSchema())
 		msg := &message.Insert{
 			Record: convertedResource,
-			Upsert: s.spec.WriteMode == specs.WriteModeOverwrite || s.spec.WriteMode == specs.WriteModeOverwriteDeleteStale,
 		}
 
 		select {

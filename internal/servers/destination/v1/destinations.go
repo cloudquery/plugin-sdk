@@ -160,7 +160,6 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 			rec.Retain()
 			msg := &message.Insert{
 				Record: rec,
-				Upsert: s.spec.WriteMode == specs.WriteModeOverwrite || s.spec.WriteMode == specs.WriteModeOverwriteDeleteStale,
 			}
 			select {
 			case msgs <- msg:
