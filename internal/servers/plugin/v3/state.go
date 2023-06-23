@@ -165,7 +165,7 @@ func (c *ClientV3) Flush(ctx context.Context) error {
 	return nil
 }
 
-func (c *ClientV3) GetKey(ctx context.Context, key string) (string, error) {
+func (c *ClientV3) GetKey(_ context.Context, key string) (string, error) {
 	if val, ok := c.mem[key]; ok {
 		return val, nil
 	}

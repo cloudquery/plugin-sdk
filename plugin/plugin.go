@@ -22,21 +22,21 @@ type Client interface {
 
 type UnimplementedDestination struct{}
 
-func (UnimplementedDestination) Write(ctx context.Context, options WriteOptions, res <-chan message.Message) error {
+func (UnimplementedDestination) Write(context.Context, WriteOptions, <-chan message.Message) error {
 	return ErrNotImplemented
 }
 
-func (UnimplementedDestination) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
+func (UnimplementedDestination) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
 	return fmt.Errorf("not implemented")
 }
 
 type UnimplementedSource struct{}
 
-func (UnimplementedSource) Sync(ctx context.Context, options SyncOptions, res chan<- message.Message) error {
+func (UnimplementedSource) Sync(context.Context, SyncOptions, chan<- message.Message) error {
 	return ErrNotImplemented
 }
 
-func (UnimplementedSource) Tables(ctx context.Context) (schema.Tables, error) {
+func (UnimplementedSource) Tables(context.Context) (schema.Tables, error) {
 	return nil, ErrNotImplemented
 }
 

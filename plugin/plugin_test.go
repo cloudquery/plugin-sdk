@@ -30,13 +30,13 @@ func (*testPluginClient) Read(context.Context, *schema.Table, chan<- arrow.Recor
 	return nil
 }
 
-func (c *testPluginClient) Sync(ctx context.Context, options SyncOptions, res chan<- message.Message) error {
+func (c *testPluginClient) Sync(_ context.Context, _ SyncOptions, res chan<- message.Message) error {
 	for _, msg := range c.messages {
 		res <- msg
 	}
 	return nil
 }
-func (c *testPluginClient) Write(ctx context.Context, options WriteOptions, res <-chan message.Message) error {
+func (c *testPluginClient) Write(_ context.Context, _ WriteOptions, res <-chan message.Message) error {
 	for msg := range res {
 		c.messages = append(c.messages, msg)
 	}

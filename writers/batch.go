@@ -109,7 +109,7 @@ func (w *BatchWriter) Flush(ctx context.Context) error {
 	return w.flushDeleteStaleTables(ctx)
 }
 
-func (w *BatchWriter) Close(ctx context.Context) error {
+func (w *BatchWriter) Close(context.Context) error {
 	w.workersLock.Lock()
 	defer w.workersLock.Unlock()
 	for _, w := range w.workers {
@@ -224,7 +224,7 @@ func (w *BatchWriter) flushDeleteStaleTables(ctx context.Context) error {
 	return nil
 }
 
-func (w *BatchWriter) flushInsert(ctx context.Context, tableName string) {
+func (w *BatchWriter) flushInsert(tableName string) {
 	w.workersLock.RLock()
 	worker, ok := w.workers[tableName]
 	if !ok {
@@ -254,7 +254,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.Message) er
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err
 			}
-			w.flushInsert(ctx, m.Table.Name)
+			w.flushInsert(m.Table.Name)
 			w.deleteStaleLock.Lock()
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
 			l := len(w.deleteStaleMessages)
@@ -275,7 +275,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.Message) er
 				return err
 			}
 		case *message.MigrateTable:
-			w.flushInsert(ctx, m.Table.Name)
+			w.flushInsert(m.Table.Name)
 			if err := w.flushDeleteStaleTables(ctx); err != nil {
 				return err
 			}

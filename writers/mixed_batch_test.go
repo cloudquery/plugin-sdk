@@ -17,7 +17,7 @@ type testMixedBatchClient struct {
 	receivedBatches [][]message.Message
 }
 
-func (c *testMixedBatchClient) MigrateTableBatch(ctx context.Context, msgs []*message.MigrateTable, options plugin.WriteOptions) error {
+func (c *testMixedBatchClient) MigrateTableBatch(_ context.Context, msgs []*message.MigrateTable, _ plugin.WriteOptions) error {
 	m := make([]message.Message, len(msgs))
 	for i, msg := range msgs {
 		m[i] = msg
@@ -26,7 +26,7 @@ func (c *testMixedBatchClient) MigrateTableBatch(ctx context.Context, msgs []*me
 	return nil
 }
 
-func (c *testMixedBatchClient) InsertBatch(ctx context.Context, msgs []*message.Insert, options plugin.WriteOptions) error {
+func (c *testMixedBatchClient) InsertBatch(_ context.Context, msgs []*message.Insert, _ plugin.WriteOptions) error {
 	m := make([]message.Message, len(msgs))
 	for i, msg := range msgs {
 		m[i] = msg
@@ -35,7 +35,7 @@ func (c *testMixedBatchClient) InsertBatch(ctx context.Context, msgs []*message.
 	return nil
 }
 
-func (c *testMixedBatchClient) DeleteStaleBatch(ctx context.Context, msgs []*message.DeleteStale, options plugin.WriteOptions) error {
+func (c *testMixedBatchClient) DeleteStaleBatch(_ context.Context, msgs []*message.DeleteStale, _ plugin.WriteOptions) error {
 	m := make([]message.Message, len(msgs))
 	for i, msg := range msgs {
 		m[i] = msg
