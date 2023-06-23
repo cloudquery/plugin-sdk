@@ -3,9 +3,9 @@ module github.com/cloudquery/plugin-sdk/v4
 go 1.19
 
 require (
-	github.com/apache/arrow/go/v13 v13.0.0-20230601214540-018e7d3f9c4b
+	github.com/apache/arrow/go/v13 v13.0.0-20230622042343-ec413b7763fe
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/plugin-pb-go v1.1.0
+	github.com/cloudquery/plugin-pb-go v1.2.1
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/goccy/go-json v0.10.0
@@ -25,9 +25,6 @@ require (
 )
 
 replace github.com/apache/arrow/go/v13 => github.com/cloudquery/arrow/go/v13 v13.0.0-20230610001216-0f7bd3beda2c
-
-replace github.com/cloudquery/plugin-pb-go => ../plugin-pb-go
-replace github.com/cloudquery/plugin-pb-go => ../plugin-pb-go
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
