@@ -35,8 +35,5 @@ func (p *Plugin) WriteAll(ctx context.Context, options WriteOptions, resources [
 }
 
 func (p *Plugin) Write(ctx context.Context, options WriteOptions, res <-chan message.Message) error {
-	if err := p.client.Write(ctx, options, res); err != nil {
-		return err
-	}
-	return nil
+	return p.client.Write(ctx, options, res)
 }

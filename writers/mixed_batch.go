@@ -8,7 +8,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
-	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
 
@@ -28,7 +27,6 @@ type MixedBatchClient interface {
 }
 
 type MixedBatchWriter struct {
-	tables         schema.Tables
 	client         MixedBatchClient
 	logger         zerolog.Logger
 	batchTimeout   time.Duration

@@ -38,8 +38,8 @@ func (s *Server) GetTables(ctx context.Context, _ *pb.GetTables_Request) (*pb.Ge
 	}
 	schemas := tables.ToArrowSchemas()
 	encoded := make([][]byte, len(schemas))
-	for i, schema := range schemas {
-		encoded[i], err = pb.SchemaToBytes(schema)
+	for i, sc := range schemas {
+		encoded[i], err = pb.SchemaToBytes(sc)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to encode tables: %v", err)
 		}

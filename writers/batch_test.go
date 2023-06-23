@@ -120,7 +120,6 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 	if testClient.InsertsLen() != 1 {
 		t.Fatalf("expected 1 insert messages, got %d", testClient.InsertsLen())
 	}
-
 }
 
 func TestBatchSize(t *testing.T) {

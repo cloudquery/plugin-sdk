@@ -18,15 +18,15 @@ func newTestPluginClient(context.Context, zerolog.Logger, []byte) (Client, error
 	return &testPluginClient{}, nil
 }
 
-func (c *testPluginClient) GetSpec() any {
+func (*testPluginClient) GetSpec() any {
 	return &struct{}{}
 }
 
-func (c *testPluginClient) Tables(ctx context.Context) (schema.Tables, error) {
+func (*testPluginClient) Tables(ctx context.Context) (schema.Tables, error) {
 	return schema.Tables{}, nil
 }
 
-func (c *testPluginClient) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
+func (*testPluginClient) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
 	return nil
 }
 
@@ -42,7 +42,7 @@ func (c *testPluginClient) Write(ctx context.Context, options WriteOptions, res 
 	}
 	return nil
 }
-func (c *testPluginClient) Close(context.Context) error {
+func (*testPluginClient) Close(context.Context) error {
 	return nil
 }
 

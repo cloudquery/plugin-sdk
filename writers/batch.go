@@ -105,9 +105,10 @@ func (w *BatchWriter) Flush(ctx context.Context) error {
 		<-done
 	}
 	w.workersLock.RUnlock()
-	w.flushMigrateTables(ctx)
-	w.flushDeleteStaleTables(ctx)
-	return nil
+	if err := w.flushMigrateTables(ctx); err != nil {
+		return err
+	}
+	return w.flushDeleteStaleTables(ctx)
 }
 
 func (w *BatchWriter) Close(ctx context.Context) error {

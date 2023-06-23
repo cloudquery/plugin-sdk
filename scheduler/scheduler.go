@@ -130,15 +130,17 @@ func NewScheduler(client schema.ClientMeta, opts ...Option) *Scheduler {
 // in the real world. Should use Sync for production.
 func (s *Scheduler) SyncAll(ctx context.Context, tables schema.Tables) (message.Messages, error) {
 	res := make(chan message.Message)
+	var err error
 	go func() {
 		defer close(res)
-		s.Sync(ctx, tables, res)
+		err = s.Sync(ctx, tables, res)
 	}()
+	// nolint:prealloc
 	var messages []message.Message
 	for msg := range res {
 		messages = append(messages, msg)
 	}
-	return messages, nil
+	return messages, err
 }
 
 func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- message.Message) error {

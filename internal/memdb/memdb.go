@@ -87,11 +87,11 @@ func (c *client) overwrite(table *schema.Table, data arrow.Record) {
 	c.memoryDB[tableName] = append(c.memoryDB[tableName], data)
 }
 
-func (c *client) ID() string {
+func (*client) ID() string {
 	return "testDestinationMemDB"
 }
 
-func (c *client) GetSpec() any {
+func (*client) GetSpec() any {
 	return &Spec{}
 }
 
@@ -123,7 +123,7 @@ func (c *client) Sync(ctx context.Context, options plugin.SyncOptions, res chan<
 	return nil
 }
 
-func (c *client) Tables(ctx context.Context) (schema.Tables, error) {
+func (c *client) Tables(_ context.Context) (schema.Tables, error) {
 	tables := make(schema.Tables, 0, len(c.tables))
 	for _, table := range c.tables {
 		tables = append(tables, table)
@@ -149,7 +149,7 @@ func (c *client) migrate(_ context.Context, table *schema.Table) {
 	c.tables[tableName] = table
 }
 
-func (c *client) Write(ctx context.Context, options plugin.WriteOptions, msgs <-chan message.Message) error {
+func (c *client) Write(ctx context.Context, _ plugin.WriteOptions, msgs <-chan message.Message) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
