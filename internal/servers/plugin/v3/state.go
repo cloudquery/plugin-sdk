@@ -154,7 +154,6 @@ func (c *ClientV3) flush(ctx context.Context) error {
 		Message: &pbPlugin.Write_Request_Insert{
 			Insert: &pbPlugin.MessageInsert{
 				Record: buf.Bytes(),
-				Upsert: true,
 			},
 		},
 	}); err != nil {
