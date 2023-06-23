@@ -238,12 +238,6 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 
 	var i int
 	for msg := range msgs {
-		if tc.data == nil {
-			t.Fatalf("Unexpected message %v", msg)
-		}
-		if i >= len(tc.data) {
-			t.Fatalf("expected %d resources. got %d", len(tc.data), i)
-		}
 		switch v := msg.(type) {
 		case *message.Insert:
 			record := v.Record
@@ -252,8 +246,10 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 				t.Fatalf("expected at i=%d: %v. got %v", i, tc.data[i], record)
 			}
 			i++
+		case *message.MigrateTable:
+			// ignore
 		default:
-			t.Fatalf("expected insert message. got %v", msg)
+			t.Fatalf("expected insert message. got %T", msg)
 		}
 	}
 	if len(tc.data) != i {
