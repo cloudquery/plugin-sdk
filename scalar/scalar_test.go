@@ -7,6 +7,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewScalar(t *testing.T) {
@@ -154,5 +155,30 @@ func genDoubleSetTest(dt arrow.DataType, input any, setToNil any) func(t *testin
 		}
 
 		assert.False(t, s.IsValid())
+	}
+}
+
+func TestAppendToBuilderTimestamp(t *testing.T) {
+	units := []arrow.TimeUnit{arrow.Second, arrow.Millisecond, arrow.Microsecond, arrow.Nanosecond}
+	expected := []string{"1999-01-08 04:05:06", "1999-01-08 04:05:06.123", "1999-01-08 04:05:06.123456", "1999-01-08 04:05:06.123456789"}
+	for i, unit := range units {
+		timestamp := Timestamp{
+			Type: &arrow.TimestampType{
+				Unit:     unit,
+				TimeZone: "UTC",
+			},
+		}
+		err := timestamp.Set("1999-01-08 04:05:06.123456789")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		bldr := array.NewTimestampBuilder(memory.DefaultAllocator, timestamp.Type)
+		AppendToBuilder(bldr, &timestamp)
+
+		arr := bldr.NewArray().(*array.Timestamp)
+		actual := arr.ValueStr(0)
+
+		require.Equal(t, expected[i], actual)
 	}
 }

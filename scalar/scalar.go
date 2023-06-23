@@ -176,7 +176,8 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 	case arrow.BOOL:
 		bldr.(*array.BooleanBuilder).Append(s.(*Bool).Value)
 	case arrow.TIMESTAMP:
-		bldr.(*array.TimestampBuilder).Append(arrow.Timestamp(s.(*Timestamp).Value.UnixMicro()))
+		asTime := s.(*Timestamp).Value
+		bldr.(*array.TimestampBuilder).AppendTime(asTime)
 	case arrow.DURATION:
 		bldr.(*array.DurationBuilder).Append(arrow.Duration(s.(*Duration).Value))
 	case arrow.DATE32:
