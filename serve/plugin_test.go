@@ -95,7 +95,7 @@ func TestPluginServe(t *testing.T) {
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, testTable.ToArrowSchema())
 	bldr.Field(0).(*array.StringBuilder).Append("test")
 	record := bldr.NewRecord()
-	
+
 	recordBytes, err := pb.RecordToBytes(record)
 	if err != nil {
 		t.Fatal(err)
