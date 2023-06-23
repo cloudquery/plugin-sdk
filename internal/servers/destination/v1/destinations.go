@@ -55,7 +55,7 @@ func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVer
 }
 
 func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migrate_Response, error) {
-	schemas, err := schema.NewSchemasFromBytes(req.Tables)
+	schemas, err := NewSchemasFromBytes(req.Tables)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create schemas: %v", err)
 	}
@@ -97,7 +97,7 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 		return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 	}
 
-	schemas, err := schema.NewSchemasFromBytes(r.Tables)
+	schemas, err := NewSchemasFromBytes(r.Tables)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "failed to create schemas: %v", err)
 	}
@@ -199,7 +199,7 @@ func (s *Server) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) 
 }
 
 func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (*pb.DeleteStale_Response, error) {
-	schemas, err := schema.NewSchemasFromBytes(req.Tables)
+	schemas, err := NewSchemasFromBytes(req.Tables)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create schemas: %v", err)
 	}

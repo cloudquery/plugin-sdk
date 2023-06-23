@@ -36,9 +36,13 @@ func (s *Server) GetTables(ctx context.Context, _ *pb.GetTables_Request) (*pb.Ge
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get tables: %v", err)
 	}
-	encoded, err := tables.ToArrowSchemas().Encode()
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode tables: %w", err)
+	schemas := tables.ToArrowSchemas()
+	encoded := make([][]byte, len(schemas))
+	for i, schema := range schemas {
+		encoded[i], err = pb.SchemaToBytes(schema)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to encode tables: %v", err)
+		}
 	}
 	return &pb.GetTables_Response{
 		Tables: encoded,
@@ -105,12 +109,12 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		}
 	}()
 
-	pbMsg := &pb.Sync_Response{}
 	for msg := range msgs {
+		pbMsg := &pb.Sync_Response{}
 		switch m := msg.(type) {
 		case *message.MigrateTable:
 			tableSchema := m.Table.ToArrowSchema()
-			schemaBytes, err := schema.ToBytes(tableSchema)
+			schemaBytes, err := pb.SchemaToBytes(tableSchema)
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to encode table schema: %v", err)
 			}
@@ -121,7 +125,7 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			}
 
 		case *message.Insert:
-			recordBytes, err := schema.RecordToBytes(m.Record)
+			recordBytes, err := pb.RecordToBytes(m.Record)
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
 			}
@@ -200,16 +204,21 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 		var pbMsgConvertErr error
 		switch pbMsg := r.Message.(type) {
 		case *pb.Write_Request_MigrateTable:
-			table, err := schema.NewTableFromBytes(pbMsg.MigrateTable.Table)
+			sc, err := pb.NewSchemaFromBytes(pbMsg.MigrateTable.Table)
 			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table: %v", err)
+				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
+				break
+			}
+			table, err := schema.NewTableFromArrowSchema(sc)
+			if err != nil {
+				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
 				break
 			}
 			pluginMessage = &message.MigrateTable{
 				Table: table,
 			}
 		case *pb.Write_Request_Insert:
-			record, err := schema.NewRecordFromBytes(pbMsg.Insert.Record)
+			record, err := pb.NewRecordFromBytes(pbMsg.Insert.Record)
 			if err != nil {
 				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
 				break
@@ -218,9 +227,14 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				Record: record,
 			}
 		case *pb.Write_Request_Delete:
-			table, err := schema.NewTableFromBytes(pbMsg.Delete.Table)
+			sc, err := pb.NewSchemaFromBytes(pbMsg.Delete.Table)
 			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
+				break
+			}
+			table, err := schema.NewTableFromArrowSchema(sc)
+			if err != nil {
+				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
 				break
 			}
 			pluginMessage = &message.DeleteStale{

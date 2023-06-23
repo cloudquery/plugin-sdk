@@ -108,14 +108,6 @@ func NewTablesFromArrowSchemas(schemas []*arrow.Schema) (Tables, error) {
 	return tables, nil
 }
 
-func NewTableFromBytes(b []byte) (*Table, error) {
-	sc, err := NewFromBytes(b)
-	if err != nil {
-		return nil, err
-	}
-	return NewTableFromArrowSchema(sc)
-}
-
 // Create a CloudQuery Table abstraction from an arrow schema
 // arrow schema is a low level representation of a table that can be sent
 // over the wire in a cross-language way
