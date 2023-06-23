@@ -95,7 +95,7 @@ func (*client) GetSpec() any {
 	return &Spec{}
 }
 
-func (c *client) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
+func (c *client) Read(_ context.Context, table *schema.Table, res chan<- arrow.Record) error {
 	c.memoryDBLock.RLock()
 	defer c.memoryDBLock.RUnlock()
 
@@ -106,7 +106,7 @@ func (c *client) Read(ctx context.Context, table *schema.Table, res chan<- arrow
 	return nil
 }
 
-func (c *client) Sync(ctx context.Context, options plugin.SyncOptions, res chan<- message.Message) error {
+func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- message.Message) error {
 	c.memoryDBLock.RLock()
 
 	for tableName := range c.memoryDB {

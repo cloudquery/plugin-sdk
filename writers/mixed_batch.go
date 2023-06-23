@@ -17,8 +17,6 @@ const (
 	msgTypeDeleteStale
 )
 
-var allMsgTypes = []int{msgTypeMigrateTable, msgTypeInsert, msgTypeDeleteStale}
-
 // MixedBatchClient is a client that will receive batches of messages with a mixture of tables.
 type MixedBatchClient interface {
 	MigrateTableBatch(ctx context.Context, messages []*message.MigrateTable, options plugin.WriteOptions) error

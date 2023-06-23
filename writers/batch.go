@@ -6,9 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/util"
-	"github.com/cloudquery/plugin-sdk/v4/internal/pk"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -130,7 +128,7 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 		case r, ok := <-ch:
 			if !ok {
 				if len(resources) > 0 {
-					w.flush(ctx, tableName, resources)
+					w.flushTable(ctx, tableName, resources)
 				}
 				return
 			}
@@ -138,19 +136,19 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 			sizeBytes += util.TotalRecordSize(r.Record)
 
 			if len(resources) >= w.batchSize || sizeBytes+util.TotalRecordSize(r.Record) >= int64(w.batchSizeBytes) {
-				w.flush(ctx, tableName, resources)
+				w.flushTable(ctx, tableName, resources)
 				resources = make([]*message.Insert, 0)
 				sizeBytes = 0
 			}
 		case <-time.After(w.batchTimeout):
 			if len(resources) > 0 {
-				w.flush(ctx, tableName, resources)
+				w.flushTable(ctx, tableName, resources)
 				resources = make([]*message.Insert, 0)
 				sizeBytes = 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
-				w.flush(ctx, tableName, resources)
+				w.flushTable(ctx, tableName, resources)
 				resources = make([]*message.Insert, 0)
 				sizeBytes = 0
 			}
@@ -162,7 +160,7 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 	}
 }
 
-func (w *BatchWriter) flush(ctx context.Context, tableName string, resources []*message.Insert) {
+func (w *BatchWriter) flushTable(ctx context.Context, tableName string, resources []*message.Insert) {
 	// resources = w.removeDuplicatesByPK(table, resources)
 	start := time.Now()
 	batchSize := len(resources)
@@ -173,32 +171,32 @@ func (w *BatchWriter) flush(ctx context.Context, tableName string, resources []*
 	}
 }
 
-func (*BatchWriter) removeDuplicatesByPK(table *schema.Table, resources []arrow.Record) []arrow.Record {
-	pkIndices := table.PrimaryKeysIndexes()
-	// special case where there's no PK at all
-	if len(pkIndices) == 0 {
-		return resources
-	}
+// func (*BatchWriter) removeDuplicatesByPK(table *schema.Table, resources []*message.Insert) []*message.Insert {
+// 	pkIndices := table.PrimaryKeysIndexes()
+// 	// special case where there's no PK at all
+// 	if len(pkIndices) == 0 {
+// 		return resources
+// 	}
 
-	pks := make(map[string]struct{}, len(resources))
-	res := make([]arrow.Record, 0, len(resources))
-	for _, r := range resources {
-		if r.NumRows() > 1 {
-			panic(fmt.Sprintf("record with more than 1 row: %d", r.NumRows()))
-		}
-		key := pk.String(r)
-		_, ok := pks[key]
-		if !ok {
-			pks[key] = struct{}{}
-			res = append(res, r)
-			continue
-		}
-		// duplicate, release
-		r.Release()
-	}
+// 	pks := make(map[string]struct{}, len(resources))
+// 	res := make([]*message.Insert, 0, len(resources))
+// 	for _, r := range resources {
+// 		if r.Record.NumRows() > 1 {
+// 			panic(fmt.Sprintf("record with more than 1 row: %d", r.Record.NumRows()))
+// 		}
+// 		key := pk.String(r.Record)
+// 		_, ok := pks[key]
+// 		if !ok {
+// 			pks[key] = struct{}{}
+// 			res = append(res, r)
+// 			continue
+// 		}
+// 		// duplicate, release
+// 		r.Release()
+// 	}
 
-	return res
-}
+// 	return res
+// }
 
 func (w *BatchWriter) flushMigrateTables(ctx context.Context) error {
 	w.migrateTableLock.Lock()

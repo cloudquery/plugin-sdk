@@ -126,12 +126,12 @@ func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec *pbPlugin.S
 	return c, nil
 }
 
-func (c *ClientV3) SetKey(ctx context.Context, key string, value string) error {
+func (c *ClientV3) SetKey(_ context.Context, key string, value string) error {
 	c.mem[key] = value
 	return nil
 }
 
-func (c *ClientV3) flush(ctx context.Context) error {
+func (c *ClientV3) Flush(ctx context.Context) error {
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, nil)
 	for k, v := range c.mem {
 		bldr.Field(0).(*array.StringBuilder).Append(k)

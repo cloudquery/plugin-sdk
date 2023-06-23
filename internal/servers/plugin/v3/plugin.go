@@ -2,17 +2,14 @@ package plugin
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-pb-go/managedplugin"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
@@ -150,17 +147,10 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			return status.Errorf(codes.Internal, "unknown message type: %T", msg)
 		}
 
-		// err := checkMessageSize(msg, rec)
-		// if err != nil {
-		// 	sc := rec.Schema()
-		// 	tName, _ := sc.Metadata().GetValue(schema.MetadataTableName)
-		// 	s.Logger.Warn().Str("table", tName).
-		// 		Int("bytes", len(msg.String())).
-		// 		Msg("Row exceeding max bytes ignored")
-		// 	continue
-		// }
-		if err := stream.Send(pbMsg); err != nil {
-			return status.Errorf(codes.Internal, "failed to send resource: %v", err)
+		size := proto.Size(pbMsg)
+		if size > MaxMsgSize {
+			s.Logger.Error().Int("bytes", size).Msg("Message exceeds max size")
+			continue
 		}
 	}
 
@@ -262,24 +252,6 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 			return status.Errorf(codes.Internal, "Context done: %v", ctx.Err())
 		}
 	}
-}
-
-func checkMessageSize(msg proto.Message, record arrow.Record) error {
-	size := proto.Size(msg)
-	// log error to Sentry if row exceeds half of the max size
-	if size > MaxMsgSize/2 {
-		sc := record.Schema()
-		tName, _ := sc.Metadata().GetValue(schema.MetadataTableName)
-		sentry.WithScope(func(scope *sentry.Scope) {
-			scope.SetTag("table", tName)
-			scope.SetExtra("bytes", size)
-			sentry.CurrentHub().CaptureMessage("Large message detected")
-		})
-	}
-	if size > MaxMsgSize {
-		return errors.New("message exceeds max size")
-	}
-	return nil
 }
 
 func (s *Server) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {

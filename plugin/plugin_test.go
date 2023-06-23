@@ -22,11 +22,11 @@ func (*testPluginClient) GetSpec() any {
 	return &struct{}{}
 }
 
-func (*testPluginClient) Tables(ctx context.Context) (schema.Tables, error) {
+func (*testPluginClient) Tables(context.Context) (schema.Tables, error) {
 	return schema.Tables{}, nil
 }
 
-func (*testPluginClient) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
+func (*testPluginClient) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
 	return nil
 }
 
