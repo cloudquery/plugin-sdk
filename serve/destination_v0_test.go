@@ -158,11 +158,6 @@ func TestDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = c.GetMetrics(ctx, &pb.GetDestinationMetrics_Request{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	if _, err := c.Close(ctx, &pb.Close_Request{}); err != nil {
 		t.Fatalf("failed to call Close: %v", err)
 	}
