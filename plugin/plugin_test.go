@@ -10,9 +10,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type testPluginSpec struct {
-}
-
 type testPluginClient struct {
 	messages []message.Message
 }

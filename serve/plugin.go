@@ -95,7 +95,11 @@ func (s *PluginServe) Serve(ctx context.Context) error {
 	if err := types.RegisterAllExtensions(); err != nil {
 		return err
 	}
-	defer types.UnregisterAllExtensions()
+	defer func() {
+		if err := types.UnregisterAllExtensions(); err != nil {
+			log.Error().Err(err).Msg("failed to unregister all extensions")
+		}
+	}()
 	cmd := s.newCmdPluginRoot()
 	if s.args != nil {
 		cmd.SetArgs(s.args)
