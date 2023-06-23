@@ -10,10 +10,11 @@ import (
 )
 
 func mustParseInet(s string) *net.IPNet {
-	_, ipnet, err := net.ParseCIDR(s)
+	ip, ipnet, err := net.ParseCIDR(s)
 	if err != nil {
 		panic(err)
 	}
+	ipnet.IP = ip
 	return ipnet
 }
 
@@ -36,8 +37,9 @@ func TestInetBuilder(t *testing.T) {
 		mustParseInet("192.168.0.0/27"),
 	}
 	b.AppendValues(values, nil)
+	b.Append(mustParseInet("192.168.0.1/24"))
 
-	require.Equal(t, 6, b.Len(), "unexpected Len()")
+	require.Equal(t, 7, b.Len(), "unexpected Len()")
 
 	a := b.NewArray()
 
@@ -46,7 +48,7 @@ func TestInetBuilder(t *testing.T) {
 	require.Zero(t, b.Cap(), "unexpected ArrayBuilder.Cap(), did not reset state")
 	require.Zero(t, b.NullN(), "unexpected ArrayBuilder.NullN(), did not reset state")
 
-	require.Equal(t, `["192.168.0.0/24" (null) "192.168.0.0/25" (null) "192.168.0.0/26" "192.168.0.0/27"]`, a.String())
+	require.Equal(t, `["192.168.0.0/24" (null) "192.168.0.0/25" (null) "192.168.0.0/26" "192.168.0.0/27" "192.168.0.1/24"]`, a.String())
 	st, err := a.MarshalJSON()
 	require.NoError(t, err)
 
@@ -58,7 +60,8 @@ func TestInetBuilder(t *testing.T) {
 	require.NoError(t, err)
 
 	a = b.NewArray()
-	require.Equal(t, `["192.168.0.0/24" (null) "192.168.0.0/25" (null) "192.168.0.0/26" "192.168.0.0/27"]`, a.String())
+	require.Equal(t, `["192.168.0.0/24" (null) "192.168.0.0/25" (null) "192.168.0.0/26" "192.168.0.0/27" "192.168.0.1/24"]`, a.String())
 	b.Release()
 	a.Release()
+
 }
