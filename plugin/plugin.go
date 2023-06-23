@@ -62,24 +62,6 @@ type Plugin struct {
 	internalColumns bool
 }
 
-const (
-	maxAllowedDepth = 4
-)
-
-func maxDepth(tables schema.Tables) uint64 {
-	var depth uint64
-	if len(tables) == 0 {
-		return 0
-	}
-	for _, table := range tables {
-		newDepth := 1 + maxDepth(table.Relations)
-		if newDepth > depth {
-			depth = newDepth
-		}
-	}
-	return depth
-}
-
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
 // Depending on the options, it can be a write-only plugin, read-only plugin, or both.
 func NewPlugin(name string, version string, newClient NewClientFunc, options ...Option) *Plugin {
