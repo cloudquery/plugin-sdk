@@ -3,9 +3,9 @@ module github.com/cloudquery/plugin-sdk/v3
 go 1.19
 
 require (
-	github.com/apache/arrow/go/v13 v13.0.0-20230531201200-cbc17a98dfd9
+	github.com/apache/arrow/go/v13 v13.0.0-20230622042343-ec413b7763fe
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/plugin-pb-go v1.1.0
+	github.com/cloudquery/plugin-pb-go v1.2.0
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/goccy/go-json v0.10.0
