@@ -63,5 +63,4 @@ func TestInetBuilder(t *testing.T) {
 	require.Equal(t, `["192.168.0.0/24" (null) "192.168.0.0/25" (null) "192.168.0.0/26" "192.168.0.0/27" "192.168.0.1/24"]`, a.String())
 	b.Release()
 	a.Release()
-
 }
