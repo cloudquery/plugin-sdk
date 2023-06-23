@@ -54,8 +54,7 @@ type Inserts []*Insert
 func (messages Messages) InsertItems() int64 {
 	items := int64(0)
 	for _, msg := range messages {
-		switch m := msg.(type) {
-		case *Insert:
+		if m, ok := msg.(*Insert); ok {
 			items += m.Record.NumRows()
 		}
 	}
@@ -65,8 +64,7 @@ func (messages Messages) InsertItems() int64 {
 func (messages Messages) InsertMessage() Inserts {
 	inserts := []*Insert{}
 	for _, msg := range messages {
-		switch m := msg.(type) {
-		case *Insert:
+		if m, ok := msg.(*Insert); ok {
 			inserts = append(inserts, m)
 		}
 	}
