@@ -31,7 +31,3 @@ func RecordDiff(l, r arrow.Record) string {
 	}
 	return sb.String()
 }
-
-func recordApproxEqual(l, r arrow.Record) bool {
-	return array.RecordApproxEqual(l, r, array.WithUnorderedMapKeys(true))
-}

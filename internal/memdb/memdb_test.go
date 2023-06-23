@@ -16,7 +16,7 @@ func TestPlugin(t *testing.T) {
 	plugin.TestWriterSuiteRunner(
 		t,
 		p,
-		plugin.PluginTestSuiteTests{
+		plugin.WriterTestSuiteTests{
 			SafeMigrations: plugin.SafeMigrations{},
 		},
 	)

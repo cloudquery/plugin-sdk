@@ -18,6 +18,7 @@ func tableUUIDSuffix() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "_")[:8] // use only first 8 chars
 }
 
+// nolint:revive
 func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
 	if err := s.plugin.writeOne(ctx, WriteOptions{
 		MigrateForce: writeOptionMigrateForce,
@@ -86,6 +87,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	return nil
 }
 
+// nolint:revive
 func (s *WriterTestSuite) testMigrate(
 	ctx context.Context,
 	t *testing.T,

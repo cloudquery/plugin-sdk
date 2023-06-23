@@ -4,12 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 type WriterTestSuite struct {
-	tests PluginTestSuiteTests
+	tests WriterTestSuiteTests
 
 	plugin *Plugin
 
@@ -17,7 +16,7 @@ type WriterTestSuite struct {
 	// Destinations that have problems representing some data types should provide a custom implementation here.
 	// If this param is empty, the default is to allow all data types to be nullable.
 	// When the value returned by this func is `true` the comparison is made with the empty value instead of null.
-	allowNull AllowNullFunc
+	// allowNull AllowNullFunc
 
 	// IgnoreNullsInLists allows stripping null values from lists before comparison.
 	// Destination setups that don't support nulls in lists should set this to true.
@@ -36,7 +35,7 @@ type SafeMigrations struct {
 	ChangeColumn        bool
 }
 
-type PluginTestSuiteTests struct {
+type WriterTestSuiteTests struct {
 	// SkipUpsert skips testing with message.Insert and Upsert=true.
 	// Usually when a destination is not supporting primary keys
 	SkipUpsert bool
@@ -57,11 +56,11 @@ type PluginTestSuiteTests struct {
 
 type NewPluginFunc func() *Plugin
 
-func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *WriterTestSuite) {
-	return func(o *WriterTestSuite) {
-		o.allowNull = allowNull
-	}
-}
+// func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *WriterTestSuite) {
+// 	return func(o *WriterTestSuite) {
+// 		o.allowNull = allowNull
+// 	}
+// }
 
 func WithTestIgnoreNullsInLists() func(o *WriterTestSuite) {
 	return func(o *WriterTestSuite) {
@@ -75,7 +74,7 @@ func WithTestDataOptions(opts schema.TestSourceOptions) func(o *WriterTestSuite)
 	}
 }
 
-func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests PluginTestSuiteTests, opts ...func(o *WriterTestSuite)) {
+func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, opts ...func(o *WriterTestSuite)) {
 	suite := &WriterTestSuite{
 		tests:  tests,
 		plugin: p,
