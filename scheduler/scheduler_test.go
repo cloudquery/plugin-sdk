@@ -139,7 +139,7 @@ var syncTestCases = []syncTestCase{
 		table: testTableSuccess(),
 		data: []scalar.Vector{
 			{
-				&scalar.Int64{Value: 3, Valid: true},
+				&scalar.Int{Value: 3, Valid: true},
 			},
 		},
 	},
@@ -156,10 +156,10 @@ var syncTestCases = []syncTestCase{
 		table: testTableRelationSuccess(),
 		data: []scalar.Vector{
 			{
-				&scalar.Int64{Value: 3, Valid: true},
+				&scalar.Int{Value: 3, Valid: true},
 			},
 			{
-				&scalar.Int64{Value: 3, Valid: true},
+				&scalar.Int{Value: 3, Valid: true},
 			},
 		},
 	},
@@ -167,7 +167,7 @@ var syncTestCases = []syncTestCase{
 		table: testTableSuccess(),
 		data: []scalar.Vector{
 			{
-				&scalar.Int64{Value: 3, Valid: true},
+				&scalar.Int{Value: 3, Valid: true},
 			},
 		},
 		deterministicCQID: true,
@@ -176,8 +176,8 @@ var syncTestCases = []syncTestCase{
 		table: testTableColumnResolverPanic(),
 		data: []scalar.Vector{
 			{
-				&scalar.Int64{Value: 3, Valid: true},
-				&scalar.Int64{},
+				&scalar.Int{Value: 3, Valid: true},
+				&scalar.Int{},
 			},
 		},
 		// deterministicCQID: true,
@@ -186,10 +186,10 @@ var syncTestCases = []syncTestCase{
 		table: testTableRelationSuccess(),
 		data: []scalar.Vector{
 			{
-				&scalar.Int64{Value: 3, Valid: true},
+				&scalar.Int{Value: 3, Valid: true},
 			},
 			{
-				&scalar.Int64{Value: 3, Valid: true},
+				&scalar.Int{Value: 3, Valid: true},
 			},
 		},
 		// deterministicCQID: true,
@@ -198,7 +198,7 @@ var syncTestCases = []syncTestCase{
 		table: testTableSuccessWithPK(),
 		data: []scalar.Vector{
 			{
-				&scalar.Int64{Value: 3, Valid: true},
+				&scalar.Int{Value: 3, Valid: true},
 			},
 		},
 		// deterministicCQID: true,

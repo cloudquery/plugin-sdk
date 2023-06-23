@@ -21,7 +21,6 @@ import (
 // TestSourceOptions controls which types are included by TestSourceColumns.
 type TestSourceOptions struct {
 	SkipDates      bool
-	SkipDecimals   bool
 	SkipDurations  bool
 	SkipIntervals  bool
 	SkipLargeTypes bool // e.g. large binary, large string
