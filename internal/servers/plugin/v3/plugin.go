@@ -128,7 +128,6 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			pbMsg.Message = &pb.Sync_Response_Insert{
 				Insert: &pb.MessageInsert{
 					Record: recordBytes,
-					Upsert: m.Upsert,
 				},
 			}
 		case *message.DeleteStale:
@@ -217,7 +216,6 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 			}
 			pluginMessage = &message.Insert{
 				Record: record,
-				Upsert: pbMsg.Insert.Upsert,
 			}
 		case *pb.Write_Request_Delete:
 			table, err := schema.NewTableFromBytes(pbMsg.Delete.Table)
