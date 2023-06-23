@@ -71,8 +71,11 @@ func TestPluginServe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	tables, err := schema.NewTablesFromBytes(getTablesRes.Tables)
+	schemas, err := pb.NewSchemasFromBytes(getTablesRes.Tables)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tables, err := schema.NewTablesFromArrowSchemas(schemas)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +95,8 @@ func TestPluginServe(t *testing.T) {
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, testTable.ToArrowSchema())
 	bldr.Field(0).(*array.StringBuilder).Append("test")
 	record := bldr.NewRecord()
-	recordBytes, err := schema.RecordToBytes(record)
+	
+	recordBytes, err := pb.RecordToBytes(record)
 	if err != nil {
 		t.Fatal(err)
 	}

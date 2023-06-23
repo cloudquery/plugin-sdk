@@ -11,6 +11,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
+	pbSource "github.com/cloudquery/plugin-pb-go/pb/source/v2"
 	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -79,7 +80,8 @@ func TestDestinationV1(t *testing.T) {
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
-	encodedTables, err := tables.ToArrowSchemas().Encode()
+	schemas := tables.ToArrowSchemas()
+	encodedTables, err := pbSource.SchemasToBytes(schemas)
 	if err != nil {
 		t.Fatal(err)
 	}
