@@ -11,6 +11,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/ipc"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	pbDiscovery "github.com/cloudquery/plugin-pb-go/pb/discovery/v1"
+	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	pbPlugin "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/state"
@@ -60,7 +61,8 @@ func newStateClient(ctx context.Context, conn *grpc.ClientConn, spec *pbPlugin.S
 			},
 		},
 	}
-	tableBytes, err := table.ToArrowSchemaBytes()
+	sc := table.ToArrowSchema()
+	tableBytes, err := pb.SchemaToBytes(sc)
 	if err != nil {
 		return nil, err
 	}

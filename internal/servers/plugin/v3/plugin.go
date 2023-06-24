@@ -132,7 +132,8 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 				},
 			}
 		case *message.DeleteStale:
-			tableBytes, err := m.Table.ToArrowSchemaBytes()
+			sc := m.Table.ToArrowSchema()
+			tableBytes, err := pb.SchemaToBytes(sc)
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
 			}

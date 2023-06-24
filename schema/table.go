@@ -1,13 +1,11 @@
 package schema
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"regexp"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/ipc"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
 	"golang.org/x/exp/slices"
 )
@@ -366,15 +364,6 @@ func (t *Table) PrimaryKeysIndexes() []int {
 	}
 
 	return primaryKeys
-}
-func (t *Table) ToArrowSchemaBytes() ([]byte, error) {
-	sc := t.ToArrowSchema()
-	var buf bytes.Buffer
-	wr := ipc.NewWriter(&buf, ipc.WithSchema(sc))
-	if err := wr.Close(); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
 }
 
 func (t *Table) ToArrowSchema() *arrow.Schema {

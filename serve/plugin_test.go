@@ -100,7 +100,8 @@ func TestPluginServe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tableBytes, err := testTable.ToArrowSchemaBytes()
+	sc := testTable.ToArrowSchema()
+	tableBytes, err := pb.SchemaToBytes(sc)
 	if err != nil {
 		t.Fatal(err)
 	}
