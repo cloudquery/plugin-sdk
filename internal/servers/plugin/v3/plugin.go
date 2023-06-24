@@ -152,6 +152,9 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			s.Logger.Error().Int("bytes", size).Msg("Message exceeds max size")
 			continue
 		}
+		if err := stream.Send(pbMsg); err != nil {
+			return status.Errorf(codes.Internal, "failed to send message: %v", err)
+		}
 	}
 
 	return syncErr

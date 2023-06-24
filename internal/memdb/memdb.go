@@ -57,7 +57,7 @@ func NewMemDBClient(ctx context.Context, l zerolog.Logger, spec []byte) (plugin.
 	return GetNewClient()(ctx, l, spec)
 }
 
-func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, any) (plugin.Client, error) {
+func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte) (plugin.Client, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 

@@ -22,50 +22,27 @@ func TestPlugin(t *testing.T) {
 	)
 }
 
-// func TestPluginOnNewError(t *testing.T) {
-// 	ctx := context.Background()
-// 	p := plugin.NewPlugin("test", "development", NewMemDBClientErrOnNew)
-// 	err := p.Init(ctx, nil)
+func TestPluginOnNewError(t *testing.T) {
+	ctx := context.Background()
+	p := plugin.NewPlugin("test", "development", NewMemDBClientErrOnNew)
+	err := p.Init(ctx, nil)
 
-// 	if err == nil {
-// 		t.Fatal("expected error")
-// 	}
-// }
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
 
-// func TestOnWriteError(t *testing.T) {
-// 	ctx := context.Background()
-// 	newClientFunc := GetNewClient(WithErrOnWrite())
-// 	p := plugin.NewPlugin("test", "development", newClientFunc)
-// 	if err := p.Init(ctx, nil); err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	table := schema.TestTable("test", schema.TestSourceOptions{})
-// 	tables := schema.Tables{
-// 		table,
-// 	}
-// 	sourceName := "TestDestinationOnWriteError"
-// 	syncTime := time.Now()
-// 	sourceSpec := pbPlugin.Spec{
-// 		Name: sourceName,
-// 	}
-// 	ch := make(chan arrow.Record, 1)
-// 	opts := schema.GenTestDataOptions{
-// 		SourceName: "test",
-// 		SyncTime:   time.Now(),
-// 		MaxRows:    1,
-// 		StableUUID: uuid.Nil,
-// 	}
-// 	record := schema.GenTestData(table, opts)[0]
-// 	ch <- record
-// 	close(ch)
-// 	err := p.Write(ctx, sourceSpec, tables, syncTime, ch)
-// 	if err == nil {
-// 		t.Fatal("expected error")
-// 	}
-// 	if err.Error() != "errOnWrite" {
-// 		t.Fatalf("expected errOnWrite, got %s", err.Error())
-// 	}
-// }
+func TestOnWriteError(t *testing.T) {
+	ctx := context.Background()
+	newClientFunc := GetNewClient(WithErrOnWrite())
+	p := plugin.NewPlugin("test", "development", newClientFunc)
+	if err := p.Init(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.WriteAll(ctx, plugin.WriteOptions{}, nil); err.Error() != "errOnWrite" {
+		t.Fatalf("expected errOnWrite, got %s", err)
+	}
+}
 
 // func TestOnWriteCtxCancelled(t *testing.T) {
 // 	ctx := context.Background()
