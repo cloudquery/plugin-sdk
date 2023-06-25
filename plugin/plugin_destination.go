@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -35,5 +36,8 @@ func (p *Plugin) WriteAll(ctx context.Context, options WriteOptions, resources [
 }
 
 func (p *Plugin) Write(ctx context.Context, options WriteOptions, res <-chan message.Message) error {
+	if p.client == nil {
+		return fmt.Errorf("plugin is not initialized. call Init first")
+	}
 	return p.client.Write(ctx, options, res)
 }

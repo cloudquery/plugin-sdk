@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/cloudquery/plugin-pb-go/managedplugin"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -73,29 +72,6 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	syncOptions := plugin.SyncOptions{
 		Tables:     req.Tables,
 		SkipTables: req.SkipTables,
-	}
-
-	if req.StateBackend != nil {
-		opts := []managedplugin.Option{
-			managedplugin.WithLogger(s.Logger),
-			managedplugin.WithDirectory(s.Directory),
-		}
-		if s.NoSentry {
-			opts = append(opts, managedplugin.WithNoSentry())
-		}
-		statePlugin, err := managedplugin.NewClient(ctx, managedplugin.PluginDestination, managedplugin.Config{
-			Path:     req.StateBackend.Path,
-			Registry: managedplugin.Registry(req.StateBackend.Registry),
-			Version:  req.StateBackend.Version,
-		}, opts...)
-		if err != nil {
-			return status.Errorf(codes.Internal, "failed to create state plugin: %v", err)
-		}
-		stateClient, err := newStateClient(ctx, statePlugin.Conn, req.StateBackend)
-		if err != nil {
-			return status.Errorf(codes.Internal, "failed to create state client: %v", err)
-		}
-		syncOptions.StateBackend = stateClient
 	}
 
 	go func() {

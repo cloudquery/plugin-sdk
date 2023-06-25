@@ -8,7 +8,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/glob"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/cloudquery/plugin-sdk/v4/state"
 	"github.com/rs/zerolog"
 )
 
@@ -16,7 +15,6 @@ type SyncOptions struct {
 	Tables            []string
 	SkipTables        []string
 	DeterministicCQID bool
-	StateBackend      state.Client
 }
 
 type SourceClient interface {
@@ -96,6 +94,9 @@ func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- messa
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
+	if p.client == nil {
+		return fmt.Errorf("plugin not initialized. call Init() first")
+	}
 	// startTime := time.Now()
 
 	if err := p.client.Sync(ctx, options, res); err != nil {
