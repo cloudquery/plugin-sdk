@@ -12,9 +12,10 @@ import (
 )
 
 type SyncOptions struct {
-	Tables            []string
-	SkipTables        []string
-	DeterministicCQID bool
+	Tables              []string
+	SkipTables          []string
+	SkipDependentTables bool
+	DeterministicCQID   bool
 }
 
 type SourceClient interface {

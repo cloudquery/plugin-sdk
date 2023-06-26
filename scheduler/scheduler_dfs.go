@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-func (s *Scheduler) syncDfs(ctx context.Context, resolvedResources chan<- *schema.Resource) {
+func (s *Scheduler) syncDfs(ctx context.Context, resolvedResources chan<- *schema.Resource, syncOpts *SyncOptions) {
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS to make sure memory usage is capped at O(h) where h is the height of the tree.
 	tableConcurrency := max(s.concurrency/minResourceConcurrency, minTableConcurrency)
@@ -72,7 +72,7 @@ func (s *Scheduler) syncDfs(ctx context.Context, resolvedResources chan<- *schem
 				defer s.tableSems[0].Release(1)
 				// not checking for error here as nothing much todo.
 				// the error is logged and this happens when context is cancelled
-				s.resolveTableDfs(ctx, table, client, nil, resolvedResources, 1)
+				s.resolveTableDfs(ctx, table, client, nil, resolvedResources, 1, syncOpts)
 			}()
 		}
 	}
@@ -81,7 +81,7 @@ func (s *Scheduler) syncDfs(ctx context.Context, resolvedResources chan<- *schem
 	wg.Wait()
 }
 
-func (s *Scheduler) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
+func (s *Scheduler) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int, syncOpts *SyncOptions) {
 	var validationErr *schema.ValidationError
 	clientName := client.ID()
 	logger := s.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
@@ -119,7 +119,7 @@ func (s *Scheduler) resolveTableDfs(ctx context.Context, table *schema.Table, cl
 	}()
 
 	for r := range res {
-		s.resolveResourcesDfs(ctx, table, client, parent, r, resolvedResources, depth)
+		s.resolveResourcesDfs(ctx, table, client, parent, r, resolvedResources, depth, syncOpts)
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
@@ -129,7 +129,7 @@ func (s *Scheduler) resolveTableDfs(ctx context.Context, table *schema.Table, cl
 	}
 }
 
-func (s *Scheduler) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) {
+func (s *Scheduler) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int, syncOpts *SyncOptions) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
 		return
@@ -157,7 +157,7 @@ func (s *Scheduler) resolveResourcesDfs(ctx context.Context, table *schema.Table
 					return
 				}
 
-				if err := resolvedResource.CalculateCQID(s.deterministicCQId); err != nil {
+				if err := resolvedResource.CalculateCQID(syncOpts.DeterministicCQID); err != nil {
 					tableMetrics := s.metrics.TableClient[table.Name][client.ID()]
 					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
 					if _, found := sentValidationErrors.LoadOrStore(table.Name, struct{}{}); !found {
@@ -206,7 +206,7 @@ func (s *Scheduler) resolveResourcesDfs(ctx context.Context, table *schema.Table
 			go func() {
 				defer wg.Done()
 				defer s.tableSems[depth].Release(1)
-				s.resolveTableDfs(ctx, relation, client, resource, resolvedResources, depth+1)
+				s.resolveTableDfs(ctx, relation, client, resource, resolvedResources, depth+1, syncOpts)
 			}()
 		}
 	}

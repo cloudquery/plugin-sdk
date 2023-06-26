@@ -41,6 +41,15 @@ var AllSchedulerNames = [...]string{
 	StrategyRoundRobin: "round-robin",
 }
 
+func StrategyForName(s string) (Strategy, error) {
+	for i, name := range AllSchedulerNames {
+		if name == s {
+			return AllSchedulers[i], nil
+		}
+	}
+	return StrategyDFS, fmt.Errorf("unknown scheduler strategy: %s", s)
+}
+
 type Strategies []Strategy
 
 func (s Strategies) String() string {
@@ -66,12 +75,6 @@ func WithLogger(logger zerolog.Logger) Option {
 	}
 }
 
-func WithDeterministicCQId(deterministicCQId bool) Option {
-	return func(s *Scheduler) {
-		s.deterministicCQId = deterministicCQId
-	}
-}
-
 func WithConcurrency(concurrency uint64) Option {
 	return func(s *Scheduler) {
 		s.concurrency = concurrency
@@ -87,6 +90,18 @@ func WithMaxDepth(maxDepth uint64) Option {
 func WithSchedulerStrategy(strategy Strategy) Option {
 	return func(s *Scheduler) {
 		s.strategy = strategy
+	}
+}
+
+type SyncOptions struct {
+	DeterministicCQID bool
+}
+
+type SyncOption func(*SyncOptions)
+
+func WithSyncDeterministicCQID(deterministicCQID bool) SyncOption {
+	return func(s *SyncOptions) {
+		s.DeterministicCQID = deterministicCQID
 	}
 }
 
@@ -107,9 +122,8 @@ type Scheduler struct {
 	// tableSem is a semaphore that limits the number of concurrent tables being fetched
 	tableSems []*semaphore.Weighted
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
-	logger            zerolog.Logger
-	deterministicCQId bool
-	concurrency       uint64
+	logger      zerolog.Logger
+	concurrency uint64
 }
 
 func NewScheduler(client schema.ClientMeta, opts ...Option) *Scheduler {
@@ -143,9 +157,14 @@ func (s *Scheduler) SyncAll(ctx context.Context, tables schema.Tables) (message.
 	return messages, err
 }
 
-func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- message.Message) error {
+func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- message.Message, opts ...SyncOption) error {
 	if len(tables) == 0 {
 		return nil
+	}
+
+	syncOpts := &SyncOptions{}
+	for _, opt := range opts {
+		opt(syncOpts)
 	}
 
 	if maxDepth(tables) > s.maxDepth {
@@ -165,9 +184,9 @@ func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- m
 		defer close(resources)
 		switch s.strategy {
 		case StrategyDFS:
-			s.syncDfs(ctx, resources)
+			s.syncDfs(ctx, resources, syncOpts)
 		case StrategyRoundRobin:
-			s.syncRoundRobin(ctx, resources)
+			s.syncRoundRobin(ctx, resources, syncOpts)
 		default:
 			panic(fmt.Errorf("unknown scheduler %s", s.strategy))
 		}

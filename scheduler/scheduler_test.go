@@ -227,11 +227,10 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 	opts := []Option{
 		WithLogger(zerolog.New(zerolog.NewTestWriter(t))),
 		WithSchedulerStrategy(strategy),
-		WithDeterministicCQId(deterministicCQID),
 	}
 	sc := NewScheduler(&c, opts...)
 	msgs := make(chan message.Message, 10)
-	if err := sc.Sync(ctx, tables, msgs); err != nil {
+	if err := sc.Sync(ctx, tables, msgs, WithSyncDeterministicCQID(deterministicCQID)); err != nil {
 		t.Fatal(err)
 	}
 	close(msgs)

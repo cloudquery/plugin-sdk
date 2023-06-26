@@ -13,7 +13,7 @@ type tableClient struct {
 	client schema.ClientMeta
 }
 
-func (s *Scheduler) syncRoundRobin(ctx context.Context, resolvedResources chan<- *schema.Resource) {
+func (s *Scheduler) syncRoundRobin(ctx context.Context, resolvedResources chan<- *schema.Resource, syncOpts *SyncOptions) {
 	tableConcurrency := max(s.concurrency/minResourceConcurrency, minTableConcurrency)
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
 
@@ -58,7 +58,7 @@ func (s *Scheduler) syncRoundRobin(ctx context.Context, resolvedResources chan<-
 			// the error is logged and this happens when context is cancelled
 			// Round Robin currently uses the DFS algorithm to resolve the tables, but this
 			// may change in the future.
-			s.resolveTableDfs(ctx, table, cl, nil, resolvedResources, 1)
+			s.resolveTableDfs(ctx, table, cl, nil, resolvedResources, 1, syncOpts)
 		}()
 	}
 
