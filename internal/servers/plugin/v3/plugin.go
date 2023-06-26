@@ -70,8 +70,10 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	ctx := stream.Context()
 
 	syncOptions := plugin.SyncOptions{
-		Tables:     req.Tables,
-		SkipTables: req.SkipTables,
+		Tables:              req.Tables,
+		SkipTables:          req.SkipTables,
+		SkipDependentTables: req.SkipDependentTables,
+		DeterministicCQID:   req.DeterministicCqId,
 	}
 
 	go func() {
