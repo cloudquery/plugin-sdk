@@ -3,17 +3,18 @@ package destination
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
+	"sync"
 
-	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	pbBase "github.com/cloudquery/plugin-pb-go/pb/base/v0"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	"github.com/cloudquery/plugin-pb-go/specs"
 	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
@@ -22,7 +23,7 @@ import (
 
 type Server struct {
 	pb.UnimplementedDestinationServer
-	Plugin *destination.Plugin
+	Plugin *plugin.Plugin
 	Logger zerolog.Logger
 	spec   specs.Destination
 }
@@ -39,7 +40,11 @@ func (s *Server) Configure(ctx context.Context, req *pbBase.Configure_Request) (
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
 	s.spec = spec
-	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, s.Logger, spec)
+	pluginSpec, err := json.Marshal(s.spec.Spec)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
+	}
+	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec)
 }
 
 func (s *Server) GetName(context.Context, *pbBase.GetName_Request) (*pbBase.GetName_Response, error) {
@@ -62,8 +67,23 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	tables := TablesV2ToV3(tablesV2).FlattenTables()
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
-
-	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
+	writeCh := make(chan message.Message)
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return s.Plugin.Write(ctx, plugin.WriteOptions{
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
+		}, writeCh)
+	})
+	for _, table := range tables {
+		writeCh <- &message.MigrateTable{
+			Table: table,
+		}
+	}
+	close(writeCh)
+	if err := eg.Wait(); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to write: %v", err)
+	}
+	return &pb.Migrate_Response{}, nil
 }
 
 func (*Server) Write(pb.Destination_WriteServer) error {
@@ -73,7 +93,7 @@ func (*Server) Write(pb.Destination_WriteServer) error {
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *Server) Write2(msg pb.Destination_Write2Server) error {
-	resources := make(chan arrow.Record)
+	msgs := make(chan message.Message)
 
 	r, err := msg.Recv()
 	if err != nil {
@@ -102,9 +122,19 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
 	eg, ctx := errgroup.WithContext(msg.Context())
+	// sourceName := r.Source
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceSpec, tables, syncTime, resources)
+		return s.Plugin.Write(ctx, plugin.WriteOptions{
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
+		}, msgs)
 	})
+
+	for _, table := range tables {
+		msgs <- &message.MigrateTable{
+			Table: table,
+		}
+	}
+
 	sourceColumn := &schemav2.Text{}
 	_ = sourceColumn.Set(sourceSpec.Name)
 	syncTimeColumn := &schemav2.Timestamptz{}
@@ -113,30 +143,32 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	for {
 		r, err := msg.Recv()
 		if err == io.EOF {
-			close(resources)
+			close(msgs)
 			if err := eg.Wait(); err != nil {
 				return status.Errorf(codes.Internal, "write failed: %v", err)
 			}
 			return msg.SendAndClose(&pb.Write2_Response{})
 		}
 		if err != nil {
-			close(resources)
+			close(msgs)
 			if wgErr := eg.Wait(); wgErr != nil {
 				return status.Errorf(codes.Internal, "failed to receive msg: %v and write failed: %v", err, wgErr)
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
+
 		var origResource schemav2.DestinationResource
 		if err := json.Unmarshal(r.Resource, &origResource); err != nil {
-			close(resources)
+			close(msgs)
 			if wgErr := eg.Wait(); wgErr != nil {
 				return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v and write failed: %v", err, wgErr)
 			}
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal resource: %v", err)
 		}
+
 		table := tables.Get(origResource.TableName)
 		if table == nil {
-			close(resources)
+			close(msgs)
 			if wgErr := eg.Wait(); wgErr != nil {
 				return status.Errorf(codes.InvalidArgument, "failed to get table: %s and write failed: %v", origResource.TableName, wgErr)
 			}
@@ -148,11 +180,14 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			origResource.Data = append([]schemav2.CQType{sourceColumn, syncTimeColumn}, origResource.Data...)
 		}
 		convertedResource := CQTypesToRecord(memory.DefaultAllocator, []schemav2.CQTypes{origResource.Data}, table.ToArrowSchema())
+		msg := &message.Insert{
+			Record: convertedResource,
+		}
+
 		select {
-		case resources <- convertedResource:
+		case msgs <- msg:
 		case <-ctx.Done():
-			convertedResource.Release()
-			close(resources)
+			close(msgs)
 			if err := eg.Wait(); err != nil {
 				return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
 			}
@@ -185,15 +220,8 @@ func SetDestinationManagedCqColumns(tables []*schema.Table) {
 	}
 }
 
-func (s *Server) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) (*pb.GetDestinationMetrics_Response, error) {
-	stats := s.Plugin.Metrics()
-	b, err := json.Marshal(stats)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal stats: %w", err)
-	}
-	return &pb.GetDestinationMetrics_Response{
-		Metrics: b,
-	}, nil
+func (*Server) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) (*pb.GetDestinationMetrics_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetrics is deprecated. Please update CLI")
 }
 
 func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (*pb.DeleteStale_Response, error) {
@@ -203,11 +231,28 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 	}
 	tables := TablesV2ToV3(tablesV2).FlattenTables()
 	SetDestinationManagedCqColumns(tables)
-	if err := s.Plugin.DeleteStale(ctx, tables, req.Source, req.Timestamp.AsTime()); err != nil {
-		return nil, err
-	}
 
-	return &pb.DeleteStale_Response{}, nil
+	msgs := make(chan message.Message)
+	var writeErr error
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		writeErr = s.Plugin.Write(ctx, plugin.WriteOptions{}, msgs)
+	}()
+	for _, table := range tables {
+		bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+		bldr.Field(table.Columns.Index(schema.CqSourceNameColumn.Name)).(*array.StringBuilder).Append(req.Source)
+		bldr.Field(table.Columns.Index(schema.CqSyncTimeColumn.Name)).(*array.TimestampBuilder).AppendTime(req.Timestamp.AsTime())
+		msgs <- &message.DeleteStale{
+			Table:      table,
+			SourceName: req.Source,
+			SyncTime:   req.Timestamp.AsTime(),
+		}
+	}
+	close(msgs)
+	wg.Wait()
+	return &pb.DeleteStale_Response{}, writeErr
 }
 
 func (s *Server) setPKsForTables(tables schema.Tables) {

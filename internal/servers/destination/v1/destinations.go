@@ -4,15 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
+	"sync"
 
-	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
+	"github.com/apache/arrow/go/v13/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
@@ -21,9 +23,10 @@ import (
 
 type Server struct {
 	pb.UnimplementedDestinationServer
-	Plugin *destination.Plugin
-	Logger zerolog.Logger
-	spec   specs.Destination
+	Plugin      *plugin.Plugin
+	Logger      zerolog.Logger
+	spec        specs.Destination
+	migrateMode plugin.MigrateMode
 }
 
 func (s *Server) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.Configure_Response, error) {
@@ -32,7 +35,11 @@ func (s *Server) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.
 		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal spec: %v", err)
 	}
 	s.spec = spec
-	return &pb.Configure_Response{}, s.Plugin.Init(ctx, s.Logger, spec)
+	pluginSpec, err := json.Marshal(s.spec.Spec)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
+	}
+	return &pb.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec)
 }
 
 func (s *Server) GetName(context.Context, *pb.GetName_Request) (*pb.GetName_Response, error) {
@@ -48,7 +55,7 @@ func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVer
 }
 
 func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migrate_Response, error) {
-	schemas, err := schema.NewSchemasFromBytes(req.Tables)
+	schemas, err := NewSchemasFromBytes(req.Tables)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create schemas: %v", err)
 	}
@@ -58,13 +65,29 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	}
 	s.setPKsForTables(tables)
 
-	return &pb.Migrate_Response{}, s.Plugin.Migrate(ctx, tables)
+	writeCh := make(chan message.Message)
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return s.Plugin.Write(ctx, plugin.WriteOptions{
+			MigrateForce: s.migrateMode == plugin.MigrateModeForce,
+		}, writeCh)
+	})
+	for _, table := range tables {
+		writeCh <- &message.MigrateTable{
+			Table: table,
+		}
+	}
+	close(writeCh)
+	if err := eg.Wait(); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to write: %v", err)
+	}
+	return &pb.Migrate_Response{}, nil
 }
 
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *Server) Write(msg pb.Destination_WriteServer) error {
-	resources := make(chan arrow.Record)
+	msgs := make(chan message.Message)
 
 	r, err := msg.Recv()
 	if err != nil {
@@ -74,7 +97,7 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 		return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 	}
 
-	schemas, err := schema.NewSchemasFromBytes(r.Tables)
+	schemas, err := NewSchemasFromBytes(r.Tables)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "failed to create schemas: %v", err)
 	}
@@ -93,24 +116,32 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 			return status.Errorf(codes.InvalidArgument, "failed to unmarshal source spec: %v", err)
 		}
 	}
-	syncTime := r.Timestamp.AsTime()
 	s.setPKsForTables(tables)
 	eg, ctx := errgroup.WithContext(msg.Context())
+
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, sourceSpec, tables, syncTime, resources)
+		return s.Plugin.Write(ctx, plugin.WriteOptions{
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
+		}, msgs)
 	})
+
+	for _, table := range tables {
+		msgs <- &message.MigrateTable{
+			Table: table,
+		}
+	}
 
 	for {
 		r, err := msg.Recv()
 		if err == io.EOF {
-			close(resources)
+			close(msgs)
 			if err := eg.Wait(); err != nil {
 				return status.Errorf(codes.Internal, "write failed: %v", err)
 			}
 			return msg.SendAndClose(&pb.Write_Response{})
 		}
 		if err != nil {
-			close(resources)
+			close(msgs)
 			if wgErr := eg.Wait(); wgErr != nil {
 				return status.Errorf(codes.Internal, "failed to receive msg: %v and write failed: %v", err, wgErr)
 			}
@@ -118,7 +149,7 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 		}
 		rdr, err := ipc.NewReader(bytes.NewReader(r.Resource))
 		if err != nil {
-			close(resources)
+			close(msgs)
 			if wgErr := eg.Wait(); wgErr != nil {
 				return status.Errorf(codes.InvalidArgument, "failed to create reader: %v and write failed: %v", err, wgErr)
 			}
@@ -127,10 +158,13 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 		for rdr.Next() {
 			rec := rdr.Record()
 			rec.Retain()
+			msg := &message.Insert{
+				Record: rec,
+			}
 			select {
-			case resources <- rec:
+			case msgs <- msg:
 			case <-ctx.Done():
-				close(resources)
+				close(msgs)
 				if err := eg.Wait(); err != nil {
 					return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
 				}
@@ -152,19 +186,12 @@ func setCQIDAsPrimaryKeysForTables(tables schema.Tables) {
 	}
 }
 
-func (s *Server) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) (*pb.GetDestinationMetrics_Response, error) {
-	stats := s.Plugin.Metrics()
-	b, err := json.Marshal(stats)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal stats: %w", err)
-	}
-	return &pb.GetDestinationMetrics_Response{
-		Metrics: b,
-	}, nil
+func (*Server) GetMetrics(context.Context, *pb.GetDestinationMetrics_Request) (*pb.GetDestinationMetrics_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetrics is deprecated. please upgrade CLI")
 }
 
 func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (*pb.DeleteStale_Response, error) {
-	schemas, err := schema.NewSchemasFromBytes(req.Tables)
+	schemas, err := NewSchemasFromBytes(req.Tables)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create schemas: %v", err)
 	}
@@ -173,11 +200,27 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create tables: %v", err)
 	}
 
-	if err := s.Plugin.DeleteStale(ctx, tables, req.Source, req.Timestamp.AsTime()); err != nil {
-		return nil, err
+	msgs := make(chan message.Message)
+	var writeErr error
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		writeErr = s.Plugin.Write(ctx, plugin.WriteOptions{}, msgs)
+	}()
+	for _, table := range tables {
+		bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+		bldr.Field(table.Columns.Index(schema.CqSourceNameColumn.Name)).(*array.StringBuilder).Append(req.Source)
+		bldr.Field(table.Columns.Index(schema.CqSyncTimeColumn.Name)).(*array.TimestampBuilder).AppendTime(req.Timestamp.AsTime())
+		msgs <- &message.DeleteStale{
+			Table:      table,
+			SourceName: req.Source,
+			SyncTime:   req.Timestamp.AsTime(),
+		}
 	}
-
-	return &pb.DeleteStale_Response{}, nil
+	close(msgs)
+	wg.Wait()
+	return &pb.DeleteStale_Response{}, writeErr
 }
 
 func (s *Server) setPKsForTables(tables schema.Tables) {

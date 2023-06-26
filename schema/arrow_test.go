@@ -1,44 +1,33 @@
 package schema
 
 import (
-	"testing"
+	"fmt"
+	"strings"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 )
 
-func TestSchemaEncode(t *testing.T) {
-	md := arrow.NewMetadata([]string{"true"}, []string{"false"})
-	md1 := arrow.NewMetadata([]string{"false"}, []string{"true"})
-	schemas := Schemas{
-		arrow.NewSchema(
-			[]arrow.Field{
-				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
-				{Name: "name", Type: arrow.BinaryTypes.String},
-			},
-			&md,
-		),
-		arrow.NewSchema(
-			[]arrow.Field{
-				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
-				{Name: "name", Type: arrow.BinaryTypes.String},
-			},
-			&md1,
-		),
+func RecordDiff(l arrow.Record, r arrow.Record) string {
+	var sb strings.Builder
+	if l.NumCols() != r.NumCols() {
+		return fmt.Sprintf("different number of columns: %d vs %d", l.NumCols(), r.NumCols())
 	}
-	b, err := schemas.Encode()
-	if err != nil {
-		t.Fatal(err)
+	if l.NumRows() != r.NumRows() {
+		return fmt.Sprintf("different number of rows: %d vs %d", l.NumRows(), r.NumRows())
 	}
-	decodedSchemas, err := NewSchemasFromBytes(b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(decodedSchemas) != len(schemas) {
-		t.Fatalf("expected %d schemas, got %d", len(schemas), len(decodedSchemas))
-	}
-	for i := range schemas {
-		if !schemas[i].Equal(decodedSchemas[i]) {
-			t.Fatalf("expected schema %d to be %v, got %v", i, schemas[i], decodedSchemas[i])
+	for i := 0; i < int(l.NumCols()); i++ {
+		edits, err := array.Diff(l.Column(i), r.Column(i))
+		if err != nil {
+			panic(fmt.Sprintf("left: %v, right: %v, error: %v", l.Column(i).DataType(), r.Column(i).DataType(), err))
+		}
+		diff := edits.UnifiedDiff(l.Column(i), r.Column(i))
+		if diff != "" {
+			sb.WriteString(l.Schema().Field(i).Name)
+			sb.WriteString(": ")
+			sb.WriteString(diff)
+			sb.WriteString("\n")
 		}
 	}
+	return sb.String()
 }

@@ -4,7 +4,10 @@ import (
 	"fmt"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 )
+
+const nullValueStr = array.NullValueStr
 
 type String struct {
 	Valid bool
