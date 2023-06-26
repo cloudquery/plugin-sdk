@@ -135,7 +135,7 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 			resources = append(resources, r)
 			sizeBytes += util.TotalRecordSize(r.Record)
 
-			if len(resources) >= w.batchSize || sizeBytes+util.TotalRecordSize(r.Record) >= int64(w.batchSizeBytes) {
+			if len(resources) >= w.batchSize || sizeBytes >= int64(w.batchSizeBytes) {
 				w.flushTable(ctx, tableName, resources)
 				resources = make([]*message.Insert, 0)
 				sizeBytes = 0
