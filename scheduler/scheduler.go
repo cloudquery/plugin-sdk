@@ -75,12 +75,6 @@ func WithLogger(logger zerolog.Logger) Option {
 	}
 }
 
-func WithDeterministicCQId(deterministicCQId bool) Option {
-	return func(s *Scheduler) {
-		s.deterministicCQId = deterministicCQId
-	}
-}
-
 func WithConcurrency(concurrency uint64) Option {
 	return func(s *Scheduler) {
 		s.concurrency = concurrency
@@ -128,9 +122,8 @@ type Scheduler struct {
 	// tableSem is a semaphore that limits the number of concurrent tables being fetched
 	tableSems []*semaphore.Weighted
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
-	logger            zerolog.Logger
-	deterministicCQId bool
-	concurrency       uint64
+	logger      zerolog.Logger
+	concurrency uint64
 }
 
 func NewScheduler(client schema.ClientMeta, opts ...Option) *Scheduler {
