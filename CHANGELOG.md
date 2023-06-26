@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.7](https://github.com/cloudquery/plugin-sdk/compare/v3.10.6...v3.10.7) (2023-06-26)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 0656028 ([#991](https://github.com/cloudquery/plugin-sdk/issues/991)) ([bc9e6e1](https://github.com/cloudquery/plugin-sdk/commit/bc9e6e1ae1bff7a6f2c2699a8a113323d689f1a5))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 1e68c51 ([#973](https://github.com/cloudquery/plugin-sdk/issues/973)) ([f5cdc95](https://github.com/cloudquery/plugin-sdk/commit/f5cdc95ab76bcae67c2f9001da5000bb726feb5e))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 43638cb ([#978](https://github.com/cloudquery/plugin-sdk/issues/978)) ([fb76304](https://github.com/cloudquery/plugin-sdk/commit/fb76304c503b42957b5909cf33d219c9aa4c2934))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 4d76231 ([#970](https://github.com/cloudquery/plugin-sdk/issues/970)) ([646cbc0](https://github.com/cloudquery/plugin-sdk/commit/646cbc0d4471093de309a510b1f16a875a8aa484))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 8366a22 ([#981](https://github.com/cloudquery/plugin-sdk/issues/981)) ([097621f](https://github.com/cloudquery/plugin-sdk/commit/097621f02e4fe1258290c3bfdd744a8fc3ab1c15))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 95d3199 ([#980](https://github.com/cloudquery/plugin-sdk/issues/980)) ([b7bcd93](https://github.com/cloudquery/plugin-sdk/commit/b7bcd9326eb87f43e77e509ec5151c7f4a6f01b4))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 9a09f72 ([#974](https://github.com/cloudquery/plugin-sdk/issues/974)) ([5acec96](https://github.com/cloudquery/plugin-sdk/commit/5acec961f8a86068b7662410349eeac6ba98a399))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to b0832be ([#976](https://github.com/cloudquery/plugin-sdk/issues/976)) ([3d95166](https://github.com/cloudquery/plugin-sdk/commit/3d951665407e3287cd236b267c1e8e018e7992ef))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to d01ed41 ([#975](https://github.com/cloudquery/plugin-sdk/issues/975)) ([19dae31](https://github.com/cloudquery/plugin-sdk/commit/19dae31535cc80cae0800874a4f35c8dd83d7fb8))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to d864719 ([#972](https://github.com/cloudquery/plugin-sdk/issues/972)) ([9e25cc4](https://github.com/cloudquery/plugin-sdk/commit/9e25cc480060ed2cdfa48f174273d45c31c1ce07))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to f060192 ([#989](https://github.com/cloudquery/plugin-sdk/issues/989)) ([47c4fce](https://github.com/cloudquery/plugin-sdk/commit/47c4fceb39605c7f56bcb00e3fb2fd45da69304b))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to f0dffc6 ([#979](https://github.com/cloudquery/plugin-sdk/issues/979)) ([3579590](https://github.com/cloudquery/plugin-sdk/commit/357959068463cbc0bd33ce9ceefb1e0d59149a51))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.1.0 ([#977](https://github.com/cloudquery/plugin-sdk/issues/977)) ([e0f8009](https://github.com/cloudquery/plugin-sdk/commit/e0f8009c5de9d88b27ec2c15c5c84d3236fa924d))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.2.0 ([#983](https://github.com/cloudquery/plugin-sdk/issues/983)) ([8ce6e06](https://github.com/cloudquery/plugin-sdk/commit/8ce6e062824625fecf6b149f66c05eb2a86566de))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.2.1 ([#985](https://github.com/cloudquery/plugin-sdk/issues/985)) ([ade3b63](https://github.com/cloudquery/plugin-sdk/commit/ade3b63469c66e4d8fb5ce4f4719435da00a5789))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.3.0 ([#987](https://github.com/cloudquery/plugin-sdk/issues/987)) ([e1a2aec](https://github.com/cloudquery/plugin-sdk/commit/e1a2aec521483b3f890e28be651281ee4512e92e))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.3.2 ([#988](https://github.com/cloudquery/plugin-sdk/issues/988)) ([28076a7](https://github.com/cloudquery/plugin-sdk/commit/28076a7f168ca85f7c8fd39f347bf67a13c423c5))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.3.3 ([#990](https://github.com/cloudquery/plugin-sdk/issues/990)) ([1f5e87c](https://github.com/cloudquery/plugin-sdk/commit/1f5e87c3a81a3900c82348edfb776bf743ca1773))
+
 ## [3.10.6](https://github.com/cloudquery/plugin-sdk/compare/v3.10.5...v3.10.6) (2023-06-13)
 
 
