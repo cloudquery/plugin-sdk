@@ -3,12 +3,10 @@ package serve
 import (
 	"context"
 	"encoding/json"
-	"net"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	pbBase "github.com/cloudquery/plugin-pb-go/pb/base/v0"
@@ -16,28 +14,19 @@ import (
 	"github.com/cloudquery/plugin-pb-go/specs"
 	schemav2 "github.com/cloudquery/plugin-sdk/v2/schema"
 	"github.com/cloudquery/plugin-sdk/v2/testdata"
-	"github.com/cloudquery/plugin-sdk/v3/internal/deprecated"
-	"github.com/cloudquery/plugin-sdk/v3/internal/memdb"
-	serversDestination "github.com/cloudquery/plugin-sdk/v3/internal/servers/destination/v0"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
+	"github.com/cloudquery/plugin-sdk/v4/internal/deprecated"
+	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
+	serversDestination "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v0"
+	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func bufDestinationDialer(context.Context, string) (net.Conn, error) {
-	testDestinationListenerLock.Lock()
-	defer testDestinationListenerLock.Unlock()
-	return testDestinationListener.Dial()
-}
-
 func TestDestination(t *testing.T) {
-	plugin := destination.NewPlugin("testDestinationPlugin", "development", memdb.NewClient)
-	s := &destinationServe{
-		plugin: plugin,
-	}
-	cmd := newCmdDestinationRoot(s)
-	cmd.SetArgs([]string{"serve", "--network", "test"})
+	p := plugin.NewPlugin("testDestinationPlugin", "development", memdb.NewMemDBClient)
+	srv := Plugin(p, WithArgs("serve"), WithDestinationV0V1Server(), WithTestListener())
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
@@ -45,27 +34,15 @@ func TestDestination(t *testing.T) {
 	var serverErr error
 	go func() {
 		defer wg.Done()
-		serverErr = cmd.ExecuteContext(ctx)
+		serverErr = srv.Serve(ctx)
 	}()
 	defer func() {
 		cancel()
 		wg.Wait()
 	}()
 
-	// wait for the server to start
-	for {
-		testDestinationListenerLock.Lock()
-		if testDestinationListener != nil {
-			testDestinationListenerLock.Unlock()
-			break
-		}
-		testDestinationListenerLock.Unlock()
-		t.Log("waiting for grpc server to start")
-		time.Sleep(time.Millisecond * 200)
-	}
-
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDestinationDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, "bufnet1", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -77,10 +54,10 @@ func TestDestination(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if _, err := c.Configure(ctx, &pbBase.Configure_Request{Config: specBytes}); err != nil {
 		t.Fatal(err)
 	}
-
 	getNameRes, err := c.GetName(ctx, &pbBase.GetName_Request{})
 	if err != nil {
 		t.Fatal(err)
@@ -141,7 +118,6 @@ func TestDestination(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-
 	if err := writeClient.Send(&pb.Write2_Request{
 		Resource: destResourceBytes,
 	}); err != nil {
@@ -151,25 +127,29 @@ func TestDestination(t *testing.T) {
 	if _, err := writeClient.CloseAndRecv(); err != nil {
 		t.Fatal(err)
 	}
+
 	// serversDestination
 	table := serversDestination.TableV2ToV3(tableV2)
-	readCh := make(chan arrow.Record, 1)
-	if err := plugin.Read(ctx, table, sourceName, readCh); err != nil {
+	msgs, err := p.SyncAll(ctx, plugin.SyncOptions{
+		Tables: []string{tableName},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	close(readCh)
 	totalResources := 0
 	destRecord := serversDestination.CQTypesOneToRecord(memory.DefaultAllocator, destResource.Data, table.ToArrowSchema())
-	for resource := range readCh {
+	for _, msg := range msgs {
 		totalResources++
-		if !array.RecordEqual(destRecord, resource) {
-			diff := destination.RecordDiff(destRecord, resource)
-			t.Fatalf("expected %v but got %v. Diff: %v", destRecord, resource, diff)
+		m := msg.(*message.Insert)
+		if !array.RecordEqual(destRecord, m.Record) {
+			// diff := destination.RecordDiff(destRecord, resource)
+			t.Fatalf("expected %v but got %v", destRecord, m.Record)
 		}
 	}
 	if totalResources != 1 {
 		t.Fatalf("expected 1 resource but got %d", totalResources)
 	}
+
 	if _, err := c.DeleteStale(ctx, &pb.DeleteStale_Request{
 		Source:    "testSource",
 		Timestamp: timestamppb.New(time.Now().Truncate(time.Microsecond)),
@@ -178,15 +158,9 @@ func TestDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = c.GetMetrics(ctx, &pb.GetDestinationMetrics_Request{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	if _, err := c.Close(ctx, &pb.Close_Request{}); err != nil {
 		t.Fatalf("failed to call Close: %v", err)
 	}
-
 	cancel()
 	wg.Wait()
 	if serverErr != nil {

@@ -12,7 +12,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v3/types"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
 	"golang.org/x/exp/rand"
 	"golang.org/x/exp/slices"
@@ -21,7 +21,6 @@ import (
 // TestSourceOptions controls which types are included by TestSourceColumns.
 type TestSourceOptions struct {
 	SkipDates      bool
-	SkipDecimals   bool
 	SkipDurations  bool
 	SkipIntervals  bool
 	SkipLargeTypes bool // e.g. large binary, large string
@@ -31,6 +30,7 @@ type TestSourceOptions struct {
 	SkipTimes      bool // time of day types
 	SkipTimestamps bool // timestamp types. Microsecond timestamp is always be included, regardless of this setting.
 	TimePrecision  time.Duration
+	SkipDecimals   bool
 }
 
 // TestSourceColumns returns columns for all Arrow types and composites thereof. TestSourceOptions controls

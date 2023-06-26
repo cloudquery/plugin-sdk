@@ -6,7 +6,8 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/float16"
-	"github.com/cloudquery/plugin-sdk/v3/types"
+	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 	"golang.org/x/exp/maps"
 )
 
@@ -33,7 +34,12 @@ type Scalar interface {
 
 type Vector []Scalar
 
-const nullValueStr = array.NullValueStr
+func (v Vector) ToArrowRecord(sc *arrow.Schema) arrow.Record {
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+	AppendToRecordBuilder(bldr, v)
+	rec := bldr.NewRecord()
+	return rec
+}
 
 func (v Vector) Equal(r Vector) bool {
 	if len(v) != len(r) {
