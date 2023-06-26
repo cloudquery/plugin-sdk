@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.0.1-rc1...v4.0.2-rc1) (2023-06-26)
+
+
+### Bug Fixes
+
+* Set Sync option fields ([#997](https://github.com/cloudquery/plugin-sdk/issues/997)) ([29223ba](https://github.com/cloudquery/plugin-sdk/commit/29223baba5e1fd59087dc480bcf47066f1bda91c))
+
 ## [4.0.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.0.0-rc1...v4.0.1-rc1) (2023-06-26)
 
 
