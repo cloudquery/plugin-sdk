@@ -207,12 +207,12 @@ var syncTestCases = []syncTestCase{
 
 func TestScheduler(t *testing.T) {
 	// uuid.SetRand(testRand{})
-	for _, scheduler := range AllSchedulers {
+	for _, strategy := range AllStrategies {
 		for _, tc := range syncTestCases {
 			tc := tc
 			tc.table = tc.table.Copy(nil)
-			t.Run(tc.table.Name+"_"+scheduler.String(), func(t *testing.T) {
-				testSyncTable(t, tc, scheduler, tc.deterministicCQID)
+			t.Run(tc.table.Name+"_"+strategy.String(), func(t *testing.T) {
+				testSyncTable(t, tc, strategy, tc.deterministicCQID)
 			})
 		}
 	}
@@ -226,7 +226,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 	c := testExecutionClient{}
 	opts := []Option{
 		WithLogger(zerolog.New(zerolog.NewTestWriter(t))),
-		WithSchedulerStrategy(strategy),
+		WithStrategy(strategy),
 	}
 	sc := NewScheduler(&c, opts...)
 	msgs := make(chan message.Message, 10)
