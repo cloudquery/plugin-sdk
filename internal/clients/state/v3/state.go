@@ -63,15 +63,8 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 		return nil, err
 	}
 	if err := writeClient.Send(&pb.Write_Request{
-		Message: &pb.Write_Request_Options{
-			Options: &pb.WriteOptions{MigrateForce: false},
-		},
-	}); err != nil {
-		return nil, err
-	}
-	if err := writeClient.Send(&pb.Write_Request{
 		Message: &pb.Write_Request_MigrateTable{
-			MigrateTable: &pb.MessageMigrateTable{
+			MigrateTable: &pb.Write_MessageMigrateTable{
 				Table: tableBytes,
 			},
 		},
@@ -97,8 +90,6 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 		}
 		var insertMessage *pb.Sync_Response_Insert
 		switch m := res.Message.(type) {
-		case *pb.Sync_Response_Delete:
-			continue
 		case *pb.Sync_Response_MigrateTable:
 			continue
 		case *pb.Sync_Response_Insert:
@@ -154,13 +145,8 @@ func (c *Client) Flush(ctx context.Context) error {
 		return err
 	}
 	if err := writeClient.Send(&pb.Write_Request{
-		Message: &pb.Write_Request_Options{},
-	}); err != nil {
-		return err
-	}
-	if err := writeClient.Send(&pb.Write_Request{
 		Message: &pb.Write_Request_Insert{
-			Insert: &pb.MessageInsert{
+			Insert: &pb.Write_MessageInsert{
 				Record: recordBytes,
 			},
 		},

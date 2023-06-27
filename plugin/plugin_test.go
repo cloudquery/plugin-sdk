@@ -11,7 +11,7 @@ import (
 )
 
 type testPluginClient struct {
-	messages []message.Message
+	messages message.SyncMessages
 }
 
 func newTestPluginClient(context.Context, zerolog.Logger, []byte) (Client, error) {
@@ -30,15 +30,26 @@ func (*testPluginClient) Read(context.Context, *schema.Table, chan<- arrow.Recor
 	return nil
 }
 
-func (c *testPluginClient) Sync(_ context.Context, _ SyncOptions, res chan<- message.Message) error {
+func (c *testPluginClient) Sync(_ context.Context, _ SyncOptions, res chan<- message.SyncMessage) error {
 	for _, msg := range c.messages {
 		res <- msg
 	}
 	return nil
 }
-func (c *testPluginClient) Write(_ context.Context, _ WriteOptions, res <-chan message.Message) error {
+func (c *testPluginClient) Write(_ context.Context, res <-chan message.WriteMessage) error {
 	for msg := range res {
-		c.messages = append(c.messages, msg)
+		switch m := msg.(type) {
+		case *message.WriteMigrateTable:
+			c.messages = append(c.messages, &message.SyncMigrateTable{
+				Table: m.Table,
+			})
+		case *message.WriteInsert:
+			c.messages = append(c.messages, &message.SyncInsert{
+				Record: m.Record,
+			})
+		default:
+			panic("unknown message")
+		}
 	}
 	return nil
 }
@@ -59,11 +70,11 @@ func TestPluginSuccess(t *testing.T) {
 	if len(tables) != 0 {
 		t.Fatal("expected 0 tables")
 	}
-	if err := p.WriteAll(ctx, WriteOptions{}, nil); err != nil {
+	if err := p.WriteAll(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.WriteAll(ctx, WriteOptions{}, []message.Message{
-		message.MigrateTable{},
+	if err := p.WriteAll(ctx, []message.WriteMessage{
+		&message.WriteMigrateTable{},
 	}); err != nil {
 		t.Fatal(err)
 	}

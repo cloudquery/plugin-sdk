@@ -106,7 +106,7 @@ func (c *client) Read(_ context.Context, table *schema.Table, res chan<- arrow.R
 	return nil
 }
 
-func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- message.Message) error {
+func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- message.SyncMessage) error {
 	c.memoryDBLock.RLock()
 
 	for tableName := range c.memoryDB {
@@ -114,7 +114,7 @@ func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- 
 			continue
 		}
 		for _, row := range c.memoryDB[tableName] {
-			res <- &message.Insert{
+			res <- &message.SyncInsert{
 				Record: row,
 			}
 		}
@@ -149,7 +149,7 @@ func (c *client) migrate(_ context.Context, table *schema.Table) {
 	c.tables[tableName] = table
 }
 
-func (c *client) Write(ctx context.Context, _ plugin.WriteOptions, msgs <-chan message.Message) error {
+func (c *client) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -165,11 +165,11 @@ func (c *client) Write(ctx context.Context, _ plugin.WriteOptions, msgs <-chan m
 		c.memoryDBLock.Lock()
 
 		switch msg := msg.(type) {
-		case *message.MigrateTable:
+		case *message.WriteMigrateTable:
 			c.migrate(ctx, msg.Table)
-		case *message.DeleteStale:
+		case *message.WriteDeleteStale:
 			c.deleteStale(ctx, msg)
-		case *message.Insert:
+		case *message.WriteInsert:
 			sc := msg.Record.Schema()
 			tableName, ok := sc.Metadata().GetValue(schema.MetadataTableName)
 			if !ok {
@@ -189,7 +189,7 @@ func (c *client) Close(context.Context) error {
 	return nil
 }
 
-func (c *client) deleteStale(_ context.Context, msg *message.DeleteStale) {
+func (c *client) deleteStale(_ context.Context, msg *message.WriteDeleteStale) {
 	var filteredTable []arrow.Record
 	tableName := msg.Table.Name
 	for i, row := range c.memoryDB[tableName] {

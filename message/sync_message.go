@@ -1,29 +1,37 @@
 package message
 
 import (
-	"time"
-
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-type Message interface {
-	GetTable() *schema.Table
+type syncBaseMessage struct {
 }
 
-type MigrateTable struct {
+func (*syncBaseMessage) IsSyncMessage() bool {
+	return true
+}
+
+type SyncMessage interface {
+	GetTable() *schema.Table
+	IsSyncMessage() bool
+}
+
+type SyncMigrateTable struct {
+	syncBaseMessage
 	Table *schema.Table
 }
 
-func (m MigrateTable) GetTable() *schema.Table {
+func (m SyncMigrateTable) GetTable() *schema.Table {
 	return m.Table
 }
 
-type Insert struct {
+type SyncInsert struct {
+	syncBaseMessage
 	Record arrow.Record
 }
 
-func (m *Insert) GetTable() *schema.Table {
+func (m *SyncInsert) GetTable() *schema.Table {
 	table, err := schema.NewTableFromArrowSchema(m.Record.Schema())
 	if err != nil {
 		panic(err)
@@ -31,47 +39,33 @@ func (m *Insert) GetTable() *schema.Table {
 	return table
 }
 
-// DeleteStale is a pretty specific message which requires the destination to be aware of a CLI use-case
-// thus it might be deprecated in the future
-// in favour of MessageDelete or MessageRawQuery
-// The message indeciates that the destination needs to run something like "DELETE FROM table WHERE _cq_source_name=$1 and sync_time < $2"
-type DeleteStale struct {
-	Table      *schema.Table
-	SourceName string
-	SyncTime   time.Time
-}
+type SyncMessages []SyncMessage
 
-func (m DeleteStale) GetTable() *schema.Table {
-	return m.Table
-}
+type SyncMigrateTables []*SyncMigrateTable
 
-type Messages []Message
+type SyncInserts []*SyncInsert
 
-type MigrateTables []*MigrateTable
-
-type Inserts []*Insert
-
-func (messages Messages) InsertItems() int64 {
+func (messages SyncMessages) InsertItems() int64 {
 	items := int64(0)
 	for _, msg := range messages {
-		if m, ok := msg.(*Insert); ok {
+		if m, ok := msg.(*SyncInsert); ok {
 			items += m.Record.NumRows()
 		}
 	}
 	return items
 }
 
-func (messages Messages) InsertMessage() Inserts {
-	inserts := []*Insert{}
+func (messages SyncMessages) InsertMessage() SyncInserts {
+	inserts := []*SyncInsert{}
 	for _, msg := range messages {
-		if m, ok := msg.(*Insert); ok {
+		if m, ok := msg.(*SyncInsert); ok {
 			inserts = append(inserts, m)
 		}
 	}
 	return inserts
 }
 
-func (m MigrateTables) Exists(tableName string) bool {
+func (m SyncMigrateTables) Exists(tableName string) bool {
 	for _, table := range m {
 		if table.Table.Name == tableName {
 			return true
@@ -80,7 +74,7 @@ func (m MigrateTables) Exists(tableName string) bool {
 	return false
 }
 
-func (m Inserts) Exists(tableName string) bool {
+func (m SyncInserts) Exists(tableName string) bool {
 	for _, insert := range m {
 		md := insert.Record.Schema().Metadata()
 		tableNameMeta, ok := md.GetValue(schema.MetadataTableName)
@@ -94,7 +88,7 @@ func (m Inserts) Exists(tableName string) bool {
 	return false
 }
 
-func (m Inserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
+func (m SyncInserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
 	res := []arrow.Record{}
 	for _, insert := range m {
 		md := insert.Record.Schema().Metadata()

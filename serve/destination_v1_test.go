@@ -141,7 +141,7 @@ func TestDestinationV1(t *testing.T) {
 	totalResources := 0
 	for _, msg := range msgs {
 		totalResources++
-		m := msg.(*message.Insert)
+		m := msg.(*message.SyncInsert)
 		if !array.RecordEqual(rec, m.Record) {
 			// diff := plugin.RecordDiff(rec, resource)
 			// t.Fatalf("diff at %d: %s", totalResources, diff)
