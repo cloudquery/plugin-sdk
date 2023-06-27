@@ -65,7 +65,7 @@ func (c *testStreamingBatchClient) WriteTable(_ context.Context, msgs <-chan *me
 	for msg := range msgs {
 		c.mutex.Lock()
 		if key == "" {
-			key = (&StreamingBatchWriter{}).getSourceName(msg.Record) + ":" + msg.GetTable().Name
+			key = msg.GetTable().Name
 			c.openTables = append(c.openTables, key)
 		}
 		c.insertsInflight = append(c.insertsInflight, msg)

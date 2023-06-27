@@ -3,12 +3,9 @@ package writers
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -111,7 +108,7 @@ func (w *StreamingBatchWriter) stopWorkers() {
 	w.workers = make(map[string]*streamingbatchworker)
 }
 
-func (w *StreamingBatchWriter) worker(ctx context.Context, sourceName, tableName string, ch <-chan *message.Insert, errCh chan<- error, flush <-chan chan bool) {
+func (w *StreamingBatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.Insert, errCh chan<- error, flush <-chan chan bool) {
 	var sizeBytes, sizeRows int64
 	opened := false
 
@@ -120,7 +117,7 @@ func (w *StreamingBatchWriter) worker(ctx context.Context, sourceName, tableName
 		clientErrCh chan error
 	)
 
-	doOpen := func(r arrow.Record) {
+	doOpen := func() {
 		clientCh = make(chan *message.Insert)
 		clientErrCh = make(chan error)
 		go func() {
@@ -152,12 +149,12 @@ func (w *StreamingBatchWriter) worker(ctx context.Context, sourceName, tableName
 			}
 
 			if !opened {
-				doOpen(r.Record)
+				doOpen()
 				opened = true
 			}
 
 			clientCh <- r
-			sizeRows += 1
+			sizeRows++
 			sizeBytes += util.TotalRecordSize(r.Record)
 		case <-time.After(w.batchTimeout):
 			if sizeRows > 0 {
@@ -170,43 +167,6 @@ func (w *StreamingBatchWriter) worker(ctx context.Context, sourceName, tableName
 			done <- true
 		}
 	}
-}
-
-/*
-func (*StreamingBatchWriter) removeDuplicatesByPK(table *schema.Table, resources []arrow.Record) []arrow.Record {
-	pkIndices := table.PrimaryKeysIndexes()
-	// special case where there's no PK at all
-	if len(pkIndices) == 0 {
-		return resources
-	}
-
-	pks := make(map[string]struct{}, len(resources))
-	res := make([]arrow.Record, 0, len(resources))
-	for _, r := range resources {
-		if r.NumRows() > 1 {
-			panic(fmt.Sprintf("record with more than 1 row: %d", r.NumRows()))
-		}
-		key := pk.String(r)
-		_, ok := pks[key]
-		if !ok {
-			pks[key] = struct{}{}
-			res = append(res, r)
-			continue
-		}
-		// duplicate, release
-		r.Release()
-	}
-
-	return res
-}
-*/
-
-func (*StreamingBatchWriter) getSourceName(r arrow.Record) string {
-	colIndexes := r.Schema().FieldIndices(schema.CqSourceNameColumn.Name)
-	if len(colIndexes) < 1 {
-		return ""
-	}
-	return r.Column(colIndexes[0]).(*array.String).Value(0)
 }
 
 func (w *StreamingBatchWriter) flushMigrateTables(ctx context.Context) error {
@@ -235,9 +195,9 @@ func (w *StreamingBatchWriter) flushDeleteStaleTables(ctx context.Context) error
 	return nil
 }
 
-func (w *StreamingBatchWriter) flushInsert(_ context.Context, partitionKey string) {
+func (w *StreamingBatchWriter) flushInsert(_ context.Context, tableName string) {
 	w.workersLock.RLock()
-	worker, ok := w.workers[partitionKey]
+	worker, ok := w.workers[tableName]
 	if !ok {
 		w.workersLock.RUnlock()
 		// no tables to flush
@@ -247,22 +207,6 @@ func (w *StreamingBatchWriter) flushInsert(_ context.Context, partitionKey strin
 	ch := make(chan bool)
 	worker.flush <- ch
 	<-ch
-}
-
-func (w *StreamingBatchWriter) flushInsertByTableName(ctx context.Context, tableName string) {
-	var keys []string
-
-	w.workersLock.RLock()
-	for k := range w.workers {
-		if w.isPartitionKeyForTable(k, tableName) {
-			keys = append(keys, k)
-		}
-	}
-	w.workersLock.RUnlock()
-
-	for _, k := range keys {
-		w.flushInsert(ctx, k)
-	}
 }
 
 func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Message) error {
@@ -281,7 +225,7 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Me
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err
 			}
-			w.flushInsert(ctx, w.makePartitionKey(m.SourceName, m.Table.Name))
+			w.flushInsert(ctx, m.Table.Name)
 			w.deleteStaleLock.Lock()
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
 			l := len(w.deleteStaleMessages)
@@ -303,7 +247,7 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Me
 				return err
 			}
 		case *message.MigrateTable:
-			w.flushInsertByTableName(ctx, m.Table.Name)
+			w.flushInsert(ctx, m.Table.Name)
 			if err := w.flushDeleteStaleTables(ctx); err != nil {
 				return err
 			}
@@ -339,10 +283,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		return fmt.Errorf("table name not found in metadata")
 	}
 
-	sourceName := w.getSourceName(msg.Record)
-	partitionKey := w.makePartitionKey(sourceName, tableName)
-
-	wr, ok := w.workers[partitionKey]
+	wr, ok := w.workers[tableName]
 	w.workersLock.RUnlock()
 	if ok {
 		wr.ch <- msg
@@ -356,21 +297,13 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		ch:    ch,
 		flush: flush,
 	}
-	w.workers[partitionKey] = wr
+	w.workers[tableName] = wr
 	w.workersLock.Unlock()
 	w.workersWaitGroup.Add(1)
 	go func() {
 		defer w.workersWaitGroup.Done()
-		w.worker(ctx, sourceName, tableName, ch, errCh, flush)
+		w.worker(ctx, tableName, ch, errCh, flush)
 	}()
 	ch <- msg
 	return nil
-}
-
-func (*StreamingBatchWriter) makePartitionKey(sourceName, tableName string) string {
-	return sourceName + ":" + tableName
-}
-
-func (*StreamingBatchWriter) isPartitionKeyForTable(key, tableName string) bool {
-	return strings.HasSuffix(key, ":"+tableName)
 }
