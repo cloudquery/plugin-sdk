@@ -6,6 +6,9 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 )
 
+// TODO: use in v4
+//
+//nolint:unused
 func stripNullsFromLists(records []arrow.Record) {
 	for i := range records {
 		cols := records[i].Columns()
@@ -43,6 +46,9 @@ func stripNullsFromLists(records []arrow.Record) {
 
 type AllowNullFunc func(arrow.DataType) bool
 
+// TODO: use in v4
+//
+//nolint:unused
 func (f AllowNullFunc) replaceNullsByEmpty(records []arrow.Record) {
 	if f == nil {
 		return
