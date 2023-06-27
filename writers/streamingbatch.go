@@ -109,60 +109,66 @@ func (w *StreamingBatchWriter) stopWorkers() {
 }
 
 func (w *StreamingBatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.Insert, errCh chan<- error, flush <-chan chan bool) {
-	var sizeBytes, sizeRows int64
-	opened := false
-
 	var (
-		clientCh    chan *message.Insert
-		clientErrCh chan error
+		clientCh            chan *message.Insert
+		clientErrCh         chan error
+		open                bool
+		sizeBytes, sizeRows int64
 	)
 
-	doOpen := func() {
+	ensureOpened := func() {
+		if open {
+			return
+		}
+
 		clientCh = make(chan *message.Insert)
-		clientErrCh = make(chan error)
+		clientErrCh = make(chan error, 1)
 		go func() {
+			defer close(clientErrCh)
+			defer func() {
+				if err := recover(); err != nil {
+					clientErrCh <- fmt.Errorf("panic in WriteTable: %v", err)
+				}
+			}()
 			clientErrCh <- w.client.WriteTable(ctx, clientCh)
-			close(clientErrCh)
 		}()
+		open = true
 	}
-	doClose := func() {
-		if opened {
+	closeFlush := func() {
+		if open {
 			close(clientCh)
 			if err := <-clientErrCh; err != nil {
 				errCh <- fmt.Errorf("WriteTable failed on %s: %w", tableName, err)
 			}
 		}
-		opened = false
+		open = false
 		sizeBytes, sizeRows = 0, 0
 	}
+	defer closeFlush()
 
 	for {
 		select {
 		case r, ok := <-ch:
 			if !ok {
-				doClose()
 				return
 			}
 
-			if (w.batchSizeRows > 0 && sizeRows >= w.batchSizeRows) || (w.batchSizeBytes > 0 && sizeBytes+util.TotalRecordSize(r.Record) >= w.batchSizeBytes) {
-				doClose()
+			recSize := util.TotalRecordSize(r.Record)
+			if (w.batchSizeRows > 0 && sizeRows >= w.batchSizeRows) || (w.batchSizeBytes > 0 && sizeBytes+recSize >= w.batchSizeBytes) {
+				closeFlush()
 			}
 
-			if !opened {
-				doOpen()
-				opened = true
-			}
-
+			ensureOpened()
 			clientCh <- r
 			sizeRows++
-			sizeBytes += util.TotalRecordSize(r.Record)
+			sizeBytes += recSize
 		case <-time.After(w.batchTimeout):
 			if sizeRows > 0 {
-				doClose()
+				closeFlush()
 			}
 		case done := <-flush:
 			if sizeRows > 0 {
-				doClose()
+				closeFlush()
 			}
 			done <- true
 		}
