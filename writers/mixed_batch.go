@@ -2,19 +2,12 @@ package writers
 
 import (
 	"context"
-	"reflect"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/rs/zerolog"
-)
-
-const (
-	msgTypeMigrateTable = iota
-	msgTypeInsert
-	msgTypeDeleteStale
 )
 
 // MixedBatchClient is a client that will receive batches of messages with a mixture of tables.
@@ -75,18 +68,6 @@ func NewMixedBatchWriter(client MixedBatchClient, opts ...MixedBatchWriterOption
 	return c, nil
 }
 
-func msgID(msg message.Message) int {
-	switch msg.(type) {
-	case *message.MigrateTable:
-		return msgTypeMigrateTable
-	case *message.Insert:
-		return msgTypeInsert
-	case *message.DeleteStale:
-		return msgTypeDeleteStale
-	}
-	panic("unknown message type: " + reflect.TypeOf(msg).Name())
-}
-
 // Write starts listening for messages on the msgChan channel and writes them to the client in batches.
 func (w *MixedBatchWriter) Write(ctx context.Context, options plugin.WriteOptions, msgChan <-chan message.Message) error {
 	migrateTable := &batchManager[*message.MigrateTable]{
@@ -105,7 +86,7 @@ func (w *MixedBatchWriter) Write(ctx context.Context, options plugin.WriteOption
 		writeFunc:    w.client.DeleteStaleBatch,
 		writeOptions: options,
 	}
-	flush := func(msgType int) error {
+	flush := func(msgType msgType) error {
 		switch msgType {
 		case msgTypeMigrateTable:
 			return migrateTable.flush(ctx)
@@ -117,11 +98,11 @@ func (w *MixedBatchWriter) Write(ctx context.Context, options plugin.WriteOption
 			panic("unknown message type")
 		}
 	}
-	prevMsgType := -1
+	prevMsgType := msgTypeUnset
 	var err error
 	for msg := range msgChan {
 		msgType := msgID(msg)
-		if prevMsgType != -1 && prevMsgType != msgType {
+		if prevMsgType != msgTypeUnset && prevMsgType != msgType {
 			if err := flush(prevMsgType); err != nil {
 				return err
 			}
@@ -141,7 +122,7 @@ func (w *MixedBatchWriter) Write(ctx context.Context, options plugin.WriteOption
 			return err
 		}
 	}
-	if prevMsgType == -1 {
+	if prevMsgType == msgTypeUnset {
 		return nil
 	}
 	return flush(prevMsgType)

@@ -1,4 +1,4 @@
-package writers
+package writers_test
 
 import (
 	"context"
@@ -11,86 +11,102 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/writers"
+)
+
+type messageType int
+
+const (
+	messageTypeMigrateTable messageType = iota
+	messageTypeInsert
+	messageTypeDeleteStale
 )
 
 type testStreamingBatchClient struct {
-	mutex         sync.Mutex
-	migrateTables []*message.MigrateTable
-	deleteStales  []*message.DeleteStale
+	mutex sync.Mutex
 
-	insertsInflight  []*message.Insert
-	insertsCommitted []*message.Insert
-	openTables       []string
+	inflight  map[messageType]int
+	committed map[messageType]int
+	open      map[messageType][]string
 }
 
-func (c *testStreamingBatchClient) MigrateTablesLen() int {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return len(c.migrateTables)
-}
-
-func (c *testStreamingBatchClient) InsertsInflightLen() int {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return len(c.insertsInflight)
-}
-
-func (c *testStreamingBatchClient) InsertsCommittedLen() int {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return len(c.insertsCommitted)
-}
-
-func (c *testStreamingBatchClient) DeleteStalesLen() int {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return len(c.deleteStales)
-}
-
-func (c *testStreamingBatchClient) OpenTablesLen() int {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return len(c.openTables)
-}
-
-func (c *testStreamingBatchClient) MigrateTables(_ context.Context, msgs []*message.MigrateTable) error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.migrateTables = append(c.migrateTables, msgs...)
-	return nil
-}
-
-func (c *testStreamingBatchClient) WriteTable(_ context.Context, msgs <-chan *message.Insert) error {
-	key := ""
-	for msg := range msgs {
-		c.mutex.Lock()
-		if key == "" {
-			key = msg.GetTable().Name
-			c.openTables = append(c.openTables, key)
-		}
-		c.insertsInflight = append(c.insertsInflight, msg)
-		c.mutex.Unlock()
+func newClient() *testStreamingBatchClient {
+	return &testStreamingBatchClient{
+		inflight:  make(map[messageType]int),
+		committed: make(map[messageType]int),
+		open:      make(map[messageType][]string),
 	}
+}
 
+func (c *testStreamingBatchClient) MessageLen(t messageType) int {
 	c.mutex.Lock()
-
-	c.insertsCommitted = append(c.insertsCommitted, c.insertsInflight...)
-	c.insertsInflight = nil
-
 	defer c.mutex.Unlock()
-	for i, openTable := range c.openTables {
+	return c.committed[t]
+}
+
+func (c *testStreamingBatchClient) InflightLen(t messageType) int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.inflight[t]
+}
+
+func (c *testStreamingBatchClient) OpenLen(t messageType) int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return len(c.open[t])
+}
+
+func (c *testStreamingBatchClient) MigrateTable(ctx context.Context, msgs <-chan *message.MigrateTable) error {
+	key := ""
+	for m := range msgs {
+		key = c.handleTypeMessage(ctx, messageTypeMigrateTable, m, key)
+	}
+	return c.handleTypeCommit(ctx, messageTypeMigrateTable, key)
+}
+
+func (c *testStreamingBatchClient) WriteTable(ctx context.Context, msgs <-chan *message.Insert) error {
+	key := ""
+	for m := range msgs {
+		key = c.handleTypeMessage(ctx, messageTypeInsert, m, key)
+	}
+	return c.handleTypeCommit(ctx, messageTypeInsert, key)
+}
+
+func (c *testStreamingBatchClient) DeleteStale(ctx context.Context, msgs <-chan *message.DeleteStale) error {
+	key := ""
+	for m := range msgs {
+		key = c.handleTypeMessage(ctx, messageTypeDeleteStale, m, key)
+	}
+	return c.handleTypeCommit(ctx, messageTypeDeleteStale, key)
+}
+
+func (c *testStreamingBatchClient) handleTypeMessage(_ context.Context, t messageType, msg message.Message, key string) string {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if key == "" {
+		key = msg.GetTable().Name
+		c.open[t] = append(c.open[t], key)
+	}
+	c.inflight[t]++
+
+	return key
+}
+
+func (c *testStreamingBatchClient) handleTypeCommit(_ context.Context, t messageType, key string) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.committed[t] += c.inflight[t]
+	c.inflight[t] = 0
+
+	for i, openTable := range c.open[t] {
 		if openTable == key {
-			c.openTables = append(c.openTables[:i], c.openTables[i+1:]...)
+			c.open[t] = append(c.open[t][:i], c.open[t][i+1:]...)
 			break
 		}
 	}
-	return nil
-}
 
-func (c *testStreamingBatchClient) DeleteStale(_ context.Context, msgs []*message.DeleteStale) error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.deleteStales = append(c.deleteStales, msgs...)
 	return nil
 }
 
@@ -110,8 +126,8 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 	ctx := context.Background()
 	ch := make(chan message.Message)
 
-	testClient := &testStreamingBatchClient{}
-	wr, err := NewStreamingBatchWriter(testClient)
+	testClient := newClient()
+	wr, err := writers.NewStreamingBatchWriter(testClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,25 +144,25 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	record := bldr.NewRecord()
 
-	if l := testClient.MigrateTablesLen(); l != 0 {
+	if l := testClient.MessageLen(messageTypeMigrateTable); l != 0 {
 		t.Fatalf("expected 0 migrate table messages, got %d", l)
 	}
 
 	ch <- &message.Insert{Record: record}
 	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.MigrateTablesLen(); l != 1 {
+	if l := testClient.MessageLen(messageTypeMigrateTable); l != 1 {
 		t.Fatalf("expected 1 migrate table message, got %d", l)
 	}
 
-	if l := testClient.InsertsCommittedLen(); l != 0 {
+	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
 	ch <- &message.MigrateTable{Table: streamingBatchTestTable}
 	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.InsertsCommittedLen(); l != 1 {
+	if l := testClient.MessageLen(messageTypeInsert); l != 1 {
 		t.Fatalf("expected 1 insert message, got %d", l)
 	}
 
@@ -155,7 +171,7 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if l := testClient.OpenTablesLen(); l != 0 {
+	if l := testClient.OpenLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 open tables, got %d", l)
 	}
 }
@@ -165,8 +181,8 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 	ctx := context.Background()
 	ch := make(chan message.Message)
 
-	testClient := &testStreamingBatchClient{}
-	wr, err := NewStreamingBatchWriter(testClient, WithStreamingBatchWriterBatchSizeRows(2))
+	testClient := newClient()
+	wr, err := writers.NewStreamingBatchWriter(testClient, writers.WithStreamingBatchWriterBatchSizeRows(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +199,7 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.InsertsCommittedLen(); l != 0 {
+	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
@@ -197,7 +213,7 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 2)
 
-	if l := testClient.InsertsCommittedLen(); l != 2 {
+	if l := testClient.MessageLen(messageTypeInsert); l != 2 {
 		t.Fatalf("expected 2 insert messages, got %d", l)
 	}
 
@@ -206,7 +222,7 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if l := testClient.OpenTablesLen(); l != 0 {
+	if l := testClient.OpenLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 open tables, got %d", l)
 	}
 }
@@ -216,8 +232,8 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	ctx := context.Background()
 	ch := make(chan message.Message)
 
-	testClient := &testStreamingBatchClient{}
-	wr, err := NewStreamingBatchWriter(testClient, WithStreamingBatchWriterBatchTimeout(time.Second))
+	testClient := newClient()
+	wr, err := writers.NewStreamingBatchWriter(testClient, writers.WithStreamingBatchWriterBatchTimeout(time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,21 +250,21 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.InsertsCommittedLen(); l != 0 {
+	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Millisecond * 250)
 
-	if l := testClient.InsertsCommittedLen(); l != 0 {
+	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 1)
 
-	if l := testClient.InsertsCommittedLen(); l != 1 {
+	if l := testClient.MessageLen(messageTypeInsert); l != 1 {
 		t.Fatalf("expected 1 insert message, got %d", l)
 	}
 
@@ -257,7 +273,7 @@ func TestStreamingBatchTimeout(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if l := testClient.OpenTablesLen(); l != 0 {
+	if l := testClient.OpenLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 open tables, got %d", l)
 	}
 }
@@ -267,8 +283,8 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	ctx := context.Background()
 	ch := make(chan message.Message)
 
-	testClient := &testStreamingBatchClient{}
-	wr, err := NewStreamingBatchWriter(testClient, WithStreamingBatchWriterBatchSizeRows(2), WithStreamingBatchWriterBatchTimeout(time.Second))
+	testClient := newClient()
+	wr, err := writers.NewStreamingBatchWriter(testClient, writers.WithStreamingBatchWriterBatchSizeRows(2), writers.WithStreamingBatchWriterBatchTimeout(time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,11 +305,11 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.InsertsInflightLen(); l != 1 {
+	if l := testClient.InflightLen(messageTypeInsert); l != 1 {
 		t.Fatalf("expected 1 inflight insert message, got %d", l)
 	}
 
-	if l := testClient.InsertsCommittedLen(); l != 0 {
+	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
@@ -305,7 +321,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 2)
 
-	if l := testClient.InsertsCommittedLen(); l != 2 {
+	if l := testClient.MessageLen(messageTypeInsert); l != 2 {
 		t.Fatalf("expected 2 insert messages, got %d", l)
 	}
 
@@ -314,7 +330,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if l := testClient.OpenTablesLen(); l != 0 {
+	if l := testClient.OpenLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 open tables, got %d", l)
 	}
 }

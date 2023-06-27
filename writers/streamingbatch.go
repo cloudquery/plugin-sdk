@@ -12,22 +12,29 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// StreamingBatchWriterClient is the interface that must be implemented by the client of StreamingBatchWriter.
 type StreamingBatchWriterClient interface {
-	MigrateTables(context.Context, []*message.MigrateTable) error
-	DeleteStale(context.Context, []*message.DeleteStale) error
+	// MigrateTable should block and handle MigrateTable messages until the channel is closed.
+	MigrateTable(context.Context, <-chan *message.MigrateTable) error
+
+	// DeleteStale should block and handle DeleteStale messages until the channel is closed.
+	DeleteStale(context.Context, <-chan *message.DeleteStale) error
+
+	// WriteTable should block and handle writes to a single table until the channel is closed. Table metadata can be found in the first Insert message.
+	// The channel is closed when all inserts in the batch have been sent. New batches, if any, will be sent on a new call to WriteTable.
 	WriteTable(context.Context, <-chan *message.Insert) error
 }
 
 type StreamingBatchWriter struct {
-	client           StreamingBatchWriterClient
-	workers          map[string]*streamingbatchworker
+	client StreamingBatchWriterClient
+
+	insertWorkers    map[string]*streamingWorkerManager[*message.Insert]
+	migrateWorker    *streamingWorkerManager[*message.MigrateTable]
+	deleteWorker     *streamingWorkerManager[*message.DeleteStale]
 	workersLock      sync.RWMutex
 	workersWaitGroup sync.WaitGroup
 
-	migrateTableLock     sync.Mutex
-	migrateTableMessages []*message.MigrateTable
-	deleteStaleLock      sync.Mutex
-	deleteStaleMessages  []*message.DeleteStale
+	lastMsgType msgType
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
@@ -61,158 +68,57 @@ func WithStreamingBatchWriterBatchSizeBytes(size int64) StreamingBatchWriterOpti
 	}
 }
 
-type streamingbatchworker struct {
-	count int
-	ch    chan *message.Insert
-	flush chan chan bool
-}
-
 func NewStreamingBatchWriter(client StreamingBatchWriterClient, opts ...StreamingBatchWriterOption) (*StreamingBatchWriter, error) {
 	c := &StreamingBatchWriter{
-		client:       client,
-		workers:      make(map[string]*streamingbatchworker),
-		logger:       zerolog.Nop(),
-		batchTimeout: defaultBatchTimeoutSeconds * time.Second,
+		client:        client,
+		insertWorkers: make(map[string]*streamingWorkerManager[*message.Insert]),
+		logger:        zerolog.Nop(),
+		batchTimeout:  defaultBatchTimeoutSeconds * time.Second,
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
-	c.migrateTableMessages = make([]*message.MigrateTable, 0, c.batchSizeRows)
-	c.deleteStaleMessages = make([]*message.DeleteStale, 0, c.batchSizeRows)
 	return c, nil
 }
 
-func (w *StreamingBatchWriter) Flush(ctx context.Context) error {
+func (w *StreamingBatchWriter) Flush(_ context.Context) error {
 	w.workersLock.RLock()
-	for _, worker := range w.workers {
+	if w.migrateWorker != nil {
+		done := make(chan bool)
+		w.migrateWorker.flush <- done
+		<-done
+	}
+	if w.deleteWorker != nil {
+		done := make(chan bool)
+		w.deleteWorker.flush <- done
+		<-done
+	}
+	for _, worker := range w.insertWorkers {
 		done := make(chan bool)
 		worker.flush <- done
 		<-done
 	}
 	w.workersLock.RUnlock()
-
-	if err := w.flushMigrateTables(ctx); err != nil {
-		return err
-	}
-
-	return w.flushDeleteStaleTables(ctx)
+	return nil
 }
 
 func (w *StreamingBatchWriter) stopWorkers() {
 	w.workersLock.Lock()
 	defer w.workersLock.Unlock()
-	for _, w := range w.workers {
+	for _, w := range w.insertWorkers {
 		close(w.ch)
 	}
+	if w.migrateWorker != nil {
+		close(w.migrateWorker.ch)
+	}
+	if w.deleteWorker != nil {
+		close(w.deleteWorker.ch)
+	}
 	w.workersWaitGroup.Wait()
-	w.workers = make(map[string]*streamingbatchworker)
-}
 
-func (w *StreamingBatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.Insert, errCh chan<- error, flush <-chan chan bool) {
-	var (
-		clientCh            chan *message.Insert
-		clientErrCh         chan error
-		open                bool
-		sizeBytes, sizeRows int64
-	)
-
-	ensureOpened := func() {
-		if open {
-			return
-		}
-
-		clientCh = make(chan *message.Insert)
-		clientErrCh = make(chan error, 1)
-		go func() {
-			defer close(clientErrCh)
-			defer func() {
-				if err := recover(); err != nil {
-					clientErrCh <- fmt.Errorf("panic in WriteTable: %v", err)
-				}
-			}()
-			clientErrCh <- w.client.WriteTable(ctx, clientCh)
-		}()
-		open = true
-	}
-	closeFlush := func() {
-		if open {
-			close(clientCh)
-			if err := <-clientErrCh; err != nil {
-				errCh <- fmt.Errorf("WriteTable failed on %s: %w", tableName, err)
-			}
-		}
-		open = false
-		sizeBytes, sizeRows = 0, 0
-	}
-	defer closeFlush()
-
-	for {
-		select {
-		case r, ok := <-ch:
-			if !ok {
-				return
-			}
-
-			recSize := util.TotalRecordSize(r.Record)
-			if (w.batchSizeRows > 0 && sizeRows >= w.batchSizeRows) || (w.batchSizeBytes > 0 && sizeBytes+recSize >= w.batchSizeBytes) {
-				closeFlush()
-			}
-
-			ensureOpened()
-			clientCh <- r
-			sizeRows++
-			sizeBytes += recSize
-		case <-time.After(w.batchTimeout):
-			if sizeRows > 0 {
-				closeFlush()
-			}
-		case done := <-flush:
-			if sizeRows > 0 {
-				closeFlush()
-			}
-			done <- true
-		}
-	}
-}
-
-func (w *StreamingBatchWriter) flushMigrateTables(ctx context.Context) error {
-	w.migrateTableLock.Lock()
-	defer w.migrateTableLock.Unlock()
-	if len(w.migrateTableMessages) == 0 {
-		return nil
-	}
-	if err := w.client.MigrateTables(ctx, w.migrateTableMessages); err != nil {
-		return err
-	}
-	w.migrateTableMessages = w.migrateTableMessages[:0]
-	return nil
-}
-
-func (w *StreamingBatchWriter) flushDeleteStaleTables(ctx context.Context) error {
-	w.deleteStaleLock.Lock()
-	defer w.deleteStaleLock.Unlock()
-	if len(w.deleteStaleMessages) == 0 {
-		return nil
-	}
-	if err := w.client.DeleteStale(ctx, w.deleteStaleMessages); err != nil {
-		return err
-	}
-	w.deleteStaleMessages = w.deleteStaleMessages[:0]
-	return nil
-}
-
-func (w *StreamingBatchWriter) flushInsert(_ context.Context, tableName string) {
-	w.workersLock.RLock()
-	worker, ok := w.workers[tableName]
-	if !ok {
-		w.workersLock.RUnlock()
-		// no tables to flush
-		return
-	}
-	w.workersLock.RUnlock()
-	ch := make(chan bool)
-	worker.flush <- ch
-	<-ch
+	w.insertWorkers = make(map[string]*streamingWorkerManager[*message.Insert])
+	w.migrateWorker = nil
+	w.deleteWorker = nil
 }
 
 func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Message) error {
@@ -220,52 +126,24 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Me
 
 	go func() {
 		for err := range errCh {
+			fmt.Println(err.Error())
 			w.logger.Err(err).Msg("error from StreamingBatchWriter")
 		}
 	}()
 
 	hasWorkers := false
+
 	for msg := range msgs {
-		switch m := msg.(type) {
-		case *message.DeleteStale:
-			if err := w.flushMigrateTables(ctx); err != nil {
+		msgType := msgID(msg)
+		if w.lastMsgType != msgType {
+			if err := w.Flush(ctx); err != nil {
 				return err
 			}
-			w.flushInsert(ctx, m.Table.Name)
-			w.deleteStaleLock.Lock()
-			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
-			l := len(w.deleteStaleMessages)
-			w.deleteStaleLock.Unlock()
-			if w.batchSizeRows > 0 && int64(l) > w.batchSizeRows {
-				if err := w.flushDeleteStaleTables(ctx); err != nil {
-					return err
-				}
-			}
-		case *message.Insert:
-			if err := w.flushMigrateTables(ctx); err != nil {
-				return err
-			}
-			if err := w.flushDeleteStaleTables(ctx); err != nil {
-				return err
-			}
-			hasWorkers = true
-			if err := w.startWorker(ctx, errCh, m); err != nil {
-				return err
-			}
-		case *message.MigrateTable:
-			w.flushInsert(ctx, m.Table.Name)
-			if err := w.flushDeleteStaleTables(ctx); err != nil {
-				return err
-			}
-			w.migrateTableLock.Lock()
-			w.migrateTableMessages = append(w.migrateTableMessages, m)
-			l := len(w.migrateTableMessages)
-			w.migrateTableLock.Unlock()
-			if w.batchSizeRows > 0 && int64(l) > w.batchSizeRows {
-				if err := w.flushMigrateTables(ctx); err != nil {
-					return err
-				}
-			}
+		}
+		w.lastMsgType = msgType
+		hasWorkers = true
+		if err := w.startWorker(ctx, errCh, msg); err != nil {
+			return err
 		}
 	}
 
@@ -280,36 +158,184 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Me
 	return nil
 }
 
-func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- error, msg *message.Insert) error {
-	w.workersLock.RLock()
-	md := msg.Record.Schema().Metadata()
-	tableName, ok := md.GetValue(schema.MetadataTableName)
-	if !ok {
-		w.workersLock.RUnlock()
-		return fmt.Errorf("table name not found in metadata")
+func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- error, msg message.Message) error {
+	var tableName string
+
+	if mi, ok := msg.(*message.Insert); ok {
+		md := mi.Record.Schema().Metadata()
+		tableName, ok = md.GetValue(schema.MetadataTableName)
+		if !ok {
+			return fmt.Errorf("table name not found in metadata")
+		}
+	} else {
+		tableName = msg.GetTable().Name
 	}
 
-	wr, ok := w.workers[tableName]
-	w.workersLock.RUnlock()
-	if ok {
-		wr.ch <- msg
+	switch m := msg.(type) {
+	case *message.MigrateTable:
+		w.workersLock.Lock()
+		defer w.workersLock.Unlock()
+		if w.migrateWorker != nil {
+			w.migrateWorker.ch <- m
+			return nil
+		}
+		ch := make(chan *message.MigrateTable)
+		flush := make(chan chan bool)
+		w.migrateWorker = &streamingWorkerManager[*message.MigrateTable]{
+			ch:        ch,
+			writeFunc: w.client.MigrateTable,
+
+			flush: flush,
+			errCh: errCh,
+
+			batchSizeRows: w.batchSizeRows,
+			batchTimeout:  w.batchTimeout,
+		}
+
+		w.workersWaitGroup.Add(1)
+		go w.migrateWorker.run(ctx, &w.workersWaitGroup, tableName)
+		w.migrateWorker.ch <- m
 		return nil
+	case *message.DeleteStale:
+		w.workersLock.Lock()
+		defer w.workersLock.Unlock()
+		if w.deleteWorker != nil {
+			w.deleteWorker.ch <- m
+			return nil
+		}
+		ch := make(chan *message.DeleteStale)
+		flush := make(chan chan bool)
+		w.deleteWorker = &streamingWorkerManager[*message.DeleteStale]{
+			ch:        ch,
+			writeFunc: w.client.DeleteStale,
+
+			flush: flush,
+			errCh: errCh,
+
+			batchSizeRows: w.batchSizeRows,
+			batchTimeout:  w.batchTimeout,
+		}
+
+		w.workersWaitGroup.Add(1)
+		go w.deleteWorker.run(ctx, &w.workersWaitGroup, tableName)
+		w.deleteWorker.ch <- m
+		return nil
+	case *message.Insert:
+		w.workersLock.RLock()
+		wr, ok := w.insertWorkers[tableName]
+		w.workersLock.RUnlock()
+		if ok {
+			wr.ch <- m
+			return nil
+		}
+
+		ch := make(chan *message.Insert)
+		flush := make(chan chan bool)
+		wr = &streamingWorkerManager[*message.Insert]{
+			ch:        ch,
+			writeFunc: w.client.WriteTable,
+
+			flush: flush,
+			errCh: errCh,
+
+			batchSizeRows:  w.batchSizeRows,
+			batchSizeBytes: w.batchSizeBytes,
+			batchTimeout:   w.batchTimeout,
+		}
+		w.workersLock.Lock()
+		w.insertWorkers[tableName] = wr
+		w.workersLock.Unlock()
+
+		w.workersWaitGroup.Add(1)
+		go wr.run(ctx, &w.workersWaitGroup, tableName)
+		ch <- m
+		return nil
+
+	default:
+		return fmt.Errorf("unhandled message type: %T", msg)
 	}
-	w.workersLock.Lock()
-	ch := make(chan *message.Insert)
-	flush := make(chan chan bool)
-	wr = &streamingbatchworker{
-		count: 1,
-		ch:    ch,
-		flush: flush,
+}
+
+type streamingWorkerManager[T message.Message] struct {
+	ch        chan T
+	writeFunc func(context.Context, <-chan T) error
+
+	flush chan chan bool
+	errCh chan<- error
+
+	batchSizeRows  int64
+	batchSizeBytes int64
+	batchTimeout   time.Duration
+}
+
+func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup, tableName string) {
+	defer wg.Done()
+	var (
+		clientCh            chan T
+		clientErrCh         chan error
+		open                bool
+		sizeBytes, sizeRows int64
+	)
+
+	ensureOpened := func() {
+		if open {
+			return
+		}
+
+		clientCh = make(chan T)
+		clientErrCh = make(chan error, 1)
+		go func() {
+			defer close(clientErrCh)
+			defer func() {
+				if err := recover(); err != nil {
+					clientErrCh <- fmt.Errorf("panic: %v", err)
+				}
+			}()
+			clientErrCh <- s.writeFunc(ctx, clientCh)
+		}()
+		open = true
 	}
-	w.workers[tableName] = wr
-	w.workersLock.Unlock()
-	w.workersWaitGroup.Add(1)
-	go func() {
-		defer w.workersWaitGroup.Done()
-		w.worker(ctx, tableName, ch, errCh, flush)
-	}()
-	ch <- msg
-	return nil
+	closeFlush := func() {
+		if open {
+			close(clientCh)
+			if err := <-clientErrCh; err != nil {
+				s.errCh <- fmt.Errorf("handler failed on %s: %w", tableName, err)
+			}
+		}
+		open = false
+		sizeBytes, sizeRows = 0, 0
+	}
+	defer closeFlush()
+
+	for {
+		select {
+		case r, ok := <-s.ch:
+			if !ok {
+				return
+			}
+
+			var recSize int64
+			if ins, ok := any(r).(*message.Insert); ok {
+				recSize = util.TotalRecordSize(ins.Record)
+			}
+
+			if (s.batchSizeRows > 0 && sizeRows >= s.batchSizeRows) || (s.batchSizeBytes > 0 && sizeBytes+recSize >= s.batchSizeBytes) {
+				closeFlush()
+			}
+
+			ensureOpened()
+			clientCh <- r
+			sizeRows++
+			sizeBytes += recSize
+		case <-time.After(s.batchTimeout):
+			if sizeRows > 0 {
+				closeFlush()
+			}
+		case done := <-s.flush:
+			if sizeRows > 0 {
+				closeFlush()
+			}
+			done <- true
+		}
+	}
 }
