@@ -164,6 +164,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 			}
 			pluginMessage = &message.WriteMigrateTable{
 				Table: table,
+				MigrateForce: pbMsg.MigrateTable.MigrateForce,
 			}
 		case *pb.Write_Request_Insert:
 			record, err := pb.NewRecordFromBytes(pbMsg.Insert.Record)

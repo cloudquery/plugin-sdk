@@ -22,7 +22,7 @@ func tableUUIDSuffix() string {
 func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
 	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
 		Table:        source,
-		ForceMigrate: writeOptionMigrateForce,
+		MigrateForce: writeOptionMigrateForce,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
@@ -55,7 +55,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 
 	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
 		Table:        target,
-		ForceMigrate: writeOptionMigrateForce,
+		MigrateForce: writeOptionMigrateForce,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}

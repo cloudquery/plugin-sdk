@@ -75,7 +75,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	for _, table := range tables {
 		writeCh <- &message.WriteMigrateTable{
 			Table:        table,
-			ForceMigrate: s.spec.MigrateMode == specs.MigrateModeForced,
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
 		}
 	}
 	close(writeCh)
@@ -129,7 +129,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	for _, table := range tables {
 		msgs <- &message.WriteMigrateTable{
 			Table:        table,
-			ForceMigrate: s.spec.MigrateMode == specs.MigrateModeForced,
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
 		}
 	}
 

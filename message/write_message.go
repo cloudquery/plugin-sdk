@@ -22,7 +22,7 @@ type WriteMessage interface {
 type WriteMigrateTable struct {
 	writeBaseMessage
 	Table        *schema.Table
-	ForceMigrate bool
+	MigrateForce bool
 }
 
 func (m WriteMigrateTable) GetTable() *schema.Table {
