@@ -54,7 +54,7 @@ func (c *testStreamingBatchClient) MigrateTables(_ context.Context, msgs []*mess
 	return nil
 }
 
-func (c *testStreamingBatchClient) OpenTable(_ context.Context, sourceName string, table *schema.Table, syncTime time.Time) (any, error) {
+func (c *testStreamingBatchClient) OpenTable(_ context.Context, sourceName string, table *schema.Table, _ time.Time) (any, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -103,23 +103,12 @@ func (c *testStreamingBatchClient) DeleteStale(_ context.Context, msgs []*messag
 	return nil
 }
 
-var streamingBatchTestTables = schema.Tables{
-	{
-		Name: "table1",
-		Columns: []schema.Column{
-			{
-				Name: "id",
-				Type: arrow.PrimitiveTypes.Int64,
-			},
-		},
-	},
-	{
-		Name: "table2",
-		Columns: []schema.Column{
-			{
-				Name: "id",
-				Type: arrow.PrimitiveTypes.Int64,
-			},
+var streamingBatchTestTable = &schema.Table{
+	Name: "table1",
+	Columns: []schema.Column{
+		{
+			Name: "id",
+			Type: arrow.PrimitiveTypes.Int64,
 		},
 	},
 }
@@ -141,10 +130,10 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 		errCh <- wr.Write(ctx, ch)
 	}()
 
-	ch <- &message.MigrateTable{Table: streamingBatchTestTables[0]}
+	ch <- &message.MigrateTable{Table: streamingBatchTestTable}
 	time.Sleep(50 * time.Millisecond)
 
-	bldr := array.NewRecordBuilder(memory.DefaultAllocator, streamingBatchTestTables[0].ToArrowSchema())
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, streamingBatchTestTable.ToArrowSchema())
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	record := bldr.NewRecord()
 
@@ -163,7 +152,7 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
-	ch <- &message.MigrateTable{Table: streamingBatchTestTables[0]}
+	ch <- &message.MigrateTable{Table: streamingBatchTestTable}
 	time.Sleep(50 * time.Millisecond)
 
 	if l := testClient.InsertsLen(); l != 1 {
