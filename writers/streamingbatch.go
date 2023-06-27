@@ -339,3 +339,9 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 		}
 	}
 }
+
+// DummyHandler should be used to empty Migration and DeleteStale channels if they are not used.
+func DummyHandler[T message.Message](ch <-chan T) {
+	for range ch {
+	}
+}
