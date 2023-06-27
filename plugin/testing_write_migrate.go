@@ -75,7 +75,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if !writeOptionMigrateForce || supportsSafeMigrate {
 		totalItems = TotalRows(records)
 		if totalItems != 2 {
-			return fmt.Errorf("expected 2 item, got %d", totalItems)
+			return fmt.Errorf("expected 2 items, got %d", totalItems)
 		}
 	} else {
 		totalItems = TotalRows(records)
