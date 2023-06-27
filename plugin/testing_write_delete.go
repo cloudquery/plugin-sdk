@@ -45,7 +45,7 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 	totalItems := TotalRows(records)
 
 	if totalItems != 1 {
-		return fmt.Errorf("expected 1 items, got %d", totalItems)
+		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
 
 	bldr = array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())

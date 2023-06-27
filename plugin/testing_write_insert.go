@@ -66,7 +66,7 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 
 	totalItems = TotalRows(readRecords)
 	if totalItems != 2 {
-		return fmt.Errorf("expected 2 item, got %d", totalItems)
+		return fmt.Errorf("expected 2 items, got %d", totalItems)
 	}
 
 	return nil
