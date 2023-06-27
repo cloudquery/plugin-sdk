@@ -163,7 +163,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				break
 			}
 			pluginMessage = &message.WriteMigrateTable{
-				Table: table,
+				Table:        table,
 				MigrateForce: pbMsg.MigrateTable.MigrateForce,
 			}
 		case *pb.Write_Request_Insert:
