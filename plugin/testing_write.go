@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
@@ -16,7 +17,7 @@ type WriterTestSuite struct {
 	// Destinations that have problems representing some data types should provide a custom implementation here.
 	// If this param is empty, the default is to allow all data types to be nullable.
 	// When the value returned by this func is `true` the comparison is made with the empty value instead of null.
-	// allowNull AllowNullFunc
+	allowNull AllowNullFunc
 
 	// IgnoreNullsInLists allows stripping null values from lists before comparison.
 	// Destination setups that don't support nulls in lists should set this to true.
@@ -56,11 +57,11 @@ type WriterTestSuiteTests struct {
 
 type NewPluginFunc func() *Plugin
 
-// func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *WriterTestSuite) {
-// 	return func(o *WriterTestSuite) {
-// 		o.allowNull = allowNull
-// 	}
-// }
+func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *WriterTestSuite) {
+	return func(o *WriterTestSuite) {
+		o.allowNull = allowNull
+	}
+}
 
 func WithTestIgnoreNullsInLists() func(o *WriterTestSuite) {
 	return func(o *WriterTestSuite) {
