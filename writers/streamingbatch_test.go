@@ -2,7 +2,6 @@ package writers
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -17,10 +16,11 @@ import (
 type testStreamingBatchClient struct {
 	mutex         sync.Mutex
 	migrateTables []*message.MigrateTable
-	inserts       []*message.Insert
 	deleteStales  []*message.DeleteStale
 
-	openTables []string
+	insertsInflight  []*message.Insert
+	insertsCommitted []*message.Insert
+	openTables       []string
 }
 
 func (c *testStreamingBatchClient) MigrateTablesLen() int {
@@ -29,10 +29,16 @@ func (c *testStreamingBatchClient) MigrateTablesLen() int {
 	return len(c.migrateTables)
 }
 
-func (c *testStreamingBatchClient) InsertsLen() int {
+func (c *testStreamingBatchClient) InsertsInflightLen() int {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	return len(c.inserts)
+	return len(c.insertsInflight)
+}
+
+func (c *testStreamingBatchClient) InsertsCommittedLen() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return len(c.insertsCommitted)
 }
 
 func (c *testStreamingBatchClient) DeleteStalesLen() int {
@@ -54,45 +60,30 @@ func (c *testStreamingBatchClient) MigrateTables(_ context.Context, msgs []*mess
 	return nil
 }
 
-func (c *testStreamingBatchClient) OpenTable(_ context.Context, sourceName string, table *schema.Table, _ time.Time) (any, error) {
+func (c *testStreamingBatchClient) WriteTable(_ context.Context, msgs <-chan *message.Insert) error {
+	key := ""
+	for msg := range msgs {
+		c.mutex.Lock()
+		if key == "" {
+			key = (&StreamingBatchWriter{}).getSourceName(msg.Record) + ":" + msg.GetTable().Name
+			c.openTables = append(c.openTables, key)
+		}
+		c.insertsInflight = append(c.insertsInflight, msg)
+		c.mutex.Unlock()
+	}
+
 	c.mutex.Lock()
+
+	c.insertsCommitted = append(c.insertsCommitted, c.insertsInflight...)
+	c.insertsInflight = nil
+
 	defer c.mutex.Unlock()
-
-	key := sourceName + ":" + table.Name
-	c.openTables = append(c.openTables, key)
-	return key, nil
-}
-
-func (c *testStreamingBatchClient) CloseTable(_ context.Context, handle any) error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	key := handle.(string)
 	for i, openTable := range c.openTables {
 		if openTable == key {
 			c.openTables = append(c.openTables[:i], c.openTables[i+1:]...)
-			return nil
+			break
 		}
 	}
-
-	return fmt.Errorf("CloseTable: table not open")
-}
-
-func (c *testStreamingBatchClient) WriteTableStream(_ context.Context, handle any, msgs []*message.Insert) error {
-	if len(msgs) == 0 {
-		return nil
-	}
-
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	key := handle.(string)
-	sn := (&StreamingBatchWriter{}).getSourceName(msgs[0].Record)
-	tn := msgs[0].GetTable().Name
-	if key != sn+":"+tn {
-		return fmt.Errorf("WriteTableStream: table %s not open", tn)
-	}
-	c.inserts = append(c.inserts, msgs...)
 	return nil
 }
 
@@ -148,14 +139,14 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 		t.Fatalf("expected 1 migrate table message, got %d", l)
 	}
 
-	if l := testClient.InsertsLen(); l != 0 {
+	if l := testClient.InsertsCommittedLen(); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
 	ch <- &message.MigrateTable{Table: streamingBatchTestTable}
 	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.InsertsLen(); l != 1 {
+	if l := testClient.InsertsCommittedLen(); l != 1 {
 		t.Fatalf("expected 1 insert message, got %d", l)
 	}
 
@@ -169,13 +160,13 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 	}
 }
 
-func TestStreamingBatchSize(t *testing.T) {
+func TestStreamingBatchSizeRows(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	ch := make(chan message.Message)
 
 	testClient := &testStreamingBatchClient{}
-	wr, err := NewStreamingBatchWriter(testClient, WithStreamingBatchWriterBatchSize(2))
+	wr, err := NewStreamingBatchWriter(testClient, WithStreamingBatchWriterBatchSizeRows(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +183,7 @@ func TestStreamingBatchSize(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.InsertsLen(); l != 0 {
+	if l := testClient.InsertsCommittedLen(); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
@@ -206,7 +197,7 @@ func TestStreamingBatchSize(t *testing.T) {
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 2)
 
-	if l := testClient.InsertsLen(); l != 2 {
+	if l := testClient.InsertsCommittedLen(); l != 2 {
 		t.Fatalf("expected 2 insert messages, got %d", l)
 	}
 
@@ -243,21 +234,21 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.InsertsLen(); l != 0 {
+	if l := testClient.InsertsCommittedLen(); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Millisecond * 250)
 
-	if l := testClient.InsertsLen(); l != 0 {
+	if l := testClient.InsertsCommittedLen(); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 1)
 
-	if l := testClient.InsertsLen(); l != 1 {
+	if l := testClient.InsertsCommittedLen(); l != 1 {
 		t.Fatalf("expected 1 insert message, got %d", l)
 	}
 
@@ -277,7 +268,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	ch := make(chan message.Message)
 
 	testClient := &testStreamingBatchClient{}
-	wr, err := NewStreamingBatchWriter(testClient, WithStreamingBatchWriterBatchSize(2), WithStreamingBatchWriterBatchTimeout(time.Second))
+	wr, err := NewStreamingBatchWriter(testClient, WithStreamingBatchWriterBatchSizeRows(2), WithStreamingBatchWriterBatchTimeout(time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,7 +289,11 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.InsertsLen(); l != 0 {
+	if l := testClient.InsertsInflightLen(); l != 1 {
+		t.Fatalf("expected 1 inflight insert message, got %d", l)
+	}
+
+	if l := testClient.InsertsCommittedLen(); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
@@ -310,7 +305,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 2)
 
-	if l := testClient.InsertsLen(); l != 2 {
+	if l := testClient.InsertsCommittedLen(); l != 2 {
 		t.Fatalf("expected 2 insert messages, got %d", l)
 	}
 

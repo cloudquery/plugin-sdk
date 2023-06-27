@@ -18,10 +18,7 @@ import (
 type StreamingBatchWriterClient interface {
 	MigrateTables(context.Context, []*message.MigrateTable) error
 	DeleteStale(context.Context, []*message.DeleteStale) error
-
-	OpenTable(ctx context.Context, sourceName string, table *schema.Table, syncTime time.Time) (any, error)
-	WriteTableStream(ctx context.Context, handle any, msgs []*message.Insert) error
-	CloseTable(ctx context.Context, handle any) error
+	WriteTable(context.Context, <-chan *message.Insert) error
 }
 
 type StreamingBatchWriter struct {
@@ -37,8 +34,8 @@ type StreamingBatchWriter struct {
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
-	batchSize      int
-	batchSizeBytes int
+	batchSizeRows  int64
+	batchSizeBytes int64
 }
 
 type StreamingBatchWriterOption func(*StreamingBatchWriter)
@@ -55,13 +52,13 @@ func WithStreamingBatchWriterBatchTimeout(timeout time.Duration) StreamingBatchW
 	}
 }
 
-func WithStreamingBatchWriterBatchSize(size int) StreamingBatchWriterOption {
+func WithStreamingBatchWriterBatchSizeRows(size int64) StreamingBatchWriterOption {
 	return func(p *StreamingBatchWriter) {
-		p.batchSize = size
+		p.batchSizeRows = size
 	}
 }
 
-func WithStreamingBatchWriterBatchSizeBytes(size int) StreamingBatchWriterOption {
+func WithStreamingBatchWriterBatchSizeBytes(size int64) StreamingBatchWriterOption {
 	return func(p *StreamingBatchWriter) {
 		p.batchSizeBytes = size
 	}
@@ -83,8 +80,8 @@ func NewStreamingBatchWriter(client StreamingBatchWriterClient, opts ...Streamin
 	for _, opt := range opts {
 		opt(c)
 	}
-	c.migrateTableMessages = make([]*message.MigrateTable, 0, c.batchSize)
-	c.deleteStaleMessages = make([]*message.DeleteStale, 0, c.batchSize)
+	c.migrateTableMessages = make([]*message.MigrateTable, 0, c.batchSizeRows)
+	c.deleteStaleMessages = make([]*message.DeleteStale, 0, c.batchSizeRows)
 	return c, nil
 }
 
@@ -115,83 +112,63 @@ func (w *StreamingBatchWriter) stopWorkers() {
 }
 
 func (w *StreamingBatchWriter) worker(ctx context.Context, sourceName, tableName string, ch <-chan *message.Insert, errCh chan<- error, flush <-chan chan bool) {
-	sizeBytes := int64(0)
-	resources := make([]*message.Insert, 0)
+	var sizeBytes, sizeRows int64
+	opened := false
 
-	initDone := false
-	var handle any
+	var (
+		clientCh    chan *message.Insert
+		clientErrCh chan error
+	)
 
-	doInit := func(r arrow.Record) bool {
-		syncTime := w.getSyncTime(r)
-		if syncTime.IsZero() {
-			syncTime = time.Now()
+	doOpen := func(r arrow.Record) {
+		clientCh = make(chan *message.Insert)
+		clientErrCh = make(chan error)
+		go func() {
+			clientErrCh <- w.client.WriteTable(ctx, clientCh)
+			close(clientErrCh)
+		}()
+	}
+	doClose := func() {
+		if opened {
+			close(clientCh)
+			if err := <-clientErrCh; err != nil {
+				errCh <- fmt.Errorf("WriteTable failed on %s: %w", tableName, err)
+			}
 		}
-
-		table, err := schema.NewTableFromArrowSchema(r.Schema())
-		if err != nil {
-			errCh <- fmt.Errorf("NewTableFromArrowSchema failed on %s: %w", tableName, err)
-			return false
-		}
-
-		handle, err = w.client.OpenTable(ctx, sourceName, table, syncTime)
-		if err != nil {
-			errCh <- fmt.Errorf("OpenTable failed on %s: %w", tableName, err)
-			return false
-		}
-
-		return true
+		opened = false
+		sizeBytes, sizeRows = 0, 0
 	}
 
 	for {
 		select {
 		case r, ok := <-ch:
 			if !ok {
-				if len(resources) > 0 {
-					w.flushResources(ctx, handle, tableName, resources)
-				}
-
-				if initDone {
-					if err := w.client.CloseTable(ctx, handle); err != nil {
-						errCh <- fmt.Errorf("CloseTable failed on %s: %w", tableName, err)
-					}
-				}
+				doClose()
 				return
 			}
 
-			if !initDone {
-				initDone = doInit(r.Record)
+			if (w.batchSizeRows > 0 && sizeRows >= w.batchSizeRows) || (w.batchSizeBytes > 0 && sizeBytes+util.TotalRecordSize(r.Record) >= w.batchSizeBytes) {
+				doClose()
 			}
 
-			if (w.batchSize > 0 && len(resources) >= w.batchSize) || (w.batchSizeBytes > 0 && sizeBytes+util.TotalRecordSize(r.Record) >= int64(w.batchSizeBytes)) {
-				w.flushResources(ctx, handle, tableName, resources)
-				resources, sizeBytes = resources[:0], 0
+			if !opened {
+				doOpen(r.Record)
+				opened = true
 			}
 
-			resources = append(resources, r)
+			clientCh <- r
+			sizeRows += 1
 			sizeBytes += util.TotalRecordSize(r.Record)
 		case <-time.After(w.batchTimeout):
-			if len(resources) > 0 {
-				w.flushResources(ctx, handle, tableName, resources)
-				resources, sizeBytes = resources[:0], 0
+			if sizeRows > 0 {
+				doClose()
 			}
 		case done := <-flush:
-			if len(resources) > 0 {
-				w.flushResources(ctx, handle, tableName, resources)
-				resources, sizeBytes = resources[:0], 0
+			if sizeRows > 0 {
+				doClose()
 			}
 			done <- true
 		}
-	}
-}
-
-func (w *StreamingBatchWriter) flushResources(ctx context.Context, handle any, tableName string, resources []*message.Insert) {
-	// resources = w.removeDuplicatesByPK(table, resources)
-	start := time.Now()
-	batchSize := len(resources)
-	if err := w.client.WriteTableStream(ctx, handle, resources); err != nil {
-		w.logger.Err(err).Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
-	} else {
-		w.logger.Info().Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 	}
 }
 
@@ -230,15 +207,6 @@ func (*StreamingBatchWriter) getSourceName(r arrow.Record) string {
 		return ""
 	}
 	return r.Column(colIndexes[0]).(*array.String).Value(0)
-}
-
-func (*StreamingBatchWriter) getSyncTime(r arrow.Record) time.Time {
-	colIndexes := r.Schema().FieldIndices(schema.CqSyncTimeColumn.Name)
-	if len(colIndexes) < 1 {
-		return time.Time{}
-	}
-
-	return r.Column(colIndexes[0]).(*array.Timestamp).Value(0).ToTime(arrow.Microsecond).UTC()
 }
 
 func (w *StreamingBatchWriter) flushMigrateTables(ctx context.Context) error {
@@ -318,7 +286,7 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Me
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
 			l := len(w.deleteStaleMessages)
 			w.deleteStaleLock.Unlock()
-			if w.batchSize > 0 && l > w.batchSize {
+			if w.batchSizeRows > 0 && int64(l) > w.batchSizeRows {
 				if err := w.flushDeleteStaleTables(ctx); err != nil {
 					return err
 				}
@@ -343,7 +311,7 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Me
 			w.migrateTableMessages = append(w.migrateTableMessages, m)
 			l := len(w.migrateTableMessages)
 			w.migrateTableLock.Unlock()
-			if w.batchSize > 0 && l > w.batchSize {
+			if w.batchSizeRows > 0 && int64(l) > w.batchSizeRows {
 				if err := w.flushMigrateTables(ctx); err != nil {
 					return err
 				}
