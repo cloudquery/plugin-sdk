@@ -56,7 +56,7 @@ func (c *testStreamingBatchClient) OpenLen(t messageType) int {
 	return len(c.open[t])
 }
 
-func (c *testStreamingBatchClient) MigrateTable(ctx context.Context, msgs <-chan *message.MigrateTable) error {
+func (c *testStreamingBatchClient) MigrateTable(ctx context.Context, msgs <-chan *message.WriteMigrateTable) error {
 	key := ""
 	for m := range msgs {
 		key = c.handleTypeMessage(ctx, messageTypeMigrateTable, m, key)
@@ -64,7 +64,7 @@ func (c *testStreamingBatchClient) MigrateTable(ctx context.Context, msgs <-chan
 	return c.handleTypeCommit(ctx, messageTypeMigrateTable, key)
 }
 
-func (c *testStreamingBatchClient) WriteTable(ctx context.Context, msgs <-chan *message.Insert) error {
+func (c *testStreamingBatchClient) WriteTable(ctx context.Context, msgs <-chan *message.WriteInsert) error {
 	key := ""
 	for m := range msgs {
 		key = c.handleTypeMessage(ctx, messageTypeInsert, m, key)
@@ -72,7 +72,7 @@ func (c *testStreamingBatchClient) WriteTable(ctx context.Context, msgs <-chan *
 	return c.handleTypeCommit(ctx, messageTypeInsert, key)
 }
 
-func (c *testStreamingBatchClient) DeleteStale(ctx context.Context, msgs <-chan *message.DeleteStale) error {
+func (c *testStreamingBatchClient) DeleteStale(ctx context.Context, msgs <-chan *message.WriteDeleteStale) error {
 	key := ""
 	for m := range msgs {
 		key = c.handleTypeMessage(ctx, messageTypeDeleteStale, m, key)
@@ -80,7 +80,7 @@ func (c *testStreamingBatchClient) DeleteStale(ctx context.Context, msgs <-chan 
 	return c.handleTypeCommit(ctx, messageTypeDeleteStale, key)
 }
 
-func (c *testStreamingBatchClient) handleTypeMessage(_ context.Context, t messageType, msg message.Message, key string) string {
+func (c *testStreamingBatchClient) handleTypeMessage(_ context.Context, t messageType, msg message.WriteMessage, key string) string {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -124,7 +124,7 @@ var streamingBatchTestTable = &schema.Table{
 func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ch := make(chan message.Message)
+	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
 	wr, err := writers.NewStreamingBatchWriter(testClient)
@@ -137,7 +137,7 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 		errCh <- wr.Write(ctx, ch)
 	}()
 
-	ch <- &message.MigrateTable{Table: streamingBatchTestTable}
+	ch <- &message.WriteMigrateTable{Table: streamingBatchTestTable}
 	time.Sleep(50 * time.Millisecond)
 
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, streamingBatchTestTable.ToArrowSchema())
@@ -148,7 +148,7 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 		t.Fatalf("expected 0 migrate table messages, got %d", l)
 	}
 
-	ch <- &message.Insert{Record: record}
+	ch <- &message.WriteInsert{Record: record}
 	time.Sleep(50 * time.Millisecond)
 
 	if l := testClient.MessageLen(messageTypeMigrateTable); l != 1 {
@@ -159,7 +159,7 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
-	ch <- &message.MigrateTable{Table: streamingBatchTestTable}
+	ch <- &message.WriteMigrateTable{Table: streamingBatchTestTable}
 	time.Sleep(50 * time.Millisecond)
 
 	if l := testClient.MessageLen(messageTypeInsert); l != 1 {
@@ -179,7 +179,7 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 func TestStreamingBatchSizeRows(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ch := make(chan message.Message)
+	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
 	wr, err := writers.NewStreamingBatchWriter(testClient, writers.WithStreamingBatchWriterBatchSizeRows(2))
@@ -194,7 +194,7 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
 	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
-	ch <- &message.Insert{
+	ch <- &message.WriteInsert{
 		Record: record,
 	}
 	time.Sleep(50 * time.Millisecond)
@@ -203,10 +203,10 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
-	ch <- &message.Insert{
+	ch <- &message.WriteInsert{
 		Record: record,
 	}
-	ch <- &message.Insert{ // third message, because we flush before exceeding the limit and then save the third one
+	ch <- &message.WriteInsert{ // third message, because we flush before exceeding the limit and then save the third one
 		Record: record,
 	}
 
@@ -230,7 +230,7 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 func TestStreamingBatchTimeout(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ch := make(chan message.Message)
+	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
 	wr, err := writers.NewStreamingBatchWriter(testClient, writers.WithStreamingBatchWriterBatchTimeout(time.Second))
@@ -245,7 +245,7 @@ func TestStreamingBatchTimeout(t *testing.T) {
 
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
 	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
-	ch <- &message.Insert{
+	ch <- &message.WriteInsert{
 		Record: record,
 	}
 	time.Sleep(50 * time.Millisecond)
@@ -281,7 +281,7 @@ func TestStreamingBatchTimeout(t *testing.T) {
 func TestStreamingBatchUpserts(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ch := make(chan message.Message)
+	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
 	wr, err := writers.NewStreamingBatchWriter(testClient, writers.WithStreamingBatchWriterBatchSizeRows(2), writers.WithStreamingBatchWriterBatchTimeout(time.Second))
@@ -300,7 +300,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	record := bldr.NewRecord()
 
-	ch <- &message.Insert{
+	ch <- &message.WriteInsert{
 		Record: record,
 	}
 	time.Sleep(50 * time.Millisecond)
@@ -313,7 +313,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
-	ch <- &message.Insert{
+	ch <- &message.WriteInsert{
 		Record: record,
 	}
 	time.Sleep(50 * time.Millisecond)

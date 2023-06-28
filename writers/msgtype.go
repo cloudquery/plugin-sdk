@@ -15,13 +15,13 @@ const (
 	msgTypeDeleteStale
 )
 
-func msgID(msg message.Message) msgType {
+func msgID(msg message.WriteMessage) msgType {
 	switch msg.(type) {
-	case *message.MigrateTable:
+	case *message.WriteMigrateTable:
 		return msgTypeMigrateTable
-	case *message.Insert:
+	case *message.WriteInsert:
 		return msgTypeInsert
-	case *message.DeleteStale:
+	case *message.WriteDeleteStale:
 		return msgTypeDeleteStale
 	}
 	panic("unknown message type: " + reflect.TypeOf(msg).Name())

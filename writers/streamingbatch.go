@@ -14,23 +14,23 @@ import (
 
 // StreamingBatchWriterClient is the interface that must be implemented by the client of StreamingBatchWriter.
 type StreamingBatchWriterClient interface {
-	// MigrateTable should block and handle MigrateTable messages until the channel is closed.
-	MigrateTable(context.Context, <-chan *message.MigrateTable) error
+	// MigrateTable should block and handle WriteMigrateTable messages until the channel is closed.
+	MigrateTable(context.Context, <-chan *message.WriteMigrateTable) error
 
-	// DeleteStale should block and handle DeleteStale messages until the channel is closed.
-	DeleteStale(context.Context, <-chan *message.DeleteStale) error
+	// DeleteStale should block and handle WriteDeleteStale messages until the channel is closed.
+	DeleteStale(context.Context, <-chan *message.WriteDeleteStale) error
 
-	// WriteTable should block and handle writes to a single table until the channel is closed. Table metadata can be found in the first Insert message.
+	// WriteTable should block and handle writes to a single table until the channel is closed. Table metadata can be found in the first WriteInsert message.
 	// The channel is closed when all inserts in the batch have been sent. New batches, if any, will be sent on a new call to WriteTable.
-	WriteTable(context.Context, <-chan *message.Insert) error
+	WriteTable(context.Context, <-chan *message.WriteInsert) error
 }
 
 type StreamingBatchWriter struct {
 	client StreamingBatchWriterClient
 
-	insertWorkers    map[string]*streamingWorkerManager[*message.Insert]
-	migrateWorker    *streamingWorkerManager[*message.MigrateTable]
-	deleteWorker     *streamingWorkerManager[*message.DeleteStale]
+	insertWorkers    map[string]*streamingWorkerManager[*message.WriteInsert]
+	migrateWorker    *streamingWorkerManager[*message.WriteMigrateTable]
+	deleteWorker     *streamingWorkerManager[*message.WriteDeleteStale]
 	workersLock      sync.RWMutex
 	workersWaitGroup sync.WaitGroup
 
@@ -71,7 +71,7 @@ func WithStreamingBatchWriterBatchSizeBytes(size int64) StreamingBatchWriterOpti
 func NewStreamingBatchWriter(client StreamingBatchWriterClient, opts ...StreamingBatchWriterOption) (*StreamingBatchWriter, error) {
 	c := &StreamingBatchWriter{
 		client:        client,
-		insertWorkers: make(map[string]*streamingWorkerManager[*message.Insert]),
+		insertWorkers: make(map[string]*streamingWorkerManager[*message.WriteInsert]),
 		logger:        zerolog.Nop(),
 		batchTimeout:  defaultBatchTimeoutSeconds * time.Second,
 	}
@@ -116,12 +116,12 @@ func (w *StreamingBatchWriter) stopWorkers() {
 	}
 	w.workersWaitGroup.Wait()
 
-	w.insertWorkers = make(map[string]*streamingWorkerManager[*message.Insert])
+	w.insertWorkers = make(map[string]*streamingWorkerManager[*message.WriteInsert])
 	w.migrateWorker = nil
 	w.deleteWorker = nil
 }
 
-func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Message) error {
+func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
 	errCh := make(chan error)
 
 	go func() {
@@ -157,10 +157,10 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Me
 	return nil
 }
 
-func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- error, msg message.Message) error {
+func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- error, msg message.WriteMessage) error {
 	var tableName string
 
-	if mi, ok := msg.(*message.Insert); ok {
+	if mi, ok := msg.(*message.WriteInsert); ok {
 		md := mi.Record.Schema().Metadata()
 		tableName, ok = md.GetValue(schema.MetadataTableName)
 		if !ok {
@@ -171,16 +171,16 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 	}
 
 	switch m := msg.(type) {
-	case *message.MigrateTable:
+	case *message.WriteMigrateTable:
 		w.workersLock.Lock()
 		defer w.workersLock.Unlock()
 		if w.migrateWorker != nil {
 			w.migrateWorker.ch <- m
 			return nil
 		}
-		ch := make(chan *message.MigrateTable)
+		ch := make(chan *message.WriteMigrateTable)
 		flush := make(chan chan bool)
-		w.migrateWorker = &streamingWorkerManager[*message.MigrateTable]{
+		w.migrateWorker = &streamingWorkerManager[*message.WriteMigrateTable]{
 			ch:        ch,
 			writeFunc: w.client.MigrateTable,
 
@@ -195,16 +195,16 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		go w.migrateWorker.run(ctx, &w.workersWaitGroup, tableName)
 		w.migrateWorker.ch <- m
 		return nil
-	case *message.DeleteStale:
+	case *message.WriteDeleteStale:
 		w.workersLock.Lock()
 		defer w.workersLock.Unlock()
 		if w.deleteWorker != nil {
 			w.deleteWorker.ch <- m
 			return nil
 		}
-		ch := make(chan *message.DeleteStale)
+		ch := make(chan *message.WriteDeleteStale)
 		flush := make(chan chan bool)
-		w.deleteWorker = &streamingWorkerManager[*message.DeleteStale]{
+		w.deleteWorker = &streamingWorkerManager[*message.WriteDeleteStale]{
 			ch:        ch,
 			writeFunc: w.client.DeleteStale,
 
@@ -219,7 +219,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		go w.deleteWorker.run(ctx, &w.workersWaitGroup, tableName)
 		w.deleteWorker.ch <- m
 		return nil
-	case *message.Insert:
+	case *message.WriteInsert:
 		w.workersLock.RLock()
 		wr, ok := w.insertWorkers[tableName]
 		w.workersLock.RUnlock()
@@ -228,9 +228,9 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			return nil
 		}
 
-		ch := make(chan *message.Insert)
+		ch := make(chan *message.WriteInsert)
 		flush := make(chan chan bool)
-		wr = &streamingWorkerManager[*message.Insert]{
+		wr = &streamingWorkerManager[*message.WriteInsert]{
 			ch:        ch,
 			writeFunc: w.client.WriteTable,
 
@@ -255,7 +255,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 	}
 }
 
-type streamingWorkerManager[T message.Message] struct {
+type streamingWorkerManager[T message.WriteMessage] struct {
 	ch        chan T
 	writeFunc func(context.Context, <-chan T) error
 
@@ -314,7 +314,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			}
 
 			var recSize int64
-			if ins, ok := any(r).(*message.Insert); ok {
+			if ins, ok := any(r).(*message.WriteInsert); ok {
 				recSize = util.TotalRecordSize(ins.Record)
 			}
 
@@ -340,7 +340,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 }
 
 // DummyHandler should be used to empty Migration and DeleteStale channels if they are not used.
-func DummyHandler[T message.Message](ch <-chan T) {
+func DummyHandler[T message.WriteMessage](ch <-chan T) {
 	// nolint:revive
 	for range ch {
 	}
