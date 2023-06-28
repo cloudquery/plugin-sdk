@@ -126,9 +126,6 @@ func TestPluginSync(t *testing.T) {
 	}
 	writeMockServer := &mockWriteServer{}
 
-	if err := s.Write(writeMockServer); err == nil {
-		t.Fatal("expected error, got nil")
-	}
 	table := &schema.Table{
 		Name: "test",
 		Columns: []schema.Column{
@@ -153,20 +150,15 @@ func TestPluginSync(t *testing.T) {
 
 	writeMockServer.messages = []*pb.Write_Request{
 		{
-			Message: &pb.Write_Request_Options{
-				Options: &pb.WriteOptions{},
-			},
-		},
-		{
 			Message: &pb.Write_Request_MigrateTable{
-				MigrateTable: &pb.MessageMigrateTable{
+				MigrateTable: &pb.Write_MessageMigrateTable{
 					Table: b,
 				},
 			},
 		},
 		{
 			Message: &pb.Write_Request_Insert{
-				Insert: &pb.MessageInsert{
+				Insert: &pb.Write_MessageInsert{
 					Record: recordBytes,
 				},
 			},

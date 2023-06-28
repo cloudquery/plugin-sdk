@@ -140,7 +140,7 @@ func TestDestination(t *testing.T) {
 	destRecord := serversDestination.CQTypesOneToRecord(memory.DefaultAllocator, destResource.Data, table.ToArrowSchema())
 	for _, msg := range msgs {
 		totalResources++
-		m := msg.(*message.Insert)
+		m := msg.(*message.SyncInsert)
 		if !array.RecordEqual(destRecord, m.Record) {
 			// diff := destination.RecordDiff(destRecord, resource)
 			t.Fatalf("expected %v but got %v", destRecord, m.Record)

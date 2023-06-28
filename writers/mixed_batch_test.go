@@ -9,16 +9,15 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
-	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 type testMixedBatchClient struct {
-	receivedBatches [][]message.Message
+	receivedBatches [][]message.WriteMessage
 }
 
-func (c *testMixedBatchClient) MigrateTableBatch(_ context.Context, msgs []*message.MigrateTable, _ plugin.WriteOptions) error {
-	m := make([]message.Message, len(msgs))
+func (c *testMixedBatchClient) MigrateTableBatch(_ context.Context, msgs []*message.WriteMigrateTable) error {
+	m := make([]message.WriteMessage, len(msgs))
 	for i, msg := range msgs {
 		m[i] = msg
 	}
@@ -26,8 +25,8 @@ func (c *testMixedBatchClient) MigrateTableBatch(_ context.Context, msgs []*mess
 	return nil
 }
 
-func (c *testMixedBatchClient) InsertBatch(_ context.Context, msgs []*message.Insert, _ plugin.WriteOptions) error {
-	m := make([]message.Message, len(msgs))
+func (c *testMixedBatchClient) InsertBatch(_ context.Context, msgs []*message.WriteInsert) error {
+	m := make([]message.WriteMessage, len(msgs))
 	for i, msg := range msgs {
 		m[i] = msg
 	}
@@ -35,8 +34,8 @@ func (c *testMixedBatchClient) InsertBatch(_ context.Context, msgs []*message.In
 	return nil
 }
 
-func (c *testMixedBatchClient) DeleteStaleBatch(_ context.Context, msgs []*message.DeleteStale, _ plugin.WriteOptions) error {
-	m := make([]message.Message, len(msgs))
+func (c *testMixedBatchClient) DeleteStaleBatch(_ context.Context, msgs []*message.WriteDeleteStale) error {
+	m := make([]message.WriteMessage, len(msgs))
 	for i, msg := range msgs {
 		m[i] = msg
 	}
@@ -59,7 +58,7 @@ func TestMixedBatchWriter(t *testing.T) {
 			},
 		},
 	}
-	msgMigrateTable1 := &message.MigrateTable{
+	msgMigrateTable1 := &message.WriteMigrateTable{
 		Table: table1,
 	}
 
@@ -73,7 +72,7 @@ func TestMixedBatchWriter(t *testing.T) {
 			},
 		},
 	}
-	msgMigrateTable2 := &message.MigrateTable{
+	msgMigrateTable2 := &message.WriteMigrateTable{
 		Table: table2,
 	}
 
@@ -81,7 +80,7 @@ func TestMixedBatchWriter(t *testing.T) {
 	bldr1 := array.NewRecordBuilder(memory.DefaultAllocator, table1.ToArrowSchema())
 	bldr1.Field(0).(*array.Int64Builder).Append(1)
 	rec1 := bldr1.NewRecord()
-	msgInsertTable1 := &message.Insert{
+	msgInsertTable1 := &message.WriteInsert{
 		Record: rec1,
 	}
 
@@ -89,17 +88,17 @@ func TestMixedBatchWriter(t *testing.T) {
 	bldr2 := array.NewRecordBuilder(memory.DefaultAllocator, table1.ToArrowSchema())
 	bldr2.Field(0).(*array.Int64Builder).Append(1)
 	rec2 := bldr2.NewRecord()
-	msgInsertTable2 := &message.Insert{
+	msgInsertTable2 := &message.WriteInsert{
 		Record: rec2,
 	}
 
 	// message to delete stale from table1
-	msgDeleteStale1 := &message.DeleteStale{
+	msgDeleteStale1 := &message.WriteDeleteStale{
 		Table:      table1,
 		SourceName: "my-source",
 		SyncTime:   time.Now(),
 	}
-	msgDeleteStale2 := &message.DeleteStale{
+	msgDeleteStale2 := &message.WriteDeleteStale{
 		Table:      table1,
 		SourceName: "my-source",
 		SyncTime:   time.Now(),
@@ -107,12 +106,12 @@ func TestMixedBatchWriter(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		messages    []message.Message
-		wantBatches [][]message.Message
+		messages    []message.WriteMessage
+		wantBatches [][]message.WriteMessage
 	}{
 		{
 			name: "create table, insert, delete stale",
-			messages: []message.Message{
+			messages: []message.WriteMessage{
 				msgMigrateTable1,
 				msgMigrateTable2,
 				msgInsertTable1,
@@ -120,7 +119,7 @@ func TestMixedBatchWriter(t *testing.T) {
 				msgDeleteStale1,
 				msgDeleteStale2,
 			},
-			wantBatches: [][]message.Message{
+			wantBatches: [][]message.WriteMessage{
 				{msgMigrateTable1, msgMigrateTable2},
 				{msgInsertTable1, msgInsertTable2},
 				{msgDeleteStale1, msgDeleteStale2},
@@ -128,7 +127,7 @@ func TestMixedBatchWriter(t *testing.T) {
 		},
 		{
 			name: "interleaved messages",
-			messages: []message.Message{
+			messages: []message.WriteMessage{
 				msgMigrateTable1,
 				msgInsertTable1,
 				msgDeleteStale1,
@@ -136,7 +135,7 @@ func TestMixedBatchWriter(t *testing.T) {
 				msgInsertTable2,
 				msgDeleteStale2,
 			},
-			wantBatches: [][]message.Message{
+			wantBatches: [][]message.WriteMessage{
 				{msgMigrateTable1},
 				{msgInsertTable1},
 				{msgDeleteStale1},
@@ -147,7 +146,7 @@ func TestMixedBatchWriter(t *testing.T) {
 		},
 		{
 			name: "interleaved messages",
-			messages: []message.Message{
+			messages: []message.WriteMessage{
 				msgMigrateTable1,
 				msgMigrateTable2,
 				msgInsertTable1,
@@ -155,7 +154,7 @@ func TestMixedBatchWriter(t *testing.T) {
 				msgInsertTable2,
 				msgDeleteStale1,
 			},
-			wantBatches: [][]message.Message{
+			wantBatches: [][]message.WriteMessage{
 				{msgMigrateTable1, msgMigrateTable2},
 				{msgInsertTable1},
 				{msgDeleteStale2},
@@ -168,18 +167,18 @@ func TestMixedBatchWriter(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			client := &testMixedBatchClient{
-				receivedBatches: make([][]message.Message, 0),
+				receivedBatches: make([][]message.WriteMessage, 0),
 			}
 			wr, err := NewMixedBatchWriter(client)
 			if err != nil {
 				t.Fatal(err)
 			}
-			ch := make(chan message.Message, len(tc.messages))
+			ch := make(chan message.WriteMessage, len(tc.messages))
 			for _, msg := range tc.messages {
 				ch <- msg
 			}
 			close(ch)
-			if err := wr.Write(ctx, plugin.WriteOptions{}, ch); err != nil {
+			if err := wr.Write(ctx, ch); err != nil {
 				t.Fatal(err)
 			}
 			if len(client.receivedBatches) != len(tc.wantBatches) {

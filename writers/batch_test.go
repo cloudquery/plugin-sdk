@@ -15,9 +15,9 @@ import (
 
 type testBatchClient struct {
 	mutex         sync.Mutex
-	migrateTables []*message.MigrateTable
-	inserts       []*message.Insert
-	deleteStales  []*message.DeleteStale
+	migrateTables []*message.WriteMigrateTable
+	inserts       []*message.WriteInsert
+	deleteStales  []*message.WriteDeleteStale
 }
 
 func (c *testBatchClient) MigrateTablesLen() int {
@@ -38,20 +38,20 @@ func (c *testBatchClient) DeleteStalesLen() int {
 	return len(c.deleteStales)
 }
 
-func (c *testBatchClient) MigrateTables(_ context.Context, msgs []*message.MigrateTable) error {
+func (c *testBatchClient) MigrateTables(_ context.Context, msgs []*message.WriteMigrateTable) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.migrateTables = append(c.migrateTables, msgs...)
 	return nil
 }
 
-func (c *testBatchClient) WriteTableBatch(_ context.Context, _ string, msgs []*message.Insert) error {
+func (c *testBatchClient) WriteTableBatch(_ context.Context, _ string, msgs []*message.WriteInsert) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.inserts = append(c.inserts, msgs...)
 	return nil
 }
-func (c *testBatchClient) DeleteStale(_ context.Context, msgs []*message.DeleteStale) error {
+func (c *testBatchClient) DeleteStale(_ context.Context, msgs []*message.WriteDeleteStale) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.deleteStales = append(c.deleteStales, msgs...)
@@ -84,7 +84,7 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, batchTestTables[0].ToArrowSchema())
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	record := bldr.NewRecord()
-	if err := wr.writeAll(ctx, []message.Message{&message.MigrateTable{Table: batchTestTables[0]}}); err != nil {
+	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteMigrateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -92,7 +92,7 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 		t.Fatalf("expected 0 create table messages, got %d", testClient.MigrateTablesLen())
 	}
 
-	if err := wr.writeAll(ctx, []message.Message{&message.Insert{Record: record}}); err != nil {
+	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteInsert{Record: record}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -104,7 +104,7 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
 
-	if err := wr.writeAll(ctx, []message.Message{&message.MigrateTable{Table: batchTestTables[0]}}); err != nil {
+	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteMigrateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -123,7 +123,7 @@ func TestBatchSize(t *testing.T) {
 	}
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
 	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
-	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
+	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteInsert{
 		Record: record,
 	}}); err != nil {
 		t.Fatal(err)
@@ -134,14 +134,14 @@ func TestBatchSize(t *testing.T) {
 	}
 
 	if err := wr.writeAll(ctx, []message.Message{
-		&message.Insert{
+		&message.WriteInsert{
 			Record: record,
 		},
-		&message.Insert{ // third message to exceed the batch size
+		&message.WriteInsert{ // third message to exceed the batch size
 			Record: record,
 		},
 	}); err != nil {
-		t.Fatal(err)
+			t.Fatal(err)
 	}
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 2)
@@ -161,7 +161,7 @@ func TestBatchTimeout(t *testing.T) {
 	}
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
 	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
-	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
+	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteInsert{
 		Record: record,
 	}}); err != nil {
 		t.Fatal(err)
@@ -200,7 +200,7 @@ func TestBatchUpserts(t *testing.T) {
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	record := bldr.NewRecord()
 
-	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
+	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteInsert{
 		Record: record,
 	}}); err != nil {
 		t.Fatal(err)
@@ -210,7 +210,7 @@ func TestBatchUpserts(t *testing.T) {
 		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
 
-	if err := wr.writeAll(ctx, []message.Message{&message.Insert{
+	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteInsert{
 		Record: record,
 	}}); err != nil {
 		t.Fatal(err)
