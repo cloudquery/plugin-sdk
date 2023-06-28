@@ -133,7 +133,7 @@ func TestBatchSize(t *testing.T) {
 		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
 
-	if err := wr.writeAll(ctx, []message.Message{
+	if err := wr.writeAll(ctx, []message.WriteMessage{
 		&message.WriteInsert{
 			Record: record,
 		},
@@ -141,7 +141,7 @@ func TestBatchSize(t *testing.T) {
 			Record: record,
 		},
 	}); err != nil {
-			t.Fatal(err)
+		t.Fatal(err)
 	}
 	// we need to wait for the batch to be flushed
 	time.Sleep(time.Second * 2)
