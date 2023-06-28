@@ -65,16 +65,15 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	}
 	s.setPKsForTables(tables)
 
-	writeCh := make(chan message.Message)
+	writeCh := make(chan message.WriteMessage)
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{
-			MigrateForce: s.migrateMode == plugin.MigrateModeForce,
-		}, writeCh)
+		return s.Plugin.Write(ctx, writeCh)
 	})
 	for _, table := range tables {
-		writeCh <- &message.MigrateTable{
-			Table: table,
+		writeCh <- &message.WriteMigrateTable{
+			Table:        table,
+			MigrateForce: s.migrateMode == plugin.MigrateModeForce,
 		}
 	}
 	close(writeCh)
@@ -87,7 +86,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *Server) Write(msg pb.Destination_WriteServer) error {
-	msgs := make(chan message.Message)
+	msgs := make(chan message.WriteMessage)
 
 	r, err := msg.Recv()
 	if err != nil {
@@ -120,14 +119,13 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 	eg, ctx := errgroup.WithContext(msg.Context())
 
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{
-			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
-		}, msgs)
+		return s.Plugin.Write(ctx, msgs)
 	})
 
 	for _, table := range tables {
-		msgs <- &message.MigrateTable{
-			Table: table,
+		msgs <- &message.WriteMigrateTable{
+			Table:        table,
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
 		}
 	}
 
@@ -158,7 +156,7 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 		for rdr.Next() {
 			rec := rdr.Record()
 			rec.Retain()
-			msg := &message.Insert{
+			msg := &message.WriteInsert{
 				Record: rec,
 			}
 			select {
@@ -200,19 +198,19 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create tables: %v", err)
 	}
 
-	msgs := make(chan message.Message)
+	msgs := make(chan message.WriteMessage)
 	var writeErr error
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		writeErr = s.Plugin.Write(ctx, plugin.WriteOptions{}, msgs)
+		writeErr = s.Plugin.Write(ctx, msgs)
 	}()
 	for _, table := range tables {
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 		bldr.Field(table.Columns.Index(schema.CqSourceNameColumn.Name)).(*array.StringBuilder).Append(req.Source)
 		bldr.Field(table.Columns.Index(schema.CqSyncTimeColumn.Name)).(*array.TimestampBuilder).AppendTime(req.Timestamp.AsTime())
-		msgs <- &message.DeleteStale{
+		msgs <- &message.WriteDeleteStale{
 			Table:      table,
 			SourceName: req.Source,
 			SyncTime:   req.Timestamp.AsTime(),
