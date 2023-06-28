@@ -17,9 +17,9 @@ type Writer interface {
 }
 
 const (
-	defaultBatchTimeoutSeconds = 20
-	defaultBatchSize           = 10000
-	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
+	DefaultBatchTimeoutSeconds = 20
+	DefaultBatchSize           = 10000
+	DefaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
 )
 
 type BatchWriterClient interface {
@@ -82,9 +82,9 @@ func NewBatchWriter(client BatchWriterClient, opts ...Option) (*BatchWriter, err
 		client:         client,
 		workers:        make(map[string]*worker),
 		logger:         zerolog.Nop(),
-		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
-		batchSize:      defaultBatchSize,
-		batchSizeBytes: defaultBatchSizeBytes,
+		batchTimeout:   DefaultBatchTimeoutSeconds * time.Second,
+		batchSize:      DefaultBatchSize,
+		batchSizeBytes: DefaultBatchSizeBytes,
 	}
 	for _, opt := range opts {
 		opt(c)

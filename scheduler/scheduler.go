@@ -3,6 +3,7 @@ package scheduler
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"runtime/debug"
@@ -22,29 +23,75 @@ import (
 )
 
 const (
+	DefaultConcurrency     = 50000
+	DefaultMaxDepth        = 4
 	minTableConcurrency    = 1
 	minResourceConcurrency = 100
-	defaultConcurrency     = 200000
-	defaultMaxDepth        = 4
 )
-
-type Strategy int
 
 const (
 	StrategyDFS Strategy = iota
 	StrategyRoundRobin
 )
 
-var AllSchedulers = Strategies{StrategyDFS, StrategyRoundRobin}
-var AllSchedulerNames = [...]string{
+type Strategy int
+
+func (s *Strategy) String() string {
+	if s == nil {
+		return ""
+	}
+	return AllStrategyNames[*s]
+}
+
+// MarshalJSON implements json.Marshaler.
+func (s *Strategy) MarshalJSON() ([]byte, error) {
+	var b bytes.Buffer
+	if s == nil {
+		b.Write([]byte("null"))
+		return b.Bytes(), nil
+	}
+	b.Write([]byte{'"'})
+	b.Write([]byte(s.String()))
+	b.Write([]byte{'"'})
+	return b.Bytes(), nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (s *Strategy) UnmarshalJSON(b []byte) error {
+	var name string
+	if err := json.Unmarshal(b, &name); err != nil {
+		return err
+	}
+	strategy, err := StrategyForName(name)
+	if err != nil {
+		return err
+	}
+	*s = strategy
+	return nil
+}
+
+func (s *Strategy) Validate() error {
+	if s == nil {
+		return errors.New("scheduler strategy is nil")
+	}
+	for _, strategy := range AllStrategies {
+		if strategy == *s {
+			return nil
+		}
+	}
+	return fmt.Errorf("unknown scheduler strategy: %d", s)
+}
+
+var AllStrategies = Strategies{StrategyDFS, StrategyRoundRobin}
+var AllStrategyNames = [...]string{
 	StrategyDFS:        "dfs",
 	StrategyRoundRobin: "round-robin",
 }
 
 func StrategyForName(s string) (Strategy, error) {
-	for i, name := range AllSchedulerNames {
+	for i, name := range AllStrategyNames {
 		if name == s {
-			return AllSchedulers[i], nil
+			return AllStrategies[i], nil
 		}
 	}
 	return StrategyDFS, fmt.Errorf("unknown scheduler strategy: %s", s)
@@ -61,10 +108,6 @@ func (s Strategies) String() string {
 		buffer.WriteString(strategy.String())
 	}
 	return buffer.String()
-}
-
-func (s Strategy) String() string {
-	return AllSchedulerNames[s]
 }
 
 type Option func(*Scheduler)
@@ -87,7 +130,7 @@ func WithMaxDepth(maxDepth uint64) Option {
 	}
 }
 
-func WithSchedulerStrategy(strategy Strategy) Option {
+func WithStrategy(strategy Strategy) Option {
 	return func(s *Scheduler) {
 		s.strategy = strategy
 	}
@@ -131,8 +174,8 @@ func NewScheduler(client schema.ClientMeta, opts ...Option) *Scheduler {
 		client:      client,
 		metrics:     &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:       caser.New(),
-		concurrency: defaultConcurrency,
-		maxDepth:    defaultMaxDepth,
+		concurrency: DefaultConcurrency,
+		maxDepth:    DefaultMaxDepth,
 	}
 	for _, opt := range opts {
 		opt(&s)
@@ -188,7 +231,7 @@ func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- m
 		case StrategyRoundRobin:
 			s.syncRoundRobin(ctx, resources, syncOpts)
 		default:
-			panic(fmt.Errorf("unknown scheduler %s", s.strategy))
+			panic(fmt.Errorf("unknown scheduler %s", s.strategy.String()))
 		}
 	}()
 	for resource := range resources {
