@@ -73,7 +73,7 @@ func NewStreamingBatchWriter(client StreamingBatchWriterClient, opts ...Streamin
 		client:        client,
 		insertWorkers: make(map[string]*streamingWorkerManager[*message.WriteInsert]),
 		logger:        zerolog.Nop(),
-		batchTimeout:  defaultBatchTimeoutSeconds * time.Second,
+		batchTimeout:  DefaultBatchTimeoutSeconds * time.Second,
 	}
 	for _, opt := range opts {
 		opt(c)
