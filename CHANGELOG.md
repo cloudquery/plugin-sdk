@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.1.0-rc1...v4.2.0-rc1) (2023-06-28)
+
+
+### Features
+
+* Add StreamingBatchWriter ([#1004](https://github.com/cloudquery/plugin-sdk/issues/1004)) ([986340f](https://github.com/cloudquery/plugin-sdk/commit/986340fc624a0370a726150fb733b723ec96fe74))
+
+
+### Bug Fixes
+
+* **batchwriter:** Allow zero batch size, flush before exceeding batch size instead of after ([#1008](https://github.com/cloudquery/plugin-sdk/issues/1008)) ([c7ea17b](https://github.com/cloudquery/plugin-sdk/commit/c7ea17b08f340bb5eced749ec76eeb7a480cfa61))
+* Naming fix for `messages.InsertMessage` (now `messages.GetInserts`) ([#1000](https://github.com/cloudquery/plugin-sdk/issues/1000)) ([b1e2bd4](https://github.com/cloudquery/plugin-sdk/commit/b1e2bd4d1a5c5f904b82d6f41ed6eb0f26ef91cc))
+* Update scheduler for JSON marshal / unmarshal ([#1006](https://github.com/cloudquery/plugin-sdk/issues/1006)) ([970bad1](https://github.com/cloudquery/plugin-sdk/commit/970bad1fcf1f0e6aadcf1d0f381c8cd8177e8513))
+* **writers:** Move to sub packages ([#1011](https://github.com/cloudquery/plugin-sdk/issues/1011)) ([826e816](https://github.com/cloudquery/plugin-sdk/commit/826e816d8b8ec9668806b9d34ee5f92bd4a7ff56))
+
 ## [4.1.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.0.2-rc1...v4.1.0-rc1) (2023-06-28)
 
 
