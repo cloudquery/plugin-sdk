@@ -1,4 +1,4 @@
-package writers
+package batchwriter
 
 import (
 	"context"
@@ -9,27 +9,18 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/writers"
 	"github.com/rs/zerolog"
 )
 
-type Writer interface {
-	Write(ctx context.Context, res <-chan message.WriteMessage) error
-}
-
-const (
-	DefaultBatchTimeoutSeconds = 20
-	DefaultBatchSize           = 10000
-	DefaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
-)
-
-type BatchWriterClient interface {
+type Client interface {
 	MigrateTables(context.Context, []*message.WriteMigrateTable) error
 	WriteTableBatch(ctx context.Context, name string, msgs []*message.WriteInsert) error
 	DeleteStale(context.Context, []*message.WriteDeleteStale) error
 }
 
 type BatchWriter struct {
-	client           BatchWriterClient
+	client           Client
 	workers          map[string]*worker
 	workersLock      sync.RWMutex
 	workersWaitGroup sync.WaitGroup
@@ -44,6 +35,9 @@ type BatchWriter struct {
 	batchSize      int
 	batchSizeBytes int
 }
+
+// Assert at compile-time that BatchWriter implements the Writer interface
+var _ writers.Writer = (*BatchWriter)(nil)
 
 type Option func(*BatchWriter)
 
@@ -77,14 +71,14 @@ type worker struct {
 	flush chan chan bool
 }
 
-func NewBatchWriter(client BatchWriterClient, opts ...Option) (*BatchWriter, error) {
+func New(client Client, opts ...Option) (*BatchWriter, error) {
 	c := &BatchWriter{
 		client:         client,
 		workers:        make(map[string]*worker),
 		logger:         zerolog.Nop(),
-		batchTimeout:   DefaultBatchTimeoutSeconds * time.Second,
-		batchSize:      DefaultBatchSize,
-		batchSizeBytes: DefaultBatchSizeBytes,
+		batchTimeout:   writers.DefaultBatchTimeoutSeconds * time.Second,
+		batchSize:      writers.DefaultBatchSize,
+		batchSizeBytes: writers.DefaultBatchSizeBytes,
 	}
 	for _, opt := range opts {
 		opt(c)
