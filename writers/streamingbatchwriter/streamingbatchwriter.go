@@ -1,3 +1,22 @@
+// Package streamingbatchwriter provides a writers.Writer implementation that writes to a client that implements the streamingbatchwriter.Client interface.
+//
+// Write messages are sent to the client with three separate methods: MigrateTable, WriteTable, and DeleteStale. Each method is called separate goroutines.
+// Message types are processed in blocks: Receipt of a new message type will cause the previous message type processing to end (if it exists) which is signalled
+// to the handler by closing the channel. The handler should return after processing all messages.
+//
+// For Insert messages (handled by WriteTable) each table creates separate goroutine. Number of goroutines is limited by the number of tables.
+// Thus, each WriteTable invocation is for a single table (all messages sent to WriteTable are guaranteed to be for the same table).
+//
+// After a 'batch' is complete, the channel is closed. The handler is expected to block until the channel is closed and to keep processing in a streaming fashion.
+//
+// Batches are considered complete when:
+// 1. The batch timeout is reached
+// 2. The batch size is reached
+// 3. The batch size in bytes is reached
+// 4. A different message type is received
+//
+// Each handler can get invoked multiple times as new batches are processed.
+// Handlers get invoked only if there's a message of that type at hand: First message of the batch is immediately available in the channel.
 package streamingbatchwriter
 
 import (
