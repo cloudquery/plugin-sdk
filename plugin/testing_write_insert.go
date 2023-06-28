@@ -28,7 +28,7 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 			{Name: "name", Type: arrow.BinaryTypes.String},
 		},
 	}
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.MigrateTable{
+	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
 		Table: table,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
@@ -38,7 +38,7 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 	bldr.Field(0).(*array.StringBuilder).Append("foo")
 	record := bldr.NewRecord()
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
+	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: record,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
@@ -53,7 +53,7 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
+	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: record,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)

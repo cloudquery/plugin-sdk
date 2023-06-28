@@ -21,7 +21,7 @@ type SyncOptions struct {
 type SourceClient interface {
 	Close(ctx context.Context) error
 	Tables(ctx context.Context) (schema.Tables, error)
-	Sync(ctx context.Context, options SyncOptions, res chan<- message.Message) error
+	Sync(ctx context.Context, options SyncOptions, res chan<- message.SyncMessage) error
 }
 
 func MatchesTable(name string, includeTablesPattern []string, skipTablesPattern []string) bool {
@@ -74,15 +74,15 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table) ([]arrow.Reco
 	return records, err
 }
 
-func (p *Plugin) SyncAll(ctx context.Context, options SyncOptions) (message.Messages, error) {
+func (p *Plugin) SyncAll(ctx context.Context, options SyncOptions) (message.SyncMessages, error) {
 	var err error
-	ch := make(chan message.Message)
+	ch := make(chan message.SyncMessage)
 	go func() {
 		defer close(ch)
 		err = p.Sync(ctx, options, ch)
 	}()
 	// nolint:prealloc
-	var resources []message.Message
+	var resources message.SyncMessages
 	for resource := range ch {
 		resources = append(resources, resource)
 	}
@@ -90,7 +90,7 @@ func (p *Plugin) SyncAll(ctx context.Context, options SyncOptions) (message.Mess
 }
 
 // Sync is syncing data from the requested tables in spec to the given channel
-func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- message.Message) error {
+func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- message.SyncMessage) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}

@@ -20,10 +20,9 @@ func tableUUIDSuffix() string {
 
 // nolint:revive
 func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
-	if err := s.plugin.writeOne(ctx, WriteOptions{
+	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
+		Table:        source,
 		MigrateForce: writeOptionMigrateForce,
-	}, &message.MigrateTable{
-		Table: source,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
@@ -39,7 +38,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 
 	resource1 := schema.GenTestData(source, opts)[0]
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
+	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource1,
 	}); err != nil {
 		return fmt.Errorf("failed to insert first record: %w", err)
@@ -54,14 +53,15 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{MigrateForce: writeOptionMigrateForce}, &message.MigrateTable{
-		Table: target,
+	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
+		Table:        target,
+		MigrateForce: writeOptionMigrateForce,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
 	resource2 := schema.GenTestData(target, opts)[0]
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
+	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource2,
 	}); err != nil {
 		return fmt.Errorf("failed to insert second record: %w", err)

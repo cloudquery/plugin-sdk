@@ -14,7 +14,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const MaxMsgSize = 100 * 1024 * 1024 // 100 MiB
@@ -65,7 +64,7 @@ func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Respo
 }
 
 func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
-	msgs := make(chan message.Message)
+	msgs := make(chan message.SyncMessage)
 	var syncErr error
 	ctx := stream.Context()
 
@@ -87,39 +86,26 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	for msg := range msgs {
 		pbMsg := &pb.Sync_Response{}
 		switch m := msg.(type) {
-		case *message.MigrateTable:
+		case *message.SyncMigrateTable:
 			tableSchema := m.Table.ToArrowSchema()
 			schemaBytes, err := pb.SchemaToBytes(tableSchema)
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to encode table schema: %v", err)
 			}
 			pbMsg.Message = &pb.Sync_Response_MigrateTable{
-				MigrateTable: &pb.MessageMigrateTable{
+				MigrateTable: &pb.Sync_MessageMigrateTable{
 					Table: schemaBytes,
 				},
 			}
 
-		case *message.Insert:
+		case *message.SyncInsert:
 			recordBytes, err := pb.RecordToBytes(m.Record)
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
 			}
 			pbMsg.Message = &pb.Sync_Response_Insert{
-				Insert: &pb.MessageInsert{
+				Insert: &pb.Sync_MessageInsert{
 					Record: recordBytes,
-				},
-			}
-		case *message.DeleteStale:
-			sc := m.Table.ToArrowSchema()
-			tableBytes, err := pb.SchemaToBytes(sc)
-			if err != nil {
-				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
-			}
-			pbMsg.Message = &pb.Sync_Response_Delete{
-				Delete: &pb.MessageDeleteStale{
-					Table:      tableBytes,
-					SourceName: m.SourceName,
-					SyncTime:   timestamppb.New(m.SyncTime),
 				},
 			}
 		default:
@@ -140,20 +126,10 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 }
 
 func (s *Server) Write(msg pb.Plugin_WriteServer) error {
-	msgs := make(chan message.Message)
-	r, err := msg.Recv()
-	if err != nil {
-		return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
-	}
-	pbWriteOptions, ok := r.Message.(*pb.Write_Request_Options)
-	if !ok {
-		return status.Errorf(codes.Internal, "expected options message, got %T", r.Message)
-	}
+	msgs := make(chan message.WriteMessage)
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{
-			MigrateForce: pbWriteOptions.Options.MigrateForce,
-		}, msgs)
+		return s.Plugin.Write(ctx, msgs)
 	})
 
 	for {
@@ -172,7 +148,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
-		var pluginMessage message.Message
+		var pluginMessage message.WriteMessage
 		var pbMsgConvertErr error
 		switch pbMsg := r.Message.(type) {
 		case *pb.Write_Request_MigrateTable:
@@ -186,8 +162,9 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
 				break
 			}
-			pluginMessage = &message.MigrateTable{
-				Table: table,
+			pluginMessage = &message.WriteMigrateTable{
+				Table:        table,
+				MigrateForce: pbMsg.MigrateTable.MigrateForce,
 			}
 		case *pb.Write_Request_Insert:
 			record, err := pb.NewRecordFromBytes(pbMsg.Insert.Record)
@@ -195,7 +172,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
 				break
 			}
-			pluginMessage = &message.Insert{
+			pluginMessage = &message.WriteInsert{
 				Record: record,
 			}
 		case *pb.Write_Request_Delete:
@@ -209,7 +186,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
 				break
 			}
-			pluginMessage = &message.DeleteStale{
+			pluginMessage = &message.WriteDeleteStale{
 				Table:      table,
 				SourceName: pbMsg.Delete.SourceName,
 				SyncTime:   pbMsg.Delete.SyncTime.AsTime(),

@@ -111,18 +111,8 @@ func TestPluginServe(t *testing.T) {
 	}
 
 	if err := writeClient.Send(&pb.Write_Request{
-		Message: &pb.Write_Request_Options{
-			Options: &pb.WriteOptions{
-				MigrateForce: true,
-			},
-		},
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := writeClient.Send(&pb.Write_Request{
 		Message: &pb.Write_Request_MigrateTable{
-			MigrateTable: &pb.MessageMigrateTable{
+			MigrateTable: &pb.Write_MessageMigrateTable{
 				Table: tableBytes,
 			},
 		},
@@ -131,7 +121,7 @@ func TestPluginServe(t *testing.T) {
 	}
 	if err := writeClient.Send(&pb.Write_Request{
 		Message: &pb.Write_Request_Insert{
-			Insert: &pb.MessageInsert{
+			Insert: &pb.Write_MessageInsert{
 				Record: recordBytes,
 			},
 		},
