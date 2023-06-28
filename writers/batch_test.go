@@ -68,15 +68,6 @@ var batchTestTables = schema.Tables{
 			},
 		},
 	},
-	{
-		Name: "table2",
-		Columns: []schema.Column{
-			{
-				Name: "id",
-				Type: arrow.PrimitiveTypes.Int64,
-			},
-		},
-	},
 }
 
 // TestBatchFlushDifferentMessages tests that if writer receives a message of a new type all other pending
@@ -106,7 +97,7 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 	}
 
 	if testClient.MigrateTablesLen() != 1 {
-		t.Fatalf("expected 1 migrate table messages, got %d", testClient.MigrateTablesLen())
+		t.Fatalf("expected 1 migrate table message, got %d", testClient.MigrateTablesLen())
 	}
 
 	if testClient.InsertsLen() != 0 {
@@ -118,7 +109,7 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 	}
 
 	if testClient.InsertsLen() != 1 {
-		t.Fatalf("expected 1 insert messages, got %d", testClient.InsertsLen())
+		t.Fatalf("expected 1 insert message, got %d", testClient.InsertsLen())
 	}
 }
 
@@ -142,9 +133,14 @@ func TestBatchSize(t *testing.T) {
 		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
 
-	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteInsert{
-		Record: record,
-	}}); err != nil {
+	if err := wr.writeAll(ctx, []message.WriteMessage{
+		&message.WriteInsert{
+			Record: record,
+		},
+		&message.WriteInsert{ // third message to exceed the batch size
+			Record: record,
+		},
+	}); err != nil {
 		t.Fatal(err)
 	}
 	// we need to wait for the batch to be flushed
@@ -186,7 +182,7 @@ func TestBatchTimeout(t *testing.T) {
 	time.Sleep(time.Second * 1)
 
 	if testClient.InsertsLen() != 1 {
-		t.Fatalf("expected 1 insert messages, got %d", testClient.InsertsLen())
+		t.Fatalf("expected 1 insert message, got %d", testClient.InsertsLen())
 	}
 }
 
