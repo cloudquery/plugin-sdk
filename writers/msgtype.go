@@ -6,23 +6,23 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/message"
 )
 
-type msgType int
+type MsgType int
 
 const (
-	msgTypeUnset msgType = iota
-	msgTypeMigrateTable
-	msgTypeInsert
-	msgTypeDeleteStale
+	MsgTypeUnset MsgType = iota
+	MsgTypeMigrateTable
+	MsgTypeInsert
+	MsgTypeDeleteStale
 )
 
-func msgID(msg message.WriteMessage) msgType {
+func MsgID(msg message.WriteMessage) MsgType {
 	switch msg.(type) {
 	case *message.WriteMigrateTable:
-		return msgTypeMigrateTable
+		return MsgTypeMigrateTable
 	case *message.WriteInsert:
-		return msgTypeInsert
+		return MsgTypeInsert
 	case *message.WriteDeleteStale:
-		return msgTypeDeleteStale
+		return MsgTypeDeleteStale
 	}
 	panic("unknown message type: " + reflect.TypeOf(msg).Name())
 }

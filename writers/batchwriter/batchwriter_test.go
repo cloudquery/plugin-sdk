@@ -1,4 +1,4 @@
-package writers
+package batchwriter
 
 import (
 	"context"
@@ -76,7 +76,7 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 	ctx := context.Background()
 
 	testClient := &testBatchClient{}
-	wr, err := NewBatchWriter(testClient)
+	wr, err := New(testClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestBatchSize(t *testing.T) {
 	ctx := context.Background()
 
 	testClient := &testBatchClient{}
-	wr, err := NewBatchWriter(testClient, WithBatchSize(2))
+	wr, err := New(testClient, WithBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestBatchTimeout(t *testing.T) {
 	ctx := context.Background()
 
 	testClient := &testBatchClient{}
-	wr, err := NewBatchWriter(testClient, WithBatchTimeout(time.Second))
+	wr, err := New(testClient, WithBatchTimeout(time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestBatchUpserts(t *testing.T) {
 	ctx := context.Background()
 
 	testClient := &testBatchClient{}
-	wr, err := NewBatchWriter(testClient, WithBatchSize(2), WithBatchTimeout(time.Second))
+	wr, err := New(testClient, WithBatchSize(2), WithBatchTimeout(time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}

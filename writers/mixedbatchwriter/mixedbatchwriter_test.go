@@ -1,4 +1,4 @@
-package writers
+package mixedbatchwriter_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/writers/mixedbatchwriter"
 )
 
 type testMixedBatchClient struct {
@@ -43,7 +44,7 @@ func (c *testMixedBatchClient) DeleteStaleBatch(_ context.Context, msgs []*messa
 	return nil
 }
 
-var _ MixedBatchClient = (*testMixedBatchClient)(nil)
+var _ mixedbatchwriter.Client = (*testMixedBatchClient)(nil)
 
 func TestMixedBatchWriter(t *testing.T) {
 	ctx := context.Background()
@@ -169,7 +170,7 @@ func TestMixedBatchWriter(t *testing.T) {
 			client := &testMixedBatchClient{
 				receivedBatches: make([][]message.WriteMessage, 0),
 			}
-			wr, err := NewMixedBatchWriter(client)
+			wr, err := mixedbatchwriter.New(client)
 			if err != nil {
 				t.Fatal(err)
 			}

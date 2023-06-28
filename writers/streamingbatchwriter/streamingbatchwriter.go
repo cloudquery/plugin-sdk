@@ -1,4 +1,4 @@
-package writers
+package streamingbatchwriter
 
 import (
 	"context"
@@ -9,11 +9,12 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/writers"
 	"github.com/rs/zerolog"
 )
 
-// StreamingBatchWriterClient is the interface that must be implemented by the client of StreamingBatchWriter.
-type StreamingBatchWriterClient interface {
+// Client is the interface that must be implemented by the client of StreamingBatchWriter.
+type Client interface {
 	// MigrateTable should block and handle WriteMigrateTable messages until the channel is closed.
 	MigrateTable(context.Context, <-chan *message.WriteMigrateTable) error
 
@@ -26,7 +27,7 @@ type StreamingBatchWriterClient interface {
 }
 
 type StreamingBatchWriter struct {
-	client StreamingBatchWriterClient
+	client Client
 
 	insertWorkers    map[string]*streamingWorkerManager[*message.WriteInsert]
 	migrateWorker    *streamingWorkerManager[*message.WriteMigrateTable]
@@ -34,7 +35,7 @@ type StreamingBatchWriter struct {
 	workersLock      sync.RWMutex
 	workersWaitGroup sync.WaitGroup
 
-	lastMsgType msgType
+	lastMsgType writers.MsgType
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
@@ -42,38 +43,43 @@ type StreamingBatchWriter struct {
 	batchSizeBytes int64
 }
 
-type StreamingBatchWriterOption func(*StreamingBatchWriter)
+// Assert at compile-time that StreamingBatchWriter implements the Writer interface
+var _ writers.Writer = (*StreamingBatchWriter)(nil)
 
-func WithStreamingBatchWriterLogger(logger zerolog.Logger) StreamingBatchWriterOption {
+type Option func(*StreamingBatchWriter)
+
+func WithLogger(logger zerolog.Logger) Option {
 	return func(p *StreamingBatchWriter) {
 		p.logger = logger
 	}
 }
 
-func WithStreamingBatchWriterBatchTimeout(timeout time.Duration) StreamingBatchWriterOption {
+func WithBatchTimeout(timeout time.Duration) Option {
 	return func(p *StreamingBatchWriter) {
 		p.batchTimeout = timeout
 	}
 }
 
-func WithStreamingBatchWriterBatchSizeRows(size int64) StreamingBatchWriterOption {
+func WithBatchSizeRows(size int64) Option {
 	return func(p *StreamingBatchWriter) {
 		p.batchSizeRows = size
 	}
 }
 
-func WithStreamingBatchWriterBatchSizeBytes(size int64) StreamingBatchWriterOption {
+func WithBatchSizeBytes(size int64) Option {
 	return func(p *StreamingBatchWriter) {
 		p.batchSizeBytes = size
 	}
 }
 
-func NewStreamingBatchWriter(client StreamingBatchWriterClient, opts ...StreamingBatchWriterOption) (*StreamingBatchWriter, error) {
+func New(client Client, opts ...Option) (*StreamingBatchWriter, error) {
 	c := &StreamingBatchWriter{
-		client:        client,
-		insertWorkers: make(map[string]*streamingWorkerManager[*message.WriteInsert]),
-		logger:        zerolog.Nop(),
-		batchTimeout:  DefaultBatchTimeoutSeconds * time.Second,
+		client:         client,
+		insertWorkers:  make(map[string]*streamingWorkerManager[*message.WriteInsert]),
+		logger:         zerolog.Nop(),
+		batchTimeout:   writers.DefaultBatchTimeoutSeconds * time.Second,
+		batchSizeRows:  writers.DefaultBatchSize,
+		batchSizeBytes: writers.DefaultBatchSizeBytes,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -133,7 +139,7 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 	hasWorkers := false
 
 	for msg := range msgs {
-		msgType := msgID(msg)
+		msgType := writers.MsgID(msg)
 		if w.lastMsgType != msgType {
 			if err := w.Flush(ctx); err != nil {
 				return err
