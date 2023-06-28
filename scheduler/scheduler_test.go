@@ -229,7 +229,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 		WithStrategy(strategy),
 	}
 	sc := NewScheduler(&c, opts...)
-	msgs := make(chan message.Message, 10)
+	msgs := make(chan message.SyncMessage, 10)
 	if err := sc.Sync(ctx, tables, msgs, WithSyncDeterministicCQID(deterministicCQID)); err != nil {
 		t.Fatal(err)
 	}
@@ -238,14 +238,14 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 	var i int
 	for msg := range msgs {
 		switch v := msg.(type) {
-		case *message.Insert:
+		case *message.SyncInsert:
 			record := v.Record
 			rec := tc.data[i].ToArrowRecord(record.Schema())
 			if !array.RecordEqual(rec, record) {
 				t.Fatalf("expected at i=%d: %v. got %v", i, tc.data[i], record)
 			}
 			i++
-		case *message.MigrateTable:
+		case *message.SyncMigrateTable:
 			// ignore
 		default:
 			t.Fatalf("expected insert message. got %T", msg)

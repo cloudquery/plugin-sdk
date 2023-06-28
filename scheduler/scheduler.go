@@ -185,22 +185,22 @@ func NewScheduler(client schema.ClientMeta, opts ...Option) *Scheduler {
 
 // SyncAll is mostly used for testing as it will sync all tables and can run out of memory
 // in the real world. Should use Sync for production.
-func (s *Scheduler) SyncAll(ctx context.Context, tables schema.Tables) (message.Messages, error) {
-	res := make(chan message.Message)
+func (s *Scheduler) SyncAll(ctx context.Context, tables schema.Tables) (message.SyncMessages, error) {
+	res := make(chan message.SyncMessage)
 	var err error
 	go func() {
 		defer close(res)
 		err = s.Sync(ctx, tables, res)
 	}()
 	// nolint:prealloc
-	var messages []message.Message
+	var messages message.SyncMessages
 	for msg := range res {
 		messages = append(messages, msg)
 	}
 	return messages, err
 }
 
-func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- message.Message, opts ...SyncOption) error {
+func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- message.SyncMessage, opts ...SyncOption) error {
 	if len(tables) == 0 {
 		return nil
 	}
@@ -217,7 +217,7 @@ func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- m
 
 	// send migrate messages first
 	for _, table := range tables.FlattenTables() {
-		res <- &message.MigrateTable{
+		res <- &message.SyncMigrateTable{
 			Table: table,
 		}
 	}
@@ -239,7 +239,7 @@ func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- m
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
 		scalar.AppendToRecordBuilder(bldr, vector)
 		rec := bldr.NewRecord()
-		res <- &message.Insert{Record: rec}
+		res <- &message.SyncInsert{Record: rec}
 	}
 	return nil
 }
