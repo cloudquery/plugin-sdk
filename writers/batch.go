@@ -121,7 +121,7 @@ func (w *BatchWriter) Close(context.Context) error {
 
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
 	sizeBytes := int64(0)
-	resources := make([]*message.WriteInsert, 0)
+	resources := make([]*message.WriteInsert, 0, w.batchSize)
 	for {
 		select {
 		case r, ok := <-ch:
@@ -131,25 +131,23 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 				}
 				return
 			}
+
+			if (w.batchSize > 0 && len(resources) >= w.batchSize) || (w.batchSizeBytes > 0 && sizeBytes+util.TotalRecordSize(r.Record) >= int64(w.batchSizeBytes)) {
+				w.flushTable(ctx, tableName, resources)
+				resources, sizeBytes = resources[:0], 0
+			}
+
 			resources = append(resources, r)
 			sizeBytes += util.TotalRecordSize(r.Record)
-
-			if len(resources) >= w.batchSize || sizeBytes >= int64(w.batchSizeBytes) {
-				w.flushTable(ctx, tableName, resources)
-				resources = make([]*message.WriteInsert, 0)
-				sizeBytes = 0
-			}
 		case <-time.After(w.batchTimeout):
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)
-				resources = make([]*message.WriteInsert, 0)
-				sizeBytes = 0
+				resources, sizeBytes = resources[:0], 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)
-				resources = make([]*message.WriteInsert, 0)
-				sizeBytes = 0
+				resources, sizeBytes = resources[:0], 0
 			}
 			done <- true
 		case <-ctx.Done():
@@ -258,7 +256,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
 			l := len(w.deleteStaleMessages)
 			w.deleteStaleLock.Unlock()
-			if l > w.batchSize {
+			if w.batchSize > 0 && l > w.batchSize {
 				if err := w.flushDeleteStaleTables(ctx); err != nil {
 					return err
 				}
@@ -282,7 +280,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.migrateTableMessages = append(w.migrateTableMessages, m)
 			l := len(w.migrateTableMessages)
 			w.migrateTableLock.Unlock()
-			if l > w.batchSize {
+			if w.batchSize > 0 && l > w.batchSize {
 				if err := w.flushMigrateTables(ctx); err != nil {
 					return err
 				}
