@@ -58,7 +58,7 @@ func (messages WriteMessages) InsertItems() int64 {
 	return items
 }
 
-func (messages WriteMessages) InsertMessage() WriteInserts {
+func (messages WriteMessages) GetInserts() WriteInserts {
 	inserts := []*WriteInsert{}
 	for _, msg := range messages {
 		if m, ok := msg.(*WriteInsert); ok {
