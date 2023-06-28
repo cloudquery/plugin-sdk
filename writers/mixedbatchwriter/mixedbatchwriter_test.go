@@ -170,7 +170,7 @@ func TestMixedBatchWriter(t *testing.T) {
 			client := &testMixedBatchClient{
 				receivedBatches: make([][]message.WriteMessage, 0),
 			}
-			wr, err := mixedbatchwriter.New(client)
+			wr, err := mixedbatchwriter.New(client, 100, 10000, time.Hour)
 			if err != nil {
 				t.Fatal(err)
 			}

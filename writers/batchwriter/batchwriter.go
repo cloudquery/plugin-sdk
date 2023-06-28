@@ -47,38 +47,20 @@ func WithLogger(logger zerolog.Logger) Option {
 	}
 }
 
-func WithBatchTimeout(timeout time.Duration) Option {
-	return func(p *BatchWriter) {
-		p.batchTimeout = timeout
-	}
-}
-
-func WithBatchSize(size int) Option {
-	return func(p *BatchWriter) {
-		p.batchSize = size
-	}
-}
-
-func WithBatchSizeBytes(size int) Option {
-	return func(p *BatchWriter) {
-		p.batchSizeBytes = size
-	}
-}
-
 type worker struct {
 	count int
 	ch    chan *message.WriteInsert
 	flush chan chan bool
 }
 
-func New(client Client, opts ...Option) (*BatchWriter, error) {
+func New(client Client, batchSize, batchSizeBytes int, batchTimeout time.Duration, opts ...Option) (*BatchWriter, error) {
 	c := &BatchWriter{
 		client:         client,
 		workers:        make(map[string]*worker),
 		logger:         zerolog.Nop(),
-		batchTimeout:   writers.DefaultBatchTimeoutSeconds * time.Second,
-		batchSize:      writers.DefaultBatchSize,
-		batchSizeBytes: writers.DefaultBatchSizeBytes,
+		batchSize:      batchSize,
+		batchSizeBytes: batchSizeBytes,
+		batchTimeout:   batchTimeout,
 	}
 	for _, opt := range opts {
 		opt(c)

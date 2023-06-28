@@ -36,31 +36,13 @@ func WithLogger(logger zerolog.Logger) Option {
 	}
 }
 
-func WithBatchTimeout(timeout time.Duration) Option {
-	return func(p *MixedBatchWriter) {
-		p.batchTimeout = timeout
-	}
-}
-
-func WithBatchSize(size int) Option {
-	return func(p *MixedBatchWriter) {
-		p.batchSize = size
-	}
-}
-
-func WithBatchSizeBytes(size int) Option {
-	return func(p *MixedBatchWriter) {
-		p.batchSizeBytes = size
-	}
-}
-
-func New(client Client, opts ...Option) (*MixedBatchWriter, error) {
+func New(client Client, batchSize, batchSizeBytes int, batchTimeout time.Duration, opts ...Option) (*MixedBatchWriter, error) {
 	c := &MixedBatchWriter{
 		client:         client,
 		logger:         zerolog.Nop(),
-		batchTimeout:   writers.DefaultBatchTimeoutSeconds * time.Second,
-		batchSize:      writers.DefaultBatchSize,
-		batchSizeBytes: writers.DefaultBatchSizeBytes,
+		batchSize:      batchSize,
+		batchSizeBytes: batchSizeBytes,
+		batchTimeout:   batchTimeout,
 	}
 	for _, opt := range opts {
 		opt(c)

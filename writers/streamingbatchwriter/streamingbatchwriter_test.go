@@ -129,7 +129,7 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	wr, err := streamingbatchwriter.New(testClient)
+	wr, err := streamingbatchwriter.New(testClient, 0, 0, time.Hour)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	wr, err := streamingbatchwriter.New(testClient, streamingbatchwriter.WithBatchSizeRows(2))
+	wr, err := streamingbatchwriter.New(testClient, 2, 0, time.Hour)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	wr, err := streamingbatchwriter.New(testClient, streamingbatchwriter.WithBatchTimeout(time.Second))
+	wr, err := streamingbatchwriter.New(testClient, 0, 0, time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -286,7 +286,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	wr, err := streamingbatchwriter.New(testClient, streamingbatchwriter.WithBatchSizeRows(2), streamingbatchwriter.WithBatchTimeout(time.Second))
+	wr, err := streamingbatchwriter.New(testClient, 2, 0, time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -79,26 +79,14 @@ func WithBatchTimeout(timeout time.Duration) Option {
 	}
 }
 
-func WithBatchSizeRows(size int64) Option {
-	return func(p *StreamingBatchWriter) {
-		p.batchSizeRows = size
-	}
-}
-
-func WithBatchSizeBytes(size int64) Option {
-	return func(p *StreamingBatchWriter) {
-		p.batchSizeBytes = size
-	}
-}
-
-func New(client Client, opts ...Option) (*StreamingBatchWriter, error) {
+func New(client Client, batchSizeRows, batchSizeBytes int64, batchTimeout time.Duration, opts ...Option) (*StreamingBatchWriter, error) {
 	c := &StreamingBatchWriter{
 		client:         client,
 		insertWorkers:  make(map[string]*streamingWorkerManager[*message.WriteInsert]),
 		logger:         zerolog.Nop(),
-		batchTimeout:   writers.DefaultBatchTimeoutSeconds * time.Second,
-		batchSizeRows:  writers.DefaultBatchSize,
-		batchSizeBytes: writers.DefaultBatchSizeBytes,
+		batchSizeRows:  batchSizeRows,
+		batchSizeBytes: batchSizeBytes,
+		batchTimeout:   batchTimeout,
 	}
 	for _, opt := range opts {
 		opt(c)
