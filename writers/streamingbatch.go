@@ -126,7 +126,6 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Me
 
 	go func() {
 		for err := range errCh {
-			fmt.Println(err.Error())
 			w.logger.Err(err).Msg("error from StreamingBatchWriter")
 		}
 	}()
