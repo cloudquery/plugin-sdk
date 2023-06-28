@@ -54,7 +54,7 @@ func WithMixedBatchWriterBatchSize(size int) MixedBatchWriterOption {
 	}
 }
 
-func WithMixedBatchWriterSizeBytes(size int) MixedBatchWriterOption {
+func WithMixedBatchWriterBatchSizeBytes(size int) MixedBatchWriterOption {
 	return func(p *MixedBatchWriter) {
 		p.batchSizeBytes = size
 	}
@@ -64,9 +64,9 @@ func NewMixedBatchWriter(client MixedBatchClient, opts ...MixedBatchWriterOption
 	c := &MixedBatchWriter{
 		client:         client,
 		logger:         zerolog.Nop(),
-		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
-		batchSize:      defaultBatchSize,
-		batchSizeBytes: defaultBatchSizeBytes,
+		batchTimeout:   DefaultBatchTimeoutSeconds * time.Second,
+		batchSize:      DefaultBatchSize,
+		batchSizeBytes: DefaultBatchSizeBytes,
 	}
 	for _, opt := range opts {
 		opt(c)
