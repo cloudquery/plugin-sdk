@@ -74,7 +74,7 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
-	records := schema.GenTestData(table, schema.GenTestDataOptions{MaxRows: 1})
+	records := schema.GenTestData(table, schema.GenTestDataOptions{MaxRows: 2})
 	record := records[0]
 
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{

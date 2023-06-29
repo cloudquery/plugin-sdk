@@ -50,5 +50,4 @@ func TestGenTestData(*testing.T) {
 	table := TestTable("test", TestSourceOptions{})
 	// smoke test that no panics
 	_ = GenTestData(table, GenTestDataOptions{})
-
 }
