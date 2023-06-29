@@ -12,9 +12,9 @@ import (
 
 // Client is a client that will receive batches of messages with a mixture of tables.
 type Client interface {
-	MigrateTableBatch(ctx context.Context, messages []*message.WriteMigrateTable) error
-	InsertBatch(ctx context.Context, messages []*message.WriteInsert) error
-	DeleteStaleBatch(ctx context.Context, messages []*message.WriteDeleteStale) error
+	MigrateTableBatch(ctx context.Context, messages message.WriteMigrateTables) error
+	InsertBatch(ctx context.Context, messages message.WriteInserts) error
+	DeleteStaleBatch(ctx context.Context, messages message.WriteDeleteStales) error
 }
 
 type MixedBatchWriter struct {
@@ -70,7 +70,7 @@ func New(client Client, opts ...Option) (*MixedBatchWriter, error) {
 
 // Write starts listening for messages on the msgChan channel and writes them to the client in batches.
 func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.WriteMessage) error {
-	migrateTable := &batchManager[*message.WriteMigrateTable]{
+	migrateTable := &batchManager[message.WriteMigrateTables, *message.WriteMigrateTable]{
 		batch:     make([]*message.WriteMigrateTable, 0, w.batchSize),
 		writeFunc: w.client.MigrateTableBatch,
 	}
@@ -79,7 +79,7 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 		writeFunc:         w.client.InsertBatch,
 		maxBatchSizeBytes: int64(w.batchSizeBytes),
 	}
-	deleteStale := &batchManager[*message.WriteDeleteStale]{
+	deleteStale := &batchManager[message.WriteDeleteStales, *message.WriteDeleteStale]{
 		batch:     make([]*message.WriteDeleteStale, 0, w.batchSize),
 		writeFunc: w.client.DeleteStaleBatch,
 	}
@@ -126,12 +126,12 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 }
 
 // generic batch manager for most message types
-type batchManager[T message.WriteMessage] struct {
+type batchManager[A ~[]T, T message.WriteMessage] struct {
 	batch     []T
-	writeFunc func(ctx context.Context, messages []T) error
+	writeFunc func(ctx context.Context, messages A) error
 }
 
-func (m *batchManager[T]) append(ctx context.Context, msg T) error {
+func (m *batchManager[A, T]) append(ctx context.Context, msg T) error {
 	if len(m.batch) == cap(m.batch) {
 		if err := m.flush(ctx); err != nil {
 			return err
@@ -141,7 +141,7 @@ func (m *batchManager[T]) append(ctx context.Context, msg T) error {
 	return nil
 }
 
-func (m *batchManager[T]) flush(ctx context.Context) error {
+func (m *batchManager[A, T]) flush(ctx context.Context) error {
 	if len(m.batch) == 0 {
 		return nil
 	}
@@ -157,7 +157,7 @@ func (m *batchManager[T]) flush(ctx context.Context) error {
 // special batch manager for insert messages that also keeps track of the total size of the batch
 type insertBatchManager struct {
 	batch             []*message.WriteInsert
-	writeFunc         func(ctx context.Context, messages []*message.WriteInsert) error
+	writeFunc         func(ctx context.Context, messages message.WriteInserts) error
 	curBatchSizeBytes int64
 	maxBatchSizeBytes int64
 }
