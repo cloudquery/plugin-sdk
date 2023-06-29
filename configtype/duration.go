@@ -13,6 +13,12 @@ type Duration struct {
 	duration time.Duration
 }
 
+func NewDuration(d time.Duration) Duration {
+	return Duration{
+		duration: d,
+	}
+}
+
 func (d *Duration) UnmarshalJSON(b []byte) error {
 	var s string
 	if err := json.Unmarshal(b, &s); err != nil {
