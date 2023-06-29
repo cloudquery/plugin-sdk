@@ -133,7 +133,7 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 
 			resources = append(resources, r)
 			sizeBytes += util.TotalRecordSize(r.Record)
-		case <-time.After(w.batchTimeout):
+		case <-timer(w.batchTimeout):
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)
 				resources, sizeBytes = resources[:0], 0
@@ -315,4 +315,11 @@ func (w *BatchWriter) startWorker(ctx context.Context, msg *message.WriteInsert)
 	}()
 	ch <- msg
 	return nil
+}
+
+func timer(timeout time.Duration) <-chan time.Time {
+	if timeout == 0 {
+		return nil
+	}
+	return time.After(timeout)
 }

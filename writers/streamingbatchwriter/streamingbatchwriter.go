@@ -351,7 +351,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			clientCh <- r
 			sizeRows++
 			sizeBytes += recSize
-		case <-time.After(s.batchTimeout):
+		case <-timer(s.batchTimeout):
 			if sizeRows > 0 {
 				closeFlush()
 			}
@@ -369,4 +369,11 @@ func DummyHandler[T message.WriteMessage](ch <-chan T) {
 	// nolint:revive
 	for range ch {
 	}
+}
+
+func timer(timeout time.Duration) <-chan time.Time {
+	if timeout == 0 {
+		return nil
+	}
+	return time.After(timeout)
 }
