@@ -46,7 +46,7 @@ func stripNullsFromLists(records []arrow.Record) {
 
 type AllowNullFunc func(arrow.DataType) bool
 
-// TODO: use in v4
+// TODO(v4): use in v4
 //
 //nolint:unused
 func (f AllowNullFunc) replaceNullsByEmpty(records []arrow.Record) {
