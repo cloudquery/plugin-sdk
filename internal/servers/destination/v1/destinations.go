@@ -39,6 +39,21 @@ func (s *Server) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
 	}
+	var pluginSpecMap map[string]any
+	if err := json.Unmarshal(pluginSpec, &pluginSpecMap); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal plugin spec: %v", err)
+	}
+	// this is for backward compatability here
+	if s.spec.BatchSize > 0 {
+		pluginSpecMap["batch_size"] = s.spec.BatchSize
+	}
+	if s.spec.BatchSizeBytes > 0 {
+		pluginSpecMap["batch_size_bytes"] = s.spec.BatchSizeBytes
+	}
+	pluginSpec, err = json.Marshal(pluginSpecMap)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
+	}
 	return &pb.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec)
 }
 
