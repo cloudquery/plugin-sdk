@@ -115,6 +115,7 @@ func New(client Client, opts ...Option) (*StreamingBatchWriter, error) {
 		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
 		batchSizeRows:  defaultBatchSize,
 		batchSizeBytes: defaultBatchSizeBytes,
+		timerFn:        timer,
 	}
 	for _, opt := range opts {
 		opt(c)
