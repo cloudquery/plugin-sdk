@@ -227,6 +227,10 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 	if l := testClient.OpenLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 open tables, got %d", l)
 	}
+
+	if l := testClient.MessageLen(messageTypeInsert); l != 3 {
+		t.Fatalf("expected 3 insert messages, got %d", l)
+	}
 }
 
 func TestStreamingBatchTimeout(t *testing.T) {
