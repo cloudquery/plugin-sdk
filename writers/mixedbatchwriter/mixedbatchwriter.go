@@ -2,7 +2,6 @@ package mixedbatchwriter
 
 import (
 	"context"
-	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -20,7 +19,6 @@ type Client interface {
 type MixedBatchWriter struct {
 	client         Client
 	logger         zerolog.Logger
-	batchTimeout   time.Duration
 	batchSize      int
 	batchSizeBytes int
 }
@@ -33,12 +31,6 @@ type Option func(writer *MixedBatchWriter)
 func WithLogger(logger zerolog.Logger) Option {
 	return func(p *MixedBatchWriter) {
 		p.logger = logger
-	}
-}
-
-func WithBatchTimeout(timeout time.Duration) Option {
-	return func(p *MixedBatchWriter) {
-		p.batchTimeout = timeout
 	}
 }
 
@@ -58,7 +50,6 @@ func New(client Client, opts ...Option) (*MixedBatchWriter, error) {
 	c := &MixedBatchWriter{
 		client:         client,
 		logger:         zerolog.Nop(),
-		batchTimeout:   writers.DefaultBatchTimeoutSeconds * time.Second,
 		batchSize:      writers.DefaultBatchSize,
 		batchSizeBytes: writers.DefaultBatchSizeBytes,
 	}

@@ -1,4 +1,4 @@
-package streamingbatchwriter_test
+package streamingbatchwriter
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter"
 )
 
 type messageType int
@@ -110,7 +109,7 @@ func (c *testStreamingBatchClient) handleTypeCommit(_ context.Context, t message
 	return nil
 }
 
-var _ streamingbatchwriter.Client = (*testStreamingBatchClient)(nil)
+var _ Client = (*testStreamingBatchClient)(nil)
 
 var streamingBatchTestTable = &schema.Table{
 	Name: "table1",
@@ -129,7 +128,7 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	wr, err := streamingbatchwriter.New(testClient)
+	wr, err := New(testClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,22 +150,16 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 	}
 
 	ch <- &message.WriteInsert{Record: record}
-	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.MessageLen(messageTypeMigrateTable); l != 1 {
-		t.Fatalf("expected 1 migrate table message, got %d", l)
-	}
+	waitForLength(t, testClient.MessageLen, messageTypeMigrateTable, 1)
 
 	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
 	ch <- &message.WriteMigrateTable{Table: streamingBatchTestTable}
-	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.MessageLen(messageTypeInsert); l != 1 {
-		t.Fatalf("expected 1 insert message, got %d", l)
-	}
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 1)
 
 	close(ch)
 	if err := <-errCh; err != nil {
@@ -184,7 +177,7 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	wr, err := streamingbatchwriter.New(testClient, streamingbatchwriter.WithBatchSizeRows(2))
+	wr, err := New(testClient, WithBatchSizeRows(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,12 +205,7 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 		Record: record,
 	}
 
-	// we need to wait for the batch to be flushed
-	time.Sleep(time.Second * 2)
-
-	if l := testClient.MessageLen(messageTypeInsert); l != 2 {
-		t.Fatalf("expected 2 insert messages, got %d", l)
-	}
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 2)
 
 	close(ch)
 	if err := <-errCh; err != nil {
@@ -227,6 +215,10 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 	if l := testClient.OpenLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 open tables, got %d", l)
 	}
+
+	if l := testClient.MessageLen(messageTypeInsert); l != 3 {
+		t.Fatalf("expected 3 insert messages, got %d", l)
+	}
 }
 
 func TestStreamingBatchTimeout(t *testing.T) {
@@ -235,7 +227,9 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	wr, err := streamingbatchwriter.New(testClient, streamingbatchwriter.WithBatchTimeout(time.Second))
+	timerFn, timerExpire := newMockTimer()
+
+	wr, err := New(testClient, withTimerFn(timerFn))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,18 +251,15 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	}
 
 	// we need to wait for the batch to be flushed
-	time.Sleep(time.Millisecond * 250)
+	time.Sleep(time.Millisecond * 50)
 
 	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", l)
 	}
 
-	// we need to wait for the batch to be flushed
-	time.Sleep(time.Second * 1)
-
-	if l := testClient.MessageLen(messageTypeInsert); l != 1 {
-		t.Fatalf("expected 1 insert message, got %d", l)
-	}
+	// flush
+	close(timerExpire)
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 1)
 
 	close(ch)
 	if err := <-errCh; err != nil {
@@ -280,13 +271,69 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	}
 }
 
+func TestStreamingBatchNoTimeout(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ch := make(chan message.WriteMessage)
+
+	testClient := newClient()
+	wr, err := New(testClient, WithBatchTimeout(0), WithBatchSizeRows(2))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		errCh <- wr.Write(ctx, ch)
+	}()
+
+	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
+	ch <- &message.WriteInsert{
+		Record: record,
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
+		t.Fatalf("expected 0 insert messages, got %d", l)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
+		t.Fatalf("expected 0 insert messages, got %d", l)
+	}
+
+	ch <- &message.WriteInsert{
+		Record: record,
+	}
+	ch <- &message.WriteInsert{
+		Record: record,
+	}
+
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 2)
+
+	close(ch)
+	if err := <-errCh; err != nil {
+		t.Fatal(err)
+	}
+
+	if l := testClient.OpenLen(messageTypeInsert); l != 0 {
+		t.Fatalf("expected 0 open tables, got %d", l)
+	}
+
+	if l := testClient.MessageLen(messageTypeInsert); l != 3 {
+		t.Fatalf("expected 3 insert messages, got %d", l)
+	}
+}
 func TestStreamingBatchUpserts(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	wr, err := streamingbatchwriter.New(testClient, streamingbatchwriter.WithBatchSizeRows(2), streamingbatchwriter.WithBatchTimeout(time.Second))
+	timerFn, timerExpire := newMockTimer()
+	wr, err := New(testClient, WithBatchSizeRows(2), withTimerFn(timerFn))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,25 +354,17 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.InflightLen(messageTypeInsert); l != 1 {
-		t.Fatalf("expected 1 inflight insert message, got %d", l)
-	}
-
-	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
-		t.Fatalf("expected 0 insert messages, got %d", l)
-	}
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1)
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
 
 	ch <- &message.WriteInsert{
 		Record: record,
 	}
 	time.Sleep(50 * time.Millisecond)
 
-	// we need to wait for the batch to be flushed
-	time.Sleep(time.Second * 2)
-
-	if l := testClient.MessageLen(messageTypeInsert); l != 2 {
-		t.Fatalf("expected 2 insert messages, got %d", l)
-	}
+	// flush the batch
+	close(timerExpire)
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 2)
 
 	close(ch)
 	if err := <-errCh; err != nil {
@@ -334,5 +373,20 @@ func TestStreamingBatchUpserts(t *testing.T) {
 
 	if l := testClient.OpenLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 open tables, got %d", l)
+	}
+}
+
+func waitForLength(t *testing.T, checkLen func(messageType) int, msgType messageType, want int) {
+	t.Helper()
+	lastValue := -1
+	for {
+		select {
+		case <-time.After(time.Second):
+			t.Fatalf("timed out waiting for %v message length %d (last value: %d)", msgType, want, lastValue)
+		default:
+			if lastValue = checkLen(msgType); lastValue == want {
+				return
+			}
+		}
 	}
 }
