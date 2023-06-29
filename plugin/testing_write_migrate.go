@@ -12,6 +12,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 )
 
 func tableUUIDSuffix() string {
@@ -210,9 +211,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("double_migration", func(t *testing.T) {
-		// tableName := "double_migration_" + tableUUIDSuffix()
-		// table := schema.TestTable(tableName, testOpts.TestSourceOptions)
-		// require.NoError(t, p.Migrate(ctx, schema.Tables{table}, MigrateOptions{MigrateMode: MigrateModeForce}))
-		// require.NoError(t, p.Migrate(ctx, schema.Tables{table}, MigrateOptions{MigrateMode: MigrateModeForce}))
+		tableName := "double_migration_" + tableUUIDSuffix()
+		table := schema.TestTable(tableName, s.genDatOptions)
+		// s.migrate will perform create->write->migrate->write
+		require.NoError(t, s.migrate(ctx, table, table, true, false))
 	})
 }
