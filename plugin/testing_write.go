@@ -90,18 +90,32 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 		if suite.tests.SkipUpsert {
 			t.Skip("skipping " + t.Name())
 		}
-		if err := suite.testUpsert(ctx); err != nil {
-			t.Fatal(err)
-		}
+		t.Run("Basic", func(t *testing.T) {
+			if err := suite.testUpsertBasic(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
+		t.Run("All", func(t *testing.T) {
+			if err := suite.testUpsertAll(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
 	})
 
 	t.Run("TestInsert", func(t *testing.T) {
 		if suite.tests.SkipInsert {
 			t.Skip("skipping " + t.Name())
 		}
-		if err := suite.testInsert(ctx); err != nil {
-			t.Fatal(err)
-		}
+		t.Run("Basic", func(t *testing.T) {
+			if err := suite.testInsertBasic(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
+		t.Run("All", func(t *testing.T) {
+			if err := suite.testInsertAll(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
 	})
 
 	t.Run("TestDeleteStale", func(t *testing.T) {
