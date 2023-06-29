@@ -20,8 +20,8 @@ func TotalRows(records []arrow.Record) int64 {
 	return totalRows
 }
 
-func (s *WriterTestSuite) testInsert(ctx context.Context) error {
-	tableName := fmt.Sprintf("cq_test_insert_%d", time.Now().Unix())
+func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
+	tableName := fmt.Sprintf("cq_insert_basic_%d", time.Now().Unix())
 	table := &schema.Table{
 		Name: tableName,
 		Columns: []schema.Column{
@@ -37,6 +37,56 @@ func (s *WriterTestSuite) testInsert(ctx context.Context) error {
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 	bldr.Field(0).(*array.StringBuilder).Append("foo")
 	record := bldr.NewRecord()
+
+	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
+		Record: record,
+	}); err != nil {
+		return fmt.Errorf("failed to insert record: %w", err)
+	}
+	readRecords, err := s.plugin.readAll(ctx, table)
+	if err != nil {
+		return fmt.Errorf("failed to sync: %w", err)
+	}
+
+	totalItems := TotalRows(readRecords)
+	if totalItems != 1 {
+		return fmt.Errorf("expected 1 item, got %d", totalItems)
+	}
+
+	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
+		Record: record,
+	}); err != nil {
+		return fmt.Errorf("failed to insert record: %w", err)
+	}
+
+	readRecords, err = s.plugin.readAll(ctx, table)
+	if err != nil {
+		return fmt.Errorf("failed to sync: %w", err)
+	}
+
+	totalItems = TotalRows(readRecords)
+	if totalItems != 2 {
+		return fmt.Errorf("expected 2 items, got %d", totalItems)
+	}
+
+	return nil
+}
+
+func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
+	tableName := fmt.Sprintf("cq_insert_all_%d", time.Now().Unix())
+	table := schema.TestTable(tableName, s.genDatOptions)
+	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
+		Table: table,
+	}); err != nil {
+		return fmt.Errorf("failed to create table: %w", err)
+	}
+	records := schema.GenTestData(table, schema.GenTestDataOptions{
+		MaxRows: 1,
+	})
+	// bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+	// bldr.Field(0).(*array.StringBuilder).Append("foo")
+	// record := bldr.NewRecord()
+	record := records[0]
 
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: record,
