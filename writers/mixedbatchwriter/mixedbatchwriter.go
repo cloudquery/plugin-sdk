@@ -46,12 +46,18 @@ func WithBatchSizeBytes(size int) Option {
 	}
 }
 
+const (
+	defaultBatchTimeoutSeconds = 20
+	defaultBatchSize           = 10000
+	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
+)
+
 func New(client Client, opts ...Option) (*MixedBatchWriter, error) {
 	c := &MixedBatchWriter{
 		client:         client,
 		logger:         zerolog.Nop(),
-		batchSize:      writers.DefaultBatchSize,
-		batchSizeBytes: writers.DefaultBatchSizeBytes,
+		batchSize:      defaultBatchSize,
+		batchSizeBytes: defaultBatchSizeBytes,
 	}
 	for _, opt := range opts {
 		opt(c)

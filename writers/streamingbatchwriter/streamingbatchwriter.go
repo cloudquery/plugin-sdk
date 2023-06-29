@@ -101,14 +101,20 @@ func withTimerFn(timer timerFn) Option {
 	}
 }
 
+const (
+	defaultBatchTimeoutSeconds = 20
+	defaultBatchSize           = 10000
+	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
+)
+
 func New(client Client, opts ...Option) (*StreamingBatchWriter, error) {
 	c := &StreamingBatchWriter{
 		client:         client,
 		insertWorkers:  make(map[string]*streamingWorkerManager[*message.WriteInsert]),
 		logger:         zerolog.Nop(),
-		batchTimeout:   writers.DefaultBatchTimeoutSeconds * time.Second,
-		batchSizeRows:  writers.DefaultBatchSize,
-		batchSizeBytes: writers.DefaultBatchSizeBytes,
+		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
+		batchSizeRows:  defaultBatchSize,
+		batchSizeBytes: defaultBatchSizeBytes,
 		timerFn:        timer,
 	}
 	for _, opt := range opts {
