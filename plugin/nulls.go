@@ -6,7 +6,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 )
 
-// TODO: use in v4
+// TODO(v4): use in v4
 //
 //nolint:unused
 func stripNullsFromLists(records []arrow.Record) {
