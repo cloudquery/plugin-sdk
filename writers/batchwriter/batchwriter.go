@@ -14,9 +14,9 @@ import (
 )
 
 type Client interface {
-	MigrateTables(context.Context, []*message.WriteMigrateTable) error
-	WriteTableBatch(ctx context.Context, name string, msgs []*message.WriteInsert) error
-	DeleteStale(context.Context, []*message.WriteDeleteStale) error
+	MigrateTables(context.Context, message.WriteMigrateTables) error
+	WriteTableBatch(ctx context.Context, name string, messages message.WriteInserts) error
+	DeleteStale(context.Context, message.WriteDeleteStales) error
 }
 
 type BatchWriter struct {
@@ -26,9 +26,9 @@ type BatchWriter struct {
 	workersWaitGroup sync.WaitGroup
 
 	migrateTableLock     sync.Mutex
-	migrateTableMessages []*message.WriteMigrateTable
+	migrateTableMessages message.WriteMigrateTables
 	deleteStaleLock      sync.Mutex
-	deleteStaleMessages  []*message.WriteDeleteStale
+	deleteStaleMessages  message.WriteDeleteStales
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
