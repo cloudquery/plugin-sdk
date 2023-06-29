@@ -17,27 +17,27 @@ type testMixedBatchClient struct {
 	receivedBatches [][]message.WriteMessage
 }
 
-func (c *testMixedBatchClient) MigrateTableBatch(_ context.Context, msgs []*message.WriteMigrateTable) error {
-	m := make([]message.WriteMessage, len(msgs))
-	for i, msg := range msgs {
+func (c *testMixedBatchClient) MigrateTableBatch(_ context.Context, messages message.WriteMigrateTables) error {
+	m := make([]message.WriteMessage, len(messages))
+	for i, msg := range messages {
 		m[i] = msg
 	}
 	c.receivedBatches = append(c.receivedBatches, m)
 	return nil
 }
 
-func (c *testMixedBatchClient) InsertBatch(_ context.Context, msgs []*message.WriteInsert) error {
-	m := make([]message.WriteMessage, len(msgs))
-	for i, msg := range msgs {
+func (c *testMixedBatchClient) InsertBatch(_ context.Context, messages message.WriteInserts) error {
+	m := make([]message.WriteMessage, len(messages))
+	for i, msg := range messages {
 		m[i] = msg
 	}
 	c.receivedBatches = append(c.receivedBatches, m)
 	return nil
 }
 
-func (c *testMixedBatchClient) DeleteStaleBatch(_ context.Context, msgs []*message.WriteDeleteStale) error {
-	m := make([]message.WriteMessage, len(msgs))
-	for i, msg := range msgs {
+func (c *testMixedBatchClient) DeleteStaleBatch(_ context.Context, messages message.WriteDeleteStales) error {
+	m := make([]message.WriteMessage, len(messages))
+	for i, msg := range messages {
 		m[i] = msg
 	}
 	c.receivedBatches = append(c.receivedBatches, m)
