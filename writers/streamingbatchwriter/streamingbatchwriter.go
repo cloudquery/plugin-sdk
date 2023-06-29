@@ -60,7 +60,11 @@ type StreamingBatchWriter struct {
 	batchTimeout   time.Duration
 	batchSizeRows  int64
 	batchSizeBytes int64
+
+	timerFn timerFn
 }
+
+type timerFn func(timeout time.Duration) <-chan time.Time
 
 // Assert at compile-time that StreamingBatchWriter implements the Writer interface
 var _ writers.Writer = (*StreamingBatchWriter)(nil)
@@ -91,6 +95,12 @@ func WithBatchSizeBytes(size int64) Option {
 	}
 }
 
+func withTimerFn(timer timerFn) Option {
+	return func(p *StreamingBatchWriter) {
+		p.timerFn = timer
+	}
+}
+
 func New(client Client, opts ...Option) (*StreamingBatchWriter, error) {
 	c := &StreamingBatchWriter{
 		client:         client,
@@ -99,6 +109,7 @@ func New(client Client, opts ...Option) (*StreamingBatchWriter, error) {
 		batchTimeout:   writers.DefaultBatchTimeoutSeconds * time.Second,
 		batchSizeRows:  writers.DefaultBatchSize,
 		batchSizeBytes: writers.DefaultBatchSizeBytes,
+		timerFn:        timer,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -214,6 +225,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 
 			batchSizeRows: w.batchSizeRows,
 			batchTimeout:  w.batchTimeout,
+			timerFn:       w.timerFn,
 		}
 
 		w.workersWaitGroup.Add(1)
@@ -265,6 +277,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			batchSizeRows:  w.batchSizeRows,
 			batchSizeBytes: w.batchSizeBytes,
 			batchTimeout:   w.batchTimeout,
+			timerFn:        w.timerFn,
 		}
 		w.workersLock.Lock()
 		w.insertWorkers[tableName] = wr
@@ -290,6 +303,7 @@ type streamingWorkerManager[T message.WriteMessage] struct {
 	batchSizeRows  int64
 	batchSizeBytes int64
 	batchTimeout   time.Duration
+	timerFn        timerFn
 }
 
 func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup, tableName string) {
@@ -351,7 +365,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			clientCh <- r
 			sizeRows++
 			sizeBytes += recSize
-		case <-timer(s.batchTimeout):
+		case <-s.timerFn(s.batchTimeout):
 			if sizeRows > 0 {
 				closeFlush()
 			}
