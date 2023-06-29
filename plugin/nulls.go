@@ -8,7 +8,7 @@ import (
 
 // TODO(v4): use in v4
 //
-//nolint:unused
+// nolint:unused
 func stripNullsFromLists(records []arrow.Record) {
 	for i := range records {
 		cols := records[i].Columns()
@@ -48,7 +48,7 @@ type AllowNullFunc func(arrow.DataType) bool
 
 // TODO(v4): use in v4
 //
-//nolint:unused
+// nolint:unused
 func (f AllowNullFunc) replaceNullsByEmpty(records []arrow.Record) {
 	if f == nil {
 		return
