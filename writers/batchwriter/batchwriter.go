@@ -34,7 +34,11 @@ type BatchWriter struct {
 	batchTimeout   time.Duration
 	batchSize      int
 	batchSizeBytes int
+
+	timerFn timerFn
 }
+
+type timerFn func(timeout time.Duration) <-chan time.Time
 
 // Assert at compile-time that BatchWriter implements the Writer interface
 var _ writers.Writer = (*BatchWriter)(nil)
@@ -65,6 +69,12 @@ func WithBatchSizeBytes(size int) Option {
 	}
 }
 
+func withTimerFn(timer timerFn) Option {
+	return func(p *BatchWriter) {
+		p.timerFn = timer
+	}
+}
+
 type worker struct {
 	count int
 	ch    chan *message.WriteInsert
@@ -85,6 +95,7 @@ func New(client Client, opts ...Option) (*BatchWriter, error) {
 		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
 		batchSize:      defaultBatchSize,
 		batchSizeBytes: defaultBatchSizeBytes,
+		timerFn:        timer,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -108,15 +119,14 @@ func (w *BatchWriter) Flush(ctx context.Context) error {
 	return w.flushDeleteStaleTables(ctx)
 }
 
-func (w *BatchWriter) Close(context.Context) error {
+func (w *BatchWriter) stopWorkers() {
 	w.workersLock.Lock()
 	defer w.workersLock.Unlock()
 	for _, w := range w.workers {
 		close(w.ch)
 	}
 	w.workersWaitGroup.Wait()
-
-	return nil
+	w.workers = make(map[string]*worker)
 }
 
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
@@ -139,7 +149,7 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 
 			resources = append(resources, r)
 			sizeBytes += util.TotalRecordSize(r.Record)
-		case <-timer(w.batchTimeout):
+		case <-w.timerFn(w.batchTimeout):
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)
 				resources, sizeBytes = resources[:0], 0
@@ -235,16 +245,9 @@ func (w *BatchWriter) flushInsert(tableName string) {
 	<-ch
 }
 
-func (w *BatchWriter) writeAll(ctx context.Context, msgs []message.WriteMessage) error {
-	ch := make(chan message.WriteMessage, len(msgs))
-	for _, msg := range msgs {
-		ch <- msg
-	}
-	close(ch)
-	return w.Write(ctx, ch)
-}
-
 func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
+	hasWorkers := false
+
 	for msg := range msgs {
 		switch m := msg.(type) {
 		case *message.WriteDeleteStale:
@@ -268,6 +271,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			if err := w.flushDeleteStaleTables(ctx); err != nil {
 				return err
 			}
+			hasWorkers = true
 			if err := w.startWorker(ctx, m); err != nil {
 				return err
 			}
@@ -287,7 +291,16 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			}
 		}
 	}
-	return nil
+
+	if err := w.flushMigrateTables(ctx); err != nil {
+		return err
+	}
+
+	if hasWorkers {
+		w.stopWorkers()
+	}
+
+	return w.flushDeleteStaleTables(ctx)
 }
 
 func (w *BatchWriter) startWorker(ctx context.Context, msg *message.WriteInsert) error {
