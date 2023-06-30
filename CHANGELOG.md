@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.3.0-rc1...v4.3.1-rc1) (2023-06-29)
+
+
+### Bug Fixes
+
+* Enable double migration test ([#1023](https://github.com/cloudquery/plugin-sdk/issues/1023)) ([466796b](https://github.com/cloudquery/plugin-sdk/commit/466796bd312b92c9646a2ef1a170bfc4e4b27419))
+* Put null helpers back ([#1002](https://github.com/cloudquery/plugin-sdk/issues/1002)) ([95ed5df](https://github.com/cloudquery/plugin-sdk/commit/95ed5dfaf505a3ecdca6be03e8cd46a5cc5a3f23))
+
+## [4.3.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.2.2-rc1...v4.3.0-rc1) (2023-06-29)
+
+
+### Features
+
+* Use named message slice types in writers ([#1017](https://github.com/cloudquery/plugin-sdk/issues/1017)) ([e290234](https://github.com/cloudquery/plugin-sdk/commit/e29023429d699f095c4240d8097dda850d1933f2))
+* **writers:** Add `streamingbatchwriter.Unimplemented*` handlers ([#1022](https://github.com/cloudquery/plugin-sdk/issues/1022)) ([88f4909](https://github.com/cloudquery/plugin-sdk/commit/88f4909e07c0042be20c41288eedfaa729559b5a))
+
+
+### Bug Fixes
+
+* **writers:** Allow zero timeout, remove unused timeout options from mixedbatchwriter ([#1020](https://github.com/cloudquery/plugin-sdk/issues/1020)) ([282ee45](https://github.com/cloudquery/plugin-sdk/commit/282ee45e552bde91dea36e3c9d1410e5066365ba))
+* **writers:** Don't export defaults ([#1013](https://github.com/cloudquery/plugin-sdk/issues/1013)) ([d11dd56](https://github.com/cloudquery/plugin-sdk/commit/d11dd56a0bda79865be505e14159e807a6033431))
+
+## [4.2.2-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.2.1-rc1...v4.2.2-rc1) (2023-06-29)
+
+
+### Bug Fixes
+
+* Add backward compatibility for batch_size ([#1018](https://github.com/cloudquery/plugin-sdk/issues/1018)) ([3a72b2f](https://github.com/cloudquery/plugin-sdk/commit/3a72b2f3b9570ba901267337871575f0ed4301a7))
+
+## [4.2.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.2.0-rc1...v4.2.1-rc1) (2023-06-29)
+
+
+### Bug Fixes
+
+* Add back testing for all types ([#1015](https://github.com/cloudquery/plugin-sdk/issues/1015)) ([8525cc9](https://github.com/cloudquery/plugin-sdk/commit/8525cc966d6da274b2e06da0a529c80a8650fa60))
+
+## [4.2.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.1.0-rc1...v4.2.0-rc1) (2023-06-28)
+
+
+### Features
+
+* Add StreamingBatchWriter ([#1004](https://github.com/cloudquery/plugin-sdk/issues/1004)) ([986340f](https://github.com/cloudquery/plugin-sdk/commit/986340fc624a0370a726150fb733b723ec96fe74))
+
+
+### Bug Fixes
+
+* **batchwriter:** Allow zero batch size, flush before exceeding batch size instead of after ([#1008](https://github.com/cloudquery/plugin-sdk/issues/1008)) ([c7ea17b](https://github.com/cloudquery/plugin-sdk/commit/c7ea17b08f340bb5eced749ec76eeb7a480cfa61))
+* Naming fix for `messages.InsertMessage` (now `messages.GetInserts`) ([#1000](https://github.com/cloudquery/plugin-sdk/issues/1000)) ([b1e2bd4](https://github.com/cloudquery/plugin-sdk/commit/b1e2bd4d1a5c5f904b82d6f41ed6eb0f26ef91cc))
+* Update scheduler for JSON marshal / unmarshal ([#1006](https://github.com/cloudquery/plugin-sdk/issues/1006)) ([970bad1](https://github.com/cloudquery/plugin-sdk/commit/970bad1fcf1f0e6aadcf1d0f381c8cd8177e8513))
+* **writers:** Move to sub packages ([#1011](https://github.com/cloudquery/plugin-sdk/issues/1011)) ([826e816](https://github.com/cloudquery/plugin-sdk/commit/826e816d8b8ec9668806b9d34ee5f92bd4a7ff56))
+
+## [4.1.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.0.2-rc1...v4.1.0-rc1) (2023-06-28)
+
+
+### Features
+
+* Split sync and write messages ([#1009](https://github.com/cloudquery/plugin-sdk/issues/1009)) ([6e35a5f](https://github.com/cloudquery/plugin-sdk/commit/6e35a5f270d5938d6f108a37efce9a51afb35119))
+
+
+### Bug Fixes
+
+* **testing:** Grammar ([#1003](https://github.com/cloudquery/plugin-sdk/issues/1003)) ([c79cde4](https://github.com/cloudquery/plugin-sdk/commit/c79cde4dfced980dbdcc721f048adfb0686174e2))
+
 ## [4.0.2-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.0.1-rc1...v4.0.2-rc1) (2023-06-26)
 
 

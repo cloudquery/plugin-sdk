@@ -39,7 +39,7 @@ func TestOnWriteError(t *testing.T) {
 	if err := p.Init(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.WriteAll(ctx, plugin.WriteOptions{}, nil); err.Error() != "errOnWrite" {
+	if err := p.WriteAll(ctx, nil); err.Error() != "errOnWrite" {
 		t.Fatalf("expected errOnWrite, got %s", err)
 	}
 }

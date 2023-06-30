@@ -22,7 +22,7 @@ type Client interface {
 
 type UnimplementedDestination struct{}
 
-func (UnimplementedDestination) Write(context.Context, WriteOptions, <-chan message.Message) error {
+func (UnimplementedDestination) Write(context.Context, <-chan message.WriteMessage) error {
 	return ErrNotImplemented
 }
 
@@ -32,7 +32,7 @@ func (UnimplementedDestination) Read(context.Context, *schema.Table, chan<- arro
 
 type UnimplementedSource struct{}
 
-func (UnimplementedSource) Sync(context.Context, SyncOptions, chan<- message.Message) error {
+func (UnimplementedSource) Sync(context.Context, SyncOptions, chan<- message.SyncMessage) error {
 	return ErrNotImplemented
 }
 

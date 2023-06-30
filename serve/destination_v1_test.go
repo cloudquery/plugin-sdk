@@ -8,8 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
+	"github.com/apache/arrow/go/v13/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	pbSource "github.com/cloudquery/plugin-pb-go/pb/source/v2"
 	"github.com/cloudquery/plugin-pb-go/specs"
@@ -75,7 +77,15 @@ func TestDestinationV1(t *testing.T) {
 	tableName := "test_destination_serve"
 	sourceName := "test_destination_serve_source"
 	syncTime := time.Now()
-	table := schema.TestTable(tableName, schema.TestSourceOptions{})
+	table := &schema.Table{
+		Name: tableName,
+		Columns: []schema.Column{
+			schema.CqSourceNameColumn,
+			schema.CqSyncTimeColumn,
+			{Name: "col1", Type: arrow.PrimitiveTypes.Int16},
+		},
+	}
+
 	tables := schema.Tables{table}
 	sourceSpec := specs.Source{
 		Name: sourceName,
@@ -91,12 +101,11 @@ func TestDestinationV1(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-
-	rec := schema.GenTestData(table, schema.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   syncTime,
-		MaxRows:    1,
-	})[0]
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+	bldr.Field(0).(*array.StringBuilder).Append(sourceName)
+	bldr.Field(1).(*array.TimestampBuilder).AppendTime(syncTime)
+	bldr.Field(2).(*array.Int16Builder).Append(1)
+	rec := bldr.NewRecord()
 
 	sourceSpecBytes, err := json.Marshal(sourceSpec)
 	if err != nil {
@@ -141,7 +150,7 @@ func TestDestinationV1(t *testing.T) {
 	totalResources := 0
 	for _, msg := range msgs {
 		totalResources++
-		m := msg.(*message.Insert)
+		m := msg.(*message.SyncInsert)
 		if !array.RecordEqual(rec, m.Record) {
 			// diff := plugin.RecordDiff(rec, resource)
 			// t.Fatalf("diff at %d: %s", totalResources, diff)

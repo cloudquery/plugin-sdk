@@ -1,4 +1,4 @@
-package writers
+package batchwriter
 
 import (
 	"context"
@@ -8,43 +8,36 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
-	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/writers"
 	"github.com/rs/zerolog"
 )
 
-type Writer interface {
-	Write(ctx context.Context, writeOptions plugin.WriteOptions, res <-chan message.Message) error
-}
-
-const (
-	defaultBatchTimeoutSeconds = 20
-	defaultBatchSize           = 10000
-	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
-)
-
-type BatchWriterClient interface {
-	MigrateTables(context.Context, []*message.MigrateTable) error
-	WriteTableBatch(ctx context.Context, name string, msgs []*message.Insert) error
-	DeleteStale(context.Context, []*message.DeleteStale) error
+type Client interface {
+	MigrateTables(context.Context, message.WriteMigrateTables) error
+	WriteTableBatch(ctx context.Context, name string, messages message.WriteInserts) error
+	DeleteStale(context.Context, message.WriteDeleteStales) error
 }
 
 type BatchWriter struct {
-	client           BatchWriterClient
+	client           Client
 	workers          map[string]*worker
 	workersLock      sync.RWMutex
 	workersWaitGroup sync.WaitGroup
 
 	migrateTableLock     sync.Mutex
-	migrateTableMessages []*message.MigrateTable
+	migrateTableMessages message.WriteMigrateTables
 	deleteStaleLock      sync.Mutex
-	deleteStaleMessages  []*message.DeleteStale
+	deleteStaleMessages  message.WriteDeleteStales
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
 	batchSize      int
 	batchSizeBytes int
 }
+
+// Assert at compile-time that BatchWriter implements the Writer interface
+var _ writers.Writer = (*BatchWriter)(nil)
 
 type Option func(*BatchWriter)
 
@@ -74,11 +67,17 @@ func WithBatchSizeBytes(size int) Option {
 
 type worker struct {
 	count int
-	ch    chan *message.Insert
+	ch    chan *message.WriteInsert
 	flush chan chan bool
 }
 
-func NewBatchWriter(client BatchWriterClient, opts ...Option) (*BatchWriter, error) {
+const (
+	defaultBatchTimeoutSeconds = 20
+	defaultBatchSize           = 10000
+	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
+)
+
+func New(client Client, opts ...Option) (*BatchWriter, error) {
 	c := &BatchWriter{
 		client:         client,
 		workers:        make(map[string]*worker),
@@ -90,8 +89,8 @@ func NewBatchWriter(client BatchWriterClient, opts ...Option) (*BatchWriter, err
 	for _, opt := range opts {
 		opt(c)
 	}
-	c.migrateTableMessages = make([]*message.MigrateTable, 0, c.batchSize)
-	c.deleteStaleMessages = make([]*message.DeleteStale, 0, c.batchSize)
+	c.migrateTableMessages = make([]*message.WriteMigrateTable, 0, c.batchSize)
+	c.deleteStaleMessages = make([]*message.WriteDeleteStale, 0, c.batchSize)
 	return c, nil
 }
 
@@ -120,9 +119,9 @@ func (w *BatchWriter) Close(context.Context) error {
 	return nil
 }
 
-func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.Insert, flush <-chan chan bool) {
+func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
 	sizeBytes := int64(0)
-	resources := make([]*message.Insert, 0)
+	resources := make([]*message.WriteInsert, 0, w.batchSize)
 	for {
 		select {
 		case r, ok := <-ch:
@@ -132,25 +131,23 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 				}
 				return
 			}
+
+			if (w.batchSize > 0 && len(resources) >= w.batchSize) || (w.batchSizeBytes > 0 && sizeBytes+util.TotalRecordSize(r.Record) >= int64(w.batchSizeBytes)) {
+				w.flushTable(ctx, tableName, resources)
+				resources, sizeBytes = resources[:0], 0
+			}
+
 			resources = append(resources, r)
 			sizeBytes += util.TotalRecordSize(r.Record)
-
-			if len(resources) >= w.batchSize || sizeBytes >= int64(w.batchSizeBytes) {
-				w.flushTable(ctx, tableName, resources)
-				resources = make([]*message.Insert, 0)
-				sizeBytes = 0
-			}
-		case <-time.After(w.batchTimeout):
+		case <-timer(w.batchTimeout):
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)
-				resources = make([]*message.Insert, 0)
-				sizeBytes = 0
+				resources, sizeBytes = resources[:0], 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)
-				resources = make([]*message.Insert, 0)
-				sizeBytes = 0
+				resources, sizeBytes = resources[:0], 0
 			}
 			done <- true
 		case <-ctx.Done():
@@ -160,7 +157,7 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 	}
 }
 
-func (w *BatchWriter) flushTable(ctx context.Context, tableName string, resources []*message.Insert) {
+func (w *BatchWriter) flushTable(ctx context.Context, tableName string, resources []*message.WriteInsert) {
 	// resources = w.removeDuplicatesByPK(table, resources)
 	start := time.Now()
 	batchSize := len(resources)
@@ -238,8 +235,8 @@ func (w *BatchWriter) flushInsert(tableName string) {
 	<-ch
 }
 
-func (w *BatchWriter) writeAll(ctx context.Context, msgs []message.Message) error {
-	ch := make(chan message.Message, len(msgs))
+func (w *BatchWriter) writeAll(ctx context.Context, msgs []message.WriteMessage) error {
+	ch := make(chan message.WriteMessage, len(msgs))
 	for _, msg := range msgs {
 		ch <- msg
 	}
@@ -247,10 +244,10 @@ func (w *BatchWriter) writeAll(ctx context.Context, msgs []message.Message) erro
 	return w.Write(ctx, ch)
 }
 
-func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.Message) error {
+func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
 	for msg := range msgs {
 		switch m := msg.(type) {
-		case *message.DeleteStale:
+		case *message.WriteDeleteStale:
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err
 			}
@@ -259,12 +256,12 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.Message) er
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
 			l := len(w.deleteStaleMessages)
 			w.deleteStaleLock.Unlock()
-			if l > w.batchSize {
+			if w.batchSize > 0 && l > w.batchSize {
 				if err := w.flushDeleteStaleTables(ctx); err != nil {
 					return err
 				}
 			}
-		case *message.Insert:
+		case *message.WriteInsert:
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err
 			}
@@ -274,7 +271,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.Message) er
 			if err := w.startWorker(ctx, m); err != nil {
 				return err
 			}
-		case *message.MigrateTable:
+		case *message.WriteMigrateTable:
 			w.flushInsert(m.Table.Name)
 			if err := w.flushDeleteStaleTables(ctx); err != nil {
 				return err
@@ -283,7 +280,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.Message) er
 			w.migrateTableMessages = append(w.migrateTableMessages, m)
 			l := len(w.migrateTableMessages)
 			w.migrateTableLock.Unlock()
-			if l > w.batchSize {
+			if w.batchSize > 0 && l > w.batchSize {
 				if err := w.flushMigrateTables(ctx); err != nil {
 					return err
 				}
@@ -293,7 +290,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.Message) er
 	return nil
 }
 
-func (w *BatchWriter) startWorker(ctx context.Context, msg *message.Insert) error {
+func (w *BatchWriter) startWorker(ctx context.Context, msg *message.WriteInsert) error {
 	w.workersLock.RLock()
 	md := msg.Record.Schema().Metadata()
 	tableName, ok := md.GetValue(schema.MetadataTableName)
@@ -308,7 +305,7 @@ func (w *BatchWriter) startWorker(ctx context.Context, msg *message.Insert) erro
 		return nil
 	}
 	w.workersLock.Lock()
-	ch := make(chan *message.Insert)
+	ch := make(chan *message.WriteInsert)
 	flush := make(chan chan bool)
 	wr = &worker{
 		count: 1,
@@ -324,4 +321,11 @@ func (w *BatchWriter) startWorker(ctx context.Context, msg *message.Insert) erro
 	}()
 	ch <- msg
 	return nil
+}
+
+func timer(timeout time.Duration) <-chan time.Time {
+	if timeout == 0 {
+		return nil
+	}
+	return time.After(timeout)
 }
