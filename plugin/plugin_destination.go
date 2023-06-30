@@ -37,3 +37,18 @@ func (p *Plugin) Write(ctx context.Context, res <-chan message.WriteMessage) err
 	}
 	return p.client.Write(ctx, res)
 }
+
+// Read is read data from the requested table to the given channel, returned in the same format as the table
+func (p *Plugin) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
+	if !p.mu.TryLock() {
+		return fmt.Errorf("plugin already in use")
+	}
+	defer p.mu.Unlock()
+	if p.client == nil {
+		return fmt.Errorf("plugin not initialized. call Init() first")
+	}
+	if err := p.client.Read(ctx, table, res); err != nil {
+		return fmt.Errorf("failed to read: %w", err)
+	}
+	return nil
+}
