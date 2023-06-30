@@ -53,7 +53,7 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 	bldr.Field(1).(*array.TimestampBuilder).AppendTime(syncTime.Add(time.Second))
 
 	if err := s.plugin.writeOne(ctx, &message.WriteDeleteStale{
-		Table:      table,
+		TableName:  table.Name,
 		SourceName: "test",
 		SyncTime:   syncTime,
 	}); err != nil {

@@ -60,7 +60,11 @@ type StreamingBatchWriter struct {
 	batchTimeout   time.Duration
 	batchSizeRows  int64
 	batchSizeBytes int64
+
+	timerFn timerFn
 }
+
+type timerFn func(timeout time.Duration) <-chan time.Time
 
 // Assert at compile-time that StreamingBatchWriter implements the Writer interface
 var _ writers.Writer = (*StreamingBatchWriter)(nil)
@@ -91,14 +95,27 @@ func WithBatchSizeBytes(size int64) Option {
 	}
 }
 
+func withTimerFn(timer timerFn) Option {
+	return func(p *StreamingBatchWriter) {
+		p.timerFn = timer
+	}
+}
+
+const (
+	defaultBatchTimeoutSeconds = 20
+	defaultBatchSize           = 10000
+	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
+)
+
 func New(client Client, opts ...Option) (*StreamingBatchWriter, error) {
 	c := &StreamingBatchWriter{
 		client:         client,
 		insertWorkers:  make(map[string]*streamingWorkerManager[*message.WriteInsert]),
 		logger:         zerolog.Nop(),
-		batchTimeout:   writers.DefaultBatchTimeoutSeconds * time.Second,
-		batchSizeRows:  writers.DefaultBatchSize,
-		batchSizeBytes: writers.DefaultBatchSizeBytes,
+		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
+		batchSizeRows:  defaultBatchSize,
+		batchSizeBytes: defaultBatchSizeBytes,
+		timerFn:        timer,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -214,6 +231,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 
 			batchSizeRows: w.batchSizeRows,
 			batchTimeout:  w.batchTimeout,
+			timerFn:       w.timerFn,
 		}
 
 		w.workersWaitGroup.Add(1)
@@ -265,6 +283,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			batchSizeRows:  w.batchSizeRows,
 			batchSizeBytes: w.batchSizeBytes,
 			batchTimeout:   w.batchTimeout,
+			timerFn:        w.timerFn,
 		}
 		w.workersLock.Lock()
 		w.insertWorkers[tableName] = wr
@@ -290,6 +309,7 @@ type streamingWorkerManager[T message.WriteMessage] struct {
 	batchSizeRows  int64
 	batchSizeBytes int64
 	batchTimeout   time.Duration
+	timerFn        timerFn
 }
 
 func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup, tableName string) {
@@ -351,7 +371,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			clientCh <- r
 			sizeRows++
 			sizeBytes += recSize
-		case <-time.After(s.batchTimeout):
+		case <-s.timerFn(s.batchTimeout):
 			if sizeRows > 0 {
 				closeFlush()
 			}
@@ -364,9 +384,9 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 	}
 }
 
-// DummyHandler should be used to empty Migration and DeleteStale channels if they are not used.
-func DummyHandler[T message.WriteMessage](ch <-chan T) {
-	// nolint:revive
-	for range ch {
+func timer(timeout time.Duration) <-chan time.Time {
+	if timeout == 0 {
+		return nil
 	}
+	return time.After(timeout)
 }

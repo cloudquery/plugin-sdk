@@ -14,9 +14,9 @@ import (
 )
 
 type Client interface {
-	MigrateTables(context.Context, []*message.WriteMigrateTable) error
-	WriteTableBatch(ctx context.Context, name string, msgs []*message.WriteInsert) error
-	DeleteStale(context.Context, []*message.WriteDeleteStale) error
+	MigrateTables(context.Context, message.WriteMigrateTables) error
+	WriteTableBatch(ctx context.Context, name string, messages message.WriteInserts) error
+	DeleteStale(context.Context, message.WriteDeleteStales) error
 }
 
 type BatchWriter struct {
@@ -26,9 +26,9 @@ type BatchWriter struct {
 	workersWaitGroup sync.WaitGroup
 
 	migrateTableLock     sync.Mutex
-	migrateTableMessages []*message.WriteMigrateTable
+	migrateTableMessages message.WriteMigrateTables
 	deleteStaleLock      sync.Mutex
-	deleteStaleMessages  []*message.WriteDeleteStale
+	deleteStaleMessages  message.WriteDeleteStales
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
@@ -71,14 +71,20 @@ type worker struct {
 	flush chan chan bool
 }
 
+const (
+	defaultBatchTimeoutSeconds = 20
+	defaultBatchSize           = 10000
+	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
+)
+
 func New(client Client, opts ...Option) (*BatchWriter, error) {
 	c := &BatchWriter{
 		client:         client,
 		workers:        make(map[string]*worker),
 		logger:         zerolog.Nop(),
-		batchTimeout:   writers.DefaultBatchTimeoutSeconds * time.Second,
-		batchSize:      writers.DefaultBatchSize,
-		batchSizeBytes: writers.DefaultBatchSizeBytes,
+		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
+		batchSize:      defaultBatchSize,
+		batchSizeBytes: defaultBatchSizeBytes,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -133,7 +139,7 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 
 			resources = append(resources, r)
 			sizeBytes += util.TotalRecordSize(r.Record)
-		case <-time.After(w.batchTimeout):
+		case <-timer(w.batchTimeout):
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)
 				resources, sizeBytes = resources[:0], 0
@@ -245,7 +251,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err
 			}
-			w.flushInsert(m.Table.Name)
+			w.flushInsert(m.TableName)
 			w.deleteStaleLock.Lock()
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
 			l := len(w.deleteStaleMessages)
@@ -315,4 +321,11 @@ func (w *BatchWriter) startWorker(ctx context.Context, msg *message.WriteInsert)
 	}()
 	ch <- msg
 	return nil
+}
+
+func timer(timeout time.Duration) <-chan time.Time {
+	if timeout == 0 {
+		return nil
+	}
+	return time.After(timeout)
 }

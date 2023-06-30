@@ -191,7 +191,7 @@ func (c *client) Close(context.Context) error {
 
 func (c *client) deleteStale(_ context.Context, msg *message.WriteDeleteStale) {
 	var filteredTable []arrow.Record
-	tableName := msg.Table.Name
+	tableName := msg.TableName
 	for i, row := range c.memoryDB[tableName] {
 		sc := row.Schema()
 		indices := sc.FieldIndices(schema.CqSourceNameColumn.Name)
