@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -61,6 +62,43 @@ func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Respo
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
 	return &pb.Init_Response{}, nil
+}
+
+func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
+	records := make(chan arrow.Record)
+	var syncErr error
+	ctx := stream.Context()
+
+	sc, err := pb.NewSchemaFromBytes(req.Table)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
+	}
+	table, err := schema.NewTableFromArrowSchema(sc)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
+	}
+	go func() {
+		defer close(records)
+		err := s.Plugin.Read(ctx, table, records)
+		if err != nil {
+			syncErr = fmt.Errorf("failed to sync records: %w", err)
+		}
+	}()
+
+	for rec := range records {
+		recBytes, err := pb.RecordToBytes(rec)
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err)
+		}
+		resp := &pb.Read_Response{
+			Record: recBytes,
+		}
+		if err := stream.Send(resp); err != nil {
+			return status.Errorf(codes.Internal, "failed to send read response: %v", err)
+		}
+	}
+
+	return syncErr
 }
 
 func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {

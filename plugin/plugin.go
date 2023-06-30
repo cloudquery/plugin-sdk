@@ -27,7 +27,7 @@ func (UnimplementedDestination) Write(context.Context, <-chan message.WriteMessa
 }
 
 func (UnimplementedDestination) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
-	return fmt.Errorf("not implemented")
+	return ErrNotImplemented
 }
 
 type UnimplementedSource struct{}
