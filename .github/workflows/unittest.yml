@@ -11,7 +11,7 @@ jobs:
   unitests:
     strategy:
       matrix:
-        os: [large-ubuntu, windows-latest, macos-latest]
+        os: [large-ubuntu, large-windows, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
