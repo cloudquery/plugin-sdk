@@ -144,8 +144,6 @@ func TestBatchSize(t *testing.T) {
 		&message.WriteInsert{Record: record},
 		&message.WriteInsert{Record: record}, // third message to exceed the batch size
 	)
-	// we need to wait for the batch to be flushed
-	time.Sleep(time.Millisecond * 50)
 
 	if testClient.InsertsLen() != 2 {
 		t.Fatalf("expected 2 insert messages, got %d", testClient.InsertsLen())
@@ -180,9 +178,6 @@ func TestBatchTimeout(t *testing.T) {
 	if testClient.InsertsLen() != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
-
-	// we need to wait for the batch to be flushed
-	time.Sleep(time.Millisecond * 50)
 
 	if testClient.InsertsLen() != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
@@ -224,14 +219,12 @@ func TestBatchUpserts(t *testing.T) {
 	record := bldr.NewRecord()
 
 	writeTo(ch, &message.WriteInsert{Record: record})
-	time.Sleep(time.Millisecond * 50)
 
 	if testClient.InsertsLen() != 0 {
 		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
 	}
 
 	writeTo(ch, &message.WriteInsert{Record: record})
-	time.Sleep(time.Millisecond * 50)
 
 	close(timerExpire)
 	time.Sleep(time.Millisecond * 50)
@@ -250,4 +243,5 @@ func writeTo(ch chan message.WriteMessage, msgs ...message.WriteMessage) {
 	for _, msg := range msgs {
 		ch <- msg
 	}
+	time.Sleep(time.Millisecond * 50)
 }
