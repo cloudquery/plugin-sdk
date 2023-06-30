@@ -221,15 +221,15 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			go func() {
 				select {
 				case sig := <-c:
-					logger.Info().Str("address", listener.Addr().String()).Str("signal", sig.String()).Msg("Got stop signal. Source plugin server shutting down")
+					logger.Info().Str("address", listener.Addr().String()).Str("signal", sig.String()).Msg("Got stop signal. Plugin server shutting down")
 					grpcServer.Stop()
 				case <-ctx.Done():
-					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Source plugin server shutting down")
+					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Plugin server shutting down")
 					grpcServer.Stop()
 				}
 			}()
 
-			logger.Info().Str("address", listener.Addr().String()).Msg("Source plugin server listening")
+			logger.Info().Str("address", listener.Addr().String()).Msg("Plugin server listening")
 			if err := grpcServer.Serve(listener); err != nil {
 				return fmt.Errorf("failed to serve: %w", err)
 			}
