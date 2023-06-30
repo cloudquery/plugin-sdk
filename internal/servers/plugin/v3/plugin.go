@@ -176,18 +176,8 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				Record: record,
 			}
 		case *pb.Write_Request_Delete:
-			sc, err := pb.NewSchemaFromBytes(pbMsg.Delete.Table)
-			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
-				break
-			}
-			table, err := schema.NewTableFromArrowSchema(sc)
-			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
-				break
-			}
 			pluginMessage = &message.WriteDeleteStale{
-				Table:      table,
+				TableName:  pbMsg.Delete.TableName,
 				SourceName: pbMsg.Delete.SourceName,
 				SyncTime:   pbMsg.Delete.SyncTime.AsTime(),
 			}
