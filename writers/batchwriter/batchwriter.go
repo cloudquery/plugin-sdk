@@ -251,7 +251,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err
 			}
-			w.flushInsert(m.Table.Name)
+			w.flushInsert(m.TableName)
 			w.deleteStaleLock.Lock()
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
 			l := len(w.deleteStaleMessages)

@@ -243,7 +243,7 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 		bldr.Field(table.Columns.Index(schema.CqSourceNameColumn.Name)).(*array.StringBuilder).Append(req.Source)
 		bldr.Field(table.Columns.Index(schema.CqSyncTimeColumn.Name)).(*array.TimestampBuilder).AppendTime(req.Timestamp.AsTime())
 		msgs <- &message.WriteDeleteStale{
-			Table:      table,
+			TableName:  table.Name,
 			SourceName: req.Source,
 			SyncTime:   req.Timestamp.AsTime(),
 		}

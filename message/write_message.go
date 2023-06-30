@@ -95,19 +95,19 @@ func (m WriteInserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
 // The message indicates that the destination needs to run something like "DELETE FROM table WHERE _cq_source_name=$1 and sync_time < $2"
 type WriteDeleteStale struct {
 	writeBaseMessage
-	Table      *schema.Table
+	TableName  string
 	SourceName string
 	SyncTime   time.Time
 }
 
 func (m WriteDeleteStale) GetTable() *schema.Table {
-	return m.Table
+	return &schema.Table{Name: m.TableName}
 }
 
 type WriteDeleteStales []*WriteDeleteStale
 
 func (m WriteDeleteStales) Exists(tableName string) bool {
 	return slices.ContainsFunc(m, func(msg *WriteDeleteStale) bool {
-		return msg.Table.Name == tableName
+		return msg.TableName == tableName
 	})
 }

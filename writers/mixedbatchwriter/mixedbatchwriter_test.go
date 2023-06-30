@@ -95,12 +95,12 @@ func TestMixedBatchWriter(t *testing.T) {
 
 	// message to delete stale from table1
 	msgDeleteStale1 := &message.WriteDeleteStale{
-		Table:      table1,
+		TableName:  table1.Name,
 		SourceName: "my-source",
 		SyncTime:   time.Now(),
 	}
 	msgDeleteStale2 := &message.WriteDeleteStale{
-		Table:      table1,
+		TableName:  table1.Name,
 		SourceName: "my-source",
 		SyncTime:   time.Now(),
 	}
