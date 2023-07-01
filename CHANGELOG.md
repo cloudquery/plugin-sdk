@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.4.0-rc1...v4.4.1-rc1) (2023-07-01)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v13 digest to 5a06b2e ([#1032](https://github.com/cloudquery/plugin-sdk/issues/1032)) ([d369262](https://github.com/cloudquery/plugin-sdk/commit/d36926212e837eb833e49efd20755adfb886804d))
+* **deps:** Update golang.org/x/exp digest to 97b1e66 ([#1033](https://github.com/cloudquery/plugin-sdk/issues/1033)) ([791e60a](https://github.com/cloudquery/plugin-sdk/commit/791e60aa6113e2d70d245e28d4b3c4f910c32a25))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to 9506855 ([#1034](https://github.com/cloudquery/plugin-sdk/issues/1034)) ([6999d11](https://github.com/cloudquery/plugin-sdk/commit/6999d11b674235875b22f5a86d766206f6f0b56c))
+* **deps:** Update module github.com/goccy/go-json to v0.10.2 ([#1035](https://github.com/cloudquery/plugin-sdk/issues/1035)) ([521eb13](https://github.com/cloudquery/plugin-sdk/commit/521eb13730e761c0bc9f12bc1769d61cc24fec48))
+* **deps:** Update module github.com/klauspost/compress to v1.16.6 ([#1036](https://github.com/cloudquery/plugin-sdk/issues/1036)) ([76bfc85](https://github.com/cloudquery/plugin-sdk/commit/76bfc8544fea19e8cb4dc3999fb0c3956f1f4e36))
+* **serve:** Confusing message ([#1031](https://github.com/cloudquery/plugin-sdk/issues/1031)) ([ee873c9](https://github.com/cloudquery/plugin-sdk/commit/ee873c96f83ab05a4aa67fdae14eb5aa9d32471c))
+* State add flush and fix migration bug ([#1039](https://github.com/cloudquery/plugin-sdk/issues/1039)) ([8c10291](https://github.com/cloudquery/plugin-sdk/commit/8c1029124c73e32f8581951caa8ad737ac0c2fba))
+
 ## [4.4.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.3.1-rc1...v4.4.0-rc1) (2023-06-30)
 
 
