@@ -14,6 +14,7 @@ import (
 type Client interface {
 	SetKey(ctx context.Context, key string, value string) error
 	GetKey(ctx context.Context, key string) (string, error)
+	Flush(ctx context.Context) error
 }
 
 func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Client, error) {
