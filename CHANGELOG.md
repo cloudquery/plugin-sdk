@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.2-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.4.1-rc1...v4.4.2-rc1) (2023-07-02)
+
+
+### Bug Fixes
+
+* Add GetMessageByTable to WriteMigrateTables ([#1041](https://github.com/cloudquery/plugin-sdk/issues/1041)) ([8a23f68](https://github.com/cloudquery/plugin-sdk/commit/8a23f6801a66ad35b755081d6669458acd4bc186))
+
 ## [4.4.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.4.0-rc1...v4.4.1-rc1) (2023-07-01)
 
 
