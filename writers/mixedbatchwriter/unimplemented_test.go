@@ -8,7 +8,7 @@ import (
 )
 
 type testDummyClient struct {
-	mixedbatchwriter.UnimplementedMigrateTableBatch
+	mixedbatchwriter.IgnoreMigrateTableBatch
 	mixedbatchwriter.UnimplementedDeleteStaleBatch
 }
 

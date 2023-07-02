@@ -8,7 +8,7 @@ import (
 )
 
 type testDummyClient struct {
-	streamingbatchwriter.UnimplementedMigrateTable
+	streamingbatchwriter.IgnoreMigrateTable
 	streamingbatchwriter.UnimplementedDeleteStale
 }
 

@@ -2,18 +2,20 @@ package mixedbatchwriter
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 )
 
-type UnimplementedMigrateTableBatch struct{}
+type IgnoreMigrateTableBatch struct{}
 
-func (UnimplementedMigrateTableBatch) MigrateTableBatch(context.Context, message.WriteMigrateTables) error {
+func (IgnoreMigrateTableBatch) MigrateTableBatch(context.Context, message.WriteMigrateTables) error {
 	return nil
 }
 
 type UnimplementedDeleteStaleBatch struct{}
 
 func (UnimplementedDeleteStaleBatch) DeleteStaleBatch(context.Context, message.WriteDeleteStales) error {
-	return nil
+	return fmt.Errorf("DeleteStaleBatch: %w", plugin.ErrNotImplemented)
 }

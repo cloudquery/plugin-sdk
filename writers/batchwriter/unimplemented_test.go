@@ -8,7 +8,7 @@ import (
 )
 
 type testDummyClient struct {
-	batchwriter.UnimplementedMigrateTables
+	batchwriter.IgnoreMigrateTables
 	batchwriter.UnimplementedDeleteStale
 }
 
