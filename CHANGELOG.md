@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.4.2-rc1...v4.5.0-rc1) (2023-07-03)
+
+
+### Features
+
+* **writers:** More unimplemented writer helpers ([#1038](https://github.com/cloudquery/plugin-sdk/issues/1038)) ([b1ad878](https://github.com/cloudquery/plugin-sdk/commit/b1ad878f7bb99403c4516f134a76fc165758ec0f))
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to df3b664 ([#1043](https://github.com/cloudquery/plugin-sdk/issues/1043)) ([5b95fce](https://github.com/cloudquery/plugin-sdk/commit/5b95fceffb74515d7141a2d56c6be1a78f0e562c))
+* Make scheduler stateful to support sync option ([#1046](https://github.com/cloudquery/plugin-sdk/issues/1046)) ([d683eff](https://github.com/cloudquery/plugin-sdk/commit/d683eff3a0bc31d9dde97c50a48bfa94e5ff2895))
+* **writers:** Require `Close()` for `StreamingBatchWriter` ([#1045](https://github.com/cloudquery/plugin-sdk/issues/1045)) ([2078e84](https://github.com/cloudquery/plugin-sdk/commit/2078e842f55b37966214f281ca7ac230cec8dc73))
+
 ## [4.4.2-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.4.1-rc1...v4.4.2-rc1) (2023-07-02)
 
 
