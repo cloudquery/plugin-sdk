@@ -11,11 +11,17 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type BackendOptions struct {
+	TableName  string
+	Connection string
+}
+
 type SyncOptions struct {
 	Tables              []string
 	SkipTables          []string
 	SkipDependentTables bool
 	DeterministicCQID   bool
+	BackendOptions      *BackendOptions
 }
 
 type SourceClient interface {
