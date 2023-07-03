@@ -31,15 +31,15 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Cl
 
 type NoOpClient struct{}
 
-func (*NoOpClient) SetKey(ctx context.Context, key string, value string) error {
+func (*NoOpClient) SetKey(_ context.Context, _ string, _ string) error {
 	return nil
 }
 
-func (*NoOpClient) GetKey(ctx context.Context, key string) (string, error) {
+func (*NoOpClient) GetKey(_ context.Context, _ string) (string, error) {
 	return "", nil
 }
 
-func (*NoOpClient) Flush(ctx context.Context) error {
+func (*NoOpClient) Flush(_ context.Context) error {
 	return nil
 }
 
