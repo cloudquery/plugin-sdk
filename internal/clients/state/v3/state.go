@@ -3,7 +3,6 @@ package state
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"sync"
 
@@ -69,6 +68,9 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 			},
 		},
 	}); err != nil {
+		return nil, err
+	}
+	if _, err := writeClient.CloseAndRecv(); err != nil {
 		return nil, err
 	}
 
@@ -158,5 +160,5 @@ func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	if val, ok := c.mem[key]; ok {
 		return val, nil
 	}
-	return "", fmt.Errorf("key not found")
+	return "", nil
 }

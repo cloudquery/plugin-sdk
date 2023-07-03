@@ -55,6 +55,15 @@ func (m WriteMigrateTables) Exists(tableName string) bool {
 	})
 }
 
+func (m WriteMigrateTables) GetMessageByTable(tableName string) *WriteMigrateTable {
+	for _, msg := range m {
+		if msg.Table.Name == tableName {
+			return msg
+		}
+	}
+	return nil
+}
+
 type WriteInsert struct {
 	writeBaseMessage
 	Record arrow.Record
