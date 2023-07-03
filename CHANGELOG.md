@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.5.0-rc1...v4.6.0-rc1) (2023-07-03)
+
+
+### Features
+
+* Add state.NoOpClient ([#1047](https://github.com/cloudquery/plugin-sdk/issues/1047)) ([ee1ee5f](https://github.com/cloudquery/plugin-sdk/commit/ee1ee5fdb455ef6216b5a591c55b94b27cd96277))
+
 ## [4.5.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.4.2-rc1...v4.5.0-rc1) (2023-07-03)
 
 
