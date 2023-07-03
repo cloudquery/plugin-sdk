@@ -28,3 +28,20 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Cl
 	}
 	return nil, fmt.Errorf("please upgrade your state backend plugin. state supporting version 3 plugin has %v", versions.Versions)
 }
+
+type NoOpClient struct{}
+
+func (NoOpClient) SetKey(ctx context.Context, key string, value string) error {
+	return nil
+}
+
+func (NoOpClient) GetKey(ctx context.Context, key string) (string, error) {
+	return "", nil
+}
+
+func (NoOpClient) Flush(ctx context.Context) error {
+	return nil
+}
+
+// static check
+var _ Client = (*NoOpClient)(nil)
