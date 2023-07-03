@@ -86,6 +86,14 @@ func (m WriteInserts) Exists(tableName string) bool {
 	})
 }
 
+func (m WriteInserts) GetRecords() []arrow.Record {
+	res := make([]arrow.Record, len(m))
+	for i := range m {
+		res[i] = m[i].Record
+	}
+	return res
+}
+
 func (m WriteInserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
 	res := make([]arrow.Record, 0, len(m))
 	for _, insert := range m {
