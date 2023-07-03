@@ -11,6 +11,6 @@ It supports incremental syncs based on the (**id_col**, **id_col2**) columns.
 
 | Name          | Type          |
 | ------------- | ------------- |
-|int_col|int64|
-|id_col (PK) (Incremental Key)|int64|
-|id_col2 (Incremental Key)|int64|
+|int_col|`int64`|
+|id_col (PK) (Incremental Key)|`int64`|
+|id_col2 (Incremental Key)|`int64`|
