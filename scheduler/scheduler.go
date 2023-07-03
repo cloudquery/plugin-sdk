@@ -136,15 +136,11 @@ func WithStrategy(strategy Strategy) Option {
 	}
 }
 
-type SyncOptions struct {
-	DeterministicCQID bool
-}
-
-type SyncOption func(*SyncOptions)
+type SyncOption func(*syncClient)
 
 func WithSyncDeterministicCQID(deterministicCQID bool) SyncOption {
-	return func(s *SyncOptions) {
-		s.DeterministicCQID = deterministicCQID
+	return func(s *syncClient) {
+		s.deterministicCQID = deterministicCQID
 	}
 }
 
@@ -153,12 +149,8 @@ type Client interface {
 }
 
 type Scheduler struct {
-	tables   schema.Tables
-	client   schema.ClientMeta
 	caser    *caser.Caser
 	strategy Strategy
-	// status sync metrics
-	metrics  *Metrics
 	maxDepth uint64
 	// resourceSem is a semaphore that limits the number of concurrent resources being fetched
 	resourceSem *semaphore.Weighted
@@ -169,10 +161,18 @@ type Scheduler struct {
 	concurrency uint64
 }
 
-func NewScheduler(client schema.ClientMeta, opts ...Option) *Scheduler {
+type syncClient struct {
+	tables            schema.Tables
+	client            schema.ClientMeta
+	scheduler         *Scheduler
+	deterministicCQID bool
+	// status sync metrics
+	metrics *Metrics
+	logger  zerolog.Logger
+}
+
+func NewScheduler(opts ...Option) *Scheduler {
 	s := Scheduler{
-		client:      client,
-		metrics:     &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
 		caser:       caser.New(),
 		concurrency: DefaultConcurrency,
 		maxDepth:    DefaultMaxDepth,
@@ -180,17 +180,28 @@ func NewScheduler(client schema.ClientMeta, opts ...Option) *Scheduler {
 	for _, opt := range opts {
 		opt(&s)
 	}
+	// This is very similar to the concurrent web crawler problem with some minor changes.
+	// We are using DFS/Round-Robin to make sure memory usage is capped at O(h) where h is the height of the tree.
+	tableConcurrency := max(s.concurrency/minResourceConcurrency, minTableConcurrency)
+	resourceConcurrency := tableConcurrency * minResourceConcurrency
+	s.tableSems = make([]*semaphore.Weighted, s.maxDepth)
+	for i := uint64(0); i < s.maxDepth; i++ {
+		s.tableSems[i] = semaphore.NewWeighted(int64(tableConcurrency))
+		// reduce table concurrency logarithmically for every depth level
+		tableConcurrency = max(tableConcurrency/2, minTableConcurrency)
+	}
+	s.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
 	return &s
 }
 
 // SyncAll is mostly used for testing as it will sync all tables and can run out of memory
 // in the real world. Should use Sync for production.
-func (s *Scheduler) SyncAll(ctx context.Context, tables schema.Tables) (message.SyncMessages, error) {
+func (s *Scheduler) SyncAll(ctx context.Context, client schema.ClientMeta, tables schema.Tables) (message.SyncMessages, error) {
 	res := make(chan message.SyncMessage)
 	var err error
 	go func() {
 		defer close(res)
-		err = s.Sync(ctx, tables, res)
+		err = s.Sync(ctx, client, tables, res)
 	}()
 	// nolint:prealloc
 	var messages message.SyncMessages
@@ -200,20 +211,25 @@ func (s *Scheduler) SyncAll(ctx context.Context, tables schema.Tables) (message.
 	return messages, err
 }
 
-func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- message.SyncMessage, opts ...SyncOption) error {
+func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables schema.Tables, res chan<- message.SyncMessage, opts ...SyncOption) error {
 	if len(tables) == 0 {
 		return nil
 	}
 
-	syncOpts := &SyncOptions{}
+	syncClient := &syncClient{
+		metrics:   &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
+		tables:    tables,
+		client:    client,
+		scheduler: s,
+		logger:    s.logger,
+	}
 	for _, opt := range opts {
-		opt(syncOpts)
+		opt(syncClient)
 	}
 
 	if maxDepth(tables) > s.maxDepth {
 		return fmt.Errorf("max depth exceeded, max depth is %d", s.maxDepth)
 	}
-	s.tables = tables
 
 	// send migrate messages first
 	for _, table := range tables.FlattenTables() {
@@ -227,9 +243,9 @@ func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- m
 		defer close(resources)
 		switch s.strategy {
 		case StrategyDFS:
-			s.syncDfs(ctx, resources, syncOpts)
+			syncClient.syncDfs(ctx, resources)
 		case StrategyRoundRobin:
-			s.syncRoundRobin(ctx, resources, syncOpts)
+			syncClient.syncRoundRobin(ctx, resources)
 		default:
 			panic(fmt.Errorf("unknown scheduler %s", s.strategy.String()))
 		}
@@ -244,7 +260,7 @@ func (s *Scheduler) Sync(ctx context.Context, tables schema.Tables, res chan<- m
 	return nil
 }
 
-func (s *Scheduler) logTablesMetrics(tables schema.Tables, client Client) {
+func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
 	clientName := client.ID()
 	for _, table := range tables {
 		metrics := s.metrics.TableClient[table.Name][clientName]
@@ -253,7 +269,7 @@ func (s *Scheduler) logTablesMetrics(tables schema.Tables, client Client) {
 	}
 }
 
-func (s *Scheduler) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item any) *schema.Resource {
+func (s *syncClient) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item any) *schema.Resource {
 	var validationErr *schema.ValidationError
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
@@ -307,7 +323,7 @@ func (s *Scheduler) resolveResource(ctx context.Context, table *schema.Table, cl
 	return resource
 }
 
-func (s *Scheduler) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
+func (s *syncClient) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
 	var validationErr *schema.ValidationError
 	columnStartTime := time.Now()
 	defer func() {
@@ -337,7 +353,7 @@ func (s *Scheduler) resolveColumn(ctx context.Context, logger zerolog.Logger, ta
 		}
 	} else {
 		// base use case: try to get column with CamelCase name
-		v := funk.Get(resource.GetItem(), s.caser.ToPascal(c.Name), funk.WithAllowZero())
+		v := funk.Get(resource.GetItem(), s.scheduler.caser.ToPascal(c.Name), funk.WithAllowZero())
 		if v != nil {
 			err := resource.Set(c.Name, v)
 			if err != nil {
