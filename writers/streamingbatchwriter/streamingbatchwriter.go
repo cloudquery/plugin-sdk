@@ -158,6 +158,8 @@ func (w *StreamingBatchWriter) Close(context.Context) error {
 	}
 	w.workersWaitGroup.Wait()
 
+	w.insertWorkers = nil
+
 	return nil
 }
 
