@@ -144,7 +144,7 @@ func (w *StreamingBatchWriter) Flush(_ context.Context) error {
 	return nil
 }
 
-func (w *StreamingBatchWriter) stopWorkers() {
+func (w *StreamingBatchWriter) Close(context.Context) error {
 	w.workersLock.Lock()
 	defer w.workersLock.Unlock()
 	for _, w := range w.insertWorkers {
@@ -158,9 +158,9 @@ func (w *StreamingBatchWriter) stopWorkers() {
 	}
 	w.workersWaitGroup.Wait()
 
-	w.insertWorkers = make(map[string]*streamingWorkerManager[*message.WriteInsert])
-	w.migrateWorker = nil
-	w.deleteWorker = nil
+	w.insertWorkers = nil
+
+	return nil
 }
 
 func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
@@ -172,8 +172,6 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 		}
 	}()
 
-	hasWorkers := false
-
 	for msg := range msgs {
 		msgType := writers.MsgID(msg)
 		if w.lastMsgType != msgType {
@@ -182,7 +180,6 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 			}
 		}
 		w.lastMsgType = msgType
-		hasWorkers = true
 		if err := w.startWorker(ctx, errCh, msg); err != nil {
 			return err
 		}
@@ -192,9 +189,6 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 		return err
 	}
 
-	if hasWorkers {
-		w.stopWorkers()
-	}
 	close(errCh)
 	return nil
 }
