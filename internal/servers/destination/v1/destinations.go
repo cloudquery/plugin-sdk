@@ -54,7 +54,7 @@ func (s *Server) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
 	}
-	return &pb.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec)
+	return &pb.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec, plugin.NewClientOptions{})
 }
 
 func (s *Server) GetName(context.Context, *pb.GetName_Request) (*pb.GetName_Response, error) {

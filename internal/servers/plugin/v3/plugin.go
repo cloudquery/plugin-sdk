@@ -27,8 +27,11 @@ type Server struct {
 	NoSentry  bool
 }
 
-func (s *Server) GetTables(ctx context.Context, _ *pb.GetTables_Request) (*pb.GetTables_Response, error) {
-	tables, err := s.Plugin.Tables(ctx)
+func (s *Server) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
+	tables, err := s.Plugin.Tables(ctx, plugin.TableOptions{
+		Tables:     req.Tables,
+		SkipTables: req.SkipTables,
+	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get tables: %v", err)
 	}
@@ -58,7 +61,7 @@ func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVer
 }
 
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
-	if err := s.Plugin.Init(ctx, req.Spec); err != nil {
+	if err := s.Plugin.Init(ctx, req.Spec, plugin.NewClientOptions{}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
 	return &pb.Init_Response{}, nil

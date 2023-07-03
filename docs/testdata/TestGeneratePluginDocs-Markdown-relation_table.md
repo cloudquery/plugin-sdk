@@ -18,4 +18,4 @@ The following tables depend on relation_table:
 
 | Name          | Type          |
 | ------------- | ------------- |
-|string_col|utf8|
+|string_col|`utf8`|

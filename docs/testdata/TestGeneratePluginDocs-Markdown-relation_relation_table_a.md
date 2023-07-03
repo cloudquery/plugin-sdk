@@ -14,4 +14,4 @@ This table depends on [relation_table](relation_table.md).
 
 | Name          | Type          |
 | ------------- | ------------- |
-|string_col|utf8|
+|string_col|`utf8`|
