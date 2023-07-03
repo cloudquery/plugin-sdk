@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.6.0-rc1...v4.6.1-rc1) (2023-07-03)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.6.0 ([#1050](https://github.com/cloudquery/plugin-sdk/issues/1050)) ([ba632d1](https://github.com/cloudquery/plugin-sdk/commit/ba632d1dd5feb98d64cf762ef55d7d6dd03fc2e2))
+* Make gen docs work without auth ([#1052](https://github.com/cloudquery/plugin-sdk/issues/1052)) ([504f849](https://github.com/cloudquery/plugin-sdk/commit/504f8498f9f1317be849c1090728c81a76daa5ca))
+
 ## [4.6.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.5.0-rc1...v4.6.0-rc1) (2023-07-03)
 
 
