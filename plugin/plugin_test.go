@@ -14,7 +14,7 @@ type testPluginClient struct {
 	messages message.SyncMessages
 }
 
-func newTestPluginClient(context.Context, zerolog.Logger, []byte) (Client, error) {
+func newTestPluginClient(context.Context, zerolog.Logger, []byte, NewClientOptions) (Client, error) {
 	return &testPluginClient{}, nil
 }
 
@@ -22,7 +22,7 @@ func (*testPluginClient) GetSpec() any {
 	return &struct{}{}
 }
 
-func (*testPluginClient) Tables(context.Context) (schema.Tables, error) {
+func (*testPluginClient) Tables(context.Context, TableOptions) (schema.Tables, error) {
 	return schema.Tables{}, nil
 }
 
@@ -60,10 +60,10 @@ func (*testPluginClient) Close(context.Context) error {
 func TestPluginSuccess(t *testing.T) {
 	ctx := context.Background()
 	p := NewPlugin("test", "v1.0.0", newTestPluginClient)
-	if err := p.Init(ctx, []byte("")); err != nil {
+	if err := p.Init(ctx, []byte(""), NewClientOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	tables, err := p.Tables(ctx)
+	tables, err := p.Tables(ctx, TableOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
