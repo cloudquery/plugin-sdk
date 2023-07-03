@@ -112,6 +112,12 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		SkipDependentTables: req.SkipDependentTables,
 		DeterministicCQID:   req.DeterministicCqId,
 	}
+	if req.Backend != nil {
+		syncOptions.BackendOptions = &plugin.BackendOptions{
+			TableName:  req.Backend.TableName,
+			Connection: req.Backend.Connection,
+		}
+	}
 
 	go func() {
 		defer close(msgs)

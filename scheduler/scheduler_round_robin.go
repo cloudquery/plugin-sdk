@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"golang.org/x/sync/semaphore"
 )
 
 type tableClient struct {
@@ -13,18 +12,7 @@ type tableClient struct {
 	client schema.ClientMeta
 }
 
-func (s *Scheduler) syncRoundRobin(ctx context.Context, resolvedResources chan<- *schema.Resource, syncOpts *SyncOptions) {
-	tableConcurrency := max(s.concurrency/minResourceConcurrency, minTableConcurrency)
-	resourceConcurrency := tableConcurrency * minResourceConcurrency
-
-	s.tableSems = make([]*semaphore.Weighted, s.maxDepth)
-	for i := uint64(0); i < s.maxDepth; i++ {
-		s.tableSems[i] = semaphore.NewWeighted(int64(tableConcurrency))
-		// reduce table concurrency logarithmically for every depth level
-		tableConcurrency = max(tableConcurrency/2, minTableConcurrency)
-	}
-	s.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
-
+func (s *syncClient) syncRoundRobin(ctx context.Context, resolvedResources chan<- *schema.Resource) {
 	// we have this because plugins can return sometimes clients in a random way which will cause
 	// differences between this run and the next one.
 	preInitialisedClients := make([][]schema.ClientMeta, len(s.tables))
@@ -45,7 +33,7 @@ func (s *Scheduler) syncRoundRobin(ctx context.Context, resolvedResources chan<-
 	for _, tc := range tableClients {
 		table := tc.table
 		cl := tc.client
-		if err := s.tableSems[0].Acquire(ctx, 1); err != nil {
+		if err := s.scheduler.tableSems[0].Acquire(ctx, 1); err != nil {
 			// This means context was cancelled
 			wg.Wait()
 			return
@@ -53,12 +41,12 @@ func (s *Scheduler) syncRoundRobin(ctx context.Context, resolvedResources chan<-
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			defer s.tableSems[0].Release(1)
+			defer s.scheduler.tableSems[0].Release(1)
 			// not checking for error here as nothing much to do.
 			// the error is logged and this happens when context is cancelled
 			// Round Robin currently uses the DFS algorithm to resolve the tables, but this
 			// may change in the future.
-			s.resolveTableDfs(ctx, table, cl, nil, resolvedResources, 1, syncOpts)
+			s.resolveTableDfs(ctx, table, cl, nil, resolvedResources, 1)
 		}()
 	}
 

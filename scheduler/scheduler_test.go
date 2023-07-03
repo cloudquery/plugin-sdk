@@ -228,9 +228,9 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 		WithLogger(zerolog.New(zerolog.NewTestWriter(t))),
 		WithStrategy(strategy),
 	}
-	sc := NewScheduler(&c, opts...)
+	sc := NewScheduler(opts...)
 	msgs := make(chan message.SyncMessage, 10)
-	if err := sc.Sync(ctx, tables, msgs, WithSyncDeterministicCQID(deterministicCQID)); err != nil {
+	if err := sc.Sync(ctx, &c, tables, msgs, WithSyncDeterministicCQID(deterministicCQID)); err != nil {
 		t.Fatal(err)
 	}
 	close(msgs)
