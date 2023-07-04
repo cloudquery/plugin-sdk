@@ -15,14 +15,19 @@ func SetParents(tables schema.Tables, parent *schema.Table) {
 }
 
 // Apply transformations to tables
-func TransformTables(tables schema.Tables) error {
+func TransformTables(tables schema.Tables, extraTransformers ...schema.Transform) error {
 	for _, table := range tables {
 		if table.Transform != nil {
 			if err := table.Transform(table); err != nil {
 				return fmt.Errorf("failed to transform table %s: %w", table.Name, err)
 			}
 		}
-		if err := TransformTables(table.Relations); err != nil {
+		for _, tf := range extraTransformers {
+			if err := tf(table); err != nil {
+				return fmt.Errorf("failed to transform table %s: %w", table.Name, err)
+			}
+		}
+		if err := TransformTables(table.Relations, extraTransformers...); err != nil {
 			return err
 		}
 	}
