@@ -1,7 +1,8 @@
-package mixedbatchwriter_test
+package mixedbatchwriter
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/cloudquery/plugin-sdk/v4/writers/mixedbatchwriter"
 )
 
 type testMixedBatchClient struct {
@@ -44,11 +44,18 @@ func (c *testMixedBatchClient) DeleteStaleBatch(_ context.Context, messages mess
 	return nil
 }
 
-var _ mixedbatchwriter.Client = (*testMixedBatchClient)(nil)
+var _ Client = (*testMixedBatchClient)(nil)
 
-func TestMixedBatchWriter(t *testing.T) {
-	ctx := context.Background()
+type testMessages struct {
+	migrateTable1 *message.WriteMigrateTable
+	migrateTable2 *message.WriteMigrateTable
+	insert1       *message.WriteInsert
+	insert2       *message.WriteInsert
+	deleteStale1  *message.WriteDeleteStale
+	deleteStale2  *message.WriteDeleteStale
+}
 
+func getTestMessages() testMessages {
 	// message to create table1
 	table1 := &schema.Table{
 		Name: "table1",
@@ -105,6 +112,18 @@ func TestMixedBatchWriter(t *testing.T) {
 		SyncTime:   time.Now(),
 	}
 
+	return testMessages{
+		migrateTable1: msgMigrateTable1,
+		migrateTable2: msgMigrateTable2,
+		insert1:       msgInsertTable1,
+		insert2:       msgInsertTable2,
+		deleteStale1:  msgDeleteStale1,
+		deleteStale2:  msgDeleteStale2,
+	}
+}
+
+func TestMixedBatchWriter(t *testing.T) {
+	tm := getTestMessages()
 	testCases := []struct {
 		name        string
 		messages    []message.WriteMessage
@@ -113,64 +132,65 @@ func TestMixedBatchWriter(t *testing.T) {
 		{
 			name: "create table, insert, delete stale",
 			messages: []message.WriteMessage{
-				msgMigrateTable1,
-				msgMigrateTable2,
-				msgInsertTable1,
-				msgInsertTable2,
-				msgDeleteStale1,
-				msgDeleteStale2,
+				tm.migrateTable1,
+				tm.migrateTable2,
+				tm.insert1,
+				tm.insert2,
+				tm.deleteStale1,
+				tm.deleteStale2,
 			},
 			wantBatches: [][]message.WriteMessage{
-				{msgMigrateTable1, msgMigrateTable2},
-				{msgInsertTable1, msgInsertTable2},
-				{msgDeleteStale1, msgDeleteStale2},
+				{tm.migrateTable1, tm.migrateTable2},
+				{tm.insert1, tm.insert2},
+				{tm.deleteStale1, tm.deleteStale2},
 			},
 		},
 		{
 			name: "interleaved messages",
 			messages: []message.WriteMessage{
-				msgMigrateTable1,
-				msgInsertTable1,
-				msgDeleteStale1,
-				msgMigrateTable2,
-				msgInsertTable2,
-				msgDeleteStale2,
+				tm.migrateTable1,
+				tm.insert1,
+				tm.deleteStale1,
+				tm.migrateTable2,
+				tm.insert2,
+				tm.deleteStale2,
 			},
 			wantBatches: [][]message.WriteMessage{
-				{msgMigrateTable1},
-				{msgInsertTable1},
-				{msgDeleteStale1},
-				{msgMigrateTable2},
-				{msgInsertTable2},
-				{msgDeleteStale2},
+				{tm.migrateTable1},
+				{tm.insert1},
+				{tm.deleteStale1},
+				{tm.migrateTable2},
+				{tm.insert2},
+				{tm.deleteStale2},
 			},
 		},
 		{
 			name: "interleaved messages",
 			messages: []message.WriteMessage{
-				msgMigrateTable1,
-				msgMigrateTable2,
-				msgInsertTable1,
-				msgDeleteStale2,
-				msgInsertTable2,
-				msgDeleteStale1,
+				tm.migrateTable1,
+				tm.migrateTable2,
+				tm.insert1,
+				tm.deleteStale2,
+				tm.insert2,
+				tm.deleteStale1,
 			},
 			wantBatches: [][]message.WriteMessage{
-				{msgMigrateTable1, msgMigrateTable2},
-				{msgInsertTable1},
-				{msgDeleteStale2},
-				{msgInsertTable2},
-				{msgDeleteStale1},
+				{tm.migrateTable1, tm.migrateTable2},
+				{tm.insert1},
+				{tm.deleteStale2},
+				{tm.insert2},
+				{tm.deleteStale1},
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
 			client := &testMixedBatchClient{
 				receivedBatches: make([][]message.WriteMessage, 0),
 			}
-			wr, err := mixedbatchwriter.New(client)
+			wr, err := New(client)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -182,6 +202,79 @@ func TestMixedBatchWriter(t *testing.T) {
 			if err := wr.Write(ctx, ch); err != nil {
 				t.Fatal(err)
 			}
+			if len(client.receivedBatches) != len(tc.wantBatches) {
+				t.Fatalf("got %d batches, want %d", len(client.receivedBatches), len(tc.wantBatches))
+			}
+			for i, wantBatch := range tc.wantBatches {
+				if len(client.receivedBatches[i]) != len(wantBatch) {
+					t.Fatalf("got %d messages in batch %d, want %d", len(client.receivedBatches[i]), i, len(wantBatch))
+				}
+			}
+		})
+	}
+}
+
+func TestMixedBatchWriterTimeout(t *testing.T) {
+	tm := getTestMessages()
+	cases := []struct {
+		name        string
+		messages    []message.WriteMessage
+		wantBatches [][]message.WriteMessage
+	}{
+		{
+			name: "one_message_batches",
+			messages: []message.WriteMessage{
+				tm.insert1,
+				tm.insert2,
+			},
+			wantBatches: [][]message.WriteMessage{
+				{tm.insert1},
+				{tm.insert2},
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			client := &testMixedBatchClient{
+				receivedBatches: make([][]message.WriteMessage, 0),
+			}
+			triggerTimeout := make(chan struct{})
+			wr, err := New(client,
+				WithBatchSize(1000),
+				WithBatchSizeBytes(1000000),
+				withTimerFn(func(_ time.Duration) <-chan time.Time {
+					c := make(chan time.Time)
+					go func() {
+						<-triggerTimeout
+						c <- time.Now()
+					}()
+					return c
+				}),
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ch := make(chan message.WriteMessage)
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if err := wr.Write(ctx, ch); err != nil {
+					t.Fatal(err)
+				}
+			}()
+
+			for _, msg := range tc.messages {
+				ch <- msg
+				time.Sleep(100 * time.Millisecond)
+				triggerTimeout <- struct{}{}
+				time.Sleep(100 * time.Millisecond)
+			}
+			close(ch)
+			wg.Wait()
+
 			if len(client.receivedBatches) != len(tc.wantBatches) {
 				t.Fatalf("got %d batches, want %d", len(client.receivedBatches), len(tc.wantBatches))
 			}
