@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.6.1-rc1...v4.7.0-rc1) (2023-07-04)
+
+
+### Features
+
+* Add `WriteInserts.GetRecords()` ([#1053](https://github.com/cloudquery/plugin-sdk/issues/1053)) ([05e1edd](https://github.com/cloudquery/plugin-sdk/commit/05e1eddff293504be015b4ee76c911f35b91bfba))
+* Add batch timeout support to mixed batch writer ([#1055](https://github.com/cloudquery/plugin-sdk/issues/1055)) ([7fe7c64](https://github.com/cloudquery/plugin-sdk/commit/7fe7c642287609f9ea9a65e604741f2164f8f8ce))
+* Add Duration configtype ([#1014](https://github.com/cloudquery/plugin-sdk/issues/1014)) ([fbde15a](https://github.com/cloudquery/plugin-sdk/commit/fbde15a62c055270ce03dc9bbbced9400c53e943))
+
+
+### Bug Fixes
+
+* Fix timer logic in batch writers ([#1056](https://github.com/cloudquery/plugin-sdk/issues/1056)) ([9179e7f](https://github.com/cloudquery/plugin-sdk/commit/9179e7f9184260e36018f83d13a5229f47dafdac))
+
 ## [4.6.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.6.0-rc1...v4.6.1-rc1) (2023-07-03)
 
 
