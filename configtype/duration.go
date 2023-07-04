@@ -39,3 +39,7 @@ func (d *Duration) MarshalJSON() ([]byte, error) {
 func (d *Duration) Duration() time.Duration {
 	return d.duration
 }
+
+func (d Duration) Equal(other Duration) bool {
+	return d.duration == other.duration
+}
