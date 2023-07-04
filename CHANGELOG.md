@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.7.0-rc1...v4.7.1-rc1) (2023-07-04)
+
+
+### Bug Fixes
+
+* Add AddCqIDs helper function ([#1065](https://github.com/cloudquery/plugin-sdk/issues/1065)) ([911762d](https://github.com/cloudquery/plugin-sdk/commit/911762d2f790c9ed9facbea567dc6ff2100a6adf))
+* Check record data in tests ([#1062](https://github.com/cloudquery/plugin-sdk/issues/1062)) ([f13e4cc](https://github.com/cloudquery/plugin-sdk/commit/f13e4cc4a8d401fca314c5b266b75700bdc47088))
+* **configtype:** Add `Equal()` method to `Duration` ([#1059](https://github.com/cloudquery/plugin-sdk/issues/1059)) ([57c7bc2](https://github.com/cloudquery/plugin-sdk/commit/57c7bc230c3ad3150f37b4f36b8e479b1c45c64f))
+* Conversion and test fixes ([#1064](https://github.com/cloudquery/plugin-sdk/issues/1064)) ([36b65cb](https://github.com/cloudquery/plugin-sdk/commit/36b65cb9132470a835aac3e1f02c5c49c3fb70f6))
+* Fix test assertions for records ([#1066](https://github.com/cloudquery/plugin-sdk/issues/1066)) ([a9bd88f](https://github.com/cloudquery/plugin-sdk/commit/a9bd88f8db0a71dc4f8ea713ff35b206a0485d9a))
+* **testdata:** Add missing column types ([#1061](https://github.com/cloudquery/plugin-sdk/issues/1061)) ([f5d01c9](https://github.com/cloudquery/plugin-sdk/commit/f5d01c9adf8b532e97372245827334ec6d5c6e64))
+
 ## [4.7.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.6.1-rc1...v4.7.0-rc1) (2023-07-04)
 
 
