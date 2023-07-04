@@ -122,7 +122,7 @@ func (w *BatchWriter) Close(context.Context) error {
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
 	sizeBytes := int64(0)
 	resources := make([]*message.WriteInsert, 0, w.batchSize)
-	tick, done := ticker(w.batchTimeout)
+	tick, done := writers.NewTicker(w.batchTimeout)
 	defer done()
 	for {
 		select {
@@ -323,11 +323,4 @@ func (w *BatchWriter) startWorker(ctx context.Context, msg *message.WriteInsert)
 	}()
 	ch <- msg
 	return nil
-}
-
-func ticker(interval time.Duration) (ch <-chan time.Time, stop func()) {
-	if t := time.NewTicker(interval); t != nil {
-		return t.C, t.Stop
-	}
-	return nil, func() {}
 }
