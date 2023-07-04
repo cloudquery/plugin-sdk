@@ -2,7 +2,6 @@ package mixedbatchwriter
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"golang.org/x/sync/errgroup"
 )
 
 type testMixedBatchClient struct {
@@ -257,14 +257,10 @@ func TestMixedBatchWriterTimeout(t *testing.T) {
 			}
 			ch := make(chan message.WriteMessage)
 
-			var wg sync.WaitGroup
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if err := wr.Write(ctx, ch); err != nil {
-					t.Fatal(err)
-				}
-			}()
+			eg := errgroup.Group{}
+			eg.Go(func() error {
+				return wr.Write(ctx, ch)
+			})
 
 			for _, msg := range tc.messages {
 				ch <- msg
@@ -273,7 +269,10 @@ func TestMixedBatchWriterTimeout(t *testing.T) {
 				time.Sleep(100 * time.Millisecond)
 			}
 			close(ch)
-			wg.Wait()
+			err = eg.Wait()
+			if err != nil {
+				t.Fatalf("got error %v, want nil", err)
+			}
 
 			if len(client.receivedBatches) != len(tc.wantBatches) {
 				t.Fatalf("got %d batches, want %d", len(client.receivedBatches), len(tc.wantBatches))
