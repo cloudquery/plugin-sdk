@@ -3,6 +3,7 @@ package message
 import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"golang.org/x/exp/slices"
 )
 
 type syncBaseMessage struct {
@@ -55,14 +56,14 @@ func (messages SyncMessages) InsertItems() int64 {
 	return items
 }
 
-func (messages SyncMessages) InsertMessage() SyncInserts {
-	inserts := []*SyncInsert{}
+func (messages SyncMessages) GetInserts() SyncInserts {
+	inserts := make(SyncInserts, 0, len(messages))
 	for _, msg := range messages {
 		if m, ok := msg.(*SyncInsert); ok {
 			inserts = append(inserts, m)
 		}
 	}
-	return inserts
+	return slices.Clip(inserts)
 }
 
 func (m SyncMigrateTables) Exists(tableName string) bool {
@@ -88,17 +89,23 @@ func (m SyncInserts) Exists(tableName string) bool {
 	return false
 }
 
+func (m SyncInserts) GetRecords() []arrow.Record {
+	res := make([]arrow.Record, len(m))
+	for i := range m {
+		res[i] = m[i].Record
+	}
+	return res
+}
+
 func (m SyncInserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
-	res := []arrow.Record{}
+	res := make([]arrow.Record, 0, len(m))
 	for _, insert := range m {
 		md := insert.Record.Schema().Metadata()
 		tableNameMeta, ok := md.GetValue(schema.MetadataTableName)
-		if !ok {
+		if !ok || tableNameMeta != table.Name {
 			continue
 		}
-		if tableNameMeta == table.Name {
-			res = append(res, insert.Record)
-		}
+		res = append(res, insert.Record)
 	}
-	return res
+	return slices.Clip(res)
 }

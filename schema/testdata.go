@@ -172,7 +172,7 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 func excludeType(columns ColumnList, typ arrow.DataType) ColumnList {
 	var cols ColumnList
 	for _, c := range columns {
-		if c.Type.ID() != typ.ID() {
+		if !arrow.TypeEqual(c.Type, typ) {
 			cols = append(cols, c)
 		}
 	}
