@@ -6,8 +6,8 @@ type mockTimer struct {
 	expire chan time.Time
 }
 
-func (t *mockTimer) timer(time.Duration) <-chan time.Time {
-	return t.expire
+func (t *mockTimer) timer(time.Duration) (<-chan time.Time, func()) {
+	return t.expire, func() {}
 }
 
 func newMockTimer() (timerFn, chan time.Time) {

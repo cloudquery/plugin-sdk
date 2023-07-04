@@ -243,13 +243,13 @@ func TestMixedBatchWriterTimeout(t *testing.T) {
 			wr, err := New(client,
 				WithBatchSize(1000),
 				WithBatchSizeBytes(1000000),
-				withTimerFn(func(_ time.Duration) <-chan time.Time {
+				withTimerFn(func(_ time.Duration) (<-chan time.Time, func()) {
 					c := make(chan time.Time)
 					go func() {
 						<-triggerTimeout
 						c <- time.Now()
 					}()
-					return c
+					return c, func() {}
 				}),
 			)
 			if err != nil {

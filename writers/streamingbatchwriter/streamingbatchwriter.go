@@ -64,7 +64,7 @@ type StreamingBatchWriter struct {
 	timerFn timerFn
 }
 
-type timerFn func(timeout time.Duration) <-chan time.Time
+type timerFn func(timeout time.Duration) (<-chan time.Time, func())
 
 // Assert at compile-time that StreamingBatchWriter implements the Writer interface
 var _ writers.Writer = (*StreamingBatchWriter)(nil)
@@ -345,7 +345,10 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 	}
 	defer closeFlush()
 
-	tick := s.timerFn(s.batchTimeout)
+	tick, tickClose := s.timerFn(s.batchTimeout)
+	defer func() {
+		tickClose()
+	}()
 	for {
 		select {
 		case r, ok := <-s.ch:
@@ -370,7 +373,8 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			if sizeRows > 0 {
 				closeFlush()
 			}
-			tick = s.timerFn(s.batchTimeout)
+			tickClose()
+			tick, tickClose = s.timerFn(s.batchTimeout)
 		case done := <-s.flush:
 			if sizeRows > 0 {
 				closeFlush()
@@ -380,9 +384,14 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 	}
 }
 
-func timer(timeout time.Duration) <-chan time.Time {
+func timer(timeout time.Duration) (<-chan time.Time, func()) {
 	if timeout == 0 {
-		return nil
+		return nil, func() {}
 	}
-	return time.After(timeout)
+	t := time.NewTimer(timeout)
+	return t.C, func() {
+		if !t.Stop() {
+			<-t.C
+		}
+	}
 }
