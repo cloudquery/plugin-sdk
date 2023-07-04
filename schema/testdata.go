@@ -89,10 +89,10 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 		{Name: "boolean", Type: arrow.FixedWidthTypes.Boolean},
 
 		// extension types
-		{Name: "uuid", Type: types.NewUUIDType()},
-		{Name: "inet", Type: types.NewInetType()},
-		{Name: "mac", Type: types.NewMACType()},
-		{Name: "json", Type: types.NewJSONType()},
+		{Name: "uuid", Type: types.ExtensionTypes.UUID},
+		{Name: "inet", Type: types.ExtensionTypes.Inet},
+		{Name: "mac", Type: types.ExtensionTypes.MAC},
+		{Name: "json", Type: types.ExtensionTypes.JSON},
 	}...)
 	if !opts.SkipDates {
 		columns = append(columns, ColumnList{
@@ -157,7 +157,8 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 	}
 
 	if !opts.SkipLists {
-		columns = append(columns, listOfColumns(columns)...)
+		cols := excludeType(columns, types.ExtensionTypes.JSON)
+		columns = append(columns, listOfColumns(cols)...)
 	}
 
 	if !opts.SkipMaps {
@@ -166,6 +167,16 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 
 	t.Columns = append(t.Columns, columns...)
 	return t
+}
+
+func excludeType(columns ColumnList, typ arrow.DataType) ColumnList {
+	var cols ColumnList
+	for _, c := range columns {
+		if c.Type.ID() != typ.ID() {
+			cols = append(cols, c)
+		}
+	}
+	return cols
 }
 
 // var PKColumnNames = []string{"uuid_pk"}
