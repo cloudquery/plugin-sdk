@@ -94,6 +94,26 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
+// AddCqIds adds the cq_id and cq_parent_id columns to the table and all its relations
+// set cq_id as primary key if no other primary keys
+func AddCqIDs(table *Table) {
+	havePks := len(table.PrimaryKeys()) > 0
+	cqIDColumn := CqIDColumn
+	if !havePks {
+		cqIDColumn.PrimaryKey = true
+	}
+	table.Columns = append(
+		ColumnList{
+			cqIDColumn,
+			CqParentIDColumn,
+		},
+		table.Columns...,
+	)
+	for _, rel := range table.Relations {
+		AddCqIDs(rel)
+	}
+}
+
 func NewTablesFromArrowSchemas(schemas []*arrow.Schema) (Tables, error) {
 	tables := make(Tables, len(schemas))
 	for i, schema := range schemas {
