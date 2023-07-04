@@ -2,6 +2,7 @@ package mixedbatchwriter
 
 import (
 	"context"
+	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -16,11 +17,15 @@ type Client interface {
 	DeleteStaleBatch(ctx context.Context, messages message.WriteDeleteStales) error
 }
 
+type timerFn func(timeout time.Duration) <-chan time.Time
+
 type MixedBatchWriter struct {
 	client         Client
 	logger         zerolog.Logger
 	batchSize      int
 	batchSizeBytes int
+	batchTimeout   time.Duration
+	timerFn        timerFn
 }
 
 // Assert at compile-time that MixedBatchWriter implements the Writer interface
@@ -46,10 +51,22 @@ func WithBatchSizeBytes(size int) Option {
 	}
 }
 
+func WithBatchTimeout(timeout time.Duration) Option {
+	return func(p *MixedBatchWriter) {
+		p.batchTimeout = timeout
+	}
+}
+
+func withTimerFn(timer timerFn) Option {
+	return func(p *MixedBatchWriter) {
+		p.timerFn = timer
+	}
+}
+
 const (
-	defaultBatchTimeoutSeconds = 20
-	defaultBatchSize           = 10000
-	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
+	defaultBatchTimeout   = 20 * time.Second
+	defaultBatchSize      = 10000
+	defaultBatchSizeBytes = 5 * 1024 * 1024 // 5 MiB
 )
 
 func New(client Client, opts ...Option) (*MixedBatchWriter, error) {
@@ -58,6 +75,8 @@ func New(client Client, opts ...Option) (*MixedBatchWriter, error) {
 		logger:         zerolog.Nop(),
 		batchSize:      defaultBatchSize,
 		batchSizeBytes: defaultBatchSizeBytes,
+		batchTimeout:   defaultBatchTimeout,
+		timerFn:        timer,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -81,6 +100,9 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 		writeFunc: w.client.DeleteStaleBatch,
 	}
 	flush := func(msgType writers.MsgType) error {
+		if msgType == writers.MsgTypeUnset {
+			return nil
+		}
 		switch msgType {
 		case writers.MsgTypeMigrateTable:
 			return migrateTable.flush(ctx)
@@ -94,30 +116,41 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 	}
 	prevMsgType := writers.MsgTypeUnset
 	var err error
-	for msg := range msgChan {
-		msgType := writers.MsgID(msg)
-		if prevMsgType != writers.MsgTypeUnset && prevMsgType != msgType {
+	tick := w.timerFn(w.batchTimeout)
+loop:
+	for {
+		select {
+		case msg, ok := <-msgChan:
+			if !ok {
+				break loop
+			}
+			msgType := writers.MsgID(msg)
+			if prevMsgType != msgType {
+				if err := flush(prevMsgType); err != nil {
+					return err
+				}
+			}
+			prevMsgType = msgType
+			switch v := msg.(type) {
+			case *message.WriteMigrateTable:
+				err = migrateTable.append(ctx, v)
+			case *message.WriteInsert:
+				err = insert.append(ctx, v)
+			case *message.WriteDeleteStale:
+				err = deleteStale.append(ctx, v)
+			default:
+				panic("unknown message type")
+			}
+			if err != nil {
+				return err
+			}
+		case <-tick:
 			if err := flush(prevMsgType); err != nil {
 				return err
 			}
+			prevMsgType = writers.MsgTypeUnset
+			tick = w.timerFn(w.batchTimeout)
 		}
-		prevMsgType = msgType
-		switch v := msg.(type) {
-		case *message.WriteMigrateTable:
-			err = migrateTable.append(ctx, v)
-		case *message.WriteInsert:
-			err = insert.append(ctx, v)
-		case *message.WriteDeleteStale:
-			err = deleteStale.append(ctx, v)
-		default:
-			panic("unknown message type")
-		}
-		if err != nil {
-			return err
-		}
-	}
-	if prevMsgType == writers.MsgTypeUnset {
-		return nil
 	}
 	return flush(prevMsgType)
 }
@@ -181,4 +214,11 @@ func (m *insertBatchManager) flush(ctx context.Context) error {
 	}
 	m.batch = m.batch[:0]
 	return nil
+}
+
+func timer(timeout time.Duration) <-chan time.Time {
+	if timeout == 0 {
+		return nil
+	}
+	return time.After(timeout)
 }
