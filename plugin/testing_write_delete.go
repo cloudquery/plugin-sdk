@@ -69,6 +69,8 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
-
+	if diff := RecordDiff(records[0], record); diff != "" {
+		return fmt.Errorf("record differs: %s", diff)
+	}
 	return nil
 }

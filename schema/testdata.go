@@ -70,8 +70,8 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 		Columns: make(ColumnList, 0),
 	}
 	var columns ColumnList
-	// primitive columns
 	columns = append(columns, ColumnList{
+		// primitive columns
 		{Name: "int8", Type: arrow.PrimitiveTypes.Int8},
 		{Name: "int16", Type: arrow.PrimitiveTypes.Int16},
 		{Name: "int32", Type: arrow.PrimitiveTypes.Int32},
@@ -82,8 +82,17 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 		{Name: "uint64", Type: arrow.PrimitiveTypes.Uint64},
 		{Name: "float32", Type: arrow.PrimitiveTypes.Float32},
 		{Name: "float64", Type: arrow.PrimitiveTypes.Float64},
+
+		// basic columns
 		{Name: "binary", Type: arrow.BinaryTypes.Binary},
 		{Name: "string", Type: arrow.BinaryTypes.String},
+		{Name: "boolean", Type: arrow.FixedWidthTypes.Boolean},
+
+		// extension types
+		{Name: "uuid", Type: types.ExtensionTypes.UUID},
+		{Name: "inet", Type: types.ExtensionTypes.Inet},
+		{Name: "mac", Type: types.ExtensionTypes.MAC},
+		{Name: "json", Type: types.ExtensionTypes.JSON},
 	}...)
 	if !opts.SkipDates {
 		columns = append(columns, ColumnList{
@@ -136,6 +145,7 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 	if !opts.SkipDecimals {
 		columns = append(columns, ColumnList{
 			{Name: "decimal128", Type: &arrow.Decimal128Type{Precision: 19, Scale: 10}},
+			// {Name: "decimal256", Type: &arrow.Decimal256Type{Precision: 40, Scale: 10}},
 		}...)
 	}
 
@@ -147,7 +157,8 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 	}
 
 	if !opts.SkipLists {
-		columns = append(columns, listOfColumns(columns)...)
+		cols := excludeType(columns, types.ExtensionTypes.JSON)
+		columns = append(columns, listOfColumns(cols)...)
 	}
 
 	if !opts.SkipMaps {
@@ -156,6 +167,16 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 
 	t.Columns = append(t.Columns, columns...)
 	return t
+}
+
+func excludeType(columns ColumnList, typ arrow.DataType) ColumnList {
+	var cols ColumnList
+	for _, c := range columns {
+		if c.Type.ID() != typ.ID() {
+			cols = append(cols, c)
+		}
+	}
+	return cols
 }
 
 // var PKColumnNames = []string{"uuid_pk"}

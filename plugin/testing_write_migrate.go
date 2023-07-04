@@ -78,10 +78,19 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		if totalItems != 2 {
 			return fmt.Errorf("expected 2 items, got %d", totalItems)
 		}
+		if diff := RecordDiff(records[0], resource1); diff != "" {
+			return fmt.Errorf("records[0] differs: %s", diff)
+		}
+		if diff := RecordDiff(records[1], resource2); diff != "" {
+			return fmt.Errorf("records[1] differs: %s", diff)
+		}
 	} else {
 		totalItems = TotalRows(records)
 		if totalItems != 1 {
 			return fmt.Errorf("expected 1 item, got %d", totalItems)
+		}
+		if diff := RecordDiff(records[0], resource2); diff != "" {
+			return fmt.Errorf("records[0] differs: %s", diff)
 		}
 	}
 

@@ -182,7 +182,7 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 	case arrow.BOOL:
 		bldr.(*array.BooleanBuilder).Append(s.(*Bool).Value)
 	case arrow.TIMESTAMP:
-		bldr.(*array.TimestampBuilder).Append(arrow.Timestamp(s.(*Timestamp).Value.UnixMicro()))
+		bldr.(*array.TimestampBuilder).AppendTime(s.(*Timestamp).Value)
 	case arrow.DURATION:
 		bldr.(*array.DurationBuilder).Append(arrow.Duration(s.(*Duration).Value))
 	case arrow.DATE32:
@@ -217,7 +217,6 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		st := sb.Type().(*arrow.StructType)
 		for i, f := range st.Fields() {
 			sc := NewScalar(sb.FieldBuilder(i).Type())
-
 			if sv, ok := m[f.Name]; ok {
 				if err := sc.Set(sv); err != nil {
 					panic(err)

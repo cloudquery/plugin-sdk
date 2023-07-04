@@ -69,6 +69,13 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 		return fmt.Errorf("expected 2 items, got %d", totalItems)
 	}
 
+	if diff := RecordDiff(readRecords[0], record); diff != "" {
+		return fmt.Errorf("record[0] differs: %s", diff)
+	}
+	if diff := RecordDiff(readRecords[1], record); diff != "" {
+		return fmt.Errorf("record[1] differs: %s", diff)
+	}
+
 	return nil
 }
 
@@ -115,6 +122,11 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	if totalItems != 2 {
 		return fmt.Errorf("expected 2 items, got %d", totalItems)
 	}
-
+	if diff := RecordDiff(readRecords[0], record); diff != "" {
+		return fmt.Errorf("record[0] differs: %s", diff)
+	}
+	if diff := RecordDiff(readRecords[1], record); diff != "" {
+		return fmt.Errorf("record[1] differs: %s", diff)
+	}
 	return nil
 }
