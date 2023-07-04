@@ -76,7 +76,7 @@ func New(client Client, opts ...Option) (*MixedBatchWriter, error) {
 		batchSize:      defaultBatchSize,
 		batchSizeBytes: defaultBatchSizeBytes,
 		batchTimeout:   defaultBatchTimeout,
-		timerFn:        timer,
+		timerFn:        time.Tick,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -149,7 +149,6 @@ loop:
 				return err
 			}
 			prevMsgType = writers.MsgTypeUnset
-			tick = w.timerFn(w.batchTimeout)
 		}
 	}
 	return flush(prevMsgType)
@@ -214,11 +213,4 @@ func (m *insertBatchManager) flush(ctx context.Context) error {
 	}
 	m.batch = m.batch[:0]
 	return nil
-}
-
-func timer(timeout time.Duration) <-chan time.Time {
-	if timeout == 0 {
-		return nil
-	}
-	return time.After(timeout)
 }

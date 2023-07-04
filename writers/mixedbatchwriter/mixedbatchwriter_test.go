@@ -246,8 +246,9 @@ func TestMixedBatchWriterTimeout(t *testing.T) {
 				withTimerFn(func(_ time.Duration) <-chan time.Time {
 					c := make(chan time.Time)
 					go func() {
-						<-triggerTimeout
-						c <- time.Now()
+						for range triggerTimeout {
+							c <- time.Now()
+						}
 					}()
 					return c
 				}),
