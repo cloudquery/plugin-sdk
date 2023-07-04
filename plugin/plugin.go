@@ -13,7 +13,11 @@ import (
 
 var ErrNotImplemented = fmt.Errorf("not implemented")
 
-type NewClientFunc func(context.Context, zerolog.Logger, []byte) (Client, error)
+type NewClientOptions struct {
+	NoConnection bool
+}
+
+type NewClientFunc func(context.Context, zerolog.Logger, []byte, NewClientOptions) (Client, error)
 
 type Client interface {
 	SourceClient
@@ -27,7 +31,7 @@ func (UnimplementedDestination) Write(context.Context, <-chan message.WriteMessa
 }
 
 func (UnimplementedDestination) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
-	return fmt.Errorf("not implemented")
+	return ErrNotImplemented
 }
 
 type UnimplementedSource struct{}
@@ -36,7 +40,7 @@ func (UnimplementedSource) Sync(context.Context, SyncOptions, chan<- message.Syn
 	return ErrNotImplemented
 }
 
-func (UnimplementedSource) Tables(context.Context) (schema.Tables, error) {
+func (UnimplementedSource) Tables(context.Context, TableOptions) (schema.Tables, error) {
 	return nil, ErrNotImplemented
 }
 
@@ -91,11 +95,11 @@ func (p *Plugin) SetLogger(logger zerolog.Logger) {
 	p.logger = logger.With().Str("module", p.name+"-src").Logger()
 }
 
-func (p *Plugin) Tables(ctx context.Context) (schema.Tables, error) {
+func (p *Plugin) Tables(ctx context.Context, options TableOptions) (schema.Tables, error) {
 	if p.client == nil {
 		return nil, fmt.Errorf("plugin not initialized")
 	}
-	tables, err := p.client.Tables(ctx)
+	tables, err := p.client.Tables(ctx, options)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tables: %w", err)
 	}
@@ -103,13 +107,13 @@ func (p *Plugin) Tables(ctx context.Context) (schema.Tables, error) {
 }
 
 // Init initializes the plugin with the given spec.
-func (p *Plugin) Init(ctx context.Context, spec []byte) error {
+func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions) error {
 	if !p.mu.TryLock() {
 		return fmt.Errorf("plugin already in use")
 	}
 	defer p.mu.Unlock()
 	var err error
-	p.client, err = p.newClient(ctx, p.logger, spec)
+	p.client, err = p.newClient(ctx, p.logger, spec, options)
 	if err != nil {
 		return fmt.Errorf("failed to initialize client: %w", err)
 	}

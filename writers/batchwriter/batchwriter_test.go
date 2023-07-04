@@ -1,4 +1,4 @@
-package writers
+package batchwriter
 
 import (
 	"context"
@@ -15,9 +15,9 @@ import (
 
 type testBatchClient struct {
 	mutex         sync.Mutex
-	migrateTables []*message.WriteMigrateTable
-	inserts       []*message.WriteInsert
-	deleteStales  []*message.WriteDeleteStale
+	migrateTables message.WriteMigrateTables
+	inserts       message.WriteInserts
+	deleteStales  message.WriteDeleteStales
 }
 
 func (c *testBatchClient) MigrateTablesLen() int {
@@ -38,23 +38,23 @@ func (c *testBatchClient) DeleteStalesLen() int {
 	return len(c.deleteStales)
 }
 
-func (c *testBatchClient) MigrateTables(_ context.Context, msgs []*message.WriteMigrateTable) error {
+func (c *testBatchClient) MigrateTables(_ context.Context, messages message.WriteMigrateTables) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.migrateTables = append(c.migrateTables, msgs...)
+	c.migrateTables = append(c.migrateTables, messages...)
 	return nil
 }
 
-func (c *testBatchClient) WriteTableBatch(_ context.Context, _ string, msgs []*message.WriteInsert) error {
+func (c *testBatchClient) WriteTableBatch(_ context.Context, _ string, messages message.WriteInserts) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.inserts = append(c.inserts, msgs...)
+	c.inserts = append(c.inserts, messages...)
 	return nil
 }
-func (c *testBatchClient) DeleteStale(_ context.Context, msgs []*message.WriteDeleteStale) error {
+func (c *testBatchClient) DeleteStale(_ context.Context, messages message.WriteDeleteStales) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.deleteStales = append(c.deleteStales, msgs...)
+	c.deleteStales = append(c.deleteStales, messages...)
 	return nil
 }
 
@@ -76,7 +76,7 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 	ctx := context.Background()
 
 	testClient := &testBatchClient{}
-	wr, err := NewBatchWriter(testClient)
+	wr, err := New(testClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestBatchSize(t *testing.T) {
 	ctx := context.Background()
 
 	testClient := &testBatchClient{}
-	wr, err := NewBatchWriter(testClient, WithBatchSize(2))
+	wr, err := New(testClient, WithBatchSize(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestBatchTimeout(t *testing.T) {
 	ctx := context.Background()
 
 	testClient := &testBatchClient{}
-	wr, err := NewBatchWriter(testClient, WithBatchTimeout(time.Second))
+	wr, err := New(testClient, WithBatchTimeout(time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestBatchUpserts(t *testing.T) {
 	ctx := context.Background()
 
 	testClient := &testBatchClient{}
-	wr, err := NewBatchWriter(testClient, WithBatchSize(2), WithBatchTimeout(time.Second))
+	wr, err := New(testClient, WithBatchSize(2), WithBatchTimeout(time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}

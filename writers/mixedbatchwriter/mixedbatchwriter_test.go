@@ -1,4 +1,4 @@
-package writers
+package mixedbatchwriter_test
 
 import (
 	"context"
@@ -10,40 +10,41 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/writers/mixedbatchwriter"
 )
 
 type testMixedBatchClient struct {
 	receivedBatches [][]message.WriteMessage
 }
 
-func (c *testMixedBatchClient) MigrateTableBatch(_ context.Context, msgs []*message.WriteMigrateTable) error {
-	m := make([]message.WriteMessage, len(msgs))
-	for i, msg := range msgs {
+func (c *testMixedBatchClient) MigrateTableBatch(_ context.Context, messages message.WriteMigrateTables) error {
+	m := make([]message.WriteMessage, len(messages))
+	for i, msg := range messages {
 		m[i] = msg
 	}
 	c.receivedBatches = append(c.receivedBatches, m)
 	return nil
 }
 
-func (c *testMixedBatchClient) InsertBatch(_ context.Context, msgs []*message.WriteInsert) error {
-	m := make([]message.WriteMessage, len(msgs))
-	for i, msg := range msgs {
+func (c *testMixedBatchClient) InsertBatch(_ context.Context, messages message.WriteInserts) error {
+	m := make([]message.WriteMessage, len(messages))
+	for i, msg := range messages {
 		m[i] = msg
 	}
 	c.receivedBatches = append(c.receivedBatches, m)
 	return nil
 }
 
-func (c *testMixedBatchClient) DeleteStaleBatch(_ context.Context, msgs []*message.WriteDeleteStale) error {
-	m := make([]message.WriteMessage, len(msgs))
-	for i, msg := range msgs {
+func (c *testMixedBatchClient) DeleteStaleBatch(_ context.Context, messages message.WriteDeleteStales) error {
+	m := make([]message.WriteMessage, len(messages))
+	for i, msg := range messages {
 		m[i] = msg
 	}
 	c.receivedBatches = append(c.receivedBatches, m)
 	return nil
 }
 
-var _ MixedBatchClient = (*testMixedBatchClient)(nil)
+var _ mixedbatchwriter.Client = (*testMixedBatchClient)(nil)
 
 func TestMixedBatchWriter(t *testing.T) {
 	ctx := context.Background()
@@ -94,12 +95,12 @@ func TestMixedBatchWriter(t *testing.T) {
 
 	// message to delete stale from table1
 	msgDeleteStale1 := &message.WriteDeleteStale{
-		Table:      table1,
+		TableName:  table1.Name,
 		SourceName: "my-source",
 		SyncTime:   time.Now(),
 	}
 	msgDeleteStale2 := &message.WriteDeleteStale{
-		Table:      table1,
+		TableName:  table1.Name,
 		SourceName: "my-source",
 		SyncTime:   time.Now(),
 	}
@@ -169,7 +170,7 @@ func TestMixedBatchWriter(t *testing.T) {
 			client := &testMixedBatchClient{
 				receivedBatches: make([][]message.WriteMessage, 0),
 			}
-			wr, err := NewMixedBatchWriter(client)
+			wr, err := mixedbatchwriter.New(client)
 			if err != nil {
 				t.Fatal(err)
 			}

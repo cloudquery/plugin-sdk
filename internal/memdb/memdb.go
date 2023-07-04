@@ -48,16 +48,16 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 	for _, opt := range options {
 		opt(c)
 	}
-	return func(context.Context, zerolog.Logger, []byte) (plugin.Client, error) {
+	return func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
 		return c, nil
 	}
 }
 
-func NewMemDBClient(ctx context.Context, l zerolog.Logger, spec []byte) (plugin.Client, error) {
-	return GetNewClient()(ctx, l, spec)
+func NewMemDBClient(ctx context.Context, l zerolog.Logger, spec []byte, options plugin.NewClientOptions) (plugin.Client, error) {
+	return GetNewClient()(ctx, l, spec, options)
 }
 
-func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte) (plugin.Client, error) {
+func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
@@ -123,7 +123,7 @@ func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- 
 	return nil
 }
 
-func (c *client) Tables(_ context.Context) (schema.Tables, error) {
+func (c *client) Tables(context.Context, plugin.TableOptions) (schema.Tables, error) {
 	tables := make(schema.Tables, 0, len(c.tables))
 	for _, table := range c.tables {
 		tables = append(tables, table)
@@ -191,7 +191,7 @@ func (c *client) Close(context.Context) error {
 
 func (c *client) deleteStale(_ context.Context, msg *message.WriteDeleteStale) {
 	var filteredTable []arrow.Record
-	tableName := msg.Table.Name
+	tableName := msg.TableName
 	for i, row := range c.memoryDB[tableName] {
 		sc := row.Schema()
 		indices := sc.FieldIndices(schema.CqSourceNameColumn.Name)

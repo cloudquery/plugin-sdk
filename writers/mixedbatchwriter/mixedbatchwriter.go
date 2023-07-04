@@ -1,65 +1,63 @@
-package writers
+package mixedbatchwriter
 
 import (
 	"context"
-	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/writers"
 	"github.com/rs/zerolog"
 )
 
-// MixedBatchClient is a client that will receive batches of messages with a mixture of tables.
-type MixedBatchClient interface {
-	MigrateTableBatch(ctx context.Context, messages []*message.WriteMigrateTable) error
-	InsertBatch(ctx context.Context, messages []*message.WriteInsert) error
-	DeleteStaleBatch(ctx context.Context, messages []*message.WriteDeleteStale) error
+// Client is a client that will receive batches of messages with a mixture of tables.
+type Client interface {
+	MigrateTableBatch(ctx context.Context, messages message.WriteMigrateTables) error
+	InsertBatch(ctx context.Context, messages message.WriteInserts) error
+	DeleteStaleBatch(ctx context.Context, messages message.WriteDeleteStales) error
 }
 
 type MixedBatchWriter struct {
-	client         MixedBatchClient
+	client         Client
 	logger         zerolog.Logger
-	batchTimeout   time.Duration
 	batchSize      int
 	batchSizeBytes int
 }
 
 // Assert at compile-time that MixedBatchWriter implements the Writer interface
-var _ Writer = (*MixedBatchWriter)(nil)
+var _ writers.Writer = (*MixedBatchWriter)(nil)
 
-type MixedBatchWriterOption func(writer *MixedBatchWriter)
+type Option func(writer *MixedBatchWriter)
 
-func WithMixedBatchWriterLogger(logger zerolog.Logger) MixedBatchWriterOption {
+func WithLogger(logger zerolog.Logger) Option {
 	return func(p *MixedBatchWriter) {
 		p.logger = logger
 	}
 }
 
-func WithMixedBatchWriterBatchTimeout(timeout time.Duration) MixedBatchWriterOption {
-	return func(p *MixedBatchWriter) {
-		p.batchTimeout = timeout
-	}
-}
-
-func WithMixedBatchWriterBatchSize(size int) MixedBatchWriterOption {
+func WithBatchSize(size int) Option {
 	return func(p *MixedBatchWriter) {
 		p.batchSize = size
 	}
 }
 
-func WithMixedBatchWriterBatchSizeBytes(size int) MixedBatchWriterOption {
+func WithBatchSizeBytes(size int) Option {
 	return func(p *MixedBatchWriter) {
 		p.batchSizeBytes = size
 	}
 }
 
-func NewMixedBatchWriter(client MixedBatchClient, opts ...MixedBatchWriterOption) (*MixedBatchWriter, error) {
+const (
+	defaultBatchTimeoutSeconds = 20
+	defaultBatchSize           = 10000
+	defaultBatchSizeBytes      = 5 * 1024 * 1024 // 5 MiB
+)
+
+func New(client Client, opts ...Option) (*MixedBatchWriter, error) {
 	c := &MixedBatchWriter{
 		client:         client,
 		logger:         zerolog.Nop(),
-		batchTimeout:   DefaultBatchTimeoutSeconds * time.Second,
-		batchSize:      DefaultBatchSize,
-		batchSizeBytes: DefaultBatchSizeBytes,
+		batchSize:      defaultBatchSize,
+		batchSizeBytes: defaultBatchSizeBytes,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -69,7 +67,7 @@ func NewMixedBatchWriter(client MixedBatchClient, opts ...MixedBatchWriterOption
 
 // Write starts listening for messages on the msgChan channel and writes them to the client in batches.
 func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.WriteMessage) error {
-	migrateTable := &batchManager[*message.WriteMigrateTable]{
+	migrateTable := &batchManager[message.WriteMigrateTables, *message.WriteMigrateTable]{
 		batch:     make([]*message.WriteMigrateTable, 0, w.batchSize),
 		writeFunc: w.client.MigrateTableBatch,
 	}
@@ -78,27 +76,27 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 		writeFunc:         w.client.InsertBatch,
 		maxBatchSizeBytes: int64(w.batchSizeBytes),
 	}
-	deleteStale := &batchManager[*message.WriteDeleteStale]{
+	deleteStale := &batchManager[message.WriteDeleteStales, *message.WriteDeleteStale]{
 		batch:     make([]*message.WriteDeleteStale, 0, w.batchSize),
 		writeFunc: w.client.DeleteStaleBatch,
 	}
-	flush := func(msgType msgType) error {
+	flush := func(msgType writers.MsgType) error {
 		switch msgType {
-		case msgTypeMigrateTable:
+		case writers.MsgTypeMigrateTable:
 			return migrateTable.flush(ctx)
-		case msgTypeInsert:
+		case writers.MsgTypeInsert:
 			return insert.flush(ctx)
-		case msgTypeDeleteStale:
+		case writers.MsgTypeDeleteStale:
 			return deleteStale.flush(ctx)
 		default:
 			panic("unknown message type")
 		}
 	}
-	prevMsgType := msgTypeUnset
+	prevMsgType := writers.MsgTypeUnset
 	var err error
 	for msg := range msgChan {
-		msgType := msgID(msg)
-		if prevMsgType != msgTypeUnset && prevMsgType != msgType {
+		msgType := writers.MsgID(msg)
+		if prevMsgType != writers.MsgTypeUnset && prevMsgType != msgType {
 			if err := flush(prevMsgType); err != nil {
 				return err
 			}
@@ -118,19 +116,19 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 			return err
 		}
 	}
-	if prevMsgType == msgTypeUnset {
+	if prevMsgType == writers.MsgTypeUnset {
 		return nil
 	}
 	return flush(prevMsgType)
 }
 
 // generic batch manager for most message types
-type batchManager[T message.WriteMessage] struct {
+type batchManager[A ~[]T, T message.WriteMessage] struct {
 	batch     []T
-	writeFunc func(ctx context.Context, messages []T) error
+	writeFunc func(ctx context.Context, messages A) error
 }
 
-func (m *batchManager[T]) append(ctx context.Context, msg T) error {
+func (m *batchManager[A, T]) append(ctx context.Context, msg T) error {
 	if len(m.batch) == cap(m.batch) {
 		if err := m.flush(ctx); err != nil {
 			return err
@@ -140,7 +138,7 @@ func (m *batchManager[T]) append(ctx context.Context, msg T) error {
 	return nil
 }
 
-func (m *batchManager[T]) flush(ctx context.Context) error {
+func (m *batchManager[A, T]) flush(ctx context.Context) error {
 	if len(m.batch) == 0 {
 		return nil
 	}
@@ -156,7 +154,7 @@ func (m *batchManager[T]) flush(ctx context.Context) error {
 // special batch manager for insert messages that also keeps track of the total size of the batch
 type insertBatchManager struct {
 	batch             []*message.WriteInsert
-	writeFunc         func(ctx context.Context, messages []*message.WriteInsert) error
+	writeFunc         func(ctx context.Context, messages message.WriteInserts) error
 	curBatchSizeBytes int64
 	maxBatchSizeBytes int64
 }

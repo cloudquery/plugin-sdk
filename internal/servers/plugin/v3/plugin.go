@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -26,8 +27,11 @@ type Server struct {
 	NoSentry  bool
 }
 
-func (s *Server) GetTables(ctx context.Context, _ *pb.GetTables_Request) (*pb.GetTables_Response, error) {
-	tables, err := s.Plugin.Tables(ctx)
+func (s *Server) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
+	tables, err := s.Plugin.Tables(ctx, plugin.TableOptions{
+		Tables:     req.Tables,
+		SkipTables: req.SkipTables,
+	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get tables: %v", err)
 	}
@@ -57,10 +61,47 @@ func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVer
 }
 
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
-	if err := s.Plugin.Init(ctx, req.Spec); err != nil {
+	if err := s.Plugin.Init(ctx, req.Spec, plugin.NewClientOptions{}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
 	return &pb.Init_Response{}, nil
+}
+
+func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
+	records := make(chan arrow.Record)
+	var syncErr error
+	ctx := stream.Context()
+
+	sc, err := pb.NewSchemaFromBytes(req.Table)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
+	}
+	table, err := schema.NewTableFromArrowSchema(sc)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
+	}
+	go func() {
+		defer close(records)
+		err := s.Plugin.Read(ctx, table, records)
+		if err != nil {
+			syncErr = fmt.Errorf("failed to sync records: %w", err)
+		}
+	}()
+
+	for rec := range records {
+		recBytes, err := pb.RecordToBytes(rec)
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err)
+		}
+		resp := &pb.Read_Response{
+			Record: recBytes,
+		}
+		if err := stream.Send(resp); err != nil {
+			return status.Errorf(codes.Internal, "failed to send read response: %v", err)
+		}
+	}
+
+	return syncErr
 }
 
 func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
@@ -73,6 +114,12 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		SkipTables:          req.SkipTables,
 		SkipDependentTables: req.SkipDependentTables,
 		DeterministicCQID:   req.DeterministicCqId,
+	}
+	if req.Backend != nil {
+		syncOptions.BackendOptions = &plugin.BackendOptions{
+			TableName:  req.Backend.TableName,
+			Connection: req.Backend.Connection,
+		}
 	}
 
 	go func() {
@@ -176,18 +223,8 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				Record: record,
 			}
 		case *pb.Write_Request_Delete:
-			sc, err := pb.NewSchemaFromBytes(pbMsg.Delete.Table)
-			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
-				break
-			}
-			table, err := schema.NewTableFromArrowSchema(sc)
-			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
-				break
-			}
 			pluginMessage = &message.WriteDeleteStale{
-				Table:      table,
+				TableName:  pbMsg.Delete.TableName,
 				SourceName: pbMsg.Delete.SourceName,
 				SyncTime:   pbMsg.Delete.SyncTime.AsTime(),
 			}

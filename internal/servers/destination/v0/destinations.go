@@ -44,7 +44,7 @@ func (s *Server) Configure(ctx context.Context, req *pbBase.Configure_Request) (
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
 	}
-	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec)
+	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec, plugin.NewClientOptions{})
 }
 
 func (s *Server) GetName(context.Context, *pbBase.GetName_Request) (*pbBase.GetName_Response, error) {
@@ -243,7 +243,7 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 		bldr.Field(table.Columns.Index(schema.CqSourceNameColumn.Name)).(*array.StringBuilder).Append(req.Source)
 		bldr.Field(table.Columns.Index(schema.CqSyncTimeColumn.Name)).(*array.TimestampBuilder).AppendTime(req.Timestamp.AsTime())
 		msgs <- &message.WriteDeleteStale{
-			Table:      table,
+			TableName:  table.Name,
 			SourceName: req.Source,
 			SyncTime:   req.Timestamp.AsTime(),
 		}
