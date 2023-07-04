@@ -122,6 +122,7 @@ func (w *BatchWriter) Close(context.Context) error {
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
 	sizeBytes := int64(0)
 	resources := make([]*message.WriteInsert, 0, w.batchSize)
+	tick := timer(w.batchTimeout)
 	for {
 		select {
 		case r, ok := <-ch:
@@ -139,11 +140,12 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 
 			resources = append(resources, r)
 			sizeBytes += util.TotalRecordSize(r.Record)
-		case <-timer(w.batchTimeout):
+		case <-tick:
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)
 				resources, sizeBytes = resources[:0], 0
 			}
+			tick = timer(w.batchTimeout)
 		case done := <-flush:
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)

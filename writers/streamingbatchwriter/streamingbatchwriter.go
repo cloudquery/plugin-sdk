@@ -345,6 +345,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 	}
 	defer closeFlush()
 
+	tick := s.timerFn(s.batchTimeout)
 	for {
 		select {
 		case r, ok := <-s.ch:
@@ -365,10 +366,11 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			clientCh <- r
 			sizeRows++
 			sizeBytes += recSize
-		case <-s.timerFn(s.batchTimeout):
+		case <-tick:
 			if sizeRows > 0 {
 				closeFlush()
 			}
+			tick = s.timerFn(s.batchTimeout)
 		case done := <-s.flush:
 			if sizeRows > 0 {
 				closeFlush()
