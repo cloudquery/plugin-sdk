@@ -76,7 +76,7 @@ func New(client Client, opts ...Option) (*MixedBatchWriter, error) {
 		batchSize:      defaultBatchSize,
 		batchSizeBytes: defaultBatchSizeBytes,
 		batchTimeout:   defaultBatchTimeout,
-		timerFn:        time.Tick,
+		timerFn:        time.Tick, // nolint:staticcheck
 	}
 	for _, opt := range opts {
 		opt(c)

@@ -122,7 +122,7 @@ func (w *BatchWriter) Close(context.Context) error {
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
 	sizeBytes := int64(0)
 	resources := make([]*message.WriteInsert, 0, w.batchSize)
-	tick := time.Tick(w.batchTimeout)
+	tick := time.Tick(w.batchTimeout) // nolint:staticcheck
 	for {
 		select {
 		case r, ok := <-ch:
