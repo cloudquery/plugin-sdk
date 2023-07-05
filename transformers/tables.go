@@ -30,16 +30,16 @@ func TransformTables(tables schema.Tables) error {
 	return nil
 }
 
-// ApplyTransformers applies the given transformers to the given Tables, and recursively on the relations.
+// Apply applies the given transformers to the given Tables, and recursively on the relations.
 // This is useful for applying transformers that are not defined in the table definitions. To apply the table-definition transformers, use TransformTables.
-func ApplyTransformers(tables schema.Tables, extraTransformers ...schema.Transform) error {
+func Apply(tables schema.Tables, extraTransformers ...schema.Transform) error {
 	for _, table := range tables {
 		for _, tf := range extraTransformers {
 			if err := tf(table); err != nil {
 				return fmt.Errorf("failed to transform table %s: %w", table.Name, err)
 			}
 		}
-		if err := ApplyTransformers(table.Relations, extraTransformers...); err != nil {
+		if err := Apply(table.Relations, extraTransformers...); err != nil {
 			return err
 		}
 	}
