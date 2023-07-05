@@ -118,7 +118,7 @@ func WithLogger(logger zerolog.Logger) Option {
 	}
 }
 
-func WithConcurrency(concurrency uint64) Option {
+func WithConcurrency(concurrency int) Option {
 	return func(s *Scheduler) {
 		s.concurrency = concurrency
 	}
@@ -158,7 +158,7 @@ type Scheduler struct {
 	tableSems []*semaphore.Weighted
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
 	logger      zerolog.Logger
-	concurrency uint64
+	concurrency int
 }
 
 type syncClient struct {
@@ -387,7 +387,7 @@ func maxDepth(tables schema.Tables) uint64 {
 
 // unparam's suggestion to remove the second parameter is not good advice here.
 // nolint:unparam
-func max(a, b uint64) uint64 {
+func max(a, b int) int {
 	if a > b {
 		return a
 	}
