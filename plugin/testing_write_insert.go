@@ -129,10 +129,22 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	if totalItems != 2 {
 		return fmt.Errorf("expected 2 items, got %d", totalItems)
 	}
-	if diff := RecordDiff(readRecords[0], normalRecord); diff != "" {
+
+	wantNormalRecord := s.allowNull.replaceNullsWithEmpty(normalRecord)
+	if s.ignoreNullsInLists {
+		wantNormalRecord = stripNullsFromLists(wantNormalRecord)
+	}
+
+	if diff := RecordDiff(readRecords[0], wantNormalRecord); diff != "" {
 		return fmt.Errorf("record[0] differs: %s", diff)
 	}
-	if diff := RecordDiff(readRecords[1], nullRecord); diff != "" {
+
+	wantNullRecord := s.allowNull.replaceNullsWithEmpty(nullRecord)
+	if s.ignoreNullsInLists {
+		wantNullRecord = stripNullsFromLists(wantNullRecord)
+	}
+
+	if diff := RecordDiff(readRecords[1], wantNullRecord); diff != "" {
 		return fmt.Errorf("record[1] differs: %s", diff)
 	}
 	return nil
