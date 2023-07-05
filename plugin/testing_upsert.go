@@ -37,6 +37,7 @@ func (s *WriterTestSuite) testUpsertBasic(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
+	record = s.handleNulls(record) // we process nulls after writing
 
 	records, err := s.plugin.readAll(ctx, table)
 	if err != nil {
@@ -79,13 +80,12 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 
 	tg := schema.NewTestDataGenerator()
 	normalRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1})[0]
-	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, NullRows: true})[0]
-
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: normalRecord,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
+	normalRecord = s.handleNulls(normalRecord) // we process nulls after writing
 
 	records, err := s.plugin.readAll(ctx, table)
 	if err != nil {
@@ -100,11 +100,13 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 		return fmt.Errorf("record differs after insert: %s", diff)
 	}
 
+	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, NullRows: true})[0]
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: nullRecord,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
+	nullRecord = s.handleNulls(nullRecord) // we process nulls after writing
 
 	records, err = s.plugin.readAll(ctx, table)
 	if err != nil {
