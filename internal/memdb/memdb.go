@@ -3,7 +3,6 @@ package memdb
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"sync"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -101,15 +100,12 @@ func (c *client) Read(_ context.Context, table *schema.Table, res chan<- arrow.R
 	defer c.memoryDBLock.RUnlock()
 
 	tableName := table.Name
-	// we randomize the order of the records here because we don't set an expectation
+	// we iterate over records in reverse here because we don't set an expectation
 	// of ordering on plugins, and we want to make sure that the tests are not
-	// dependent on the order of the records either.
+	// dependent on the order of insertion either.
 	rows := c.memoryDB[tableName]
-	rand.Shuffle(len(rows), func(i, j int) {
-		rows[i], rows[j] = rows[j], rows[i]
-	})
-	for _, row := range rows {
-		res <- row
+	for i := len(rows) - 1; i >= 0; i-- {
+		res <- rows[i]
 	}
 	return nil
 }
