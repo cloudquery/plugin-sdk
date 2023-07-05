@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -63,21 +62,6 @@ func NewSourcePlugin(name string, version string, newClient NewSourceClientFunc,
 		return wrapperClient, nil
 	}
 	return NewPlugin(name, version, newClientWrapper, options...)
-}
-
-func (p *Plugin) readAll(ctx context.Context, table *schema.Table) ([]arrow.Record, error) {
-	var err error
-	ch := make(chan arrow.Record)
-	go func() {
-		defer close(ch)
-		err = p.client.Read(ctx, table, ch)
-	}()
-	// nolint:prealloc
-	var records []arrow.Record
-	for record := range ch {
-		records = append(records, record)
-	}
-	return records, err
 }
 
 func (p *Plugin) SyncAll(ctx context.Context, options SyncOptions) (message.SyncMessages, error) {

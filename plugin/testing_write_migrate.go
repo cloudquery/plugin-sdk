@@ -36,8 +36,8 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		MaxRows:       1,
 		TimePrecision: s.genDatOptions.TimePrecision,
 	}
-
-	resource1 := schema.GenTestData(source, opts)[0]
+	tg := schema.NewTestDataGenerator()
+	resource1 := tg.Generate(source, opts)[0]
 
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource1,
@@ -64,7 +64,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
-	resource2 := schema.GenTestData(target, opts)[0]
+	resource2 := tg.Generate(target, opts)[0]
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource2,
 	}); err != nil {
@@ -115,14 +115,16 @@ func (s *WriterTestSuite) testMigrate(
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 			},
 		}
 
 		target := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		}
@@ -139,14 +141,16 @@ func (s *WriterTestSuite) testMigrate(
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 			},
 		}
 
 		target := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
 		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.AddColumnNotNull, forceMigrate); err != nil {
@@ -162,13 +166,15 @@ func (s *WriterTestSuite) testMigrate(
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			}}
 		target := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 			}}
 		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveColumn, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate remove_column: %v", err)
@@ -183,14 +189,16 @@ func (s *WriterTestSuite) testMigrate(
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			},
 		}
 		target := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 			}}
 		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveColumnNotNull, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate remove_column_not_null: %v", err)
@@ -205,13 +213,15 @@ func (s *WriterTestSuite) testMigrate(
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
 		target := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.BinaryTypes.String, NotNull: true},
 			}}
 		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.ChangeColumn, forceMigrate); err != nil {
