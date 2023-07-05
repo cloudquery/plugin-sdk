@@ -71,6 +71,9 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 	}
 	var columns ColumnList
 	columns = append(columns, ColumnList{
+		// id is to be used as an auto-incrementing column that can be used to order the rows in tests
+		{Name: "id", Type: arrow.PrimitiveTypes.Int64, NotNull: true},
+
 		// primitive columns
 		{Name: "int8", Type: arrow.PrimitiveTypes.Int8},
 		{Name: "int16", Type: arrow.PrimitiveTypes.Int16},
@@ -172,14 +175,12 @@ func TestTable(name string, opts TestSourceOptions) *Table {
 func excludeType(columns ColumnList, typ arrow.DataType) ColumnList {
 	var cols ColumnList
 	for _, c := range columns {
-		if c.Type.ID() != typ.ID() {
+		if !arrow.TypeEqual(c.Type, typ) {
 			cols = append(cols, c)
 		}
 	}
 	return cols
 }
-
-// var PKColumnNames = []string{"uuid_pk"}
 
 // GenTestDataOptions are options for generating test data
 type GenTestDataOptions struct {
@@ -188,33 +189,45 @@ type GenTestDataOptions struct {
 	// SyncTime is the time to set in the sync_time column.
 	SyncTime time.Time
 	// MaxRows is the number of rows to generate.
-	// Rows alternate between not containing null values and containing only null values.
-	// (Only columns that are nullable according to the schema will be null)
 	MaxRows int
 	// StableUUID is the UUID to use for all rows. If set to uuid.Nil, a new UUID will be generated
 	StableUUID uuid.UUID
 	// StableTime is the time to use for all rows other than sync time. If set to time.Time{}, a new time will be generated
-	StableTime    time.Time
+	StableTime time.Time
+	// TimePrecision is the precision to use for time columns.
 	TimePrecision time.Duration
-	Seed          int64
+	// Seed is the seed to use for random data generation.
+	Seed int64
+	// NullRows indicates whether to generate rows with all null values.
+	NullRows bool
+}
+
+type TestDataGenerator struct {
+	counter int
+}
+
+func NewTestDataGenerator() *TestDataGenerator {
+	return &TestDataGenerator{
+		counter: 0,
+	}
 }
 
 // GenTestData generates a slice of arrow.Records with the given schema and options.
-func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
+func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) []arrow.Record {
 	var records []arrow.Record
 	sc := table.ToArrowSchema()
 	for j := 0; j < opts.MaxRows; j++ {
-		nullRow := j%2 == 1
+		tg.counter++
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		for i, c := range table.Columns {
-			if nullRow && !c.NotNull && !c.PrimaryKey &&
+			if opts.NullRows && !c.NotNull && !c.PrimaryKey &&
 				c.Name != CqSourceNameColumn.Name &&
 				c.Name != CqSyncTimeColumn.Name &&
 				c.Name != CqIDColumn.Name {
 				bldr.Field(i).AppendNull()
 				continue
 			}
-			example := getExampleJSON(c.Name, c.Type, opts)
+			example := tg.getExampleJSON(c.Name, c.Type, opts)
 			l := `[` + example + `]`
 			err := bldr.Field(i).UnmarshalJSON([]byte(l))
 			if err != nil {
@@ -235,22 +248,27 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 	return records
 }
 
-func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
+func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
 	src := rand.NewSource(uint64(opts.Seed))
 	rnd := rand.New(src)
+
+	// special case for auto-incrementing id column, used for to determine ordering in tests
+	if arrow.IsInteger(dataType.ID()) && colName == "id" {
+		return `` + strconv.Itoa(tg.counter) + ``
+	}
 
 	// handle lists (including maps)
 	if arrow.IsListLike(dataType.ID()) {
 		if dataType.ID() == arrow.MAP {
-			k := getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
-			v := getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
+			k := tg.getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
+			v := tg.getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
 			opts.Seed++
-			k2 := getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
-			v2 := getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
+			k2 := tg.getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
+			v2 := tg.getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
 			return fmt.Sprintf(`[{"key": %s,"value": %s},{"key": %s,"value": %s}]`, k, v, k2, v2)
 		}
 		inner := dataType.(*arrow.ListType).Elem()
-		return `[` + getExampleJSON(colName, inner, opts) + `,null,` + getExampleJSON(colName, inner, opts) + `]`
+		return `[` + tg.getExampleJSON(colName, inner, opts) + `,null,` + tg.getExampleJSON(colName, inner, opts) + `]`
 	}
 	// handle extension types
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.UUID) {
@@ -351,7 +369,7 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	if dataType.ID() == arrow.STRUCT {
 		var columns []string
 		for _, field := range dataType.(*arrow.StructType).Fields() {
-			v := getExampleJSON(field.Name, field.Type, opts)
+			v := tg.getExampleJSON(field.Name, field.Type, opts)
 			columns = append(columns, fmt.Sprintf(`"%s": %v`, field.Name, v))
 		}
 		return `{` + strings.Join(columns, ",") + `}`
