@@ -14,7 +14,8 @@ func SetParents(tables schema.Tables, parent *schema.Table) {
 	}
 }
 
-// TransformTables runs given Tables' transformers as defined in the table definitions, and recursively on the relations
+// TransformTables runs given Tables' transformers as defined in the table definitions, and recursively on the relations.
+// To apply additional transformers, use ApplyTransformers.
 func TransformTables(tables schema.Tables) error {
 	for _, table := range tables {
 		if table.Transform != nil {
@@ -29,7 +30,8 @@ func TransformTables(tables schema.Tables) error {
 	return nil
 }
 
-// ApplyTransformers applies the given transformers to the given Tables, and recursively on the relations
+// ApplyTransformers applies the given transformers to the given Tables, and recursively on the relations.
+// This is useful for applying transformers that are not defined in the table definitions. To apply the table-definition transformers, use TransformTables.
 func ApplyTransformers(tables schema.Tables, extraTransformers ...schema.Transform) error {
 	for _, table := range tables {
 		for _, tf := range extraTransformers {
