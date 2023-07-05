@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.7.1-rc1...v4.8.0-rc1) (2023-07-05)
+
+
+### Features
+
+* **transformers:** Add `Apply` to apply extra transformations ([#1069](https://github.com/cloudquery/plugin-sdk/issues/1069)) ([a40598e](https://github.com/cloudquery/plugin-sdk/commit/a40598e6c6fe409e7170d2c1553c85050c196562))
+
+
+### Bug Fixes
+
+* Deterministic ordering for records returned by readAll in tests ([#1072](https://github.com/cloudquery/plugin-sdk/issues/1072)) ([cf7510f](https://github.com/cloudquery/plugin-sdk/commit/cf7510fdb594f7772c8507b0f9d394c862172a9f))
+* Handle null-related test options ([#1074](https://github.com/cloudquery/plugin-sdk/issues/1074)) ([88f08ee](https://github.com/cloudquery/plugin-sdk/commit/88f08ee35601d98385f3f6da4c2a57cc3ce81bd5))
+* **naming:** Rename `SyncMessages.InsertMessage()` to `SyncMessages.GetInserts()` ([#1070](https://github.com/cloudquery/plugin-sdk/issues/1070)) ([ab9e768](https://github.com/cloudquery/plugin-sdk/commit/ab9e768f8e11d008236a0ff861734841524a9aea))
+* Reset timers on flush ([#1076](https://github.com/cloudquery/plugin-sdk/issues/1076)) ([767327f](https://github.com/cloudquery/plugin-sdk/commit/767327fd5decbbbbd9e3a5c9664c73425b7b6dbe))
+* Reverse order of records in memdb ([#1075](https://github.com/cloudquery/plugin-sdk/issues/1075)) ([8356590](https://github.com/cloudquery/plugin-sdk/commit/8356590c03f84b7ba69e7f661aba2b2a889fb2dd))
+* **scalar:** Test `AppendTime` on TimestampBuilder ([#1068](https://github.com/cloudquery/plugin-sdk/issues/1068)) ([888c9ee](https://github.com/cloudquery/plugin-sdk/commit/888c9ee7e88f145b1baa2758f71bee1a24e5f60e))
+* **testdata:** Exclude only the correct type ([#1067](https://github.com/cloudquery/plugin-sdk/issues/1067)) ([1c72fb2](https://github.com/cloudquery/plugin-sdk/commit/1c72fb2fc532afee425ded6f324aa7e6cd9875b1))
+
 ## [4.7.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.7.0-rc1...v4.7.1-rc1) (2023-07-04)
 
 
