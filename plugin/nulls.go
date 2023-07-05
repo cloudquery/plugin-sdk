@@ -45,14 +45,14 @@ func stripNullsFromLists(record arrow.Record) arrow.Record {
 
 type AllowNullFunc func(arrow.DataType) bool
 
-func (f AllowNullFunc) replaceNullsByEmpty(record arrow.Record) arrow.Record {
-	if f == nil {
+func (s *WriterTestSuite) replaceNullsByEmpty(record arrow.Record) arrow.Record {
+	if s.allowNull == nil {
 		return record
 	}
 
 	cols := record.Columns()
 	for c, col := range cols {
-		if col.NullN() == 0 || f(col.DataType()) {
+		if col.NullN() == 0 || s.allowNull(col.DataType()) {
 			continue
 		}
 
@@ -76,5 +76,5 @@ func (s *WriterTestSuite) handleNulls(record arrow.Record) arrow.Record {
 	if s.ignoreNullsInLists {
 		record = stripNullsFromLists(record)
 	}
-	return s.allowNull.replaceNullsByEmpty(record)
+	return s.replaceNullsByEmpty(record)
 }
