@@ -49,5 +49,6 @@ func checkColumnsDontExist(t *testing.T, list ColumnList, cols []string) {
 func TestGenTestData(*testing.T) {
 	table := TestTable("test", TestSourceOptions{})
 	// smoke test that no panics
-	_ = GenTestData(table, GenTestDataOptions{})
+	tg := NewTestDataGenerator()
+	_ = tg.Generate(table, GenTestDataOptions{})
 }
