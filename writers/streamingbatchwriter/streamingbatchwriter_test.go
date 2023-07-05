@@ -229,7 +229,7 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	testClient := newClient()
 	timerFn, timerExpire := newMockTimer()
 
-	wr, err := New(testClient, withTimerFn(timerFn))
+	wr, err := New(testClient, withTickerFn(timerFn))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +333,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 
 	testClient := newClient()
 	timerFn, timerExpire := newMockTimer()
-	wr, err := New(testClient, WithBatchSizeRows(2), withTimerFn(timerFn))
+	wr, err := New(testClient, WithBatchSizeRows(2), withTickerFn(timerFn))
 	if err != nil {
 		t.Fatal(err)
 	}
