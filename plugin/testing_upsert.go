@@ -57,7 +57,6 @@ func (s *WriterTestSuite) testUpsertBasic(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-
 	totalItems = TotalRows(records)
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)

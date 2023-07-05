@@ -65,6 +65,7 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
+	sortRecords(table, readRecords, "id")
 
 	totalItems = TotalRows(readRecords)
 	if totalItems != 2 {

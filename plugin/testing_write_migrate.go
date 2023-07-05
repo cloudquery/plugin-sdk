@@ -75,6 +75,8 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if err != nil {
 		return fmt.Errorf("failed to readAll: %w", err)
 	}
+	sortRecords(target, records, "id")
+
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
 	if !writeOptionMigrateForce || supportsSafeMigrate {
 		totalItems = TotalRows(records)
