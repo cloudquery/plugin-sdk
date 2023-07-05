@@ -10,6 +10,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/writers"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -214,6 +215,38 @@ func TestMixedBatchWriter(t *testing.T) {
 	}
 }
 
+type mockTicker struct {
+	C       chan time.Time
+	trigger chan struct{}
+}
+
+func (m *mockTicker) Chan() <-chan time.Time {
+	return m.C
+}
+
+func (m *mockTicker) Trigger() chan<- struct{} {
+	return m.trigger
+}
+
+func (m *mockTicker) Stop() {
+	close(m.C)
+}
+
+func (m *mockTicker) Reset(d time.Duration) {}
+
+func newMockTicker(trigger chan struct{}) *mockTicker {
+	c := make(chan time.Time)
+	go func() {
+		for range trigger {
+			c <- time.Now()
+		}
+	}()
+	return &mockTicker{
+		C:       c,
+		trigger: trigger,
+	}
+}
+
 func TestMixedBatchWriterTimeout(t *testing.T) {
 	tm := getTestMessages()
 	cases := []struct {
@@ -240,17 +273,12 @@ func TestMixedBatchWriterTimeout(t *testing.T) {
 				receivedBatches: make([][]message.WriteMessage, 0),
 			}
 			triggerTimeout := make(chan struct{})
+			defer close(triggerTimeout)
 			wr, err := New(client,
 				WithBatchSize(1000),
 				WithBatchSizeBytes(1000000),
-				withTickerFn(func(_ time.Duration) (<-chan time.Time, func()) {
-					c := make(chan time.Time)
-					go func() {
-						for range triggerTimeout {
-							c <- time.Now()
-						}
-					}()
-					return c, func() { close(c) }
+				withTickerFn(func(_ time.Duration) writers.Ticker {
+					return newMockTicker(triggerTimeout)
 				}),
 			)
 			if err != nil {

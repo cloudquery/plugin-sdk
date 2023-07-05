@@ -6,22 +6,26 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/writers"
 )
 
-type mockTimer struct {
+type mockTicker struct {
 	expire chan time.Time
 }
 
-func (t *mockTimer) timer(time.Duration) (<-chan time.Time, func()) {
-	return t.expire, t.close
-}
-
-func (t *mockTimer) close() {
+func (t *mockTicker) Stop() {
 	close(t.expire)
 }
 
-func newMockTimer() (writers.TickerFunc, chan time.Time) {
+func (t *mockTicker) Reset(time.Duration) {}
+
+func (t *mockTicker) Chan() <-chan time.Time {
+	return t.expire
+}
+
+func newMockTicker() (writers.TickerFunc, chan<- time.Time) {
 	expire := make(chan time.Time)
-	t := &mockTimer{
+	t := &mockTicker{
 		expire: expire,
 	}
-	return t.timer, expire
+	return func(time.Duration) writers.Ticker {
+		return t
+	}, expire
 }

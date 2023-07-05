@@ -114,8 +114,8 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 	}
 	prevMsgType := writers.MsgTypeUnset
 	var err error
-	tick, done := w.tickerFn(w.batchTimeout)
-	defer done()
+	ticker := w.tickerFn(w.batchTimeout)
+	defer ticker.Stop()
 loop:
 	for {
 		select {
@@ -128,6 +128,7 @@ loop:
 				if err := flush(prevMsgType); err != nil {
 					return err
 				}
+				ticker.Reset(w.batchTimeout)
 			}
 			prevMsgType = msgType
 			switch v := msg.(type) {
@@ -143,10 +144,11 @@ loop:
 			if err != nil {
 				return err
 			}
-		case <-tick:
+		case <-ticker.Chan():
 			if err := flush(prevMsgType); err != nil {
 				return err
 			}
+			ticker.Reset(w.batchTimeout)
 			prevMsgType = writers.MsgTypeUnset
 		}
 	}

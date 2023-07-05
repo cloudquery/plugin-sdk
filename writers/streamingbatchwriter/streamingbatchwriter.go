@@ -343,8 +343,8 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 	}
 	defer closeFlush()
 
-	tick, done := s.tickerFn(s.batchTimeout)
-	defer done()
+	ticker := s.tickerFn(s.batchTimeout)
+	defer ticker.Stop()
 	for {
 		select {
 		case r, ok := <-s.ch:
@@ -359,19 +359,21 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 
 			if (s.batchSizeRows > 0 && sizeRows >= s.batchSizeRows) || (s.batchSizeBytes > 0 && sizeBytes+recSize >= s.batchSizeBytes) {
 				closeFlush()
+				ticker.Reset(s.batchTimeout)
 			}
 
 			ensureOpened()
 			clientCh <- r
 			sizeRows++
 			sizeBytes += recSize
-		case <-tick:
+		case <-ticker.Chan():
 			if sizeRows > 0 {
 				closeFlush()
 			}
 		case done := <-s.flush:
 			if sizeRows > 0 {
 				closeFlush()
+				ticker.Reset(s.batchTimeout)
 			}
 			done <- true
 		}

@@ -122,8 +122,8 @@ func (w *BatchWriter) Close(context.Context) error {
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
 	sizeBytes := int64(0)
 	resources := make([]*message.WriteInsert, 0, w.batchSize)
-	tick, done := writers.NewTicker(w.batchTimeout)
-	defer done()
+	ticker := writers.NewTicker(w.batchTimeout)
+	defer ticker.Stop()
 	for {
 		select {
 		case r, ok := <-ch:
@@ -136,19 +136,22 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 
 			if (w.batchSize > 0 && len(resources) >= w.batchSize) || (w.batchSizeBytes > 0 && sizeBytes+util.TotalRecordSize(r.Record) >= int64(w.batchSizeBytes)) {
 				w.flushTable(ctx, tableName, resources)
+				ticker.Reset(w.batchTimeout)
 				resources, sizeBytes = resources[:0], 0
 			}
 
 			resources = append(resources, r)
 			sizeBytes += util.TotalRecordSize(r.Record)
-		case <-tick:
+		case <-ticker.Chan():
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)
+				ticker.Reset(w.batchTimeout)
 				resources, sizeBytes = resources[:0], 0
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
 				w.flushTable(ctx, tableName, resources)
+				ticker.Reset(w.batchTimeout)
 				resources, sizeBytes = resources[:0], 0
 			}
 			done <- true
@@ -169,33 +172,6 @@ func (w *BatchWriter) flushTable(ctx context.Context, tableName string, resource
 		w.logger.Info().Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 	}
 }
-
-// func (*BatchWriter) removeDuplicatesByPK(table *schema.Table, resources []*message.Insert) []*message.Insert {
-// 	pkIndices := table.PrimaryKeysIndexes()
-// 	// special case where there's no PK at all
-// 	if len(pkIndices) == 0 {
-// 		return resources
-// 	}
-
-// 	pks := make(map[string]struct{}, len(resources))
-// 	res := make([]*message.Insert, 0, len(resources))
-// 	for _, r := range resources {
-// 		if r.Record.NumRows() > 1 {
-// 			panic(fmt.Sprintf("record with more than 1 row: %d", r.Record.NumRows()))
-// 		}
-// 		key := pk.String(r.Record)
-// 		_, ok := pks[key]
-// 		if !ok {
-// 			pks[key] = struct{}{}
-// 			res = append(res, r)
-// 			continue
-// 		}
-// 		// duplicate, release
-// 		r.Release()
-// 	}
-
-// 	return res
-// }
 
 func (w *BatchWriter) flushMigrateTables(ctx context.Context) error {
 	w.migrateTableLock.Lock()
