@@ -38,12 +38,12 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	}
 	tg := schema.NewTestDataGenerator()
 	resource1 := tg.Generate(source, opts)[0]
-
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource1,
 	}); err != nil {
 		return fmt.Errorf("failed to insert first record: %w", err)
 	}
+	resource1 = s.handleNulls(resource1) // we process nulls after writing
 
 	records, err := s.plugin.readAll(ctx, source)
 	if err != nil {
@@ -70,6 +70,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	}); err != nil {
 		return fmt.Errorf("failed to insert second record: %w", err)
 	}
+	resource2 = s.handleNulls(resource2) // we process nulls after writing
 
 	records, err = s.plugin.readAll(ctx, target)
 	if err != nil {
