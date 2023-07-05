@@ -61,10 +61,8 @@ type StreamingBatchWriter struct {
 	batchSizeRows  int64
 	batchSizeBytes int64
 
-	timerFn timerFn
+	tickerFn writers.TickerFunc
 }
-
-type timerFn func(timeout time.Duration) <-chan time.Time
 
 // Assert at compile-time that StreamingBatchWriter implements the Writer interface
 var _ writers.Writer = (*StreamingBatchWriter)(nil)
@@ -95,9 +93,9 @@ func WithBatchSizeBytes(size int64) Option {
 	}
 }
 
-func withTimerFn(timer timerFn) Option {
+func withTickerFn(tickerFn writers.TickerFunc) Option {
 	return func(p *StreamingBatchWriter) {
-		p.timerFn = timer
+		p.tickerFn = tickerFn
 	}
 }
 
@@ -115,7 +113,7 @@ func New(client Client, opts ...Option) (*StreamingBatchWriter, error) {
 		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
 		batchSizeRows:  defaultBatchSize,
 		batchSizeBytes: defaultBatchSizeBytes,
-		timerFn:        timer,
+		tickerFn:       writers.NewTicker,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -225,7 +223,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 
 			batchSizeRows: w.batchSizeRows,
 			batchTimeout:  w.batchTimeout,
-			timerFn:       w.timerFn,
+			tickerFn:      w.tickerFn,
 		}
 
 		w.workersWaitGroup.Add(1)
@@ -277,7 +275,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			batchSizeRows:  w.batchSizeRows,
 			batchSizeBytes: w.batchSizeBytes,
 			batchTimeout:   w.batchTimeout,
-			timerFn:        w.timerFn,
+			tickerFn:       w.tickerFn,
 		}
 		w.workersLock.Lock()
 		w.insertWorkers[tableName] = wr
@@ -303,7 +301,7 @@ type streamingWorkerManager[T message.WriteMessage] struct {
 	batchSizeRows  int64
 	batchSizeBytes int64
 	batchTimeout   time.Duration
-	timerFn        timerFn
+	tickerFn       writers.TickerFunc
 }
 
 func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup, tableName string) {
@@ -345,7 +343,8 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 	}
 	defer closeFlush()
 
-	tick := s.timerFn(s.batchTimeout)
+	tick, done := s.tickerFn(s.batchTimeout)
+	defer done()
 	for {
 		select {
 		case r, ok := <-s.ch:
@@ -370,7 +369,6 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			if sizeRows > 0 {
 				closeFlush()
 			}
-			tick = s.timerFn(s.batchTimeout)
 		case done := <-s.flush:
 			if sizeRows > 0 {
 				closeFlush()
@@ -378,11 +376,4 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			done <- true
 		}
 	}
-}
-
-func timer(timeout time.Duration) <-chan time.Time {
-	if timeout == 0 {
-		return nil
-	}
-	return time.After(timeout)
 }

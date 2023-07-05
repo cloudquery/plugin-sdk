@@ -17,15 +17,13 @@ type Client interface {
 	DeleteStaleBatch(ctx context.Context, messages message.WriteDeleteStales) error
 }
 
-type timerFn func(timeout time.Duration) <-chan time.Time
-
 type MixedBatchWriter struct {
 	client         Client
 	logger         zerolog.Logger
 	batchSize      int
 	batchSizeBytes int
 	batchTimeout   time.Duration
-	timerFn        timerFn
+	tickerFn       writers.TickerFunc
 }
 
 // Assert at compile-time that MixedBatchWriter implements the Writer interface
@@ -57,9 +55,9 @@ func WithBatchTimeout(timeout time.Duration) Option {
 	}
 }
 
-func withTimerFn(timer timerFn) Option {
+func withTickerFn(tickerFn writers.TickerFunc) Option {
 	return func(p *MixedBatchWriter) {
-		p.timerFn = timer
+		p.tickerFn = tickerFn
 	}
 }
 
@@ -76,7 +74,7 @@ func New(client Client, opts ...Option) (*MixedBatchWriter, error) {
 		batchSize:      defaultBatchSize,
 		batchSizeBytes: defaultBatchSizeBytes,
 		batchTimeout:   defaultBatchTimeout,
-		timerFn:        timer,
+		tickerFn:       writers.NewTicker,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -116,7 +114,8 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 	}
 	prevMsgType := writers.MsgTypeUnset
 	var err error
-	tick := w.timerFn(w.batchTimeout)
+	tick, done := w.tickerFn(w.batchTimeout)
+	defer done()
 loop:
 	for {
 		select {
@@ -149,7 +148,6 @@ loop:
 				return err
 			}
 			prevMsgType = writers.MsgTypeUnset
-			tick = w.timerFn(w.batchTimeout)
 		}
 	}
 	return flush(prevMsgType)
@@ -214,11 +212,4 @@ func (m *insertBatchManager) flush(ctx context.Context) error {
 	}
 	m.batch = m.batch[:0]
 	return nil
-}
-
-func timer(timeout time.Duration) <-chan time.Time {
-	if timeout == 0 {
-		return nil
-	}
-	return time.After(timeout)
 }

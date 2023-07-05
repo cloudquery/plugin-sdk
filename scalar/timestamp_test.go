@@ -4,7 +4,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type TimestampSt struct {
@@ -61,5 +65,30 @@ func TestTimestampDoubleSet(t *testing.T) {
 	assert.NoError(t, r.Set(""))
 	if r.Equal(&r2) {
 		t.Errorf("%v = %v, expected null", r, r2)
+	}
+}
+
+func TestAppendToBuilderTimestamp(t *testing.T) {
+	units := []arrow.TimeUnit{arrow.Second, arrow.Millisecond, arrow.Microsecond, arrow.Nanosecond}
+	expected := []string{"1999-01-08 04:05:06", "1999-01-08 04:05:06.123", "1999-01-08 04:05:06.123456", "1999-01-08 04:05:06.123456789"}
+	for i, unit := range units {
+		timestamp := Timestamp{
+			Type: &arrow.TimestampType{
+				Unit:     unit,
+				TimeZone: "UTC",
+			},
+		}
+		err := timestamp.Set("1999-01-08 04:05:06.123456789")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		bldr := array.NewTimestampBuilder(memory.DefaultAllocator, timestamp.Type)
+		AppendToBuilder(bldr, &timestamp)
+
+		arr := bldr.NewArray().(*array.Timestamp)
+		actual := arr.ValueStr(0)
+
+		require.Equal(t, expected[i], actual)
 	}
 }
