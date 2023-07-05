@@ -7,8 +7,8 @@ import (
 )
 
 func stripNullsFromLists(record arrow.Record) arrow.Record {
-	cols := make([]arrow.Array, len(record.Columns()))
-	for c, col := range record.Columns() {
+	cols := record.Columns()
+	for c, col := range cols {
 		list, ok := col.(array.ListLike)
 		if !ok {
 			continue
@@ -50,8 +50,8 @@ func (f AllowNullFunc) replaceNullsByEmpty(record arrow.Record) arrow.Record {
 		return record
 	}
 
-	cols := make([]arrow.Array, len(record.Columns()))
-	for c, col := range record.Columns() {
+	cols := record.Columns()
+	for c, col := range cols {
 		if col.NullN() == 0 || f(col.DataType()) {
 			continue
 		}
