@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.8.0-rc1...v4.8.1-rc1) (2023-07-05)
+
+
+### Bug Fixes
+
+* **scheduler:** Concurrency as `int` ([#1077](https://github.com/cloudquery/plugin-sdk/issues/1077)) ([30ba6d7](https://github.com/cloudquery/plugin-sdk/commit/30ba6d758cedea74928be4901a6f78696c0c7247))
+
 ## [4.8.0-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.7.1-rc1...v4.8.0-rc1) (2023-07-05)
 
 
