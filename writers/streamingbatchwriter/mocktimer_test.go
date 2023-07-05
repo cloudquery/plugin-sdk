@@ -14,7 +14,7 @@ func (t *mockTicker) Stop() {
 	close(t.expire)
 }
 
-func (t *mockTicker) Reset(time.Duration) {}
+func (*mockTicker) Reset(time.Duration) {}
 
 func (t *mockTicker) Chan() <-chan time.Time {
 	return t.expire

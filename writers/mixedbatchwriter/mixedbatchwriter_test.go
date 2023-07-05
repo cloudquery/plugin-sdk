@@ -232,7 +232,7 @@ func (m *mockTicker) Stop() {
 	close(m.C)
 }
 
-func (m *mockTicker) Reset(d time.Duration) {}
+func (*mockTicker) Reset(_ time.Duration) {}
 
 func newMockTicker(trigger chan struct{}) *mockTicker {
 	c := make(chan time.Time)

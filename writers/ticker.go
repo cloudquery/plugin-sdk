@@ -31,7 +31,7 @@ type nopTicker struct{}
 
 func (nopTicker) Stop() {}
 
-func (nopTicker) Reset(d time.Duration) {}
+func (nopTicker) Reset(_ time.Duration) {}
 
 func (nopTicker) Chan() <-chan time.Time {
 	return nil
