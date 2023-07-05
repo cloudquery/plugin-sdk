@@ -4,14 +4,35 @@ import (
 	"time"
 )
 
-type TickerFunc func(interval time.Duration) (ch <-chan time.Time, done func())
+type TickerFunc func(time.Duration) Ticker
 
-func NewTicker(interval time.Duration) (<-chan time.Time, func()) {
-	if interval <= 0 {
-		return nil, nop
-	}
-	t := time.NewTicker(interval)
-	return t.C, t.Stop
+type Ticker interface {
+	Stop()
+	Reset(d time.Duration)
+	Chan() <-chan time.Time
 }
 
-func nop() {}
+func NewTicker(interval time.Duration) Ticker {
+	if interval <= 0 {
+		return nopTicker{}
+	}
+	return &ticker{time.NewTicker(interval)}
+}
+
+type ticker struct {
+	*time.Ticker
+}
+
+func (t *ticker) Chan() <-chan time.Time {
+	return t.C
+}
+
+type nopTicker struct{}
+
+func (nopTicker) Stop() {}
+
+func (nopTicker) Reset(_ time.Duration) {}
+
+func (nopTicker) Chan() <-chan time.Time {
+	return nil
+}

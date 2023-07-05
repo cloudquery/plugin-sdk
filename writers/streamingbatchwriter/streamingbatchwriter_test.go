@@ -227,9 +227,9 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	timerFn, timerExpire := newMockTimer()
+	tickerFn, expire := newMockTicker()
 
-	wr, err := New(testClient, withTickerFn(timerFn))
+	wr, err := New(testClient, withTickerFn(tickerFn))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +258,7 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	}
 
 	// flush
-	close(timerExpire)
+	close(expire)
 	waitForLength(t, testClient.MessageLen, messageTypeInsert, 1)
 
 	close(ch)
@@ -332,8 +332,8 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	timerFn, timerExpire := newMockTimer()
-	wr, err := New(testClient, WithBatchSizeRows(2), withTickerFn(timerFn))
+	tickerFn, expire := newMockTicker()
+	wr, err := New(testClient, WithBatchSizeRows(2), withTickerFn(tickerFn))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -363,7 +363,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// flush the batch
-	close(timerExpire)
+	close(expire)
 	waitForLength(t, testClient.MessageLen, messageTypeInsert, 2)
 
 	close(ch)
@@ -379,9 +379,10 @@ func TestStreamingBatchUpserts(t *testing.T) {
 func waitForLength(t *testing.T, checkLen func(messageType) int, msgType messageType, want int) {
 	t.Helper()
 	lastValue := -1
+	timeout := time.After(5 * time.Second)
 	for {
 		select {
-		case <-time.After(time.Second):
+		case <-timeout:
 			t.Fatalf("timed out waiting for %v message length %d (last value: %d)", msgType, want, lastValue)
 		default:
 			if lastValue = checkLen(msgType); lastValue == want {
