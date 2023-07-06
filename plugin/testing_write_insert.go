@@ -57,8 +57,13 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
 
+	bldr = array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+	bldr.Field(0).(*array.Int64Builder).Append(2)
+	bldr.Field(1).(*array.StringBuilder).Append("foo2")
+	record2 := bldr.NewRecord()
+
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
-		Record: record,
+		Record: record2,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
@@ -77,7 +82,7 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 	if diff := RecordDiff(readRecords[0], record); diff != "" {
 		return fmt.Errorf("record[0] differs: %s", diff)
 	}
-	if diff := RecordDiff(readRecords[1], record); diff != "" {
+	if diff := RecordDiff(readRecords[1], record2); diff != "" {
 		return fmt.Errorf("record[1] differs: %s", diff)
 	}
 
