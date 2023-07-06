@@ -268,7 +268,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 	return nil
 }
 
-func (w *BatchWriter) startWorker(ctx context.Context, msg *message.WriteInsert) error {
+func (w *BatchWriter) startWorker(_ context.Context, msg *message.WriteInsert) error {
 	w.workersLock.RLock()
 	md := msg.Record.Schema().Metadata()
 	tableName, ok := md.GetValue(schema.MetadataTableName)
