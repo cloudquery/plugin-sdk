@@ -212,7 +212,7 @@ func NewTestDataGenerator() *TestDataGenerator {
 	}
 }
 
-// GenTestData generates a slice of arrow.Records with the given schema and options.
+// Generate generates a slice of arrow.Records with the given schema and options.
 func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) []arrow.Record {
 	var records []arrow.Record
 	sc := table.ToArrowSchema()
@@ -248,13 +248,13 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) []a
 	return records
 }
 
-func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
+func (tg *TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
 	src := rand.NewSource(uint64(opts.Seed))
 	rnd := rand.New(src)
 
 	// special case for auto-incrementing id column, used for to determine ordering in tests
 	if arrow.IsInteger(dataType.ID()) && colName == "id" {
-		return `` + strconv.Itoa(tg.counter) + ``
+		return strconv.Itoa(tg.counter)
 	}
 
 	// handle lists (including maps)
