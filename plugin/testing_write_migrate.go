@@ -43,7 +43,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	}); err != nil {
 		return fmt.Errorf("failed to insert first record: %w", err)
 	}
-	resource1 = s.handleNulls(resource1) // we process nulls after writing
+	resource1 = s.handleNulls(resource1)
 
 	records, err := s.plugin.readAll(ctx, source)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	}); err != nil {
 		return fmt.Errorf("failed to insert second record: %w", err)
 	}
-	resource2 = s.handleNulls(resource2) // we process nulls after writing
+	resource2 = s.handleNulls(resource2)
 
 	records, err = s.plugin.readAll(ctx, target)
 	if err != nil {

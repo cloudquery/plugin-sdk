@@ -45,7 +45,6 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
-	record = s.handleNulls(record) // we process nulls after writing
 
 	readRecords, err := s.plugin.readAll(ctx, table)
 	if err != nil {
@@ -67,7 +66,6 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
-	record2 = s.handleNulls(record2)
 
 	readRecords, err = s.plugin.readAll(ctx, table)
 	if err != nil {
@@ -105,7 +103,7 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
-	normalRecord = s.handleNulls(normalRecord) // we process nulls after writing
+	normalRecord = s.handleNulls(normalRecord)
 
 	readRecords, err := s.plugin.readAll(ctx, table)
 	if err != nil {
@@ -123,7 +121,7 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
-	nullRecord = s.handleNulls(nullRecord) // we process nulls after writing
+	nullRecord = s.handleNulls(nullRecord)
 
 	readRecords, err = s.plugin.readAll(ctx, table)
 	if err != nil {

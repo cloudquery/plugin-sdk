@@ -37,7 +37,7 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
-	record = s.handleNulls(record) // we process nulls after writing
+	record = s.handleNulls(record)
 
 	records, err := s.plugin.readAll(ctx, table)
 	if err != nil {
