@@ -67,6 +67,7 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
+	record2 = s.handleNulls(record2)
 
 	readRecords, err = s.plugin.readAll(ctx, table)
 	if err != nil {
