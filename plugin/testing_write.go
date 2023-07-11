@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"math/rand"
 	"testing"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -25,6 +26,12 @@ type WriterTestSuite struct {
 
 	// genDataOptions define how to generate test data and which data types to skip
 	genDatOptions schema.TestSourceOptions
+
+	// random seed to use
+	randSeed int64
+
+	// rand.Rand
+	rand *rand.Rand
 }
 
 // SafeMigrations defines which migrations are supported by the plugin in safe migrate mode
@@ -75,6 +82,12 @@ func WithTestDataOptions(opts schema.TestSourceOptions) func(o *WriterTestSuite)
 	}
 }
 
+func WithRandomSeed(seed int64) func(o *WriterTestSuite) {
+	return func(o *WriterTestSuite) {
+		o.randSeed = seed
+	}
+}
+
 func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, opts ...func(o *WriterTestSuite)) {
 	suite := &WriterTestSuite{
 		tests:  tests,
@@ -84,6 +97,8 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 	for _, opt := range opts {
 		opt(suite)
 	}
+
+	suite.rand = rand.New(rand.NewSource(suite.randSeed))
 
 	ctx := context.Background()
 
