@@ -7,7 +7,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-func TestingValidateSync(t *testing.T, tables schema.Tables, messages *message.SyncMessages) {
+func TestingValidateSync(t *testing.T, tables schema.Tables, messages message.SyncMessages) {
 	for _, table := range tables.FlattenTables() {
 		records := messages.GetInserts().GetRecordsForTable(table)
 		emptyColumns := schema.FindEmptyColumns(table, records)
