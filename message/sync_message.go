@@ -109,3 +109,26 @@ func (m SyncInserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
 	}
 	return slices.Clip(res)
 }
+
+func (m SyncInserts) GetRecordsForTables(tables schema.Tables) []arrow.Record {
+	allTables := tables.FlattenTables()
+	res := make([]arrow.Record, 0, len(m))
+	tableNames := make([]string, 0, len(allTables))
+	for i, tableName := range allTables {
+		tableNames[i] = tableName.Name
+	}
+	for _, insert := range m {
+		md := insert.Record.Schema().Metadata()
+		tableNameMeta, ok := md.GetValue(schema.MetadataTableName)
+		if !ok {
+			continue
+		}
+		for _, tableName := range tableNames {
+			if tableNameMeta == tableName {
+				res = append(res, insert.Record)
+				break
+			}
+		}
+	}
+	return slices.Clip(res)
+}
