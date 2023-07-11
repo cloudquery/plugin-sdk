@@ -97,6 +97,7 @@ func (m SyncInserts) GetRecords() []arrow.Record {
 	return res
 }
 
+// Get all records for a single table
 func (m SyncInserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
 	res := make([]arrow.Record, 0, len(m))
 	for _, insert := range m {
@@ -110,6 +111,7 @@ func (m SyncInserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
 	return slices.Clip(res)
 }
 
+// Get all records for an  array of tables including any table relations
 func (m SyncInserts) GetRecordsForTables(tables schema.Tables) []arrow.Record {
 	allTables := tables.FlattenTables()
 	res := make([]arrow.Record, 0, len(m))
