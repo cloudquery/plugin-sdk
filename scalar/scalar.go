@@ -6,7 +6,8 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/float16"
-	"github.com/cloudquery/plugin-sdk/v3/types"
+	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 	"golang.org/x/exp/maps"
 )
 
@@ -33,7 +34,12 @@ type Scalar interface {
 
 type Vector []Scalar
 
-const nullValueStr = array.NullValueStr
+func (v Vector) ToArrowRecord(sc *arrow.Schema) arrow.Record {
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+	AppendToRecordBuilder(bldr, v)
+	rec := bldr.NewRecord()
+	return rec
+}
 
 func (v Vector) Equal(r Vector) bool {
 	if len(v) != len(r) {
@@ -176,7 +182,7 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 	case arrow.BOOL:
 		bldr.(*array.BooleanBuilder).Append(s.(*Bool).Value)
 	case arrow.TIMESTAMP:
-		bldr.(*array.TimestampBuilder).Append(arrow.Timestamp(s.(*Timestamp).Value.UnixMicro()))
+		bldr.(*array.TimestampBuilder).AppendTime(s.(*Timestamp).Value)
 	case arrow.DURATION:
 		bldr.(*array.DurationBuilder).Append(arrow.Duration(s.(*Duration).Value))
 	case arrow.DATE32:
@@ -211,7 +217,6 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		st := sb.Type().(*arrow.StructType)
 		for i, f := range st.Fields() {
 			sc := NewScalar(sb.FieldBuilder(i).Type())
-
 			if sv, ok := m[f.Name]; ok {
 				if err := sc.Set(sv); err != nil {
 					panic(err)

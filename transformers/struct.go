@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/cloudquery/plugin-sdk/v3/caser"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
-	"github.com/cloudquery/plugin-sdk/v3/types"
+	"github.com/cloudquery/plugin-sdk/v4/caser"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/thoas/go-funk"
 	"golang.org/x/exp/slices"
 )
@@ -239,6 +239,9 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
 		}
 	}
+	if columnType == nil {
+		return nil // ignored
+	}
 
 	path := field.Name
 	name, err := t.nameTransformer(field)
@@ -290,8 +293,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 
 func isTypeIgnored(t reflect.Type) bool {
 	switch t.Kind() {
-	case reflect.Interface,
-		reflect.Func,
+	case reflect.Func,
 		reflect.Chan,
 		reflect.UnsafePointer:
 		return true
@@ -347,6 +349,9 @@ func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 			return elemValueType, nil
 		}
 		return arrow.ListOf(elemValueType), nil
+
+	case reflect.Interface:
+		return nil, nil // silently ignore
 
 	default:
 		return nil, fmt.Errorf("unsupported type: %s", k)

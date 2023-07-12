@@ -73,8 +73,24 @@ func (s *Decimal256) Set(val any) error {
 			return nil
 		}
 		return s.Set(*value)
+	case int:
+		s.Value = decimal256.FromI64(int64(value))
+	case int8:
+		s.Value = decimal256.FromI64(int64(value))
+	case int16:
+		s.Value = decimal256.FromI64(int64(value))
+	case int32:
+		s.Value = decimal256.FromI64(int64(value))
 	case int64:
 		s.Value = decimal256.FromI64(value)
+	case uint:
+		s.Value = decimal256.FromU64(uint64(value))
+	case uint8:
+		s.Value = decimal256.FromU64(uint64(value))
+	case uint16:
+		s.Value = decimal256.FromU64(uint64(value))
+	case uint32:
+		s.Value = decimal256.FromU64(uint64(value))
 	case uint64:
 		s.Value = decimal256.FromU64(value)
 	case string:
@@ -83,7 +99,55 @@ func (s *Decimal256) Set(val any) error {
 			return err
 		}
 		s.Value = v
+	case *int:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *int8:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *int16:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *int32:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
 	case *int64:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *uint:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *uint8:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *uint16:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *uint32:
 		if value == nil {
 			s.Valid = false
 			return nil
@@ -102,6 +166,9 @@ func (s *Decimal256) Set(val any) error {
 		}
 		return s.Set(*value)
 	default:
+		if originalSrc, ok := underlyingPtrType(val); ok {
+			return s.Set(originalSrc)
+		}
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
 	s.Valid = true
@@ -167,8 +234,24 @@ func (s *Decimal128) Set(val any) error {
 			return nil
 		}
 		return s.Set(*value)
+	case int:
+		s.Value = decimal128.FromI64(int64(value))
+	case int8:
+		s.Value = decimal128.FromI64(int64(value))
+	case int16:
+		s.Value = decimal128.FromI64(int64(value))
+	case int32:
+		s.Value = decimal128.FromI64(int64(value))
 	case int64:
 		s.Value = decimal128.FromI64(value)
+	case uint:
+		s.Value = decimal128.FromU64(uint64(value))
+	case uint8:
+		s.Value = decimal128.FromU64(uint64(value))
+	case uint16:
+		s.Value = decimal128.FromU64(uint64(value))
+	case uint32:
+		s.Value = decimal128.FromU64(uint64(value))
 	case uint64:
 		s.Value = decimal128.FromU64(value)
 	case string:
@@ -177,7 +260,55 @@ func (s *Decimal128) Set(val any) error {
 			return err
 		}
 		s.Value = v
+	case *int:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *int8:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *int16:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *int32:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
 	case *int64:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *uint:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *uint8:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *uint16:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
+	case *uint32:
 		if value == nil {
 			s.Valid = false
 			return nil
@@ -196,6 +327,9 @@ func (s *Decimal128) Set(val any) error {
 		}
 		return s.Set(*value)
 	default:
+		if originalSrc, ok := underlyingPtrType(val); ok {
+			return s.Set(originalSrc)
+		}
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
 	}
 	s.Valid = true
