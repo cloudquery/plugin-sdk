@@ -9,3 +9,5 @@ vendor
 cover.out
 .delta.*
 bench.json
+serve/^TestPluginDocs$/
+cover

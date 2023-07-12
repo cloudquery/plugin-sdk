@@ -3,7 +3,6 @@ package schema
 import (
 	"encoding/base64"
 	"fmt"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,16 +11,14 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v3/types"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
 	"golang.org/x/exp/rand"
-	"golang.org/x/exp/slices"
 )
 
 // TestSourceOptions controls which types are included by TestSourceColumns.
 type TestSourceOptions struct {
 	SkipDates      bool
-	SkipDecimals   bool
 	SkipDurations  bool
 	SkipIntervals  bool
 	SkipLargeTypes bool // e.g. large binary, large string
@@ -31,182 +28,7 @@ type TestSourceOptions struct {
 	SkipTimes      bool // time of day types
 	SkipTimestamps bool // timestamp types. Microsecond timestamp is always be included, regardless of this setting.
 	TimePrecision  time.Duration
-}
-
-// TestSourceColumns returns columns for all Arrow types and composites thereof. TestSourceOptions controls
-// which types are included.
-func TestSourceColumns(testOpts TestSourceOptions) []Column {
-	// cq columns
-	var cqColumns []Column
-	cqColumns = append(cqColumns, Column{Name: CqIDColumn.Name, Type: types.NewUUIDType(), NotNull: true, Unique: true, PrimaryKey: true})
-	cqColumns = append(cqColumns, Column{Name: CqParentIDColumn.Name, Type: types.NewUUIDType()})
-
-	var basicColumns []Column
-	basicColumns = append(basicColumns, primitiveColumns()...)
-	basicColumns = append(basicColumns, binaryColumns()...)
-	basicColumns = append(basicColumns, fixedWidthColumns()...)
-
-	// add extensions
-	basicColumns = append(basicColumns, Column{Name: "uuid", Type: types.NewUUIDType()})
-	basicColumns = append(basicColumns, Column{Name: "inet", Type: types.NewInetType()})
-	basicColumns = append(basicColumns, Column{Name: "mac", Type: types.NewMACType()})
-
-	// sort and remove duplicates (e.g. date32 and date64 appear twice)
-	sort.Slice(basicColumns, func(i, j int) bool {
-		return basicColumns[i].Name < basicColumns[j].Name
-	})
-	basicColumns = removeDuplicates(basicColumns)
-
-	// we don't support float16 right now
-	basicColumns = removeColumnsByType(basicColumns, arrow.FLOAT16)
-
-	if !testOpts.SkipDecimals {
-		basicColumns = append(basicColumns, Column{Name: "decimal", Type: &arrow.Decimal128Type{Precision: 19, Scale: 10}})
-	}
-
-	if testOpts.SkipTimestamps {
-		// for backwards-compatibility, microsecond timestamps are not removed here
-		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Second, TimeZone: "UTC"})
-		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Millisecond, TimeZone: "UTC"})
-		basicColumns = removeColumnsByDataType(basicColumns, &arrow.TimestampType{Unit: arrow.Nanosecond, TimeZone: "UTC"})
-	}
-	if testOpts.SkipDates {
-		basicColumns = removeColumnsByType(basicColumns, arrow.DATE32, arrow.DATE64)
-	}
-	if testOpts.SkipTimes {
-		basicColumns = removeColumnsByType(basicColumns, arrow.TIME32, arrow.TIME64)
-	}
-	if testOpts.SkipIntervals {
-		basicColumns = removeColumnsByType(basicColumns, arrow.INTERVAL_DAY_TIME, arrow.INTERVAL_MONTHS, arrow.INTERVAL_MONTH_DAY_NANO)
-	}
-	if testOpts.SkipDurations {
-		basicColumns = removeColumnsByType(basicColumns, arrow.DURATION)
-	}
-	if testOpts.SkipLargeTypes {
-		basicColumns = removeColumnsByType(basicColumns, arrow.LARGE_BINARY, arrow.LARGE_STRING)
-	}
-
-	var compositeColumns []Column
-
-	// we don't need to include lists of binary or large binary right now; probably no destinations or sources need to support that
-	basicColumnsWithExclusions := removeColumnsByType(basicColumns, arrow.BINARY, arrow.LARGE_BINARY)
-	if testOpts.SkipLists {
-		// only include lists that were originally supported by CQTypes
-		cqListColumns := []Column{
-			{Name: "string", Type: arrow.BinaryTypes.String},
-			{Name: "uuid", Type: types.NewUUIDType()},
-			{Name: "inet", Type: types.NewInetType()},
-			{Name: "mac", Type: types.NewMACType()},
-		}
-		compositeColumns = append(compositeColumns, listOfColumns(cqListColumns)...)
-	} else {
-		compositeColumns = append(compositeColumns, listOfColumns(basicColumnsWithExclusions)...)
-	}
-
-	if !testOpts.SkipMaps {
-		compositeColumns = append(compositeColumns, mapOfColumns(basicColumnsWithExclusions)...)
-	}
-
-	// add JSON later, we don't want to include it as a list or map right now (it causes complications with JSON unmarshalling)
-	basicColumns = append(basicColumns, Column{Name: "json", Type: types.NewJSONType()})
-	basicColumns = append(basicColumns, Column{Name: "json_array", Type: types.NewJSONType()}) // GenTestData knows to populate this with a JSON array
-
-	if !testOpts.SkipStructs {
-		// struct with all the types
-		compositeColumns = append(compositeColumns, Column{Name: "struct", Type: arrow.StructOf(columnsToFields(basicColumns...)...)})
-
-		// struct with nested struct
-		compositeColumns = append(compositeColumns, Column{Name: "nested_struct", Type: arrow.StructOf(arrow.Field{Name: "inner", Type: arrow.StructOf(columnsToFields(basicColumns...)...)})})
-	}
-
-	allColumns := append(append(cqColumns, basicColumns...), compositeColumns...)
-	return allColumns
-}
-
-// primitiveColumns returns a list of primitive columns as defined by Arrow types.
-func primitiveColumns() []Column {
-	primitiveTypesValue := reflect.ValueOf(arrow.PrimitiveTypes)
-	primitiveTypesType := reflect.TypeOf(arrow.PrimitiveTypes)
-	columns := make([]Column, primitiveTypesType.NumField())
-	for i := 0; i < primitiveTypesType.NumField(); i++ {
-		fieldName := primitiveTypesType.Field(i).Name
-		dataType := primitiveTypesValue.FieldByName(fieldName).Interface().(arrow.DataType)
-		columns[i] = Column{Name: strings.ToLower(fieldName), Type: dataType}
-	}
-	return columns
-}
-
-// binaryColumns returns a list of binary columns as defined by Arrow types.
-func binaryColumns() []Column {
-	binaryTypesValue := reflect.ValueOf(arrow.BinaryTypes)
-	binaryTypesType := reflect.TypeOf(arrow.BinaryTypes)
-	columns := make([]Column, binaryTypesType.NumField())
-	for i := 0; i < binaryTypesType.NumField(); i++ {
-		fieldName := binaryTypesType.Field(i).Name
-		dataType := binaryTypesValue.FieldByName(fieldName).Interface().(arrow.DataType)
-		columns[i] = Column{Name: strings.ToLower(fieldName), Type: dataType}
-	}
-	return columns
-}
-
-// fixedWidthColumns returns a list of fixed width columns as defined by Arrow types.
-func fixedWidthColumns() []Column {
-	fixedWidthTypesValue := reflect.ValueOf(arrow.FixedWidthTypes)
-	fixedWidthTypesType := reflect.TypeOf(arrow.FixedWidthTypes)
-	columns := make([]Column, fixedWidthTypesType.NumField())
-	for i := 0; i < fixedWidthTypesType.NumField(); i++ {
-		fieldName := fixedWidthTypesType.Field(i).Name
-		dataType := fixedWidthTypesValue.FieldByName(fieldName).Interface().(arrow.DataType)
-		columns[i] = Column{Name: strings.ToLower(fieldName), Type: dataType}
-	}
-	return columns
-}
-
-func removeDuplicates(columns []Column) []Column {
-	newColumns := make([]Column, 0, len(columns))
-	seen := map[string]struct{}{}
-	for _, c := range columns {
-		if _, ok := seen[c.Name]; ok {
-			continue
-		}
-		newColumns = append(newColumns, c)
-		seen[c.Name] = struct{}{}
-	}
-	return slices.Clip(newColumns)
-}
-
-func removeColumnsByType(columns []Column, t ...arrow.Type) []Column {
-	var newColumns []Column
-	for _, c := range columns {
-		shouldRemove := false
-		for _, d := range t {
-			if c.Type.ID() == d {
-				shouldRemove = true
-				break
-			}
-		}
-		if !shouldRemove {
-			newColumns = append(newColumns, c)
-		}
-	}
-	return newColumns
-}
-
-func removeColumnsByDataType(columns []Column, dt ...arrow.DataType) []Column {
-	var newColumns []Column
-	for _, c := range columns {
-		shouldRemove := false
-		for _, d := range dt {
-			if arrow.TypeEqual(c.Type, d) {
-				shouldRemove = true
-				break
-			}
-		}
-		if !shouldRemove {
-			newColumns = append(newColumns, c)
-		}
-	}
-	return newColumns
+	SkipDecimals   bool
 }
 
 // listOfColumns returns a list of columns that are lists of the given columns.
@@ -231,7 +53,7 @@ func mapOfColumns(baseColumns []Column) []Column {
 	return columns
 }
 
-func columnsToFields(columns ...Column) []arrow.Field {
+func columnsToFields(columns []Column) []arrow.Field {
 	fields := make([]arrow.Field, len(columns))
 	for i := range columns {
 		fields[i] = arrow.Field{
@@ -242,17 +64,122 @@ func columnsToFields(columns ...Column) []arrow.Field {
 	return fields
 }
 
-// var PKColumnNames = []string{"uuid_pk"}
+func TestTable(name string, opts TestSourceOptions) *Table {
+	t := &Table{
+		Name:    name,
+		Columns: make(ColumnList, 0),
+	}
+	var columns ColumnList
+	columns = append(columns, ColumnList{
+		// id is to be used as an auto-incrementing column that can be used to order the rows in tests
+		{Name: "id", Type: arrow.PrimitiveTypes.Int64, NotNull: true},
 
-// TestTable returns a table with columns of all types. Useful for destination testing purposes
-func TestTable(name string, testOpts TestSourceOptions) *Table {
-	var columns []Column
-	// columns = append(columns, Column{Name: "uuid", Type: types.NewUUIDType()})
-	// columns = append(columns, Column{Name: "string_pk", Type: arrow.BinaryTypes.String})
-	columns = append(columns, Column{Name: CqSourceNameColumn.Name, Type: arrow.BinaryTypes.String})
-	columns = append(columns, Column{Name: CqSyncTimeColumn.Name, Type: arrow.FixedWidthTypes.Timestamp_us})
-	columns = append(columns, TestSourceColumns(testOpts)...)
-	return &Table{Name: name, Columns: columns}
+		// primitive columns
+		{Name: "int8", Type: arrow.PrimitiveTypes.Int8},
+		{Name: "int16", Type: arrow.PrimitiveTypes.Int16},
+		{Name: "int32", Type: arrow.PrimitiveTypes.Int32},
+		{Name: "int64", Type: arrow.PrimitiveTypes.Int64},
+		{Name: "uint8", Type: arrow.PrimitiveTypes.Uint8},
+		{Name: "uint16", Type: arrow.PrimitiveTypes.Uint16},
+		{Name: "uint32", Type: arrow.PrimitiveTypes.Uint32},
+		{Name: "uint64", Type: arrow.PrimitiveTypes.Uint64},
+		{Name: "float32", Type: arrow.PrimitiveTypes.Float32},
+		{Name: "float64", Type: arrow.PrimitiveTypes.Float64},
+
+		// basic columns
+		{Name: "binary", Type: arrow.BinaryTypes.Binary},
+		{Name: "string", Type: arrow.BinaryTypes.String},
+		{Name: "boolean", Type: arrow.FixedWidthTypes.Boolean},
+
+		// extension types
+		{Name: "uuid", Type: types.ExtensionTypes.UUID},
+		{Name: "inet", Type: types.ExtensionTypes.Inet},
+		{Name: "mac", Type: types.ExtensionTypes.MAC},
+		{Name: "json", Type: types.ExtensionTypes.JSON},
+	}...)
+	if !opts.SkipDates {
+		columns = append(columns, ColumnList{
+			{Name: "date32", Type: arrow.FixedWidthTypes.Date32},
+			{Name: "date64", Type: arrow.FixedWidthTypes.Date64},
+		}...)
+	}
+	if !opts.SkipDurations {
+		columns = append(columns, ColumnList{
+			{Name: "duration_s", Type: arrow.FixedWidthTypes.Duration_s},
+			{Name: "duration_ms", Type: arrow.FixedWidthTypes.Duration_ms},
+			{Name: "duration_us", Type: arrow.FixedWidthTypes.Duration_us},
+			{Name: "duration_ns", Type: arrow.FixedWidthTypes.Duration_ns},
+		}...)
+	}
+
+	if !opts.SkipIntervals {
+		columns = append(columns, ColumnList{
+			{Name: "interval_month", Type: arrow.FixedWidthTypes.MonthInterval},
+			{Name: "interval_day_time", Type: arrow.FixedWidthTypes.DayTimeInterval},
+			{Name: "interval_month_day_nano", Type: arrow.FixedWidthTypes.MonthDayNanoInterval},
+		}...)
+	}
+
+	if !opts.SkipLargeTypes {
+		columns = append(columns, ColumnList{
+			{Name: "large_binary", Type: arrow.BinaryTypes.LargeBinary},
+			{Name: "large_string", Type: arrow.BinaryTypes.LargeString},
+		}...)
+	}
+
+	if !opts.SkipTimes {
+		columns = append(columns, ColumnList{
+			{Name: "time32_s", Type: arrow.FixedWidthTypes.Time32s},
+			{Name: "time32_ms", Type: arrow.FixedWidthTypes.Time32ms},
+			{Name: "time64_us", Type: arrow.FixedWidthTypes.Time64us},
+			{Name: "time64_ns", Type: arrow.FixedWidthTypes.Time64ns},
+		}...)
+	}
+
+	if !opts.SkipTimestamps {
+		columns = append(columns, ColumnList{
+			{Name: "timestamp_s", Type: arrow.FixedWidthTypes.Timestamp_s},
+			{Name: "timestamp_ms", Type: arrow.FixedWidthTypes.Timestamp_ms},
+			{Name: "timestamp_us", Type: arrow.FixedWidthTypes.Timestamp_us},
+			{Name: "timestamp_ns", Type: arrow.FixedWidthTypes.Timestamp_ns},
+		}...)
+	}
+
+	if !opts.SkipDecimals {
+		columns = append(columns, ColumnList{
+			{Name: "decimal128", Type: &arrow.Decimal128Type{Precision: 19, Scale: 10}},
+			// {Name: "decimal256", Type: &arrow.Decimal256Type{Precision: 40, Scale: 10}},
+		}...)
+	}
+
+	if !opts.SkipStructs {
+		columns = append(columns, Column{Name: "struct", Type: arrow.StructOf(columnsToFields(columns)...)})
+
+		// struct with nested struct
+		// columns = append(columns, Column{Name: "nested_struct", Type: arrow.StructOf(arrow.Field{Name: "inner", Type: arrow.StructOf(columnsToFields(basicColumns...)...)})})
+	}
+
+	if !opts.SkipLists {
+		cols := excludeType(columns, types.ExtensionTypes.JSON)
+		columns = append(columns, listOfColumns(cols)...)
+	}
+
+	if !opts.SkipMaps {
+		columns = append(columns, mapOfColumns(columns)...)
+	}
+
+	t.Columns = append(t.Columns, columns...)
+	return t
+}
+
+func excludeType(columns ColumnList, typ arrow.DataType) ColumnList {
+	var cols ColumnList
+	for _, c := range columns {
+		if !arrow.TypeEqual(c.Type, typ) {
+			cols = append(cols, c)
+		}
+	}
+	return cols
 }
 
 // GenTestDataOptions are options for generating test data
@@ -262,33 +189,45 @@ type GenTestDataOptions struct {
 	// SyncTime is the time to set in the sync_time column.
 	SyncTime time.Time
 	// MaxRows is the number of rows to generate.
-	// Rows alternate between not containing null values and containing only null values.
-	// (Only columns that are nullable according to the schema will be null)
 	MaxRows int
 	// StableUUID is the UUID to use for all rows. If set to uuid.Nil, a new UUID will be generated
 	StableUUID uuid.UUID
 	// StableTime is the time to use for all rows other than sync time. If set to time.Time{}, a new time will be generated
-	StableTime    time.Time
+	StableTime time.Time
+	// TimePrecision is the precision to use for time columns.
 	TimePrecision time.Duration
-	Seed          int64
+	// Seed is the seed to use for random data generation.
+	Seed int64
+	// NullRows indicates whether to generate rows with all null values.
+	NullRows bool
+}
+
+type TestDataGenerator struct {
+	counter int
+}
+
+func NewTestDataGenerator() *TestDataGenerator {
+	return &TestDataGenerator{
+		counter: 0,
+	}
 }
 
 // GenTestData generates a slice of arrow.Records with the given schema and options.
-func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
+func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) []arrow.Record {
 	var records []arrow.Record
 	sc := table.ToArrowSchema()
 	for j := 0; j < opts.MaxRows; j++ {
-		nullRow := j%2 == 1
+		tg.counter++
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		for i, c := range table.Columns {
-			if nullRow && !c.NotNull && !c.PrimaryKey &&
+			if opts.NullRows && !c.NotNull && !c.PrimaryKey &&
 				c.Name != CqSourceNameColumn.Name &&
 				c.Name != CqSyncTimeColumn.Name &&
 				c.Name != CqIDColumn.Name {
 				bldr.Field(i).AppendNull()
 				continue
 			}
-			example := getExampleJSON(c.Name, c.Type, opts)
+			example := tg.getExampleJSON(c.Name, c.Type, opts)
 			l := `[` + example + `]`
 			err := bldr.Field(i).UnmarshalJSON([]byte(l))
 			if err != nil {
@@ -309,22 +248,27 @@ func GenTestData(table *Table, opts GenTestDataOptions) []arrow.Record {
 	return records
 }
 
-func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
+func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
 	src := rand.NewSource(uint64(opts.Seed))
 	rnd := rand.New(src)
+
+	// special case for auto-incrementing id column, used for to determine ordering in tests
+	if arrow.IsInteger(dataType.ID()) && colName == "id" {
+		return `` + strconv.Itoa(tg.counter) + ``
+	}
 
 	// handle lists (including maps)
 	if arrow.IsListLike(dataType.ID()) {
 		if dataType.ID() == arrow.MAP {
-			k := getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
-			v := getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
+			k := tg.getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
+			v := tg.getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
 			opts.Seed++
-			k2 := getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
-			v2 := getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
+			k2 := tg.getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
+			v2 := tg.getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
 			return fmt.Sprintf(`[{"key": %s,"value": %s},{"key": %s,"value": %s}]`, k, v, k2, v2)
 		}
 		inner := dataType.(*arrow.ListType).Elem()
-		return `[` + getExampleJSON(colName, inner, opts) + `,null,` + getExampleJSON(colName, inner, opts) + `]`
+		return `[` + tg.getExampleJSON(colName, inner, opts) + `,null,` + tg.getExampleJSON(colName, inner, opts) + `]`
 	}
 	// handle extension types
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.UUID) {
@@ -425,7 +369,7 @@ func getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOpt
 	if dataType.ID() == arrow.STRUCT {
 		var columns []string
 		for _, field := range dataType.(*arrow.StructType).Fields() {
-			v := getExampleJSON(field.Name, field.Type, opts)
+			v := tg.getExampleJSON(field.Name, field.Type, opts)
 			columns = append(columns, fmt.Sprintf(`"%s": %v`, field.Name, v))
 		}
 		return `{` + strings.Join(columns, ",") + `}`

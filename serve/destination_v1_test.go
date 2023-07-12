@@ -11,23 +11,22 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
+	"github.com/apache/arrow/go/v13/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
+	pbSource "github.com/cloudquery/plugin-pb-go/pb/source/v2"
 	"github.com/cloudquery/plugin-pb-go/specs"
-	"github.com/cloudquery/plugin-sdk/v3/internal/memdb"
-	"github.com/cloudquery/plugin-sdk/v3/plugins/destination"
-	"github.com/cloudquery/plugin-sdk/v3/schema"
+	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
+	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestDestinationV1(t *testing.T) {
-	plugin := destination.NewPlugin("testDestinationPlugin", "development", memdb.NewClient)
-	s := &destinationServe{
-		plugin: plugin,
-	}
-	cmd := newCmdDestinationRoot(s)
-	cmd.SetArgs([]string{"serve", "--network", "test"})
+	p := plugin.NewPlugin("testDestinationPlugin", "development", memdb.NewMemDBClient)
+	srv := Plugin(p, WithArgs("serve"), WithDestinationV0V1Server(), WithTestListener())
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
@@ -35,27 +34,15 @@ func TestDestinationV1(t *testing.T) {
 	var serverErr error
 	go func() {
 		defer wg.Done()
-		serverErr = cmd.ExecuteContext(ctx)
+		serverErr = srv.Serve(ctx)
 	}()
 	defer func() {
 		cancel()
 		wg.Wait()
 	}()
 
-	// wait for the server to start
-	for {
-		testDestinationListenerLock.Lock()
-		if testDestinationListener != nil {
-			testDestinationListenerLock.Unlock()
-			break
-		}
-		testDestinationListenerLock.Unlock()
-		t.Log("waiting for grpc server to start")
-		time.Sleep(time.Millisecond * 200)
-	}
-
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDestinationDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -90,12 +77,21 @@ func TestDestinationV1(t *testing.T) {
 	tableName := "test_destination_serve"
 	sourceName := "test_destination_serve_source"
 	syncTime := time.Now()
-	table := schema.TestTable(tableName, schema.TestSourceOptions{})
+	table := &schema.Table{
+		Name: tableName,
+		Columns: []schema.Column{
+			schema.CqSourceNameColumn,
+			schema.CqSyncTimeColumn,
+			{Name: "col1", Type: arrow.PrimitiveTypes.Int16},
+		},
+	}
+
 	tables := schema.Tables{table}
 	sourceSpec := specs.Source{
 		Name: sourceName,
 	}
-	encodedTables, err := tables.ToArrowSchemas().Encode()
+	schemas := tables.ToArrowSchemas()
+	encodedTables, err := pbSource.SchemasToBytes(schemas)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,12 +101,11 @@ func TestDestinationV1(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-
-	rec := schema.GenTestData(table, schema.GenTestDataOptions{
-		SourceName: sourceName,
-		SyncTime:   syncTime,
-		MaxRows:    1,
-	})[0]
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+	bldr.Field(0).(*array.StringBuilder).Append(sourceName)
+	bldr.Field(1).(*array.TimestampBuilder).AppendTime(syncTime)
+	bldr.Field(2).(*array.Int16Builder).Append(1)
+	rec := bldr.NewRecord()
 
 	sourceSpecBytes, err := json.Marshal(sourceSpec)
 	if err != nil {
@@ -146,17 +141,20 @@ func TestDestinationV1(t *testing.T) {
 		t.Fatal(err)
 	}
 	// serversDestination
-	readCh := make(chan arrow.Record, 1)
-	if err := plugin.Read(ctx, table, sourceName, readCh); err != nil {
+	msgs, err := p.SyncAll(ctx, plugin.SyncOptions{
+		Tables: []string{tableName},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	close(readCh)
 	totalResources := 0
-	for resource := range readCh {
+	for _, msg := range msgs {
 		totalResources++
-		if !array.RecordEqual(rec, resource) {
-			diff := destination.RecordDiff(rec, resource)
-			t.Fatalf("expected %v but got %v. Diff: %v", rec, resource, diff)
+		m := msg.(*message.SyncInsert)
+		if !array.RecordEqual(rec, m.Record) {
+			// diff := plugin.RecordDiff(rec, resource)
+			// t.Fatalf("diff at %d: %s", totalResources, diff)
+			t.Fatalf("expected %v but got %v", rec, m.Record)
 		}
 	}
 	if totalResources != 1 {
@@ -167,11 +165,6 @@ func TestDestinationV1(t *testing.T) {
 		Timestamp: timestamppb.New(time.Now().Truncate(time.Microsecond)),
 		Tables:    encodedTables,
 	}); err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = c.GetMetrics(ctx, &pb.GetDestinationMetrics_Request{})
-	if err != nil {
 		t.Fatal(err)
 	}
 
