@@ -67,17 +67,20 @@ func (b *InetBuilder) UnmarshalOne(dec *json.Decoder) error {
 	}
 
 	var val *net.IPNet
+	var ip net.IP
 	switch v := t.(type) {
 	case string:
-		_, val, err = net.ParseCIDR(v)
+		ip, val, err = net.ParseCIDR(v)
 		if err != nil {
 			return err
 		}
+		val.IP = ip
 	case []byte:
-		_, val, err = net.ParseCIDR(string(v))
+		ip, val, err = net.ParseCIDR(string(v))
 		if err != nil {
 			return err
 		}
+		val.IP = ip
 	case nil:
 		b.AppendNull()
 		return nil
@@ -156,10 +159,11 @@ func (a *InetArray) Value(i int) *net.IPNet {
 			Mask: make(net.IPMask, len(net.IPv4zero)),
 		}
 	}
-	_, ipnet, err := net.ParseCIDR(cidr)
+	ip, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
 		panic(fmt.Errorf("invalid ip+net: %w", err))
 	}
+	ipnet.IP = ip
 
 	return ipnet
 }
