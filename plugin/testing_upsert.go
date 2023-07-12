@@ -79,7 +79,7 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 	}
 
 	tg := schema.NewTestDataGenerator()
-	normalRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1})[0]
+	normalRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, TimePrecision: s.genDatOptions.TimePrecision})[0]
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: normalRecord,
 	}); err != nil {
@@ -100,7 +100,7 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 		return fmt.Errorf("record differs after insert: %s", diff)
 	}
 
-	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, NullRows: true})[0]
+	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, TimePrecision: s.genDatOptions.TimePrecision, NullRows: true})[0]
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: nullRecord,
 	}); err != nil {
