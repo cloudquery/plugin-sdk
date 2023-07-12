@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/cloudquery/plugin-sdk/v4/docs"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +31,14 @@ func (s *PluginServe) newCmdPluginDoc() *cobra.Command {
 		Long:  pluginDocLong,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			tables, err := s.plugin.Tables(cmd.Context())
+			if err := s.plugin.Init(cmd.Context(), nil, plugin.NewClientOptions{
+				NoConnection: true,
+			}); err != nil {
+				return err
+			}
+			tables, err := s.plugin.Tables(cmd.Context(), plugin.TableOptions{
+				Tables: []string{"*"},
+			})
 			if err != nil {
 				return err
 			}

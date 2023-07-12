@@ -16,3 +16,9 @@ func (m MigrateMode) String() string {
 }
 
 type Option func(*Plugin)
+
+type TableOptions struct {
+	Tables              []string
+	SkipTables          []string
+	SkipDependentTables bool
+}

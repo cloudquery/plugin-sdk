@@ -39,7 +39,22 @@ func (s *Server) Configure(ctx context.Context, req *pb.Configure_Request) (*pb.
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
 	}
-	return &pb.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec)
+	var pluginSpecMap map[string]any
+	if err := json.Unmarshal(pluginSpec, &pluginSpecMap); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal plugin spec: %v", err)
+	}
+	// this is for backward compatibility
+	if s.spec.BatchSize > 0 {
+		pluginSpecMap["batch_size"] = s.spec.BatchSize
+	}
+	if s.spec.BatchSizeBytes > 0 {
+		pluginSpecMap["batch_size_bytes"] = s.spec.BatchSizeBytes
+	}
+	pluginSpec, err = json.Marshal(pluginSpecMap)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
+	}
+	return &pb.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec, plugin.NewClientOptions{})
 }
 
 func (s *Server) GetName(context.Context, *pb.GetName_Request) (*pb.GetName_Response, error) {
@@ -65,16 +80,15 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	}
 	s.setPKsForTables(tables)
 
-	writeCh := make(chan message.Message)
+	writeCh := make(chan message.WriteMessage)
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{
-			MigrateForce: s.migrateMode == plugin.MigrateModeForce,
-		}, writeCh)
+		return s.Plugin.Write(ctx, writeCh)
 	})
 	for _, table := range tables {
-		writeCh <- &message.MigrateTable{
-			Table: table,
+		writeCh <- &message.WriteMigrateTable{
+			Table:        table,
+			MigrateForce: s.migrateMode == plugin.MigrateModeForce,
 		}
 	}
 	close(writeCh)
@@ -87,7 +101,7 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *Server) Write(msg pb.Destination_WriteServer) error {
-	msgs := make(chan message.Message)
+	msgs := make(chan message.WriteMessage)
 
 	r, err := msg.Recv()
 	if err != nil {
@@ -120,14 +134,13 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 	eg, ctx := errgroup.WithContext(msg.Context())
 
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{
-			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
-		}, msgs)
+		return s.Plugin.Write(ctx, msgs)
 	})
 
 	for _, table := range tables {
-		msgs <- &message.MigrateTable{
-			Table: table,
+		msgs <- &message.WriteMigrateTable{
+			Table:        table,
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
 		}
 	}
 
@@ -158,7 +171,7 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 		for rdr.Next() {
 			rec := rdr.Record()
 			rec.Retain()
-			msg := &message.Insert{
+			msg := &message.WriteInsert{
 				Record: rec,
 			}
 			select {
@@ -200,20 +213,20 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create tables: %v", err)
 	}
 
-	msgs := make(chan message.Message)
+	msgs := make(chan message.WriteMessage)
 	var writeErr error
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		writeErr = s.Plugin.Write(ctx, plugin.WriteOptions{}, msgs)
+		writeErr = s.Plugin.Write(ctx, msgs)
 	}()
 	for _, table := range tables {
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 		bldr.Field(table.Columns.Index(schema.CqSourceNameColumn.Name)).(*array.StringBuilder).Append(req.Source)
 		bldr.Field(table.Columns.Index(schema.CqSyncTimeColumn.Name)).(*array.TimestampBuilder).AppendTime(req.Timestamp.AsTime())
-		msgs <- &message.DeleteStale{
-			Table:      table,
+		msgs <- &message.WriteDeleteStale{
+			TableName:  table.Name,
 			SourceName: req.Source,
 			SyncTime:   req.Timestamp.AsTime(),
 		}

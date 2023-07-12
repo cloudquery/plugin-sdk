@@ -21,7 +21,7 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 			schema.CqSyncTimeColumn,
 		},
 	}
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.MigrateTable{
+	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
 		Table: table,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
@@ -32,11 +32,12 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 	bldr.Field(1).(*array.TimestampBuilder).AppendTime(syncTime)
 	record := bldr.NewRecord()
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
+	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: record,
 	}); err != nil {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
+	record = s.handleNulls(record) // we process nulls after writing
 
 	records, err := s.plugin.readAll(ctx, table)
 	if err != nil {
@@ -45,15 +46,15 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 	totalItems := TotalRows(records)
 
 	if totalItems != 1 {
-		return fmt.Errorf("expected 1 items, got %d", totalItems)
+		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
 
 	bldr = array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 	bldr.Field(0).(*array.StringBuilder).Append("test")
 	bldr.Field(1).(*array.TimestampBuilder).AppendTime(syncTime.Add(time.Second))
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.DeleteStale{
-		Table:      table,
+	if err := s.plugin.writeOne(ctx, &message.WriteDeleteStale{
+		TableName:  table.Name,
 		SourceName: "test",
 		SyncTime:   syncTime,
 	}); err != nil {
@@ -69,6 +70,8 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
-
+	if diff := RecordDiff(records[0], record); diff != "" {
+		return fmt.Errorf("record differs: %s", diff)
+	}
 	return nil
 }

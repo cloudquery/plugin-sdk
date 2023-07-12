@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -14,7 +15,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const MaxMsgSize = 100 * 1024 * 1024 // 100 MiB
@@ -27,8 +27,11 @@ type Server struct {
 	NoSentry  bool
 }
 
-func (s *Server) GetTables(ctx context.Context, _ *pb.GetTables_Request) (*pb.GetTables_Response, error) {
-	tables, err := s.Plugin.Tables(ctx)
+func (s *Server) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
+	tables, err := s.Plugin.Tables(ctx, plugin.TableOptions{
+		Tables:     req.Tables,
+		SkipTables: req.SkipTables,
+	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get tables: %v", err)
 	}
@@ -58,20 +61,65 @@ func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVer
 }
 
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
-	if err := s.Plugin.Init(ctx, req.Spec); err != nil {
+	if err := s.Plugin.Init(ctx, req.Spec, plugin.NewClientOptions{}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
 	return &pb.Init_Response{}, nil
 }
 
+func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
+	records := make(chan arrow.Record)
+	var syncErr error
+	ctx := stream.Context()
+
+	sc, err := pb.NewSchemaFromBytes(req.Table)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
+	}
+	table, err := schema.NewTableFromArrowSchema(sc)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
+	}
+	go func() {
+		defer close(records)
+		err := s.Plugin.Read(ctx, table, records)
+		if err != nil {
+			syncErr = fmt.Errorf("failed to sync records: %w", err)
+		}
+	}()
+
+	for rec := range records {
+		recBytes, err := pb.RecordToBytes(rec)
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err)
+		}
+		resp := &pb.Read_Response{
+			Record: recBytes,
+		}
+		if err := stream.Send(resp); err != nil {
+			return status.Errorf(codes.Internal, "failed to send read response: %v", err)
+		}
+	}
+
+	return syncErr
+}
+
 func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
-	msgs := make(chan message.Message)
+	msgs := make(chan message.SyncMessage)
 	var syncErr error
 	ctx := stream.Context()
 
 	syncOptions := plugin.SyncOptions{
-		Tables:     req.Tables,
-		SkipTables: req.SkipTables,
+		Tables:              req.Tables,
+		SkipTables:          req.SkipTables,
+		SkipDependentTables: req.SkipDependentTables,
+		DeterministicCQID:   req.DeterministicCqId,
+	}
+	if req.Backend != nil {
+		syncOptions.BackendOptions = &plugin.BackendOptions{
+			TableName:  req.Backend.TableName,
+			Connection: req.Backend.Connection,
+		}
 	}
 
 	go func() {
@@ -85,39 +133,26 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	for msg := range msgs {
 		pbMsg := &pb.Sync_Response{}
 		switch m := msg.(type) {
-		case *message.MigrateTable:
+		case *message.SyncMigrateTable:
 			tableSchema := m.Table.ToArrowSchema()
 			schemaBytes, err := pb.SchemaToBytes(tableSchema)
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to encode table schema: %v", err)
 			}
 			pbMsg.Message = &pb.Sync_Response_MigrateTable{
-				MigrateTable: &pb.MessageMigrateTable{
+				MigrateTable: &pb.Sync_MessageMigrateTable{
 					Table: schemaBytes,
 				},
 			}
 
-		case *message.Insert:
+		case *message.SyncInsert:
 			recordBytes, err := pb.RecordToBytes(m.Record)
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
 			}
 			pbMsg.Message = &pb.Sync_Response_Insert{
-				Insert: &pb.MessageInsert{
+				Insert: &pb.Sync_MessageInsert{
 					Record: recordBytes,
-				},
-			}
-		case *message.DeleteStale:
-			sc := m.Table.ToArrowSchema()
-			tableBytes, err := pb.SchemaToBytes(sc)
-			if err != nil {
-				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
-			}
-			pbMsg.Message = &pb.Sync_Response_Delete{
-				Delete: &pb.MessageDeleteStale{
-					Table:      tableBytes,
-					SourceName: m.SourceName,
-					SyncTime:   timestamppb.New(m.SyncTime),
 				},
 			}
 		default:
@@ -138,20 +173,10 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 }
 
 func (s *Server) Write(msg pb.Plugin_WriteServer) error {
-	msgs := make(chan message.Message)
-	r, err := msg.Recv()
-	if err != nil {
-		return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
-	}
-	pbWriteOptions, ok := r.Message.(*pb.Write_Request_Options)
-	if !ok {
-		return status.Errorf(codes.Internal, "expected options message, got %T", r.Message)
-	}
+	msgs := make(chan message.WriteMessage)
 	eg, ctx := errgroup.WithContext(msg.Context())
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{
-			MigrateForce: pbWriteOptions.Options.MigrateForce,
-		}, msgs)
+		return s.Plugin.Write(ctx, msgs)
 	})
 
 	for {
@@ -170,7 +195,7 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
-		var pluginMessage message.Message
+		var pluginMessage message.WriteMessage
 		var pbMsgConvertErr error
 		switch pbMsg := r.Message.(type) {
 		case *pb.Write_Request_MigrateTable:
@@ -184,8 +209,9 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
 				break
 			}
-			pluginMessage = &message.MigrateTable{
-				Table: table,
+			pluginMessage = &message.WriteMigrateTable{
+				Table:        table,
+				MigrateForce: pbMsg.MigrateTable.MigrateForce,
 			}
 		case *pb.Write_Request_Insert:
 			record, err := pb.NewRecordFromBytes(pbMsg.Insert.Record)
@@ -193,22 +219,12 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
 				break
 			}
-			pluginMessage = &message.Insert{
+			pluginMessage = &message.WriteInsert{
 				Record: record,
 			}
 		case *pb.Write_Request_Delete:
-			sc, err := pb.NewSchemaFromBytes(pbMsg.Delete.Table)
-			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
-				break
-			}
-			table, err := schema.NewTableFromArrowSchema(sc)
-			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
-				break
-			}
-			pluginMessage = &message.DeleteStale{
-				Table:      table,
+			pluginMessage = &message.WriteDeleteStale{
+				TableName:  pbMsg.Delete.TableName,
 				SourceName: pbMsg.Delete.SourceName,
 				SyncTime:   pbMsg.Delete.SyncTime.AsTime(),
 			}

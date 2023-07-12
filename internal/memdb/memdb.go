@@ -48,16 +48,16 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 	for _, opt := range options {
 		opt(c)
 	}
-	return func(context.Context, zerolog.Logger, []byte) (plugin.Client, error) {
+	return func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
 		return c, nil
 	}
 }
 
-func NewMemDBClient(ctx context.Context, l zerolog.Logger, spec []byte) (plugin.Client, error) {
-	return GetNewClient()(ctx, l, spec)
+func NewMemDBClient(ctx context.Context, l zerolog.Logger, spec []byte, options plugin.NewClientOptions) (plugin.Client, error) {
+	return GetNewClient()(ctx, l, spec, options)
 }
 
-func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte) (plugin.Client, error) {
+func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
@@ -100,13 +100,17 @@ func (c *client) Read(_ context.Context, table *schema.Table, res chan<- arrow.R
 	defer c.memoryDBLock.RUnlock()
 
 	tableName := table.Name
-	for _, row := range c.memoryDB[tableName] {
-		res <- row
+	// we iterate over records in reverse here because we don't set an expectation
+	// of ordering on plugins, and we want to make sure that the tests are not
+	// dependent on the order of insertion either.
+	rows := c.memoryDB[tableName]
+	for i := len(rows) - 1; i >= 0; i-- {
+		res <- rows[i]
 	}
 	return nil
 }
 
-func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- message.Message) error {
+func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- message.SyncMessage) error {
 	c.memoryDBLock.RLock()
 
 	for tableName := range c.memoryDB {
@@ -114,7 +118,7 @@ func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- 
 			continue
 		}
 		for _, row := range c.memoryDB[tableName] {
-			res <- &message.Insert{
+			res <- &message.SyncInsert{
 				Record: row,
 			}
 		}
@@ -123,7 +127,7 @@ func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- 
 	return nil
 }
 
-func (c *client) Tables(_ context.Context) (schema.Tables, error) {
+func (c *client) Tables(context.Context, plugin.TableOptions) (schema.Tables, error) {
 	tables := make(schema.Tables, 0, len(c.tables))
 	for _, table := range c.tables {
 		tables = append(tables, table)
@@ -149,7 +153,7 @@ func (c *client) migrate(_ context.Context, table *schema.Table) {
 	c.tables[tableName] = table
 }
 
-func (c *client) Write(ctx context.Context, _ plugin.WriteOptions, msgs <-chan message.Message) error {
+func (c *client) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
 	if c.errOnWrite {
 		return fmt.Errorf("errOnWrite")
 	}
@@ -165,11 +169,11 @@ func (c *client) Write(ctx context.Context, _ plugin.WriteOptions, msgs <-chan m
 		c.memoryDBLock.Lock()
 
 		switch msg := msg.(type) {
-		case *message.MigrateTable:
+		case *message.WriteMigrateTable:
 			c.migrate(ctx, msg.Table)
-		case *message.DeleteStale:
+		case *message.WriteDeleteStale:
 			c.deleteStale(ctx, msg)
-		case *message.Insert:
+		case *message.WriteInsert:
 			sc := msg.Record.Schema()
 			tableName, ok := sc.Metadata().GetValue(schema.MetadataTableName)
 			if !ok {
@@ -189,9 +193,9 @@ func (c *client) Close(context.Context) error {
 	return nil
 }
 
-func (c *client) deleteStale(_ context.Context, msg *message.DeleteStale) {
+func (c *client) deleteStale(_ context.Context, msg *message.WriteDeleteStale) {
 	var filteredTable []arrow.Record
-	tableName := msg.Table.Name
+	tableName := msg.TableName
 	for i, row := range c.memoryDB[tableName] {
 		sc := row.Schema()
 		indices := sc.FieldIndices(schema.CqSourceNameColumn.Name)

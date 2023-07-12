@@ -11,10 +11,10 @@ import (
 )
 
 type testPluginClient struct {
-	messages []message.Message
+	messages message.SyncMessages
 }
 
-func newTestPluginClient(context.Context, zerolog.Logger, []byte) (Client, error) {
+func newTestPluginClient(context.Context, zerolog.Logger, []byte, NewClientOptions) (Client, error) {
 	return &testPluginClient{}, nil
 }
 
@@ -22,7 +22,7 @@ func (*testPluginClient) GetSpec() any {
 	return &struct{}{}
 }
 
-func (*testPluginClient) Tables(context.Context) (schema.Tables, error) {
+func (*testPluginClient) Tables(context.Context, TableOptions) (schema.Tables, error) {
 	return schema.Tables{}, nil
 }
 
@@ -30,15 +30,26 @@ func (*testPluginClient) Read(context.Context, *schema.Table, chan<- arrow.Recor
 	return nil
 }
 
-func (c *testPluginClient) Sync(_ context.Context, _ SyncOptions, res chan<- message.Message) error {
+func (c *testPluginClient) Sync(_ context.Context, _ SyncOptions, res chan<- message.SyncMessage) error {
 	for _, msg := range c.messages {
 		res <- msg
 	}
 	return nil
 }
-func (c *testPluginClient) Write(_ context.Context, _ WriteOptions, res <-chan message.Message) error {
+func (c *testPluginClient) Write(_ context.Context, res <-chan message.WriteMessage) error {
 	for msg := range res {
-		c.messages = append(c.messages, msg)
+		switch m := msg.(type) {
+		case *message.WriteMigrateTable:
+			c.messages = append(c.messages, &message.SyncMigrateTable{
+				Table: m.Table,
+			})
+		case *message.WriteInsert:
+			c.messages = append(c.messages, &message.SyncInsert{
+				Record: m.Record,
+			})
+		default:
+			panic("unknown message")
+		}
 	}
 	return nil
 }
@@ -49,21 +60,21 @@ func (*testPluginClient) Close(context.Context) error {
 func TestPluginSuccess(t *testing.T) {
 	ctx := context.Background()
 	p := NewPlugin("test", "v1.0.0", newTestPluginClient)
-	if err := p.Init(ctx, []byte("")); err != nil {
+	if err := p.Init(ctx, []byte(""), NewClientOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	tables, err := p.Tables(ctx)
+	tables, err := p.Tables(ctx, TableOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(tables) != 0 {
 		t.Fatal("expected 0 tables")
 	}
-	if err := p.WriteAll(ctx, WriteOptions{}, nil); err != nil {
+	if err := p.WriteAll(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.WriteAll(ctx, WriteOptions{}, []message.Message{
-		message.MigrateTable{},
+	if err := p.WriteAll(ctx, []message.WriteMessage{
+		&message.WriteMigrateTable{},
 	}); err != nil {
 		t.Fatal(err)
 	}

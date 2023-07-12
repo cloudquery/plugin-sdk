@@ -44,7 +44,7 @@ func (s *Server) Configure(ctx context.Context, req *pbBase.Configure_Request) (
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to marshal spec: %v", err)
 	}
-	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec)
+	return &pbBase.Configure_Response{}, s.Plugin.Init(ctx, pluginSpec, plugin.NewClientOptions{})
 }
 
 func (s *Server) GetName(context.Context, *pbBase.GetName_Request) (*pbBase.GetName_Response, error) {
@@ -67,16 +67,15 @@ func (s *Server) Migrate(ctx context.Context, req *pb.Migrate_Request) (*pb.Migr
 	tables := TablesV2ToV3(tablesV2).FlattenTables()
 	SetDestinationManagedCqColumns(tables)
 	s.setPKsForTables(tables)
-	writeCh := make(chan message.Message)
+	writeCh := make(chan message.WriteMessage)
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{
-			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
-		}, writeCh)
+		return s.Plugin.Write(ctx, writeCh)
 	})
 	for _, table := range tables {
-		writeCh <- &message.MigrateTable{
-			Table: table,
+		writeCh <- &message.WriteMigrateTable{
+			Table:        table,
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
 		}
 	}
 	close(writeCh)
@@ -93,7 +92,7 @@ func (*Server) Write(pb.Destination_WriteServer) error {
 // Note the order of operations in this method is important!
 // Trying to insert into the `resources` channel before starting the reader goroutine will cause a deadlock.
 func (s *Server) Write2(msg pb.Destination_Write2Server) error {
-	msgs := make(chan message.Message)
+	msgs := make(chan message.WriteMessage)
 
 	r, err := msg.Recv()
 	if err != nil {
@@ -124,14 +123,13 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 	eg, ctx := errgroup.WithContext(msg.Context())
 	// sourceName := r.Source
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, plugin.WriteOptions{
-			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
-		}, msgs)
+		return s.Plugin.Write(ctx, msgs)
 	})
 
 	for _, table := range tables {
-		msgs <- &message.MigrateTable{
-			Table: table,
+		msgs <- &message.WriteMigrateTable{
+			Table:        table,
+			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
 		}
 	}
 
@@ -180,7 +178,7 @@ func (s *Server) Write2(msg pb.Destination_Write2Server) error {
 			origResource.Data = append([]schemav2.CQType{sourceColumn, syncTimeColumn}, origResource.Data...)
 		}
 		convertedResource := CQTypesToRecord(memory.DefaultAllocator, []schemav2.CQTypes{origResource.Data}, table.ToArrowSchema())
-		msg := &message.Insert{
+		msg := &message.WriteInsert{
 			Record: convertedResource,
 		}
 
@@ -232,20 +230,20 @@ func (s *Server) DeleteStale(ctx context.Context, req *pb.DeleteStale_Request) (
 	tables := TablesV2ToV3(tablesV2).FlattenTables()
 	SetDestinationManagedCqColumns(tables)
 
-	msgs := make(chan message.Message)
+	msgs := make(chan message.WriteMessage)
 	var writeErr error
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		writeErr = s.Plugin.Write(ctx, plugin.WriteOptions{}, msgs)
+		writeErr = s.Plugin.Write(ctx, msgs)
 	}()
 	for _, table := range tables {
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 		bldr.Field(table.Columns.Index(schema.CqSourceNameColumn.Name)).(*array.StringBuilder).Append(req.Source)
 		bldr.Field(table.Columns.Index(schema.CqSyncTimeColumn.Name)).(*array.TimestampBuilder).AppendTime(req.Timestamp.AsTime())
-		msgs <- &message.DeleteStale{
-			Table:      table,
+		msgs <- &message.WriteDeleteStale{
+			TableName:  table.Name,
 			SourceName: req.Source,
 			SyncTime:   req.Timestamp.AsTime(),
 		}

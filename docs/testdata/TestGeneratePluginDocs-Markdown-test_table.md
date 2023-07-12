@@ -16,10 +16,10 @@ The following tables depend on test_table:
 
 | Name          | Type          |
 | ------------- | ------------- |
-|int_col|int64|
-|id_col (PK)|int64|
-|id_col2 (PK)|int64|
-|json_col|json|
-|list_col|list<item: int64, nullable>|
-|map_col|map<utf8, int64, items_nullable>|
-|struct_col|struct<string_field: utf8, int_field: int64>|
+|int_col|`int64`|
+|id_col (PK)|`int64`|
+|id_col2 (PK)|`int64`|
+|json_col|`json`|
+|list_col|`list<item: int64, nullable>`|
+|map_col|`map<utf8, int64, items_nullable>`|
+|struct_col|`struct<string_field: utf8, int_field: int64>`|

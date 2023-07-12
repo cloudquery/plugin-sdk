@@ -3,7 +3,6 @@ package state
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"sync"
 
@@ -63,24 +62,20 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 		return nil, err
 	}
 	if err := writeClient.Send(&pb.Write_Request{
-		Message: &pb.Write_Request_Options{
-			Options: &pb.WriteOptions{MigrateForce: false},
-		},
-	}); err != nil {
-		return nil, err
-	}
-	if err := writeClient.Send(&pb.Write_Request{
 		Message: &pb.Write_Request_MigrateTable{
-			MigrateTable: &pb.MessageMigrateTable{
+			MigrateTable: &pb.Write_MessageMigrateTable{
 				Table: tableBytes,
 			},
 		},
 	}); err != nil {
 		return nil, err
 	}
+	if _, err := writeClient.CloseAndRecv(); err != nil {
+		return nil, err
+	}
 
-	syncClient, err := c.client.Sync(ctx, &pb.Sync_Request{
-		Tables: []string{tableName},
+	readClient, err := c.client.Read(ctx, &pb.Read_Request{
+		Table: tableBytes,
 	})
 	if err != nil {
 		return nil, err
@@ -88,23 +83,14 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	for {
-		res, err := syncClient.Recv()
+		res, err := readClient.Recv()
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
 			return nil, err
 		}
-		var insertMessage *pb.Sync_Response_Insert
-		switch m := res.Message.(type) {
-		case *pb.Sync_Response_Delete:
-			continue
-		case *pb.Sync_Response_MigrateTable:
-			continue
-		case *pb.Sync_Response_Insert:
-			insertMessage = m
-		}
-		rdr, err := ipc.NewReader(bytes.NewReader(insertMessage.Insert.Record))
+		rdr, err := ipc.NewReader(bytes.NewReader(res.Record))
 		if err != nil {
 			return nil, err
 		}
@@ -154,13 +140,8 @@ func (c *Client) Flush(ctx context.Context) error {
 		return err
 	}
 	if err := writeClient.Send(&pb.Write_Request{
-		Message: &pb.Write_Request_Options{},
-	}); err != nil {
-		return err
-	}
-	if err := writeClient.Send(&pb.Write_Request{
 		Message: &pb.Write_Request_Insert{
-			Insert: &pb.MessageInsert{
+			Insert: &pb.Write_MessageInsert{
 				Record: recordBytes,
 			},
 		},
@@ -179,5 +160,5 @@ func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	if val, ok := c.mem[key]; ok {
 		return val, nil
 	}
-	return "", fmt.Errorf("key not found")
+	return "", nil
 }

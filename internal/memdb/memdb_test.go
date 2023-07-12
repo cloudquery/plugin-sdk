@@ -10,7 +10,7 @@ import (
 func TestPlugin(t *testing.T) {
 	ctx := context.Background()
 	p := plugin.NewPlugin("test", "development", NewMemDBClient)
-	if err := p.Init(ctx, nil); err != nil {
+	if err := p.Init(ctx, nil, plugin.NewClientOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	plugin.TestWriterSuiteRunner(
@@ -25,7 +25,7 @@ func TestPlugin(t *testing.T) {
 func TestPluginOnNewError(t *testing.T) {
 	ctx := context.Background()
 	p := plugin.NewPlugin("test", "development", NewMemDBClientErrOnNew)
-	err := p.Init(ctx, nil)
+	err := p.Init(ctx, nil, plugin.NewClientOptions{})
 
 	if err == nil {
 		t.Fatal("expected error")
@@ -36,10 +36,10 @@ func TestOnWriteError(t *testing.T) {
 	ctx := context.Background()
 	newClientFunc := GetNewClient(WithErrOnWrite())
 	p := plugin.NewPlugin("test", "development", newClientFunc)
-	if err := p.Init(ctx, nil); err != nil {
+	if err := p.Init(ctx, nil, plugin.NewClientOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.WriteAll(ctx, plugin.WriteOptions{}, nil); err.Error() != "errOnWrite" {
+	if err := p.WriteAll(ctx, nil); err.Error() != "errOnWrite" {
 		t.Fatalf("expected errOnWrite, got %s", err)
 	}
 }

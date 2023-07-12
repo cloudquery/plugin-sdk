@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
@@ -16,7 +17,7 @@ type WriterTestSuite struct {
 	// Destinations that have problems representing some data types should provide a custom implementation here.
 	// If this param is empty, the default is to allow all data types to be nullable.
 	// When the value returned by this func is `true` the comparison is made with the empty value instead of null.
-	// allowNull AllowNullFunc
+	allowNull AllowNullFunc
 
 	// IgnoreNullsInLists allows stripping null values from lists before comparison.
 	// Destination setups that don't support nulls in lists should set this to true.
@@ -56,11 +57,11 @@ type WriterTestSuiteTests struct {
 
 type NewPluginFunc func() *Plugin
 
-// func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *WriterTestSuite) {
-// 	return func(o *WriterTestSuite) {
-// 		o.allowNull = allowNull
-// 	}
-// }
+func WithTestSourceAllowNull(allowNull func(arrow.DataType) bool) func(o *WriterTestSuite) {
+	return func(o *WriterTestSuite) {
+		o.allowNull = allowNull
+	}
+}
 
 func WithTestIgnoreNullsInLists() func(o *WriterTestSuite) {
 	return func(o *WriterTestSuite) {
@@ -90,18 +91,32 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 		if suite.tests.SkipUpsert {
 			t.Skip("skipping " + t.Name())
 		}
-		if err := suite.testUpsert(ctx); err != nil {
-			t.Fatal(err)
-		}
+		t.Run("Basic", func(t *testing.T) {
+			if err := suite.testUpsertBasic(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
+		t.Run("All", func(t *testing.T) {
+			if err := suite.testUpsertAll(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
 	})
 
 	t.Run("TestInsert", func(t *testing.T) {
 		if suite.tests.SkipInsert {
 			t.Skip("skipping " + t.Name())
 		}
-		if err := suite.testInsert(ctx); err != nil {
-			t.Fatal(err)
-		}
+		t.Run("Basic", func(t *testing.T) {
+			if err := suite.testInsertBasic(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
+		t.Run("All", func(t *testing.T) {
+			if err := suite.testInsertAll(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
 	})
 
 	t.Run("TestDeleteStale", func(t *testing.T) {

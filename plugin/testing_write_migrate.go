@@ -12,6 +12,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 )
 
 func tableUUIDSuffix() string {
@@ -20,10 +21,9 @@ func tableUUIDSuffix() string {
 
 // nolint:revive
 func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
-	if err := s.plugin.writeOne(ctx, WriteOptions{
+	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
+		Table:        source,
 		MigrateForce: writeOptionMigrateForce,
-	}, &message.MigrateTable{
-		Table: source,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
@@ -36,14 +36,14 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		MaxRows:       1,
 		TimePrecision: s.genDatOptions.TimePrecision,
 	}
-
-	resource1 := schema.GenTestData(source, opts)[0]
-
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
+	tg := schema.NewTestDataGenerator()
+	resource1 := tg.Generate(source, opts)[0]
+	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource1,
 	}); err != nil {
 		return fmt.Errorf("failed to insert first record: %w", err)
 	}
+	resource1 = s.handleNulls(resource1) // we process nulls after writing
 
 	records, err := s.plugin.readAll(ctx, source)
 	if err != nil {
@@ -53,34 +53,47 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
+	if diff := RecordDiff(records[0], resource1); diff != "" {
+		return fmt.Errorf("first record differs from expectation: %s", diff)
+	}
 
-	if err := s.plugin.writeOne(ctx, WriteOptions{MigrateForce: writeOptionMigrateForce}, &message.MigrateTable{
-		Table: target,
+	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
+		Table:        target,
+		MigrateForce: writeOptionMigrateForce,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
-	resource2 := schema.GenTestData(target, opts)[0]
-	if err := s.plugin.writeOne(ctx, WriteOptions{}, &message.Insert{
+	resource2 := tg.Generate(target, opts)[0]
+	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource2,
 	}); err != nil {
 		return fmt.Errorf("failed to insert second record: %w", err)
 	}
+	resource2 = s.handleNulls(resource2) // we process nulls after writing
 
 	records, err = s.plugin.readAll(ctx, target)
 	if err != nil {
 		return fmt.Errorf("failed to readAll: %w", err)
 	}
+	sortRecords(target, records, "id")
+
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
 	if !writeOptionMigrateForce || supportsSafeMigrate {
 		totalItems = TotalRows(records)
 		if totalItems != 2 {
-			return fmt.Errorf("expected 2 item, got %d", totalItems)
+			return fmt.Errorf("expected 2 items, got %d", totalItems)
+		}
+		if diff := RecordDiff(records[1], resource2); diff != "" {
+			return fmt.Errorf("second record differs from expectation: %s", diff)
 		}
 	} else {
 		totalItems = TotalRows(records)
 		if totalItems != 1 {
 			return fmt.Errorf("expected 1 item, got %d", totalItems)
+		}
+		if diff := RecordDiff(records[0], resource2); diff != "" {
+			return fmt.Errorf("record differs from expectation: %s", diff)
 		}
 	}
 
@@ -105,14 +118,16 @@ func (s *WriterTestSuite) testMigrate(
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 			},
 		}
 
 		target := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		}
@@ -129,14 +144,16 @@ func (s *WriterTestSuite) testMigrate(
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 			},
 		}
 
 		target := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
 		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.AddColumnNotNull, forceMigrate); err != nil {
@@ -152,13 +169,15 @@ func (s *WriterTestSuite) testMigrate(
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			}}
 		target := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 			}}
 		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveColumn, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate remove_column: %v", err)
@@ -173,14 +192,16 @@ func (s *WriterTestSuite) testMigrate(
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			},
 		}
 		target := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 			}}
 		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveColumnNotNull, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate remove_column_not_null: %v", err)
@@ -195,13 +216,15 @@ func (s *WriterTestSuite) testMigrate(
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
 		target := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
-				{Name: "id", Type: types.ExtensionTypes.UUID},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.BinaryTypes.String, NotNull: true},
 			}}
 		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.ChangeColumn, forceMigrate); err != nil {
@@ -210,9 +233,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("double_migration", func(t *testing.T) {
-		// tableName := "double_migration_" + tableUUIDSuffix()
-		// table := schema.TestTable(tableName, testOpts.TestSourceOptions)
-		// require.NoError(t, p.Migrate(ctx, schema.Tables{table}, MigrateOptions{MigrateMode: MigrateModeForce}))
-		// require.NoError(t, p.Migrate(ctx, schema.Tables{table}, MigrateOptions{MigrateMode: MigrateModeForce}))
+		tableName := "double_migration_" + tableUUIDSuffix()
+		table := schema.TestTable(tableName, s.genDatOptions)
+		// s.migrate will perform create->write->migrate->write
+		require.NoError(t, s.migrate(ctx, table, table, true, false))
 	})
 }
