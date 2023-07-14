@@ -11,7 +11,7 @@ jobs:
   unitests:
     strategy:
       matrix:
-        os: [large-ubuntu, large-windows, macos-latest]
+        os: [large-ubuntu-plugin-sdk, large-windows-plugin-sdk, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -24,19 +24,19 @@ jobs:
       - run: go mod download
       - run: go build ./...
       - name: Run tests
-        if: matrix.os != 'ubuntu-latest'
+        if: matrix.os != 'large-ubuntu-plugin-sdk'
         run: go test -tags=assert -race ./...
       - name: Run tests
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'large-ubuntu-plugin-sdk'
         run: go test -tags=assert -race -coverprofile=coverage.out ./...
       - name: Run benchmark
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'large-ubuntu-plugin-sdk'
         run: make benchmark-ci
       - name: Save PR number
-        if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
+        if: matrix.os == 'large-ubuntu-plugin-sdk' && github.event_name == 'pull_request'
         run: echo ${{ github.event.number }} > ./pr_number
       - name: Upload deltas
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'large-ubuntu-plugin-sdk'
         uses: actions/upload-artifact@v3
         with:
           name: delta-action-benchmarks
@@ -45,8 +45,8 @@ jobs:
             .delta.*
             pr_number
       - name: Generate coverage report
-        if: always() && matrix.os == 'ubuntu-latest'
+        if: always() && matrix.os == 'large-ubuntu-plugin-sdk'
         run: go test -race -coverprofile=coverage.out -covermode=atomic  ./...
       - name: Upload coverage to Codecov
-        if: always() && matrix.os == 'ubuntu-latest'
+        if: always() && matrix.os == 'large-ubuntu-plugin-sdk'
         uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d

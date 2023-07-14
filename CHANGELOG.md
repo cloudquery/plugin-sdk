@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0](https://github.com/cloudquery/plugin-sdk/compare/v4.8.1-rc1...v4.0.0) (2023-07-12)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 0a52533 ([#1083](https://github.com/cloudquery/plugin-sdk/issues/1083)) ([0370294](https://github.com/cloudquery/plugin-sdk/commit/0370294523989c73afd808ac9678bc9018210c41))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to a2a76eb ([#1084](https://github.com/cloudquery/plugin-sdk/issues/1084)) ([26df75f](https://github.com/cloudquery/plugin-sdk/commit/26df75f3fc38ee8cd5c644cb62cd4ce5c720df25))
+* **types-inet:** Align logic with scalar package, set `net.IPNet` `IP` field after parsing `ParseCIDR` ([#982](https://github.com/cloudquery/plugin-sdk/issues/982)) ([fa07032](https://github.com/cloudquery/plugin-sdk/commit/fa0703271ea05e46cfe171ad1f488ddbefdd96d2))
+* Use background ctx in batchwriter worker ([#1079](https://github.com/cloudquery/plugin-sdk/issues/1079)) ([dea8168](https://github.com/cloudquery/plugin-sdk/commit/dea8168c37da58f0aaf6273446a68f8d752c9cef))
+
+
+### Miscellaneous Chores
+
+* release 4.0.0 ([a80ee69](https://github.com/cloudquery/plugin-sdk/commit/a80ee69c795819dfaff2512fee8a66135bf7aca8))
+
 ## [4.8.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.8.0-rc1...v4.8.1-rc1) (2023-07-05)
 
 
