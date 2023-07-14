@@ -12,7 +12,7 @@ import (
 )
 
 func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
-	tableName := fmt.Sprintf("cq_delete_%d", time.Now().Unix())
+	tableName := s.tableNameForTest("delete")
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	table := &schema.Table{
 		Name: tableName,
