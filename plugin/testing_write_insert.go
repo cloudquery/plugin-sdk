@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -21,7 +20,7 @@ func TotalRows(records []arrow.Record) int64 {
 }
 
 func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
-	tableName := fmt.Sprintf("cq_insert_basic_%d", time.Now().Unix())
+	tableName := s.tableNameForTest("insert_basic")
 	table := &schema.Table{
 		Name: tableName,
 		Columns: []schema.Column{
@@ -85,7 +84,7 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 }
 
 func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
-	tableName := fmt.Sprintf("cq_insert_all_%d", time.Now().Unix())
+	tableName := s.tableNameForTest("insert_all")
 	table := schema.TestTable(tableName, s.genDatOptions)
 	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
 		Table: table,
