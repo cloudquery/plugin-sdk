@@ -124,6 +124,7 @@ func (c *Caser) ToSnake(s string) string {
 			continue
 		}
 
+		word = strings.ReplaceAll(word, " ", "_")
 		result += strings.ToLower(word)
 	}
 
