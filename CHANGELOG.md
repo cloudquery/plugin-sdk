@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0](https://github.com/cloudquery/plugin-sdk/compare/v4.1.1...v4.2.0) (2023-07-17)
+
+
+### Features
+
+* Add initial version of open-telemetry ([#1097](https://github.com/cloudquery/plugin-sdk/issues/1097)) ([09a880c](https://github.com/cloudquery/plugin-sdk/commit/09a880c3ad420b991f0bc21b3cb9fba3226a6d91))
+
+
+### Bug Fixes
+
+* Differentiate between errgroup context and global context being cance… ([#1082](https://github.com/cloudquery/plugin-sdk/issues/1082)) ([0532f88](https://github.com/cloudquery/plugin-sdk/commit/0532f881067c142fd7799037990963b3ceee61fa))
+
 ## [4.1.1](https://github.com/cloudquery/plugin-sdk/compare/v4.1.0...v4.1.1) (2023-07-14)
 
 
