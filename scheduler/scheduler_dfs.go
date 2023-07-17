@@ -11,9 +11,12 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/getsentry/sentry-go"
+	"go.opentelemetry.io/otel"
 )
 
 func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *schema.Resource) {
+	ctx, span := otel.Tracer(otelName).Start(ctx, "syncDfs")
+	defer span.End()
 	// we have this because plugins can return sometimes clients in a random way which will cause
 	// differences between this run and the next one.
 	preInitialisedClients := make([][]schema.ClientMeta, len(s.tables))
@@ -68,6 +71,8 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 }
 
 func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
+	ctx, span := otel.Tracer(otelName).Start(ctx, "resolveTableDfs_"+table.Name)
+	defer span.End()
 	var validationErr *schema.ValidationError
 	clientName := client.ID()
 	logger := s.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
