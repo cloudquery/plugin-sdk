@@ -13,7 +13,7 @@ func newResource(p *plugin.Plugin) *resource.Resource {
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName("cloudquery-" + p.Name()),
+			semconv.ServiceName("cloudquery-"+p.Name()),
 			semconv.ServiceVersion(p.Version()),
 		),
 	)
