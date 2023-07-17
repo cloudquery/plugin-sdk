@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.1](https://github.com/cloudquery/plugin-sdk/compare/v4.1.0...v4.1.1) (2023-07-14)
+
+
+### Bug Fixes
+
+* Add `NoConnection` to init request ([#1092](https://github.com/cloudquery/plugin-sdk/issues/1092)) ([ba16cfd](https://github.com/cloudquery/plugin-sdk/commit/ba16cfd902fa0ba86ca826fa761d1d0e72688bc0))
+
+## [4.1.0](https://github.com/cloudquery/plugin-sdk/compare/v4.0.0...v4.1.0) (2023-07-14)
+
+
+### Features
+
+* Add `plugin.ValidateNoEmptyColumns` ([#1085](https://github.com/cloudquery/plugin-sdk/issues/1085)) ([32e1215](https://github.com/cloudquery/plugin-sdk/commit/32e1215ef3d59a1e56d14bbb342f1f33dd76146b))
+
+
+### Bug Fixes
+
+* Add random suffix to test table names ([#1086](https://github.com/cloudquery/plugin-sdk/issues/1086)) ([ad16b20](https://github.com/cloudquery/plugin-sdk/commit/ad16b20eded7ac587e41d154a7ba4e3f801e2c99))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.7.0 ([#1091](https://github.com/cloudquery/plugin-sdk/issues/1091)) ([fb124a2](https://github.com/cloudquery/plugin-sdk/commit/fb124a207d05c00c1c974efd900d06d8eb9374db))
+* **testing:** Comply with given TimePrecision ([#1089](https://github.com/cloudquery/plugin-sdk/issues/1089)) ([d16ed0f](https://github.com/cloudquery/plugin-sdk/commit/d16ed0f823ee0dcad8f8fa21df64be2aa5b9bd04))
+
+## [4.0.0](https://github.com/cloudquery/plugin-sdk/compare/v4.8.1-rc1...v4.0.0) (2023-07-12)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 0a52533 ([#1083](https://github.com/cloudquery/plugin-sdk/issues/1083)) ([0370294](https://github.com/cloudquery/plugin-sdk/commit/0370294523989c73afd808ac9678bc9018210c41))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to a2a76eb ([#1084](https://github.com/cloudquery/plugin-sdk/issues/1084)) ([26df75f](https://github.com/cloudquery/plugin-sdk/commit/26df75f3fc38ee8cd5c644cb62cd4ce5c720df25))
+* **types-inet:** Align logic with scalar package, set `net.IPNet` `IP` field after parsing `ParseCIDR` ([#982](https://github.com/cloudquery/plugin-sdk/issues/982)) ([fa07032](https://github.com/cloudquery/plugin-sdk/commit/fa0703271ea05e46cfe171ad1f488ddbefdd96d2))
+* Use background ctx in batchwriter worker ([#1079](https://github.com/cloudquery/plugin-sdk/issues/1079)) ([dea8168](https://github.com/cloudquery/plugin-sdk/commit/dea8168c37da58f0aaf6273446a68f8d752c9cef))
+
+
+### Miscellaneous Chores
+
+* release 4.0.0 ([a80ee69](https://github.com/cloudquery/plugin-sdk/commit/a80ee69c795819dfaff2512fee8a66135bf7aca8))
+
 ## [4.8.1-rc1](https://github.com/cloudquery/plugin-sdk/compare/v4.8.0-rc1...v4.8.1-rc1) (2023-07-05)
 
 

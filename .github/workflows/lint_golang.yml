@@ -10,7 +10,7 @@ on:
 jobs:
   golangci:
     name: Lint with GolangCI
-    runs-on: ubuntu-latest
+    runs-on: large-ubuntu-plugin-sdk
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3

@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -13,7 +12,7 @@ import (
 )
 
 func (s *WriterTestSuite) testUpsertBasic(ctx context.Context) error {
-	tableName := fmt.Sprintf("cq_upsert_basic_%d", time.Now().Unix())
+	tableName := s.tableNameForTest("upsert_basic")
 	table := &schema.Table{
 		Name: tableName,
 		Columns: []schema.Column{
@@ -69,7 +68,7 @@ func (s *WriterTestSuite) testUpsertBasic(ctx context.Context) error {
 }
 
 func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
-	tableName := fmt.Sprintf("cq_upsert_all_%d", time.Now().Unix())
+	tableName := s.tableNameForTest("upsert_all")
 	table := schema.TestTable(tableName, s.genDatOptions)
 	table.Columns = append(table.Columns, schema.Column{Name: "name", Type: arrow.BinaryTypes.String, PrimaryKey: true})
 	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
@@ -79,7 +78,7 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 	}
 
 	tg := schema.NewTestDataGenerator()
-	normalRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1})[0]
+	normalRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, TimePrecision: s.genDatOptions.TimePrecision})[0]
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: normalRecord,
 	}); err != nil {
@@ -100,7 +99,7 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 		return fmt.Errorf("record differs after insert: %s", diff)
 	}
 
-	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, NullRows: true})[0]
+	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, TimePrecision: s.genDatOptions.TimePrecision, NullRows: true})[0]
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: nullRecord,
 	}); err != nil {
