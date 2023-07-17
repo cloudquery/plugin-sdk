@@ -79,7 +79,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	sortRecords(target, records, "id")
 
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
-	if !writeOptionMigrateForce || supportsSafeMigrate {
+	if !writeOptionMigrateForce && supportsSafeMigrate {
 		totalItems = TotalRows(records)
 		if totalItems != 2 {
 			return fmt.Errorf("expected 2 items, got %d", totalItems)
