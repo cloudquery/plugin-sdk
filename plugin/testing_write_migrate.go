@@ -80,24 +80,19 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
 	if !writeOptionMigrateForce || supportsSafeMigrate {
-		totalItems = TotalRows(records)
-		if totalItems != 2 {
-			return fmt.Errorf("expected 2 items, got %d", totalItems)
+		if err := expectRows(records, 2, resource2); err != nil {
+			if writeOptionMigrateForce && TotalRows(records) == 1 {
+				// if force migration is required, we can also expect 1 item to be dropped
+				return expectRows(records, 1, resource2)
+			}
+
+			return err
 		}
-		if diff := RecordDiff(records[1], resource2); diff != "" {
-			return fmt.Errorf("second record differs from expectation: %s", diff)
-		}
-	} else {
-		totalItems = TotalRows(records)
-		if totalItems != 1 {
-			return fmt.Errorf("expected 1 item, got %d", totalItems)
-		}
-		if diff := RecordDiff(records[0], resource2); diff != "" {
-			return fmt.Errorf("record differs from expectation: %s", diff)
-		}
+
+		return nil
 	}
 
-	return nil
+	return expectRows(records, 1, resource2)
 }
 
 // nolint:revive
@@ -238,4 +233,15 @@ func (s *WriterTestSuite) testMigrate(
 		// s.migrate will perform create->write->migrate->write
 		require.NoError(t, s.migrate(ctx, table, table, true, false))
 	})
+}
+
+func expectRows(records []arrow.Record, expectTotal int64, expectedLast arrow.Record) error {
+	totalItems := TotalRows(records)
+	if totalItems != expectTotal {
+		return fmt.Errorf("expected %d items, got %d", expectTotal, totalItems)
+	}
+	if diff := RecordDiff(records[totalItems-1], expectedLast); diff != "" {
+		return fmt.Errorf("record #%d differs from expectation: %s", totalItems, diff)
+	}
+	return nil
 }
