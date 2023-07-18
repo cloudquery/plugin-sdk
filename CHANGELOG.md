@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.3](https://github.com/cloudquery/plugin-sdk/compare/v4.2.2...v4.2.3) (2023-07-18)
+
+
+### Bug Fixes
+
+* **streamingbatchwriter:** Missing tickerFn on DeleteWorker ([#1103](https://github.com/cloudquery/plugin-sdk/issues/1103)) ([91eae56](https://github.com/cloudquery/plugin-sdk/commit/91eae56526588f944bdfaceb5c89de8473d84779))
+
 ## [4.2.2](https://github.com/cloudquery/plugin-sdk/compare/v4.2.1...v4.2.2) (2023-07-18)
 
 
