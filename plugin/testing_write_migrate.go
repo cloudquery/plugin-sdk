@@ -241,7 +241,7 @@ func expectRows(records []arrow.Record, expectTotal int64, expectedLast arrow.Re
 		return fmt.Errorf("expected %d items, got %d", expectTotal, totalItems)
 	}
 	if diff := RecordDiff(records[totalItems-1], expectedLast); diff != "" {
-		return fmt.Errorf("record #%d differs from expectation: %s", totalItems-1, diff)
+		return fmt.Errorf("record #%d differs from expectation: %s", totalItems, diff)
 	}
 	return nil
 }
