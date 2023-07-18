@@ -70,7 +70,7 @@ func TestTimestampDoubleSet(t *testing.T) {
 
 func TestAppendToBuilderTimestamp(t *testing.T) {
 	units := []arrow.TimeUnit{arrow.Second, arrow.Millisecond, arrow.Microsecond, arrow.Nanosecond}
-	expected := []string{"1999-01-08 04:05:06", "1999-01-08 04:05:06.123", "1999-01-08 04:05:06.123456", "1999-01-08 04:05:06.123456789"}
+	expected := []string{"1999-01-08 04:05:06Z", "1999-01-08 04:05:06.123Z", "1999-01-08 04:05:06.123456Z", "1999-01-08 04:05:06.123456789Z"}
 	for i, unit := range units {
 		timestamp := Timestamp{
 			Type: &arrow.TimestampType{
