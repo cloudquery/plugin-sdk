@@ -248,6 +248,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 
 			batchSizeRows: w.batchSizeRows,
 			batchTimeout:  w.batchTimeout,
+			tickerFn:      w.tickerFn,
 		}
 
 		w.workersWaitGroup.Add(1)
