@@ -37,6 +37,7 @@ func Test_ToSnake(t *testing.T) {
 		{Camel: "H e l l o ", Snake: "h_e_l_l_o"},
 		{Camel: " H e l l o", Snake: "h_e_l_l_o"},
 		{Camel: " H e l l o ", Snake: "h_e_l_l_o"},
+		{Camel: "Hello     World", Snake: "hello_world"},
 	}
 	t.Parallel()
 	c := New()

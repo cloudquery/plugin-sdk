@@ -1,6 +1,7 @@
 package caser
 
 import (
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -127,7 +128,8 @@ func (c *Caser) ToSnake(s string) string {
 		word = strings.ReplaceAll(word, " ", "_")
 		result += strings.ToLower(word)
 	}
-	result = strings.ReplaceAll(result, "__", "_")
+	re := regexp.MustCompile("_+")
+	result = re.ReplaceAllString(result, "_")
 
 	// Edge cases
 	startWithUnderscore := strings.HasPrefix(result, "_")
