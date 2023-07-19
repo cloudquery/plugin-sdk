@@ -127,7 +127,17 @@ func (c *Caser) ToSnake(s string) string {
 		word = strings.ReplaceAll(word, " ", "_")
 		result += strings.ToLower(word)
 	}
+	result = strings.ReplaceAll(result, "__", "_")
 
+	// Edge cases
+	startWithUnderscore := strings.HasPrefix(result, "_")
+	endsWithUnderscore := strings.HasSuffix(result, "_")
+	if startWithUnderscore {
+		result = strings.TrimPrefix(result, "_")
+	}
+	if endsWithUnderscore {
+		result = strings.TrimSuffix(result, "_")
+	}
 	return result
 }
 

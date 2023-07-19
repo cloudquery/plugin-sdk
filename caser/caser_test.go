@@ -31,6 +31,12 @@ func Test_ToSnake(t *testing.T) {
 		{Camel: "IAMRoles", Snake: "iam_roles"},
 		{Camel: "testIAM", Snake: "test_iam"},
 		{Camel: "TestAWSMode", Snake: "test_aws_mode"},
+		{Camel: "Hello World", Snake: "hello_world"},
+		{Camel: "Hello Wor ld", Snake: "hello_wor_ld"},
+		{Camel: "H e l l o", Snake: "h_e_l_l_o"},
+		{Camel: "H e l l o ", Snake: "h_e_l_l_o"},
+		{Camel: " H e l l o", Snake: "h_e_l_l_o"},
+		{Camel: " H e l l o ", Snake: "h_e_l_l_o"},
 	}
 	t.Parallel()
 	c := New()
