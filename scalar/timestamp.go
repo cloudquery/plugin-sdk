@@ -18,6 +18,7 @@ const defaultStringFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
 
 // this is used by arrow string format (time is in UTC)
 const arrowStringFormat = "2006-01-02 15:04:05.999999999"
+const arrowStringFormatNew = "2006-01-02 15:04:05.999999999Z"
 
 // const microsecFromUnixEpochToY2K = 946684800 * 1000000
 
@@ -140,24 +141,19 @@ func (s *Timestamp) DecodeText(src []byte) error {
 			sbuf = sbuf[:len(defaultStringFormat)]
 		}
 
-		// there is no good way of detecting format so we just try few of them
-		tim, err = time.Parse(time.RFC3339, sbuf)
-		if err == nil {
-			s.Value = tim.UTC()
-			s.Valid = true
-			return nil
-		}
-		tim, err = time.Parse(defaultStringFormat, sbuf)
-		if err == nil {
-			s.Value = tim.UTC()
-			s.Valid = true
-			return nil
-		}
-		tim, err = time.Parse(arrowStringFormat, sbuf)
-		if err == nil {
-			s.Value = tim.UTC()
-			s.Valid = true
-			return nil
+		// there is no good way of detecting format, so we just try few of them
+		for _, format := range []string{
+			time.RFC3339,
+			defaultStringFormat,
+			arrowStringFormat,
+			arrowStringFormatNew,
+		} {
+			tim, err = time.Parse(format, sbuf)
+			if err == nil {
+				s.Value = tim.UTC()
+				s.Valid = true
+				return nil
+			}
 		}
 		return &ValidationError{Type: s.DataType(), Msg: "cannot parse timestamp", Value: sbuf, Err: err}
 	}
