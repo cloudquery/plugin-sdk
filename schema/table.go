@@ -246,14 +246,20 @@ func (tt Tables) FilterDfs(tables, skipTables []string, skipDependentTables bool
 	return tt.FilterDfsFunc(include, exclude, skipDependentTables), nil
 }
 
-func (tt Tables) FlattenTables() Tables {
+func (tt Tables) flattenTables() Tables {
 	tables := make(Tables, 0, len(tt))
 	for _, t := range tt {
 		table := *t
 		table.Relations = nil
 		tables = append(tables, &table)
-		tables = append(tables, t.Relations.FlattenTables()...)
+		tables = append(tables, t.Relations.flattenTables()...)
 	}
+
+	return tables
+}
+
+func (tt Tables) FlattenTables() Tables {
+	tables := tt.flattenTables()
 
 	seen := make(map[string]struct{})
 	deduped := make(Tables, 0, len(tables))
