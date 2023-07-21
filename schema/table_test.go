@@ -390,3 +390,33 @@ func TestTableToAndFromArrow(t *testing.T) {
 		t.Errorf("diff (+got, -want): %v", diff)
 	}
 }
+
+func TestValidateDuplicateTables(t *testing.T) {
+	tests := []struct {
+		name   string
+		tables Tables
+		err    string
+	}{
+		{
+			name:   "should return error when duplicate tables are found",
+			tables: Tables{{Name: "table1"}, {Name: "table1"}},
+			err:    "duplicate table table1",
+		},
+		{
+			name:   "should return error when duplicate relational tables are found",
+			tables: Tables{{Name: "table1", Relations: []*Table{{Name: "table2"}, {Name: "table2"}}}},
+			err:    "duplicate table table2",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.tables.ValidateDuplicateTables()
+			if tc.err != "" {
+				require.ErrorContains(t, err, tc.err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

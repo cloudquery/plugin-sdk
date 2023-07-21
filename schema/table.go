@@ -342,12 +342,13 @@ func (tt Tables) ValidateDuplicateColumns() error {
 }
 
 func (tt Tables) ValidateDuplicateTables() error {
+	tableNames := tt.TableNames()
 	tables := make(map[string]bool, len(tt))
-	for _, t := range tt {
-		if _, ok := tables[t.Name]; ok {
-			return fmt.Errorf("duplicate table %s", t.Name)
+	for _, t := range tableNames {
+		if _, ok := tables[t]; ok {
+			return fmt.Errorf("duplicate table %s", t)
 		}
-		tables[t.Name] = true
+		tables[t] = true
 	}
 	return nil
 }
@@ -405,7 +406,7 @@ func (t *Table) ValidateName() error {
 	if !ok {
 		return fmt.Errorf("table name %q is not valid: table names must contain only lower-case letters, numbers and underscores, and must start with a lower-case letter or underscore", t.Name)
 	}
-	return nil
+	return ValidateTable(t)
 }
 
 func (t *Table) PrimaryKeysIndexes() []int {
