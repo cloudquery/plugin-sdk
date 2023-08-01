@@ -153,7 +153,7 @@ func (a *JSONArray) Value(i int) any {
 	}
 
 	var data any
-	err := json.Unmarshal(a.Storage().(*array.Binary).Value(i), &data)
+	err := json.Unmarshal([]byte(a.ValueStr(i)), &data)
 	if err != nil {
 		panic(fmt.Errorf("invalid json: %w", err))
 	}
@@ -185,7 +185,15 @@ func (a *JSONArray) GetOneForMarshal(i int) any {
 	if a.IsNull(i) {
 		return nil
 	}
-	return json.RawMessage(a.Storage().(*array.Binary).Value(i))
+
+	b := a.Storage().(*array.Binary).Value(i)
+	if len(b) == 0 {
+		// Empty JSON string in the storage.
+		// Valid JSON can't be "", so we return nil entry instead.
+		return json.RawMessage(nil)
+	}
+
+	return json.RawMessage(b)
 }
 
 // JSONType is a simple extension type that represents a BinaryType
