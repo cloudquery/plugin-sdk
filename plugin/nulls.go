@@ -39,33 +39,6 @@ func stripNullsFromLists(list array.ListLike) array.ListLike {
 
 type AllowNullFunc func(arrow.DataType) bool
 
-func (s *WriterTestSuite) replaceNullsByEmpty(record arrow.Record) arrow.Record {
-	if s.allowNull == nil {
-		return record
-	}
-
-	cols := record.Columns()
-	for c, col := range cols {
-		if col.NullN() == 0 || s.allowNull(col.DataType()) {
-			continue
-		}
-
-		builder := array.NewBuilder(memory.DefaultAllocator, col.DataType())
-		for j := 0; j < col.Len(); j++ {
-			if col.IsNull(j) {
-				builder.AppendEmptyValue()
-				continue
-			}
-
-			if err := builder.AppendValueFromString(col.ValueStr(j)); err != nil {
-				panic(err)
-			}
-		}
-		cols[c] = builder.NewArray()
-	}
-	return array.NewRecord(record.Schema(), cols, record.NumRows())
-}
-
 func (s *WriterTestSuite) replaceNullsByEmptyArray(arr arrow.Array) arrow.Array {
 	if s.allowNull == nil {
 		return arr
@@ -129,12 +102,11 @@ func (s *WriterTestSuite) handleNulls(record arrow.Record) arrow.Record {
 		cols[c] = s.handleNullsArray(col)
 	}
 	return array.NewRecord(record.Schema(), cols, record.NumRows())
-
 }
 
 func (s *WriterTestSuite) handleNullsArray(arr arrow.Array) arrow.Array {
-	if arr, ok := arr.(array.ListLike); ok {
-		arr = stripNullsFromLists(arr) // TODO: handle Arrow maps separately if required
+	if list, ok := arr.(array.ListLike); ok {
+		arr = stripNullsFromLists(list) // TODO: handle Arrow maps separately if required
 	}
 
 	return s.replaceNullsByEmptyArray(arr)
