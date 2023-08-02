@@ -9,6 +9,9 @@ import (
 )
 
 func RecordDiff(l, r arrow.Record) string {
+	if array.RecordApproxEqual(l, r, array.WithUnorderedMapKeys(true)) {
+		return ""
+	}
 	var sb strings.Builder
 	if l.NumCols() != r.NumCols() {
 		return fmt.Sprintf("different number of columns: %d vs %d", l.NumCols(), r.NumCols())
