@@ -39,7 +39,7 @@ func stripNullsFromLists(list array.ListLike) array.ListLike {
 
 type AllowNullFunc func(arrow.DataType) bool
 
-func (s *WriterTestSuite) replaceNullsByEmptyArray(arr arrow.Array) arrow.Array {
+func (s *WriterTestSuite) replaceNullsByEmpty(arr arrow.Array) arrow.Array {
 	if s.allowNull == nil {
 		return arr
 	}
@@ -105,9 +105,9 @@ func (s *WriterTestSuite) handleNulls(record arrow.Record) arrow.Record {
 }
 
 func (s *WriterTestSuite) handleNullsArray(arr arrow.Array) arrow.Array {
-	if list, ok := arr.(array.ListLike); ok {
+	if list, ok := arr.(array.ListLike); ok && s.ignoreNullsInLists {
 		arr = stripNullsFromLists(list) // TODO: handle Arrow maps separately if required
 	}
 
-	return s.replaceNullsByEmptyArray(arr)
+	return s.replaceNullsByEmpty(arr)
 }
