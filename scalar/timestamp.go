@@ -9,22 +9,13 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 )
 
-// const pgTimestamptzHourFormat = "2006-01-02 15:04:05.999999999Z07"
-// const pgTimestamptzMinuteFormat = "2006-01-02 15:04:05.999999999Z07:00"
-// const pgTimestamptzSecondFormat = "2006-01-02 15:04:05.999999999Z07:00:00"
-
-// this is the default format used by time.Time.String()
-const defaultStringFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
-
-// this is used by arrow string format (time is in UTC)
-const arrowStringFormat = "2006-01-02 15:04:05.999999999"
-const arrowStringFormatNew = "2006-01-02 15:04:05.999999999Z"
-
-// const microsecFromUnixEpochToY2K = 946684800 * 1000000
-
 const (
-// negativeInfinityMicrosecondOffset = -9223372036854775808
-// infinityMicrosecondOffset         = 9223372036854775807
+	// this is the default format used by time.Time.String()
+	defaultStringFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
+
+	// these are used by Arrow string format (time is in UTC)
+	arrowStringFormat    = "2006-01-02 15:04:05.999999999"
+	arrowStringFormatNew = "2006-01-02 15:04:05.999999999Z"
 )
 
 type Timestamp struct {
