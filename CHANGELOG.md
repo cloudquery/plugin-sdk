@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.4](https://github.com/cloudquery/plugin-sdk/compare/v4.2.3...v4.2.4) (2023-08-02)
+
+
+### Bug Fixes
+
+* Check record equality before generating diff ([#1123](https://github.com/cloudquery/plugin-sdk/issues/1123)) ([b2e6331](https://github.com/cloudquery/plugin-sdk/commit/b2e63318befaf3cf4f633a95f08178ef7dbbed18))
+* **deps:** Update github.com/apache/arrow/go/v13 digest to 112f949 ([#1115](https://github.com/cloudquery/plugin-sdk/issues/1115)) ([ed0e4e0](https://github.com/cloudquery/plugin-sdk/commit/ed0e4e03c271d7232258c4efaec3708f645e7d5e))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 10df4b9 ([#1110](https://github.com/cloudquery/plugin-sdk/issues/1110)) ([636084c](https://github.com/cloudquery/plugin-sdk/commit/636084cb28281e4cccad76b8aff5a18306855eb1))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 3452eb0 ([#1114](https://github.com/cloudquery/plugin-sdk/issues/1114)) ([af83988](https://github.com/cloudquery/plugin-sdk/commit/af839886025f534bf28484b49345faca9dcd1735))
+* **deps:** Update golang.org/x/exp digest to b0cb94b ([#1116](https://github.com/cloudquery/plugin-sdk/issues/1116)) ([4a6dc5b](https://github.com/cloudquery/plugin-sdk/commit/4a6dc5b8a657ad09a4476305fb64629fbec6463f))
+* **deps:** Update google.golang.org/genproto digest to e0aa005 ([#1117](https://github.com/cloudquery/plugin-sdk/issues/1117)) ([5fa4d51](https://github.com/cloudquery/plugin-sdk/commit/5fa4d5184b333fb7d7a4a2c5bed2ca695eba80fe))
+* **deps:** Update google.golang.org/genproto/googleapis/api digest to e0aa005 ([#1118](https://github.com/cloudquery/plugin-sdk/issues/1118)) ([939060f](https://github.com/cloudquery/plugin-sdk/commit/939060fbbca30e17de0537d5eec42ff15beaceab))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to e0aa005 ([#1119](https://github.com/cloudquery/plugin-sdk/issues/1119)) ([0a9f8ea](https://github.com/cloudquery/plugin-sdk/commit/0a9f8eaa4777764c654460bc7328281df9bf0ac8))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.9.0 ([#1112](https://github.com/cloudquery/plugin-sdk/issues/1112)) ([3831a88](https://github.com/cloudquery/plugin-sdk/commit/3831a88c3a4afa5f3764c908a2ae098c4f3cba5f))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.9.1 ([#1113](https://github.com/cloudquery/plugin-sdk/issues/1113)) ([67bc46e](https://github.com/cloudquery/plugin-sdk/commit/67bc46e957d6ec6e21f018823700eccb3af96027))
+* **deps:** Update module github.com/klauspost/compress to v1.16.7 ([#1120](https://github.com/cloudquery/plugin-sdk/issues/1120)) ([e41a303](https://github.com/cloudquery/plugin-sdk/commit/e41a303142475b9b796214ba8909962a7a43e6a2))
+* **deps:** Update module github.com/pierrec/lz4/v4 to v4.1.18 ([#1121](https://github.com/cloudquery/plugin-sdk/issues/1121)) ([6829b63](https://github.com/cloudquery/plugin-sdk/commit/6829b6356ba7b543f35c0c22d2f22a6789c59e9b))
+* Process nulls for tested types, too (maps, lists, structs) ([#1125](https://github.com/cloudquery/plugin-sdk/issues/1125)) ([4a1f315](https://github.com/cloudquery/plugin-sdk/commit/4a1f31514aee9021a4c667f559eefe08b42e5c14))
+
 ## [4.2.3](https://github.com/cloudquery/plugin-sdk/compare/v4.2.2...v4.2.3) (2023-07-18)
 
 
