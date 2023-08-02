@@ -10,6 +10,44 @@ import (
 	"time"
 )
 
+func TestWithTestIgnoreNullsInLists(t *testing.T) {
+	s := &WriterTestSuite{ignoreNullsInLists: true}
+
+	tg := schema.NewTestDataGenerator()
+	source := schema.TestTable("ignore_nulls_in_lists", schema.TestSourceOptions{})
+	resource := s.handleNulls(tg.Generate(source, schema.GenTestDataOptions{
+		SourceName: "allow_null",
+		SyncTime:   time.Now(),
+		MaxRows:    100,
+		NullRows:   false,
+	})[0])
+	for _, c := range resource.Columns() {
+		assertNoNullsInLists(t, c)
+	}
+
+	resource = s.handleNulls(tg.Generate(source, schema.GenTestDataOptions{
+		SourceName: "ignore_nulls_in_lists",
+		SyncTime:   time.Now(),
+		MaxRows:    100,
+		NullRows:   true,
+	})[0])
+	for _, c := range resource.Columns() {
+		assertNoNullsInLists(t, c)
+	}
+}
+
+func assertNoNullsInLists(t *testing.T, arr arrow.Array) {
+	// traverse
+	switch arr := arr.(type) {
+	case array.ListLike:
+		assert.Zero(t, arr.ListValues().NullN())
+	case *array.Struct:
+		for i := 0; i < arr.NumField(); i++ {
+			assertNoNullsInLists(t, arr.Field(i))
+		}
+	}
+}
+
 func TestWithTestSourceAllowNull(t *testing.T) {
 	s := &WriterTestSuite{allowNull: func(dt arrow.DataType) bool {
 		switch dt.(type) {

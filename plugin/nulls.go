@@ -8,11 +8,6 @@ import (
 
 func stripNullsFromLists(list array.ListLike) array.ListLike {
 	// TODO: handle Arrow maps separately if required
-
-	if list.NullN() == 0 {
-		return list
-	}
-
 	bldr := array.NewBuilder(memory.DefaultAllocator, list.DataType()).(array.ListLikeBuilder)
 	for j := 0; j < list.Len(); j++ {
 		if list.IsNull(j) {
