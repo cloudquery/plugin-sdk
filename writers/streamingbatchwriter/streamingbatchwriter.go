@@ -335,11 +335,11 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 	closeFlush := func() {
 		if open {
 			close(clientCh)
+			open = false
 			if err := <-clientErrCh; err != nil {
 				s.errCh <- fmt.Errorf("handler failed on %s: %w", tableName, err)
 			}
 		}
-		open = false
 		sizeBytes, sizeRows = 0, 0
 	}
 	defer closeFlush()
