@@ -156,13 +156,16 @@ func (w *StreamingBatchWriter) Close(context.Context) error {
 	}
 	w.workersWaitGroup.Wait()
 
-	w.insertWorkers = nil
+	w.insertWorkers = make(map[string]*streamingWorkerManager[*message.WriteInsert])
+	w.migrateWorker = nil
+	w.deleteWorker = nil
 
 	return nil
 }
 
 func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
 	errCh := make(chan error)
+	defer close(errCh)
 
 	go func() {
 		for err := range errCh {
@@ -172,7 +175,7 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 
 	for msg := range msgs {
 		msgType := writers.MsgID(msg)
-		if w.lastMsgType != msgType {
+		if w.lastMsgType != writers.MsgTypeUnset && w.lastMsgType != msgType {
 			if err := w.Flush(ctx); err != nil {
 				return err
 			}
@@ -183,12 +186,7 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 		}
 	}
 
-	if err := w.Flush(ctx); err != nil {
-		return err
-	}
-
-	close(errCh)
-	return nil
+	return w.Close(ctx)
 }
 
 func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- error, msg message.WriteMessage) error {
