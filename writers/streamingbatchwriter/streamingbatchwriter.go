@@ -333,6 +333,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 		open = true
 	}
 	closeFlush := func() {
+		clientCh := clientCh // make a local copy
 		if open {
 			open = false
 			close(clientCh)
