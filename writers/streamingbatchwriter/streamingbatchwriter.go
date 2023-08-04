@@ -159,6 +159,7 @@ func (w *StreamingBatchWriter) Close(context.Context) error {
 	w.insertWorkers = make(map[string]*streamingWorkerManager[*message.WriteInsert])
 	w.migrateWorker = nil
 	w.deleteWorker = nil
+	w.lastMsgType = writers.MsgTypeUnset
 
 	return nil
 }
