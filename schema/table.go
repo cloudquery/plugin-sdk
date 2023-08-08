@@ -275,6 +275,31 @@ func (tt Tables) FlattenTables() Tables {
 	return slices.Clip(deduped)
 }
 
+// UnflattenTables returns a new Tables copy with the relations unflattened. This is the
+// opposite operation of FlattenTables.
+func (tt Tables) UnflattenTables() (Tables, error) {
+	tables := make(Tables, 0, len(tt))
+	for _, t := range tt {
+		table := *t
+		tables = append(tables, &table)
+	}
+	topLevel := make([]*Table, 0, len(tt))
+	// build relations
+	for _, table := range tables {
+		if table.Parent == nil {
+			topLevel = append(topLevel, table)
+			continue
+		}
+		parent := tables.Get(table.Parent.Name)
+		if parent == nil {
+			return nil, fmt.Errorf("parent table %s not found", table.Parent.Name)
+		}
+		table.Parent = parent
+		parent.Relations = append(parent.Relations, table)
+	}
+	return slices.Clip(topLevel), nil
+}
+
 func (tt Tables) TableNames() []string {
 	ret := []string{}
 	for _, t := range tt {
