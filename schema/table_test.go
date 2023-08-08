@@ -16,6 +16,7 @@ var testTable = &Table{
 		{
 			Name:    "test2",
 			Columns: []Column{},
+			Parent:  &Table{Name: "test"},
 		},
 	},
 }
@@ -43,6 +44,15 @@ func TestTablesFlatten(t *testing.T) {
 	if len(tables) != 2 {
 		t.Fatal("expected 2 tables")
 	}
+}
+
+func TestTablesUnflatten(t *testing.T) {
+	srcTables := Tables{testTable}
+	tables, err := srcTables.FlattenTables().UnflattenTables()
+	require.NoError(t, err)
+	require.Equal(t, 1, len(srcTables)) // verify that the source Tables were left untouched
+	require.Equal(t, 1, len(tables))    // verify that the tables are equal to what we started with
+	require.Equal(t, 1, len(tables[0].Relations))
 }
 
 func TestTablesFilterDFS(t *testing.T) {
