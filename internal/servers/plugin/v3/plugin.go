@@ -29,8 +29,9 @@ type Server struct {
 
 func (s *Server) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
 	tables, err := s.Plugin.Tables(ctx, plugin.TableOptions{
-		Tables:     req.Tables,
-		SkipTables: req.SkipTables,
+		Tables:              req.Tables,
+		SkipTables:          req.SkipTables,
+		SkipDependentTables: req.SkipDependentTables,
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get tables: %v", err)
