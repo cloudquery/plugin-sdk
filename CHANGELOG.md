@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.6](https://github.com/cloudquery/plugin-sdk/compare/v4.2.5...v4.2.6) (2023-08-08)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to f53878d ([#1132](https://github.com/cloudquery/plugin-sdk/issues/1132)) ([0c47570](https://github.com/cloudquery/plugin-sdk/commit/0c475702592506e2fce708384dd2bd5c8b9da827))
+* **writers:** StreamingBatchWriter hangs with non-append mode ([#1131](https://github.com/cloudquery/plugin-sdk/issues/1131)) ([806c85d](https://github.com/cloudquery/plugin-sdk/commit/806c85d92bb9152b0469a1e30e167a662ebd8015))
+
 ## [4.2.5](https://github.com/cloudquery/plugin-sdk/compare/v4.2.4...v4.2.5) (2023-08-02)
 
 
