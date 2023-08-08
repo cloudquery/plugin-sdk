@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0](https://github.com/cloudquery/plugin-sdk/compare/v4.2.6...v4.3.0) (2023-08-08)
+
+
+### Features
+
+* Add more metadata to tables needed for docs generation ([#1129](https://github.com/cloudquery/plugin-sdk/issues/1129)) ([3dbd7f3](https://github.com/cloudquery/plugin-sdk/commit/3dbd7f32cdcb87dd0b7cd4dd9b71c2552b25b30e))
+
 ## [4.2.6](https://github.com/cloudquery/plugin-sdk/compare/v4.2.5...v4.2.6) (2023-08-08)
 
 
