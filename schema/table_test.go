@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 )
@@ -15,6 +16,7 @@ var testTable = &Table{
 		{
 			Name:    "test2",
 			Columns: []Column{},
+			Parent:  &Table{Name: "test"},
 		},
 	},
 }
@@ -42,6 +44,15 @@ func TestTablesFlatten(t *testing.T) {
 	if len(tables) != 2 {
 		t.Fatal("expected 2 tables")
 	}
+}
+
+func TestTablesUnflatten(t *testing.T) {
+	srcTables := Tables{testTable}
+	tables, err := srcTables.FlattenTables().UnflattenTables()
+	require.NoError(t, err)
+	require.Equal(t, 1, len(srcTables)) // verify that the source Tables were left untouched
+	require.Equal(t, 1, len(tables))    // verify that the tables are equal to what we started with
+	require.Equal(t, 1, len(tables[0].Relations))
 }
 
 func TestTablesFilterDFS(t *testing.T) {
@@ -344,5 +355,38 @@ func TestTableGetChanges(t *testing.T) {
 				t.Errorf("diff (+got, -want): %v", diff)
 			}
 		})
+	}
+}
+
+func TestTableToAndFromArrow(t *testing.T) {
+	// The attributes in this table should all be preserved when converting to and from Arrow.
+	table := &Table{
+		Name:        "test_table",
+		Description: "Test table description",
+		Title:       "Test Table",
+		Parent: &Table{
+			Name: "parent_table",
+		},
+		IsIncremental: true,
+		Columns: []Column{
+			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+			{Name: "int", Type: arrow.PrimitiveTypes.Int64},
+			{Name: "float", Type: arrow.PrimitiveTypes.Float64},
+			{Name: "string", Type: arrow.BinaryTypes.String},
+			{Name: "json", Type: types.ExtensionTypes.JSON},
+			{Name: "unique", Type: arrow.BinaryTypes.String, Unique: true},
+			{Name: "primary_key", Type: arrow.BinaryTypes.String, PrimaryKey: true},
+			{Name: "not_null", Type: arrow.BinaryTypes.String, NotNull: true},
+			{Name: "incremental_key", Type: arrow.BinaryTypes.String, IncrementalKey: true},
+			{Name: "multiple_attributes", Type: arrow.BinaryTypes.String, PrimaryKey: true, IncrementalKey: true, NotNull: true, Unique: true},
+		},
+	}
+	arrowSchema := table.ToArrowSchema()
+	tableFromArrow, err := NewTableFromArrowSchema(arrowSchema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(table, tableFromArrow); diff != "" {
+		t.Errorf("diff (+got, -want): %v", diff)
 	}
 }

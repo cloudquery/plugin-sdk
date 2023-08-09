@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.0](https://github.com/cloudquery/plugin-sdk/compare/v4.3.1...v4.4.0) (2023-08-08)
+
+
+### Features
+
+* Add Unflatten tables method ([#1138](https://github.com/cloudquery/plugin-sdk/issues/1138)) ([848e505](https://github.com/cloudquery/plugin-sdk/commit/848e505ba49bdb4fb45cfa8bb7b9b7538afc785e))
+
+## [4.3.1](https://github.com/cloudquery/plugin-sdk/compare/v4.3.0...v4.3.1) (2023-08-08)
+
+
+### Bug Fixes
+
+* **plugin-tables:** Add missing `skip_dependent_tables` ([#1136](https://github.com/cloudquery/plugin-sdk/issues/1136)) ([65e9f1a](https://github.com/cloudquery/plugin-sdk/commit/65e9f1a9d81d4534e8a637ed5db57071fe91d831))
+
+## [4.3.0](https://github.com/cloudquery/plugin-sdk/compare/v4.2.6...v4.3.0) (2023-08-08)
+
+
+### Features
+
+* Add more metadata to tables needed for docs generation ([#1129](https://github.com/cloudquery/plugin-sdk/issues/1129)) ([3dbd7f3](https://github.com/cloudquery/plugin-sdk/commit/3dbd7f32cdcb87dd0b7cd4dd9b71c2552b25b30e))
+
+## [4.2.6](https://github.com/cloudquery/plugin-sdk/compare/v4.2.5...v4.2.6) (2023-08-08)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to f53878d ([#1132](https://github.com/cloudquery/plugin-sdk/issues/1132)) ([0c47570](https://github.com/cloudquery/plugin-sdk/commit/0c475702592506e2fce708384dd2bd5c8b9da827))
+* **writers:** StreamingBatchWriter hangs with non-append mode ([#1131](https://github.com/cloudquery/plugin-sdk/issues/1131)) ([806c85d](https://github.com/cloudquery/plugin-sdk/commit/806c85d92bb9152b0469a1e30e167a662ebd8015))
+
 ## [4.2.5](https://github.com/cloudquery/plugin-sdk/compare/v4.2.4...v4.2.5) (2023-08-02)
 
 

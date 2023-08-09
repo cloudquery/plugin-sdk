@@ -26,7 +26,7 @@ type Transform func(table *Table) error
 
 type Tables []*Table
 
-// This is deprecated
+// Deprecated: SyncSummary is deprecated.
 type SyncSummary struct {
 	Resources uint64
 	Errors    uint64
@@ -94,7 +94,7 @@ var (
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
-// AddCqIds adds the cq_id and cq_parent_id columns to the table and all its relations
+// AddCqIDs adds the cq_id and cq_parent_id columns to the table and all its relations
 // set cq_id as primary key if no other primary keys
 func AddCqIDs(table *Table) {
 	havePks := len(table.PrimaryKeys()) > 0
@@ -126,9 +126,9 @@ func NewTablesFromArrowSchemas(schemas []*arrow.Schema) (Tables, error) {
 	return tables, nil
 }
 
-// Create a CloudQuery Table abstraction from an arrow schema
-// arrow schema is a low level representation of a table that can be sent
-// over the wire in a cross-language way
+// NewTableFromArrowSchema creates a CloudQuery Table abstraction from an Arrow schema.
+// The Arrow schema is a low level representation of a table that can be sent
+// over the wire in a cross-language way.
 func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	tableMD := sc.Metadata()
 	name, found := tableMD.GetValue(MetadataTableName)
@@ -137,6 +137,12 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	}
 	description, _ := tableMD.GetValue(MetadataTableDescription)
 	constraintName, _ := tableMD.GetValue(MetadataConstraintName)
+	title, _ := tableMD.GetValue(MetadataTableTitle)
+	dependsOn, _ := tableMD.GetValue(MetadataTableDependsOn)
+	var parent *Table
+	if dependsOn != "" {
+		parent = &Table{Name: dependsOn}
+	}
 	fields := sc.Fields()
 	columns := make(ColumnList, len(fields))
 	for i, field := range fields {
@@ -147,6 +153,8 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		Description:      description,
 		PkConstraintName: constraintName,
 		Columns:          columns,
+		Title:            title,
+		Parent:           parent,
 	}
 	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
 		table.IsIncremental = isIncremental == MetadataTrue
@@ -265,6 +273,31 @@ func (tt Tables) FlattenTables() Tables {
 	}
 
 	return slices.Clip(deduped)
+}
+
+// UnflattenTables returns a new Tables copy with the relations unflattened. This is the
+// opposite operation of FlattenTables.
+func (tt Tables) UnflattenTables() (Tables, error) {
+	tables := make(Tables, 0, len(tt))
+	for _, t := range tt {
+		table := *t
+		tables = append(tables, &table)
+	}
+	topLevel := make([]*Table, 0, len(tt))
+	// build relations
+	for _, table := range tables {
+		if table.Parent == nil {
+			topLevel = append(topLevel, table)
+			continue
+		}
+		parent := tables.Get(table.Parent.Name)
+		if parent == nil {
+			return nil, fmt.Errorf("parent table %s not found", table.Parent.Name)
+		}
+		table.Parent = parent
+		parent.Relations = append(parent.Relations, table)
+	}
+	return slices.Clip(topLevel), nil
 }
 
 func (tt Tables) TableNames() []string {
@@ -391,11 +424,14 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	md := map[string]string{
 		MetadataTableName:        t.Name,
 		MetadataTableDescription: t.Description,
+		MetadataTableTitle:       t.Title,
 		MetadataConstraintName:   t.PkConstraintName,
-		MetadataIncremental:      MetadataFalse,
 	}
 	if t.IsIncremental {
 		md[MetadataIncremental] = MetadataTrue
+	}
+	if t.Parent != nil {
+		md[MetadataTableDependsOn] = t.Parent.Name
 	}
 	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {
@@ -404,7 +440,7 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	return arrow.NewSchema(fields, &schemaMd)
 }
 
-// Get Changes returns changes between two tables when t is the new one and old is the old one.
+// GetChanges returns changes between two tables when t is the new one and old is the old one.
 func (t *Table) GetChanges(old *Table) []TableColumnChange {
 	var changes []TableColumnChange
 	for _, c := range t.Columns {
@@ -475,6 +511,7 @@ func (t *Table) Column(name string) *Column {
 	return nil
 }
 
+// OverwriteOrAddColumn overwrites or adds columns.
 // If the column with the same name exists, overwrites it.
 // Otherwise, adds the column to the beginning of the table.
 func (t *Table) OverwriteOrAddColumn(column *Column) {
