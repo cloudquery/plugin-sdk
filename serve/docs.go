@@ -1,11 +1,10 @@
 package serve
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/cloudquery/plugin-sdk/v4/docs"
-	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/spf13/cobra"
 )
 
@@ -26,28 +25,12 @@ doc --format json .
 func (s *PluginServe) newCmdPluginDoc() *cobra.Command {
 	format := newEnum([]string{"json", "markdown"}, "markdown")
 	cmd := &cobra.Command{
-		Use:   "doc <directory>",
+		Use:   "doc <directory> (DEPRECATED)",
 		Short: pluginDocShort,
 		Long:  pluginDocLong,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := s.plugin.Init(cmd.Context(), nil, plugin.NewClientOptions{
-				NoConnection: true,
-			}); err != nil {
-				return err
-			}
-			tables, err := s.plugin.Tables(cmd.Context(), plugin.TableOptions{
-				Tables: []string{"*"},
-			})
-			if err != nil {
-				return err
-			}
-			g := docs.NewGenerator(s.plugin.Name(), tables)
-			f := docs.FormatMarkdown
-			if format.Value == "json" {
-				f = docs.FormatJSON
-			}
-			return g.Generate(args[0], f)
+			return errors.New("this command is deprecated, please use the `cloudquery tables` command for similar functionality https://www.cloudquery.io/docs/reference/cli/cloudquery_tables")
 		},
 	}
 	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
