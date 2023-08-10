@@ -140,6 +140,12 @@ func WithStrategy(strategy Strategy) Option {
 
 type SyncOption func(*syncClient)
 
+func WithSyncCQIDSalt(salt string) SyncOption {
+	return func(s *syncClient) {
+		s.cqIDSalt = salt
+	}
+}
+
 func WithSyncDeterministicCQID(deterministicCQID bool) SyncOption {
 	return func(s *syncClient) {
 		s.deterministicCQID = deterministicCQID
@@ -168,6 +174,7 @@ type syncClient struct {
 	client            schema.ClientMeta
 	scheduler         *Scheduler
 	deterministicCQID bool
+	cqIDSalt          string
 	// status sync metrics
 	metrics *Metrics
 	logger  zerolog.Logger
