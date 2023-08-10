@@ -1,14 +1,9 @@
 package docs
 
 import (
-	"regexp"
-
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
-
-var reMatchNewlines = regexp.MustCompile(`\n{3,}`)
-var reMatchHeaders = regexp.MustCompile(`(#{1,6}.+)\n+`)
 
 var DefaultTitleExceptions = map[string]string{
 	// common abbreviations

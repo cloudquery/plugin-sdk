@@ -22,7 +22,7 @@ doc --format json .
 `
 )
 
-func (s *PluginServe) newCmdPluginDoc() *cobra.Command {
+func (*PluginServe) newCmdPluginDoc() *cobra.Command {
 	format := newEnum([]string{"json", "markdown"}, "markdown")
 	cmd := &cobra.Command{
 		Use:   "doc <directory> (DEPRECATED)",
