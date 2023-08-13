@@ -2,6 +2,7 @@ package schema
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -17,31 +18,31 @@ type ColumnResolver func(ctx context.Context, meta ClientMeta, resource *Resourc
 // Column definition for Table
 type Column struct {
 	// Name of column
-	Name string
+	Name string `json:"name"`
 	// Value Type of column i.e String, UUID etc'
-	Type arrow.DataType
+	Type arrow.DataType `json:"type"`
 	// Description about column, this description is added as a comment in the database
-	Description string
+	Description string `json:"description"`
 	// Column Resolver allows to set your own data for a column; this can be an API call, setting multiple embedded values, etc
-	Resolver ColumnResolver
+	Resolver ColumnResolver `json:"-"`
 
 	// IgnoreInTests is used to skip verifying the column is non-nil in integration tests.
 	// By default, integration tests perform a fetch for all resources in cloudquery's test account, and
 	// verify all columns are non-nil.
 	// If IgnoreInTests is true, verification is skipped for this column.
 	// Used when it is hard to create a reproducible environment with this column being non-nil (e.g. various error columns).
-	IgnoreInTests bool
+	IgnoreInTests bool `json:"-"`
 
 	// PrimaryKey requires the destinations supporting this to include this column into the primary key
-	PrimaryKey bool
+	PrimaryKey bool `json:"primary_key"`
 	// NotNull requires the destinations supporting this to mark this column as non-nullable
-	NotNull bool
+	NotNull bool `json:"not_null"`
 	// IncrementalKey is a flag that indicates if the column is used as part of an incremental key.
 	// It is mainly used for documentation purposes, but may also be used as part of ensuring that
 	// migrations are done correctly.
-	IncrementalKey bool
+	IncrementalKey bool `json:"incremental_key"`
 	// Unique requires the destinations supporting this to mark this column as unique
-	Unique bool
+	Unique bool `json:"unique"`
 }
 
 // NewColumnFromArrowField creates a new Column from an arrow.Field
@@ -88,6 +89,29 @@ func (c Column) ToArrowField() arrow.Field {
 		Nullable: !c.NotNull,
 		Metadata: arrow.MetadataFrom(mdKV),
 	}
+}
+
+func (c Column) MarshalJSON() ([]byte, error) {
+
+	type Alias struct {
+		Name           string      `json:"name"`
+		Type           string      `json:"type"`
+		Description    string      `json:"description"`
+		PrimaryKey     bool        `json:"primary_key"`
+		NotNull        bool        `json:"not_null"`
+		Unique         bool        `json:"unique"`
+		IncrementalKey bool        `json:"incremental_key"`
+	}
+	var alias Alias
+	alias.Name = c.Name
+	alias.Type = c.Type.String()
+	alias.Description = c.Description
+	alias.PrimaryKey = c.PrimaryKey
+	alias.NotNull = c.NotNull
+	alias.Unique = c.Unique
+	alias.IncrementalKey = c.IncrementalKey
+
+	return json.Marshal(alias)
 }
 
 func (c Column) String() string {
