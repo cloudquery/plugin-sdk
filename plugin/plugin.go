@@ -84,9 +84,9 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 		version:         version,
 		internalColumns: true,
 		newClient:       newClient,
-		title: 				 	 name,
-		categories: 		[]string{},
-		targets: buildTargets,
+		title:           name,
+		categories:      []string{},
+		targets:         buildTargets,
 	}
 	for _, opt := range options {
 		opt(&p)

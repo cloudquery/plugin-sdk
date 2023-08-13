@@ -35,15 +35,15 @@ const (
 // manifest is the plugin.json file inside the dist directory. It is used by CloudQuery registry
 // to be able to publish the plugin with all the needed metadata.
 type Manifest struct {
-	Name string `json:"name"`
-	Version string `json:"version"`
-	Title string `json:"title"`
-	ShortDescription string `json:"short_description"`
-	Description string `json:"description"`
-	Categories []string `json:"categories"`
-	Protocols []int `json:"protocols"`
+	Name             string               `json:"name"`
+	Version          string               `json:"version"`
+	Title            string               `json:"title"`
+	ShortDescription string               `json:"short_description"`
+	Description      string               `json:"description"`
+	Categories       []string             `json:"categories"`
+	Protocols        []int                `json:"protocols"`
 	SupportedTargets []plugin.BuildTarget `json:"supported_targets"`
-	PackageType PackageType `json:"package_type"`
+	PackageType      PackageType          `json:"package_type"`
 }
 
 func isDirectoryExist(path string) bool {
@@ -76,7 +76,6 @@ func (s *PluginServe) writeTablesJson(ctx context.Context, dir string) error {
 func (p *PluginServe) build(ctx context.Context, pluginDirectory string, goos string, goarch string) error {
 	pluginName := "plugin" + "_" + goos + "_" + goarch
 	distPath := pluginDirectory + "/dist"
-
 
 	pluginPath := distPath + "/" + pluginName
 	args := []string{"build", "-C", pluginDirectory, "-o", pluginPath}
@@ -120,15 +119,15 @@ func (p *PluginServe) build(ctx context.Context, pluginDirectory string, goos st
 
 func (s *PluginServe) writeManifest(ctx context.Context, dir string) error {
 	manifest := Manifest{
-		Name: s.plugin.Name(),
-		Version: s.plugin.Version(),
-		Title: s.plugin.Title(),
+		Name:             s.plugin.Name(),
+		Version:          s.plugin.Version(),
+		Title:            s.plugin.Title(),
 		ShortDescription: s.plugin.ShortDescription(),
-		Description: s.plugin.Description(),
-		Categories: s.plugin.Categories(),
-		Protocols: s.versions,
+		Description:      s.plugin.Description(),
+		Categories:       s.plugin.Categories(),
+		Protocols:        s.versions,
 		SupportedTargets: s.plugin.Targets(),
-		PackageType: PackageTypeNative,
+		PackageType:      PackageTypeNative,
 	}
 	buffer := &bytes.Buffer{}
 	m := json.NewEncoder(buffer)
@@ -179,7 +178,3 @@ func (s *PluginServe) newCmdPluginPublish() *cobra.Command {
 	}
 	return cmd
 }
-
-// func runPublish() error {
-// 	return nil
-// }

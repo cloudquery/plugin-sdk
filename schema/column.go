@@ -94,13 +94,13 @@ func (c Column) ToArrowField() arrow.Field {
 func (c Column) MarshalJSON() ([]byte, error) {
 
 	type Alias struct {
-		Name           string      `json:"name"`
-		Type           string      `json:"type"`
-		Description    string      `json:"description"`
-		PrimaryKey     bool        `json:"primary_key"`
-		NotNull        bool        `json:"not_null"`
-		Unique         bool        `json:"unique"`
-		IncrementalKey bool        `json:"incremental_key"`
+		Name           string `json:"name"`
+		Type           string `json:"type"`
+		Description    string `json:"description"`
+		PrimaryKey     bool   `json:"primary_key"`
+		NotNull        bool   `json:"not_null"`
+		Unique         bool   `json:"unique"`
+		IncrementalKey bool   `json:"incremental_key"`
 	}
 	var alias Alias
 	alias.Name = c.Name

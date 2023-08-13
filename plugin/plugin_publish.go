@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	goos_linux = "linux"
+	goos_linux   = "linux"
 	goos_windows = "windows"
-	goos_darwin = "darwin"
+	goos_darwin  = "darwin"
 
 	goarch_amd64 = "amd64"
 	goarch_arm64 = "arm64"
@@ -29,22 +29,22 @@ const (
 )
 
 type BuildTarget struct {
-	OS string `json:"os"`
+	OS   string `json:"os"`
 	Arch string `json:"arch"`
 }
 
 // manifest is the plugin.json file inside the dist directory. It is used by CloudQuery registry
 // to be able to publish the plugin with all the needed metadata.
 type Manifest struct {
-	Name string `json:"name"`
-	Version string `json:"version"`
-	Title string `json:"title"`
-	ShortDescription string `json:"short_description"`
-	Description string `json:"description"`
-	Categories []string `json:"categories"`
-	Protocols []int `json:"protocols"`
+	Name             string        `json:"name"`
+	Version          string        `json:"version"`
+	Title            string        `json:"title"`
+	ShortDescription string        `json:"short_description"`
+	Description      string        `json:"description"`
+	Categories       []string      `json:"categories"`
+	Protocols        []int         `json:"protocols"`
 	SupportedTargets []BuildTarget `json:"supported_targets"`
-	PackageType PackageType `json:"package_type"`
+	PackageType      PackageType   `json:"package_type"`
 }
 
 var buildTargets = []BuildTarget{
@@ -83,15 +83,15 @@ func (p *Plugin) writeTablesJson(ctx context.Context, dir string) error {
 
 func (p *Plugin) writeManifest(ctx context.Context, dir string) error {
 	manifest := Manifest{
-		Name: p.Name(),
-		Version: p.Version(),
-		Title: p.title,
+		Name:             p.Name(),
+		Version:          p.Version(),
+		Title:            p.title,
 		ShortDescription: p.shortDescription,
-		Description: p.description,
-		Categories: p.categories,
-		Protocols: []int{3},
+		Description:      p.description,
+		Categories:       p.categories,
+		Protocols:        []int{3},
 		SupportedTargets: p.targets,
-		PackageType: PackageTypeNative,
+		PackageType:      PackageTypeNative,
 	}
 	buffer := &bytes.Buffer{}
 	m := json.NewEncoder(buffer)
@@ -130,12 +130,9 @@ func (p *Plugin) Publish(ctx context.Context, pluginDirectory string) error {
 	return nil
 }
 
-
-
 func (p *Plugin) build(ctx context.Context, pluginDirectory string, goos string, goarch string) error {
 	pluginName := "plugin" + "_" + goos + "_" + goarch
 	distPath := pluginDirectory + "/dist"
-
 
 	pluginPath := distPath + "/" + pluginName
 	args := []string{"build", "-C", pluginDirectory, "-o", pluginPath}
