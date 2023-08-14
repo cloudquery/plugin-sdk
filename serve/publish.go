@@ -108,12 +108,15 @@ func (*PluginServe) build(pluginDirectory string, goos string, goarch string) er
 	if err != nil {
 		return fmt.Errorf("failed to create file in zip archive: %w", err)
 	}
-	if err := os.Remove(pluginPath); err != nil {
-		return fmt.Errorf("failed to remove plugin file: %w", err)
-	}
 	_, err = io.Copy(pluginZip, pluginFile)
 	if err != nil {
 		return fmt.Errorf("failed to copy plugin file to zip archive: %w", err)
+	}
+	if err := pluginFile.Close(); err != nil {
+		return err
+	}
+	if err := os.Remove(pluginPath); err != nil {
+		return fmt.Errorf("failed to remove plugin file: %w", err)
 	}
 	return nil
 }
