@@ -54,7 +54,7 @@ func isDirectoryExist(path string) bool {
 	return info.IsDir()
 }
 
-func (s *PluginServe) writeTablesJson(ctx context.Context, dir string) error {
+func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 	tables, err := s.plugin.Tables(ctx, plugin.TableOptions{
 		Tables: []string{"*"},
 	})
@@ -73,7 +73,7 @@ func (s *PluginServe) writeTablesJson(ctx context.Context, dir string) error {
 	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
-func (p *PluginServe) build(ctx context.Context, pluginDirectory string, goos string, goarch string) error {
+func (*PluginServe) build(pluginDirectory string, goos string, goarch string) error {
 	pluginName := "plugin" + "_" + goos + "_" + goarch
 	distPath := pluginDirectory + "/dist"
 
@@ -117,7 +117,7 @@ func (p *PluginServe) build(ctx context.Context, pluginDirectory string, goos st
 	return nil
 }
 
-func (s *PluginServe) writeManifest(ctx context.Context, dir string) error {
+func (s *PluginServe) writeManifest(dir string) error {
 	manifest := Manifest{
 		Name:             s.plugin.Name(),
 		Version:          s.plugin.Version(),
@@ -161,16 +161,16 @@ func (s *PluginServe) newCmdPluginPublish() *cobra.Command {
 			}); err != nil {
 				return err
 			}
-			if err := s.writeTablesJson(cmd.Context(), distPath); err != nil {
+			if err := s.writeTablesJSON(cmd.Context(), distPath); err != nil {
 				return err
 			}
 			for _, target := range s.plugin.Targets() {
 				fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
-				if err := s.build(cmd.Context(), pluginDirectory, target.OS, target.Arch); err != nil {
+				if err := s.build(pluginDirectory, target.OS, target.Arch); err != nil {
 					return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
 				}
 			}
-			if err := s.writeManifest(cmd.Context(), distPath); err != nil {
+			if err := s.writeManifest(distPath); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
 			return nil

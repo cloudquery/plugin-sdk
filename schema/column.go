@@ -92,7 +92,6 @@ func (c Column) ToArrowField() arrow.Field {
 }
 
 func (c Column) MarshalJSON() ([]byte, error) {
-
 	type Alias struct {
 		Name           string `json:"name"`
 		Type           string `json:"type"`
