@@ -45,6 +45,7 @@ type PluginServe struct {
 	sentryDSN             string
 	testListener          bool
 	testListenerConn      *bufconn.Listener
+	versions              []int
 }
 
 type PluginOption func(*PluginServe)
@@ -83,7 +84,8 @@ const servePluginShort = `Start plugin server`
 
 func Plugin(p *plugin.Plugin, opts ...PluginOption) *PluginServe {
 	s := &PluginServe{
-		plugin: p,
+		plugin:   p,
+		versions: []int{3},
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -289,6 +291,7 @@ func (s *PluginServe) newCmdPluginRoot() *cobra.Command {
 	}
 	cmd.AddCommand(s.newCmdPluginServe())
 	cmd.AddCommand(s.newCmdPluginDoc())
+	cmd.AddCommand(s.newCmdPluginPublish())
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	cmd.Version = s.plugin.Version()
 	return cmd

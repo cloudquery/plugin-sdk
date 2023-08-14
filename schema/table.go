@@ -51,42 +51,42 @@ type TableColumnChange struct {
 
 type Table struct {
 	// Name of table
-	Name string
+	Name string `json:"name"`
 	// Title to be used in documentation (optional: will be generated from name if not set)
-	Title string
+	Title string `json:"title"`
 	// table description
-	Description string
+	Description string `json:"description"`
 	// Columns are the set of fields that are part of this table
-	Columns ColumnList
+	Columns ColumnList `json:"columns"`
 	// Relations are a set of related tables defines
-	Relations Tables
+	Relations Tables `json:"relations"`
 	// Transform
-	Transform Transform
+	Transform Transform `json:"-"`
 	// Resolver is the main entry point to fetching table data and
-	Resolver TableResolver
+	Resolver TableResolver `json:"-"`
 	// Multiplex returns re-purposed meta clients. The sdk will execute the table with each of them
-	Multiplex Multiplexer
+	Multiplex Multiplexer `json:"-"`
 	// PostResourceResolver is called after all columns have been resolved, but before the Resource is sent to be inserted. The ordering of resolvers is:
 	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
-	PostResourceResolver RowResolver
+	PostResourceResolver RowResolver `json:"-"`
 	// PreResourceResolver is called before all columns are resolved but after Resource is created. The ordering of resolvers is:
 	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
-	PreResourceResolver RowResolver
+	PreResourceResolver RowResolver `json:"-"`
 	// IsIncremental is a flag that indicates if the table is incremental or not. This flag mainly affects how the table is
 	// documented.
-	IsIncremental bool
+	IsIncremental bool `json:"is_incremental"`
 
 	// IgnoreInTests is used to exclude a table from integration tests.
 	// By default, integration tests fetch all resources from cloudquery's test account, and verify all tables
 	// have at least one row.
 	// When IgnoreInTests is true, integration tests won't fetch from this table.
 	// Used when it is hard to create a reproducible environment with a row in this table.
-	IgnoreInTests bool
+	IgnoreInTests bool `json:"-"`
 
 	// Parent is the parent table in case this table is called via parent table (i.e. relation)
-	Parent *Table
+	Parent *Table `json:"-"`
 
-	PkConstraintName string
+	PkConstraintName string `json:"pk_constraint_name"`
 }
 
 var (
