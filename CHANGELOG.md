@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0](https://github.com/cloudquery/plugin-sdk/compare/v4.4.0...v4.5.0) (2023-08-14)
+
+
+### Features
+
+* Add publish command ([#1143](https://github.com/cloudquery/plugin-sdk/issues/1143)) ([fdd44d5](https://github.com/cloudquery/plugin-sdk/commit/fdd44d5d3a9ce12d59e168ea691a343f6f219694))
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to e9683e1 ([#1144](https://github.com/cloudquery/plugin-sdk/issues/1144)) ([763c549](https://github.com/cloudquery/plugin-sdk/commit/763c549a783f69d7adfb7291534d3d2b25d697e5))
+* Scalar timestamp parsing ([#1109](https://github.com/cloudquery/plugin-sdk/issues/1109)) ([c15b214](https://github.com/cloudquery/plugin-sdk/commit/c15b214a346fa8a89c929858c2623317e7048211))
+
 ## [4.4.0](https://github.com/cloudquery/plugin-sdk/compare/v4.3.1...v4.4.0) (2023-08-08)
 
 
