@@ -46,12 +46,12 @@ type Manifest struct {
 	PackageType      PackageType          `json:"package_type"`
 }
 
-func isDirectoryExist(path string) bool {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false
+func isDirEmpty(name string) (bool, error) {
+	entries, err := os.ReadDir(name)
+	if err != nil {
+		return false, err
 	}
-	return info.IsDir()
+	return len(entries) == 0, nil
 }
 
 func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
@@ -143,6 +143,7 @@ func (s *PluginServe) writeManifest(dir string) error {
 }
 
 func (s *PluginServe) newCmdPluginPublish() *cobra.Command {
+	var distDirectory string
 	cmd := &cobra.Command{
 		Use:   "publish <plugin_directory>",
 		Short: pluginPublishShort,
@@ -151,8 +152,15 @@ func (s *PluginServe) newCmdPluginPublish() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pluginDirectory := args[0]
 			distPath := pluginDirectory + "/dist"
-			if isDirectoryExist(distPath) {
-				return fmt.Errorf("dist directory already exist: %s", distPath)
+			if distDirectory != "" {
+				distPath = distDirectory
+			}
+			empty, err := isDirEmpty(distPath)
+			if err != nil {
+				return err
+			}
+			if !empty {
+				return fmt.Errorf("dist directory is not empty: %s", distPath)
 			}
 			if err := os.MkdirAll(distPath, 0755); err != nil {
 				return err
@@ -177,5 +185,6 @@ func (s *PluginServe) newCmdPluginPublish() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().StringVar(&distDirectory, "dist-dir", "", "dist directory to output the built plugin. (default: <plugin_directory/dist>)")
 	return cmd
 }
