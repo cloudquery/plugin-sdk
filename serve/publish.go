@@ -78,8 +78,9 @@ func (*PluginServe) build(pluginDirectory string, goos string, goarch string) er
 	distPath := pluginDirectory + "/dist"
 
 	pluginPath := distPath + "/" + pluginName
-	args := []string{"build", "-C", pluginDirectory, "-o", pluginPath}
+	args := []string{"build", "-o", pluginPath}
 	cmd := exec.Command("go", args...)
+	cmd.Dir = pluginDirectory
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
