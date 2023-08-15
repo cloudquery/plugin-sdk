@@ -132,6 +132,7 @@ type syncTestCase struct {
 	table             *schema.Table
 	data              []scalar.Vector
 	deterministicCQID bool
+	cqidsalt          string
 }
 
 var syncTestCases = []syncTestCase{
@@ -171,6 +172,7 @@ var syncTestCases = []syncTestCase{
 			},
 		},
 		deterministicCQID: true,
+		cqidsalt:          "salt",
 	},
 	{
 		table: testTableColumnResolverPanic(),
@@ -212,13 +214,13 @@ func TestScheduler(t *testing.T) {
 			tc := tc
 			tc.table = tc.table.Copy(nil)
 			t.Run(tc.table.Name+"_"+strategy.String(), func(t *testing.T) {
-				testSyncTable(t, tc, strategy, tc.deterministicCQID)
+				testSyncTable(t, tc, strategy, tc.deterministicCQID, tc.cqidsalt)
 			})
 		}
 	}
 }
 
-func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, deterministicCQID bool) {
+func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, deterministicCQID bool, cqIDSalt string) {
 	ctx := context.Background()
 	tables := []*schema.Table{
 		tc.table,
@@ -230,7 +232,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 	}
 	sc := NewScheduler(opts...)
 	msgs := make(chan message.SyncMessage, 10)
-	if err := sc.Sync(ctx, &c, tables, msgs, WithSyncDeterministicCQID(deterministicCQID)); err != nil {
+	if err := sc.Sync(ctx, &c, tables, msgs, WithSyncDeterministicCQID(deterministicCQID), WithSyncCQIDSalt(cqIDSalt)); err != nil {
 		t.Fatal(err)
 	}
 	close(msgs)
