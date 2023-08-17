@@ -1,7 +1,6 @@
 package caser
 
 import (
-	"regexp"
 	"strings"
 	"unicode"
 
@@ -79,10 +78,13 @@ func (c *Caser) ToSnake(s string) string {
 	var result string
 	var words []string
 	var lastPos int
+
+	s = strings.Join(strings.Fields(s), "_")
+
 	rs := []rune(s)
 
 	for i := 0; i < len(rs); i++ {
-		if i > 0 && unicode.IsUpper(rs[i]) {
+		if i > 0 && (unicode.IsUpper(rs[i]) || rs[i] == '_') {
 			// check if next word is initialism
 			if initialism := c.startsWithInitialism(s[lastPos:]); initialism != "" {
 				words = append(words, initialism)
@@ -101,6 +103,9 @@ func (c *Caser) ToSnake(s string) string {
 			}
 
 			words = append(words, s[lastPos:i])
+			if rs[i] == '_' {
+				i++
+			}
 			lastPos = i
 		}
 	}
@@ -125,21 +130,9 @@ func (c *Caser) ToSnake(s string) string {
 			continue
 		}
 
-		word = strings.ReplaceAll(word, " ", "_")
 		result += strings.ToLower(word)
 	}
-	re := regexp.MustCompile("_+")
-	result = re.ReplaceAllString(result, "_")
 
-	// Edge cases
-	startWithUnderscore := strings.HasPrefix(result, "_")
-	endsWithUnderscore := strings.HasSuffix(result, "_")
-	if startWithUnderscore {
-		result = strings.TrimPrefix(result, "_")
-	}
-	if endsWithUnderscore {
-		result = strings.TrimSuffix(result, "_")
-	}
 	return result
 }
 
