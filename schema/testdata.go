@@ -214,8 +214,15 @@ func NewTestDataGenerator() *TestDataGenerator {
 
 // Generate will produce a single arrow.Record with the given schema and options.
 func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arrow.Record {
-	var records []arrow.Record
 	sc := table.ToArrowSchema()
+	if opts.MaxRows == 0 {
+		// We generate an empty record
+		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+		defer bldr.Release()
+		return bldr.NewRecord()
+	}
+
+	var records []arrow.Record
 	for j := 0; j < opts.MaxRows; j++ {
 		tg.counter++
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
@@ -247,7 +254,6 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 	}
 
 	// now we have sorted 1-row-records. Transform them into a single record with opts.MaxRows rows
-
 	columns := make([]arrow.Array, sc.NumFields())
 	for n := 0; n < sc.NumFields(); n++ {
 		arrs := make([]arrow.Array, len(records))

@@ -21,6 +21,7 @@ func tableUUIDSuffix() string {
 
 // nolint:revive
 func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
+	const rowsPerRecord = 10
 	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
 		Table:        source,
 		MigrateForce: writeOptionMigrateForce,
@@ -33,7 +34,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	opts := schema.GenTestDataOptions{
 		SourceName:    sourceName,
 		SyncTime:      syncTime,
-		MaxRows:       10,
+		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
 	}
 	tg := schema.NewTestDataGenerator()
@@ -50,10 +51,10 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to sync: %w", err)
 	}
 	totalItems := TotalRows(records)
-	if totalItems != 1 {
-		return fmt.Errorf("expected 1 item, got %d", totalItems)
+	if totalItems != rowsPerRecord {
+		return fmt.Errorf("expected items: %d, got: %d", rowsPerRecord, totalItems)
 	}
-	if diff := RecordDiff(records[0], resource1); diff != "" {
+	if diff := RecordsDiff(source.ToArrowSchema(), records, []arrow.Record{resource1}); diff != "" {
 		return fmt.Errorf("first record differs from expectation: %s", diff)
 	}
 
@@ -78,12 +79,13 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	}
 	sortRecords(target, records, "id")
 
+	lastRow := resource2.NewSlice(resource2.NumRows()-1, resource2.NumRows())
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
 	if !writeOptionMigrateForce || supportsSafeMigrate {
-		if err := expectRows(records, 2, resource2); err != nil {
-			if writeOptionMigrateForce && TotalRows(records) == 1 {
+		if err := expectRows(target.ToArrowSchema(), records, 2*rowsPerRecord, lastRow); err != nil {
+			if writeOptionMigrateForce && TotalRows(records) == rowsPerRecord {
 				// if force migration is required, we can also expect 1 item to be dropped
-				return expectRows(records, 1, resource2)
+				return expectRows(target.ToArrowSchema(), records, rowsPerRecord, lastRow)
 			}
 
 			return err
@@ -92,7 +94,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return nil
 	}
 
-	return expectRows(records, 1, resource2)
+	return expectRows(target.ToArrowSchema(), records, rowsPerRecord, lastRow)
 }
 
 // nolint:revive
@@ -235,12 +237,14 @@ func (s *WriterTestSuite) testMigrate(
 	})
 }
 
-func expectRows(records []arrow.Record, expectTotal int64, expectedLast arrow.Record) error {
+func expectRows(sc *arrow.Schema, records []arrow.Record, expectTotal int64, expectedLast arrow.Record) error {
 	totalItems := TotalRows(records)
 	if totalItems != expectTotal {
 		return fmt.Errorf("expected %d items, got %d", expectTotal, totalItems)
 	}
-	if diff := RecordDiff(records[totalItems-1], expectedLast); diff != "" {
+	lastRecord := records[len(records)-1]
+	lastRow := lastRecord.NewSlice(lastRecord.NumRows()-1, lastRecord.NumRows())
+	if diff := RecordsDiff(sc, []arrow.Record{lastRow}, []arrow.Record{expectedLast}); diff != "" {
 		return fmt.Errorf("record #%d differs from expectation: %s", totalItems, diff)
 	}
 	return nil
