@@ -150,6 +150,11 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 	if err != nil {
 		return fmt.Errorf("failed to initialize client: %w", err)
 	}
+
+	if err := p.validate(ctx); err != nil {
+		return fmt.Errorf("failed to validate tables: %w", err)
+	}
+
 	p.spec = spec
 
 	return nil
