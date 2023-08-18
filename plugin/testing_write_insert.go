@@ -92,7 +92,7 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 	tg := schema.NewTestDataGenerator()
-	normalRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, TimePrecision: s.genDatOptions.TimePrecision})[0]
+	normalRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 10, TimePrecision: s.genDatOptions.TimePrecision})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: normalRecord,
 	}); err != nil {
@@ -110,7 +110,7 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
 
-	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, TimePrecision: s.genDatOptions.TimePrecision, NullRows: true})[0]
+	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 10, TimePrecision: s.genDatOptions.TimePrecision, NullRows: true})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: nullRecord,
 	}); err != nil {

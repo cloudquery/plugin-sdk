@@ -33,11 +33,11 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	opts := schema.GenTestDataOptions{
 		SourceName:    sourceName,
 		SyncTime:      syncTime,
-		MaxRows:       1,
+		MaxRows:       10,
 		TimePrecision: s.genDatOptions.TimePrecision,
 	}
 	tg := schema.NewTestDataGenerator()
-	resource1 := tg.Generate(source, opts)[0]
+	resource1 := tg.Generate(source, opts)
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource1,
 	}); err != nil {
@@ -64,7 +64,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
-	resource2 := tg.Generate(target, opts)[0]
+	resource2 := tg.Generate(target, opts)
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource2,
 	}); err != nil {
