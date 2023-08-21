@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -70,7 +71,7 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
-	if diff := RecordDiff(records[0], record); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record}); diff != "" {
 		return fmt.Errorf("record differs: %s", diff)
 	}
 	return nil

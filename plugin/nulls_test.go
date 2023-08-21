@@ -1,13 +1,14 @@
 package plugin
 
 import (
+	"testing"
+	"time"
+
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func TestWithTestIgnoreNullsInLists(t *testing.T) {
@@ -20,7 +21,7 @@ func TestWithTestIgnoreNullsInLists(t *testing.T) {
 		SyncTime:   time.Now(),
 		MaxRows:    100,
 		NullRows:   false,
-	})[0])
+	}))
 	for _, c := range resource.Columns() {
 		assertNoNullsInLists(t, c)
 	}
@@ -30,7 +31,7 @@ func TestWithTestIgnoreNullsInLists(t *testing.T) {
 		SyncTime:   time.Now(),
 		MaxRows:    100,
 		NullRows:   true,
-	})[0])
+	}))
 	for _, c := range resource.Columns() {
 		assertNoNullsInLists(t, c)
 	}
@@ -65,7 +66,7 @@ func TestWithTestSourceAllowNull(t *testing.T) {
 		SyncTime:   time.Now(),
 		MaxRows:    100,
 		NullRows:   false,
-	})[0])
+	}))
 	for _, c := range resource.Columns() {
 		assertNoNulls(t, s.allowNull, c)
 	}
@@ -75,7 +76,7 @@ func TestWithTestSourceAllowNull(t *testing.T) {
 		SyncTime:   time.Now(),
 		MaxRows:    100,
 		NullRows:   true,
-	})[0])
+	}))
 	for _, c := range resource.Columns() {
 		assertNoNulls(t, s.allowNull, c)
 	}

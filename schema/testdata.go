@@ -212,10 +212,17 @@ func NewTestDataGenerator() *TestDataGenerator {
 	}
 }
 
-// GenTestData generates a slice of arrow.Records with the given schema and options.
-func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) []arrow.Record {
-	var records []arrow.Record
+// Generate will produce a single arrow.Record with the given schema and options.
+func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arrow.Record {
 	sc := table.ToArrowSchema()
+	if opts.MaxRows == 0 {
+		// We generate an empty record
+		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+		defer bldr.Release()
+		return bldr.NewRecord()
+	}
+
+	var records []arrow.Record
 	for j := 0; j < opts.MaxRows; j++ {
 		tg.counter++
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
@@ -245,7 +252,23 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) []a
 			return strings.Compare(firstUUID, secondUUID) < 0
 		})
 	}
-	return records
+
+	// now we have sorted 1-row-records. Transform them into a single record with opts.MaxRows rows
+	columns := make([]arrow.Array, sc.NumFields())
+	for n := 0; n < sc.NumFields(); n++ {
+		arrs := make([]arrow.Array, len(records))
+		for i := range arrs {
+			arrs[i] = records[i].Column(n)
+		}
+
+		concatenated, err := array.Concatenate(arrs, memory.DefaultAllocator)
+		if err != nil {
+			panic(fmt.Sprintf("failed to concatenate arrays: %v", err))
+		}
+		columns[n] = concatenated
+	}
+
+	return array.NewRecord(sc, columns, -1)
 }
 
 func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
