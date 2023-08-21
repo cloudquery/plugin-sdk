@@ -254,14 +254,10 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 	}
 
 	// now we have sorted 1-row-records. Transform them into a single record with opts.MaxRows rows
+	arrowTable := array.NewTableFromRecords(sc, records)
 	columns := make([]arrow.Array, sc.NumFields())
 	for n := 0; n < sc.NumFields(); n++ {
-		arrs := make([]arrow.Array, len(records))
-		for i := range arrs {
-			arrs[i] = records[i].Column(n)
-		}
-
-		concatenated, err := array.Concatenate(arrs, memory.DefaultAllocator)
+		concatenated, err := array.Concatenate(arrowTable.Column(0).Data().Chunks(), memory.DefaultAllocator)
 		if err != nil {
 			panic(fmt.Sprintf("failed to concatenate arrays: %v", err))
 		}
