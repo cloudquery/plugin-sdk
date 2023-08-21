@@ -9,39 +9,39 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 )
 
-func RecordsDiff(sc *arrow.Schema, l, r []arrow.Record) string {
-	return TableDiff(array.NewTableFromRecords(sc, l), array.NewTableFromRecords(sc, r))
+func RecordsDiff(sc *arrow.Schema, have, want []arrow.Record) string {
+	return TableDiff(array.NewTableFromRecords(sc, have), array.NewTableFromRecords(sc, want))
 }
 
-func TableDiff(l, r arrow.Table) string {
-	if array.TableApproxEqual(l, r, array.WithUnorderedMapKeys(true)) {
+func TableDiff(have, want arrow.Table) string {
+	if array.TableApproxEqual(have, want, array.WithUnorderedMapKeys(true)) {
 		return ""
 	}
 
-	if l.NumCols() != r.NumCols() {
-		return fmt.Sprintf("different number of columns: %d vs %d", l.NumCols(), r.NumCols())
+	if have.NumCols() != want.NumCols() {
+		return fmt.Sprintf("different number of columns: %d vs %d", have.NumCols(), want.NumCols())
 	}
-	if l.NumRows() != r.NumRows() {
-		return fmt.Sprintf("different number of rows: %d vs %d", l.NumRows(), r.NumRows())
+	if have.NumRows() != want.NumRows() {
+		return fmt.Sprintf("different number of rows: %d vs %d", have.NumRows(), want.NumRows())
 	}
 
 	var sb strings.Builder
-	for i := 0; i < int(l.NumCols()); i++ {
-		lCol, err := array.Concatenate(l.Column(i).Data().Chunks(), memory.DefaultAllocator)
+	for i := 0; i < int(have.NumCols()); i++ {
+		haveCol, err := array.Concatenate(have.Column(i).Data().Chunks(), memory.DefaultAllocator)
 		if err != nil {
 			panic(fmt.Errorf("failed to concat left columns at idx %d: %w", i, err))
 		}
-		rCol, err := array.Concatenate(r.Column(i).Data().Chunks(), memory.DefaultAllocator)
+		wantCol, err := array.Concatenate(want.Column(i).Data().Chunks(), memory.DefaultAllocator)
 		if err != nil {
 			panic(fmt.Errorf("failed to concat right columns at idx %d: %w", i, err))
 		}
-		edits, err := array.Diff(lCol, rCol)
+		edits, err := array.Diff(wantCol, haveCol)
 		if err != nil {
-			panic(fmt.Errorf("left: %v, right: %v, error: %w", lCol.DataType(), rCol.DataType(), err))
+			panic(fmt.Errorf("want: %v, have: %v, error: %w", wantCol.DataType(), haveCol.DataType(), err))
 		}
-		diff := edits.UnifiedDiff(lCol, rCol)
+		diff := edits.UnifiedDiff(wantCol, haveCol)
 		if diff != "" {
-			sb.WriteString(l.Schema().Field(i).Name)
+			sb.WriteString(have.Schema().Field(i).Name)
 			sb.WriteString(": ")
 			sb.WriteString(diff)
 			sb.WriteString("\n")
