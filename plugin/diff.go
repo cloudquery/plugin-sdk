@@ -39,7 +39,6 @@ func TableDiff(have, want arrow.Table) string {
 		if err != nil {
 			panic(fmt.Errorf("want: %v, have: %v, error: %w", wantCol.DataType(), haveCol.DataType(), err))
 		}
-		edits.String()
 		diff := edits.UnifiedDiff(wantCol, haveCol)
 		if diff != "" {
 			sb.WriteString(have.Schema().Field(i).Name)
