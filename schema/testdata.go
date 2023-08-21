@@ -257,7 +257,7 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 	arrowTable := array.NewTableFromRecords(sc, records)
 	columns := make([]arrow.Array, sc.NumFields())
 	for n := 0; n < sc.NumFields(); n++ {
-		concatenated, err := array.Concatenate(arrowTable.Column(0).Data().Chunks(), memory.DefaultAllocator)
+		concatenated, err := array.Concatenate(arrowTable.Column(n).Data().Chunks(), memory.DefaultAllocator)
 		if err != nil {
 			panic(fmt.Sprintf("failed to concatenate arrays: %v", err))
 		}
