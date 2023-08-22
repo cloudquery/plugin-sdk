@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.5](https://github.com/cloudquery/plugin-sdk/compare/v4.5.4...v4.5.5) (2023-08-22)
+
+
+### Bug Fixes
+
+* Skip double migration test in forced mode ([#1163](https://github.com/cloudquery/plugin-sdk/issues/1163)) ([e7b5ed1](https://github.com/cloudquery/plugin-sdk/commit/e7b5ed18868f38ae09f8a392c19566f40d0e5a83))
+
 ## [4.5.4](https://github.com/cloudquery/plugin-sdk/compare/v4.5.3...v4.5.4) (2023-08-22)
 
 
