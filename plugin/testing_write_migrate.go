@@ -54,6 +54,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if totalItems != rowsPerRecord {
 		return fmt.Errorf("expected items: %d, got: %d", rowsPerRecord, totalItems)
 	}
+	sortRecords(source, records, "id")
 	if diff := RecordsDiff(source.ToArrowSchema(), records, []arrow.Record{resource1}); diff != "" {
 		return fmt.Errorf("first record differs from expectation: %s", diff)
 	}

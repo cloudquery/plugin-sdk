@@ -196,20 +196,28 @@ type GenTestDataOptions struct {
 	StableTime time.Time
 	// TimePrecision is the precision to use for time columns.
 	TimePrecision time.Duration
-	// Seed is the seed to use for random data generation.
-	Seed int64
 	// NullRows indicates whether to generate rows with all null values.
 	NullRows bool
 }
 
 type TestDataGenerator struct {
-	counter int
+	counter  int
+	seed     uint64
+	colToRnd map[string]*rand.Rand
 }
 
 func NewTestDataGenerator() *TestDataGenerator {
+	const seed = 0 // we can add an argument for this in the future, if necessary
 	return &TestDataGenerator{
-		counter: 0,
+		counter:  0,
+		seed:     seed,
+		colToRnd: map[string]*rand.Rand{},
 	}
+}
+
+func (tg *TestDataGenerator) Reset() {
+	tg.counter = 0
+	tg.colToRnd = map[string]*rand.Rand{}
 }
 
 // Generate will produce a single arrow.Record with the given schema and options.
@@ -268,8 +276,11 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 }
 
 func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
-	src := rand.NewSource(uint64(opts.Seed))
-	rnd := rand.New(src)
+	var rnd, found = tg.colToRnd[colName]
+	if !found {
+		tg.colToRnd[colName] = rand.New(rand.NewSource(tg.seed))
+		rnd = tg.colToRnd[colName]
+	}
 
 	// special case for auto-incrementing id column, used for to determine ordering in tests
 	if arrow.IsInteger(dataType.ID()) && colName == "id" {
@@ -281,7 +292,6 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 		if dataType.ID() == arrow.MAP {
 			k := tg.getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
 			v := tg.getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
-			opts.Seed++
 			k2 := tg.getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
 			v2 := tg.getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
 			return fmt.Sprintf(`[{"key": %s,"value": %s},{"key": %s,"value": %s}]`, k, v, k2, v2)
