@@ -61,30 +61,36 @@ func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte, plugin.NewC
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
-func (c *client) overwrite(table *schema.Table, data arrow.Record) {
+func (c *client) overwrite(table *schema.Table, record arrow.Record) {
+	for r := 0; r < int(record.NumRows()); r++ {
+		c.overwriteRow(table, record, r)
+	}
+}
+
+func (c *client) overwriteRow(table *schema.Table, data arrow.Record, r int) {
 	tableName := table.Name
 	pksIndex := table.PrimaryKeysIndexes()
 	if len(pksIndex) == 0 {
-		c.memoryDB[tableName] = append(c.memoryDB[tableName], data)
+		c.memoryDB[tableName] = append(c.memoryDB[tableName], data.NewSlice(int64(r), int64(r+1)))
 		return
 	}
 
 	for i, row := range c.memoryDB[tableName] {
 		found := true
 		for _, pkIndex := range pksIndex {
-			s1 := data.Column(pkIndex).String()
-			s2 := row.Column(pkIndex).String()
+			s1 := data.Column(pkIndex).ValueStr(r)
+			s2 := row.Column(pkIndex).ValueStr(0)
 			if s1 != s2 {
 				found = false
 			}
 		}
 		if found {
 			c.memoryDB[tableName] = append(c.memoryDB[tableName][:i], c.memoryDB[tableName][i+1:]...)
-			c.memoryDB[tableName] = append(c.memoryDB[tableName], data)
+			c.memoryDB[tableName] = append(c.memoryDB[tableName], data.NewSlice(int64(r), int64(r+1)))
 			return
 		}
 	}
-	c.memoryDB[tableName] = append(c.memoryDB[tableName], data)
+	c.memoryDB[tableName] = append(c.memoryDB[tableName], data.NewSlice(int64(r), int64(r+1)))
 }
 
 func (*client) ID() string {

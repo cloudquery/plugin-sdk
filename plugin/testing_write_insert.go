@@ -89,7 +89,7 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
-	tg := schema.NewTestDataGenerator()
+	tg := schema.NewTestDataGenerator(0)
 	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
@@ -108,7 +108,7 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 
 	totalItems := TotalRows(readRecords)
 	if totalItems != rowsPerRecord {
-		return fmt.Errorf("items expected: %d, got: %d", rowsPerRecord, totalItems)
+		return fmt.Errorf("items expected after first insert: %d, got: %d", rowsPerRecord, totalItems)
 	}
 
 	nullRecord := tg.Generate(table, schema.GenTestDataOptions{
@@ -131,7 +131,7 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 
 	totalItems = TotalRows(readRecords)
 	if totalItems != 2*rowsPerRecord {
-		return fmt.Errorf("items expected: %d, got: %d", 2*rowsPerRecord, totalItems)
+		return fmt.Errorf("items expected after second insert: %d, got: %d", 2*rowsPerRecord, totalItems)
 	}
 	if diff := RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{normalRecord, nullRecord}); diff != "" {
 		return fmt.Errorf("record[0] differs: %s", diff)

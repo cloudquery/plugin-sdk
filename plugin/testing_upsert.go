@@ -78,7 +78,7 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
-	tg := schema.NewTestDataGenerator()
+	tg := schema.NewTestDataGenerator(0)
 	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
@@ -94,16 +94,19 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to readAll: %w", err)
 	}
+	sortRecords(table, records, "id")
+
 	totalItems := TotalRows(records)
 	if totalItems != rowsPerRecord {
-		return fmt.Errorf("expected items: %d, got %d", rowsPerRecord, totalItems)
+		return fmt.Errorf("expected items after initial insert: %d, got %d", rowsPerRecord, totalItems)
 	}
 
 	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{normalRecord}); diff != "" {
 		return fmt.Errorf("record differs after insert: %s", diff)
 	}
 
-	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 10, TimePrecision: s.genDatOptions.TimePrecision, NullRows: true})
+	tg.Reset()
+	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: rowsPerRecord, TimePrecision: s.genDatOptions.TimePrecision, NullRows: true})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: nullRecord,
 	}); err != nil {
@@ -115,10 +118,11 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
+	sortRecords(table, records, "id")
 
 	totalItems = TotalRows(records)
 	if totalItems != rowsPerRecord {
-		return fmt.Errorf("expected items: %d, got %d", rowsPerRecord, totalItems)
+		return fmt.Errorf("expected items after upsert: %d, got %d", rowsPerRecord, totalItems)
 	}
 
 	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{nullRecord}); diff != "" {

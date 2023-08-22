@@ -37,7 +37,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
 	}
-	tg := schema.NewTestDataGenerator()
+	tg := schema.NewTestDataGenerator(0)
 	resource1 := tg.Generate(source, opts)
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource1,
@@ -54,6 +54,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if totalItems != rowsPerRecord {
 		return fmt.Errorf("expected items: %d, got: %d", rowsPerRecord, totalItems)
 	}
+	sortRecords(source, records, "id")
 	if diff := RecordsDiff(source.ToArrowSchema(), records, []arrow.Record{resource1}); diff != "" {
 		return fmt.Errorf("first record differs from expectation: %s", diff)
 	}
