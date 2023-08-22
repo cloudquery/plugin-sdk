@@ -3,7 +3,6 @@ package schema
 import (
 	"encoding/base64"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -196,19 +195,22 @@ type GenTestDataOptions struct {
 	StableTime time.Time
 	// TimePrecision is the precision to use for time columns.
 	TimePrecision time.Duration
-	// Seed is the seed to use for random data generation.
-	Seed int64
 	// NullRows indicates whether to generate rows with all null values.
 	NullRows bool
 }
 
 type TestDataGenerator struct {
 	counter int
+	seed    uint64
+	rands   map[string]*rand.Rand
 }
 
 func NewTestDataGenerator() *TestDataGenerator {
+	const seed = 0 // may be added as param in the future
 	return &TestDataGenerator{
 		counter: 0,
+		seed:    seed,
+		rands:   make(map[string]*rand.Rand),
 	}
 }
 
@@ -244,14 +246,6 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 		records = append(records, bldr.NewRecord())
 		bldr.Release()
 	}
-	if indices := sc.FieldIndices(CqIDColumn.Name); len(indices) > 0 {
-		cqIDIndex := indices[0]
-		sort.Slice(records, func(i, j int) bool {
-			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
-			secondUUID := records[j].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
-			return strings.Compare(firstUUID, secondUUID) < 0
-		})
-	}
 
 	// now we have sorted 1-row-records. Transform them into a single record with opts.MaxRows rows
 	arrowTable := array.NewTableFromRecords(sc, records)
@@ -267,13 +261,25 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 	return array.NewRecord(sc, columns, -1)
 }
 
-func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
-	src := rand.NewSource(uint64(opts.Seed))
-	rnd := rand.New(src)
+func (tg *TestDataGenerator) Reset() {
+	tg.counter = 0
+	tg.rands = make(map[string]*rand.Rand)
+}
 
+func (tg *TestDataGenerator) getRand(colName string) *rand.Rand {
+	r, ok := tg.rands[colName]
+	if !ok {
+		r = rand.New(rand.NewSource(tg.seed))
+		tg.rands[colName] = r
+	}
+	return r
+}
+
+func (tg *TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
+	rnd := tg.getRand(colName)
 	// special case for auto-incrementing id column, used for to determine ordering in tests
 	if arrow.IsInteger(dataType.ID()) && colName == "id" {
-		return `` + strconv.Itoa(tg.counter) + ``
+		return strconv.Itoa(tg.counter)
 	}
 
 	// handle lists (including maps)
@@ -281,7 +287,6 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 		if dataType.ID() == arrow.MAP {
 			k := tg.getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
 			v := tg.getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
-			opts.Seed++
 			k2 := tg.getExampleJSON(colName, dataType.(*arrow.MapType).KeyType(), opts)
 			v2 := tg.getExampleJSON(colName, dataType.(*arrow.MapType).ItemType(), opts)
 			return fmt.Sprintf(`[{"key": %s,"value": %s},{"key": %s,"value": %s}]`, k, v, k2, v2)

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
@@ -46,15 +47,16 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	}
 	resource1 = s.handleNulls(resource1) // we process nulls after writing
 
-	records, err := s.plugin.readAll(ctx, source)
+	read, err := s.plugin.readAll(ctx, source)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	totalItems := TotalRows(records)
+	read = schema.SortTable(read, "id")
+	totalItems := read.NumRows()
 	if totalItems != rowsPerRecord {
 		return fmt.Errorf("expected items: %d, got: %d", rowsPerRecord, totalItems)
 	}
-	if diff := RecordsDiff(source.ToArrowSchema(), records, []arrow.Record{resource1}); diff != "" {
+	if diff := TableDiff(read, array.NewTableFromRecords(source.ToArrowSchema(), []arrow.Record{resource1})); diff != "" {
 		return fmt.Errorf("first record differs from expectation: %s", diff)
 	}
 
@@ -73,19 +75,19 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	}
 	resource2 = s.handleNulls(resource2) // we process nulls after writing
 
-	records, err = s.plugin.readAll(ctx, target)
+	read, err = s.plugin.readAll(ctx, target)
 	if err != nil {
 		return fmt.Errorf("failed to readAll: %w", err)
 	}
-	sortRecords(target, records, "id")
+	read = schema.SortTable(read, "id")
 
 	lastRow := resource2.NewSlice(resource2.NumRows()-1, resource2.NumRows())
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
 	if !writeOptionMigrateForce || supportsSafeMigrate {
-		if err := expectRows(target.ToArrowSchema(), records, 2*rowsPerRecord, lastRow); err != nil {
-			if writeOptionMigrateForce && TotalRows(records) == rowsPerRecord {
+		if err := expectRows(target.ToArrowSchema(), read, 2*rowsPerRecord, lastRow); err != nil {
+			if writeOptionMigrateForce && read.NumRows() == rowsPerRecord {
 				// if force migration is required, we can also expect 1 item to be dropped
-				return expectRows(target.ToArrowSchema(), records, rowsPerRecord, lastRow)
+				return expectRows(target.ToArrowSchema(), read, rowsPerRecord, lastRow)
 			}
 
 			return err
@@ -94,7 +96,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return nil
 	}
 
-	return expectRows(target.ToArrowSchema(), records, rowsPerRecord, lastRow)
+	return expectRows(target.ToArrowSchema(), read, rowsPerRecord, lastRow)
 }
 
 // nolint:revive
@@ -230,6 +232,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("double_migration", func(t *testing.T) {
+		if forceMigrate {
+			t.Skip("double migration needs to be checked only for safe mode")
+		}
 		tableName := "double_migration_" + tableUUIDSuffix()
 		table := schema.TestTable(tableName, s.genDatOptions)
 		// s.migrate will perform create->write->migrate->write
@@ -237,15 +242,22 @@ func (s *WriterTestSuite) testMigrate(
 	})
 }
 
-func expectRows(sc *arrow.Schema, records []arrow.Record, expectTotal int64, expectedLast arrow.Record) error {
-	totalItems := TotalRows(records)
+func expectRows(sc *arrow.Schema, table arrow.Table, expectTotal int64, expectedLast arrow.Record) error {
+	totalItems := table.NumRows()
 	if totalItems != expectTotal {
 		return fmt.Errorf("expected %d items, got %d", expectTotal, totalItems)
 	}
-	lastRecord := records[len(records)-1]
-	lastRow := lastRecord.NewSlice(lastRecord.NumRows()-1, lastRecord.NumRows())
-	if diff := RecordsDiff(sc, []arrow.Record{lastRow}, []arrow.Record{expectedLast}); diff != "" {
+	if diff := RecordsDiff(sc, []arrow.Record{lastRow(table)}, []arrow.Record{expectedLast}); diff != "" {
 		return fmt.Errorf("record #%d differs from expectation: %s", totalItems, diff)
 	}
 	return nil
+}
+
+func lastRow(table arrow.Table) arrow.Record {
+	reader := array.NewTableReader(table, -1)
+	var result arrow.Record
+	for reader.Next() {
+		result = reader.Record()
+	}
+	return result
 }

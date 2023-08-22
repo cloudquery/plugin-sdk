@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 // readAll is used in tests to read all records from a table.
-func (p *Plugin) readAll(ctx context.Context, table *schema.Table) ([]arrow.Record, error) {
+func (p *Plugin) readAll(ctx context.Context, table *schema.Table) (arrow.Table, error) {
 	var err error
 	ch := make(chan arrow.Record)
 	go func() {
@@ -21,5 +22,5 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table) ([]arrow.Reco
 		records = append(records, record)
 	}
 
-	return records, err
+	return array.NewTableFromRecords(table.ToArrowSchema(), records), err
 }

@@ -61,6 +61,12 @@ func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte, plugin.NewC
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
+func (c *client) overwriteRecord(table *schema.Table, rec arrow.Record) {
+	for i := int64(0); i < rec.NumRows(); i++ {
+		c.overwrite(table, rec.NewSlice(i, i+1))
+	}
+}
+
 func (c *client) overwrite(table *schema.Table, data arrow.Record) {
 	tableName := table.Name
 	pksIndex := table.PrimaryKeysIndexes()
@@ -180,7 +186,7 @@ func (c *client) Write(ctx context.Context, msgs <-chan message.WriteMessage) er
 				return fmt.Errorf("table name not found in schema metadata")
 			}
 			table := c.tables[tableName]
-			c.overwrite(table, msg.Record)
+			c.overwriteRecord(table, msg.Record)
 		}
 
 		c.memoryDBLock.Unlock()

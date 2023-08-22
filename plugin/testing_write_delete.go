@@ -40,11 +40,11 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 	}
 	record = s.handleNulls(record) // we process nulls after writing
 
-	records, err := s.plugin.readAll(ctx, table)
+	read, err := s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	totalItems := TotalRows(records)
+	totalItems := read.NumRows()
 
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
@@ -62,16 +62,16 @@ func (s *WriterTestSuite) testDeleteStale(ctx context.Context) error {
 		return fmt.Errorf("failed to delete stale records: %w", err)
 	}
 
-	records, err = s.plugin.readAll(ctx, table)
+	read, err = s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	totalItems = TotalRows(records)
+	totalItems = read.NumRows()
 
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
-	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record}); diff != "" {
+	if diff := TableDiff(read, array.NewTableFromRecords(table.ToArrowSchema(), []arrow.Record{record})); diff != "" {
 		return fmt.Errorf("record differs: %s", diff)
 	}
 	return nil

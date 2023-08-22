@@ -38,11 +38,11 @@ func (s *WriterTestSuite) testUpsertBasic(ctx context.Context) error {
 	}
 	record = s.handleNulls(record) // we process nulls after writing
 
-	records, err := s.plugin.readAll(ctx, table)
+	read, err := s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to readAll: %w", err)
 	}
-	totalItems := TotalRows(records)
+	totalItems := read.NumRows()
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
@@ -53,15 +53,15 @@ func (s *WriterTestSuite) testUpsertBasic(ctx context.Context) error {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	records, err = s.plugin.readAll(ctx, table)
+	read, err = s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	totalItems = TotalRows(records)
+	totalItems = read.NumRows()
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
-	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record}); diff != "" {
+	if diff := TableDiff(read, array.NewTableFromRecords(table.ToArrowSchema(), []arrow.Record{record})); diff != "" {
 		return fmt.Errorf("record differs: %s", diff)
 	}
 	return nil
@@ -90,20 +90,27 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 	}
 	normalRecord = s.handleNulls(normalRecord) // we process nulls after writing
 
-	records, err := s.plugin.readAll(ctx, table)
+	read, err := s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to readAll: %w", err)
 	}
-	totalItems := TotalRows(records)
+	read = schema.SortTable(read, "id")
+
+	totalItems := read.NumRows()
 	if totalItems != rowsPerRecord {
 		return fmt.Errorf("expected items: %d, got %d", rowsPerRecord, totalItems)
 	}
 
-	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{normalRecord}); diff != "" {
+	if diff := TableDiff(read, array.NewTableFromRecords(table.ToArrowSchema(), []arrow.Record{normalRecord})); diff != "" {
 		return fmt.Errorf("record differs after insert: %s", diff)
 	}
 
-	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 10, TimePrecision: s.genDatOptions.TimePrecision, NullRows: true})
+	tg.Reset()
+	nullRecord := tg.Generate(table, schema.GenTestDataOptions{
+		MaxRows:       rowsPerRecord,
+		TimePrecision: s.genDatOptions.TimePrecision,
+		NullRows:      true,
+	})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: nullRecord,
 	}); err != nil {
@@ -111,17 +118,18 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 	}
 	nullRecord = s.handleNulls(nullRecord) // we process nulls after writing
 
-	records, err = s.plugin.readAll(ctx, table)
+	read, err = s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
+	read = schema.SortTable(read, "id")
 
-	totalItems = TotalRows(records)
+	totalItems = read.NumRows()
 	if totalItems != rowsPerRecord {
 		return fmt.Errorf("expected items: %d, got %d", rowsPerRecord, totalItems)
 	}
 
-	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{nullRecord}); diff != "" {
+	if diff := TableDiff(read, array.NewTableFromRecords(table.ToArrowSchema(), []arrow.Record{nullRecord})); diff != "" {
 		return fmt.Errorf("record differs after upsert (columns should be null): %s", diff)
 	}
 

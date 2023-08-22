@@ -11,14 +11,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-func TotalRows(records []arrow.Record) int64 {
-	totalRows := int64(0)
-	for _, record := range records {
-		totalRows += record.NumRows()
-	}
-	return totalRows
-}
-
 func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 	tableName := s.tableNameForTest("insert_basic")
 	table := &schema.Table{
@@ -46,12 +38,13 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 	}
 	record = s.handleNulls(record) // we process nulls after writing
 
-	readRecords, err := s.plugin.readAll(ctx, table)
+	read, err := s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
+	read = schema.SortTable(read, "id")
 
-	totalItems := TotalRows(readRecords)
+	totalItems := read.NumRows()
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
@@ -62,19 +55,19 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 		return fmt.Errorf("failed to insert record: %w", err)
 	}
 
-	readRecords, err = s.plugin.readAll(ctx, table)
+	read, err = s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	sortRecords(table, readRecords, "id")
+	read = schema.SortTable(read, "id")
 
-	totalItems = TotalRows(readRecords)
+	totalItems = read.NumRows()
 	if totalItems != 2 {
 		return fmt.Errorf("expected 2 items, got %d", totalItems)
 	}
 
-	if diff := RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{record, record}); diff != "" {
-		return fmt.Errorf("record[0] differs: %s", diff)
+	if diff := TableDiff(read, array.NewTableFromRecords(table.ToArrowSchema(), []arrow.Record{record, record})); diff != "" {
+		return fmt.Errorf("differs after 2 records: %s", diff)
 	}
 
 	return nil
@@ -101,12 +94,13 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	}
 	normalRecord = s.handleNulls(normalRecord) // we process nulls after writing
 
-	readRecords, err := s.plugin.readAll(ctx, table)
+	read, err := s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
+	read = schema.SortTable(read, "id")
 
-	totalItems := TotalRows(readRecords)
+	totalItems := read.NumRows()
 	if totalItems != rowsPerRecord {
 		return fmt.Errorf("items expected: %d, got: %d", rowsPerRecord, totalItems)
 	}
@@ -123,18 +117,18 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	}
 	nullRecord = s.handleNulls(nullRecord) // we process nulls after writing
 
-	readRecords, err = s.plugin.readAll(ctx, table)
+	read, err = s.plugin.readAll(ctx, table)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
-	sortRecords(table, readRecords, "id")
+	read = schema.SortTable(read, "id")
 
-	totalItems = TotalRows(readRecords)
+	totalItems = read.NumRows()
 	if totalItems != 2*rowsPerRecord {
 		return fmt.Errorf("items expected: %d, got: %d", 2*rowsPerRecord, totalItems)
 	}
-	if diff := RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{normalRecord, nullRecord}); diff != "" {
-		return fmt.Errorf("record[0] differs: %s", diff)
+	if diff := TableDiff(read, schema.SortTable(array.NewTableFromRecords(table.ToArrowSchema(), []arrow.Record{normalRecord, nullRecord}), "id")); diff != "" {
+		return fmt.Errorf("differs after 2 records: %s", diff)
 	}
 	return nil
 }
