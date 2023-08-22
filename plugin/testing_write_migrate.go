@@ -231,6 +231,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("double_migration", func(t *testing.T) {
+		if forceMigrate {
+			t.Skip("double migration test has sense only for safe migrations")
+		}
 		tableName := "double_migration_" + tableUUIDSuffix()
 		table := schema.TestTable(tableName, s.genDatOptions)
 		// s.migrate will perform create->write->migrate->write
