@@ -37,7 +37,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
 	}
-	tg := schema.NewTestDataGenerator(0)
+	tg := schema.NewTestDataGenerator()
 	resource1 := tg.Generate(source, opts)
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource1,

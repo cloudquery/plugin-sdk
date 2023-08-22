@@ -206,7 +206,8 @@ type TestDataGenerator struct {
 	colToRnd map[string]*rand.Rand
 }
 
-func NewTestDataGenerator(seed uint64) *TestDataGenerator {
+func NewTestDataGenerator() *TestDataGenerator {
+	const seed = 0 // we can add an argument for this in the future, if necessary
 	return &TestDataGenerator{
 		counter:  0,
 		seed:     seed,
