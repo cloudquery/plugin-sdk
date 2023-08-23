@@ -29,8 +29,9 @@ type Server struct {
 
 func (s *Server) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
 	tables, err := s.Plugin.Tables(ctx, plugin.TableOptions{
-		Tables:     req.Tables,
-		SkipTables: req.SkipTables,
+		Tables:              req.Tables,
+		SkipTables:          req.SkipTables,
+		SkipDependentTables: req.SkipDependentTables,
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get tables: %v", err)
@@ -61,7 +62,7 @@ func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVer
 }
 
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
-	if err := s.Plugin.Init(ctx, req.Spec, plugin.NewClientOptions{}); err != nil {
+	if err := s.Plugin.Init(ctx, req.Spec, plugin.NewClientOptions{NoConnection: req.NoConnection}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
 	return &pb.Init_Response{}, nil
@@ -172,21 +173,22 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	return syncErr
 }
 
-func (s *Server) Write(msg pb.Plugin_WriteServer) error {
+func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 	msgs := make(chan message.WriteMessage)
-	eg, ctx := errgroup.WithContext(msg.Context())
+	ctx := stream.Context()
+	eg, gctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return s.Plugin.Write(ctx, msgs)
+		return s.Plugin.Write(gctx, msgs)
 	})
 
 	for {
-		r, err := msg.Recv()
+		r, err := stream.Recv()
 		if err == io.EOF {
 			close(msgs)
 			if err := eg.Wait(); err != nil {
 				return status.Errorf(codes.Internal, "write failed: %v", err)
 			}
-			return msg.SendAndClose(&pb.Write_Response{})
+			return stream.SendAndClose(&pb.Write_Response{})
 		}
 		if err != nil {
 			close(msgs)
@@ -240,12 +242,18 @@ func (s *Server) Write(msg pb.Plugin_WriteServer) error {
 
 		select {
 		case msgs <- pluginMessage:
+		case <-gctx.Done():
+			close(msgs)
+			if err := eg.Wait(); err != nil {
+				return status.Errorf(codes.Canceled, "plugin returned error: %v", err)
+			}
+			return status.Errorf(codes.Internal, "write failed for unknown reason")
 		case <-ctx.Done():
 			close(msgs)
 			if err := eg.Wait(); err != nil {
-				return status.Errorf(codes.Internal, "Context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
+				return status.Errorf(codes.Internal, "context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
 			}
-			return status.Errorf(codes.Internal, "Context done: %v", ctx.Err())
+			return status.Errorf(codes.Canceled, "context done: %v", ctx.Err())
 		}
 	}
 }

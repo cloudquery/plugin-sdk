@@ -21,6 +21,7 @@ func tableUUIDSuffix() string {
 
 // nolint:revive
 func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
+	const rowsPerRecord = 10
 	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
 		Table:        source,
 		MigrateForce: writeOptionMigrateForce,
@@ -33,11 +34,11 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	opts := schema.GenTestDataOptions{
 		SourceName:    sourceName,
 		SyncTime:      syncTime,
-		MaxRows:       1,
+		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
 	}
 	tg := schema.NewTestDataGenerator()
-	resource1 := tg.Generate(source, opts)[0]
+	resource1 := tg.Generate(source, opts)
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource1,
 	}); err != nil {
@@ -50,10 +51,11 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to sync: %w", err)
 	}
 	totalItems := TotalRows(records)
-	if totalItems != 1 {
-		return fmt.Errorf("expected 1 item, got %d", totalItems)
+	if totalItems != rowsPerRecord {
+		return fmt.Errorf("expected items: %d, got: %d", rowsPerRecord, totalItems)
 	}
-	if diff := RecordDiff(records[0], resource1); diff != "" {
+	sortRecords(source, records, "id")
+	if diff := RecordsDiff(source.ToArrowSchema(), records, []arrow.Record{resource1}); diff != "" {
 		return fmt.Errorf("first record differs from expectation: %s", diff)
 	}
 
@@ -64,7 +66,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
-	resource2 := tg.Generate(target, opts)[0]
+	resource2 := tg.Generate(target, opts)
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource2,
 	}); err != nil {
@@ -78,26 +80,22 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	}
 	sortRecords(target, records, "id")
 
+	lastRow := resource2.NewSlice(resource2.NumRows()-1, resource2.NumRows())
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
 	if !writeOptionMigrateForce || supportsSafeMigrate {
-		totalItems = TotalRows(records)
-		if totalItems != 2 {
-			return fmt.Errorf("expected 2 items, got %d", totalItems)
+		if err := expectRows(target.ToArrowSchema(), records, 2*rowsPerRecord, lastRow); err != nil {
+			if writeOptionMigrateForce && TotalRows(records) == rowsPerRecord {
+				// if force migration is required, we can also expect 1 item to be dropped
+				return expectRows(target.ToArrowSchema(), records, rowsPerRecord, lastRow)
+			}
+
+			return err
 		}
-		if diff := RecordDiff(records[1], resource2); diff != "" {
-			return fmt.Errorf("second record differs from expectation: %s", diff)
-		}
-	} else {
-		totalItems = TotalRows(records)
-		if totalItems != 1 {
-			return fmt.Errorf("expected 1 item, got %d", totalItems)
-		}
-		if diff := RecordDiff(records[0], resource2); diff != "" {
-			return fmt.Errorf("record differs from expectation: %s", diff)
-		}
+
+		return nil
 	}
 
-	return nil
+	return expectRows(target.ToArrowSchema(), records, rowsPerRecord, lastRow)
 }
 
 // nolint:revive
@@ -233,9 +231,25 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("double_migration", func(t *testing.T) {
+		if forceMigrate {
+			t.Skip("double migration test has sense only for safe migrations")
+		}
 		tableName := "double_migration_" + tableUUIDSuffix()
 		table := schema.TestTable(tableName, s.genDatOptions)
 		// s.migrate will perform create->write->migrate->write
 		require.NoError(t, s.migrate(ctx, table, table, true, false))
 	})
+}
+
+func expectRows(sc *arrow.Schema, records []arrow.Record, expectTotal int64, expectedLast arrow.Record) error {
+	totalItems := TotalRows(records)
+	if totalItems != expectTotal {
+		return fmt.Errorf("expected %d items, got %d", expectTotal, totalItems)
+	}
+	lastRecord := records[len(records)-1]
+	lastRow := lastRecord.NewSlice(lastRecord.NumRows()-1, lastRecord.NumRows())
+	if diff := RecordsDiff(sc, []arrow.Record{lastRow}, []arrow.Record{expectedLast}); diff != "" {
+		return fmt.Errorf("record #%d differs from expectation: %s", totalItems, diff)
+	}
+	return nil
 }

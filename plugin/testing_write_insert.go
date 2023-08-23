@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -21,7 +20,7 @@ func TotalRows(records []arrow.Record) int64 {
 }
 
 func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
-	tableName := fmt.Sprintf("cq_insert_basic_%d", time.Now().Unix())
+	tableName := s.tableNameForTest("insert_basic")
 	table := &schema.Table{
 		Name: tableName,
 		Columns: []schema.Column{
@@ -74,18 +73,16 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 		return fmt.Errorf("expected 2 items, got %d", totalItems)
 	}
 
-	if diff := RecordDiff(readRecords[0], record); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{record, record}); diff != "" {
 		return fmt.Errorf("record[0] differs: %s", diff)
-	}
-	if diff := RecordDiff(readRecords[1], record); diff != "" {
-		return fmt.Errorf("record[1] differs: %s", diff)
 	}
 
 	return nil
 }
 
 func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
-	tableName := fmt.Sprintf("cq_insert_all_%d", time.Now().Unix())
+	const rowsPerRecord = 10
+	tableName := s.tableNameForTest("insert_all")
 	table := schema.TestTable(tableName, s.genDatOptions)
 	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
 		Table: table,
@@ -93,7 +90,10 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 	tg := schema.NewTestDataGenerator()
-	normalRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1})[0]
+	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
+		MaxRows:       rowsPerRecord,
+		TimePrecision: s.genDatOptions.TimePrecision,
+	})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: normalRecord,
 	}); err != nil {
@@ -107,11 +107,15 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	}
 
 	totalItems := TotalRows(readRecords)
-	if totalItems != 1 {
-		return fmt.Errorf("expected 1 item, got %d", totalItems)
+	if totalItems != rowsPerRecord {
+		return fmt.Errorf("items expected after first insert: %d, got: %d", rowsPerRecord, totalItems)
 	}
 
-	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, NullRows: true})[0]
+	nullRecord := tg.Generate(table, schema.GenTestDataOptions{
+		MaxRows:       rowsPerRecord,
+		TimePrecision: s.genDatOptions.TimePrecision,
+		NullRows:      true,
+	})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: nullRecord,
 	}); err != nil {
@@ -126,14 +130,11 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	sortRecords(table, readRecords, "id")
 
 	totalItems = TotalRows(readRecords)
-	if totalItems != 2 {
-		return fmt.Errorf("expected 2 items, got %d", totalItems)
+	if totalItems != 2*rowsPerRecord {
+		return fmt.Errorf("items expected after second insert: %d, got: %d", 2*rowsPerRecord, totalItems)
 	}
-	if diff := RecordDiff(readRecords[0], normalRecord); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{normalRecord, nullRecord}); diff != "" {
 		return fmt.Errorf("record[0] differs: %s", diff)
-	}
-	if diff := RecordDiff(readRecords[1], nullRecord); diff != "" {
-		return fmt.Errorf("record[1] differs: %s", diff)
 	}
 	return nil
 }
