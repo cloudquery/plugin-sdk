@@ -10,11 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
-	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
@@ -25,9 +22,11 @@ import (
 
 const (
 	DefaultConcurrency     = 50000
+	DefaultRowsPerRecord   = 100
 	DefaultMaxDepth        = 4
 	minTableConcurrency    = 1
 	minResourceConcurrency = 100
+	minRowsPerRecord       = 1
 	otelName               = "schedule"
 )
 
@@ -126,6 +125,12 @@ func WithConcurrency(concurrency int) Option {
 	}
 }
 
+func WithRowsPerRecord(rowsPerRecord int) Option {
+	return func(s *Scheduler) {
+		s.rowsPerRecord = max(rowsPerRecord, minRowsPerRecord)
+	}
+}
+
 func WithMaxDepth(maxDepth uint64) Option {
 	return func(s *Scheduler) {
 		s.maxDepth = maxDepth
@@ -159,8 +164,9 @@ type Scheduler struct {
 	// tableSem is a semaphore that limits the number of concurrent tables being fetched
 	tableSems []*semaphore.Weighted
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
-	logger      zerolog.Logger
-	concurrency int
+	logger        zerolog.Logger
+	concurrency   int
+	rowsPerRecord int
 }
 
 type syncClient struct {
@@ -175,9 +181,10 @@ type syncClient struct {
 
 func NewScheduler(opts ...Option) *Scheduler {
 	s := Scheduler{
-		caser:       caser.New(),
-		concurrency: DefaultConcurrency,
-		maxDepth:    DefaultMaxDepth,
+		caser:         caser.New(),
+		concurrency:   DefaultConcurrency,
+		maxDepth:      DefaultMaxDepth,
+		rowsPerRecord: DefaultRowsPerRecord,
 	}
 	for _, opt := range opts {
 		opt(&s)
@@ -254,13 +261,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 			panic(fmt.Errorf("unknown scheduler %s", s.strategy.String()))
 		}
 	}()
-	for resource := range resources {
-		vector := resource.GetValues()
-		bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
-		scalar.AppendToRecordBuilder(bldr, vector)
-		rec := bldr.NewRecord()
-		res <- &message.SyncInsert{Record: rec}
-	}
+	s.collectSend(resources, res)
 	return nil
 }
 
