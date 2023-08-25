@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.5](https://github.com/cloudquery/plugin-sdk/compare/v4.5.4...v4.5.5) (2023-08-22)
+
+
+### Bug Fixes
+
+* Skip double migration test in forced mode ([#1163](https://github.com/cloudquery/plugin-sdk/issues/1163)) ([e7b5ed1](https://github.com/cloudquery/plugin-sdk/commit/e7b5ed18868f38ae09f8a392c19566f40d0e5a83))
+
+## [4.5.4](https://github.com/cloudquery/plugin-sdk/compare/v4.5.3...v4.5.4) (2023-08-22)
+
+
+### Bug Fixes
+
+* Fix testdata generation ([#1160](https://github.com/cloudquery/plugin-sdk/issues/1160)) ([f07869a](https://github.com/cloudquery/plugin-sdk/commit/f07869aa82f92d745a30aaa35f33ae3bf31a7f50))
+
+## [4.5.3](https://github.com/cloudquery/plugin-sdk/compare/v4.5.2...v4.5.3) (2023-08-21)
+
+
+### Bug Fixes
+
+* Ease diff code reading ([#1157](https://github.com/cloudquery/plugin-sdk/issues/1157)) ([72fc538](https://github.com/cloudquery/plugin-sdk/commit/72fc538af0eec502bc0287dc3ab4b3f989adb448))
+
+## [4.5.2](https://github.com/cloudquery/plugin-sdk/compare/v4.5.1...v4.5.2) (2023-08-21)
+
+
+### Bug Fixes
+
+* Change `testdata.Generate` signature ([#1153](https://github.com/cloudquery/plugin-sdk/issues/1153)) ([86e717a](https://github.com/cloudquery/plugin-sdk/commit/86e717a442c43c945239cbdcbc79ac4ece97c7c2))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 5b83d4f ([#1154](https://github.com/cloudquery/plugin-sdk/issues/1154)) ([8558dd1](https://github.com/cloudquery/plugin-sdk/commit/8558dd102d359159dec64ad099bc417c97cc1477))
+* **deps:** Update module github.com/cloudquery/plugin-sdk/v4 to v4.5.1 ([#1150](https://github.com/cloudquery/plugin-sdk/issues/1150)) ([b3f41b1](https://github.com/cloudquery/plugin-sdk/commit/b3f41b1620c912383e5ef83c0765af03d3224fc7))
+
 ## [4.5.1](https://github.com/cloudquery/plugin-sdk/compare/v4.5.0...v4.5.1) (2023-08-18)
 
 

@@ -61,7 +61,13 @@ func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte, plugin.NewC
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
-func (c *client) overwrite(table *schema.Table, data arrow.Record) {
+func (c *client) overwrite(table *schema.Table, record arrow.Record) {
+	for i := int64(0); i < record.NumRows(); i++ {
+		c.overwriteRow(table, record.NewSlice(i, i+1))
+	}
+}
+
+func (c *client) overwriteRow(table *schema.Table, data arrow.Record) {
 	tableName := table.Name
 	pksIndex := table.PrimaryKeysIndexes()
 	if len(pksIndex) == 0 {

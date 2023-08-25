@@ -1,6 +1,10 @@
 package scalar
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/google/uuid"
+)
 
 type SomeUUIDWrapper struct {
 	SomeUUIDType
@@ -59,6 +63,8 @@ func TestUUIDSet(t *testing.T) {
 		},
 		{source: nilPointerByteArray, result: UUID{}},
 		{source: nilPointerString, result: UUID{}},
+		{source: &uuid.UUID{}, result: UUID{Value: [16]byte{0}, Valid: true}},
+		{source: uuid.UUID{}, result: UUID{Value: [16]byte{0}, Valid: true}},
 	}
 
 	for i, tt := range successfulTests {
