@@ -137,13 +137,6 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 		return s.Plugin.Write(ctx, msgs)
 	})
 
-	for _, table := range tables {
-		msgs <- &message.WriteMigrateTable{
-			Table:        table,
-			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
-		}
-	}
-
 	for {
 		r, err := msg.Recv()
 		if err == io.EOF {
