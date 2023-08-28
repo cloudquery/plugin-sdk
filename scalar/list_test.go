@@ -3,7 +3,7 @@ package scalar
 import (
 	"testing"
 
-	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v14/arrow"
 )
 
 func TestListSet(t *testing.T) {
