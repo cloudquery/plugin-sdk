@@ -1,6 +1,11 @@
 package schema
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/apache/arrow/go/v13/arrow"
+	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+)
 
 func TestTestSourceColumns_Default(t *testing.T) {
 	// basic sanity check for tested columns
@@ -51,4 +56,44 @@ func TestGenTestData(*testing.T) {
 	// smoke test that no panics
 	tg := NewTestDataGenerator()
 	_ = tg.Generate(table, GenTestDataOptions{})
+}
+
+func BenchmarkMultiRow(b *testing.B) {
+	table := TestTable("test", TestSourceOptions{})
+	tg := NewTestDataGenerator()
+	record := tg.Generate(table, GenTestDataOptions{
+		SourceName: "test",
+		MaxRows:    b.N,
+	})
+	b.ResetTimer()
+	_, err := pb.RecordToBytes(record)
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.StopTimer()
+}
+
+func BenchmarkSingleRow(b *testing.B) {
+	table := TestTable("test", TestSourceOptions{})
+	tg := NewTestDataGenerator()
+	records := split(tg.Generate(table, GenTestDataOptions{
+		SourceName: "test",
+		MaxRows:    b.N,
+	}))
+	b.ResetTimer()
+	for i := range records {
+		_, err := pb.RecordToBytes(records[i])
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+}
+
+func split(r arrow.Record) []arrow.Record {
+	res := make([]arrow.Record, r.NumRows())
+	for i := int64(0); i < r.NumRows(); i++ {
+		res[i] = r.NewSlice(i, i+1)
+	}
+	return res
 }
