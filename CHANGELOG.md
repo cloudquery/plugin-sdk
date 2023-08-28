@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.6](https://github.com/cloudquery/plugin-sdk/compare/v4.5.5...v4.5.6) (2023-08-28)
+
+
+### Bug Fixes
+
+* Don't send migrate messages in destination v1 write ([#1167](https://github.com/cloudquery/plugin-sdk/issues/1167)) ([9ed543c](https://github.com/cloudquery/plugin-sdk/commit/9ed543c5e10a46fa0cb9c0ff8e942e12d2c48f37))
+
 ## [4.5.5](https://github.com/cloudquery/plugin-sdk/compare/v4.5.4...v4.5.5) (2023-08-22)
 
 
