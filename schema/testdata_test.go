@@ -66,7 +66,11 @@ func BenchmarkMultiRow(b *testing.B) {
 		MaxRows:    b.N,
 	})
 	b.ResetTimer()
-	_, err := pb.RecordToBytes(record)
+	data, err := pb.RecordToBytes(record)
+	if err != nil {
+		b.Fatal(err)
+	}
+	_, err = pb.NewRecordFromBytes(data)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -82,7 +86,11 @@ func BenchmarkSingleRow(b *testing.B) {
 	}))
 	b.ResetTimer()
 	for i := range records {
-		_, err := pb.RecordToBytes(records[i])
+		data, err := pb.RecordToBytes(records[i])
+		if err != nil {
+			b.Fatal(err)
+		}
+		_, err = pb.NewRecordFromBytes(data)
 		if err != nil {
 			b.Fatal(err)
 		}
