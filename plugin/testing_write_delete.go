@@ -14,7 +14,7 @@ import (
 
 func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context) {
 	tableName := s.tableNameForTest("delete_basic")
-	syncTime := time.Now().UTC().Round(1 * time.Second)
+	syncTime := time.Now()
 	table := &schema.Table{
 		Name:    tableName,
 		Columns: schema.ColumnList{schema.CqSourceNameColumn, schema.CqSyncTimeColumn},
@@ -53,7 +53,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 	const rowsPerRecord = 10
 
 	tableName := s.tableNameForTest("delete_all")
-	syncTime := time.Now().UTC().Truncate(s.genDatOptions.TimePrecision)
+	syncTime := time.Now()
 	table := schema.TestTable(tableName, s.genDatOptions)
 	table.Columns = append(schema.ColumnList{schema.CqSourceNameColumn, schema.CqSyncTimeColumn}, table.Columns...)
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteMigrateTable{Table: table}), "failed to create table")
@@ -82,7 +82,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 	require.NoErrorf(s.t, err, "failed to read after delete stale")
 	require.EqualValuesf(s.t, rowsPerRecord, TotalRows(readRecords), "unexpected amount of items after delete stale")
 
-	syncTime = time.Now().UTC().Truncate(s.genDatOptions.TimePrecision) // bump sync time
+	syncTime = time.Now() // bump sync time
 	nullRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,

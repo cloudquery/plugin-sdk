@@ -4,9 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
-	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 func TestPlugin(t *testing.T) {
@@ -21,7 +19,6 @@ func TestPlugin(t *testing.T) {
 		plugin.WriterTestSuiteTests{
 			SafeMigrations: plugin.SafeMigrations{},
 		},
-		plugin.WithTestDataOptions(schema.TestSourceOptions{TimePrecision: schema.CqSyncTimeColumn.Type.(*arrow.TimestampType).Unit.Multiplier()}),
 	)
 }
 
