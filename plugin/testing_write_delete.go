@@ -14,7 +14,8 @@ import (
 
 func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context) {
 	tableName := s.tableNameForTest("delete_basic")
-	syncTime := time.Now().UTC().Round(time.Second)
+	// https://github.com/golang/go/issues/41087
+	syncTime := time.Now().UTC().Truncate(time.Microsecond)
 	table := &schema.Table{
 		Name:    tableName,
 		Columns: schema.ColumnList{schema.CqSourceNameColumn, schema.CqSyncTimeColumn},
@@ -53,7 +54,8 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 	const rowsPerRecord = 10
 
 	tableName := s.tableNameForTest("delete_all")
-	syncTime := time.Now().UTC()
+	// https://github.com/golang/go/issues/41087
+	syncTime := time.Now().UTC().Truncate(time.Microsecond)
 	table := schema.TestTable(tableName, s.genDatOptions)
 	table.Columns = append(schema.ColumnList{schema.CqSourceNameColumn, schema.CqSyncTimeColumn}, table.Columns...)
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteMigrateTable{Table: table}), "failed to create table")
@@ -82,7 +84,8 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 	require.NoErrorf(s.t, err, "failed to read after delete stale")
 	require.EqualValuesf(s.t, rowsPerRecord, TotalRows(readRecords), "unexpected amount of items after delete stale")
 
-	syncTime = time.Now().UTC() // bump sync time
+	// https://github.com/golang/go/issues/41087
+	syncTime = time.Now().UTC().Truncate(time.Microsecond)
 	nullRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
