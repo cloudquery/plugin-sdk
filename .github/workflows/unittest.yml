@@ -10,7 +10,6 @@ on:
 jobs:
   unitests:
     strategy:
-      fail-fast: false
       matrix:
         os: [large-ubuntu-plugin-sdk, large-windows-plugin-sdk, macos-latest]
     runs-on: ${{ matrix.os }}
