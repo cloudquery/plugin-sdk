@@ -16,11 +16,8 @@ func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context) {
 	tableName := s.tableNameForTest("delete_basic")
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	table := &schema.Table{
-		Name: tableName,
-		Columns: []schema.Column{
-			schema.CqSourceNameColumn,
-			schema.CqSyncTimeColumn,
-		},
+		Name:    tableName,
+		Columns: schema.ColumnList{schema.CqSourceNameColumn, schema.CqSyncTimeColumn},
 	}
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteMigrateTable{Table: table}), "failed to create table")
 
