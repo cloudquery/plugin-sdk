@@ -14,7 +14,7 @@ import (
 
 func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context) {
 	tableName := s.tableNameForTest("delete_basic")
-	syncTime := time.Now()
+	syncTime := time.Now().UTC().Truncate(s.genDatOptions.TimePrecision)
 	table := &schema.Table{
 		Name:    tableName,
 		Columns: schema.ColumnList{schema.CqSourceNameColumn, schema.CqSyncTimeColumn},
