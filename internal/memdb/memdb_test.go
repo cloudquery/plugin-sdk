@@ -3,10 +3,8 @@ package memdb
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
-	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 func TestPlugin(t *testing.T) {
@@ -21,7 +19,6 @@ func TestPlugin(t *testing.T) {
 		plugin.WriterTestSuiteTests{
 			SafeMigrations: plugin.SafeMigrations{},
 		},
-		plugin.WithTestDataOptions(schema.TestSourceOptions{TimePrecision: time.Microsecond}),
 	)
 }
 
