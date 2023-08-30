@@ -10,6 +10,7 @@ import (
 )
 
 type WriterTestSuite struct {
+	t     *testing.T
 	tests WriterTestSuiteTests
 
 	plugin *Plugin
@@ -90,6 +91,7 @@ func WithRandomSeed(seed int64) func(o *WriterTestSuite) {
 
 func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, opts ...func(o *WriterTestSuite)) {
 	suite := &WriterTestSuite{
+		t:      t,
 		tests:  tests,
 		plugin: p,
 	}
@@ -139,14 +141,10 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 			t.Skip("skipping " + t.Name())
 		}
 		t.Run("Basic", func(t *testing.T) {
-			if err := suite.testDeleteStaleBasic(ctx); err != nil {
-				t.Fatal(err)
-			}
+			suite.testDeleteStaleBasic(ctx)
 		})
 		t.Run("All", func(t *testing.T) {
-			if err := suite.testDeleteStaleAll(ctx); err != nil {
-				t.Fatal(err)
-			}
+			suite.testDeleteStaleAll(ctx)
 		})
 	})
 
