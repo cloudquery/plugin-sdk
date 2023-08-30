@@ -208,15 +208,15 @@ func (c *client) deleteStale(_ context.Context, msg *message.WriteDeleteStale) {
 		if len(indices) == 0 {
 			continue
 		}
-		sourceCol := row.Column(indices[0]).(*array.String)
+		sourceColIndex := indices[0]
 		indices = sc.FieldIndices(schema.CqSyncTimeColumn.Name)
 		if len(indices) == 0 {
 			continue
 		}
-		syncCol := row.Column(indices[0]).(*array.Timestamp)
+		syncColIndex := indices[0]
 
-		if sourceCol.Value(0) == msg.SourceName {
-			rowSyncTime := syncCol.Value(0).ToTime(syncCol.DataType().(*arrow.TimestampType).Unit).UTC()
+		if row.Column(sourceColIndex).(*array.String).Value(0) == msg.SourceName {
+			rowSyncTime := row.Column(syncColIndex).(*array.Timestamp).Value(0).ToTime(arrow.Microsecond).UTC()
 			if !rowSyncTime.Before(msg.SyncTime) {
 				filteredTable = append(filteredTable, c.memoryDB[tableName][i])
 			}
