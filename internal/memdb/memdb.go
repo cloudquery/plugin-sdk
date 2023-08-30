@@ -217,7 +217,7 @@ func (c *client) deleteStale(_ context.Context, msg *message.WriteDeleteStale) {
 
 		if sourceCol.Value(0) == msg.SourceName {
 			rowSyncTime := syncCol.Value(0).ToTime(syncCol.DataType().(*arrow.TimestampType).Unit).UTC()
-			if !rowSyncTime.Before(msg.SyncTime) {
+			if msg.SyncTime.After(rowSyncTime) {
 				filteredTable = append(filteredTable, c.memoryDB[tableName][i])
 			}
 		}
