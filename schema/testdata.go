@@ -433,11 +433,6 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 			case arrow.FixedWidthTypes.Timestamp_us:
 				return strconv.FormatInt(t.UnixMicro(), 10)
 			case arrow.FixedWidthTypes.Timestamp_ns:
-				// Note: We use microseconds instead of nanoseconds here because
-				//       nanosecond precision is not supported by many destinations.
-				//       For now, we begrudgingly accept loss of precision in these cases.
-				//       See https://github.com/cloudquery/plugin-sdk/issues/830
-				t = t.Truncate(time.Microsecond)
 				// Use string timestamp string format here because JSON integers are
 				// unmarshalled as float64, losing precision for nanosecond timestamps.
 				return t.Format(`"2006-01-02 15:04:05.999999999"`)
