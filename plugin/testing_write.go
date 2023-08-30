@@ -138,9 +138,16 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 		if suite.tests.SkipDeleteStale {
 			t.Skip("skipping " + t.Name())
 		}
-		if err := suite.testDeleteStale(ctx); err != nil {
-			t.Fatal(err)
-		}
+		t.Run("Basic", func(t *testing.T) {
+			if err := suite.testDeleteStaleBasic(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
+		t.Run("All", func(t *testing.T) {
+			if err := suite.testDeleteStaleAll(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
 	})
 
 	t.Run("TestMigrate", func(t *testing.T) {
