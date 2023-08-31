@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.0](https://github.com/cloudquery/plugin-sdk/compare/v4.5.7...v4.6.0) (2023-08-31)
+
+
+### Features
+
+* Extensive testing for `delete-stale` ([#1175](https://github.com/cloudquery/plugin-sdk/issues/1175)) ([304e4eb](https://github.com/cloudquery/plugin-sdk/commit/304e4eba408a0782f6b47e1c47a7f86f81588ac1))
+
 ## [4.5.7](https://github.com/cloudquery/plugin-sdk/compare/v4.5.6...v4.5.7) (2023-08-28)
 
 
