@@ -49,4 +49,4 @@ jobs:
         run: go test -race -coverprofile=coverage.out -covermode=atomic  ./...
       - name: Upload coverage to Codecov
         if: always() && matrix.os == 'large-ubuntu-plugin-sdk'
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d
+        uses: codecov/codecov-action@04adcebd9b38cae0bb0fd4a05e3497ce0bce41a0
