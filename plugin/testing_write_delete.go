@@ -14,8 +14,8 @@ import (
 
 func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context) {
 	tableName := s.tableNameForTest("delete_basic")
-	// https://github.com/golang/go/issues/41087
-	syncTime := time.Now().UTC().Truncate(time.Microsecond)
+	syncTime := time.Now().UTC().Truncate(s.genDatOptions.TimePrecision).
+		Truncate(time.Microsecond) // https://github.com/golang/go/issues/41087
 	table := &schema.Table{
 		Name:    tableName,
 		Columns: schema.ColumnList{schema.CqSourceNameColumn, schema.CqSyncTimeColumn},
@@ -65,7 +65,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
 		SourceName:    "test",
-		SyncTime:      syncTime,
+		SyncTime:      syncTime, // Generate call may truncate the value further based on the options
 	})
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteInsert{Record: normalRecord}), "failed to insert record")
 	normalRecord = s.handleNulls(normalRecord) // we process nulls after writing
@@ -77,7 +77,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteDeleteStale{
 		TableName:  table.Name,
 		SourceName: "test",
-		SyncTime:   syncTime,
+		SyncTime:   syncTime, // Generate call may truncate the value further based on the options
 	}), "failed to delete stale records")
 
 	readRecords, err = s.plugin.readAll(ctx, table)
@@ -91,7 +91,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 		TimePrecision: s.genDatOptions.TimePrecision,
 		NullRows:      true,
 		SourceName:    "test",
-		SyncTime:      syncTime,
+		SyncTime:      syncTime, // Generate call may truncate the value further based on the options
 	})
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteInsert{Record: nullRecord}), "failed to insert record second time")
 	nullRecord = s.handleNulls(nullRecord) // we process nulls after writing
@@ -105,7 +105,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteDeleteStale{
 		TableName:  table.Name,
 		SourceName: "test",
-		SyncTime:   syncTime,
+		SyncTime:   syncTime, // Generate call may truncate the value further based on the options
 	}), "failed to delete stale records second time")
 
 	readRecords, err = s.plugin.readAll(ctx, table)
