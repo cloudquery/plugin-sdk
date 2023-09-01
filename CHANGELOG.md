@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.1](https://github.com/cloudquery/plugin-sdk/compare/v4.6.0...v4.6.1) (2023-09-01)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v14 digest to 84583d6 ([#1179](https://github.com/cloudquery/plugin-sdk/issues/1179)) ([167fded](https://github.com/cloudquery/plugin-sdk/commit/167fded1e19b2e99ecf90c1eb5514c4dd5613a44))
+* **deps:** Update github.com/apache/arrow/go/v14 digest to b6c0ea4 ([#1185](https://github.com/cloudquery/plugin-sdk/issues/1185)) ([7e6bad6](https://github.com/cloudquery/plugin-sdk/commit/7e6bad67ea149a6006a0d2f9049a38d65c516809))
+* **deps:** Update golang.org/x/exp digest to d852ddb ([#1181](https://github.com/cloudquery/plugin-sdk/issues/1181)) ([1c8ec87](https://github.com/cloudquery/plugin-sdk/commit/1c8ec87dce3b1a972de07fc4de71dcaa7251be97))
+* **deps:** Update golang.org/x/tools digest to 914b218 ([#1183](https://github.com/cloudquery/plugin-sdk/issues/1183)) ([9b9a392](https://github.com/cloudquery/plugin-sdk/commit/9b9a39217e69cfb99cd9c84f0e116f508bd41ba7))
+* **deps:** Update google.golang.org/genproto digest to b8732ec ([#1182](https://github.com/cloudquery/plugin-sdk/issues/1182)) ([8d98808](https://github.com/cloudquery/plugin-sdk/commit/8d988082ad9bea01220d21c04dcb447da7456e86))
+* **deps:** Update google.golang.org/genproto/googleapis/api digest to b8732ec ([#1184](https://github.com/cloudquery/plugin-sdk/issues/1184)) ([c74fb1d](https://github.com/cloudquery/plugin-sdk/commit/c74fb1dbf60daffff68a81550e014d13cef098fa))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to b8732ec ([#1186](https://github.com/cloudquery/plugin-sdk/issues/1186)) ([15cea46](https://github.com/cloudquery/plugin-sdk/commit/15cea46d59bc6bb2e1c82022497ae3322e9190ff))
+* **test:** Truncate sync time based on test options in `testDeleteStaleBasic` ([#1187](https://github.com/cloudquery/plugin-sdk/issues/1187)) ([faa64b0](https://github.com/cloudquery/plugin-sdk/commit/faa64b08ea80a173ebd38c3b8799576716f4bacd))
+
 ## [4.6.0](https://github.com/cloudquery/plugin-sdk/compare/v4.5.7...v4.6.0) (2023-08-31)
 
 
