@@ -3,7 +3,7 @@ module github.com/cloudquery/plugin-sdk/examples/simple_plugin
 go 1.20
 
 require (
-	github.com/apache/arrow/go/v14 v14.0.0-20230831184412-84583d65306c
+	github.com/apache/arrow/go/v14 v14.0.0-20230901024001-b6c0ea455d08
 	github.com/cloudquery/plugin-sdk/v4 v4.6.0
 	github.com/rs/zerolog v1.30.0
 )

@@ -3,7 +3,7 @@ module github.com/cloudquery/plugin-sdk/v4
 go 1.19
 
 require (
-	github.com/apache/arrow/go/v14 v14.0.0-20230831184412-84583d65306c
+	github.com/apache/arrow/go/v14 v14.0.0-20230901024001-b6c0ea455d08
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/plugin-pb-go v1.9.4
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
