@@ -3,14 +3,15 @@ package plugin
 import (
 	"sort"
 
-	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow/go/v14/arrow/array"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 // sort records by specific column. This is intended for testing purposes only.
 // Because "id" is auto-incrementing in the test  data generator, if passed "id"
 // this should result in records being returned in insertion order.
+// nolint:unparam
 func sortRecords(table *schema.Table, records []arrow.Record, columnName string) {
 	sch := table.ToArrowSchema()
 	if !sch.HasField(columnName) {

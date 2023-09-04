@@ -1,12 +1,13 @@
 package scalar
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow/go/v14/arrow/array"
+	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,26 +70,74 @@ func TestTimestampDoubleSet(t *testing.T) {
 }
 
 func TestAppendToBuilderTimestamp(t *testing.T) {
-	units := []arrow.TimeUnit{arrow.Second, arrow.Millisecond, arrow.Microsecond, arrow.Nanosecond}
-	expected := []string{"1999-01-08 04:05:06", "1999-01-08 04:05:06.123", "1999-01-08 04:05:06.123456", "1999-01-08 04:05:06.123456789"}
-	for i, unit := range units {
-		timestamp := Timestamp{
-			Type: &arrow.TimestampType{
-				Unit:     unit,
-				TimeZone: "UTC",
-			},
-		}
-		err := timestamp.Set("1999-01-08 04:05:06.123456789")
-		if err != nil {
-			t.Fatal(err)
-		}
+	for idx, tc := range []struct {
+		Unit     arrow.TimeUnit
+		Input    string
+		Expected string
+	}{
+		// Input format: arrowStringFormat
+		{
+			Unit:     arrow.Second,
+			Input:    "1999-01-08 04:05:06.123456789",
+			Expected: "1999-01-08 04:05:06Z",
+		},
+		{
+			Unit:     arrow.Millisecond,
+			Input:    "1999-01-08 04:05:06.123456789",
+			Expected: "1999-01-08 04:05:06.123Z",
+		},
+		{
+			Unit:     arrow.Microsecond,
+			Input:    "1999-01-08 04:05:06.123456789",
+			Expected: "1999-01-08 04:05:06.123456Z",
+		},
+		{
+			Unit:     arrow.Nanosecond,
+			Input:    "1999-01-08 04:05:06.123456789",
+			Expected: "1999-01-08 04:05:06.123456789Z",
+		},
+		// Input format: arrowStringFormatNew
+		{
+			Unit:     arrow.Second,
+			Input:    "1999-01-08 04:05:06.123456789Z",
+			Expected: "1999-01-08 04:05:06Z",
+		},
+		{
+			Unit:     arrow.Millisecond,
+			Input:    "1999-01-08 04:05:06.123456789Z",
+			Expected: "1999-01-08 04:05:06.123Z",
+		},
+		{
+			Unit:     arrow.Microsecond,
+			Input:    "1999-01-08 04:05:06.123456789Z",
+			Expected: "1999-01-08 04:05:06.123456Z",
+		},
+		{
+			Unit:     arrow.Nanosecond,
+			Input:    "1999-01-08 04:05:06.123456789Z",
+			Expected: "1999-01-08 04:05:06.123456789Z",
+		},
+	} {
+		tc := tc
+		t.Run(strconv.FormatInt(int64(idx), 10), func(t *testing.T) {
+			timestamp := Timestamp{
+				Type: &arrow.TimestampType{
+					Unit:     tc.Unit,
+					TimeZone: "UTC",
+				},
+			}
+			err := timestamp.Set(tc.Input)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		bldr := array.NewTimestampBuilder(memory.DefaultAllocator, timestamp.Type)
-		AppendToBuilder(bldr, &timestamp)
+			bldr := array.NewTimestampBuilder(memory.DefaultAllocator, timestamp.Type)
+			AppendToBuilder(bldr, &timestamp)
 
-		arr := bldr.NewArray().(*array.Timestamp)
-		actual := arr.ValueStr(0)
+			arr := bldr.NewArray().(*array.Timestamp)
+			actual := arr.ValueStr(0)
 
-		require.Equal(t, expected[i], actual)
+			require.Equal(t, tc.Expected, actual)
+		})
 	}
 }

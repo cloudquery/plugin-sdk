@@ -11,6 +11,10 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/types"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/sdk/trace"
 
 	pbDestinationV0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	pbDestinationV1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
@@ -41,6 +45,7 @@ type PluginServe struct {
 	sentryDSN             string
 	testListener          bool
 	testListenerConn      *bufconn.Listener
+	versions              []int
 }
 
 type PluginOption func(*PluginServe)
@@ -79,7 +84,8 @@ const servePluginShort = `Start plugin server`
 
 func Plugin(p *plugin.Plugin, opts ...PluginOption) *PluginServe {
 	s := &PluginServe{
-		plugin: p,
+		plugin:   p,
+		versions: []int{3},
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -111,6 +117,8 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	var address string
 	var network string
 	var noSentry bool
+	var otelEndpoint string
+	var otelEndpointInsecure bool
 	logLevel := newEnum([]string{"trace", "debug", "info", "warn", "error"}, "info")
 	logFormat := newEnum([]string{"text", "json"}, "text")
 	telemetryLevel := newEnum([]string{"none", "errors", "stats", "all"}, "all")
@@ -136,6 +144,32 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			} else {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
+
+			if otelEndpoint != "" {
+				resource := newResource(s.plugin)
+				opts := []otlptracehttp.Option{
+					otlptracehttp.WithEndpoint(otelEndpoint),
+				}
+				if otelEndpointInsecure {
+					opts = append(opts, otlptracehttp.WithInsecure())
+				}
+				client := otlptracehttp.NewClient(opts...)
+				exp, err := otlptrace.New(cmd.Context(), client)
+				if err != nil {
+					return fmt.Errorf("creating OTLP trace exporter: %w", err)
+				}
+				tp := trace.NewTracerProvider(
+					trace.WithBatcher(exp),
+					trace.WithResource(resource),
+				)
+				defer func() {
+					if err := tp.Shutdown(context.Background()); err != nil {
+						logger.Error().Err(err).Msg("failed to shutdown OTLP trace exporter")
+					}
+				}()
+				otel.SetTracerProvider(tp)
+			}
+
 			// opts.Plugin.Logger = logger
 			var listener net.Listener
 			if s.testListener {
@@ -240,6 +274,8 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	cmd.Flags().StringVar(&network, "network", "tcp", `the network must be "tcp", "tcp4", "tcp6", "unix" or "unixpacket"`)
 	cmd.Flags().Var(logLevel, "log-level", fmt.Sprintf("log level. one of: %s", strings.Join(logLevel.Allowed, ",")))
 	cmd.Flags().Var(logFormat, "log-format", fmt.Sprintf("log format. one of: %s", strings.Join(logFormat.Allowed, ",")))
+	cmd.Flags().StringVar(&otelEndpoint, "otel-endpoint", "", "Open Telemetry HTTP collector endpoint")
+	cmd.Flags().BoolVar(&otelEndpointInsecure, "otel-endpoint-insecure", false, "use Open Telemetry HTTP endpoint (for development only)")
 	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
 	sendErrors := funk.ContainsString([]string{"all", "errors"}, telemetryLevel.String())
 	if !sendErrors {
@@ -255,6 +291,7 @@ func (s *PluginServe) newCmdPluginRoot() *cobra.Command {
 	}
 	cmd.AddCommand(s.newCmdPluginServe())
 	cmd.AddCommand(s.newCmdPluginDoc())
+	cmd.AddCommand(s.newCmdPluginPublish())
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	cmd.Version = s.plugin.Version()
 	return cmd

@@ -5,11 +5,12 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
 type WriterTestSuite struct {
+	t     *testing.T
 	tests WriterTestSuiteTests
 
 	plugin *Plugin
@@ -90,6 +91,7 @@ func WithRandomSeed(seed int64) func(o *WriterTestSuite) {
 
 func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, opts ...func(o *WriterTestSuite)) {
 	suite := &WriterTestSuite{
+		t:      t,
 		tests:  tests,
 		plugin: p,
 	}
@@ -138,9 +140,12 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 		if suite.tests.SkipDeleteStale {
 			t.Skip("skipping " + t.Name())
 		}
-		if err := suite.testDeleteStale(ctx); err != nil {
-			t.Fatal(err)
-		}
+		t.Run("Basic", func(t *testing.T) {
+			suite.testDeleteStaleBasic(ctx)
+		})
+		t.Run("All", func(t *testing.T) {
+			suite.testDeleteStaleAll(ctx)
+		})
 	})
 
 	t.Run("TestMigrate", func(t *testing.T) {

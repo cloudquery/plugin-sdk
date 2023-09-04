@@ -4,26 +4,44 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow/go/v14/arrow/array"
+	"github.com/apache/arrow/go/v14/arrow/memory"
 )
 
-func RecordDiff(l, r arrow.Record) string {
+func RecordsDiff(sc *arrow.Schema, have, want []arrow.Record) string {
+	return TableDiff(array.NewTableFromRecords(sc, have), array.NewTableFromRecords(sc, want))
+}
+
+func TableDiff(have, want arrow.Table) string {
+	if array.TableApproxEqual(have, want, array.WithUnorderedMapKeys(true)) {
+		return ""
+	}
+
+	if have.NumCols() != want.NumCols() {
+		return fmt.Sprintf("different number of columns: %d vs %d", have.NumCols(), want.NumCols())
+	}
+	if have.NumRows() != want.NumRows() {
+		return fmt.Sprintf("different number of rows: %d vs %d", have.NumRows(), want.NumRows())
+	}
+
 	var sb strings.Builder
-	if l.NumCols() != r.NumCols() {
-		return fmt.Sprintf("different number of columns: %d vs %d", l.NumCols(), r.NumCols())
-	}
-	if l.NumRows() != r.NumRows() {
-		return fmt.Sprintf("different number of rows: %d vs %d", l.NumRows(), r.NumRows())
-	}
-	for i := 0; i < int(l.NumCols()); i++ {
-		edits, err := array.Diff(l.Column(i), r.Column(i))
+	for i := 0; i < int(have.NumCols()); i++ {
+		haveCol, err := array.Concatenate(have.Column(i).Data().Chunks(), memory.DefaultAllocator)
 		if err != nil {
-			panic(fmt.Sprintf("left: %v, right: %v, error: %v", l.Column(i).DataType(), r.Column(i).DataType(), err))
+			panic(fmt.Errorf("failed to concat left columns at idx %d: %w", i, err))
 		}
-		diff := edits.UnifiedDiff(l.Column(i), r.Column(i))
+		wantCol, err := array.Concatenate(want.Column(i).Data().Chunks(), memory.DefaultAllocator)
+		if err != nil {
+			panic(fmt.Errorf("failed to concat right columns at idx %d: %w", i, err))
+		}
+		edits, err := array.Diff(wantCol, haveCol)
+		if err != nil {
+			panic(fmt.Errorf("want: %v, have: %v, error: %w", wantCol.DataType(), haveCol.DataType(), err))
+		}
+		diff := edits.UnifiedDiff(wantCol, haveCol)
 		if diff != "" {
-			sb.WriteString(l.Schema().Field(i).Name)
+			sb.WriteString(have.Schema().Field(i).Name)
 			sb.WriteString(": ")
 			sb.WriteString(diff)
 			sb.WriteString("\n")

@@ -5,6 +5,197 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.3](https://github.com/cloudquery/plugin-sdk/compare/v4.6.2...v4.6.3) (2023-09-04)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v14 digest to cd3d411 ([#1193](https://github.com/cloudquery/plugin-sdk/issues/1193)) ([3c5e6dd](https://github.com/cloudquery/plugin-sdk/commit/3c5e6ddd8ecb990aa29791af660e7429580f574f))
+* Use tables with primary key in `delete-stale` tests ([#1195](https://github.com/cloudquery/plugin-sdk/issues/1195)) ([6dd1730](https://github.com/cloudquery/plugin-sdk/commit/6dd1730b25df3d8153943e1edc05a7afe832edfe))
+
+## [4.6.2](https://github.com/cloudquery/plugin-sdk/compare/v4.6.1...v4.6.2) (2023-09-01)
+
+
+### Bug Fixes
+
+* Basic delete stale test ([#1189](https://github.com/cloudquery/plugin-sdk/issues/1189)) ([af4aa2e](https://github.com/cloudquery/plugin-sdk/commit/af4aa2e2c896860df16a5a63af2281310d4da268))
+
+## [4.6.1](https://github.com/cloudquery/plugin-sdk/compare/v4.6.0...v4.6.1) (2023-09-01)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v14 digest to 84583d6 ([#1179](https://github.com/cloudquery/plugin-sdk/issues/1179)) ([167fded](https://github.com/cloudquery/plugin-sdk/commit/167fded1e19b2e99ecf90c1eb5514c4dd5613a44))
+* **deps:** Update github.com/apache/arrow/go/v14 digest to b6c0ea4 ([#1185](https://github.com/cloudquery/plugin-sdk/issues/1185)) ([7e6bad6](https://github.com/cloudquery/plugin-sdk/commit/7e6bad67ea149a6006a0d2f9049a38d65c516809))
+* **deps:** Update golang.org/x/exp digest to d852ddb ([#1181](https://github.com/cloudquery/plugin-sdk/issues/1181)) ([1c8ec87](https://github.com/cloudquery/plugin-sdk/commit/1c8ec87dce3b1a972de07fc4de71dcaa7251be97))
+* **deps:** Update golang.org/x/tools digest to 914b218 ([#1183](https://github.com/cloudquery/plugin-sdk/issues/1183)) ([9b9a392](https://github.com/cloudquery/plugin-sdk/commit/9b9a39217e69cfb99cd9c84f0e116f508bd41ba7))
+* **deps:** Update google.golang.org/genproto digest to b8732ec ([#1182](https://github.com/cloudquery/plugin-sdk/issues/1182)) ([8d98808](https://github.com/cloudquery/plugin-sdk/commit/8d988082ad9bea01220d21c04dcb447da7456e86))
+* **deps:** Update google.golang.org/genproto/googleapis/api digest to b8732ec ([#1184](https://github.com/cloudquery/plugin-sdk/issues/1184)) ([c74fb1d](https://github.com/cloudquery/plugin-sdk/commit/c74fb1dbf60daffff68a81550e014d13cef098fa))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to b8732ec ([#1186](https://github.com/cloudquery/plugin-sdk/issues/1186)) ([15cea46](https://github.com/cloudquery/plugin-sdk/commit/15cea46d59bc6bb2e1c82022497ae3322e9190ff))
+* **test:** Truncate sync time based on test options in `testDeleteStaleBasic` ([#1187](https://github.com/cloudquery/plugin-sdk/issues/1187)) ([faa64b0](https://github.com/cloudquery/plugin-sdk/commit/faa64b08ea80a173ebd38c3b8799576716f4bacd))
+
+## [4.6.0](https://github.com/cloudquery/plugin-sdk/compare/v4.5.7...v4.6.0) (2023-08-31)
+
+
+### Features
+
+* Extensive testing for `delete-stale` ([#1175](https://github.com/cloudquery/plugin-sdk/issues/1175)) ([304e4eb](https://github.com/cloudquery/plugin-sdk/commit/304e4eba408a0782f6b47e1c47a7f86f81588ac1))
+
+## [4.5.7](https://github.com/cloudquery/plugin-sdk/compare/v4.5.6...v4.5.7) (2023-08-28)
+
+
+### Bug Fixes
+
+* **deps:** Update `github.com/cloudquery/arrow/go/v13` to `github.com/cloudquery/arrow/go/v14` ([#1169](https://github.com/cloudquery/plugin-sdk/issues/1169)) ([6be8194](https://github.com/cloudquery/plugin-sdk/commit/6be8194a27a2d562479e8980c213e8ab152fc972))
+
+## [4.5.6](https://github.com/cloudquery/plugin-sdk/compare/v4.5.5...v4.5.6) (2023-08-28)
+
+
+### Bug Fixes
+
+* Don't send migrate messages in destination v1 write ([#1167](https://github.com/cloudquery/plugin-sdk/issues/1167)) ([9ed543c](https://github.com/cloudquery/plugin-sdk/commit/9ed543c5e10a46fa0cb9c0ff8e942e12d2c48f37))
+
+## [4.5.5](https://github.com/cloudquery/plugin-sdk/compare/v4.5.4...v4.5.5) (2023-08-22)
+
+
+### Bug Fixes
+
+* Skip double migration test in forced mode ([#1163](https://github.com/cloudquery/plugin-sdk/issues/1163)) ([e7b5ed1](https://github.com/cloudquery/plugin-sdk/commit/e7b5ed18868f38ae09f8a392c19566f40d0e5a83))
+
+## [4.5.4](https://github.com/cloudquery/plugin-sdk/compare/v4.5.3...v4.5.4) (2023-08-22)
+
+
+### Bug Fixes
+
+* Fix testdata generation ([#1160](https://github.com/cloudquery/plugin-sdk/issues/1160)) ([f07869a](https://github.com/cloudquery/plugin-sdk/commit/f07869aa82f92d745a30aaa35f33ae3bf31a7f50))
+
+## [4.5.3](https://github.com/cloudquery/plugin-sdk/compare/v4.5.2...v4.5.3) (2023-08-21)
+
+
+### Bug Fixes
+
+* Ease diff code reading ([#1157](https://github.com/cloudquery/plugin-sdk/issues/1157)) ([72fc538](https://github.com/cloudquery/plugin-sdk/commit/72fc538af0eec502bc0287dc3ab4b3f989adb448))
+
+## [4.5.2](https://github.com/cloudquery/plugin-sdk/compare/v4.5.1...v4.5.2) (2023-08-21)
+
+
+### Bug Fixes
+
+* Change `testdata.Generate` signature ([#1153](https://github.com/cloudquery/plugin-sdk/issues/1153)) ([86e717a](https://github.com/cloudquery/plugin-sdk/commit/86e717a442c43c945239cbdcbc79ac4ece97c7c2))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 5b83d4f ([#1154](https://github.com/cloudquery/plugin-sdk/issues/1154)) ([8558dd1](https://github.com/cloudquery/plugin-sdk/commit/8558dd102d359159dec64ad099bc417c97cc1477))
+* **deps:** Update module github.com/cloudquery/plugin-sdk/v4 to v4.5.1 ([#1150](https://github.com/cloudquery/plugin-sdk/issues/1150)) ([b3f41b1](https://github.com/cloudquery/plugin-sdk/commit/b3f41b1620c912383e5ef83c0765af03d3224fc7))
+
+## [4.5.1](https://github.com/cloudquery/plugin-sdk/compare/v4.5.0...v4.5.1) (2023-08-18)
+
+
+### Bug Fixes
+
+* Bring back plugin validation ([#1108](https://github.com/cloudquery/plugin-sdk/issues/1108)) ([61765a7](https://github.com/cloudquery/plugin-sdk/commit/61765a7ce6a2ec1b88ab97fd2f53514b88df4d36))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.9.3 ([#1149](https://github.com/cloudquery/plugin-sdk/issues/1149)) ([e1ea578](https://github.com/cloudquery/plugin-sdk/commit/e1ea57877f82cafce7c42a826dddc0fe22c9ff51))
+* **deps:** Update module github.com/cloudquery/plugin-sdk/v4 to v4.5.0 ([#1145](https://github.com/cloudquery/plugin-sdk/issues/1145)) ([70d12e4](https://github.com/cloudquery/plugin-sdk/commit/70d12e476581c6388d08b056afd955a25dcaf888))
+
+## [4.5.0](https://github.com/cloudquery/plugin-sdk/compare/v4.4.0...v4.5.0) (2023-08-14)
+
+
+### Features
+
+* Add publish command ([#1143](https://github.com/cloudquery/plugin-sdk/issues/1143)) ([fdd44d5](https://github.com/cloudquery/plugin-sdk/commit/fdd44d5d3a9ce12d59e168ea691a343f6f219694))
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to e9683e1 ([#1144](https://github.com/cloudquery/plugin-sdk/issues/1144)) ([763c549](https://github.com/cloudquery/plugin-sdk/commit/763c549a783f69d7adfb7291534d3d2b25d697e5))
+* Scalar timestamp parsing ([#1109](https://github.com/cloudquery/plugin-sdk/issues/1109)) ([c15b214](https://github.com/cloudquery/plugin-sdk/commit/c15b214a346fa8a89c929858c2623317e7048211))
+
+## [4.4.0](https://github.com/cloudquery/plugin-sdk/compare/v4.3.1...v4.4.0) (2023-08-08)
+
+
+### Features
+
+* Add Unflatten tables method ([#1138](https://github.com/cloudquery/plugin-sdk/issues/1138)) ([848e505](https://github.com/cloudquery/plugin-sdk/commit/848e505ba49bdb4fb45cfa8bb7b9b7538afc785e))
+
+## [4.3.1](https://github.com/cloudquery/plugin-sdk/compare/v4.3.0...v4.3.1) (2023-08-08)
+
+
+### Bug Fixes
+
+* **plugin-tables:** Add missing `skip_dependent_tables` ([#1136](https://github.com/cloudquery/plugin-sdk/issues/1136)) ([65e9f1a](https://github.com/cloudquery/plugin-sdk/commit/65e9f1a9d81d4534e8a637ed5db57071fe91d831))
+
+## [4.3.0](https://github.com/cloudquery/plugin-sdk/compare/v4.2.6...v4.3.0) (2023-08-08)
+
+
+### Features
+
+* Add more metadata to tables needed for docs generation ([#1129](https://github.com/cloudquery/plugin-sdk/issues/1129)) ([3dbd7f3](https://github.com/cloudquery/plugin-sdk/commit/3dbd7f32cdcb87dd0b7cd4dd9b71c2552b25b30e))
+
+## [4.2.6](https://github.com/cloudquery/plugin-sdk/compare/v4.2.5...v4.2.6) (2023-08-08)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to f53878d ([#1132](https://github.com/cloudquery/plugin-sdk/issues/1132)) ([0c47570](https://github.com/cloudquery/plugin-sdk/commit/0c475702592506e2fce708384dd2bd5c8b9da827))
+* **writers:** StreamingBatchWriter hangs with non-append mode ([#1131](https://github.com/cloudquery/plugin-sdk/issues/1131)) ([806c85d](https://github.com/cloudquery/plugin-sdk/commit/806c85d92bb9152b0469a1e30e167a662ebd8015))
+
+## [4.2.5](https://github.com/cloudquery/plugin-sdk/compare/v4.2.4...v4.2.5) (2023-08-02)
+
+
+### Bug Fixes
+
+* Nulls in lists ([#1127](https://github.com/cloudquery/plugin-sdk/issues/1127)) ([dc1e6be](https://github.com/cloudquery/plugin-sdk/commit/dc1e6bee22dbbbeb15b3586a8815598d50a6b434))
+
+## [4.2.4](https://github.com/cloudquery/plugin-sdk/compare/v4.2.3...v4.2.4) (2023-08-02)
+
+
+### Bug Fixes
+
+* Check record equality before generating diff ([#1123](https://github.com/cloudquery/plugin-sdk/issues/1123)) ([b2e6331](https://github.com/cloudquery/plugin-sdk/commit/b2e63318befaf3cf4f633a95f08178ef7dbbed18))
+* **deps:** Update github.com/apache/arrow/go/v13 digest to 112f949 ([#1115](https://github.com/cloudquery/plugin-sdk/issues/1115)) ([ed0e4e0](https://github.com/cloudquery/plugin-sdk/commit/ed0e4e03c271d7232258c4efaec3708f645e7d5e))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 10df4b9 ([#1110](https://github.com/cloudquery/plugin-sdk/issues/1110)) ([636084c](https://github.com/cloudquery/plugin-sdk/commit/636084cb28281e4cccad76b8aff5a18306855eb1))
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 3452eb0 ([#1114](https://github.com/cloudquery/plugin-sdk/issues/1114)) ([af83988](https://github.com/cloudquery/plugin-sdk/commit/af839886025f534bf28484b49345faca9dcd1735))
+* **deps:** Update golang.org/x/exp digest to b0cb94b ([#1116](https://github.com/cloudquery/plugin-sdk/issues/1116)) ([4a6dc5b](https://github.com/cloudquery/plugin-sdk/commit/4a6dc5b8a657ad09a4476305fb64629fbec6463f))
+* **deps:** Update google.golang.org/genproto digest to e0aa005 ([#1117](https://github.com/cloudquery/plugin-sdk/issues/1117)) ([5fa4d51](https://github.com/cloudquery/plugin-sdk/commit/5fa4d5184b333fb7d7a4a2c5bed2ca695eba80fe))
+* **deps:** Update google.golang.org/genproto/googleapis/api digest to e0aa005 ([#1118](https://github.com/cloudquery/plugin-sdk/issues/1118)) ([939060f](https://github.com/cloudquery/plugin-sdk/commit/939060fbbca30e17de0537d5eec42ff15beaceab))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to e0aa005 ([#1119](https://github.com/cloudquery/plugin-sdk/issues/1119)) ([0a9f8ea](https://github.com/cloudquery/plugin-sdk/commit/0a9f8eaa4777764c654460bc7328281df9bf0ac8))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.9.0 ([#1112](https://github.com/cloudquery/plugin-sdk/issues/1112)) ([3831a88](https://github.com/cloudquery/plugin-sdk/commit/3831a88c3a4afa5f3764c908a2ae098c4f3cba5f))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.9.1 ([#1113](https://github.com/cloudquery/plugin-sdk/issues/1113)) ([67bc46e](https://github.com/cloudquery/plugin-sdk/commit/67bc46e957d6ec6e21f018823700eccb3af96027))
+* **deps:** Update module github.com/klauspost/compress to v1.16.7 ([#1120](https://github.com/cloudquery/plugin-sdk/issues/1120)) ([e41a303](https://github.com/cloudquery/plugin-sdk/commit/e41a303142475b9b796214ba8909962a7a43e6a2))
+* **deps:** Update module github.com/pierrec/lz4/v4 to v4.1.18 ([#1121](https://github.com/cloudquery/plugin-sdk/issues/1121)) ([6829b63](https://github.com/cloudquery/plugin-sdk/commit/6829b6356ba7b543f35c0c22d2f22a6789c59e9b))
+* Process nulls for tested types, too (maps, lists, structs) ([#1125](https://github.com/cloudquery/plugin-sdk/issues/1125)) ([4a1f315](https://github.com/cloudquery/plugin-sdk/commit/4a1f31514aee9021a4c667f559eefe08b42e5c14))
+
+## [4.2.3](https://github.com/cloudquery/plugin-sdk/compare/v4.2.2...v4.2.3) (2023-07-18)
+
+
+### Bug Fixes
+
+* **streamingbatchwriter:** Missing tickerFn on DeleteWorker ([#1103](https://github.com/cloudquery/plugin-sdk/issues/1103)) ([91eae56](https://github.com/cloudquery/plugin-sdk/commit/91eae56526588f944bdfaceb5c89de8473d84779))
+
+## [4.2.2](https://github.com/cloudquery/plugin-sdk/compare/v4.2.1...v4.2.2) (2023-07-18)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v13 digest to 8e2219b ([#1095](https://github.com/cloudquery/plugin-sdk/issues/1095)) ([2f6bd18](https://github.com/cloudquery/plugin-sdk/commit/2f6bd18db9aac05ade8c21260c9f4c6fca8555ea))
+* **testing:** Force migrations should allow table drops ([#1101](https://github.com/cloudquery/plugin-sdk/issues/1101)) ([5dbb23e](https://github.com/cloudquery/plugin-sdk/commit/5dbb23eb9ceab7e43a672fbc60060934b490b47c))
+
+## [4.2.1](https://github.com/cloudquery/plugin-sdk/compare/v4.2.0...v4.2.1) (2023-07-17)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.8.0 ([#1098](https://github.com/cloudquery/plugin-sdk/issues/1098)) ([cbbecb8](https://github.com/cloudquery/plugin-sdk/commit/cbbecb8ebe32b21b59d79ec5548347d86b7a370a))
+
+## [4.2.0](https://github.com/cloudquery/plugin-sdk/compare/v4.1.1...v4.2.0) (2023-07-17)
+
+
+### Features
+
+* Add initial version of open-telemetry ([#1097](https://github.com/cloudquery/plugin-sdk/issues/1097)) ([09a880c](https://github.com/cloudquery/plugin-sdk/commit/09a880c3ad420b991f0bc21b3cb9fba3226a6d91))
+
+
+### Bug Fixes
+
+* Differentiate between errgroup context and global context being cance… ([#1082](https://github.com/cloudquery/plugin-sdk/issues/1082)) ([0532f88](https://github.com/cloudquery/plugin-sdk/commit/0532f881067c142fd7799037990963b3ceee61fa))
+
 ## [4.1.1](https://github.com/cloudquery/plugin-sdk/compare/v4.1.0...v4.1.1) (2023-07-14)
 
 

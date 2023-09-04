@@ -1,6 +1,6 @@
 package types
 
-import "github.com/apache/arrow/go/v13/arrow"
+import "github.com/apache/arrow/go/v14/arrow"
 
 var ExtensionTypes = struct {
 	UUID arrow.ExtensionType

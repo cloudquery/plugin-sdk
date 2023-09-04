@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow/go/v14/arrow/array"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -61,7 +61,13 @@ func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte, plugin.NewC
 	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
 }
 
-func (c *client) overwrite(table *schema.Table, data arrow.Record) {
+func (c *client) overwrite(table *schema.Table, record arrow.Record) {
+	for i := int64(0); i < record.NumRows(); i++ {
+		c.overwriteRow(table, record.NewSlice(i, i+1))
+	}
+}
+
+func (c *client) overwriteRow(table *schema.Table, data arrow.Record) {
 	tableName := table.Name
 	pksIndex := table.PrimaryKeysIndexes()
 	if len(pksIndex) == 0 {
@@ -210,7 +216,8 @@ func (c *client) deleteStale(_ context.Context, msg *message.WriteDeleteStale) {
 		syncColIndex := indices[0]
 
 		if row.Column(sourceColIndex).(*array.String).Value(0) == msg.SourceName {
-			rowSyncTime := row.Column(syncColIndex).(*array.Timestamp).Value(0).ToTime(arrow.Microsecond).UTC()
+			unit := row.Column(syncColIndex).DataType().(*arrow.TimestampType).Unit
+			rowSyncTime := row.Column(syncColIndex).(*array.Timestamp).Value(0).ToTime(unit).UTC()
 			if !rowSyncTime.Before(msg.SyncTime) {
 				filteredTable = append(filteredTable, c.memoryDB[tableName][i])
 			}

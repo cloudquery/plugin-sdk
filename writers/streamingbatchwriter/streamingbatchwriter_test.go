@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow/go/v14/arrow/array"
+	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
@@ -227,7 +227,7 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	tickerFn, expire := newMockTicker()
+	tickerFn, tickFn := newMockTicker()
 
 	wr, err := New(testClient, withTickerFn(tickerFn))
 	if err != nil {
@@ -258,7 +258,7 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	}
 
 	// flush
-	close(expire)
+	tickFn()
 	waitForLength(t, testClient.MessageLen, messageTypeInsert, 1)
 
 	close(ch)
@@ -332,7 +332,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	ch := make(chan message.WriteMessage)
 
 	testClient := newClient()
-	tickerFn, expire := newMockTicker()
+	tickerFn, tickFn := newMockTicker()
 	wr, err := New(testClient, WithBatchSizeRows(2), withTickerFn(tickerFn))
 	if err != nil {
 		t.Fatal(err)
@@ -363,7 +363,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// flush the batch
-	close(expire)
+	tickFn()
 	waitForLength(t, testClient.MessageLen, messageTypeInsert, 2)
 
 	close(ch)
