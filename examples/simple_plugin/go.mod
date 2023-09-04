@@ -26,8 +26,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2 v2.0.0-rc.3 // indirect
-	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.3 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
@@ -53,8 +52,8 @@ require (
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/tools v0.12.1-0.20230831182430-914b218fc34e // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d // indirect

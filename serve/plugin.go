@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/cloudquery/plugin-sdk/v4/internal/grpczerolog"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"go.opentelemetry.io/otel"
@@ -28,7 +29,6 @@ import (
 	serverDestinationV1 "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v1"
 	serversv3 "github.com/cloudquery/plugin-sdk/v4/internal/servers/plugin/v3"
 	"github.com/getsentry/sentry-go"
-	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
