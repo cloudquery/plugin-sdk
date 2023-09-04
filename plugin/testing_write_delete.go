@@ -19,7 +19,7 @@ func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context) {
 	table := &schema.Table{
 		Name: tableName,
 		Columns: schema.ColumnList{
-			schema.Column{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+			schema.Column{Name: "id", Type: arrow.PrimitiveTypes.Int64, PrimaryKey: true, NotNull: true},
 			schema.CqSourceNameColumn,
 			schema.CqSyncTimeColumn,
 		},
@@ -85,6 +85,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 	syncTime := time.Now().UTC().Truncate(time.Microsecond)
 	table := schema.TestTable(tableName, s.genDatOptions)
 	table.Columns = append(schema.ColumnList{schema.CqSourceNameColumn, schema.CqSyncTimeColumn}, table.Columns...)
+	table.Column("id").PrimaryKey = true
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteMigrateTable{Table: table}), "failed to create table")
 
 	tg := schema.NewTestDataGenerator()
