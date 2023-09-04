@@ -85,7 +85,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 	syncTime := time.Now().UTC().Truncate(time.Microsecond)
 	table := schema.TestTable(tableName, s.genDatOptions)
 	table.Columns = append(schema.ColumnList{schema.CqSourceNameColumn, schema.CqSyncTimeColumn}, table.Columns...)
-	table.Column("id").PrimaryKey = true
+	table.Columns[table.Columns.Index("id")].PrimaryKey = true
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteMigrateTable{Table: table}), "failed to create table")
 
 	tg := schema.NewTestDataGenerator()

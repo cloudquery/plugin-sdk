@@ -504,9 +504,9 @@ func (t *Table) ValidateColumnNames() error {
 }
 
 func (t *Table) Column(name string) *Column {
-	for i := range t.Columns {
-		if t.Columns[i].Name == name {
-			return &t.Columns[i]
+	for _, c := range t.Columns {
+		if c.Name == name {
+			return &c
 		}
 	}
 	return nil
