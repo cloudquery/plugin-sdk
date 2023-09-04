@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.4](https://github.com/cloudquery/plugin-sdk/compare/v4.6.3...v4.6.4) (2023-09-04)
+
+
+### Bug Fixes
+
+* **caser:** ToSnake does not replace spaces with _ ([#1148](https://github.com/cloudquery/plugin-sdk/issues/1148)) ([329b601](https://github.com/cloudquery/plugin-sdk/commit/329b60164148af2a40fd1d10ef7a607ea1fbb6bc))
+* **deps:** Update `github.com/grpc-ecosystem/go-grpc-middleware/v2` to `v2.0.0` ([#1197](https://github.com/cloudquery/plugin-sdk/issues/1197)) ([6d3f752](https://github.com/cloudquery/plugin-sdk/commit/6d3f752bcfaada6a35aeced2503cab7b81362283))
+
 ## [4.6.3](https://github.com/cloudquery/plugin-sdk/compare/v4.6.2...v4.6.3) (2023-09-04)
 
 
