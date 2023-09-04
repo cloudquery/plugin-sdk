@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/apache/arrow/go/v14 v14.0.0-20230901024001-b6c0ea455d08
-	github.com/cloudquery/plugin-sdk/v4 v4.6.3
+	github.com/cloudquery/plugin-sdk/v4 v4.6.4
 	github.com/rs/zerolog v1.30.0
 )
 
