@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.3](https://github.com/cloudquery/plugin-sdk/compare/v4.6.2...v4.6.3) (2023-09-04)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v14 digest to cd3d411 ([#1193](https://github.com/cloudquery/plugin-sdk/issues/1193)) ([3c5e6dd](https://github.com/cloudquery/plugin-sdk/commit/3c5e6ddd8ecb990aa29791af660e7429580f574f))
+* Use tables with primary key in `delete-stale` tests ([#1195](https://github.com/cloudquery/plugin-sdk/issues/1195)) ([6dd1730](https://github.com/cloudquery/plugin-sdk/commit/6dd1730b25df3d8153943e1edc05a7afe832edfe))
+
 ## [4.6.2](https://github.com/cloudquery/plugin-sdk/compare/v4.6.1...v4.6.2) (2023-09-01)
 
 
