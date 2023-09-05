@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/cloudquery/plugin-sdk/v4/internal/grpczerolog"
+	"github.com/cloudquery/plugin-sdk/v4/helpers/grpczerolog"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"go.opentelemetry.io/otel"
