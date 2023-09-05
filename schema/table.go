@@ -90,7 +90,6 @@ type Table struct {
 }
 
 var (
-	reValidTableName  = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 	reValidColumnName = regexp.MustCompile(`^[a-z_][a-z\d_]*$`)
 )
 
@@ -359,30 +358,6 @@ func (tt Tables) ValidateDuplicateTables() error {
 	return nil
 }
 
-func (tt Tables) ValidateTableNames() error {
-	for _, t := range tt {
-		if err := t.ValidateName(); err != nil {
-			return err
-		}
-		if err := t.Relations.ValidateTableNames(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (tt Tables) ValidateColumnNames() error {
-	for _, t := range tt {
-		if err := t.ValidateColumnNames(); err != nil {
-			return err
-		}
-		if err := t.Relations.ValidateColumnNames(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // this will filter the tree in-place
 func (t *Table) filterDfs(parentMatched bool, include, exclude func(*Table) bool, skipDependentTables bool) *Table {
 	if exclude(t) {
@@ -405,14 +380,6 @@ func (t *Table) filterDfs(parentMatched bool, include, exclude func(*Table) bool
 		return t
 	}
 	return nil
-}
-
-func (t *Table) ValidateName() error {
-	ok := reValidTableName.MatchString(t.Name)
-	if !ok {
-		return fmt.Errorf("table name %q is not valid: table names must contain only lower-case letters, numbers and underscores, and must start with a lower-case letter or underscore", t.Name)
-	}
-	return ValidateTable(t)
 }
 
 func (t *Table) PrimaryKeysIndexes() []int {
@@ -495,15 +462,6 @@ func (t *Table) ValidateDuplicateColumns() error {
 	for _, rel := range t.Relations {
 		if err := rel.ValidateDuplicateColumns(); err != nil {
 			return err
-		}
-	}
-	return nil
-}
-
-func (t *Table) ValidateColumnNames() error {
-	for _, c := range t.Columns {
-		if !ValidColumnName(c.Name) {
-			return fmt.Errorf("column name %q on table %q is not valid: column names must contain only lower-case letters, numbers and underscores, and must start with a lower-case letter or underscore", c.Name, t.Name)
 		}
 	}
 	return nil
