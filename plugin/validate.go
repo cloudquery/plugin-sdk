@@ -13,16 +13,8 @@ func validateTables(tables schema.Tables) error {
 		return fmt.Errorf("found duplicate tables in plugin: %w", err)
 	}
 
-	if err := tables.ValidateTableNames(); err != nil {
-		return fmt.Errorf("found table with invalid name in plugin: %w", err)
-	}
-
 	if err := tables.ValidateDuplicateColumns(); err != nil {
 		return fmt.Errorf("found duplicate columns in plugin: %w", err)
-	}
-
-	if err := tables.ValidateColumnNames(); err != nil {
-		return fmt.Errorf("found column with invalid name in plugin: %w", err)
 	}
 
 	return nil
