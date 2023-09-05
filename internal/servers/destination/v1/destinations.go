@@ -7,9 +7,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/apache/arrow/go/v13/arrow/ipc"
-	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/apache/arrow/go/v14/arrow/array"
+	"github.com/apache/arrow/go/v14/arrow/ipc"
+	"github.com/apache/arrow/go/v14/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	"github.com/cloudquery/plugin-pb-go/specs"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -136,13 +136,6 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 	eg.Go(func() error {
 		return s.Plugin.Write(ctx, msgs)
 	})
-
-	for _, table := range tables {
-		msgs <- &message.WriteMigrateTable{
-			Table:        table,
-			MigrateForce: s.spec.MigrateMode == specs.MigrateModeForced,
-		}
-	}
 
 	for {
 		r, err := msg.Recv()

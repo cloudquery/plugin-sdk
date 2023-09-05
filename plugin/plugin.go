@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
@@ -51,6 +51,16 @@ type Plugin struct {
 	name string
 	// Version of the plugin
 	version string
+	// Title of the plugin as appears in CloudQuery registry
+	title string
+	// Short description of the plugin as appears in CloudQuery registry
+	shortDescription string
+	// Long description of the plugin as appears in CloudQuery registry
+	description string
+	// categories of the plugin as appears in CloudQuery registry
+	categories []string
+	// targets to build plugin for
+	targets []BuildTarget
 	// Called upon init call to validate and init configuration
 	newClient NewClientFunc
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
@@ -74,6 +84,9 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 		version:         version,
 		internalColumns: true,
 		newClient:       newClient,
+		title:           name,
+		categories:      []string{},
+		targets:         buildTargets,
 	}
 	for _, opt := range options {
 		opt(&p)
@@ -89,6 +102,26 @@ func (p *Plugin) Name() string {
 // Version returns the version of this plugin
 func (p *Plugin) Version() string {
 	return p.version
+}
+
+func (p *Plugin) Title() string {
+	return p.title
+}
+
+func (p *Plugin) Description() string {
+	return p.description
+}
+
+func (p *Plugin) ShortDescription() string {
+	return p.shortDescription
+}
+
+func (p *Plugin) Categories() []string {
+	return p.categories
+}
+
+func (p *Plugin) Targets() []BuildTarget {
+	return p.targets
 }
 
 func (p *Plugin) SetLogger(logger zerolog.Logger) {
@@ -117,6 +150,11 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 	if err != nil {
 		return fmt.Errorf("failed to initialize client: %w", err)
 	}
+
+	if err := p.validate(ctx); err != nil {
+		return fmt.Errorf("failed to validate tables: %w", err)
+	}
+
 	p.spec = spec
 
 	return nil

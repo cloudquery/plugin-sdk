@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v14/arrow"
 )
 
 const (
@@ -14,6 +14,8 @@ const (
 	MetadataFalse            = "false"
 	MetadataTableName        = "cq:table_name"
 	MetadataTableDescription = "cq:table_description"
+	MetadataTableTitle       = "cq:table_title"
+	MetadataTableDependsOn   = "cq:table_depends_on"
 )
 
 type Schemas []*arrow.Schema

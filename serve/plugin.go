@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/cloudquery/plugin-sdk/v4/internal/grpczerolog"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"go.opentelemetry.io/otel"
@@ -28,7 +29,6 @@ import (
 	serverDestinationV1 "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v1"
 	serversv3 "github.com/cloudquery/plugin-sdk/v4/internal/servers/plugin/v3"
 	"github.com/getsentry/sentry-go"
-	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -45,6 +45,7 @@ type PluginServe struct {
 	sentryDSN             string
 	testListener          bool
 	testListenerConn      *bufconn.Listener
+	versions              []int
 }
 
 type PluginOption func(*PluginServe)
@@ -83,7 +84,8 @@ const servePluginShort = `Start plugin server`
 
 func Plugin(p *plugin.Plugin, opts ...PluginOption) *PluginServe {
 	s := &PluginServe{
-		plugin: p,
+		plugin:   p,
+		versions: []int{3},
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -289,6 +291,7 @@ func (s *PluginServe) newCmdPluginRoot() *cobra.Command {
 	}
 	cmd.AddCommand(s.newCmdPluginServe())
 	cmd.AddCommand(s.newCmdPluginDoc())
+	cmd.AddCommand(s.newCmdPluginPublish())
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	cmd.Version = s.plugin.Version()
 	return cmd

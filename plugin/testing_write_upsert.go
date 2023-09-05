@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow/go/v14/arrow/array"
+	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
@@ -61,13 +61,14 @@ func (s *WriterTestSuite) testUpsertBasic(ctx context.Context) error {
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
-	if diff := RecordDiff(records[0], record); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record}); diff != "" {
 		return fmt.Errorf("record differs: %s", diff)
 	}
 	return nil
 }
 
 func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
+	const rowsPerRecord = 10
 	tableName := s.tableNameForTest("upsert_all")
 	table := schema.TestTable(tableName, s.genDatOptions)
 	table.Columns = append(table.Columns, schema.Column{Name: "name", Type: arrow.BinaryTypes.String, PrimaryKey: true})
@@ -78,7 +79,10 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 	}
 
 	tg := schema.NewTestDataGenerator()
-	normalRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, TimePrecision: s.genDatOptions.TimePrecision})[0]
+	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
+		MaxRows:       rowsPerRecord,
+		TimePrecision: s.genDatOptions.TimePrecision,
+	})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: normalRecord,
 	}); err != nil {
@@ -90,16 +94,19 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to readAll: %w", err)
 	}
+	sortRecords(table, records, "id")
+
 	totalItems := TotalRows(records)
-	if totalItems != 1 {
-		return fmt.Errorf("expected 1 item, got %d", totalItems)
+	if totalItems != rowsPerRecord {
+		return fmt.Errorf("expected items after initial insert: %d, got %d", rowsPerRecord, totalItems)
 	}
 
-	if diff := RecordDiff(records[0], normalRecord); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{normalRecord}); diff != "" {
 		return fmt.Errorf("record differs after insert: %s", diff)
 	}
 
-	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: 1, TimePrecision: s.genDatOptions.TimePrecision, NullRows: true})[0]
+	tg.Reset()
+	nullRecord := tg.Generate(table, schema.GenTestDataOptions{MaxRows: rowsPerRecord, TimePrecision: s.genDatOptions.TimePrecision, NullRows: true})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: nullRecord,
 	}); err != nil {
@@ -111,13 +118,14 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
+	sortRecords(table, records, "id")
 
 	totalItems = TotalRows(records)
-	if totalItems != 1 {
-		return fmt.Errorf("expected 1 item, got %d", totalItems)
+	if totalItems != rowsPerRecord {
+		return fmt.Errorf("expected items after upsert: %d, got %d", rowsPerRecord, totalItems)
 	}
 
-	if diff := RecordDiff(records[0], nullRecord); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{nullRecord}); diff != "" {
 		return fmt.Errorf("record differs after upsert (columns should be null): %s", diff)
 	}
 

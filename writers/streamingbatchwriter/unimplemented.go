@@ -18,9 +18,12 @@ func (IgnoreMigrateTable) MigrateTable(_ context.Context, ch <-chan *message.Wri
 	return nil
 }
 
-// UnimplementedDeleteStale is a dummy handler to error on DeleteStale messages
+// UnimplementedDeleteStale is a dummy handler to consume and error on DeleteStale messages
 type UnimplementedDeleteStale struct{}
 
-func (UnimplementedDeleteStale) DeleteStale(_ context.Context, _ <-chan *message.WriteDeleteStale) error {
+func (UnimplementedDeleteStale) DeleteStale(_ context.Context, ch <-chan *message.WriteDeleteStale) error {
+	// nolint:revive
+	for range ch {
+	}
 	return fmt.Errorf("DeleteStale: %w", plugin.ErrNotImplemented)
 }
