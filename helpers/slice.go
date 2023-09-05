@@ -2,7 +2,7 @@ package helpers
 
 import "reflect"
 
-// InterfaceSlice converts any any into a []any slice
+// InterfaceSlice converts any into a []any slice
 func InterfaceSlice(slice any) []any {
 	// if value is nil return nil
 	if slice == nil {
