@@ -9,49 +9,30 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
+	"regexp"
 
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/spf13/cobra"
 )
 
 const (
-	pluginPublishShort = "Publish plugin to CloudQuery registry"
-	pluginPublishLong  = `Publish plugin to CloudQuery registry
+	pluginPublishShort = "Package plugin for publishing to CloudQuery registry."
+	pluginPublishLong  = `Package plugin for publishing to CloudQuery registry.
 
-To just build the plugin without publishing, use the --dry-run flag.
-Example:
-go run main.go publish --dry-run
+This creates a directory with the plugin binaries, package.json and documentation.
 `
 )
 
-type PackageType string
-
-const (
-	PackageTypeNative PackageType = "native"
-	PackageTypeDocker PackageType = "docker"
-)
-
-// manifest is the plugin.json file inside the dist directory. It is used by CloudQuery registry
-// to be able to publish the plugin with all the needed metadata.
-type Manifest struct {
+// PackageJSON is the package.json file inside the dist directory. It is used by the CloudQuery package command
+// to be able to package the plugin with all the needed metadata.
+type PackageJSON struct {
 	Name             string               `json:"name"`
 	Version          string               `json:"version"`
-	Title            string               `json:"title"`
-	ShortDescription string               `json:"short_description"`
-	Description      string               `json:"description"`
-	Categories       []string             `json:"categories"`
 	Protocols        []int                `json:"protocols"`
 	SupportedTargets []plugin.BuildTarget `json:"supported_targets"`
-	PackageType      PackageType          `json:"package_type"`
-}
-
-func isDirEmpty(name string) (bool, error) {
-	entries, err := os.ReadDir(name)
-	if err != nil {
-		return false, err
-	}
-	return len(entries) == 0, nil
+	PackageType      plugin.PackageType   `json:"package_type"`
 }
 
 func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
@@ -73,12 +54,16 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
-func (*PluginServe) build(pluginDirectory string, goos string, goarch string) error {
-	pluginName := "plugin" + "_" + goos + "_" + goarch
-	distPath := pluginDirectory + "/dist"
-
-	pluginPath := distPath + "/" + pluginName
+func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersion string) error {
+	pluginName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, goos, goarch)
+	pluginPath := path.Join(distPath, pluginName)
 	args := []string{"build", "-o", pluginPath}
+	importPath, err := s.getModuleName(pluginDirectory)
+	if err != nil {
+		return err
+	}
+	args = append(args, "-buildmode=exe")
+	args = append(args, "-ldflags", fmt.Sprintf("-s -w -X %s/plugin.Version=%s", importPath, pluginVersion))
 	cmd := exec.Command("go", args...)
 	cmd.Dir = pluginDirectory
 	cmd.Stdout = os.Stdout
@@ -121,49 +106,55 @@ func (*PluginServe) build(pluginDirectory string, goos string, goarch string) er
 	return nil
 }
 
-func (s *PluginServe) writeManifest(dir string) error {
-	manifest := Manifest{
+func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
+	goMod, err := os.ReadFile(path.Join(pluginDirectory, "go.mod"))
+	if err != nil {
+		return "", fmt.Errorf("failed to open go.mod: %w", err)
+	}
+	reMod := regexp.MustCompile(`module\s+(.+)\n`)
+	importPathMatches := reMod.FindStringSubmatch(string(goMod))
+	if len(importPathMatches) != 2 {
+		return "", fmt.Errorf("failed to parse import path from go.mod")
+	}
+	importPath := importPathMatches[1]
+	if err != nil {
+		return "", fmt.Errorf("failed to get import path: %w", err)
+	}
+	return importPath, nil
+}
+
+func (s *PluginServe) writePackageJSON(dir, pluginVersion string) error {
+	packageJSON := PackageJSON{
 		Name:             s.plugin.Name(),
-		Version:          s.plugin.Version(),
-		Title:            s.plugin.Title(),
-		ShortDescription: s.plugin.ShortDescription(),
-		Description:      s.plugin.Description(),
-		Categories:       s.plugin.Categories(),
+		Version:          pluginVersion,
 		Protocols:        s.versions,
 		SupportedTargets: s.plugin.Targets(),
-		PackageType:      PackageTypeNative,
+		PackageType:      plugin.PackageTypeNative,
 	}
 	buffer := &bytes.Buffer{}
 	m := json.NewEncoder(buffer)
 	m.SetIndent("", "  ")
 	m.SetEscapeHTML(false)
-	err := m.Encode(manifest)
+	err := m.Encode(packageJSON)
 	if err != nil {
 		return err
 	}
-	outputPath := filepath.Join(dir, "plugin.json")
+	outputPath := filepath.Join(dir, "package.json")
 	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
-func (s *PluginServe) newCmdPluginPublish() *cobra.Command {
-	var distDirectory string
+func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "publish <plugin_directory>",
+		Use:   "package <plugin_directory> <version>",
 		Short: pluginPublishShort,
 		Long:  pluginPublishLong,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pluginDirectory := args[0]
-			distPath := pluginDirectory + "/dist"
-			if distDirectory != "" {
-				distPath = distDirectory
-			}
-			empty, err := isDirEmpty(distPath)
-			if err != nil {
-				return err
-			}
-			if !empty {
-				return fmt.Errorf("dist directory is not empty: %s", distPath)
+			pluginVersion := args[1]
+			distPath := path.Join(pluginDirectory, "dist")
+			if cmd.Flag("dist-dir").Changed {
+				distPath = cmd.Flag("dist-dir").Value.String()
 			}
 			if err := os.MkdirAll(distPath, 0755); err != nil {
 				return err
@@ -178,16 +169,16 @@ func (s *PluginServe) newCmdPluginPublish() *cobra.Command {
 			}
 			for _, target := range s.plugin.Targets() {
 				fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
-				if err := s.build(pluginDirectory, target.OS, target.Arch); err != nil {
+				if err := s.build(pluginDirectory, target.OS, target.Arch, distPath, pluginVersion); err != nil {
 					return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
 				}
 			}
-			if err := s.writeManifest(distPath); err != nil {
+			if err := s.writePackageJSON(distPath, pluginVersion); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&distDirectory, "dist-dir", "", "dist directory to output the built plugin. (default: <plugin_directory/dist>)")
+	cmd.Flags().String("dist-dir", "", "dist directory to output the built plugin. (default: <plugin_directory>/dist)")
 	return cmd
 }

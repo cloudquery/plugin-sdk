@@ -47,18 +47,10 @@ func (UnimplementedSource) Tables(context.Context, TableOptions) (schema.Tables,
 // Plugin is the base structure required to pass to sdk.serve
 // We take a declarative approach to API here similar to Cobra
 type Plugin struct {
-	// Name of plugin i.e aws,gcp, azure etc'
+	// Name of plugin i.e aws, gcp, azure etc
 	name string
 	// Version of the plugin
 	version string
-	// Title of the plugin as appears in CloudQuery registry
-	title string
-	// Short description of the plugin as appears in CloudQuery registry
-	shortDescription string
-	// Long description of the plugin as appears in CloudQuery registry
-	description string
-	// categories of the plugin as appears in CloudQuery registry
-	categories []string
 	// targets to build plugin for
 	targets []BuildTarget
 	// Called upon init call to validate and init configuration
@@ -84,9 +76,7 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 		version:         version,
 		internalColumns: true,
 		newClient:       newClient,
-		title:           name,
-		categories:      []string{},
-		targets:         buildTargets,
+		targets:         DefaultBuildTargets,
 	}
 	for _, opt := range options {
 		opt(&p)
@@ -102,22 +92,6 @@ func (p *Plugin) Name() string {
 // Version returns the version of this plugin
 func (p *Plugin) Version() string {
 	return p.version
-}
-
-func (p *Plugin) Title() string {
-	return p.title
-}
-
-func (p *Plugin) Description() string {
-	return p.description
-}
-
-func (p *Plugin) ShortDescription() string {
-	return p.shortDescription
-}
-
-func (p *Plugin) Categories() []string {
-	return p.categories
 }
 
 func (p *Plugin) Targets() []BuildTarget {
