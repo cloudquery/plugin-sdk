@@ -28,11 +28,17 @@ This creates a directory with the plugin binaries, package.json and documentatio
 // PackageJSON is the package.json file inside the dist directory. It is used by the CloudQuery package command
 // to be able to package the plugin with all the needed metadata.
 type PackageJSON struct {
-	Name             string               `json:"name"`
-	Version          string               `json:"version"`
-	Protocols        []int                `json:"protocols"`
-	SupportedTargets []plugin.BuildTarget `json:"supported_targets"`
-	PackageType      plugin.PackageType   `json:"package_type"`
+	Name             string             `json:"name"`
+	Version          string             `json:"version"`
+	Protocols        []int              `json:"protocols"`
+	SupportedTargets []TargetBuild      `json:"supported_targets"`
+	PackageType      plugin.PackageType `json:"package_type"`
+}
+
+type TargetBuild struct {
+	OS   string `json:"os"`
+	Arch string `json:"arch"`
+	Path string `json:"path"`
 }
 
 func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
@@ -124,11 +130,20 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 }
 
 func (s *PluginServe) writePackageJSON(dir, pluginVersion string) error {
+	targets := []TargetBuild{}
+	for _, target := range s.plugin.Targets() {
+		pluginName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, target.OS, target.Arch)
+		targets = append(targets, TargetBuild{
+			OS:   target.OS,
+			Arch: target.Arch,
+			Path: pluginName + ".zip",
+		})
+	}
 	packageJSON := PackageJSON{
 		Name:             s.plugin.Name(),
 		Version:          pluginVersion,
 		Protocols:        s.versions,
-		SupportedTargets: s.plugin.Targets(),
+		SupportedTargets: targets,
 		PackageType:      plugin.PackageTypeNative,
 	}
 	buffer := &bytes.Buffer{}

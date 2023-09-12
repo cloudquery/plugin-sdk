@@ -57,10 +57,10 @@ func TestPluginPackage(t *testing.T) {
 		Name:      "testPlugin",
 		Version:   "v1.2.3",
 		Protocols: []int{3},
-		SupportedTargets: []plugin.BuildTarget{
-			{plugin.GoOSLinux, plugin.GoArchAmd64},
-			{plugin.GoOSWindows, plugin.GoArchAmd64},
-			{plugin.GoOSDarwin, plugin.GoArchAmd64},
+		SupportedTargets: []TargetBuild{
+			{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-linux-amd64.zip"},
+			{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-windows-amd64.zip"},
+			{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-darwin-amd64.zip"},
 		},
 		PackageType: plugin.PackageTypeNative,
 	}
