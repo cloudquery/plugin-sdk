@@ -26,9 +26,9 @@ func TestPluginPackage(t *testing.T) {
 		"development",
 		memdb.NewMemDBClient,
 		plugin.WithBuildTargets([]plugin.BuildTarget{
-			{plugin.GoOSLinux, plugin.GoArchAmd64},
-			{plugin.GoOSWindows, plugin.GoArchAmd64},
-			{plugin.GoOSDarwin, plugin.GoArchAmd64},
+			{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64},
+			{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64},
+			{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64},
 		}),
 	)
 	srv := Plugin(p)
@@ -88,7 +88,7 @@ func checkPackageJSONContents(t *testing.T, filename string, expect PackageJSON)
 }
 
 func fileNames(files []os.DirEntry) []string {
-	var names []string
+	names := make([]string, 0, len(files))
 	for _, file := range files {
 		names = append(names, file.Name())
 	}
