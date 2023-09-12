@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	pluginPublishShort = "Package plugin for publishing to CloudQuery registry."
-	pluginPublishLong  = `Package plugin for publishing to CloudQuery registry.
+	pluginPackageShort = "Package plugin for publishing to CloudQuery registry."
+	pluginPackageLong  = `Package plugin for publishing to CloudQuery registry.
 
 This creates a directory with the plugin binaries, package.json and documentation.
 `
@@ -161,8 +161,8 @@ func (s *PluginServe) writePackageJSON(dir, pluginVersion string) error {
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "package <plugin_directory> <version>",
-		Short: pluginPublishShort,
-		Long:  pluginPublishLong,
+		Short: pluginPackageShort,
+		Long:  pluginPackageLong,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pluginDirectory := args[0]
