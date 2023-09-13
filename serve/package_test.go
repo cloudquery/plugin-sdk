@@ -34,7 +34,7 @@ func TestPluginPackage(t *testing.T) {
 	srv := Plugin(p)
 	cmd := srv.newCmdPluginRoot()
 	distDir := t.TempDir()
-	cmd.SetArgs([]string{"package", "--dist-dir", distDir, simplePluginPath, packageVersion})
+	cmd.SetArgs([]string{"package", "--dist", distDir, simplePluginPath, packageVersion})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
@@ -43,6 +43,7 @@ func TestPluginPackage(t *testing.T) {
 		t.Fatal(err)
 	}
 	expect := []string{
+		"docs",
 		"package.json",
 		"plugin-testPlugin-v1.2.3-darwin-amd64.zip",
 		"plugin-testPlugin-v1.2.3-linux-amd64.zip",
@@ -65,6 +66,22 @@ func TestPluginPackage(t *testing.T) {
 		PackageType: plugin.PackageTypeNative,
 	}
 	checkPackageJSONContents(t, filepath.Join(distDir, "package.json"), expectPackage)
+
+	expectDocs := []string{
+		"configuration.md",
+		"overview.md",
+	}
+	checkDocs(t, filepath.Join(distDir, "docs"), expectDocs)
+}
+
+func checkDocs(t *testing.T, dir string, expect []string) {
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
+		t.Fatalf("unexpected files in docs directory (-want +got):\n%s", diff)
+	}
 }
 
 func checkPackageJSONContents(t *testing.T, filename string, expect PackageJSON) {

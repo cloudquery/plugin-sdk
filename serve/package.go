@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/spf13/cobra"
@@ -158,6 +159,49 @@ func (s *PluginServe) writePackageJSON(dir, pluginVersion string) error {
 	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
+func (s *PluginServe) copyDocs(distPath, docsPath string) error {
+	err := os.MkdirAll(filepath.Join(distPath, "docs"), 0755)
+	if err != nil {
+		return err
+	}
+	dirEntry, err := os.ReadDir(docsPath)
+	if err != nil {
+		return err
+	}
+	for _, entry := range dirEntry {
+		if entry.IsDir() {
+			continue
+		}
+		if strings.HasSuffix(entry.Name(), ".md") {
+			src := filepath.Join(docsPath, entry.Name())
+			dst := filepath.Join(distPath, "docs", entry.Name())
+			err := copyFile(src, dst)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "package <plugin_directory> <version>",
@@ -166,10 +210,14 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pluginDirectory := args[0]
-			pluginVersion := args[1]
+			pluginVersion := strings.TrimSpace(args[1])
 			distPath := path.Join(pluginDirectory, "dist")
-			if cmd.Flag("dist-dir").Changed {
-				distPath = cmd.Flag("dist-dir").Value.String()
+			if cmd.Flag("dist").Changed {
+				distPath = cmd.Flag("dist").Value.String()
+			}
+			docsPath := path.Join(pluginDirectory, "docs")
+			if cmd.Flag("docs").Changed {
+				docsPath = cmd.Flag("docs").Value.String()
 			}
 			if err := os.MkdirAll(distPath, 0755); err != nil {
 				return err
@@ -191,9 +239,13 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			if err := s.writePackageJSON(distPath, pluginVersion); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
+			if err := s.copyDocs(distPath, docsPath); err != nil {
+				return fmt.Errorf("failed to copy docs: %w", err)
+			}
 			return nil
 		},
 	}
-	cmd.Flags().String("dist-dir", "", "dist directory to output the built plugin. (default: <plugin_directory>/dist)")
+	cmd.Flags().String("dist", "", "dist directory to output the built plugin. (default: <plugin_directory>/dist)")
+	cmd.Flags().String("docs", "", "docs directory to copy to the dist directory. (default: <plugin_directory>/docs)")
 	return cmd
 }
