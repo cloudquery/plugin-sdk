@@ -214,12 +214,12 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			pluginDirectory := args[0]
 			pluginVersion := args[1]
 			distPath := path.Join(pluginDirectory, "dist")
-			if cmd.Flag("dist").Changed {
-				distPath = cmd.Flag("dist").Value.String()
+			if cmd.Flag("dist-dir").Changed {
+				distPath = cmd.Flag("dist-dir").Value.String()
 			}
 			docsPath := path.Join(pluginDirectory, "docs")
-			if cmd.Flag("docs").Changed {
-				docsPath = cmd.Flag("docs").Value.String()
+			if cmd.Flag("docs-dir").Changed {
+				docsPath = cmd.Flag("docs-dir").Value.String()
 			}
 			if err := os.MkdirAll(distPath, 0755); err != nil {
 				return err
@@ -247,7 +247,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().String("dist", "", "dist directory to output the built plugin. (default: <plugin_directory>/dist)")
-	cmd.Flags().String("docs", "", "docs directory to copy to the dist directory. (default: <plugin_directory>/docs)")
+	cmd.Flags().StringP("dist-dir", "D", "", "dist directory to output the built plugin. (default: <plugin_directory>/dist)")
+	cmd.Flags().StringP("docs-dir", "", "", "docs directory containing markdown files to copy to the dist directory. (default: <plugin_directory>/docs)")
 	return cmd
 }
