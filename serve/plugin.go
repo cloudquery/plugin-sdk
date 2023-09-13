@@ -291,7 +291,7 @@ func (s *PluginServe) newCmdPluginRoot() *cobra.Command {
 	}
 	cmd.AddCommand(s.newCmdPluginServe())
 	cmd.AddCommand(s.newCmdPluginDoc())
-	cmd.AddCommand(s.newCmdPluginPublish())
+	cmd.AddCommand(s.newCmdPluginPackage())
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	cmd.Version = s.plugin.Version()
 	return cmd

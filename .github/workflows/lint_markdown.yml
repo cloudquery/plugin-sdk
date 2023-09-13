@@ -16,7 +16,7 @@ jobs:
       - name: Vale
         uses: errata-ai/vale-action@v2
         with:
-          vale_flags: "--glob=!{docs/testdata/*,CHANGELOG.md,.github/styles/proselint/README.md}"
+          vale_flags: "--glob=!{docs/testdata/*,CHANGELOG.md,.github/styles/proselint/README.md,examples/simple_plugin/docs/*.md}"
           filter_mode: nofilter
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
@@ -31,4 +31,4 @@ jobs:
         with:
           files: .
           config_file: .markdownlint.yaml
-          ignore_files: "{docs/testdata/*,CHANGELOG.md}"
+          ignore_files: "{docs/testdata/*,CHANGELOG.md,examples/simple_plugin/docs/*.md}"

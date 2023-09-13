@@ -17,21 +17,9 @@ func (m MigrateMode) String() string {
 
 type Option func(*Plugin)
 
-func WithTitle(title string) Option {
+func WithBuildTargets(targets []BuildTarget) Option {
 	return func(p *Plugin) {
-		p.title = title
-	}
-}
-
-func WithDescription(description string) Option {
-	return func(p *Plugin) {
-		p.description = description
-	}
-}
-
-func WithShortDescription(shortDescription string) Option {
-	return func(p *Plugin) {
-		p.shortDescription = shortDescription
+		p.targets = targets
 	}
 }
 
