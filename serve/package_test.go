@@ -34,7 +34,7 @@ func TestPluginPackage(t *testing.T) {
 	srv := Plugin(p)
 	cmd := srv.newCmdPluginRoot()
 	distDir := t.TempDir()
-	cmd.SetArgs([]string{"package", "--dist", distDir, simplePluginPath, packageVersion})
+	cmd.SetArgs([]string{"package", "--dist-dir", distDir, simplePluginPath, packageVersion})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
