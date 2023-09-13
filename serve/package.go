@@ -127,7 +127,7 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get import path: %w", err)
 	}
-	return importPath, nil
+	return strings.TrimSpace(importPath), nil
 }
 
 func (s *PluginServe) writePackageJSON(dir, pluginVersion string) error {
@@ -159,7 +159,7 @@ func (s *PluginServe) writePackageJSON(dir, pluginVersion string) error {
 	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
-func (s *PluginServe) copyDocs(distPath, docsPath string) error {
+func (*PluginServe) copyDocs(distPath, docsPath string) error {
 	err := os.MkdirAll(filepath.Join(distPath, "docs"), 0755)
 	if err != nil {
 		return err
@@ -210,7 +210,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pluginDirectory := args[0]
-			pluginVersion := strings.TrimSpace(args[1])
+			pluginVersion := args[1]
 			distPath := path.Join(pluginDirectory, "dist")
 			if cmd.Flag("dist").Changed {
 				distPath = cmd.Flag("dist").Value.String()
