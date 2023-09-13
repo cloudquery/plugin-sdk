@@ -29,6 +29,7 @@ This creates a directory with the plugin binaries, package.json and documentatio
 // PackageJSON is the package.json file inside the dist directory. It is used by the CloudQuery package command
 // to be able to package the plugin with all the needed metadata.
 type PackageJSON struct {
+	SchemaVersion    int                `json:"schema_version"`
 	Name             string             `json:"name"`
 	Version          string             `json:"version"`
 	Protocols        []int              `json:"protocols"`
@@ -141,6 +142,7 @@ func (s *PluginServe) writePackageJSON(dir, pluginVersion string) error {
 		})
 	}
 	packageJSON := PackageJSON{
+		SchemaVersion:    1,
 		Name:             s.plugin.Name(),
 		Version:          pluginVersion,
 		Protocols:        s.versions,

@@ -55,9 +55,10 @@ func TestPluginPackage(t *testing.T) {
 	}
 
 	expectPackage := PackageJSON{
-		Name:      "testPlugin",
-		Version:   "v1.2.3",
-		Protocols: []int{3},
+		SchemaVersion: 1,
+		Name:          "testPlugin",
+		Version:       "v1.2.3",
+		Protocols:     []int{3},
 		SupportedTargets: []TargetBuild{
 			{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-linux-amd64.zip"},
 			{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-windows-amd64.zip"},
