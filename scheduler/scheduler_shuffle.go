@@ -44,7 +44,7 @@ func (s *syncClient) syncShuffle(ctx context.Context, resolvedResources chan<- *
 			defer s.scheduler.tableSems[0].Release(1)
 			// not checking for error here as nothing much to do.
 			// the error is logged and this happens when context is cancelled
-			// Round Robin currently uses the DFS algorithm to resolve the tables, but this
+			// This currently uses the DFS algorithm to resolve the tables, but this
 			// may change in the future.
 			s.resolveTableDfs(ctx, table, cl, nil, resolvedResources, 1)
 		}()
