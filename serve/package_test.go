@@ -1,7 +1,9 @@
 package serve
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -82,9 +84,9 @@ with multiple lines and **markdown**`
 				Version:       "v1.2.3",
 				Protocols:     []int{3},
 				SupportedTargets: []TargetBuild{
-					{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-linux-amd64.zip"},
-					{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-windows-amd64.zip"},
-					{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-darwin-amd64.zip"},
+					{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-linux-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-linux-amd64.zip"))},
+					{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-windows-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-windows-amd64.zip"))},
+					{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-darwin-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-darwin-amd64.zip"))},
 				},
 				PackageType: plugin.PackageTypeNative,
 			}
@@ -97,6 +99,20 @@ with multiple lines and **markdown**`
 			checkDocs(t, filepath.Join(distDir, "docs"), expectDocs)
 		})
 	}
+}
+
+func sha256sum(filename string) string {
+	f, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	h := sha256.New()
+	_, err = io.Copy(h, f)
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 func checkDocs(t *testing.T, dir string, expect []string) {
