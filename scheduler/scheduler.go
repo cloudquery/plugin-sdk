@@ -252,6 +252,8 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 			syncClient.syncDfs(ctx, resources)
 		case StrategyRoundRobin:
 			syncClient.syncRoundRobin(ctx, resources)
+		case StrategyShuffle:
+			syncClient.syncShuffle(ctx, resources)
 		default:
 			panic(fmt.Errorf("unknown scheduler %s", s.strategy.String()))
 		}
