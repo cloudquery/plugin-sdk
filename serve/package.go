@@ -136,9 +136,9 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 	}, nil
 }
 
-func calcChecksum(path string) (string, error) {
+func calcChecksum(p string) (string, error) {
 	// calculate SHA-256 checksum
-	f, err := os.Open(path)
+	f, err := os.Open(p)
 	if err != nil {
 		return "", fmt.Errorf("failed to open file: %w", err)
 	}
