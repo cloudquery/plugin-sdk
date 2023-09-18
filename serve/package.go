@@ -31,6 +31,7 @@ This creates a directory with the plugin binaries, package.json and documentatio
 type PackageJSON struct {
 	SchemaVersion    int                `json:"schema_version"`
 	Name             string             `json:"name"`
+	Message          string             `json:"message"`
 	Version          string             `json:"version"`
 	Protocols        []int              `json:"protocols"`
 	SupportedTargets []TargetBuild      `json:"supported_targets"`
@@ -131,7 +132,7 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 	return strings.TrimSpace(importPath), nil
 }
 
-func (s *PluginServe) writePackageJSON(dir, pluginVersion string) error {
+func (s *PluginServe) writePackageJSON(dir, pluginVersion, message string) error {
 	targets := []TargetBuild{}
 	for _, target := range s.plugin.Targets() {
 		pluginName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, target.OS, target.Arch)
@@ -144,6 +145,7 @@ func (s *PluginServe) writePackageJSON(dir, pluginVersion string) error {
 	packageJSON := PackageJSON{
 		SchemaVersion:    1,
 		Name:             s.plugin.Name(),
+		Message:          message,
 		Version:          pluginVersion,
 		Protocols:        s.versions,
 		SupportedTargets: targets,
@@ -206,7 +208,7 @@ func copyFile(src, dst string) error {
 
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "package <plugin_directory> <version>",
+		Use:   "package <plugin_directory> <version> -m <message>",
 		Short: pluginPackageShort,
 		Long:  pluginPackageLong,
 		Args:  cobra.ExactArgs(2),
@@ -221,6 +223,21 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			if cmd.Flag("docs-dir").Changed {
 				docsPath = cmd.Flag("docs-dir").Value.String()
 			}
+			message := ""
+			if cmd.Flag("message").Changed {
+				message = cmd.Flag("message").Value.String()
+				if strings.HasPrefix(message, "@") {
+					messageFile := strings.TrimPrefix(message, "@")
+					messageBytes, err := os.ReadFile(messageFile)
+					if err != nil {
+						return err
+					}
+					message = string(messageBytes)
+				}
+			} else {
+				return fmt.Errorf("message is required")
+			}
+
 			if err := os.MkdirAll(distPath, 0755); err != nil {
 				return err
 			}
@@ -238,7 +255,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 					return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
 				}
 			}
-			if err := s.writePackageJSON(distPath, pluginVersion); err != nil {
+			if err := s.writePackageJSON(distPath, pluginVersion, message); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
 			if err := s.copyDocs(distPath, docsPath); err != nil {
@@ -249,5 +266,6 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	}
 	cmd.Flags().StringP("dist-dir", "D", "", "dist directory to output the built plugin. (default: <plugin_directory>/dist)")
 	cmd.Flags().StringP("docs-dir", "", "", "docs directory containing markdown files to copy to the dist directory. (default: <plugin_directory>/docs)")
+	cmd.Flags().StringP("message", "m", "", "message that summarizes what is new or changed in this version. Use @<file> to read from file. Supports markdown.")
 	return cmd
 }
