@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -39,9 +40,10 @@ type PackageJSON struct {
 }
 
 type TargetBuild struct {
-	OS   string `json:"os"`
-	Arch string `json:"arch"`
-	Path string `json:"path"`
+	OS       string `json:"os"`
+	Arch     string `json:"arch"`
+	Path     string `json:"path"`
+	Checksum string `json:"checksum"`
 }
 
 func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
@@ -63,13 +65,13 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
-func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersion string) error {
+func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersion string) (*TargetBuild, error) {
 	pluginName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, goos, goarch)
 	pluginPath := path.Join(distPath, pluginName)
 	args := []string{"build", "-o", pluginPath}
 	importPath, err := s.getModuleName(pluginDirectory)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	args = append(args, "-buildmode=exe")
 	args = append(args, "-ldflags", fmt.Sprintf("-s -w -X %s/plugin.Version=%s", importPath, pluginVersion))
@@ -79,19 +81,19 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to build plugin with `go %v`: %w", args, err)
+		return nil, fmt.Errorf("failed to build plugin with `go %v`: %w", args, err)
 	}
 
 	pluginFile, err := os.Open(pluginPath)
 	if err != nil {
-		return fmt.Errorf("failed to open plugin file: %w", err)
+		return nil, fmt.Errorf("failed to open plugin file: %w", err)
 	}
 	defer pluginFile.Close()
 
 	zipPluginPath := pluginPath + ".zip"
 	zipPluginFile, err := os.Create(zipPluginPath)
 	if err != nil {
-		return fmt.Errorf("failed to create zip file: %w", err)
+		return nil, fmt.Errorf("failed to create zip file: %w", err)
 	}
 	defer zipPluginFile.Close()
 
@@ -100,19 +102,52 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 
 	pluginZip, err := zipWriter.Create(pluginName)
 	if err != nil {
-		return fmt.Errorf("failed to create file in zip archive: %w", err)
+		zipWriter.Close()
+		return nil, fmt.Errorf("failed to create file in zip archive: %w", err)
 	}
 	_, err = io.Copy(pluginZip, pluginFile)
 	if err != nil {
-		return fmt.Errorf("failed to copy plugin file to zip archive: %w", err)
+		zipWriter.Close()
+		return nil, fmt.Errorf("failed to copy plugin file to zip archive: %w", err)
 	}
+	err = zipWriter.Close()
+	if err != nil {
+		return nil, fmt.Errorf("failed to close zip archive: %w", err)
+	}
+
 	if err := pluginFile.Close(); err != nil {
-		return err
+		return nil, err
 	}
 	if err := os.Remove(pluginPath); err != nil {
-		return fmt.Errorf("failed to remove plugin file: %w", err)
+		return nil, fmt.Errorf("failed to remove plugin file: %w", err)
 	}
-	return nil
+
+	targetZip := fmt.Sprintf(pluginName + ".zip")
+	checksum, err := calcChecksum(path.Join(distPath, targetZip))
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate checksum: %w", err)
+	}
+
+	return &TargetBuild{
+		OS:       goos,
+		Arch:     goarch,
+		Path:     targetZip,
+		Checksum: "sha256:" + checksum,
+	}, nil
+}
+
+func calcChecksum(path string) (string, error) {
+	// calculate SHA-256 checksum
+	f, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer f.Close()
+	hash := sha256.New()
+	if _, err := io.Copy(hash, f); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
 func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
@@ -132,16 +167,7 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 	return strings.TrimSpace(importPath), nil
 }
 
-func (s *PluginServe) writePackageJSON(dir, pluginVersion, message string) error {
-	targets := []TargetBuild{}
-	for _, target := range s.plugin.Targets() {
-		pluginName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, target.OS, target.Arch)
-		targets = append(targets, TargetBuild{
-			OS:   target.OS,
-			Arch: target.Arch,
-			Path: pluginName + ".zip",
-		})
-	}
+func (s *PluginServe) writePackageJSON(dir, pluginVersion, message string, targets []TargetBuild) error {
 	packageJSON := PackageJSON{
 		SchemaVersion:    1,
 		Name:             s.plugin.Name(),
@@ -249,13 +275,16 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			if err := s.writeTablesJSON(cmd.Context(), distPath); err != nil {
 				return err
 			}
+			targets := []TargetBuild{}
 			for _, target := range s.plugin.Targets() {
 				fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
-				if err := s.build(pluginDirectory, target.OS, target.Arch, distPath, pluginVersion); err != nil {
+				targetBuild, err := s.build(pluginDirectory, target.OS, target.Arch, distPath, pluginVersion)
+				if err != nil {
 					return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
 				}
+				targets = append(targets, *targetBuild)
 			}
-			if err := s.writePackageJSON(distPath, pluginVersion, message); err != nil {
+			if err := s.writePackageJSON(distPath, pluginVersion, message, targets); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
 			if err := s.copyDocs(distPath, docsPath); err != nil {
