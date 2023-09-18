@@ -57,8 +57,7 @@ func (s *syncClient) syncShuffle(ctx context.Context, resolvedResources chan<- *
 func shuffle(tableClients []tableClient) {
 	// use a fixed seed so that runs with the same tables and clients perform similarly across syncs
 	r := rand.New(rand.NewSource(99))
-	for i := range tableClients {
-		j := r.Intn(i + 1)
+	r.Shuffle(len(tableClients), func(i, j int) {
 		tableClients[i], tableClients[j] = tableClients[j], tableClients[i]
-	}
+	})
 }
