@@ -236,6 +236,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				}
 				message = string(messageBytes)
 			}
+			message = normalizeMessage(message)
 
 			if err := os.MkdirAll(distPath, 0755); err != nil {
 				return err
@@ -267,4 +268,11 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd.Flags().StringP("docs-dir", "", "", "docs directory containing markdown files to copy to the dist directory. (default: <plugin_directory>/docs)")
 	cmd.Flags().StringP("message", "m", "", "message that summarizes what is new or changed in this version. Use @<file> to read from file. Supports markdown.")
 	return cmd
+}
+
+func normalizeMessage(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	return s
 }
