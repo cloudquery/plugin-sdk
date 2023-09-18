@@ -34,6 +34,7 @@ const (
 const (
 	StrategyDFS Strategy = iota
 	StrategyRoundRobin
+	StrategyShuffle
 )
 
 type Strategy int
@@ -84,10 +85,11 @@ func (s *Strategy) Validate() error {
 	return fmt.Errorf("unknown scheduler strategy: %d", s)
 }
 
-var AllStrategies = Strategies{StrategyDFS, StrategyRoundRobin}
+var AllStrategies = Strategies{StrategyDFS, StrategyRoundRobin, StrategyShuffle}
 var AllStrategyNames = [...]string{
 	StrategyDFS:        "dfs",
 	StrategyRoundRobin: "round-robin",
+	StrategyShuffle:    "shuffle",
 }
 
 func StrategyForName(s string) (Strategy, error) {
