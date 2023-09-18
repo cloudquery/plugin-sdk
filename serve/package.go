@@ -208,7 +208,7 @@ func copyFile(src, dst string) error {
 
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "package <plugin_directory> <version> -m <message>",
+		Use:   "package -m <message> <plugin_directory> <version>",
 		Short: pluginPackageShort,
 		Long:  pluginPackageLong,
 		Args:  cobra.ExactArgs(2),
@@ -224,18 +224,17 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				docsPath = cmd.Flag("docs-dir").Value.String()
 			}
 			message := ""
-			if cmd.Flag("message").Changed {
-				message = cmd.Flag("message").Value.String()
-				if strings.HasPrefix(message, "@") {
-					messageFile := strings.TrimPrefix(message, "@")
-					messageBytes, err := os.ReadFile(messageFile)
-					if err != nil {
-						return err
-					}
-					message = string(messageBytes)
-				}
-			} else {
+			if !cmd.Flag("message").Changed {
 				return fmt.Errorf("message is required")
+			}
+			message = cmd.Flag("message").Value.String()
+			if strings.HasPrefix(message, "@") {
+				messageFile := strings.TrimPrefix(message, "@")
+				messageBytes, err := os.ReadFile(messageFile)
+				if err != nil {
+					return err
+				}
+				message = string(messageBytes)
 			}
 
 			if err := os.MkdirAll(distPath, 0755); err != nil {
