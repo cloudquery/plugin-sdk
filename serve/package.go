@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,6 +32,7 @@ This creates a directory with the plugin binaries, package.json and documentatio
 type PackageJSON struct {
 	SchemaVersion    int                `json:"schema_version"`
 	Name             string             `json:"name"`
+	Message          string             `json:"message"`
 	Version          string             `json:"version"`
 	Protocols        []int              `json:"protocols"`
 	SupportedTargets []TargetBuild      `json:"supported_targets"`
@@ -38,9 +40,10 @@ type PackageJSON struct {
 }
 
 type TargetBuild struct {
-	OS   string `json:"os"`
-	Arch string `json:"arch"`
-	Path string `json:"path"`
+	OS       string `json:"os"`
+	Arch     string `json:"arch"`
+	Path     string `json:"path"`
+	Checksum string `json:"checksum"`
 }
 
 func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
@@ -62,13 +65,13 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
-func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersion string) error {
+func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersion string) (*TargetBuild, error) {
 	pluginName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, goos, goarch)
 	pluginPath := path.Join(distPath, pluginName)
 	args := []string{"build", "-o", pluginPath}
 	importPath, err := s.getModuleName(pluginDirectory)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	args = append(args, "-buildmode=exe")
 	args = append(args, "-ldflags", fmt.Sprintf("-s -w -X %s/plugin.Version=%s", importPath, pluginVersion))
@@ -78,19 +81,19 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to build plugin with `go %v`: %w", args, err)
+		return nil, fmt.Errorf("failed to build plugin with `go %v`: %w", args, err)
 	}
 
 	pluginFile, err := os.Open(pluginPath)
 	if err != nil {
-		return fmt.Errorf("failed to open plugin file: %w", err)
+		return nil, fmt.Errorf("failed to open plugin file: %w", err)
 	}
 	defer pluginFile.Close()
 
 	zipPluginPath := pluginPath + ".zip"
 	zipPluginFile, err := os.Create(zipPluginPath)
 	if err != nil {
-		return fmt.Errorf("failed to create zip file: %w", err)
+		return nil, fmt.Errorf("failed to create zip file: %w", err)
 	}
 	defer zipPluginFile.Close()
 
@@ -99,19 +102,52 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 
 	pluginZip, err := zipWriter.Create(pluginName)
 	if err != nil {
-		return fmt.Errorf("failed to create file in zip archive: %w", err)
+		zipWriter.Close()
+		return nil, fmt.Errorf("failed to create file in zip archive: %w", err)
 	}
 	_, err = io.Copy(pluginZip, pluginFile)
 	if err != nil {
-		return fmt.Errorf("failed to copy plugin file to zip archive: %w", err)
+		zipWriter.Close()
+		return nil, fmt.Errorf("failed to copy plugin file to zip archive: %w", err)
 	}
+	err = zipWriter.Close()
+	if err != nil {
+		return nil, fmt.Errorf("failed to close zip archive: %w", err)
+	}
+
 	if err := pluginFile.Close(); err != nil {
-		return err
+		return nil, err
 	}
 	if err := os.Remove(pluginPath); err != nil {
-		return fmt.Errorf("failed to remove plugin file: %w", err)
+		return nil, fmt.Errorf("failed to remove plugin file: %w", err)
 	}
-	return nil
+
+	targetZip := fmt.Sprintf(pluginName + ".zip")
+	checksum, err := calcChecksum(path.Join(distPath, targetZip))
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate checksum: %w", err)
+	}
+
+	return &TargetBuild{
+		OS:       goos,
+		Arch:     goarch,
+		Path:     targetZip,
+		Checksum: "sha256:" + checksum,
+	}, nil
+}
+
+func calcChecksum(p string) (string, error) {
+	// calculate SHA-256 checksum
+	f, err := os.Open(p)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer f.Close()
+	hash := sha256.New()
+	if _, err := io.Copy(hash, f); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
 func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
@@ -131,19 +167,11 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 	return strings.TrimSpace(importPath), nil
 }
 
-func (s *PluginServe) writePackageJSON(dir, pluginVersion string) error {
-	targets := []TargetBuild{}
-	for _, target := range s.plugin.Targets() {
-		pluginName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, target.OS, target.Arch)
-		targets = append(targets, TargetBuild{
-			OS:   target.OS,
-			Arch: target.Arch,
-			Path: pluginName + ".zip",
-		})
-	}
+func (s *PluginServe) writePackageJSON(dir, pluginVersion, message string, targets []TargetBuild) error {
 	packageJSON := PackageJSON{
 		SchemaVersion:    1,
 		Name:             s.plugin.Name(),
+		Message:          message,
 		Version:          pluginVersion,
 		Protocols:        s.versions,
 		SupportedTargets: targets,
@@ -206,7 +234,7 @@ func copyFile(src, dst string) error {
 
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "package <plugin_directory> <version>",
+		Use:   "package -m <message> <plugin_directory> <version>",
 		Short: pluginPackageShort,
 		Long:  pluginPackageLong,
 		Args:  cobra.ExactArgs(2),
@@ -221,6 +249,21 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			if cmd.Flag("docs-dir").Changed {
 				docsPath = cmd.Flag("docs-dir").Value.String()
 			}
+			message := ""
+			if !cmd.Flag("message").Changed {
+				return fmt.Errorf("message is required")
+			}
+			message = cmd.Flag("message").Value.String()
+			if strings.HasPrefix(message, "@") {
+				messageFile := strings.TrimPrefix(message, "@")
+				messageBytes, err := os.ReadFile(messageFile)
+				if err != nil {
+					return err
+				}
+				message = string(messageBytes)
+			}
+			message = normalizeMessage(message)
+
 			if err := os.MkdirAll(distPath, 0755); err != nil {
 				return err
 			}
@@ -232,13 +275,16 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			if err := s.writeTablesJSON(cmd.Context(), distPath); err != nil {
 				return err
 			}
+			targets := []TargetBuild{}
 			for _, target := range s.plugin.Targets() {
 				fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
-				if err := s.build(pluginDirectory, target.OS, target.Arch, distPath, pluginVersion); err != nil {
+				targetBuild, err := s.build(pluginDirectory, target.OS, target.Arch, distPath, pluginVersion)
+				if err != nil {
 					return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
 				}
+				targets = append(targets, *targetBuild)
 			}
-			if err := s.writePackageJSON(distPath, pluginVersion); err != nil {
+			if err := s.writePackageJSON(distPath, pluginVersion, message, targets); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
 			if err := s.copyDocs(distPath, docsPath); err != nil {
@@ -249,5 +295,13 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	}
 	cmd.Flags().StringP("dist-dir", "D", "", "dist directory to output the built plugin. (default: <plugin_directory>/dist)")
 	cmd.Flags().StringP("docs-dir", "", "", "docs directory containing markdown files to copy to the dist directory. (default: <plugin_directory>/docs)")
+	cmd.Flags().StringP("message", "m", "", "message that summarizes what is new or changed in this version. Use @<file> to read from file. Supports markdown.")
 	return cmd
+}
+
+func normalizeMessage(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	return s
 }
