@@ -32,11 +32,11 @@ func (p *Plugin) validate(ctx context.Context) error {
 	return validateTables(tables)
 }
 
-func JSONSchemaValidator(schema string) (*jsonschema.Schema, error) {
+func JSONSchemaValidator(jsonSchema string) (*jsonschema.Schema, error) {
 	c := jsonschema.NewCompiler()
 	c.Draft = jsonschema.Draft2020
 	c.AssertFormat = true
-	if err := c.AddResource("schema.json", strings.NewReader(schema)); err != nil {
+	if err := c.AddResource("schema.json", strings.NewReader(jsonSchema)); err != nil {
 		return nil, err
 	}
 	return c.Compile("schema.json")
