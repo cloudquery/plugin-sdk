@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0](https://github.com/cloudquery/plugin-sdk/compare/v4.7.1...v4.8.0) (2023-09-19)
+
+
+### Features
+
+* Add Checksums to package.json format ([#1217](https://github.com/cloudquery/plugin-sdk/issues/1217)) ([720baae](https://github.com/cloudquery/plugin-sdk/commit/720baaec5191706bc52a63478d7b98cdfee6fa47))
+* Add message to package command ([#1216](https://github.com/cloudquery/plugin-sdk/issues/1216)) ([44956d9](https://github.com/cloudquery/plugin-sdk/commit/44956d9e5f067909a5126c44e0420c6abf386fce))
+* Add shuffle scheduler ([#1218](https://github.com/cloudquery/plugin-sdk/issues/1218)) ([2b1ba30](https://github.com/cloudquery/plugin-sdk/commit/2b1ba309828cfcda3667121557ac30b437a822ce))
+* Update package command ([#1211](https://github.com/cloudquery/plugin-sdk/issues/1211)) ([39fc65e](https://github.com/cloudquery/plugin-sdk/commit/39fc65ec5261ab1a070694bed3615613fc3c4d17))
+
+
+### Bug Fixes
+
+* Add schema version to package.json ([#1212](https://github.com/cloudquery/plugin-sdk/issues/1212)) ([393c94d](https://github.com/cloudquery/plugin-sdk/commit/393c94d3a4b70242aeafe4257cb67cea0ff63236))
+* **deps:** Update github.com/cloudquery/arrow/go/v14 digest to 483f6b2 ([#1209](https://github.com/cloudquery/plugin-sdk/issues/1209)) ([179769a](https://github.com/cloudquery/plugin-sdk/commit/179769a2b6dc5900c3078a235c2d19d4091a21ae))
+* **deps:** Update github.com/cloudquery/arrow/go/v14 digest to ffb7089 ([#1215](https://github.com/cloudquery/plugin-sdk/issues/1215)) ([70f20bb](https://github.com/cloudquery/plugin-sdk/commit/70f20bb3244cd52d71cf09666bd10b15e1b67d41))
+* Use -dir suffix for plugin package arguments ([#1213](https://github.com/cloudquery/plugin-sdk/issues/1213)) ([93f9398](https://github.com/cloudquery/plugin-sdk/commit/93f93988d0334bf2ea101fcc375bad878b396343))
+
 ## [4.7.1](https://github.com/cloudquery/plugin-sdk/compare/v4.7.0...v4.7.1) (2023-09-05)
 
 

@@ -1,7 +1,9 @@
 package serve
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -31,48 +33,86 @@ func TestPluginPackage(t *testing.T) {
 			{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64},
 		}),
 	)
-	srv := Plugin(p)
-	cmd := srv.newCmdPluginRoot()
-	distDir := t.TempDir()
-	cmd.SetArgs([]string{"package", "--dist-dir", distDir, simplePluginPath, packageVersion})
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
-	}
-	files, err := os.ReadDir(distDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expect := []string{
-		"docs",
-		"package.json",
-		"plugin-testPlugin-v1.2.3-darwin-amd64.zip",
-		"plugin-testPlugin-v1.2.3-linux-amd64.zip",
-		"plugin-testPlugin-v1.2.3-windows-amd64.zip",
-		"tables.json",
-	}
-	if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
-		t.Fatalf("unexpected files in dist directory (-want +got):\n%s", diff)
-	}
-
-	expectPackage := PackageJSON{
-		SchemaVersion: 1,
-		Name:          "testPlugin",
-		Version:       "v1.2.3",
-		Protocols:     []int{3},
-		SupportedTargets: []TargetBuild{
-			{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-linux-amd64.zip"},
-			{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-windows-amd64.zip"},
-			{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-darwin-amd64.zip"},
+	msg := `Test message
+with multiple lines and **markdown**`
+	testCases := []struct {
+		name    string
+		message string
+		wantErr bool
+	}{
+		{
+			name:    "inline message",
+			message: msg,
 		},
-		PackageType: plugin.PackageTypeNative,
+		{
+			name:    "message from file",
+			message: "@testdata/message.txt",
+		},
 	}
-	checkPackageJSONContents(t, filepath.Join(distDir, "package.json"), expectPackage)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := Plugin(p)
+			cmd := srv.newCmdPluginRoot()
+			distDir := t.TempDir()
+			cmd.SetArgs([]string{"package", "--dist-dir", distDir, "-m", tc.message, simplePluginPath, packageVersion})
+			err := cmd.Execute()
+			if tc.wantErr && err == nil {
+				t.Fatalf("expected error, got nil")
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			files, err := os.ReadDir(distDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expect := []string{
+				"docs",
+				"package.json",
+				"plugin-testPlugin-v1.2.3-darwin-amd64.zip",
+				"plugin-testPlugin-v1.2.3-linux-amd64.zip",
+				"plugin-testPlugin-v1.2.3-windows-amd64.zip",
+				"tables.json",
+			}
+			if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
+				t.Fatalf("unexpected files in dist directory (-want +got):\n%s", diff)
+			}
 
-	expectDocs := []string{
-		"configuration.md",
-		"overview.md",
+			expectPackage := PackageJSON{
+				SchemaVersion: 1,
+				Name:          "testPlugin",
+				Message:       msg,
+				Version:       "v1.2.3",
+				Protocols:     []int{3},
+				SupportedTargets: []TargetBuild{
+					{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-linux-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-linux-amd64.zip"))},
+					{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-windows-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-windows-amd64.zip"))},
+					{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-darwin-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-darwin-amd64.zip"))},
+				},
+				PackageType: plugin.PackageTypeNative,
+			}
+			checkPackageJSONContents(t, filepath.Join(distDir, "package.json"), expectPackage)
+
+			expectDocs := []string{
+				"configuration.md",
+				"overview.md",
+			}
+			checkDocs(t, filepath.Join(distDir, "docs"), expectDocs)
+		})
 	}
-	checkDocs(t, filepath.Join(distDir, "docs"), expectDocs)
+}
+
+func sha256sum(filename string) string {
+	f, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	h := sha256.New()
+	_, err = io.Copy(h, f)
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 func checkDocs(t *testing.T, dir string, expect []string) {
