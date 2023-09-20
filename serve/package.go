@@ -46,6 +46,16 @@ type TargetBuild struct {
 	Checksum string `json:"checksum"`
 }
 
+// This is the structure the CLI publish command expects
+type pluginTable struct {
+	Description   string    `json:"description,omitempty"`
+	IsIncremental bool      `json:"is_incremental,omitempty"`
+	Name          string    `json:"name,omitempty"`
+	Parent        *string   `json:"parent,omitempty"`
+	Relations     *[]string `json:"relations,omitempty"`
+	Title         string    `json:"title,omitempty"`
+}
+
 func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 	tables, err := s.plugin.Tables(ctx, plugin.TableOptions{
 		Tables: []string{"*"},
@@ -53,11 +63,32 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 	if err != nil {
 		return err
 	}
+	tablesToEncode := make([]pluginTable, 0, len(tables))
+	for _, t := range tables.FlattenTables() {
+		table := tables.Get(t.Name)
+		var parent *string
+		if table.Parent != nil {
+			parent = &table.Parent.Name
+		}
+		var relations *[]string
+		if table.Relations != nil {
+			names := table.Relations.TableNames()
+			relations = &names
+		}
+		tablesToEncode = append(tablesToEncode, pluginTable{
+			Description:   table.Description,
+			IsIncremental: table.IsIncremental,
+			Name:          table.Name,
+			Parent:        parent,
+			Relations:     relations,
+			Title:         table.Title,
+		})
+	}
 	buffer := &bytes.Buffer{}
 	m := json.NewEncoder(buffer)
-	m.SetIndent("", "  ")
+	m.SetIndent("", "")
 	m.SetEscapeHTML(false)
-	err = m.Encode(tables)
+	err = m.Encode(tablesToEncode)
 	if err != nil {
 		return err
 	}

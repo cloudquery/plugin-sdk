@@ -97,6 +97,7 @@ with multiple lines and **markdown**`
 				"overview.md",
 			}
 			checkDocs(t, filepath.Join(distDir, "docs"), expectDocs)
+			checkTables(t, distDir)
 		})
 	}
 }
@@ -121,6 +122,18 @@ func checkDocs(t *testing.T, dir string, expect []string) {
 		t.Fatal(err)
 	}
 	if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
+		t.Fatalf("unexpected files in docs directory (-want +got):\n%s", diff)
+	}
+}
+
+func checkTables(t *testing.T, distDir string) {
+	content, err := os.ReadFile(filepath.Join(distDir, "tables.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tablesString := string(content)
+
+	if diff := cmp.Diff(tablesString, "[{\"name\":\"table1\",\"relations\":[\"table2\"]},{\"name\":\"table2\"}]\n"); diff != "" {
 		t.Fatalf("unexpected files in docs directory (-want +got):\n%s", diff)
 	}
 }
