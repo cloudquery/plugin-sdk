@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.9.2](https://github.com/cloudquery/plugin-sdk/compare/v4.9.1...v4.9.2) (2023-09-20)
+
+
+### Bug Fixes
+
+* **package:** Normalize tables when writing tables.json ([#1227](https://github.com/cloudquery/plugin-sdk/issues/1227)) ([06c84c0](https://github.com/cloudquery/plugin-sdk/commit/06c84c09c731817346644a3d6e337f3732aff023))
+
 ## [4.9.1](https://github.com/cloudquery/plugin-sdk/compare/v4.9.0...v4.9.1) (2023-09-20)
 
 
