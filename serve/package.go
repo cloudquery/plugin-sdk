@@ -63,8 +63,9 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 	if err != nil {
 		return err
 	}
-	tablesToEncode := make([]pluginTable, 0, len(tables))
-	for _, t := range tables.FlattenTables() {
+	flattenedTables := tables.FlattenTables()
+	tablesToEncode := make([]pluginTable, 0, len(flattenedTables))
+	for _, t := range flattenedTables {
 		table := tables.Get(t.Name)
 		var parent *string
 		if table.Parent != nil {
