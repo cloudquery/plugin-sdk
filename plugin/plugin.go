@@ -141,7 +141,7 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 	defer p.mu.Unlock()
 	var err error
 
-	if p.schemaValidator != nil {
+	if !options.NoConnection && p.schemaValidator != nil {
 		var v any
 		if err := json.Unmarshal(spec, &v); err != nil {
 			return fmt.Errorf("failed to unmarshal plugin spec: %w", err)
