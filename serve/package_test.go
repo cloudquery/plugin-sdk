@@ -134,7 +134,7 @@ func checkTables(t *testing.T, distDir string) {
 	tablesString := string(content)
 
 	if diff := cmp.Diff(tablesString, "[{\"name\":\"table1\",\"relations\":[\"table2\"]},{\"name\":\"table2\"}]\n"); diff != "" {
-		t.Fatalf("unexpected files in docs directory (-want +got):\n%s", diff)
+		t.Fatalf("unexpected content in tables.json (-want +got):\n%s", diff)
 	}
 }
 
