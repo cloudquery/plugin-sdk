@@ -80,8 +80,8 @@ func TestPluginServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(tables) != 0 {
-		t.Fatalf("Expected 0 tables but got %d", len(tables))
+	if len(tables) != 2 {
+		t.Fatalf("Expected 2 tables but got %d", len(tables))
 	}
 	testTable := schema.Table{
 		Name: "test_table",

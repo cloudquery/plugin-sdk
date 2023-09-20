@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.10.0](https://github.com/cloudquery/plugin-sdk/compare/v4.9.3...v4.10.0) (2023-09-20)
+
+
+### Features
+
+* Expose `plugin.JSONSchemaValidator` to be used in schema tests ([#1233](https://github.com/cloudquery/plugin-sdk/issues/1233)) ([ef71086](https://github.com/cloudquery/plugin-sdk/commit/ef71086967c0852438631f9af17fffec304a1ba7))
+
+## [4.9.3](https://github.com/cloudquery/plugin-sdk/compare/v4.9.2...v4.9.3) (2023-09-20)
+
+
+### Bug Fixes
+
+* Enable format assertion for JSON schema ([#1231](https://github.com/cloudquery/plugin-sdk/issues/1231)) ([b53c5ab](https://github.com/cloudquery/plugin-sdk/commit/b53c5ab519c634c39089232aebe42c0a1f939927))
+
+## [4.9.2](https://github.com/cloudquery/plugin-sdk/compare/v4.9.1...v4.9.2) (2023-09-20)
+
+
+### Bug Fixes
+
+* **package:** Normalize tables when writing tables.json ([#1227](https://github.com/cloudquery/plugin-sdk/issues/1227)) ([06c84c0](https://github.com/cloudquery/plugin-sdk/commit/06c84c09c731817346644a3d6e337f3732aff023))
+
 ## [4.9.1](https://github.com/cloudquery/plugin-sdk/compare/v4.9.0...v4.9.1) (2023-09-20)
 
 

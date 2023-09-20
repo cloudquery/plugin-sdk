@@ -43,7 +43,9 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 	c := &client{
 		memoryDB:     make(map[string][]arrow.Record),
 		memoryDBLock: sync.RWMutex{},
-		tables:       make(map[string]*schema.Table),
+		tables: map[string]*schema.Table{
+			"table1": {Name: "table1", Relations: schema.Tables{{Name: "table2"}}},
+		},
 	}
 	for _, opt := range options {
 		opt(c)
