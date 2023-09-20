@@ -2,13 +2,16 @@ package plugin
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
+	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
 var ErrNotImplemented = fmt.Errorf("not implemented")
@@ -66,6 +69,10 @@ type Plugin struct {
 	// NoInternalColumns if set to true will not add internal columns to tables such as _cq_id and _cq_parent_id
 	// useful for sources such as PostgreSQL and other databases
 	internalColumns bool
+	// schema is the JSONSchema of the plugin spec
+	schema string
+	// validator object to validate specs
+	schemaValidator *jsonschema.Schema
 }
 
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
@@ -81,6 +88,19 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 	for _, opt := range options {
 		opt(&p)
 	}
+	if p.schema != "" {
+		c := jsonschema.NewCompiler()
+		c.Draft = jsonschema.Draft2020
+		if err := c.AddResource("schema.json", strings.NewReader(p.schema)); err != nil {
+			panic(fmt.Errorf("failed add plugin JSONSchema: %w", err))
+		}
+		schemaValidator, err := c.Compile("schema.json")
+		if err != nil {
+			panic(fmt.Errorf("failed to compile plugin JSONSchema: %w", err))
+		}
+		p.schemaValidator = schemaValidator
+	}
+
 	return &p
 }
 
@@ -120,6 +140,17 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 	}
 	defer p.mu.Unlock()
 	var err error
+
+	if p.schemaValidator != nil {
+		var v any
+		if err := json.Unmarshal(spec, &v); err != nil {
+			return fmt.Errorf("failed to unmarshal plugin spec: %w", err)
+		}
+		if err := p.schemaValidator.Validate(v); err != nil {
+			return fmt.Errorf("plugin spec is invalid: %w", err)
+		}
+	}
+
 	p.client, err = p.newClient(ctx, p.logger, spec, options)
 	if err != nil {
 		return fmt.Errorf("failed to initialize client: %w", err)

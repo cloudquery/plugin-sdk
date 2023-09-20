@@ -13,6 +13,7 @@ require (
 	github.com/google/uuid v1.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0
 	github.com/rs/zerolog v1.29.1
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.4
 	github.com/thoas/go-funk v0.9.3

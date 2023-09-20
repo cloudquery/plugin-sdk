@@ -23,6 +23,12 @@ func WithBuildTargets(targets []BuildTarget) Option {
 	}
 }
 
+func WithJSONSchema(schema string) Option {
+	return func(p *Plugin) {
+		p.schema = schema
+	}
+}
+
 type TableOptions struct {
 	Tables              []string
 	SkipTables          []string
