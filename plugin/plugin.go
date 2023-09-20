@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/apache/arrow/go/v14/arrow"
@@ -89,13 +88,7 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 		opt(&p)
 	}
 	if p.schema != "" {
-		c := jsonschema.NewCompiler()
-		c.Draft = jsonschema.Draft2020
-		c.AssertFormat = true
-		if err := c.AddResource("schema.json", strings.NewReader(p.schema)); err != nil {
-			panic(fmt.Errorf("failed add plugin JSONSchema: %w", err))
-		}
-		schemaValidator, err := c.Compile("schema.json")
+		schemaValidator, err := JSONSchemaValidator(p.schema)
 		if err != nil {
 			panic(fmt.Errorf("failed to compile plugin JSONSchema: %w", err))
 		}

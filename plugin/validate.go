@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
 func validateTables(tables schema.Tables) error {
@@ -28,4 +30,14 @@ func (p *Plugin) validate(ctx context.Context) error {
 	}
 
 	return validateTables(tables)
+}
+
+func JSONSchemaValidator(jsonSchema string) (*jsonschema.Schema, error) {
+	c := jsonschema.NewCompiler()
+	c.Draft = jsonschema.Draft2020
+	c.AssertFormat = true
+	if err := c.AddResource("schema.json", strings.NewReader(jsonSchema)); err != nil {
+		return nil, err
+	}
+	return c.Compile("schema.json")
 }
