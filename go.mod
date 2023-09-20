@@ -5,12 +5,12 @@ go 1.19
 require (
 	github.com/apache/arrow/go/v14 v14.0.0-20230901024001-b6c0ea455d08
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/plugin-pb-go v1.9.4
+	github.com/cloudquery/plugin-pb-go v1.10.0
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/goccy/go-json v0.10.2
 	github.com/google/go-cmp v0.5.9
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.6.1
