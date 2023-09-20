@@ -93,7 +93,11 @@ func (s *List) Set(val any) error {
 		s.Value = make(Vector, length)
 		for i := 0; i < length; i++ {
 			s.Value[i] = NewScalar(s.Type.(*arrow.ListType).Elem())
-			if err := s.Value[i].Set(reflectedValue.Index(i).Interface()); err != nil {
+			iVal := reflectedValue.Index(i)
+			if isReflectValueNil(iVal) {
+				continue
+			}
+			if err := s.Value[i].Set(iVal.Interface()); err != nil {
 				return err
 			}
 		}
@@ -101,4 +105,17 @@ func (s *List) Set(val any) error {
 
 	s.Valid = true
 	return nil
+}
+
+func isReflectValueNil(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Pointer,
+		reflect.UnsafePointer,
+		reflect.Map,
+		reflect.Slice,
+		reflect.Interface:
+		return v.IsNil()
+	default:
+		return false
+	}
 }

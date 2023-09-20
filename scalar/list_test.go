@@ -1,12 +1,17 @@
 package scalar
 
 import (
+	"net"
 	"testing"
 
 	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 )
 
 func TestListSet(t *testing.T) {
+	ipOne := net.IP{192, 168, 1, 1}
+	ipNet := net.IPNet{IP: ipOne, Mask: net.IPMask{255, 255, 255, 255}}
+	typedNil := (*net.IP)(nil)
 	successfulTests := []struct {
 		source any
 		result List
@@ -23,6 +28,15 @@ func TestListSet(t *testing.T) {
 				&Int{Value: 1, Valid: true},
 				&Int{Value: 2, Valid: true},
 			}, Valid: true, Type: arrow.ListOf(arrow.PrimitiveTypes.Int64)}},
+		{source: []*net.IPNet{&ipNet, nil}, result: List{Value: []Scalar{
+			&Inet{Value: &ipNet, Valid: true},
+			&Inet{Valid: false},
+		}, Valid: true, Type: arrow.ListOf(types.ExtensionTypes.Inet)}},
+		{source: []*net.IP{&ipOne, typedNil, nil}, result: List{Value: []Scalar{
+			&Inet{Value: &ipNet, Valid: true},
+			&Inet{Valid: false},
+			&Inet{Valid: false},
+		}, Valid: true, Type: arrow.ListOf(types.ExtensionTypes.Inet)}},
 	}
 
 	for i, tt := range successfulTests {
