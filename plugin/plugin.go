@@ -91,6 +91,7 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 	if p.schema != "" {
 		c := jsonschema.NewCompiler()
 		c.Draft = jsonschema.Draft2020
+		c.AssertFormat = true
 		if err := c.AddResource("schema.json", strings.NewReader(p.schema)); err != nil {
 			panic(fmt.Errorf("failed add plugin JSONSchema: %w", err))
 		}
