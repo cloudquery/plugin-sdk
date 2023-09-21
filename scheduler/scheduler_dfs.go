@@ -148,7 +148,7 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 					return
 				}
 
-				if err := resolvedResource.CalculateCQID(s.deterministicCQID); err != nil {
+				if err := resolvedResource.CalculateCQID(s.deterministicCQID, s.cqIDSalt); err != nil {
 					tableMetrics := s.metrics.TableClient[table.Name][client.ID()]
 					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
 					if _, found := sentValidationErrors.LoadOrStore(table.Name, struct{}{}); !found {

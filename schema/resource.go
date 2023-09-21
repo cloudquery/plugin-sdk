@@ -9,6 +9,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+const CQIDSalt = "_cq_id_salt"
+
 type Resources []*Resource
 
 // Resource represents a row in it's associated table, it carries a reference to the original item, and automatically
@@ -78,7 +80,7 @@ func (r *Resource) GetValues() scalar.Vector {
 }
 
 //nolint:revive
-func (r *Resource) CalculateCQID(deterministicCQID bool) error {
+func (r *Resource) CalculateCQID(deterministicCQID bool, cqIDSalt string) error {
 	if !deterministicCQID {
 		return r.storeCQID(uuid.New())
 	}
@@ -88,6 +90,10 @@ func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 	}
 	slices.Sort(names)
 	h := sha256.New()
+	if cqIDSalt != "" {
+		h.Write([]byte(CQIDSalt))
+		h.Write([]byte(cqIDSalt))
+	}
 	for _, name := range names {
 		// We need to include the column name in the hash because the same value can be present in multiple columns and therefore lead to the same hash
 		h.Write([]byte(name))
