@@ -1,5 +1,7 @@
 package plugin
 
+import "errors"
+
 const (
 	GoOSLinux   = "linux"
 	GoOSWindows = "windows"
@@ -8,6 +10,22 @@ const (
 	GoArchAmd64 = "amd64"
 	GoArchArm64 = "arm64"
 )
+
+type Type string
+
+const (
+	TypeSource      Type = "source"
+	TypeDestination Type = "destination"
+)
+
+func (t Type) Validate() error {
+	switch t {
+	case TypeSource, TypeDestination:
+		return nil
+	default:
+		return errors.New("invalid type: must be one of source, destination")
+	}
+}
 
 type PackageType string
 

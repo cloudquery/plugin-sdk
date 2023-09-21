@@ -32,6 +32,7 @@ This creates a directory with the plugin binaries, package.json and documentatio
 type PackageJSON struct {
 	SchemaVersion    int                `json:"schema_version"`
 	Name             string             `json:"name"`
+	Type             plugin.Type        `json:"type"`
 	Message          string             `json:"message"`
 	Version          string             `json:"version"`
 	Protocols        []int              `json:"protocols"`
@@ -199,11 +200,12 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 	return strings.TrimSpace(importPath), nil
 }
 
-func (s *PluginServe) writePackageJSON(dir, pluginVersion, message string, targets []TargetBuild) error {
+func (s *PluginServe) writePackageJSON(dir string, pluginType plugin.Type, pluginVersion, message string, targets []TargetBuild) error {
 	packageJSON := PackageJSON{
 		SchemaVersion:    1,
 		Name:             s.plugin.Name(),
 		Message:          message,
+		Type:             pluginType,
 		Version:          pluginVersion,
 		Protocols:        s.versions,
 		SupportedTargets: targets,
@@ -266,13 +268,17 @@ func copyFile(src, dst string) error {
 
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "package -m <message> <plugin_directory> <version>",
+		Use:   "package -m <message> <source|destination> <version> <plugin_directory>",
 		Short: pluginPackageShort,
 		Long:  pluginPackageLong,
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pluginDirectory := args[0]
+			pluginType := plugin.Type(args[0])
+			if err := pluginType.Validate(); err != nil {
+				return err
+			}
 			pluginVersion := args[1]
+			pluginDirectory := args[2]
 			distPath := path.Join(pluginDirectory, "dist")
 			if cmd.Flag("dist-dir").Changed {
 				distPath = cmd.Flag("dist-dir").Value.String()
@@ -304,8 +310,10 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			}); err != nil {
 				return err
 			}
-			if err := s.writeTablesJSON(cmd.Context(), distPath); err != nil {
-				return err
+			if pluginType == "source" {
+				if err := s.writeTablesJSON(cmd.Context(), distPath); err != nil {
+					return err
+				}
 			}
 			targets := []TargetBuild{}
 			for _, target := range s.plugin.Targets() {
@@ -316,7 +324,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				}
 				targets = append(targets, *targetBuild)
 			}
-			if err := s.writePackageJSON(distPath, pluginVersion, message, targets); err != nil {
+			if err := s.writePackageJSON(distPath, pluginType, pluginVersion, message, targets); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
 			if err := s.copyDocs(distPath, docsPath); err != nil {

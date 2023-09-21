@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/cloudquery/plugin-sdk/examples/simple_plugin/client"
 	"github.com/cloudquery/plugin-sdk/examples/simple_plugin/services"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -20,8 +21,6 @@ type Client struct {
 	config    client.Spec
 	tables    schema.Tables
 	scheduler *scheduler.Scheduler
-
-	plugin.UnimplementedDestination
 }
 
 func (c *Client) Logger() *zerolog.Logger {
@@ -52,6 +51,16 @@ func (c *Client) Tables(_ context.Context, options plugin.TableOptions) (schema.
 }
 
 func (*Client) Close(_ context.Context) error {
+	return nil
+}
+
+func (*Client) Write(context.Context, <-chan message.WriteMessage) error {
+	// Not implemented, just used for testing destination packaging
+	return nil
+}
+
+func (*Client) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
+	// Not implemented, just used for testing destination packaging
 	return nil
 }
 
