@@ -310,7 +310,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			}); err != nil {
 				return err
 			}
-			if pluginType == "source" {
+			if pluginType == plugin.TypeSource {
 				if err := s.writeTablesJSON(cmd.Context(), distPath); err != nil {
 					return err
 				}
