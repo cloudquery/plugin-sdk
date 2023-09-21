@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.10.1](https://github.com/cloudquery/plugin-sdk/compare/v4.10.0...v4.10.1) (2023-09-21)
+
+
+### Bug Fixes
+
+* **scalar:** Don't pass typed nils in list values ([#1226](https://github.com/cloudquery/plugin-sdk/issues/1226)) ([7175e5a](https://github.com/cloudquery/plugin-sdk/commit/7175e5a478524ac99032be6f474f2130ed46985f))
+* Skip tables.json when packaging destinations ([#1238](https://github.com/cloudquery/plugin-sdk/issues/1238)) ([f6471e3](https://github.com/cloudquery/plugin-sdk/commit/f6471e3ada92871e951026db9c1bf748a2e0b154))
+
 ## [4.10.0](https://github.com/cloudquery/plugin-sdk/compare/v4.9.3...v4.10.0) (2023-09-20)
 
 
