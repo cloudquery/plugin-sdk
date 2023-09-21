@@ -78,7 +78,7 @@ with multiple lines and **markdown**`
 			expectPackage := PackageJSON{
 				SchemaVersion: 1,
 				Name:          "testPlugin",
-				Type:          "source",
+				Kind:          "source",
 				Message:       msg,
 				Version:       "v1.2.3",
 				Protocols:     []int{3},
@@ -162,7 +162,7 @@ with multiple lines and **markdown**`
 			expectPackage := PackageJSON{
 				SchemaVersion: 1,
 				Name:          "testPlugin",
-				Type:          "destination",
+				Kind:          "destination",
 				Message:       msg,
 				Version:       "v1.2.3",
 				Protocols:     []int{3},
