@@ -11,19 +11,19 @@ const (
 	GoArchArm64 = "arm64"
 )
 
-type Type string
+type Kind string
 
 const (
-	TypeSource      Type = "source"
-	TypeDestination Type = "destination"
+	KindSource      Kind = "source"
+	KindDestination Kind = "destination"
 )
 
-func (t Type) Validate() error {
-	switch t {
-	case TypeSource, TypeDestination:
+func (k Kind) Validate() error {
+	switch k {
+	case KindSource, KindDestination:
 		return nil
 	default:
-		return errors.New("invalid type: must be one of source, destination")
+		return errors.New("invalid plugin kind: must be one of source, destination")
 	}
 }
 

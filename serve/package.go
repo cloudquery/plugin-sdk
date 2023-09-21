@@ -32,7 +32,7 @@ This creates a directory with the plugin binaries, package.json and documentatio
 type PackageJSON struct {
 	SchemaVersion    int                `json:"schema_version"`
 	Name             string             `json:"name"`
-	Type             plugin.Type        `json:"type"`
+	Kind             plugin.Kind        `json:"kind"`
 	Message          string             `json:"message"`
 	Version          string             `json:"version"`
 	Protocols        []int              `json:"protocols"`
@@ -200,12 +200,12 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 	return strings.TrimSpace(importPath), nil
 }
 
-func (s *PluginServe) writePackageJSON(dir string, pluginType plugin.Type, pluginVersion, message string, targets []TargetBuild) error {
+func (s *PluginServe) writePackageJSON(dir string, pluginKind plugin.Kind, pluginVersion, message string, targets []TargetBuild) error {
 	packageJSON := PackageJSON{
 		SchemaVersion:    1,
 		Name:             s.plugin.Name(),
 		Message:          message,
-		Type:             pluginType,
+		Kind:             pluginKind,
 		Version:          pluginVersion,
 		Protocols:        s.versions,
 		SupportedTargets: targets,
@@ -273,8 +273,8 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 		Long:  pluginPackageLong,
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pluginType := plugin.Type(args[0])
-			if err := pluginType.Validate(); err != nil {
+			pluginKind := plugin.Kind(args[0])
+			if err := pluginKind.Validate(); err != nil {
 				return err
 			}
 			pluginVersion := args[1]
@@ -310,7 +310,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			}); err != nil {
 				return err
 			}
-			if pluginType == plugin.TypeSource {
+			if pluginKind == plugin.KindSource {
 				if err := s.writeTablesJSON(cmd.Context(), distPath); err != nil {
 					return err
 				}
@@ -324,7 +324,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				}
 				targets = append(targets, *targetBuild)
 			}
-			if err := s.writePackageJSON(distPath, pluginType, pluginVersion, message, targets); err != nil {
+			if err := s.writePackageJSON(distPath, pluginKind, pluginVersion, message, targets); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
 			if err := s.copyDocs(distPath, docsPath); err != nil {
