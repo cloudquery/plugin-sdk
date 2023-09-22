@@ -520,9 +520,6 @@ func (t *Table) TableNames() []string {
 }
 
 func (t *Table) Copy(parent *Table) *Table {
-	if t == nil {
-		return nil
-	}
 	c := *t
 	c.Parent = parent
 	c.Columns = make([]Column, len(t.Columns))
