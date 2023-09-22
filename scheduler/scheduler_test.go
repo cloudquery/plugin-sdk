@@ -80,6 +80,10 @@ func testTableResolverPanic() *schema.Table {
 	}
 }
 
+func testNoTables() *schema.Table {
+	return nil
+}
+
 func testTablePreResourceResolverPanic() *schema.Table {
 	return &schema.Table{
 		Name:                "test_table_pre_resource_resolver_panic",
@@ -132,6 +136,7 @@ type syncTestCase struct {
 	table             *schema.Table
 	data              []scalar.Vector
 	deterministicCQID bool
+	err               error
 }
 
 var syncTestCases = []syncTestCase{
@@ -150,6 +155,12 @@ var syncTestCases = []syncTestCase{
 	{
 		table: testTablePreResourceResolverPanic(),
 		data:  nil,
+	},
+
+	{
+		table: testNoTables(),
+		data:  nil,
+		err:   ErrNoTables,
 	},
 
 	{
@@ -210,8 +221,12 @@ func TestScheduler(t *testing.T) {
 	for _, strategy := range AllStrategies {
 		for _, tc := range syncTestCases {
 			tc := tc
-			tc.table = tc.table.Copy(nil)
-			t.Run(tc.table.Name+"_"+strategy.String(), func(t *testing.T) {
+			testName := "No table_" + strategy.String()
+			if tc.table != nil {
+				tc.table = tc.table.Copy(nil)
+				testName = tc.table.Name + "_" + strategy.String()
+			}
+			t.Run(testName, func(t *testing.T) {
 				testSyncTable(t, tc, strategy, tc.deterministicCQID)
 			})
 		}
@@ -220,8 +235,9 @@ func TestScheduler(t *testing.T) {
 
 func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, deterministicCQID bool) {
 	ctx := context.Background()
-	tables := []*schema.Table{
-		tc.table,
+	tables := []*schema.Table{}
+	if tc.table != nil {
+		tables = append(tables, tc.table)
 	}
 	c := testExecutionClient{}
 	opts := []Option{
@@ -230,7 +246,8 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 	}
 	sc := NewScheduler(opts...)
 	msgs := make(chan message.SyncMessage, 10)
-	if err := sc.Sync(ctx, &c, tables, msgs, WithSyncDeterministicCQID(deterministicCQID)); err != nil {
+	err := sc.Sync(ctx, &c, tables, msgs, WithSyncDeterministicCQID(deterministicCQID))
+	if err != tc.err {
 		t.Fatal(err)
 	}
 	close(msgs)
