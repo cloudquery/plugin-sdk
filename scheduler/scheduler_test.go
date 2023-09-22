@@ -221,9 +221,9 @@ func TestScheduler(t *testing.T) {
 	for _, strategy := range AllStrategies {
 		for _, tc := range syncTestCases {
 			tc := tc
-			tc.table = tc.table.Copy(nil)
 			testName := "No table_" + strategy.String()
 			if tc.table != nil {
+				tc.table = tc.table.Copy(nil)
 				testName = tc.table.Name + "_" + strategy.String()
 			}
 			t.Run(testName, func(t *testing.T) {
