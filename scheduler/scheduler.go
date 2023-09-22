@@ -31,7 +31,7 @@ const (
 	otelName               = "schedule"
 )
 
-var ErrNoTables = errors.New("no tables specified for syncing, review `tables` and `skip_tables` in the your config file to specify at least one table to sync")
+var ErrNoTables = errors.New("no tables specified for syncing, review `tables` and `skip_tables` in your config and specify at least one table to sync")
 
 const (
 	StrategyDFS Strategy = iota
