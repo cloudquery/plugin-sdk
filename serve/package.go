@@ -113,6 +113,8 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, fmt.Sprintf("GOOS=%s", goos))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("GOARCH=%s", goarch))
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed to build plugin with `go %v`: %w", args, err)
 	}
