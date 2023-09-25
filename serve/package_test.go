@@ -50,6 +50,7 @@ with multiple lines and **markdown**`
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("CGO_ENABLED", "0") // disable CGO to ensure we environmental differences don't interfere with the test
 			srv := Plugin(p)
 			cmd := srv.newCmdPluginRoot()
 			distDir := t.TempDir()
@@ -73,6 +74,12 @@ with multiple lines and **markdown**`
 			}
 			if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
 				t.Fatalf("unexpected files in dist directory (-want +got):\n%s", diff)
+			}
+			// expect SHA-256 for the zip files to differ
+			sha1 := sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-linux-amd64.zip"))
+			sha2 := sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-windows-amd64.zip"))
+			if sha1 == sha2 {
+				t.Fatalf("expected SHA-256 for linux and windows zip files to differ, but they are the same: %s", sha1)
 			}
 
 			expectPackage := PackageJSON{
@@ -135,6 +142,7 @@ with multiple lines and **markdown**`
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("CGO_ENABLED", "0") // disable CGO to ensure we environmental differences don't interfere with the test
 			srv := Plugin(p)
 			cmd := srv.newCmdPluginRoot()
 			distDir := t.TempDir()
@@ -157,6 +165,12 @@ with multiple lines and **markdown**`
 			}
 			if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
 				t.Fatalf("unexpected files in dist directory (-want +got):\n%s", diff)
+			}
+			// expect SHA-256 for the zip files to differ
+			sha1 := sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-windows-amd64.zip"))
+			sha2 := sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-darwin-amd64.zip"))
+			if sha1 == sha2 {
+				t.Fatalf("expected SHA-256 for windows and darwin zip files to differ, but they are the same: %s", sha1)
 			}
 
 			expectPackage := PackageJSON{
