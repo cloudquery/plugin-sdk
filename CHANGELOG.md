@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.11.0](https://github.com/cloudquery/plugin-sdk/compare/v4.10.2...v4.11.0) (2023-09-25)
+
+
+### Features
+
+* Provide User with actionable error message when no tables are configured for syncing ([#1243](https://github.com/cloudquery/plugin-sdk/issues/1243)) ([e53d952](https://github.com/cloudquery/plugin-sdk/commit/e53d952fc7347f0c3428a588839f69c2c585a390))
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v14 digest to 64e27ff ([#1245](https://github.com/cloudquery/plugin-sdk/issues/1245)) ([ff074f4](https://github.com/cloudquery/plugin-sdk/commit/ff074f4393e15494373578293e7649b6030da803))
+* Set GOOS and GOARCH in package command ([#1246](https://github.com/cloudquery/plugin-sdk/issues/1246)) ([119f962](https://github.com/cloudquery/plugin-sdk/commit/119f9628773bf7dcd946fe17571cc523968a36f6))
+
 ## [4.10.2](https://github.com/cloudquery/plugin-sdk/compare/v4.10.1...v4.10.2) (2023-09-21)
 
 
