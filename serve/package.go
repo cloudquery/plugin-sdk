@@ -305,12 +305,13 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			if err := os.MkdirAll(distPath, 0755); err != nil {
 				return err
 			}
-			if err := s.plugin.Init(cmd.Context(), nil, plugin.NewClientOptions{
-				NoConnection: true,
-			}); err != nil {
-				return err
-			}
+
 			if pluginKind == plugin.KindSource {
+				if err := s.plugin.Init(cmd.Context(), nil, plugin.NewClientOptions{
+					NoConnection: true,
+				}); err != nil {
+					return err
+				}
 				if err := s.writeTablesJSON(cmd.Context(), distPath); err != nil {
 					return err
 				}
