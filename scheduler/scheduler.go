@@ -31,6 +31,8 @@ const (
 	otelName               = "schedule"
 )
 
+var ErrNoTables = errors.New("no tables specified for syncing, review `tables` and `skip_tables` in your config and specify at least one table to sync")
+
 const (
 	StrategyDFS Strategy = iota
 	StrategyRoundRobin
@@ -219,7 +221,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	ctx, span := otel.Tracer(otelName).Start(ctx, "Sync")
 	defer span.End()
 	if len(tables) == 0 {
-		return nil
+		return ErrNoTables
 	}
 
 	syncClient := &syncClient{
