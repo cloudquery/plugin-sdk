@@ -1,6 +1,6 @@
 module github.com/cloudquery/plugin-sdk/examples/simple_plugin
 
-go 1.20
+go 1.21.1
 
 require (
 	github.com/apache/arrow/go/v14 v14.0.0-20230901024001-b6c0ea455d08
@@ -15,7 +15,7 @@ replace github.com/apache/arrow/go/v14 => github.com/cloudquery/arrow/go/v14 v14
 require (
 	github.com/apache/arrow/go/v13 v13.0.0-20230731205701-112f94971882 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
-	github.com/cloudquery/plugin-pb-go v1.10.0 // indirect
+	github.com/cloudquery/plugin-pb-go v1.11.0 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/getsentry/sentry-go v0.20.0 // indirect
