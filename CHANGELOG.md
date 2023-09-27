@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.11.1](https://github.com/cloudquery/plugin-sdk/compare/v4.11.0...v4.11.1) (2023-09-27)
+
+
+### Bug Fixes
+
+* **package:** Don't init destinations during package ([#1249](https://github.com/cloudquery/plugin-sdk/issues/1249)) ([f21e963](https://github.com/cloudquery/plugin-sdk/commit/f21e963d4b4c864102ba5afdcd03892e2b0cc969))
+
 ## [4.11.0](https://github.com/cloudquery/plugin-sdk/compare/v4.10.2...v4.11.0) (2023-09-25)
 
 
