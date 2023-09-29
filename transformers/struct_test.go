@@ -3,6 +3,7 @@ package transformers
 import (
 	"net"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/go-cmp/cmp"
-	"golang.org/x/exp/slices"
 )
 
 type (

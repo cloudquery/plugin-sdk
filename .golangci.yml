@@ -1,8 +1,6 @@
 run:
   tests: true
   timeout: 10m
-  skip-dirs:
-    - internal/pb
 
 linters-settings:
   errcheck:

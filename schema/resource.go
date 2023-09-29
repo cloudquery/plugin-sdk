@@ -3,10 +3,10 @@ package schema
 import (
 	"crypto/sha256"
 	"fmt"
+	"slices"
 
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/google/uuid"
-	"golang.org/x/exp/slices"
 )
 
 type Resources []*Resource
