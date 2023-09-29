@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 
 	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
-	"golang.org/x/exp/slices"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
