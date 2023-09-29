@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cloudquery/plugin-sdk/v4/scheduler/strategy",
+  "$ref": "#/$defs/Strategy",
+  "$defs": {
+    "Strategy": {
+      "type": "string",
+      "enum": [
+        "dfs",
+        "round-robin",
+        "shuffle"
+      ],
+      "title": "CloudQuery scheduling strategy"
+    }
+  }
+}
