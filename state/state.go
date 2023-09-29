@@ -3,11 +3,11 @@ package state
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	pbDiscovery "github.com/cloudquery/plugin-pb-go/pb/discovery/v1"
 	pbPluginV3 "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	stateV3 "github.com/cloudquery/plugin-sdk/v4/internal/clients/state/v3"
-	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
 )
 
