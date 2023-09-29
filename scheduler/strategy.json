@@ -10,7 +10,8 @@
         "round-robin",
         "shuffle"
       ],
-      "title": "CloudQuery scheduling strategy"
+      "title": "CloudQuery scheduling strategy",
+      "default": "dfs"
     }
   }
 }

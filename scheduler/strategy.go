@@ -64,9 +64,10 @@ func (Strategy) JSONSchema() *jsonschema.Schema {
 		enum[i] = s
 	}
 	return &jsonschema.Schema{
-		Type:  "string",
-		Enum:  enum,
-		Title: "CloudQuery scheduling strategy",
+		Type:    "string",
+		Enum:    enum,
+		Default: AllStrategyNames[StrategyDFS],
+		Title:   "CloudQuery scheduling strategy",
 	}
 }
 
