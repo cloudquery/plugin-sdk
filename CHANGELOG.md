@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.12.0](https://github.com/cloudquery/plugin-sdk/compare/v4.11.1...v4.12.0) (2023-10-02)
+
+
+### Features
+
+* Add JSON schema to scheduler strategy ([#1254](https://github.com/cloudquery/plugin-sdk/issues/1254)) ([1cec01d](https://github.com/cloudquery/plugin-sdk/commit/1cec01de43faa4f6f44af58428cb95b269f97990))
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v14 digest to 00efb06 ([#1257](https://github.com/cloudquery/plugin-sdk/issues/1257)) ([e56f6f8](https://github.com/cloudquery/plugin-sdk/commit/e56f6f82f34795f21aa1bad5fc3a62b85417fbf5))
+* **deps:** Update github.com/cloudquery/arrow/go/v14 digest to 7ded38b ([#1263](https://github.com/cloudquery/plugin-sdk/issues/1263)) ([332c255](https://github.com/cloudquery/plugin-sdk/commit/332c2555cc7e13f05612a274e63fe59af4c5ba98))
+* **deps:** Update google.golang.org/genproto digest to e6e6cda ([#1258](https://github.com/cloudquery/plugin-sdk/issues/1258)) ([1b75050](https://github.com/cloudquery/plugin-sdk/commit/1b75050c5fafa8ea27a3e4841dbd2ce9001d801e))
+* **deps:** Update google.golang.org/genproto/googleapis/api digest to e6e6cda ([#1259](https://github.com/cloudquery/plugin-sdk/issues/1259)) ([eb6a97d](https://github.com/cloudquery/plugin-sdk/commit/eb6a97dfc702b4cc779aff42152d21de8270de7b))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to e6e6cda ([#1260](https://github.com/cloudquery/plugin-sdk/issues/1260)) ([49940fd](https://github.com/cloudquery/plugin-sdk/commit/49940fd94bb4ab605ea511e957e02316e31e046c))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.11.0 ([#1252](https://github.com/cloudquery/plugin-sdk/issues/1252)) ([41a6561](https://github.com/cloudquery/plugin-sdk/commit/41a6561f2ab0f048c1f333d5a3de558014f58f5f))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.24.1 ([#1262](https://github.com/cloudquery/plugin-sdk/issues/1262)) ([be03068](https://github.com/cloudquery/plugin-sdk/commit/be030689c413afa341a4b7e0644c4d28be6c9640))
+* **deps:** Update module github.com/grpc-ecosystem/go-grpc-middleware/v2 to v2.0.1 ([#1261](https://github.com/cloudquery/plugin-sdk/issues/1261)) ([cf57d20](https://github.com/cloudquery/plugin-sdk/commit/cf57d20a17de07a21a5cc364cefc9f4057cb05df))
+
 ## [4.11.1](https://github.com/cloudquery/plugin-sdk/compare/v4.11.0...v4.11.1) (2023-09-27)
 
 
