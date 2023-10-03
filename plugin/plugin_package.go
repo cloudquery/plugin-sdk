@@ -40,6 +40,7 @@ type BuildTarget struct {
 
 var DefaultBuildTargets = []BuildTarget{
 	{GoOSLinux, GoArchAmd64},
+	{GoOSLinux, GoArchArm64},
 	{GoOSWindows, GoArchAmd64},
 	{GoOSDarwin, GoArchAmd64},
 	{GoOSDarwin, GoArchArm64},
