@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strings"
 
+	cloudquery_api "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/spf13/cobra"
 )
@@ -47,16 +48,6 @@ type TargetBuild struct {
 	Checksum string `json:"checksum"`
 }
 
-// This is the structure the CLI publish command expects
-type pluginTable struct {
-	Description   string    `json:"description,omitempty"`
-	IsIncremental bool      `json:"is_incremental,omitempty"`
-	Name          string    `json:"name,omitempty"`
-	Parent        *string   `json:"parent,omitempty"`
-	Relations     *[]string `json:"relations,omitempty"`
-	Title         string    `json:"title,omitempty"`
-}
-
 func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 	tables, err := s.plugin.Tables(ctx, plugin.TableOptions{
 		Tables: []string{"*"},
@@ -65,7 +56,7 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 		return err
 	}
 	flattenedTables := tables.FlattenTables()
-	tablesToEncode := make([]pluginTable, 0, len(flattenedTables))
+	tablesToEncode := make([]cloudquery_api.PluginTableCreate, 0, len(flattenedTables))
 	for _, t := range flattenedTables {
 		table := tables.Get(t.Name)
 		var parent *string
@@ -77,13 +68,26 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 			names := table.Relations.TableNames()
 			relations = &names
 		}
-		tablesToEncode = append(tablesToEncode, pluginTable{
-			Description:   table.Description,
-			IsIncremental: table.IsIncremental,
+		columns := make([]cloudquery_api.PluginTableColumn, 0, len(table.Columns))
+		for _, column := range table.Columns {
+			columns = append(columns, cloudquery_api.PluginTableColumn{
+				Name:           column.Name,
+				Description:    column.Description,
+				Type:           column.Type.String(),
+				IncrementalKey: column.IncrementalKey,
+				NotNull:        column.NotNull,
+				PrimaryKey:     column.PrimaryKey,
+				Unique:         column.Unique,
+			})
+		}
+		tablesToEncode = append(tablesToEncode, cloudquery_api.PluginTableCreate{
+			Description:   &table.Description,
+			IsIncremental: &table.IsIncremental,
 			Name:          table.Name,
 			Parent:        parent,
 			Relations:     relations,
-			Title:         table.Title,
+			Title:         &table.Title,
+			Columns:       &columns,
 		})
 	}
 	buffer := &bytes.Buffer{}
