@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.12.1](https://github.com/cloudquery/plugin-sdk/compare/v4.12.0...v4.12.1) (2023-10-05)
+
+
+### Bug Fixes
+
+* Add `linux_arm64` to default build targets ([#1267](https://github.com/cloudquery/plugin-sdk/issues/1267)) ([a5f46d1](https://github.com/cloudquery/plugin-sdk/commit/a5f46d18672a434fffe94320751a28c90e7c7ec2))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.11.1 ([#1264](https://github.com/cloudquery/plugin-sdk/issues/1264)) ([7a390f0](https://github.com/cloudquery/plugin-sdk/commit/7a390f06842b0354d9359839b4129bc8efd4141d))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.12.0 ([#1268](https://github.com/cloudquery/plugin-sdk/issues/1268)) ([16669fe](https://github.com/cloudquery/plugin-sdk/commit/16669fe393926566acdca4404e0fdca089a9fe88))
+
 ## [4.12.0](https://github.com/cloudquery/plugin-sdk/compare/v4.11.1...v4.12.0) (2023-10-02)
 
 
