@@ -10,10 +10,16 @@ import (
 	"runtime"
 	"testing"
 
+	_ "embed"
+
 	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
+
+//go:embed testdata/memdbtables.json
+var memDBPackageJSON string
 
 func TestPluginPackage_Source(t *testing.T) {
 	_, filename, _, ok := runtime.Caller(0)
@@ -226,11 +232,15 @@ func checkTables(t *testing.T, distDir string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tablesString := string(content)
+	var actual any
+	err = json.Unmarshal(content, &actual)
+	require.NoError(t, err)
 
-	if diff := cmp.Diff(tablesString, "[{\"name\":\"table1\",\"relations\":[\"table2\"]},{\"name\":\"table2\"}]\n"); diff != "" {
-		t.Fatalf("unexpected content in tables.json (-want +got):\n%s", diff)
-	}
+	var expected any
+	err = json.Unmarshal([]byte(memDBPackageJSON), &expected)
+	require.NoError(t, err)
+
+	require.Equal(t, expected, actual, "tables.json content mismatch")
 }
 
 func checkPackageJSONContents(t *testing.T, filename string, expect PackageJSON) {

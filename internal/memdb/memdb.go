@@ -10,6 +10,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/rs/zerolog"
 )
 
@@ -44,7 +45,36 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 		memoryDB:     make(map[string][]arrow.Record),
 		memoryDBLock: sync.RWMutex{},
 		tables: map[string]*schema.Table{
-			"table1": {Name: "table1", Relations: schema.Tables{{Name: "table2"}}},
+			"table1": {
+				Name: "table1",
+				Columns: []schema.Column{
+					{
+						Name:           "col1",
+						Type:           arrow.PrimitiveTypes.Int64,
+						Description:    "col1 description",
+						PrimaryKey:     true,
+						NotNull:        true,
+						IncrementalKey: false,
+						Unique:         true,
+					},
+				},
+				Relations: schema.Tables{
+					{
+						Name: "table2",
+						Columns: []schema.Column{
+							{
+								Name:           "col1",
+								Type:           types.UUID,
+								Description:    "col1 description",
+								PrimaryKey:     false,
+								NotNull:        false,
+								IncrementalKey: true,
+								Unique:         false,
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 	for _, opt := range options {

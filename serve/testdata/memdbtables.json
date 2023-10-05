@@ -1,0 +1,37 @@
+[
+  {
+    "columns": [
+      {
+        "description": "col1 description",
+        "incremental_key": false,
+        "name": "col1",
+        "not_null": true,
+        "primary_key": true,
+        "type": "int64",
+        "unique": true
+      }
+    ],
+    "description": "",
+    "is_incremental": false,
+    "name": "table1",
+    "relations": ["table2"],
+    "title": ""
+  },
+  {
+    "columns": [
+      {
+        "description": "col1 description",
+        "incremental_key": true,
+        "name": "col1",
+        "not_null": false,
+        "primary_key": false,
+        "type": "uuid",
+        "unique": false
+      }
+    ],
+    "description": "",
+    "is_incremental": false,
+    "name": "table2",
+    "title": ""
+  }
+]
