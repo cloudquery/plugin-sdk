@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.12.2](https://github.com/cloudquery/plugin-sdk/compare/v4.12.1...v4.12.2) (2023-10-05)
+
+
+### Bug Fixes
+
+* Serialize columns during package ([#1270](https://github.com/cloudquery/plugin-sdk/issues/1270)) ([cd5f79d](https://github.com/cloudquery/plugin-sdk/commit/cd5f79d15570415b49bd0eff00e1a46227ffa7f9))
+
 ## [4.12.1](https://github.com/cloudquery/plugin-sdk/compare/v4.12.0...v4.12.1) (2023-10-05)
 
 
