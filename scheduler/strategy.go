@@ -57,7 +57,6 @@ func (s *Strategy) Validate() error {
 	return fmt.Errorf("unknown scheduler strategy: %d", s)
 }
 
-// JSONSchema uses value receiver because of https://github.com/invopop/jsonschema/issues/102
 func (Strategy) JSONSchema() *jsonschema.Schema {
 	enum := make([]any, len(AllStrategyNames))
 	for i, s := range AllStrategyNames {
