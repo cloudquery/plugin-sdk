@@ -13,6 +13,7 @@ const (
 	MsgTypeMigrateTable
 	MsgTypeInsert
 	MsgTypeDeleteStale
+	MsgTypeDeleteRecord
 )
 
 func MsgID(msg message.WriteMessage) MsgType {
@@ -23,6 +24,8 @@ func MsgID(msg message.WriteMessage) MsgType {
 		return MsgTypeInsert
 	case *message.WriteDeleteStale:
 		return MsgTypeDeleteStale
+	case *message.WriteDeleteRecord:
+		return MsgTypeDeleteRecord
 	}
 	panic("unknown message type: " + reflect.TypeOf(msg).Name())
 }

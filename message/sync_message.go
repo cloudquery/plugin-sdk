@@ -111,3 +111,13 @@ func (m SyncInserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
 	}
 	return slices.Clip(res)
 }
+
+type SyncDeleteRecord struct {
+	syncBaseMessage
+	// TODO: Instead of using this struct we should derive the DeletionKeys and parent/child relation from the schema.Table itself
+	DeleteRecord
+}
+
+func (m SyncDeleteRecord) GetTable() *schema.Table {
+	return &schema.Table{Name: m.TableName}
+}

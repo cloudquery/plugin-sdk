@@ -19,3 +19,9 @@ type UnimplementedDeleteStaleBatch struct{}
 func (UnimplementedDeleteStaleBatch) DeleteStaleBatch(context.Context, message.WriteDeleteStales) error {
 	return fmt.Errorf("DeleteStaleBatch: %w", plugin.ErrNotImplemented)
 }
+
+type UnimplementedDeleteRecordsBatch struct{}
+
+func (UnimplementedDeleteRecordsBatch) DeleteRecordsBatch(context.Context, message.WriteDeleteRecords) error {
+	return fmt.Errorf("DeleteRecordsBatch: %w", plugin.ErrNotImplemented)
+}

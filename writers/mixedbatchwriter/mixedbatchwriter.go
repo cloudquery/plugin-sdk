@@ -15,6 +15,7 @@ type Client interface {
 	MigrateTableBatch(ctx context.Context, messages message.WriteMigrateTables) error
 	InsertBatch(ctx context.Context, messages message.WriteInserts) error
 	DeleteStaleBatch(ctx context.Context, messages message.WriteDeleteStales) error
+	DeleteRecordsBatch(ctx context.Context, messages message.WriteDeleteRecords) error
 }
 
 type MixedBatchWriter struct {
@@ -97,6 +98,12 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 		batch:     make([]*message.WriteDeleteStale, 0, w.batchSize),
 		writeFunc: w.client.DeleteStaleBatch,
 	}
+
+	deleteRecord := &batchManager[message.WriteDeleteRecords, *message.WriteDeleteRecord]{
+		batch:     make([]*message.WriteDeleteRecord, 0, w.batchSize),
+		writeFunc: w.client.DeleteRecordsBatch,
+	}
+
 	flush := func(msgType writers.MsgType) error {
 		if msgType == writers.MsgTypeUnset {
 			return nil
@@ -108,6 +115,8 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 			return insert.flush(ctx)
 		case writers.MsgTypeDeleteStale:
 			return deleteStale.flush(ctx)
+		case writers.MsgTypeDeleteRecord:
+			return deleteRecord.flush(ctx)
 		default:
 			panic("unknown message type")
 		}
@@ -138,6 +147,8 @@ loop:
 				err = insert.append(ctx, v)
 			case *message.WriteDeleteStale:
 				err = deleteStale.append(ctx, v)
+			case *message.WriteDeleteRecord:
+				err = deleteRecord.append(ctx, v)
 			default:
 				panic("unknown message type")
 			}

@@ -156,6 +156,29 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 					Record: recordBytes,
 				},
 			}
+		case *message.SyncDeleteRecord:
+			deletionKeys := make(map[string][]byte, len(m.DeleteKeys))
+			for key, value := range m.DeleteKeys {
+				recordBytes, err := pb.RecordToBytes(value)
+				if err != nil {
+					return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+				}
+				deletionKeys[key] = recordBytes
+			}
+			tableRelations := make([]*pb.TableRelation, len(m.TableRelations))
+			for i, tr := range m.TableRelations {
+				tableRelations[i] = &pb.TableRelation{
+					TableName:   tr.TableName,
+					ParentTable: tr.ParentTable,
+				}
+			}
+			pbMsg.Message = &pb.Sync_Response_Delete{
+				Delete: &pb.Sync_MessageDeleteRecord{
+					TableName:      m.TableName,
+					TableRelations: tableRelations,
+					DeletionKeys:   deletionKeys,
+				},
+			}
 		default:
 			return status.Errorf(codes.Internal, "unknown message type: %T", msg)
 		}
@@ -229,6 +252,31 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 				TableName:  pbMsg.Delete.TableName,
 				SourceName: pbMsg.Delete.SourceName,
 				SyncTime:   pbMsg.Delete.SyncTime.AsTime(),
+			}
+
+		case *pb.Write_Request_DeleteRecord:
+			deletionKeys := make(map[string]arrow.Record, len(pbMsg.DeleteRecord.DeletionKeys))
+			for key, value := range pbMsg.DeleteRecord.DeletionKeys {
+				record, err := pb.NewRecordFromBytes(value)
+				if err != nil {
+					pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+					break
+				}
+				deletionKeys[key] = record
+			}
+			tableRelations := make([]message.TableRelation, len(pbMsg.DeleteRecord.TableRelations))
+			for i, tr := range pbMsg.DeleteRecord.TableRelations {
+				tableRelations[i] = message.TableRelation{
+					TableName:   tr.TableName,
+					ParentTable: tr.ParentTable,
+				}
+			}
+			pluginMessage = &message.WriteDeleteRecord{
+				DeleteRecord: message.DeleteRecord{
+					TableName:      pbMsg.DeleteRecord.TableName,
+					TableRelations: tableRelations,
+					DeleteKeys:     deletionKeys,
+				},
 			}
 		}
 

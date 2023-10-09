@@ -45,6 +45,15 @@ func (c *testMixedBatchClient) DeleteStaleBatch(_ context.Context, messages mess
 	return nil
 }
 
+func (c *testMixedBatchClient) DeleteRecordsBatch(_ context.Context, messages message.WriteDeleteRecords) error {
+	m := make([]message.WriteMessage, len(messages))
+	for i, msg := range messages {
+		m[i] = msg
+	}
+	c.receivedBatches = append(c.receivedBatches, m)
+	return nil
+}
+
 var _ Client = (*testMixedBatchClient)(nil)
 
 type testMessages struct {

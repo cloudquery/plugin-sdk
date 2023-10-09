@@ -128,3 +128,26 @@ func (m WriteDeleteStales) Exists(tableName string) bool {
 		return msg.TableName == tableName
 	})
 }
+
+type TableRelation struct {
+	TableName   string
+	ParentTable string
+}
+type TableRelations []TableRelation
+type DeleteRecord struct {
+	TableName      string
+	TableRelations TableRelations
+	DeleteKeys     map[string]arrow.Record
+	SyncTime       time.Time
+}
+
+type WriteDeleteRecord struct {
+	writeBaseMessage
+	DeleteRecord
+}
+
+func (m WriteDeleteRecord) GetTable() *schema.Table {
+	return &schema.Table{Name: m.TableName}
+}
+
+type WriteDeleteRecords []*WriteDeleteRecord
