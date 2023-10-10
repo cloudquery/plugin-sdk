@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apache/arrow/go/v14/arrow/util"
+	"github.com/apache/arrow/go/v13/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
