@@ -133,11 +133,25 @@ type TableRelation struct {
 	TableName   string
 	ParentTable string
 }
+
+type Predicate struct {
+	Operator string
+	Column   string
+	Record   arrow.Record
+}
+type WhereClause struct {
+	And []Predicate
+	Or  []Predicate
+}
+
 type TableRelations []TableRelation
+
+type WhereClauses []WhereClause
+
 type DeleteRecord struct {
 	TableName      string
 	TableRelations TableRelations
-	DeleteKeys     map[string]arrow.Record
+	WhereClauses   WhereClauses
 	SyncTime       time.Time
 }
 
