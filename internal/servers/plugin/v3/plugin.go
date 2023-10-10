@@ -157,14 +157,34 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 				},
 			}
 		case *message.SyncDeleteRecord:
-			deletionKeys := make(map[string][]byte, len(m.DeleteKeys))
-			for key, value := range m.DeleteKeys {
-				recordBytes, err := pb.RecordToBytes(value)
-				if err != nil {
-					return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+			whereClauses := make([]*pb.WhereClause, len(m.WhereClauses))
+			for i, whereClause := range m.WhereClauses {
+				whereClauses[i].And = make([]*pb.Predicate, len(whereClause.And))
+				for j, value := range whereClause.And {
+					record, err := pb.RecordToBytes(value.Record)
+					if err != nil {
+						return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+					}
+					whereClauses[i].And[j] = &pb.Predicate{
+						Record:   record,
+						Column:   value.Column,
+						Operator: pb.Predicate_Operator(pb.Predicate_Operator_value[value.Operator]),
+					}
 				}
-				deletionKeys[key] = recordBytes
+				whereClauses[i].Or = make([]*pb.Predicate, len(whereClause.Or))
+				for j, value := range whereClause.Or {
+					record, err := pb.RecordToBytes(value.Record)
+					if err != nil {
+						return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+					}
+					whereClauses[i].Or[j] = &pb.Predicate{
+						Record:   record,
+						Column:   value.Column,
+						Operator: pb.Predicate_Operator(pb.Predicate_Operator_value[value.Operator]),
+					}
+				}
 			}
+
 			tableRelations := make([]*pb.TableRelation, len(m.TableRelations))
 			for i, tr := range m.TableRelations {
 				tableRelations[i] = &pb.TableRelation{
@@ -172,11 +192,11 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 					ParentTable: tr.ParentTable,
 				}
 			}
-			pbMsg.Message = &pb.Sync_Response_Delete{
-				Delete: &pb.Sync_MessageDeleteRecord{
+			pbMsg.Message = &pb.Sync_Response_DeleteRecord{
+				DeleteRecord: &pb.Sync_MessageDeleteRecord{
 					TableName:      m.TableName,
 					TableRelations: tableRelations,
-					DeletionKeys:   deletionKeys,
+					WhereClauses:   whereClauses,
 				},
 			}
 		default:
@@ -255,14 +275,34 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 			}
 
 		case *pb.Write_Request_DeleteRecord:
-			deletionKeys := make(map[string]arrow.Record, len(pbMsg.DeleteRecord.DeletionKeys))
-			for key, value := range pbMsg.DeleteRecord.DeletionKeys {
-				record, err := pb.NewRecordFromBytes(value)
-				if err != nil {
-					pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
-					break
+			whereClauses := make(message.WhereClauses, len(pbMsg.DeleteRecord.WhereClauses))
+			for i, whereClause := range pbMsg.DeleteRecord.WhereClauses {
+				whereClauses[i].And = make([]message.Predicate, len(whereClause.And))
+				for j, value := range whereClause.And {
+					record, err := pb.NewRecordFromBytes(value.Record)
+					if err != nil {
+						pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+						break
+					}
+					whereClauses[i].And[j] = message.Predicate{
+						Record:   record,
+						Column:   value.Column,
+						Operator: value.Operator.String(),
+					}
 				}
-				deletionKeys[key] = record
+				whereClauses[i].Or = make([]message.Predicate, len(whereClause.Or))
+				for j, value := range whereClause.Or {
+					record, err := pb.NewRecordFromBytes(value.Record)
+					if err != nil {
+						pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+						break
+					}
+					whereClauses[i].Or[j] = message.Predicate{
+						Record:   record,
+						Column:   value.Column,
+						Operator: value.Operator.String(),
+					}
+				}
 			}
 			tableRelations := make([]message.TableRelation, len(pbMsg.DeleteRecord.TableRelations))
 			for i, tr := range pbMsg.DeleteRecord.TableRelations {
@@ -275,7 +315,7 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 				DeleteRecord: message.DeleteRecord{
 					TableName:      pbMsg.DeleteRecord.TableName,
 					TableRelations: tableRelations,
-					DeleteKeys:     deletionKeys,
+					WhereClauses:   whereClauses,
 				},
 			}
 		}
