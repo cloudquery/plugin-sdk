@@ -141,7 +141,7 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 			return fmt.Errorf("failed to unmarshal plugin spec: %w", err)
 		}
 		if err := p.schemaValidator.Validate(v); err != nil {
-			return fmt.Errorf("plugin spec is invalid: %w", err)
+			p.logger.Err(err).Msg("failed JSON schema validation for spec")
 		}
 	}
 
