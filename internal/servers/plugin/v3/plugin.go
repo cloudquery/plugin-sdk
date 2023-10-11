@@ -157,32 +157,31 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 				},
 			}
 		case *message.SyncDeleteRecord:
-			whereClauses := make([]*pb.WhereClause, len(m.WhereClauses))
-			for i, whereClause := range m.WhereClauses {
-				whereClauses[i].And = make([]*pb.Predicate, len(whereClause.And))
-				for j, value := range whereClause.And {
-					record, err := pb.RecordToBytes(value.Record)
-					if err != nil {
-						return status.Errorf(codes.Internal, "failed to encode record: %v", err)
-					}
-					whereClauses[i].And[j] = &pb.Predicate{
-						Record:   record,
-						Column:   value.Column,
-						Operator: pb.Predicate_Operator(pb.Predicate_Operator_value[value.Operator]),
-					}
+			var whereClause *pb.WhereClause
+			whereClause.And = make([]*pb.Predicate, len(whereClause.And))
+			for j, value := range m.WhereClause.And {
+				record, err := pb.RecordToBytes(value.Record)
+				if err != nil {
+					return status.Errorf(codes.Internal, "failed to encode record: %v", err)
 				}
-				whereClauses[i].Or = make([]*pb.Predicate, len(whereClause.Or))
-				for j, value := range whereClause.Or {
-					record, err := pb.RecordToBytes(value.Record)
-					if err != nil {
-						return status.Errorf(codes.Internal, "failed to encode record: %v", err)
-					}
-					whereClauses[i].Or[j] = &pb.Predicate{
-						Record:   record,
-						Column:   value.Column,
-						Operator: pb.Predicate_Operator(pb.Predicate_Operator_value[value.Operator]),
-					}
+				whereClause.And[j] = &pb.Predicate{
+					Record:   record,
+					Column:   value.Column,
+					Operator: pb.Predicate_Operator(pb.Predicate_Operator_value[value.Operator]),
 				}
+			}
+			whereClause.Or = make([]*pb.Predicate, len(whereClause.Or))
+			for j, value := range m.WhereClause.Or {
+				record, err := pb.RecordToBytes(value.Record)
+				if err != nil {
+					return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+				}
+				whereClause.Or[j] = &pb.Predicate{
+					Record:   record,
+					Column:   value.Column,
+					Operator: pb.Predicate_Operator(pb.Predicate_Operator_value[value.Operator]),
+				}
+
 			}
 
 			tableRelations := make([]*pb.TableRelation, len(m.TableRelations))
@@ -196,7 +195,7 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 				DeleteRecord: &pb.Sync_MessageDeleteRecord{
 					TableName:      m.TableName,
 					TableRelations: tableRelations,
-					WhereClauses:   whereClauses,
+					WhereClause:    whereClause,
 				},
 			}
 		default:
@@ -275,35 +274,35 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 			}
 
 		case *pb.Write_Request_DeleteRecord:
-			whereClauses := make(message.WhereClauses, len(pbMsg.DeleteRecord.WhereClauses))
-			for i, whereClause := range pbMsg.DeleteRecord.WhereClauses {
-				whereClauses[i].And = make([]message.Predicate, len(whereClause.And))
-				for j, value := range whereClause.And {
-					record, err := pb.NewRecordFromBytes(value.Record)
-					if err != nil {
-						pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
-						break
-					}
-					whereClauses[i].And[j] = message.Predicate{
-						Record:   record,
-						Column:   value.Column,
-						Operator: value.Operator.String(),
-					}
+			var whereClause message.WhereClause
+
+			whereClause.And = make([]message.Predicate, len(whereClause.And))
+			for j, value := range pbMsg.DeleteRecord.WhereClause.And {
+				record, err := pb.NewRecordFromBytes(value.Record)
+				if err != nil {
+					pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+					break
 				}
-				whereClauses[i].Or = make([]message.Predicate, len(whereClause.Or))
-				for j, value := range whereClause.Or {
-					record, err := pb.NewRecordFromBytes(value.Record)
-					if err != nil {
-						pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
-						break
-					}
-					whereClauses[i].Or[j] = message.Predicate{
-						Record:   record,
-						Column:   value.Column,
-						Operator: value.Operator.String(),
-					}
+				whereClause.And[j] = message.Predicate{
+					Record:   record,
+					Column:   value.Column,
+					Operator: value.Operator.String(),
 				}
 			}
+			whereClause.Or = make([]message.Predicate, len(whereClause.Or))
+			for j, value := range pbMsg.DeleteRecord.WhereClause.Or {
+				record, err := pb.NewRecordFromBytes(value.Record)
+				if err != nil {
+					pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+					break
+				}
+				whereClause.Or[j] = message.Predicate{
+					Record:   record,
+					Column:   value.Column,
+					Operator: value.Operator.String(),
+				}
+			}
+
 			tableRelations := make([]message.TableRelation, len(pbMsg.DeleteRecord.TableRelations))
 			for i, tr := range pbMsg.DeleteRecord.TableRelations {
 				tableRelations[i] = message.TableRelation{
@@ -315,7 +314,7 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 				DeleteRecord: message.DeleteRecord{
 					TableName:      pbMsg.DeleteRecord.TableName,
 					TableRelations: tableRelations,
-					WhereClauses:   whereClauses,
+					WhereClause:    whereClause,
 				},
 			}
 		}

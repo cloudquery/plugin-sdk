@@ -146,12 +146,10 @@ type WhereClause struct {
 
 type TableRelations []TableRelation
 
-type WhereClauses []WhereClause
-
 type DeleteRecord struct {
 	TableName      string
 	TableRelations TableRelations
-	WhereClauses   WhereClauses
+	WhereClause    WhereClause
 	SyncTime       time.Time
 }
 

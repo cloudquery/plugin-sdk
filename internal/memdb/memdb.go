@@ -265,15 +265,14 @@ func (c *client) deleteRecord(_ context.Context, msg *message.WriteDeleteRecord)
 	tableName := msg.TableName
 	for i, row := range c.memoryDB[tableName] {
 		isMatch := true
-		for _, whereClause := range msg.WhereClauses {
-			for _, pred := range whereClause.And {
-				isMatch = isMatch && evaluatePredicate(pred, row)
-			}
-
-			for _, pred := range whereClause.Or {
-				isMatch = isMatch || evaluatePredicate(pred, row)
-			}
+		for _, pred := range msg.WhereClause.And {
+			isMatch = isMatch && evaluatePredicate(pred, row)
 		}
+
+		for _, pred := range msg.WhereClause.Or {
+			isMatch = isMatch || evaluatePredicate(pred, row)
+		}
+
 		if !isMatch {
 			filteredTable = append(filteredTable, c.memoryDB[tableName][i])
 		}

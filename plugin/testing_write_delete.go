@@ -184,14 +184,12 @@ func (s *WriterTestSuite) testDeleteRecordBasic(ctx context.Context) {
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteDeleteRecord{
 		DeleteRecord: message.DeleteRecord{
 			TableName: table.Name,
-			WhereClauses: message.WhereClauses{
-				{
-					And: []message.Predicate{
-						{
-							Operator: "eq",
-							Column:   "id",
-							Record:   deleteValue,
-						},
+			WhereClause: message.WhereClause{
+				And: []message.Predicate{
+					{
+						Operator: "eq",
+						Column:   "id",
+						Record:   deleteValue,
 					},
 				},
 			},
@@ -216,14 +214,12 @@ func (s *WriterTestSuite) testDeleteRecordBasic(ctx context.Context) {
 	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteDeleteRecord{
 		DeleteRecord: message.DeleteRecord{
 			TableName: table.Name,
-			WhereClauses: message.WhereClauses{
-				{
-					And: []message.Predicate{
-						{
-							Operator: "eq",
-							Column:   "id",
-							Record:   deleteValue,
-						},
+			WhereClause: message.WhereClause{
+				And: []message.Predicate{
+					{
+						Operator: "eq",
+						Column:   "id",
+						Record:   deleteValue,
 					},
 				},
 			},
