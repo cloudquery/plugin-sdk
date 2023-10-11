@@ -289,9 +289,15 @@ func evaluatePredicate(pred message.Predicate, record arrow.Record) bool {
 		return false
 	}
 	syncColIndex := indices[0]
+
+	if record.Column(syncColIndex).DataType() != pred.Record.Column(0).DataType() {
+		return false
+	}
+	// dataType := record.Column(syncColIndex).DataType()
 	switch pred.Operator {
 	case "eq":
-		return record.Column(syncColIndex).(*array.String).Value(0) == pred.Record.Column(syncColIndex).(*array.String).Value(0)
+		return record.Column(syncColIndex).String() == pred.Record.Column(0).String()
+		// return record.Column(syncColIndex).(*array.String).Value(0) == pred.Record.Column(0).(*array.String).Value(0)
 	default:
 		return false
 	}
