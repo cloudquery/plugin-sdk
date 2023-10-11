@@ -265,12 +265,23 @@ func (c *client) deleteRecord(_ context.Context, msg *message.WriteDeleteRecord)
 	tableName := msg.TableName
 	for i, row := range c.memoryDB[tableName] {
 		isMatch := true
-		for _, pred := range msg.WhereClause.And {
-			isMatch = isMatch && evaluatePredicate(pred, row)
-		}
-
-		for _, pred := range msg.WhereClause.Or {
-			isMatch = isMatch || evaluatePredicate(pred, row)
+		// Groups are evaluated as AND
+		for _, predGroup := range msg.WhereClause {
+			for _, pred := range predGroup.Predicates {
+				predResult := evaluatePredicate(pred, row)
+				if predGroup.GroupingType == "AND" {
+					isMatch = isMatch && predResult
+				} else {
+					if predResult {
+						isMatch = true
+						break
+					}
+				}
+			}
+			// If any single predicate group is false then we can break out of the loop
+			if !isMatch {
+				break
+			}
 		}
 
 		if !isMatch {

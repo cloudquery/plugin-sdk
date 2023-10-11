@@ -134,22 +134,28 @@ type TableRelation struct {
 	ParentTable string
 }
 
+type TableRelations []TableRelation
+
 type Predicate struct {
 	Operator string
 	Column   string
 	Record   arrow.Record
 }
-type WhereClause struct {
-	And []Predicate
-	Or  []Predicate
+
+type Predicates []Predicate
+
+type PredicateGroup struct {
+	// This will be AND or OR
+	GroupingType string
+	Predicates   Predicates
 }
 
-type TableRelations []TableRelation
+type PredicateGroups []PredicateGroup
 
 type DeleteRecord struct {
 	TableName      string
 	TableRelations TableRelations
-	WhereClause    WhereClause
+	WhereClause    PredicateGroups
 	SyncTime       time.Time
 }
 

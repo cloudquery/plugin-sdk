@@ -157,31 +157,24 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 				},
 			}
 		case *message.SyncDeleteRecord:
-			var whereClause *pb.WhereClause
-			whereClause.And = make([]*pb.Predicate, len(whereClause.And))
-			for j, value := range m.WhereClause.And {
-				record, err := pb.RecordToBytes(value.Record)
-				if err != nil {
-					return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+			whereClause := make([]*pb.PredicatesGroup, len(m.WhereClause))
+			for j, predicateGroup := range m.WhereClause {
+				whereClause[j] = &pb.PredicatesGroup{
+					GroupingType: pb.PredicatesGroup_GroupingType(pb.PredicatesGroup_GroupingType_value[predicateGroup.GroupingType]),
+					Predicates:   make([]*pb.Predicate, len(predicateGroup.Predicates)),
 				}
-				whereClause.And[j] = &pb.Predicate{
-					Record:   record,
-					Column:   value.Column,
-					Operator: pb.Predicate_Operator(pb.Predicate_Operator_value[value.Operator]),
-				}
-			}
-			whereClause.Or = make([]*pb.Predicate, len(whereClause.Or))
-			for j, value := range m.WhereClause.Or {
-				record, err := pb.RecordToBytes(value.Record)
-				if err != nil {
-					return status.Errorf(codes.Internal, "failed to encode record: %v", err)
-				}
-				whereClause.Or[j] = &pb.Predicate{
-					Record:   record,
-					Column:   value.Column,
-					Operator: pb.Predicate_Operator(pb.Predicate_Operator_value[value.Operator]),
-				}
+				for i, predicate := range predicateGroup.Predicates {
+					record, err := pb.RecordToBytes(predicate.Record)
+					if err != nil {
+						return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+					}
 
+					whereClause[j].Predicates[i] = &pb.Predicate{
+						Record:   record,
+						Column:   predicate.Column,
+						Operator: pb.Predicate_Operator(pb.Predicate_Operator_value[predicate.Operator]),
+					}
+				}
 			}
 
 			tableRelations := make([]*pb.TableRelation, len(m.TableRelations))
@@ -274,32 +267,21 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 			}
 
 		case *pb.Write_Request_DeleteRecord:
-			var whereClause message.WhereClause
+			whereClause := make(message.PredicateGroups, len(pbMsg.DeleteRecord.WhereClause))
 
-			whereClause.And = make([]message.Predicate, len(whereClause.And))
-			for j, value := range pbMsg.DeleteRecord.WhereClause.And {
-				record, err := pb.NewRecordFromBytes(value.Record)
-				if err != nil {
-					pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
-					break
-				}
-				whereClause.And[j] = message.Predicate{
-					Record:   record,
-					Column:   value.Column,
-					Operator: value.Operator.String(),
-				}
-			}
-			whereClause.Or = make([]message.Predicate, len(whereClause.Or))
-			for j, value := range pbMsg.DeleteRecord.WhereClause.Or {
-				record, err := pb.NewRecordFromBytes(value.Record)
-				if err != nil {
-					pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
-					break
-				}
-				whereClause.Or[j] = message.Predicate{
-					Record:   record,
-					Column:   value.Column,
-					Operator: value.Operator.String(),
+			for j, predicateGroup := range pbMsg.DeleteRecord.WhereClause {
+				whereClause[j].Predicates = make(message.Predicates, len(predicateGroup.Predicates))
+				for i, predicate := range predicateGroup.Predicates {
+					record, err := pb.NewRecordFromBytes(predicate.Record)
+					if err != nil {
+						pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+						break
+					}
+					whereClause[j].Predicates[i] = message.Predicate{
+						Record:   record,
+						Column:   predicate.Column,
+						Operator: predicate.Operator.String(),
+					}
 				}
 			}
 
