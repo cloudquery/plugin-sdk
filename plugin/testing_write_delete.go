@@ -142,3 +142,126 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context) {
 	require.EqualValuesf(s.t, rowsPerRecord, TotalRows(readRecords), "unexpected amount of items after second delete stale")
 	require.Emptyf(s.t, RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{nullRecord}), "record differs")
 }
+
+func (s *WriterTestSuite) testDeleteRecordBasic(ctx context.Context) {
+	tableName := s.tableNameForTest("delete_all_rows")
+	syncTime := time.Now().UTC().Truncate(s.genDatOptions.TimePrecision).
+		Truncate(time.Microsecond) // https://github.com/golang/go/issues/41087
+	table := &schema.Table{
+		Name: tableName,
+		Columns: schema.ColumnList{
+			schema.Column{Name: "id", Type: arrow.PrimitiveTypes.Int64, PrimaryKey: true, NotNull: true},
+			schema.CqSourceNameColumn,
+			schema.CqSyncTimeColumn,
+		},
+	}
+	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteMigrateTable{Table: table}), "failed to create table")
+	const sourceName = "source-test"
+
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+	bldr.Field(0).(*array.Int64Builder).Append(0)
+	bldr.Field(1).(*array.StringBuilder).Append(sourceName)
+	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime)
+	record1 := bldr.NewRecord()
+
+	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteInsert{Record: record1}), "failed to insert record")
+	record1 = s.handleNulls(record1) // we process nulls after writing
+
+	records, err := s.plugin.readAll(ctx, table)
+	require.NoErrorf(s.t, err, "failed to read")
+	require.EqualValuesf(s.t, 1, TotalRows(records), "unexpected amount of items")
+
+	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteDeleteRecord{
+		DeleteRecord: message.DeleteRecord{
+			TableName: table.Name,
+		},
+	}), "failed to delete stale records")
+
+	records, err = s.plugin.readAll(ctx, table)
+	require.NoErrorf(s.t, err, "failed to read after delete stale")
+	require.EqualValuesf(s.t, 1, TotalRows(records), "unexpected amount of items after delete stale")
+	require.Emptyf(s.t, RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record1}), "record differs after delete stale")
+
+	bldr.Field(0).(*array.Int64Builder).Append(1)
+	bldr.Field(1).(*array.StringBuilder).Append(sourceName)
+	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime.Add(time.Second))
+	record2 := bldr.NewRecord()
+
+	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteInsert{Record: record2}), "failed to insert second record")
+	record2 = s.handleNulls(record2) // we process nulls after writing
+
+	records, err = s.plugin.readAll(ctx, table)
+	require.NoErrorf(s.t, err, "failed to read second time")
+	sortRecords(table, records, "id")
+	require.EqualValuesf(s.t, 2, TotalRows(records), "unexpected amount of items second time")
+	require.Emptyf(s.t, RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record1, record2}), "record differs after delete stale")
+
+	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteDeleteStale{
+		TableName:  table.Name,
+		SourceName: sourceName,
+		SyncTime:   syncTime.Add(time.Second),
+	}), "failed to delete stale records second time")
+
+	records, err = s.plugin.readAll(ctx, table)
+	require.NoErrorf(s.t, err, "failed to read after second delete stale")
+	require.EqualValuesf(s.t, 1, TotalRows(records), "unexpected amount of items after second delete stale")
+	require.Emptyf(s.t, RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record2}), "record differs after second delete stale")
+}
+
+func (s *WriterTestSuite) testDeleteAllRecords(ctx context.Context) {
+	tableName := s.tableNameForTest("delete_all_records")
+	syncTime := time.Now().UTC().Truncate(s.genDatOptions.TimePrecision).
+		Truncate(time.Microsecond) // https://github.com/golang/go/issues/41087
+	table := &schema.Table{
+		Name: tableName,
+		Columns: schema.ColumnList{
+			schema.Column{Name: "id", Type: arrow.PrimitiveTypes.Int64, PrimaryKey: true, NotNull: true},
+			schema.CqSourceNameColumn,
+			schema.CqSyncTimeColumn,
+		},
+	}
+	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteMigrateTable{Table: table}), "failed to create table")
+	const sourceName = "source-test"
+
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+	bldr.Field(0).(*array.Int64Builder).Append(0)
+	bldr.Field(1).(*array.StringBuilder).Append(sourceName)
+	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime)
+	record1 := bldr.NewRecord()
+
+	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteInsert{Record: record1}), "failed to insert record")
+	record1 = s.handleNulls(record1) // we process nulls after writing
+
+	records, err := s.plugin.readAll(ctx, table)
+	require.NoErrorf(s.t, err, "failed to read")
+	require.EqualValuesf(s.t, 1, TotalRows(records), "unexpected amount of items")
+
+	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteDeleteRecord{
+		DeleteRecord: message.DeleteRecord{
+			TableName: table.Name,
+		},
+	}), "failed to delete records")
+
+	records, err = s.plugin.readAll(ctx, table)
+	require.NoErrorf(s.t, err, "failed to read after delete all records")
+	require.EqualValuesf(s.t, 0, TotalRows(records), "unexpected amount of items after delete stale")
+
+	bldr.Field(0).(*array.Int64Builder).Append(1)
+	bldr.Field(1).(*array.StringBuilder).Append(sourceName)
+	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime.Add(time.Second))
+	record2 := bldr.NewRecord()
+
+	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteInsert{Record: record2}), "failed to insert second record")
+	record2 = s.handleNulls(record2) // we process nulls after writing
+
+	require.NoErrorf(s.t, s.plugin.writeOne(ctx, &message.WriteDeleteRecord{
+		DeleteRecord: message.DeleteRecord{
+			TableName: table.Name,
+		},
+	}), "failed to delete records second time")
+
+	records, err = s.plugin.readAll(ctx, table)
+	require.NoErrorf(s.t, err, "failed to read second time")
+	sortRecords(table, records, "id")
+	require.EqualValuesf(s.t, 0, TotalRows(records), "unexpected amount of items second time")
+}
