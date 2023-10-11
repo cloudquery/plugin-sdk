@@ -148,6 +148,15 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 		})
 	})
 
+	t.Run("TestDeleteRecord", func(t *testing.T) {
+		// t.Run("Basic", func(t *testing.T) {
+		// 	suite.testDeleteRecordBasic(ctx)
+		// })
+		t.Run("DeleteAll", func(t *testing.T) {
+			suite.testDeleteAllRecords(ctx)
+		})
+	})
+
 	t.Run("TestMigrate", func(t *testing.T) {
 		if suite.tests.SkipMigrate {
 			t.Skip("skipping " + t.Name())
