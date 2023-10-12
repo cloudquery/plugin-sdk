@@ -235,7 +235,6 @@ func (s *WriterTestSuite) testDeleteRecordBasic(ctx context.Context) {
 	records, err = s.plugin.readAll(ctx, table)
 	require.NoErrorf(s.t, err, "failed to read after delete with match")
 	require.EqualValuesf(s.t, 0, TotalRows(records), "unexpected amount of items after delete with match")
-
 }
 
 func (s *WriterTestSuite) testDeleteAllRecords(ctx context.Context) {

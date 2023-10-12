@@ -271,11 +271,9 @@ func (c *client) deleteRecord(_ context.Context, msg *message.WriteDeleteRecord)
 				predResult := evaluatePredicate(pred, row)
 				if predGroup.GroupingType == "AND" {
 					isMatch = isMatch && predResult
-				} else {
-					if predResult {
-						isMatch = true
-						break
-					}
+				} else if predResult {
+					isMatch = true
+					break
 				}
 			}
 			// If any single predicate group is false then we can break out of the loop
@@ -287,7 +285,6 @@ func (c *client) deleteRecord(_ context.Context, msg *message.WriteDeleteRecord)
 		if !isMatch {
 			filteredTable = append(filteredTable, c.memoryDB[tableName][i])
 		}
-
 	}
 	c.memoryDB[tableName] = filteredTable
 }
