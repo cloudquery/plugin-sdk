@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.12.5](https://github.com/cloudquery/plugin-sdk/compare/v4.12.4...v4.12.5) (2023-10-12)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.2.7 ([#1285](https://github.com/cloudquery/plugin-sdk/issues/1285)) ([e27875e](https://github.com/cloudquery/plugin-sdk/commit/e27875ea0e9bc1bee07214f87cd689c67da2b04e))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.2.8 ([#1286](https://github.com/cloudquery/plugin-sdk/issues/1286)) ([9d9eb10](https://github.com/cloudquery/plugin-sdk/commit/9d9eb1007e43928de7994772c58e352acf43f7dd))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.12.2 ([#1287](https://github.com/cloudquery/plugin-sdk/issues/1287)) ([57e4795](https://github.com/cloudquery/plugin-sdk/commit/57e479507a9d4244d8a2f82731c192570ae4c6b7))
+* **deps:** Update module golang.org/x/net to v0.17.0 [SECURITY] ([#1283](https://github.com/cloudquery/plugin-sdk/issues/1283)) ([4e5f9de](https://github.com/cloudquery/plugin-sdk/commit/4e5f9de50a76a29b44164a9072f179c3915b9fbb))
+
 ## [4.12.4](https://github.com/cloudquery/plugin-sdk/compare/v4.12.3...v4.12.4) (2023-10-10)
 
 
