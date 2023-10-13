@@ -211,6 +211,8 @@ func (c *client) Write(ctx context.Context, msgs <-chan message.WriteMessage) er
 			c.migrate(ctx, msg.Table)
 		case *message.WriteDeleteStale:
 			c.deleteStale(ctx, msg)
+		case *message.WriteDeleteRecord:
+			c.deleteRecord(ctx, msg)
 		case *message.WriteInsert:
 			sc := msg.Record.Schema()
 			tableName, ok := sc.Metadata().GetValue(schema.MetadataTableName)
@@ -256,4 +258,54 @@ func (c *client) deleteStale(_ context.Context, msg *message.WriteDeleteStale) {
 		}
 	}
 	c.memoryDB[tableName] = filteredTable
+}
+
+func (c *client) deleteRecord(_ context.Context, msg *message.WriteDeleteRecord) {
+	var filteredTable []arrow.Record
+	tableName := msg.TableName
+	for i, row := range c.memoryDB[tableName] {
+		isMatch := true
+		// Groups are evaluated as AND
+		for _, predGroup := range msg.WhereClause {
+			for _, pred := range predGroup.Predicates {
+				predResult := evaluatePredicate(pred, row)
+				if predGroup.GroupingType == "AND" {
+					isMatch = isMatch && predResult
+				} else if predResult {
+					isMatch = true
+					break
+				}
+			}
+			// If any single predicate group is false then we can break out of the loop
+			if !isMatch {
+				break
+			}
+		}
+
+		if !isMatch {
+			filteredTable = append(filteredTable, c.memoryDB[tableName][i])
+		}
+	}
+	c.memoryDB[tableName] = filteredTable
+}
+
+func evaluatePredicate(pred message.Predicate, record arrow.Record) bool {
+	sc := record.Schema()
+	indices := sc.FieldIndices(pred.Column)
+	if len(indices) == 0 {
+		return false
+	}
+	syncColIndex := indices[0]
+
+	if record.Column(syncColIndex).DataType() != pred.Record.Column(0).DataType() {
+		return false
+	}
+	// dataType := record.Column(syncColIndex).DataType()
+	switch pred.Operator {
+	case "eq":
+		return record.Column(syncColIndex).String() == pred.Record.Column(0).String()
+		// return record.Column(syncColIndex).(*array.String).Value(0) == pred.Record.Column(0).(*array.String).Value(0)
+	default:
+		return false
+	}
 }

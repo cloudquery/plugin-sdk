@@ -10,6 +10,7 @@ import (
 type testDummyClient struct {
 	mixedbatchwriter.IgnoreMigrateTableBatch
 	mixedbatchwriter.UnimplementedDeleteStaleBatch
+	mixedbatchwriter.UnimplementedDeleteRecordsBatch
 }
 
 func (testDummyClient) InsertBatch(context.Context, message.WriteInserts) error {

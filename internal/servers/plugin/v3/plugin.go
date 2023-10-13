@@ -156,6 +156,41 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 					Record: recordBytes,
 				},
 			}
+		case *message.SyncDeleteRecord:
+			whereClause := make([]*pb.PredicatesGroup, len(m.WhereClause))
+			for j, predicateGroup := range m.WhereClause {
+				whereClause[j] = &pb.PredicatesGroup{
+					GroupingType: pb.PredicatesGroup_GroupingType(pb.PredicatesGroup_GroupingType_value[predicateGroup.GroupingType]),
+					Predicates:   make([]*pb.Predicate, len(predicateGroup.Predicates)),
+				}
+				for i, predicate := range predicateGroup.Predicates {
+					record, err := pb.RecordToBytes(predicate.Record)
+					if err != nil {
+						return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+					}
+
+					whereClause[j].Predicates[i] = &pb.Predicate{
+						Record:   record,
+						Column:   predicate.Column,
+						Operator: pb.Predicate_Operator(pb.Predicate_Operator_value[predicate.Operator]),
+					}
+				}
+			}
+
+			tableRelations := make([]*pb.TableRelation, len(m.TableRelations))
+			for i, tr := range m.TableRelations {
+				tableRelations[i] = &pb.TableRelation{
+					TableName:   tr.TableName,
+					ParentTable: tr.ParentTable,
+				}
+			}
+			pbMsg.Message = &pb.Sync_Response_DeleteRecord{
+				DeleteRecord: &pb.Sync_MessageDeleteRecord{
+					TableName:      m.TableName,
+					TableRelations: tableRelations,
+					WhereClause:    whereClause,
+				},
+			}
 		default:
 			return status.Errorf(codes.Internal, "unknown message type: %T", msg)
 		}
@@ -229,6 +264,40 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 				TableName:  pbMsg.Delete.TableName,
 				SourceName: pbMsg.Delete.SourceName,
 				SyncTime:   pbMsg.Delete.SyncTime.AsTime(),
+			}
+
+		case *pb.Write_Request_DeleteRecord:
+			whereClause := make(message.PredicateGroups, len(pbMsg.DeleteRecord.WhereClause))
+
+			for j, predicateGroup := range pbMsg.DeleteRecord.WhereClause {
+				whereClause[j].Predicates = make(message.Predicates, len(predicateGroup.Predicates))
+				for i, predicate := range predicateGroup.Predicates {
+					record, err := pb.NewRecordFromBytes(predicate.Record)
+					if err != nil {
+						pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+						break
+					}
+					whereClause[j].Predicates[i] = message.Predicate{
+						Record:   record,
+						Column:   predicate.Column,
+						Operator: predicate.Operator.String(),
+					}
+				}
+			}
+
+			tableRelations := make([]message.TableRelation, len(pbMsg.DeleteRecord.TableRelations))
+			for i, tr := range pbMsg.DeleteRecord.TableRelations {
+				tableRelations[i] = message.TableRelation{
+					TableName:   tr.TableName,
+					ParentTable: tr.ParentTable,
+				}
+			}
+			pluginMessage = &message.WriteDeleteRecord{
+				DeleteRecord: message.DeleteRecord{
+					TableName:      pbMsg.DeleteRecord.TableName,
+					TableRelations: tableRelations,
+					WhereClause:    whereClause,
+				},
 			}
 		}
 
