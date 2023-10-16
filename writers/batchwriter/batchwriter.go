@@ -241,6 +241,20 @@ func (w *BatchWriter) writeAll(ctx context.Context, msgs []message.WriteMessage)
 func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
 	for msg := range msgs {
 		switch m := msg.(type) {
+		case *message.WriteDeleteStale:
+			if err := w.flushMigrateTables(ctx); err != nil {
+				return err
+			}
+			w.flushInsert(m.TableName)
+			w.deleteStaleLock.Lock()
+			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
+			l := len(w.deleteStaleMessages)
+			w.deleteStaleLock.Unlock()
+			if w.batchSize > 0 && l > w.batchSize {
+				if err := w.flushDeleteStaleTables(ctx); err != nil {
+					return err
+				}
+			}
 		case *message.WriteDeleteRecord:
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err

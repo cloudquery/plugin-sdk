@@ -40,7 +40,7 @@ type Client interface {
 	// DeleteStale should block and handle WriteDeleteStale messages until the channel is closed.
 	DeleteStale(context.Context, <-chan *message.WriteDeleteStale) error
 
-	// DeleteStale should block and handle WriteDeleteRecords messages until the channel is closed.
+	// DeleteRecords should block and handle WriteDeleteRecord messages until the channel is closed.
 	DeleteRecords(context.Context, <-chan *message.WriteDeleteRecord) error
 
 	// WriteTable should block and handle writes to a single table until the channel is closed. Table metadata can be found in the first WriteInsert message.
