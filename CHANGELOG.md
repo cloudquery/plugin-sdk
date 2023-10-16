@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.14.0](https://github.com/cloudquery/plugin-sdk/compare/v4.13.0...v4.14.0) (2023-10-16)
+
+
+### Features
+
+* Support DeleteRecord in all writers ([#1295](https://github.com/cloudquery/plugin-sdk/issues/1295)) ([5a02e27](https://github.com/cloudquery/plugin-sdk/commit/5a02e27525a2c225b55bd0e668be6038035630d5))
+
 ## [4.13.0](https://github.com/cloudquery/plugin-sdk/compare/v4.12.5...v4.13.0) (2023-10-16)
 
 
