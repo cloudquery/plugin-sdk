@@ -302,7 +302,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		}
 		ch := make(chan *message.WriteDeleteRecord)
 		flush := make(chan chan bool)
-		// TODO: flush all workers for nested tables as well
+		// TODO: flush all workers for nested tables as well (See https://github.com/cloudquery/plugin-sdk/issues/1296)
 		w.deleteRecordWorker = &streamingWorkerManager[*message.WriteDeleteRecord]{
 			ch:        ch,
 			writeFunc: w.client.DeleteRecords,
