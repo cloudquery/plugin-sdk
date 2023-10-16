@@ -105,13 +105,17 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersion string) (*TargetBuild, error) {
 	pluginName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, goos, goarch)
 	pluginPath := path.Join(distPath, pluginName)
-	args := []string{"build", "-o", pluginPath}
 	importPath, err := s.getModuleName(pluginDirectory)
 	if err != nil {
 		return nil, err
 	}
+	ldFlags := fmt.Sprintf("-s -w -X %s/plugin.Version=%s", importPath, pluginVersion)
+	if s.plugin.IsStaticLinkingEnabled() {
+		ldFlags += " -linkmode external -extldflags=-static"
+	}
+	args := []string{"build", "-o", pluginPath}
 	args = append(args, "-buildmode=exe")
-	args = append(args, "-ldflags", fmt.Sprintf("-s -w -X %s/plugin.Version=%s", importPath, pluginVersion))
+	args = append(args, "-ldflags", ldFlags)
 	cmd := exec.Command("go", args...)
 	cmd.Dir = pluginDirectory
 	cmd.Stdout = os.Stdout

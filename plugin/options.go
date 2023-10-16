@@ -29,6 +29,12 @@ func WithJSONSchema(schema string) Option {
 	}
 }
 
+func WithStaticLinking() Option {
+	return func(p *Plugin) {
+		p.staticLinking = true
+	}
+}
+
 type TableOptions struct {
 	Tables              []string
 	SkipTables          []string
