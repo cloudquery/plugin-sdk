@@ -19,3 +19,9 @@ type UnimplementedDeleteStale struct{}
 func (UnimplementedDeleteStale) DeleteStale(context.Context, message.WriteDeleteStales) error {
 	return fmt.Errorf("DeleteStale: %w", plugin.ErrNotImplemented)
 }
+
+type UnimplementedDeleteRecord struct{}
+
+func (UnimplementedDeleteRecord) DeleteRecord(context.Context, message.WriteDeleteRecords) error {
+	return fmt.Errorf("DeleteRecord: %w", plugin.ErrNotImplemented)
+}

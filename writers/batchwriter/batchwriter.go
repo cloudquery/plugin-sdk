@@ -17,6 +17,7 @@ type Client interface {
 	MigrateTables(context.Context, message.WriteMigrateTables) error
 	WriteTableBatch(ctx context.Context, name string, messages message.WriteInserts) error
 	DeleteStale(context.Context, message.WriteDeleteStales) error
+	DeleteRecord(context.Context, message.WriteDeleteRecords) error
 }
 
 type BatchWriter struct {
@@ -29,6 +30,8 @@ type BatchWriter struct {
 	migrateTableMessages message.WriteMigrateTables
 	deleteStaleLock      sync.Mutex
 	deleteStaleMessages  message.WriteDeleteStales
+	deleteRecordLock     sync.Mutex
+	deleteRecordMessages message.WriteDeleteRecords
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
@@ -199,6 +202,19 @@ func (w *BatchWriter) flushDeleteStaleTables(ctx context.Context) error {
 	return nil
 }
 
+func (w *BatchWriter) flushDeleteRecordTables(ctx context.Context) error {
+	w.deleteRecordLock.Lock()
+	defer w.deleteRecordLock.Unlock()
+	if len(w.deleteRecordMessages) == 0 {
+		return nil
+	}
+	if err := w.client.DeleteRecord(ctx, w.deleteRecordMessages); err != nil {
+		return err
+	}
+	w.deleteRecordMessages = w.deleteRecordMessages[:0]
+	return nil
+}
+
 func (w *BatchWriter) flushInsert(tableName string) {
 	w.workersLock.RLock()
 	worker, ok := w.workers[tableName]
@@ -236,6 +252,26 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.deleteStaleLock.Unlock()
 			if w.batchSize > 0 && l > w.batchSize {
 				if err := w.flushDeleteStaleTables(ctx); err != nil {
+					return err
+				}
+			}
+		case *message.WriteDeleteRecord:
+			if err := w.flushMigrateTables(ctx); err != nil {
+				return err
+			}
+			if err := w.flushDeleteStaleTables(ctx); err != nil {
+				return err
+			}
+			// Ensure all related workers are flushed
+			for _, rel := range m.TableRelations {
+				w.flushInsert(rel.TableName)
+			}
+			w.deleteRecordLock.Lock()
+			w.deleteRecordMessages = append(w.deleteRecordMessages, m)
+			l := len(w.deleteRecordMessages)
+			w.deleteRecordLock.Unlock()
+			if w.batchSize > 0 && l > w.batchSize {
+				if err := w.flushDeleteRecordTables(ctx); err != nil {
 					return err
 				}
 			}

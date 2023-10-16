@@ -27,3 +27,12 @@ func (UnimplementedDeleteStale) DeleteStale(_ context.Context, ch <-chan *messag
 	}
 	return fmt.Errorf("DeleteStale: %w", plugin.ErrNotImplemented)
 }
+
+type UnimplementedDeleteRecords struct{}
+
+func (UnimplementedDeleteRecords) DeleteRecords(_ context.Context, ch <-chan *message.WriteDeleteRecord) error {
+	// nolint:revive
+	for range ch {
+	}
+	return fmt.Errorf("DeleteRecords: %w", plugin.ErrNotImplemented)
+}

@@ -19,6 +19,7 @@ const (
 	messageTypeMigrateTable messageType = iota
 	messageTypeInsert
 	messageTypeDeleteStale
+	messageTypeDeleteRecord
 )
 
 type testStreamingBatchClient struct {
@@ -77,6 +78,14 @@ func (c *testStreamingBatchClient) DeleteStale(ctx context.Context, msgs <-chan 
 		key = c.handleTypeMessage(ctx, messageTypeDeleteStale, m, key)
 	}
 	return c.handleTypeCommit(ctx, messageTypeDeleteStale, key)
+}
+
+func (c *testStreamingBatchClient) DeleteRecords(ctx context.Context, msgs <-chan *message.WriteDeleteRecord) error {
+	key := ""
+	for m := range msgs {
+		key = c.handleTypeMessage(ctx, messageTypeDeleteRecord, m, key)
+	}
+	return c.handleTypeCommit(ctx, messageTypeDeleteRecord, key)
 }
 
 func (c *testStreamingBatchClient) handleTypeMessage(_ context.Context, t messageType, msg message.WriteMessage, key string) string {
