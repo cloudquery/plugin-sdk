@@ -18,6 +18,7 @@ type testBatchClient struct {
 	migrateTables message.WriteMigrateTables
 	inserts       message.WriteInserts
 	deleteStales  message.WriteDeleteStales
+	deleteRecords message.WriteDeleteRecords
 }
 
 func (c *testBatchClient) MigrateTablesLen() int {
@@ -55,6 +56,13 @@ func (c *testBatchClient) DeleteStale(_ context.Context, messages message.WriteD
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.deleteStales = append(c.deleteStales, messages...)
+	return nil
+}
+
+func (c *testBatchClient) DeleteRecord(_ context.Context, messages message.WriteDeleteRecords) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.deleteRecords = append(c.deleteRecords, messages...)
 	return nil
 }
 
