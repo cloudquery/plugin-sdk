@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.0](https://github.com/cloudquery/plugin-sdk/compare/v4.12.5...v4.13.0) (2023-10-16)
+
+
+### Features
+
+* Add support for conditional static linking of C lib to builds ([#1292](https://github.com/cloudquery/plugin-sdk/issues/1292)) ([7c27065](https://github.com/cloudquery/plugin-sdk/commit/7c27065c6ac9a4f84b8ea7dc7024f01677cc6357))
+* Support Delete Record ([#1282](https://github.com/cloudquery/plugin-sdk/issues/1282)) ([1f0a603](https://github.com/cloudquery/plugin-sdk/commit/1f0a6039e61d64ee0530c6a195ee38ba183dad7f))
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v14 digest to dbcb149 ([#1291](https://github.com/cloudquery/plugin-sdk/issues/1291)) ([7c634dc](https://github.com/cloudquery/plugin-sdk/commit/7c634dc1e8e0ef6959a73922938ff8280d326682))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.12.3 ([#1289](https://github.com/cloudquery/plugin-sdk/issues/1289)) ([3e063bc](https://github.com/cloudquery/plugin-sdk/commit/3e063bc7eda88938d96ee94bc7ebdc062d4822f2))
+
 ## [4.12.5](https://github.com/cloudquery/plugin-sdk/compare/v4.12.4...v4.12.5) (2023-10-12)
 
 
