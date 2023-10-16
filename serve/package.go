@@ -110,7 +110,7 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 		return nil, err
 	}
 	ldFlags := fmt.Sprintf("-s -w -X %s/plugin.Version=%s", importPath, pluginVersion)
-	if getEnvOrDefault("STATIC_LINKING_ENABLED", "0") == "1" {
+	if s.plugin.IsStaticLinkingEnabled() {
 		ldFlags += " -linkmode external -extldflags=-static"
 	}
 	args := []string{"build", "-o", pluginPath}
