@@ -34,5 +34,5 @@ func (UnimplementedDeleteRecords) DeleteRecords(_ context.Context, ch <-chan *me
 	// nolint:revive
 	for range ch {
 	}
-	return fmt.Errorf("DeleteRecordsBatch: %w", plugin.ErrNotImplemented)
+	return fmt.Errorf("DeleteRecords: %w", plugin.ErrNotImplemented)
 }

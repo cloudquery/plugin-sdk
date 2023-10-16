@@ -203,8 +203,8 @@ func (w *BatchWriter) flushDeleteStaleTables(ctx context.Context) error {
 }
 
 func (w *BatchWriter) flushDeleteRecordTables(ctx context.Context) error {
-	w.deleteStaleLock.Lock()
-	defer w.deleteStaleLock.Unlock()
+	w.deleteRecordLock.Lock()
+	defer w.deleteRecordLock.Unlock()
 	if len(w.deleteRecordMessages) == 0 {
 		return nil
 	}
@@ -269,7 +269,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.deleteRecordLock.Lock()
 			w.deleteRecordMessages = append(w.deleteRecordMessages, m)
 			l := len(w.deleteRecordMessages)
-			w.deleteStaleLock.Unlock()
+			w.deleteRecordLock.Unlock()
 			if w.batchSize > 0 && l > w.batchSize {
 				if err := w.flushDeleteRecordTables(ctx); err != nil {
 					return err

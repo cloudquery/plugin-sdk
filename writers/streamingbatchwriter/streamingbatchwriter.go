@@ -138,6 +138,11 @@ func (w *StreamingBatchWriter) Flush(_ context.Context) error {
 		w.deleteStaleWorker.flush <- done
 		<-done
 	}
+	if w.deleteRecordWorker != nil {
+		done := make(chan bool)
+		w.deleteRecordWorker.flush <- done
+		<-done
+	}
 	for _, worker := range w.insertWorkers {
 		done := make(chan bool)
 		worker.flush <- done
@@ -160,13 +165,14 @@ func (w *StreamingBatchWriter) Close(context.Context) error {
 		close(w.deleteStaleWorker.ch)
 	}
 	if w.deleteRecordWorker != nil {
-		close(w.deleteStaleWorker.ch)
+		close(w.deleteRecordWorker.ch)
 	}
 	w.workersWaitGroup.Wait()
 
 	w.insertWorkers = make(map[string]*streamingWorkerManager[*message.WriteInsert])
 	w.migrateWorker = nil
 	w.deleteStaleWorker = nil
+	w.deleteRecordWorker = nil
 	w.lastMsgType = writers.MsgTypeUnset
 
 	return nil
