@@ -52,6 +52,9 @@ type WriterTestSuiteTests struct {
 	// SkipDeleteStale skips testing message.Delete events.
 	SkipDeleteStale bool
 
+	// SkipDeleteRecord skips testing message.DeleteRecord events.
+	SkipDeleteRecord bool
+
 	// SkipAppend skips testing message.Insert and Upsert=false.
 	SkipInsert bool
 
@@ -149,6 +152,9 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 	})
 
 	t.Run("TestDeleteRecord", func(t *testing.T) {
+		if suite.tests.SkipDeleteRecord {
+			t.Skip("skipping " + t.Name())
+		}
 		t.Run("Basic", func(t *testing.T) {
 			suite.testDeleteRecordBasic(ctx)
 		})
