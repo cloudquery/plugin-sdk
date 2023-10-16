@@ -10,6 +10,7 @@ import (
 type testDummyClient struct {
 	streamingbatchwriter.IgnoreMigrateTable
 	streamingbatchwriter.UnimplementedDeleteStale
+	streamingbatchwriter.UnimplementedDeleteRecordsBatch
 }
 
 func (testDummyClient) WriteTable(context.Context, <-chan *message.WriteInsert) error {

@@ -40,6 +40,9 @@ type Client interface {
 	// DeleteStale should block and handle WriteDeleteStale messages until the channel is closed.
 	DeleteStale(context.Context, <-chan *message.WriteDeleteStale) error
 
+	// DeleteStale should block and handle WriteDeleteRecords messages until the channel is closed.
+	DeleteRecords(context.Context, <-chan *message.WriteDeleteRecord) error
+
 	// WriteTable should block and handle writes to a single table until the channel is closed. Table metadata can be found in the first WriteInsert message.
 	// The channel is closed when all inserts in the batch have been sent. New batches, if any, will be sent on a new call to WriteTable.
 	WriteTable(context.Context, <-chan *message.WriteInsert) error
@@ -48,9 +51,11 @@ type Client interface {
 type StreamingBatchWriter struct {
 	client Client
 
-	insertWorkers    map[string]*streamingWorkerManager[*message.WriteInsert]
-	migrateWorker    *streamingWorkerManager[*message.WriteMigrateTable]
-	deleteWorker     *streamingWorkerManager[*message.WriteDeleteStale]
+	insertWorkers      map[string]*streamingWorkerManager[*message.WriteInsert]
+	migrateWorker      *streamingWorkerManager[*message.WriteMigrateTable]
+	deleteStaleWorker  *streamingWorkerManager[*message.WriteDeleteStale]
+	deleteRecordWorker *streamingWorkerManager[*message.WriteDeleteRecord]
+
 	workersLock      sync.RWMutex
 	workersWaitGroup sync.WaitGroup
 
@@ -128,9 +133,9 @@ func (w *StreamingBatchWriter) Flush(_ context.Context) error {
 		w.migrateWorker.flush <- done
 		<-done
 	}
-	if w.deleteWorker != nil {
+	if w.deleteStaleWorker != nil {
 		done := make(chan bool)
-		w.deleteWorker.flush <- done
+		w.deleteStaleWorker.flush <- done
 		<-done
 	}
 	for _, worker := range w.insertWorkers {
@@ -151,14 +156,17 @@ func (w *StreamingBatchWriter) Close(context.Context) error {
 	if w.migrateWorker != nil {
 		close(w.migrateWorker.ch)
 	}
-	if w.deleteWorker != nil {
-		close(w.deleteWorker.ch)
+	if w.deleteStaleWorker != nil {
+		close(w.deleteStaleWorker.ch)
+	}
+	if w.deleteRecordWorker != nil {
+		close(w.deleteStaleWorker.ch)
 	}
 	w.workersWaitGroup.Wait()
 
 	w.insertWorkers = make(map[string]*streamingWorkerManager[*message.WriteInsert])
 	w.migrateWorker = nil
-	w.deleteWorker = nil
+	w.deleteStaleWorker = nil
 	w.lastMsgType = writers.MsgTypeUnset
 
 	return nil
@@ -232,13 +240,13 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 	case *message.WriteDeleteStale:
 		w.workersLock.Lock()
 		defer w.workersLock.Unlock()
-		if w.deleteWorker != nil {
-			w.deleteWorker.ch <- m
+		if w.deleteStaleWorker != nil {
+			w.deleteStaleWorker.ch <- m
 			return nil
 		}
 		ch := make(chan *message.WriteDeleteStale)
 		flush := make(chan chan bool)
-		w.deleteWorker = &streamingWorkerManager[*message.WriteDeleteStale]{
+		w.deleteStaleWorker = &streamingWorkerManager[*message.WriteDeleteStale]{
 			ch:        ch,
 			writeFunc: w.client.DeleteStale,
 
@@ -251,8 +259,8 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		}
 
 		w.workersWaitGroup.Add(1)
-		go w.deleteWorker.run(ctx, &w.workersWaitGroup, tableName)
-		w.deleteWorker.ch <- m
+		go w.deleteStaleWorker.run(ctx, &w.workersWaitGroup, tableName)
+		w.deleteStaleWorker.ch <- m
 		return nil
 	case *message.WriteInsert:
 		w.workersLock.RLock()
@@ -285,7 +293,32 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		go wr.run(ctx, &w.workersWaitGroup, tableName)
 		ch <- m
 		return nil
+	case *message.WriteDeleteRecord:
+		w.workersLock.Lock()
+		defer w.workersLock.Unlock()
+		if w.deleteRecordWorker != nil {
+			w.deleteRecordWorker.ch <- m
+			return nil
+		}
+		ch := make(chan *message.WriteDeleteRecord)
+		flush := make(chan chan bool)
+		// TODO: flush all workers for nested tables as well
+		w.deleteRecordWorker = &streamingWorkerManager[*message.WriteDeleteRecord]{
+			ch:        ch,
+			writeFunc: w.client.DeleteRecords,
 
+			flush: flush,
+			errCh: errCh,
+
+			batchSizeRows: w.batchSizeRows,
+			batchTimeout:  w.batchTimeout,
+			tickerFn:      w.tickerFn,
+		}
+
+		w.workersWaitGroup.Add(1)
+		go w.deleteRecordWorker.run(ctx, &w.workersWaitGroup, tableName)
+		w.deleteRecordWorker.ch <- m
+		return nil
 	default:
 		return fmt.Errorf("unhandled message type: %T", msg)
 	}
