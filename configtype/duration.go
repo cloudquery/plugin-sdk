@@ -3,6 +3,8 @@ package configtype
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/invopop/jsonschema"
 )
 
 // Duration is a wrapper around time.Duration that should be used in config
@@ -16,6 +18,14 @@ type Duration struct {
 func NewDuration(d time.Duration) Duration {
 	return Duration{
 		duration: d,
+	}
+}
+
+func (Duration) JSONSchema() *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Type:    "string",
+		Pattern: `^[-+]?([0-9]*(\.[0-9]*)?[a-z]+)+$`, // copied from time.ParseDuration
+		Title:   "CloudQuery configtype.Duration",
 	}
 }
 

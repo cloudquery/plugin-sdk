@@ -3,7 +3,6 @@ package scheduler_test
 import (
 	_ "embed"
 	"encoding/json"
-	"reflect"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestStrategy_JSONSchema(t *testing.T) {
-	sc := (&jsonschema.Reflector{RequiredFromJSONSchemaTags: true}).ReflectFromType(reflect.TypeOf(scheduler.StrategyDFS))
+	sc := (&jsonschema.Reflector{RequiredFromJSONSchemaTags: true}).Reflect(scheduler.StrategyDFS)
 	schema, err := json.MarshalIndent(sc, "", "  ")
 	require.NoError(t, err)
 
