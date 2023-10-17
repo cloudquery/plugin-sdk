@@ -22,7 +22,6 @@ func NewDuration(d time.Duration) Duration {
 }
 
 func (Duration) JSONSchema() *jsonschema.Schema {
-	// provide a pattern for only non-negative durations
 	return &jsonschema.Schema{
 		Type:    "string",
 		Pattern: `^[-+]?([0-9]*(\.[0-9]*)?[a-z]+)+$`, // copied from time.ParseDuration
