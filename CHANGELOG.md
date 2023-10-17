@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.15.0](https://github.com/cloudquery/plugin-sdk/compare/v4.14.1...v4.15.0) (2023-10-17)
+
+
+### Features
+
+* Add JSON schema for `configtype.Duration` ([#1303](https://github.com/cloudquery/plugin-sdk/issues/1303)) ([5e1598b](https://github.com/cloudquery/plugin-sdk/commit/5e1598b48967d5a36c1bde74f4c811504a1009e1))
+
 ## [4.14.1](https://github.com/cloudquery/plugin-sdk/compare/v4.14.0...v4.14.1) (2023-10-16)
 
 
