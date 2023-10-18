@@ -282,17 +282,12 @@ func copyFile(src, dst string) error {
 
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "package -m <message> {team}/{kind}/{name}@{version} <plugin_directory>",
+		Use:   "package -m <message> <version> <plugin_directory>",
 		Short: pluginPackageShort,
 		Long:  pluginPackageLong,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pluginID := args[0]
-			pid, err := parsePluginString(pluginID)
-			if err != nil {
-				return fmt.Errorf("failed to parse plugin string: %w", err)
-			}
-
+			pluginVersion := args[0]
 			pluginDirectory := args[1]
 			distPath := path.Join(pluginDirectory, "dist")
 			if cmd.Flag("dist-dir").Changed {
@@ -321,7 +316,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				return err
 			}
 
-			if pid.kind == plugin.KindSource {
+			if s.plugin.Kind() == plugin.KindSource {
 				if err := s.plugin.Init(cmd.Context(), nil, plugin.NewClientOptions{
 					NoConnection: true,
 				}); err != nil {
@@ -335,13 +330,13 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			targets := []TargetBuild{}
 			for _, target := range s.plugin.Targets() {
 				fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
-				targetBuild, err := s.build(pluginDirectory, target.OS, target.Arch, distPath, pid)
+				targetBuild, err := s.build(pluginDirectory, target.OS, target.Arch, distPath, pluginVersion)
 				if err != nil {
 					return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
 				}
 				targets = append(targets, *targetBuild)
 			}
-			if err := s.writePackageJSON(distPath, pid, message, targets); err != nil {
+			if err := s.writePackageJSON(distPath, pluginVersion, message, targets); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
 			if err := s.copyDocs(distPath, docsPath); err != nil {
@@ -354,33 +349,6 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd.Flags().StringP("docs-dir", "", "", "docs directory containing markdown files to copy to the dist directory. (default: <plugin_directory>/docs)")
 	cmd.Flags().StringP("message", "m", "", "message that summarizes what is new or changed in this version. Use @<file> to read from file. Supports markdown.")
 	return cmd
-}
-
-// e.g. cloudquery/source/aws@v0.1.2
-func parsePluginString(s string) (pluginVersionID, error) {
-	parts := strings.Split(s, "@")
-	if len(parts) != 2 {
-		return pluginVersionID{}, fmt.Errorf(`invalid plugin string %q, expect {team}/{kind}/{name}@{version}`, s)
-	}
-	pluginID := parts[0]
-	version := parts[1]
-	parts = strings.Split(pluginID, "/")
-	if len(parts) != 3 {
-		return pluginVersionID{}, fmt.Errorf(`invalid plugin string %q, expect {team}/{kind}/{name}@{version}`, s)
-	}
-	team := parts[0]
-	kind := parts[1]
-	name := parts[2]
-	pluginKind := plugin.Kind(kind)
-	if err := pluginKind.Validate(); err != nil {
-		return pluginVersionID{}, err
-	}
-	return pluginVersionID{
-		team:    team,
-		kind:    pluginKind,
-		name:    name,
-		version: version,
-	}, nil
 }
 
 func normalizeMessage(s string) string {

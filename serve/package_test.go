@@ -29,13 +29,15 @@ func TestPluginPackage_Source(t *testing.T) {
 	simplePluginPath := filepath.Join(dir, "examples/simple_plugin")
 	packageVersion := "v1.2.3"
 	p := plugin.NewPlugin(
-		"name-that-should-not-be-used",
+		"test-plugin",
 		"development",
 		memdb.NewMemDBClient,
 		plugin.WithBuildTargets([]plugin.BuildTarget{
 			{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64},
 			{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64},
 		}),
+		plugin.WithKind("source"),
+		plugin.WithTeam("test-team"),
 	)
 	msg := `Test message
 with multiple lines and **markdown**`
@@ -59,7 +61,7 @@ with multiple lines and **markdown**`
 			srv := Plugin(p)
 			cmd := srv.newCmdPluginRoot()
 			distDir := t.TempDir()
-			cmd.SetArgs([]string{"package", "--dist-dir", distDir, "-m", tc.message, "test-team/source/test-plugin@" + packageVersion, simplePluginPath})
+			cmd.SetArgs([]string{"package", "--dist-dir", distDir, "-m", tc.message, packageVersion, simplePluginPath})
 			err := cmd.Execute()
 			if tc.wantErr && err == nil {
 				t.Fatalf("expected error, got nil")
@@ -152,7 +154,7 @@ with multiple lines and **markdown**`
 			srv := Plugin(p)
 			cmd := srv.newCmdPluginRoot()
 			distDir := t.TempDir()
-			cmd.SetArgs([]string{"package", "--dist-dir", distDir, "-m", tc.message, "test-team/destination/test-plugin@" + packageVersion, simplePluginPath})
+			cmd.SetArgs([]string{"package", "--dist-dir", distDir, "-m", tc.message, packageVersion, simplePluginPath})
 			err := cmd.Execute()
 			if tc.wantErr && err == nil {
 				t.Fatalf("expected error, got nil")
