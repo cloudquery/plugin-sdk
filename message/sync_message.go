@@ -8,15 +8,27 @@ import (
 )
 
 type syncBaseMessage struct {
+	isPaid bool
 }
 
 func (*syncBaseMessage) IsSyncMessage() bool {
 	return true
 }
 
+func (s *syncBaseMessage) SetPaid(paid bool) {
+	s.isPaid = paid
+}
+
+func (s *syncBaseMessage) IsPaid() bool {
+	return s.isPaid
+}
+
 type SyncMessage interface {
 	GetTable() *schema.Table
 	IsSyncMessage() bool
+
+	IsPaid() bool
+	SetPaid(bool)
 }
 
 type SyncMigrateTable struct {

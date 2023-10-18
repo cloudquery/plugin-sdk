@@ -76,6 +76,9 @@ type Table struct {
 	// documented.
 	IsIncremental bool `json:"is_incremental"`
 
+	// IsPaid is a flag that indicates if the table is a paid resource or not.
+	IsPaid bool `json:"-"`
+
 	// IgnoreInTests is used to exclude a table from integration tests.
 	// By default, integration tests fetch all resources from cloudquery's test account, and verify all tables
 	// have at least one row.
