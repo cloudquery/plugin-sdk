@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.15.3](https://github.com/cloudquery/plugin-sdk/compare/v4.15.2...v4.15.3) (2023-10-18)
+
+
+### Bug Fixes
+
+* Set all fields in `DeleteRecord` message ([#1316](https://github.com/cloudquery/plugin-sdk/issues/1316)) ([ad9d109](https://github.com/cloudquery/plugin-sdk/commit/ad9d10936f0362542af280fd517377d30010033b))
+
 ## [4.15.2](https://github.com/cloudquery/plugin-sdk/compare/v4.15.1...v4.15.2) (2023-10-18)
 
 
