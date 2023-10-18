@@ -32,8 +32,9 @@ This creates a directory with the plugin binaries, package.json and documentatio
 // to be able to package the plugin with all the needed metadata.
 type PackageJSON struct {
 	SchemaVersion    int                `json:"schema_version"`
-	Name             string             `json:"name"`
+	Team             string             `json:"team"`
 	Kind             plugin.Kind        `json:"kind"`
+	Name             string             `json:"name"`
 	Message          string             `json:"message"`
 	Version          string             `json:"version"`
 	Protocols        []int              `json:"protocols"`
@@ -103,13 +104,14 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 }
 
 func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersion string) (*TargetBuild, error) {
-	pluginName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, goos, goarch)
-	pluginPath := path.Join(distPath, pluginName)
+	pluginFileName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, goos, goarch)
+	pluginPath := path.Join(distPath, pluginFileName)
 	importPath, err := s.getModuleName(pluginDirectory)
 	if err != nil {
 		return nil, err
 	}
-	ldFlags := fmt.Sprintf("-s -w -X %s/plugin.Version=%s", importPath, pluginVersion)
+	ldFlags := "-s -w"
+	ldFlags += fmt.Sprintf(" -X %s/plugin.Version=%s", importPath, pluginVersion)
 	if s.plugin.IsStaticLinkingEnabled() {
 		ldFlags += " -linkmode external -extldflags=-static"
 	}
@@ -144,7 +146,7 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 	zipWriter := zip.NewWriter(zipPluginFile)
 	defer zipWriter.Close()
 
-	pluginZip, err := zipWriter.Create(pluginName)
+	pluginZip, err := zipWriter.Create(pluginFileName)
 	if err != nil {
 		zipWriter.Close()
 		return nil, fmt.Errorf("failed to create file in zip archive: %w", err)
@@ -166,7 +168,7 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 		return nil, fmt.Errorf("failed to remove plugin file: %w", err)
 	}
 
-	targetZip := fmt.Sprintf(pluginName + ".zip")
+	targetZip := fmt.Sprintf(pluginFileName + ".zip")
 	checksum, err := calcChecksum(path.Join(distPath, targetZip))
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate checksum: %w", err)
@@ -211,13 +213,14 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 	return strings.TrimSpace(importPath), nil
 }
 
-func (s *PluginServe) writePackageJSON(dir string, pluginKind plugin.Kind, pluginVersion, message string, targets []TargetBuild) error {
+func (s *PluginServe) writePackageJSON(dir, version, message string, targets []TargetBuild) error {
 	packageJSON := PackageJSON{
 		SchemaVersion:    1,
 		Name:             s.plugin.Name(),
 		Message:          message,
-		Kind:             pluginKind,
-		Version:          pluginVersion,
+		Team:             s.plugin.Team(),
+		Kind:             s.plugin.Kind(),
+		Version:          version,
 		Protocols:        s.versions,
 		SupportedTargets: targets,
 		PackageType:      plugin.PackageTypeNative,
@@ -279,17 +282,18 @@ func copyFile(src, dst string) error {
 
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "package -m <message> <source|destination> <version> <plugin_directory>",
+		Use:   "package -m <message> {team}/{kind}/{name}@{version} <plugin_directory>",
 		Short: pluginPackageShort,
 		Long:  pluginPackageLong,
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pluginKind := plugin.Kind(args[0])
-			if err := pluginKind.Validate(); err != nil {
-				return err
+			pluginID := args[0]
+			pid, err := parsePluginString(pluginID)
+			if err != nil {
+				return fmt.Errorf("failed to parse plugin string: %w", err)
 			}
-			pluginVersion := args[1]
-			pluginDirectory := args[2]
+
+			pluginDirectory := args[1]
 			distPath := path.Join(pluginDirectory, "dist")
 			if cmd.Flag("dist-dir").Changed {
 				distPath = cmd.Flag("dist-dir").Value.String()
@@ -317,7 +321,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				return err
 			}
 
-			if pluginKind == plugin.KindSource {
+			if pid.kind == plugin.KindSource {
 				if err := s.plugin.Init(cmd.Context(), nil, plugin.NewClientOptions{
 					NoConnection: true,
 				}); err != nil {
@@ -327,16 +331,17 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 					return err
 				}
 			}
+
 			targets := []TargetBuild{}
 			for _, target := range s.plugin.Targets() {
 				fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
-				targetBuild, err := s.build(pluginDirectory, target.OS, target.Arch, distPath, pluginVersion)
+				targetBuild, err := s.build(pluginDirectory, target.OS, target.Arch, distPath, pid)
 				if err != nil {
 					return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
 				}
 				targets = append(targets, *targetBuild)
 			}
-			if err := s.writePackageJSON(distPath, pluginKind, pluginVersion, message, targets); err != nil {
+			if err := s.writePackageJSON(distPath, pid, message, targets); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
 			if err := s.copyDocs(distPath, docsPath); err != nil {
@@ -349,6 +354,33 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd.Flags().StringP("docs-dir", "", "", "docs directory containing markdown files to copy to the dist directory. (default: <plugin_directory>/docs)")
 	cmd.Flags().StringP("message", "m", "", "message that summarizes what is new or changed in this version. Use @<file> to read from file. Supports markdown.")
 	return cmd
+}
+
+// e.g. cloudquery/source/aws@v0.1.2
+func parsePluginString(s string) (pluginVersionID, error) {
+	parts := strings.Split(s, "@")
+	if len(parts) != 2 {
+		return pluginVersionID{}, fmt.Errorf(`invalid plugin string %q, expect {team}/{kind}/{name}@{version}`, s)
+	}
+	pluginID := parts[0]
+	version := parts[1]
+	parts = strings.Split(pluginID, "/")
+	if len(parts) != 3 {
+		return pluginVersionID{}, fmt.Errorf(`invalid plugin string %q, expect {team}/{kind}/{name}@{version}`, s)
+	}
+	team := parts[0]
+	kind := parts[1]
+	name := parts[2]
+	pluginKind := plugin.Kind(kind)
+	if err := pluginKind.Validate(); err != nil {
+		return pluginVersionID{}, err
+	}
+	return pluginVersionID{
+		team:    team,
+		kind:    pluginKind,
+		name:    name,
+		version: version,
+	}, nil
 }
 
 func normalizeMessage(s string) string {

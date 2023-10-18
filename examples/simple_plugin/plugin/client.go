@@ -27,6 +27,12 @@ func (c *Client) Logger() *zerolog.Logger {
 	return &c.logger
 }
 
+// HasRemainingQuota should be implemented by premium plugins.
+func (c *Client) HasRemainingQuota() (bool, error) {
+
+	return true, nil
+}
+
 func (c *Client) Sync(ctx context.Context, options plugin.SyncOptions, res chan<- message.SyncMessage) error {
 	tt, err := c.tables.FilterDfs(options.Tables, options.SkipTables, options.SkipDependentTables)
 	if err != nil {
