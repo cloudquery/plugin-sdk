@@ -316,6 +316,15 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				return err
 			}
 
+			if s.plugin.Name() == "" {
+				return fmt.Errorf("plugin name is required for packaging")
+			}
+			if s.plugin.Team() == "" {
+				return fmt.Errorf("plugin team is required (hint: use the plugin.WithTeam() option")
+			}
+			if s.plugin.Kind() == "" {
+				return fmt.Errorf("plugin kind is required (hint: use the plugin.WithKind() option")
+			}
 			if s.plugin.Kind() == plugin.KindSource {
 				if err := s.plugin.Init(cmd.Context(), nil, plugin.NewClientOptions{
 					NoConnection: true,
