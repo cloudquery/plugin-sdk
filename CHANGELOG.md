@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.15.2](https://github.com/cloudquery/plugin-sdk/compare/v4.15.1...v4.15.2) (2023-10-18)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.4.1 ([#1312](https://github.com/cloudquery/plugin-sdk/issues/1312)) ([0c75527](https://github.com/cloudquery/plugin-sdk/commit/0c7552704d5ca751638ad3119fc51dc882a0caf5))
+
+## [4.15.1](https://github.com/cloudquery/plugin-sdk/compare/v4.15.0...v4.15.1) (2023-10-18)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.2.9 ([#1306](https://github.com/cloudquery/plugin-sdk/issues/1306)) ([e8ebf8d](https://github.com/cloudquery/plugin-sdk/commit/e8ebf8d6037a29f6506f80db46678690c8718e7e))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.3.0 ([#1308](https://github.com/cloudquery/plugin-sdk/issues/1308)) ([15d7129](https://github.com/cloudquery/plugin-sdk/commit/15d7129baa31d6fe36d7bef6f0cb6467b7016dae))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.4.0 ([#1309](https://github.com/cloudquery/plugin-sdk/issues/1309)) ([4e90152](https://github.com/cloudquery/plugin-sdk/commit/4e9015201685061dcea2530703dd9bb757ee7763))
+* Make static linking conditional only for Linux ([#1310](https://github.com/cloudquery/plugin-sdk/issues/1310)) ([35fa449](https://github.com/cloudquery/plugin-sdk/commit/35fa449c8877395cb5d12d63fbe505c983df78c3))
+
 ## [4.15.0](https://github.com/cloudquery/plugin-sdk/compare/v4.14.1...v4.15.0) (2023-10-17)
 
 
