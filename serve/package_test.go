@@ -124,13 +124,15 @@ func TestPluginPackage_Destination(t *testing.T) {
 	simplePluginPath := filepath.Join(dir, "examples/simple_plugin")
 	packageVersion := "v1.2.3"
 	p := plugin.NewPlugin(
-		"testPlugin",
+		"test-plugin",
 		"development",
 		memdb.NewMemDBClient,
 		plugin.WithBuildTargets([]plugin.BuildTarget{
 			{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64},
 			{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64},
 		}),
+		plugin.WithKind("destination"),
+		plugin.WithTeam("test-team"),
 	)
 	msg := `Test message
 with multiple lines and **markdown**`
@@ -168,15 +170,15 @@ with multiple lines and **markdown**`
 			expect := []string{
 				"docs",
 				"package.json",
-				"plugin-testPlugin-v1.2.3-darwin-amd64.zip",
-				"plugin-testPlugin-v1.2.3-windows-amd64.zip",
+				"plugin-test-plugin-v1.2.3-darwin-amd64.zip",
+				"plugin-test-plugin-v1.2.3-windows-amd64.zip",
 			}
 			if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
 				t.Fatalf("unexpected files in dist directory (-want +got):\n%s", diff)
 			}
 			// expect SHA-256 for the zip files to differ
-			sha1 := sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-windows-amd64.zip"))
-			sha2 := sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-darwin-amd64.zip"))
+			sha1 := sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-windows-amd64.zip"))
+			sha2 := sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-darwin-amd64.zip"))
 			if sha1 == sha2 {
 				t.Fatalf("expected SHA-256 for windows and darwin zip files to differ, but they are the same: %s", sha1)
 			}
@@ -190,8 +192,8 @@ with multiple lines and **markdown**`
 				Version:       "v1.2.3",
 				Protocols:     []int{3},
 				SupportedTargets: []TargetBuild{
-					{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-windows-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-windows-amd64.zip"))},
-					{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-darwin-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-darwin-amd64.zip"))},
+					{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-test-plugin-v1.2.3-windows-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-windows-amd64.zip"))},
+					{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64, Path: "plugin-test-plugin-v1.2.3-darwin-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-darwin-amd64.zip"))},
 				},
 				PackageType: plugin.PackageTypeNative,
 			}
