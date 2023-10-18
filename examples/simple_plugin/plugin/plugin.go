@@ -6,9 +6,9 @@ import (
 
 // These variables are set as part of the `package` command
 var (
-	Name    = ""
+	Team    = "example-team"
 	Kind    = "source"
-	Team    = ""
+	Name    = "example"
 	Version = "development"
 )
 
