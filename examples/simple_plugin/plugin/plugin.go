@@ -4,7 +4,8 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 )
 
-// These variables are set as part of the `package` command
+// These variables are used by the `package` command and for checking
+// usage limits.
 var (
 	Team    = "example-team"
 	Kind    = "source"
