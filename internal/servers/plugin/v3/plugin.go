@@ -270,6 +270,7 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 			whereClause := make(message.PredicateGroups, len(pbMsg.DeleteRecord.WhereClause))
 
 			for j, predicateGroup := range pbMsg.DeleteRecord.WhereClause {
+				whereClause[j].GroupingType = predicateGroup.GroupingType.String()
 				whereClause[j].Predicates = make(message.Predicates, len(predicateGroup.Predicates))
 				for i, predicate := range predicateGroup.Predicates {
 					record, err := pb.NewRecordFromBytes(predicate.Record)
