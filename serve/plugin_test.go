@@ -67,7 +67,7 @@ func TestPluginServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	getTablesRes, err := c.GetTables(ctx, &pb.GetTables_Request{})
+	getTablesRes, err := c.GetTables(ctx, &pb.GetTables_Request{Tables: []string{"*"}})
 	if err != nil {
 		t.Fatal(err)
 	}
