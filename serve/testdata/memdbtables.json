@@ -30,8 +30,29 @@
       }
     ],
     "description": "",
+    "parent": "table1",
+    "relations": ["table3"],
     "is_incremental": false,
     "name": "table2",
+    "title": ""
+  },
+  {
+    "columns": [
+      {
+        "description": "col1 description",
+        "incremental_key": true,
+        "name": "col1",
+        "not_null": false,
+        "primary_key": false,
+        "type": "uuid",
+        "unique": false
+      }
+    ],
+    "description": "",
+    "parent": "table2",
+    "relations": [],
+    "is_incremental": false,
+    "name": "table3",
     "title": ""
   }
 ]

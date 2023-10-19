@@ -67,7 +67,7 @@ func TestPluginServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	getTablesRes, err := c.GetTables(ctx, &pb.GetTables_Request{})
+	getTablesRes, err := c.GetTables(ctx, &pb.GetTables_Request{Tables: []string{"*"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestPluginServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(tables) != 2 {
+	if len(tables) != 3 {
 		t.Fatalf("Expected 2 tables but got %d", len(tables))
 	}
 	testTable := schema.Table{
