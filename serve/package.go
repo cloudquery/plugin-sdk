@@ -32,8 +32,9 @@ This creates a directory with the plugin binaries, package.json and documentatio
 // to be able to package the plugin with all the needed metadata.
 type PackageJSON struct {
 	SchemaVersion    int                `json:"schema_version"`
-	Name             string             `json:"name"`
+	Team             string             `json:"team"`
 	Kind             plugin.Kind        `json:"kind"`
+	Name             string             `json:"name"`
 	Message          string             `json:"message"`
 	Version          string             `json:"version"`
 	Protocols        []int              `json:"protocols"`
@@ -103,8 +104,8 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 }
 
 func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersion string) (*TargetBuild, error) {
-	pluginName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, goos, goarch)
-	pluginPath := path.Join(distPath, pluginName)
+	pluginFileName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, goos, goarch)
+	pluginPath := path.Join(distPath, pluginFileName)
 	importPath, err := s.getModuleName(pluginDirectory)
 	if err != nil {
 		return nil, err
@@ -144,7 +145,7 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 	zipWriter := zip.NewWriter(zipPluginFile)
 	defer zipWriter.Close()
 
-	pluginZip, err := zipWriter.Create(pluginName)
+	pluginZip, err := zipWriter.Create(pluginFileName)
 	if err != nil {
 		zipWriter.Close()
 		return nil, fmt.Errorf("failed to create file in zip archive: %w", err)
@@ -166,7 +167,7 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 		return nil, fmt.Errorf("failed to remove plugin file: %w", err)
 	}
 
-	targetZip := fmt.Sprintf(pluginName + ".zip")
+	targetZip := fmt.Sprintf(pluginFileName + ".zip")
 	checksum, err := calcChecksum(path.Join(distPath, targetZip))
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate checksum: %w", err)
@@ -211,13 +212,14 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 	return strings.TrimSpace(importPath), nil
 }
 
-func (s *PluginServe) writePackageJSON(dir string, pluginKind plugin.Kind, pluginVersion, message string, targets []TargetBuild) error {
+func (s *PluginServe) writePackageJSON(dir, version, message string, targets []TargetBuild) error {
 	packageJSON := PackageJSON{
 		SchemaVersion:    1,
 		Name:             s.plugin.Name(),
 		Message:          message,
-		Kind:             pluginKind,
-		Version:          pluginVersion,
+		Team:             s.plugin.Team(),
+		Kind:             s.plugin.Kind(),
+		Version:          version,
 		Protocols:        s.versions,
 		SupportedTargets: targets,
 		PackageType:      plugin.PackageTypeNative,
@@ -279,17 +281,13 @@ func copyFile(src, dst string) error {
 
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "package -m <message> <source|destination> <version> <plugin_directory>",
+		Use:   "package -m <message> <version> <plugin_directory>",
 		Short: pluginPackageShort,
 		Long:  pluginPackageLong,
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pluginKind := plugin.Kind(args[0])
-			if err := pluginKind.Validate(); err != nil {
-				return err
-			}
-			pluginVersion := args[1]
-			pluginDirectory := args[2]
+			pluginVersion := args[0]
+			pluginDirectory := args[1]
 			distPath := path.Join(pluginDirectory, "dist")
 			if cmd.Flag("dist-dir").Changed {
 				distPath = cmd.Flag("dist-dir").Value.String()
@@ -317,7 +315,16 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				return err
 			}
 
-			if pluginKind == plugin.KindSource {
+			if s.plugin.Name() == "" {
+				return fmt.Errorf("plugin name is required for packaging")
+			}
+			if s.plugin.Team() == "" {
+				return fmt.Errorf("plugin team is required (hint: use the plugin.WithTeam() option")
+			}
+			if s.plugin.Kind() == "" {
+				return fmt.Errorf("plugin kind is required (hint: use the plugin.WithKind() option")
+			}
+			if s.plugin.Kind() == plugin.KindSource {
 				if err := s.plugin.Init(cmd.Context(), nil, plugin.NewClientOptions{
 					NoConnection: true,
 				}); err != nil {
@@ -327,6 +334,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 					return err
 				}
 			}
+
 			targets := []TargetBuild{}
 			for _, target := range s.plugin.Targets() {
 				fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
@@ -336,7 +344,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				}
 				targets = append(targets, *targetBuild)
 			}
-			if err := s.writePackageJSON(distPath, pluginKind, pluginVersion, message, targets); err != nil {
+			if err := s.writePackageJSON(distPath, pluginVersion, message, targets); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
 			}
 			if err := s.copyDocs(distPath, docsPath); err != nil {

@@ -35,6 +35,23 @@ func WithStaticLinking() Option {
 	}
 }
 
+func WithKind(kind string) Option {
+	k := Kind(kind)
+	err := k.Validate()
+	if err != nil {
+		panic(err)
+	}
+	return func(p *Plugin) {
+		p.kind = k
+	}
+}
+
+func WithTeam(team string) Option {
+	return func(p *Plugin) {
+		p.team = team
+	}
+}
+
 type TableOptions struct {
 	Tables              []string
 	SkipTables          []string
