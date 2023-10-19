@@ -49,8 +49,12 @@ func (UnimplementedSource) Tables(context.Context, TableOptions) (schema.Tables,
 // Plugin is the base structure required to pass to sdk.serve
 // We take a declarative approach to API here similar to Cobra
 type Plugin struct {
-	// Name of plugin i.e aws, gcp, azure etc
+	// Name of plugin, e.g. aws, gcp, azure etc
 	name string
+	// Kind of plugin, e.g. source, destination
+	kind Kind
+	// Team name of author of the plugin, e.g. cloudquery, vercel, github, etc
+	team string
 	// Version of the plugin
 	version string
 	// targets to build plugin for
@@ -100,9 +104,19 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 	return &p
 }
 
-// Name return the name of this plugin
+// Name returns the name of this plugin
 func (p *Plugin) Name() string {
 	return p.name
+}
+
+// Kind returns the kind of this plugin
+func (p *Plugin) Kind() Kind {
+	return p.kind
+}
+
+// Team returns the name of the team that authored this plugin
+func (p *Plugin) Team() string {
+	return p.team
 }
 
 // Version returns the version of this plugin

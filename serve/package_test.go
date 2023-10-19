@@ -2,6 +2,7 @@ package serve
 
 import (
 	"crypto/sha256"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,8 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-
-	_ "embed"
 
 	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -30,13 +29,15 @@ func TestPluginPackage_Source(t *testing.T) {
 	simplePluginPath := filepath.Join(dir, "examples/simple_plugin")
 	packageVersion := "v1.2.3"
 	p := plugin.NewPlugin(
-		"testPlugin",
+		"test-plugin",
 		"development",
 		memdb.NewMemDBClient,
 		plugin.WithBuildTargets([]plugin.BuildTarget{
 			{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64},
 			{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64},
 		}),
+		plugin.WithKind("source"),
+		plugin.WithTeam("test-team"),
 	)
 	msg := `Test message
 with multiple lines and **markdown**`
@@ -60,7 +61,7 @@ with multiple lines and **markdown**`
 			srv := Plugin(p)
 			cmd := srv.newCmdPluginRoot()
 			distDir := t.TempDir()
-			cmd.SetArgs([]string{"package", "--dist-dir", distDir, "-m", tc.message, "source", packageVersion, simplePluginPath})
+			cmd.SetArgs([]string{"package", "--dist-dir", distDir, "-m", tc.message, packageVersion, simplePluginPath})
 			err := cmd.Execute()
 			if tc.wantErr && err == nil {
 				t.Fatalf("expected error, got nil")
@@ -74,30 +75,31 @@ with multiple lines and **markdown**`
 			expect := []string{
 				"docs",
 				"package.json",
-				"plugin-testPlugin-v1.2.3-linux-amd64.zip",
-				"plugin-testPlugin-v1.2.3-windows-amd64.zip",
+				"plugin-test-plugin-v1.2.3-linux-amd64.zip",
+				"plugin-test-plugin-v1.2.3-windows-amd64.zip",
 				"tables.json",
 			}
 			if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
 				t.Fatalf("unexpected files in dist directory (-want +got):\n%s", diff)
 			}
 			// expect SHA-256 for the zip files to differ
-			sha1 := sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-linux-amd64.zip"))
-			sha2 := sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-windows-amd64.zip"))
+			sha1 := sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-linux-amd64.zip"))
+			sha2 := sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-windows-amd64.zip"))
 			if sha1 == sha2 {
 				t.Fatalf("expected SHA-256 for linux and windows zip files to differ, but they are the same: %s", sha1)
 			}
 
 			expectPackage := PackageJSON{
 				SchemaVersion: 1,
-				Name:          "testPlugin",
+				Name:          "test-plugin",
+				Team:          "test-team",
 				Kind:          "source",
 				Message:       msg,
-				Version:       "v1.2.3",
+				Version:       packageVersion,
 				Protocols:     []int{3},
 				SupportedTargets: []TargetBuild{
-					{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-linux-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-linux-amd64.zip"))},
-					{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-windows-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-windows-amd64.zip"))},
+					{OS: plugin.GoOSLinux, Arch: plugin.GoArchAmd64, Path: "plugin-test-plugin-v1.2.3-linux-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-linux-amd64.zip"))},
+					{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-test-plugin-v1.2.3-windows-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-windows-amd64.zip"))},
 				},
 				PackageType: plugin.PackageTypeNative,
 			}
@@ -122,13 +124,15 @@ func TestPluginPackage_Destination(t *testing.T) {
 	simplePluginPath := filepath.Join(dir, "examples/simple_plugin")
 	packageVersion := "v1.2.3"
 	p := plugin.NewPlugin(
-		"testPlugin",
+		"test-plugin",
 		"development",
 		memdb.NewMemDBClient,
 		plugin.WithBuildTargets([]plugin.BuildTarget{
 			{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64},
 			{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64},
 		}),
+		plugin.WithKind("destination"),
+		plugin.WithTeam("test-team"),
 	)
 	msg := `Test message
 with multiple lines and **markdown**`
@@ -152,7 +156,7 @@ with multiple lines and **markdown**`
 			srv := Plugin(p)
 			cmd := srv.newCmdPluginRoot()
 			distDir := t.TempDir()
-			cmd.SetArgs([]string{"package", "--dist-dir", distDir, "-m", tc.message, "destination", packageVersion, simplePluginPath})
+			cmd.SetArgs([]string{"package", "--dist-dir", distDir, "-m", tc.message, packageVersion, simplePluginPath})
 			err := cmd.Execute()
 			if tc.wantErr && err == nil {
 				t.Fatalf("expected error, got nil")
@@ -166,29 +170,30 @@ with multiple lines and **markdown**`
 			expect := []string{
 				"docs",
 				"package.json",
-				"plugin-testPlugin-v1.2.3-darwin-amd64.zip",
-				"plugin-testPlugin-v1.2.3-windows-amd64.zip",
+				"plugin-test-plugin-v1.2.3-darwin-amd64.zip",
+				"plugin-test-plugin-v1.2.3-windows-amd64.zip",
 			}
 			if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
 				t.Fatalf("unexpected files in dist directory (-want +got):\n%s", diff)
 			}
 			// expect SHA-256 for the zip files to differ
-			sha1 := sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-windows-amd64.zip"))
-			sha2 := sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-darwin-amd64.zip"))
+			sha1 := sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-windows-amd64.zip"))
+			sha2 := sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-darwin-amd64.zip"))
 			if sha1 == sha2 {
 				t.Fatalf("expected SHA-256 for windows and darwin zip files to differ, but they are the same: %s", sha1)
 			}
 
 			expectPackage := PackageJSON{
 				SchemaVersion: 1,
-				Name:          "testPlugin",
+				Team:          "test-team",
 				Kind:          "destination",
+				Name:          "test-plugin",
 				Message:       msg,
 				Version:       "v1.2.3",
 				Protocols:     []int{3},
 				SupportedTargets: []TargetBuild{
-					{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-windows-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-windows-amd64.zip"))},
-					{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64, Path: "plugin-testPlugin-v1.2.3-darwin-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-testPlugin-v1.2.3-darwin-amd64.zip"))},
+					{OS: plugin.GoOSWindows, Arch: plugin.GoArchAmd64, Path: "plugin-test-plugin-v1.2.3-windows-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-windows-amd64.zip"))},
+					{OS: plugin.GoOSDarwin, Arch: plugin.GoArchAmd64, Path: "plugin-test-plugin-v1.2.3-darwin-amd64.zip", Checksum: "sha256:" + sha256sum(filepath.Join(distDir, "plugin-test-plugin-v1.2.3-darwin-amd64.zip"))},
 				},
 				PackageType: plugin.PackageTypeNative,
 			}
