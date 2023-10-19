@@ -72,6 +72,22 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 								Unique:         false,
 							},
 						},
+						Relations: schema.Tables{
+							{
+								Name: "table3",
+								Columns: []schema.Column{
+									{
+										Name:           "col1",
+										Type:           types.UUID,
+										Description:    "col1 description",
+										PrimaryKey:     false,
+										NotNull:        false,
+										IncrementalKey: true,
+										Unique:         false,
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -165,12 +181,12 @@ func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- 
 	return nil
 }
 
-func (c *client) Tables(context.Context, plugin.TableOptions) (schema.Tables, error) {
+func (c *client) Tables(ctx context.Context, opts plugin.TableOptions) (schema.Tables, error) {
 	tables := make(schema.Tables, 0, len(c.tables))
 	for _, table := range c.tables {
 		tables = append(tables, table)
 	}
-	return tables, nil
+	return tables.FilterDfs(opts.Tables, opts.SkipTables, opts.SkipDependentTables)
 }
 
 func (c *client) migrate(_ context.Context, table *schema.Table) {

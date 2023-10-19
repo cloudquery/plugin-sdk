@@ -63,10 +63,11 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 		if table.Parent != nil {
 			parent = &table.Parent.Name
 		}
-		var relations *[]string
+		relations := make([]string, 0, len(table.Relations))
 		if table.Relations != nil {
-			names := table.Relations.TableNames()
-			relations = &names
+			for _, relation := range table.Relations {
+				relations = append(relations, relation.Name)
+			}
 		}
 		columns := make([]cloudquery_api.PluginTableColumn, 0, len(table.Columns))
 		for _, column := range table.Columns {
@@ -85,7 +86,7 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 			IsIncremental: &table.IsIncremental,
 			Name:          table.Name,
 			Parent:        parent,
-			Relations:     relations,
+			Relations:     &relations,
 			Title:         &table.Title,
 			Columns:       &columns,
 		})
