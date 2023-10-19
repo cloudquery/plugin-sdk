@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.16.1](https://github.com/cloudquery/plugin-sdk/compare/v4.16.0...v4.16.1) (2023-10-19)
+
+
+### Bug Fixes
+
+* **package:** Only return one level down of relations when writing `tables.json` ([#1321](https://github.com/cloudquery/plugin-sdk/issues/1321)) ([3d4ebe0](https://github.com/cloudquery/plugin-sdk/commit/3d4ebe0098ba4e458d88e092e6240ee848c38c0a))
+
 ## [4.16.0](https://github.com/cloudquery/plugin-sdk/compare/v4.15.3...v4.16.0) (2023-10-19)
 
 
