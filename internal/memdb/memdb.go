@@ -181,7 +181,7 @@ func (c *client) Sync(_ context.Context, options plugin.SyncOptions, res chan<- 
 	return nil
 }
 
-func (c *client) Tables(ctx context.Context, opts plugin.TableOptions) (schema.Tables, error) {
+func (c *client) Tables(_ context.Context, opts plugin.TableOptions) (schema.Tables, error) {
 	tables := make(schema.Tables, 0, len(c.tables))
 	for _, table := range c.tables {
 		tables = append(tables, table)
