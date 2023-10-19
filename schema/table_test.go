@@ -368,6 +368,7 @@ func TestTableToAndFromArrow(t *testing.T) {
 			Name: "parent_table",
 		},
 		IsIncremental: true,
+		IsPaid:        true,
 		Columns: []Column{
 			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			{Name: "int", Type: arrow.PrimitiveTypes.Int64},

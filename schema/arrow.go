@@ -9,6 +9,7 @@ const (
 	MetadataPrimaryKey     = "cq:extension:primary_key"
 	MetadataConstraintName = "cq:extension:constraint_name"
 	MetadataIncremental    = "cq:extension:incremental"
+	MetadataIsPaid         = "cq:extension:is_paid"
 
 	MetadataTrue             = "true"
 	MetadataFalse            = "false"

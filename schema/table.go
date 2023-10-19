@@ -77,7 +77,7 @@ type Table struct {
 	IsIncremental bool `json:"is_incremental"`
 
 	// IsPaid is a flag that indicates if the table is a paid resource or not.
-	IsPaid bool `json:"-"`
+	IsPaid bool `json:"is_paid"`
 
 	// IgnoreInTests is used to exclude a table from integration tests.
 	// By default, integration tests fetch all resources from cloudquery's test account, and verify all tables
@@ -160,6 +160,9 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	}
 	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
 		table.IsIncremental = isIncremental == MetadataTrue
+	}
+	if isPaid, found := tableMD.GetValue(MetadataIsPaid); found {
+		table.IsPaid = isPaid == MetadataTrue
 	}
 	return table, nil
 }
@@ -406,6 +409,9 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	}
 	if t.IsIncremental {
 		md[MetadataIncremental] = MetadataTrue
+	}
+	if t.IsPaid {
+		md[MetadataIsPaid] = MetadataTrue
 	}
 	if t.Parent != nil {
 		md[MetadataTableDependsOn] = t.Parent.Name
