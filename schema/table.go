@@ -2,6 +2,7 @@ package schema
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"slices"
@@ -88,8 +89,8 @@ type Table struct {
 
 	PkConstraintName string `json:"pk_constraint_name"`
 
-	// Metadata that can be used by plugins
-	Metadata map[string]string `json:"metadata"`
+	// Tags that can be used by plugins to store metadata about the table.
+	Tags Tags `json:"tags"`
 }
 
 var (
@@ -145,6 +146,14 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	if dependsOn != "" {
 		parent = &Table{Name: dependsOn}
 	}
+	tags := make(Tags, 0)
+	tagVals, _ := tableMD.GetValue(MetadataTableTags)
+	if tagVals != "" {
+		err := json.Unmarshal([]byte(tagVals), &tags)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal table tags: %w", err)
+		}
+	}
 	fields := sc.Fields()
 	columns := make(ColumnList, len(fields))
 	for i, field := range fields {
@@ -157,6 +166,7 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		Columns:          columns,
 		Title:            title,
 		Parent:           parent,
+		Tags:             tags,
 	}
 	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
 		table.IsIncremental = isIncremental == MetadataTrue
@@ -409,6 +419,10 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	}
 	if t.Parent != nil {
 		md[MetadataTableDependsOn] = t.Parent.Name
+	}
+	if t.Tags.Len() > 0 {
+		b, _ := json.Marshal(t.Tags)
+		md[MetadataTableTags] = string(b)
 	}
 	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {

@@ -78,9 +78,6 @@ type Plugin struct {
 	schema string
 	// validator object to validate specs
 	schemaValidator *jsonschema.Schema
-
-	// used to reduce the number of reflection calls we need to make
-	onBeforeSend func(context.Context, message.SyncMessage) (message.SyncMessage, error)
 }
 
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
@@ -131,9 +128,15 @@ type OnBeforeSender interface {
 	OnBeforeSend(context.Context, message.SyncMessage) (message.SyncMessage, error)
 }
 
+// OnBeforeSend gets called before every message is sent to the destination. A plugin client
+// that implements the OnBeforeSender interface will have this method called.
 func (p *Plugin) OnBeforeSend(ctx context.Context, msg message.SyncMessage) (message.SyncMessage, error) {
-	if p.onBeforeSend != nil {
-		return p.onBeforeSend(ctx, msg)
+	// This method is called once for every message, so it is on the hot path, and we should be careful about its performance.
+	// However, most recent versions of Go have optimized type assertions and type switches to be very fast, so
+	// we use them here without expecting a significant impact on performance.
+	// See: https://stackoverflow.com/questions/28024884/does-a-type-assertion-type-switch-have-bad-performance-is-slow-in-go
+	if v, ok := p.client.(OnBeforeSender); ok {
+		return v.OnBeforeSend(ctx, msg)
 	}
 	return msg, nil
 }
@@ -190,10 +193,6 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 	}
 
 	p.spec = spec
-
-	if v, ok := p.client.(OnBeforeSender); ok {
-		p.onBeforeSend = v.OnBeforeSend
-	}
 
 	return nil
 }
