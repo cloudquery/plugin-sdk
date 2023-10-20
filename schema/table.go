@@ -87,6 +87,9 @@ type Table struct {
 	Parent *Table `json:"-"`
 
 	PkConstraintName string `json:"pk_constraint_name"`
+
+	// Metadata that can be used by plugins
+	Metadata map[string]string `json:"metadata"`
 }
 
 var (
