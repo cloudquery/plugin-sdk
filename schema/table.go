@@ -2,7 +2,6 @@ package schema
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"slices"
@@ -89,8 +88,10 @@ type Table struct {
 
 	PkConstraintName string `json:"pk_constraint_name"`
 
-	// Tags that can be used by plugins to store metadata about the table.
-	Tags Tags `json:"tags"`
+	// IsPaid indicates whether this table is a paid (premium) table.
+	// This relates to the CloudQuery plugin itself, and should not be confused
+	// with whether the table makes use of a paid API or not.
+	IsPaid bool `json:"is_paid"`
 }
 
 var (
@@ -146,14 +147,6 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	if dependsOn != "" {
 		parent = &Table{Name: dependsOn}
 	}
-	tags := make(Tags, 0)
-	tagVals, _ := tableMD.GetValue(MetadataTableTags)
-	if tagVals != "" {
-		err := json.Unmarshal([]byte(tagVals), &tags)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal table tags: %w", err)
-		}
-	}
 	fields := sc.Fields()
 	columns := make(ColumnList, len(fields))
 	for i, field := range fields {
@@ -166,10 +159,12 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		Columns:          columns,
 		Title:            title,
 		Parent:           parent,
-		Tags:             tags,
 	}
 	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
 		table.IsIncremental = isIncremental == MetadataTrue
+	}
+	if isPaid, found := tableMD.GetValue(MetadataTableIsPaid); found {
+		table.IsPaid = isPaid == MetadataTrue
 	}
 	return table, nil
 }
@@ -420,9 +415,8 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	if t.Parent != nil {
 		md[MetadataTableDependsOn] = t.Parent.Name
 	}
-	if t.Tags.Len() > 0 {
-		b, _ := json.Marshal(t.Tags)
-		md[MetadataTableTags] = string(b)
+	if t.IsPaid {
+		md[MetadataTableIsPaid] = MetadataTrue
 	}
 	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {
