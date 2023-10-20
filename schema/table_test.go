@@ -380,6 +380,7 @@ func TestTableToAndFromArrow(t *testing.T) {
 			{Name: "incremental_key", Type: arrow.BinaryTypes.String, IncrementalKey: true},
 			{Name: "multiple_attributes", Type: arrow.BinaryTypes.String, PrimaryKey: true, IncrementalKey: true, NotNull: true, Unique: true},
 		},
+		Tags: Tags{},
 	}
 	arrowSchema := table.ToArrowSchema()
 	tableFromArrow, err := NewTableFromArrowSchema(arrowSchema)
