@@ -16,7 +16,6 @@ const (
 	MetadataTableDescription = "cq:table_description"
 	MetadataTableTitle       = "cq:table_title"
 	MetadataTableDependsOn   = "cq:table_depends_on"
-	MetadataTableTags        = "cq:table_tags"
 )
 
 type Schemas []*arrow.Schema
