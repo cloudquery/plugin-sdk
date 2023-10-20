@@ -130,8 +130,13 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			syncErr = fmt.Errorf("failed to sync records: %w", err)
 		}
 	}()
-
+	var err error
 	for msg := range msgs {
+		msg, err = s.Plugin.OnBeforeSend(ctx, msg)
+		if err != nil {
+			syncErr = fmt.Errorf("failed before sending message: %w", err)
+			return syncErr
+		}
 		pbMsg := &pb.Sync_Response{}
 		switch m := msg.(type) {
 		case *message.SyncMigrateTable:
