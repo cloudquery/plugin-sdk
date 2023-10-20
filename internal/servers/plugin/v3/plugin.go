@@ -135,7 +135,7 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		msg, err = s.Plugin.OnBeforeSend(ctx, msg)
 		if err != nil {
 			syncErr = fmt.Errorf("failed before sending message: %w", err)
-			break
+			return syncErr
 		}
 		pbMsg := &pb.Sync_Response{}
 		switch m := msg.(type) {
