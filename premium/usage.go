@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"net/http"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -73,7 +72,7 @@ type BatchUpdater struct {
 	rowsToUpdate   atomic.Uint32
 	triggerUpdate  chan struct{}
 	done           chan struct{}
-	wg             *sync.WaitGroup
+	closeError     chan error
 	isClosed       bool
 }
 
@@ -92,7 +91,7 @@ func NewUsageClient(ctx context.Context, apiClient *cqapi.ClientWithResponses, t
 		maxWaitTime:    defaultMaxWaitTime,
 		triggerUpdate:  make(chan struct{}),
 		done:           make(chan struct{}),
-		wg:             &sync.WaitGroup{},
+		closeError:     make(chan error),
 	}
 	for _, op := range ops {
 		op(u)
@@ -139,20 +138,17 @@ func (u *BatchUpdater) Close(_ context.Context) error {
 	u.isClosed = true
 
 	close(u.done)
-	u.wg.Wait()
 
-	return nil
+	return <-u.closeError
 }
 
 func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 	started := make(chan struct{})
-	u.wg.Add(1)
 
 	duration := time.Duration(u.tickerDuration) * time.Millisecond
 	ticker := time.NewTicker(duration)
 
 	go func() {
-		defer u.wg.Done()
 		started <- struct{}{}
 		for {
 			select {
@@ -176,7 +172,7 @@ func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 				}
 				if err := u.updateUsageWithRetryAndBackoff(ctx, rowsToUpdate); err != nil {
 					log.Error().Err(err).Msg("failed to update usage")
-					// TODO: what to do with an update error
+					// TODO: what to do with a timer error
 					continue
 				}
 				u.rowsToUpdate.Add(-rowsToUpdate)
@@ -185,11 +181,13 @@ func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 				if remainingRows != 0 {
 					log.Info().Msgf("updating usage: %d", remainingRows)
 					if err := u.updateUsageWithRetryAndBackoff(ctx, remainingRows); err != nil {
-						log.Error().Err(err).Msg("failed to update usage")
+						u.closeError <- err
+						return
 					}
 					u.rowsToUpdate.Add(-remainingRows)
 				}
 				log.Info().Msg("background updater exiting")
+				u.closeError <- nil
 				return
 			}
 		}
