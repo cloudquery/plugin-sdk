@@ -78,6 +78,9 @@ type Plugin struct {
 	schema string
 	// validator object to validate specs
 	schemaValidator *jsonschema.Schema
+
+	// used to reduce the number of reflection calls we need to make
+	onBeforeSend func(context.Context, message.SyncMessage) (message.SyncMessage, error)
 }
 
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
@@ -122,6 +125,17 @@ func (p *Plugin) Team() string {
 // Version returns the version of this plugin
 func (p *Plugin) Version() string {
 	return p.version
+}
+
+type OnBeforeSender interface {
+	OnBeforeSend(context.Context, message.SyncMessage) (message.SyncMessage, error)
+}
+
+func (p *Plugin) OnBeforeSend(ctx context.Context, msg message.SyncMessage) (message.SyncMessage, error) {
+	if p.onBeforeSend != nil {
+		return p.onBeforeSend(ctx, msg)
+	}
+	return msg, nil
 }
 
 // IsStaticLinkingEnabled whether static linking is to be enabled
@@ -176,6 +190,10 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 	}
 
 	p.spec = spec
+
+	if v, ok := p.client.(OnBeforeSender); ok {
+		p.onBeforeSend = v.OnBeforeSend
+	}
 
 	return nil
 }
