@@ -87,6 +87,11 @@ type Table struct {
 	Parent *Table `json:"-"`
 
 	PkConstraintName string `json:"pk_constraint_name"`
+
+	// IsPaid indicates whether this table is a paid (premium) table.
+	// This relates to the CloudQuery plugin itself, and should not be confused
+	// with whether the table makes use of a paid API or not.
+	IsPaid bool `json:"is_paid"`
 }
 
 var (
@@ -157,6 +162,9 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	}
 	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
 		table.IsIncremental = isIncremental == MetadataTrue
+	}
+	if isPaid, found := tableMD.GetValue(MetadataTableIsPaid); found {
+		table.IsPaid = isPaid == MetadataTrue
 	}
 	return table, nil
 }
@@ -406,6 +414,9 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	}
 	if t.Parent != nil {
 		md[MetadataTableDependsOn] = t.Parent.Name
+	}
+	if t.IsPaid {
+		md[MetadataTableIsPaid] = MetadataTrue
 	}
 	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {
