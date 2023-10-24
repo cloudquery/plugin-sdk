@@ -245,7 +245,7 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 
 // calculateRetryDuration calculates the duration to sleep relative to the query start time before retrying an update
 func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Header, queryStartTime time.Time, retry int) (time.Duration, error) {
-	if statusCode == http.StatusTooManyRequests {
+	if retryableStatusCode(statusCode) {
 		retryAfter := headers.Get("Retry-After")
 		if retryAfter != "" {
 			retryDelay, err := time.ParseDuration(retryAfter + "s")
@@ -258,4 +258,8 @@ func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Heade
 
 	retryDelay := time.Duration(1<<retry) * time.Second
 	return min(retryDelay, u.maxWaitTime) - time.Since(queryStartTime), nil
+}
+
+func retryableStatusCode(statusCode int) bool {
+	return statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable
 }
