@@ -6,6 +6,7 @@ import (
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"math/rand"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -256,8 +257,10 @@ func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Heade
 		}
 	}
 
-	retryDelay := time.Duration(1<<retry) * time.Second
-	return min(retryDelay, u.maxWaitTime) - time.Since(queryStartTime), nil
+	baseRetry := min(time.Duration(1<<retry)*time.Second, u.maxWaitTime)
+	jitter := time.Duration(rand.Intn(1000)) * time.Millisecond
+	retryDelay := baseRetry + jitter
+	return retryDelay - time.Since(queryStartTime), nil
 }
 
 func retryableStatusCode(statusCode int) bool {

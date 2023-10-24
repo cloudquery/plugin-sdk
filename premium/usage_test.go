@@ -255,7 +255,7 @@ func TestUsageService_CalculateRetryDuration_Exp(t *testing.T) {
 			retryDuration, err := usageClient.calculateRetryDuration(tt.statusCode, tt.headers, time.Now(), tt.retry)
 			require.NoError(t, err)
 
-			assert.InDeltaf(t, tt.expectedSeconds, retryDuration.Seconds(), 0.1, "retry duration should be %d seconds", tt.expectedSeconds)
+			assert.InDeltaf(t, tt.expectedSeconds, retryDuration.Seconds(), 1, "retry duration should be %d seconds", tt.expectedSeconds)
 		})
 	}
 }
@@ -306,7 +306,7 @@ func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
 				assert.Contains(t, err.Error(), tt.wantErr.Error())
 			}
 
-			assert.InDeltaf(t, tt.expectedSeconds, retryDuration.Seconds(), 0.1, "retry duration should be %d seconds", tt.expectedSeconds)
+			assert.InDeltaf(t, tt.expectedSeconds, retryDuration.Seconds(), 1, "retry duration should be %d seconds", tt.expectedSeconds)
 		})
 	}
 }
