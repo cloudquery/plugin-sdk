@@ -208,35 +208,35 @@ func TestUsageService_CalculateRetryDuration_Exp(t *testing.T) {
 	}{
 		{
 			name:            "first retry",
-			statusCode:      http.StatusOK,
+			statusCode:      http.StatusServiceUnavailable,
 			headers:         http.Header{},
 			retry:           0,
 			expectedSeconds: 1,
 		},
 		{
 			name:            "second retry",
-			statusCode:      http.StatusOK,
+			statusCode:      http.StatusServiceUnavailable,
 			headers:         http.Header{},
 			retry:           1,
 			expectedSeconds: 2,
 		},
 		{
 			name:            "third retry",
-			statusCode:      http.StatusOK,
+			statusCode:      http.StatusServiceUnavailable,
 			headers:         http.Header{},
 			retry:           2,
 			expectedSeconds: 4,
 		},
 		{
 			name:            "fourth retry",
-			statusCode:      http.StatusOK,
+			statusCode:      http.StatusServiceUnavailable,
 			headers:         http.Header{},
 			retry:           3,
 			expectedSeconds: 8,
 		},
 		{
 			name:            "should max out at max wait time",
-			statusCode:      http.StatusOK,
+			statusCode:      http.StatusServiceUnavailable,
 			headers:         http.Header{},
 			retry:           10,
 			expectedSeconds: 30,
@@ -271,8 +271,8 @@ func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
 		wantErr         error
 	}{
 		{
-			name:            "should use exponential backoff on 200",
-			statusCode:      http.StatusOK,
+			name:            "should use exponential backoff on 503 and no header",
+			statusCode:      http.StatusServiceUnavailable,
 			headers:         http.Header{},
 			retry:           0,
 			expectedSeconds: 1,

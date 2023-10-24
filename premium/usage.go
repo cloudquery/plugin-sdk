@@ -246,17 +246,21 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 
 // calculateRetryDuration calculates the duration to sleep relative to the query start time before retrying an update
 func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Header, queryStartTime time.Time, retry int) (time.Duration, error) {
-	if retryableStatusCode(statusCode) {
-		retryAfter := headers.Get("Retry-After")
-		if retryAfter != "" {
-			retryDelay, err := time.ParseDuration(retryAfter + "s")
-			if err != nil {
-				return 0, fmt.Errorf("failed to parse retry-after header: %w", err)
-			}
-			return retryDelay, nil
-		}
+	if !retryableStatusCode(statusCode) {
+		return 0, fmt.Errorf("non-retryable status code: %d", statusCode)
 	}
 
+	// Check if we have a retry-after header
+	retryAfter := headers.Get("Retry-After")
+	if retryAfter != "" {
+		retryDelay, err := time.ParseDuration(retryAfter + "s")
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse retry-after header: %w", err)
+		}
+		return retryDelay, nil
+	}
+
+	// Calculate exponential backoff
 	baseRetry := min(time.Duration(1<<retry)*time.Second, u.maxWaitTime)
 	jitter := time.Duration(rand.Intn(1000)) * time.Millisecond
 	retryDelay := baseRetry + jitter
