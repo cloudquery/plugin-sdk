@@ -3,6 +3,7 @@ package premium
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/stretchr/testify/assert"
@@ -173,6 +174,130 @@ func TestUsageService_ShouldNotUpdateClosedService(t *testing.T) {
 	require.Error(t, err, "should not be able to update closed service")
 
 	assert.Equal(t, 0, s.numberOfUpdates(), "total number of updates should be zero")
+}
+
+func TestUsageService_CalculateRetryDuration_Exp(t *testing.T) {
+	tests := []struct {
+		name            string
+		statusCode      int
+		headers         http.Header
+		retry           int
+		expectedSeconds int
+		ops             func(client *BatchUpdater)
+	}{
+		{
+			name:            "first retry",
+			statusCode:      http.StatusOK,
+			headers:         http.Header{},
+			retry:           0,
+			expectedSeconds: 1,
+		},
+		{
+			name:            "second retry",
+			statusCode:      http.StatusOK,
+			headers:         http.Header{},
+			retry:           1,
+			expectedSeconds: 2,
+		},
+		{
+			name:            "third retry",
+			statusCode:      http.StatusOK,
+			headers:         http.Header{},
+			retry:           2,
+			expectedSeconds: 4,
+		},
+		{
+			name:            "fourth retry",
+			statusCode:      http.StatusOK,
+			headers:         http.Header{},
+			retry:           3,
+			expectedSeconds: 8,
+		},
+		{
+			name:            "should max out at max wait time",
+			statusCode:      http.StatusOK,
+			headers:         http.Header{},
+			retry:           10,
+			expectedSeconds: 30,
+			ops: func(client *BatchUpdater) {
+				client.maxWaitTime = 30 * time.Second
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		usageClient := NewUsageClient(context.Background(), nil, "myteam", "mnorbury-team", "source", "vault")
+		if tt.ops != nil {
+			tt.ops(usageClient)
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			retryDuration, err := usageClient.calculateRetryDuration(tt.statusCode, tt.headers, time.Now(), tt.retry)
+			require.NoError(t, err)
+
+			assert.InDeltaf(t, tt.expectedSeconds, retryDuration.Seconds(), 0.1, "retry duration should be %d seconds", tt.expectedSeconds)
+		})
+	}
+}
+
+func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
+	tests := []struct {
+		name            string
+		statusCode      int
+		headers         http.Header
+		retry           int
+		expectedSeconds int
+		ops             func(client *BatchUpdater)
+		wantErr         error
+	}{
+		{
+			name:            "should use exponential backoff on 200",
+			statusCode:      http.StatusOK,
+			headers:         http.Header{},
+			retry:           0,
+			expectedSeconds: 1,
+		},
+		{
+			name:            "should use exponential backoff on 429 if no retry-after header",
+			statusCode:      http.StatusTooManyRequests,
+			headers:         http.Header{},
+			retry:           1,
+			expectedSeconds: 2,
+		},
+		{
+			name:            "should use retry-after header if present on 429",
+			statusCode:      http.StatusTooManyRequests,
+			headers:         http.Header{"Retry-After": []string{"5"}},
+			retry:           0,
+			expectedSeconds: 5,
+		},
+		{
+			name:       "should raise an error if the server wants us to wait longer than max wait time",
+			statusCode: http.StatusTooManyRequests,
+			headers:    http.Header{"Retry-After": []string{"40"}},
+			retry:      0,
+			ops: func(client *BatchUpdater) {
+				client.maxWaitTime = 30 * time.Second
+			},
+			wantErr: errors.New("retry-after header exceeds max wait time: 40s > 30s"),
+		},
+	}
+
+	for _, tt := range tests {
+		usageClient := NewUsageClient(context.Background(), nil, "myteam", "mnorbury-team", "source", "vault")
+		if tt.ops != nil {
+			tt.ops(usageClient)
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			retryDuration, err := usageClient.calculateRetryDuration(tt.statusCode, tt.headers, time.Now(), tt.retry)
+			if tt.wantErr == nil {
+				require.NoError(t, err)
+			} else {
+				assert.Contains(t, err.Error(), tt.wantErr.Error())
+			}
+
+			assert.InDeltaf(t, tt.expectedSeconds, retryDuration.Seconds(), 0.1, "retry duration should be %d seconds", tt.expectedSeconds)
+		})
+	}
 }
 
 func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testStage {

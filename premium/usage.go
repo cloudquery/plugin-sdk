@@ -196,10 +196,8 @@ func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 }
 
 func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numberToUpdate uint32) error {
-	var retryDelay time.Duration
-
 	for retry := 0; retry < u.maxRetries; retry++ {
-		startTime := time.Now()
+		queryStartTime := time.Now()
 
 		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
@@ -215,15 +213,33 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 			return nil
 		}
 
-		retryDelay = time.Duration(1<<retry) * time.Second
-		if retryDelay > u.maxWaitTime {
-			retryDelay = u.maxWaitTime
+		retryDuration, err := u.calculateRetryDuration(resp.StatusCode(), resp.HTTPResponse.Header, queryStartTime, retry)
+		if err != nil {
+			return fmt.Errorf("failed to calculate retry duration: %w", err)
 		}
-
-		sleepDuration := retryDelay - time.Since(startTime)
-		if sleepDuration > 0 {
-			time.Sleep(sleepDuration)
+		if retryDuration > 0 {
+			time.Sleep(retryDuration)
 		}
 	}
 	return fmt.Errorf("failed to update usage: max retries exceeded")
+}
+
+// calculateRetryDuration calculates the duration to sleep relative to the query start time before retrying an update
+func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Header, queryStartTime time.Time, retry int) (time.Duration, error) {
+	if statusCode == http.StatusTooManyRequests {
+		retryAfter := headers.Get("Retry-After")
+		if retryAfter != "" {
+			retryDelay, err := time.ParseDuration(retryAfter + "s")
+			if err != nil {
+				return 0, fmt.Errorf("failed to parse retry-after header: %w", err)
+			}
+			if retryDelay > u.maxWaitTime {
+				return 0, fmt.Errorf("retry-after header exceeds max wait time: %s > %s", retryDelay, u.maxWaitTime)
+			}
+			return retryDelay, nil
+		}
+	}
+
+	retryDelay := time.Duration(1<<retry) * time.Second
+	return min(retryDelay, u.maxWaitTime) - time.Since(queryStartTime), nil
 }
