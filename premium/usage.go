@@ -227,7 +227,7 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 		if err != nil {
 			return fmt.Errorf("failed to update usage: %w", err)
 		}
-		if resp.StatusCode() == http.StatusOK {
+		if resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
 			u.lastUpdateTime = time.Now().UTC()
 			return nil
 		}
