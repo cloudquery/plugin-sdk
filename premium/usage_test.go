@@ -3,7 +3,6 @@ package premium
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/stretchr/testify/assert"
@@ -291,16 +290,6 @@ func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
 			headers:         http.Header{"Retry-After": []string{"5"}},
 			retry:           0,
 			expectedSeconds: 5,
-		},
-		{
-			name:       "should raise an error if the server wants us to wait longer than max wait time",
-			statusCode: http.StatusTooManyRequests,
-			headers:    http.Header{"Retry-After": []string{"40"}},
-			retry:      0,
-			ops: func(client *BatchUpdater) {
-				client.maxWaitTime = 30 * time.Second
-			},
-			wantErr: errors.New("retry-after header exceeds max wait time: 40s > 30s"),
 		},
 	}
 

@@ -252,9 +252,6 @@ func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Heade
 			if err != nil {
 				return 0, fmt.Errorf("failed to parse retry-after header: %w", err)
 			}
-			if retryDelay > u.maxWaitTime {
-				return 0, fmt.Errorf("retry-after header exceeds max wait time: %s > %s", retryDelay, u.maxWaitTime)
-			}
 			return retryDelay, nil
 		}
 	}
