@@ -104,7 +104,7 @@ func TestUsageService_WithFlushDuration(t *testing.T) {
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(uint32(batchSize)), WithFlushEvery(1*time.Millisecond), WithMinimumUpdateDuration(0*time.Millisecond))
+	usageClient := newClient(ctx, apiClient, WithBatchLimit(uint32(batchSize)), WithMaxTimeBetweenFlushes(1*time.Millisecond), WithMinTimeBetweenFlushes(0*time.Millisecond))
 
 	for i := 0; i < 10; i++ {
 		err = usageClient.Increase(ctx, 10)
@@ -127,7 +127,7 @@ func TestUsageService_WithMinimumUpdateDuration(t *testing.T) {
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(0), WithMinimumUpdateDuration(30*time.Second))
+	usageClient := newClient(ctx, apiClient, WithBatchLimit(0), WithMinTimeBetweenFlushes(30*time.Second))
 
 	for i := 0; i < 10000; i++ {
 		err = usageClient.Increase(ctx, 1)

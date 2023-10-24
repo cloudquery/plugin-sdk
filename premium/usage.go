@@ -15,8 +15,8 @@ const (
 	defaultBatchLimit            = 1000
 	defaultMaxRetries            = 5
 	defaultMaxWaitTime           = 60 * time.Second
-	defaultMinimumUpdateDuration = 10 * time.Second
-	defaultFlushDuration         = 30 * time.Second
+	defaultMinTimeBetweenFlushes = 10 * time.Second
+	defaultMaxTimeBetweenFlushes = 30 * time.Second
 )
 
 type UsageClient interface {
@@ -37,17 +37,17 @@ func WithBatchLimit(batchLimit uint32) UpdaterOptions {
 	}
 }
 
-// WithFlushEvery sets the flush duration - the time at which an update will be triggered even if the batch limit is not reached
-func WithFlushEvery(flushDuration time.Duration) UpdaterOptions {
+// WithMaxTimeBetweenFlushes sets the flush duration - the time at which an update will be triggered even if the batch limit is not reached
+func WithMaxTimeBetweenFlushes(maxTimeBetweenFlushes time.Duration) UpdaterOptions {
 	return func(updater *BatchUpdater) {
-		updater.flushDuration = flushDuration
+		updater.maxTimeBetweenFlushes = maxTimeBetweenFlushes
 	}
 }
 
-// WithMinimumUpdateDuration sets the minimum time between updates
-func WithMinimumUpdateDuration(minimumUpdateDuration time.Duration) UpdaterOptions {
+// WithMinTimeBetweenFlushes sets the minimum time between updates
+func WithMinTimeBetweenFlushes(minTimeBetweenFlushes time.Duration) UpdaterOptions {
 	return func(updater *BatchUpdater) {
-		updater.minimumUpdateDuration = minimumUpdateDuration
+		updater.minTimeBetweenFlushes = minTimeBetweenFlushes
 	}
 }
 
@@ -78,8 +78,8 @@ type BatchUpdater struct {
 	batchLimit            uint32
 	maxRetries            int
 	maxWaitTime           time.Duration
-	minimumUpdateDuration time.Duration
-	flushDuration         time.Duration
+	minTimeBetweenFlushes time.Duration
+	maxTimeBetweenFlushes time.Duration
 
 	// State
 	lastUpdateTime time.Time
@@ -100,8 +100,8 @@ func NewUsageClient(ctx context.Context, apiClient *cqapi.ClientWithResponses, t
 		pluginName: pluginName,
 
 		batchLimit:            defaultBatchLimit,
-		minimumUpdateDuration: defaultMinimumUpdateDuration,
-		flushDuration:         defaultFlushDuration,
+		minTimeBetweenFlushes: defaultMinTimeBetweenFlushes,
+		maxTimeBetweenFlushes: defaultMaxTimeBetweenFlushes,
 		maxRetries:            defaultMaxRetries,
 		maxWaitTime:           defaultMaxWaitTime,
 		triggerUpdate:         make(chan struct{}),
@@ -160,14 +160,14 @@ func (u *BatchUpdater) Close(_ context.Context) error {
 func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 	started := make(chan struct{})
 
-	flushDuration := time.NewTicker(u.flushDuration)
+	flushDuration := time.NewTicker(u.maxTimeBetweenFlushes)
 
 	go func() {
 		started <- struct{}{}
 		for {
 			select {
 			case <-u.triggerUpdate:
-				if time.Since(u.lastUpdateTime) < u.minimumUpdateDuration {
+				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
 				}
@@ -183,7 +183,7 @@ func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 				}
 				u.rowsToUpdate.Add(-rowsToUpdate)
 			case <-flushDuration.C:
-				if time.Since(u.lastUpdateTime) < u.minimumUpdateDuration {
+				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
 				}
