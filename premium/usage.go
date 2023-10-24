@@ -158,10 +158,8 @@ func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 					// Not enough rows to update
 					continue
 				}
-				log.Info().Msgf("updating usage: %d", rowsToUpdate)
 				if err := u.updateUsageWithRetryAndBackoff(ctx, rowsToUpdate); err != nil {
-					log.Error().Err(err).Msg("failed to update usage")
-					// TODO: what to do with an update error
+					log.Warn().Err(err).Msg("failed to update usage")
 					continue
 				}
 				u.rowsToUpdate.Add(-rowsToUpdate)
@@ -171,22 +169,19 @@ func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 					continue
 				}
 				if err := u.updateUsageWithRetryAndBackoff(ctx, rowsToUpdate); err != nil {
-					log.Error().Err(err).Msg("failed to update usage")
-					// TODO: what to do with a timer error
+					log.Warn().Err(err).Msg("failed to update usage")
 					continue
 				}
 				u.rowsToUpdate.Add(-rowsToUpdate)
 			case <-u.done:
 				remainingRows := u.rowsToUpdate.Load()
 				if remainingRows != 0 {
-					log.Info().Msgf("updating usage: %d", remainingRows)
 					if err := u.updateUsageWithRetryAndBackoff(ctx, remainingRows); err != nil {
 						u.closeError <- err
 						return
 					}
 					u.rowsToUpdate.Add(-remainingRows)
 				}
-				log.Info().Msg("background updater exiting")
 				u.closeError <- nil
 				return
 			}
