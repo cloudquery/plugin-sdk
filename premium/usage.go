@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	defaultBatchLimit    = 1000
-	defaultFlushDuration = 10 * time.Second
-	defaultMaxRetries    = 5
-	defaultMaxWaitTime   = 60 * time.Second
+	defaultBatchLimit            = 1000
+	defaultMaxRetries            = 5
+	defaultMaxWaitTime           = 60 * time.Second
+	defaultMinimumUpdateDuration = 10 * time.Second
+	defaultFlushDuration         = 30 * time.Second
 )
 
 type UsageClient interface {
@@ -43,6 +44,13 @@ func WithFlushEvery(flushDuration time.Duration) UpdaterOptions {
 	}
 }
 
+// WithMinimumUpdateDuration sets the minimum time between updates
+func WithMinimumUpdateDuration(minimumUpdateDuration time.Duration) UpdaterOptions {
+	return func(updater *BatchUpdater) {
+		updater.minimumUpdateDuration = minimumUpdateDuration
+	}
+}
+
 // WithMaxRetries sets the maximum number of retries to update the usage in case of an API error
 func WithMaxRetries(maxRetries int) UpdaterOptions {
 	return func(updater *BatchUpdater) {
@@ -60,20 +68,26 @@ func WithMaxWaitTime(maxWaitTime time.Duration) UpdaterOptions {
 type BatchUpdater struct {
 	apiClient *cqapi.ClientWithResponses
 
+	// Plugin details
 	teamName   string
 	pluginTeam string
 	pluginKind string
 	pluginName string
 
-	batchLimit    uint32
-	flushDuration time.Duration
-	maxRetries    int
-	maxWaitTime   time.Duration
-	rowsToUpdate  atomic.Uint32
-	triggerUpdate chan struct{}
-	done          chan struct{}
-	closeError    chan error
-	isClosed      bool
+	// Configuration
+	batchLimit            uint32
+	maxRetries            int
+	maxWaitTime           time.Duration
+	minimumUpdateDuration time.Duration
+	flushDuration         time.Duration
+
+	// State
+	lastUpdateTime time.Time
+	rowsToUpdate   atomic.Uint32
+	triggerUpdate  chan struct{}
+	done           chan struct{}
+	closeError     chan error
+	isClosed       bool
 }
 
 func NewUsageClient(ctx context.Context, apiClient *cqapi.ClientWithResponses, teamName, pluginTeam, pluginKind, pluginName string, ops ...UpdaterOptions) *BatchUpdater {
@@ -85,13 +99,14 @@ func NewUsageClient(ctx context.Context, apiClient *cqapi.ClientWithResponses, t
 		pluginKind: pluginKind,
 		pluginName: pluginName,
 
-		batchLimit:    defaultBatchLimit,
-		flushDuration: defaultFlushDuration,
-		maxRetries:    defaultMaxRetries,
-		maxWaitTime:   defaultMaxWaitTime,
-		triggerUpdate: make(chan struct{}),
-		done:          make(chan struct{}),
-		closeError:    make(chan error),
+		batchLimit:            defaultBatchLimit,
+		minimumUpdateDuration: defaultMinimumUpdateDuration,
+		flushDuration:         defaultFlushDuration,
+		maxRetries:            defaultMaxRetries,
+		maxWaitTime:           defaultMaxWaitTime,
+		triggerUpdate:         make(chan struct{}),
+		done:                  make(chan struct{}),
+		closeError:            make(chan error),
 	}
 	for _, op := range ops {
 		op(u)
@@ -152,6 +167,11 @@ func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 		for {
 			select {
 			case <-u.triggerUpdate:
+				if time.Since(u.lastUpdateTime) < u.minimumUpdateDuration {
+					// Not enough time since last update
+					continue
+				}
+
 				rowsToUpdate := u.rowsToUpdate.Load()
 				if rowsToUpdate < u.batchLimit {
 					// Not enough rows to update
@@ -163,6 +183,10 @@ func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 				}
 				u.rowsToUpdate.Add(-rowsToUpdate)
 			case <-flushDuration.C:
+				if time.Since(u.lastUpdateTime) < u.minimumUpdateDuration {
+					// Not enough time since last update
+					continue
+				}
 				rowsToUpdate := u.rowsToUpdate.Load()
 				if rowsToUpdate == 0 {
 					continue
@@ -204,6 +228,7 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 			return fmt.Errorf("failed to update usage: %w", err)
 		}
 		if resp.StatusCode() == http.StatusOK {
+			u.lastUpdateTime = time.Now().UTC()
 			return nil
 		}
 

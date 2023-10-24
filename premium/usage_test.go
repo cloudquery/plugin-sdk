@@ -118,6 +118,28 @@ func TestUsageService_WithFlushDuration(t *testing.T) {
 	assert.True(t, s.minExcludingClose() < batchSize, "we should see updates less than batchsize if ticker is firing")
 }
 
+func TestUsageService_WithMinimumUpdateDuration(t *testing.T) {
+	ctx := context.Background()
+
+	s := createTestServer(t)
+	defer s.server.Close()
+
+	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
+	require.NoError(t, err)
+
+	usageClient := newClient(ctx, apiClient, WithBatchLimit(0), WithMinimumUpdateDuration(30*time.Second))
+
+	for i := 0; i < 10000; i++ {
+		err = usageClient.Increase(ctx, 1)
+		require.NoError(t, err)
+	}
+	err = usageClient.Close(ctx)
+	require.NoError(t, err)
+
+	assert.Equal(t, 10000, s.sumOfUpdates(), "total should equal number of updated rows")
+	assert.Equal(t, 2, s.numberOfUpdates(), "should only update first time and on close if minimum update duration is set")
+}
+
 func TestUsageService_NoUpdates(t *testing.T) {
 	ctx := context.Background()
 
