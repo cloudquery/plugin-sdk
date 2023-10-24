@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	defaultBatchLimit  = 1000
-	defaultDurationMS  = 10000
-	defaultMaxRetries  = 5
-	defaultMaxWaitTime = 60 * time.Second
+	defaultBatchLimit    = 1000
+	defaultFlushDuration = 10 * time.Second
+	defaultMaxRetries    = 5
+	defaultMaxWaitTime   = 60 * time.Second
 )
 
 type UsageClient interface {
@@ -36,10 +36,10 @@ func WithBatchLimit(batchLimit uint32) UpdaterOptions {
 	}
 }
 
-// WithTickerDuration sets the duration between updates if the number of rows to update have not reached the batch limit
-func WithTickerDuration(durationms int) UpdaterOptions {
+// WithFlushEvery sets the flush duration - the time at which an update will be triggered even if the batch limit is not reached
+func WithFlushEvery(flushDuration time.Duration) UpdaterOptions {
 	return func(updater *BatchUpdater) {
-		updater.tickerDuration = durationms
+		updater.flushDuration = flushDuration
 	}
 }
 
@@ -65,15 +65,15 @@ type BatchUpdater struct {
 	pluginKind string
 	pluginName string
 
-	batchLimit     uint32
-	tickerDuration int
-	maxRetries     int
-	maxWaitTime    time.Duration
-	rowsToUpdate   atomic.Uint32
-	triggerUpdate  chan struct{}
-	done           chan struct{}
-	closeError     chan error
-	isClosed       bool
+	batchLimit    uint32
+	flushDuration time.Duration
+	maxRetries    int
+	maxWaitTime   time.Duration
+	rowsToUpdate  atomic.Uint32
+	triggerUpdate chan struct{}
+	done          chan struct{}
+	closeError    chan error
+	isClosed      bool
 }
 
 func NewUsageClient(ctx context.Context, apiClient *cqapi.ClientWithResponses, teamName, pluginTeam, pluginKind, pluginName string, ops ...UpdaterOptions) *BatchUpdater {
@@ -85,13 +85,13 @@ func NewUsageClient(ctx context.Context, apiClient *cqapi.ClientWithResponses, t
 		pluginKind: pluginKind,
 		pluginName: pluginName,
 
-		batchLimit:     defaultBatchLimit,
-		tickerDuration: defaultDurationMS,
-		maxRetries:     defaultMaxRetries,
-		maxWaitTime:    defaultMaxWaitTime,
-		triggerUpdate:  make(chan struct{}),
-		done:           make(chan struct{}),
-		closeError:     make(chan error),
+		batchLimit:    defaultBatchLimit,
+		flushDuration: defaultFlushDuration,
+		maxRetries:    defaultMaxRetries,
+		maxWaitTime:   defaultMaxWaitTime,
+		triggerUpdate: make(chan struct{}),
+		done:          make(chan struct{}),
+		closeError:    make(chan error),
 	}
 	for _, op := range ops {
 		op(u)
@@ -145,8 +145,7 @@ func (u *BatchUpdater) Close(_ context.Context) error {
 func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 	started := make(chan struct{})
 
-	duration := time.Duration(u.tickerDuration) * time.Millisecond
-	ticker := time.NewTicker(duration)
+	flushDuration := time.NewTicker(u.flushDuration)
 
 	go func() {
 		started <- struct{}{}
@@ -163,7 +162,7 @@ func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
 					continue
 				}
 				u.rowsToUpdate.Add(-rowsToUpdate)
-			case <-ticker.C:
+			case <-flushDuration.C:
 				rowsToUpdate := u.rowsToUpdate.Load()
 				if rowsToUpdate == 0 {
 					continue

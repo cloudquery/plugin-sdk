@@ -94,7 +94,7 @@ func TestUsageService_WithBatchSize(t *testing.T) {
 	assert.True(t, true, s.minExcludingClose() > batchSize, "minimum should be greater than batch size")
 }
 
-func TestUsageService_WithTicker(t *testing.T) {
+func TestUsageService_WithFlushDuration(t *testing.T) {
 	ctx := context.Background()
 	batchSize := 2000
 
@@ -104,7 +104,7 @@ func TestUsageService_WithTicker(t *testing.T) {
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := NewUsageClient(ctx, apiClient, "myteam", "mnorbury-team", "source", "vault", WithBatchLimit(uint32(batchSize)), WithTickerDuration(1))
+	usageClient := NewUsageClient(ctx, apiClient, "myteam", "mnorbury-team", "source", "vault", WithBatchLimit(uint32(batchSize)), WithFlushEvery(1*time.Millisecond))
 
 	for i := 0; i < 10; i++ {
 		err = usageClient.Increase(ctx, 10)
