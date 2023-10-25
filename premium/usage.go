@@ -24,11 +24,15 @@ const (
 	defaultMaxTimeBetweenFlushes = 30 * time.Second
 )
 
-type UsageClient interface {
-	// Increase updates the usage by the given number of rows
-	Increase(context.Context, uint32) error
+type QuotaMonitor interface {
 	// HasQuota returns true if the quota has not been exceeded
 	HasQuota(context.Context) (bool, error)
+}
+
+type UsageClient interface {
+	QuotaMonitor
+	// Increase updates the usage by the given number of rows
+	Increase(context.Context, uint32) error
 	// Close flushes any remaining rows and closes the quota service
 	Close() error
 }
