@@ -11,3 +11,11 @@ func ContainsPaidTables(tables schema.Tables) bool {
 	}
 	return false
 }
+
+// MakeAllTablesPaid sets all tables to paid
+func MakeAllTablesPaid(tables schema.Tables) schema.Tables {
+	for _, table := range tables {
+		table.IsPaid = true
+	}
+	return tables
+}
