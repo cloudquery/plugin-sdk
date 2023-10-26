@@ -32,7 +32,7 @@ type QuotaMonitor interface {
 type UsageClient interface {
 	QuotaMonitor
 	// Increase updates the usage by the given number of rows
-	Increase(context.Context, uint32) error
+	Increase(uint32) error
 	// Close flushes any remaining rows and closes the quota service
 	Close() error
 }
@@ -143,7 +143,7 @@ type BatchUpdater struct {
 	isClosed       bool
 }
 
-func NewUsageClient(ctx context.Context, pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pluginName cqapi.PluginName, ops ...UsageClientOptions) (*BatchUpdater, error) {
+func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pluginName cqapi.PluginName, ops ...UsageClientOptions) (*BatchUpdater, error) {
 	u := &BatchUpdater{
 		logger: zerolog.Nop(),
 		url:    defaultAPIURL,
@@ -191,12 +191,12 @@ func NewUsageClient(ctx context.Context, pluginTeam cqapi.PluginTeam, pluginKind
 		u.apiClient = ac
 	}
 
-	u.backgroundUpdater(ctx)
+	u.backgroundUpdater()
 
 	return u, nil
 }
 
-func (u *BatchUpdater) Increase(_ context.Context, rows uint32) error {
+func (u *BatchUpdater) Increase(rows uint32) error {
 	if rows <= 0 {
 		return fmt.Errorf("rows must be greater than zero got %d", rows)
 	}
@@ -236,7 +236,8 @@ func (u *BatchUpdater) Close() error {
 	return <-u.closeError
 }
 
-func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
+func (u *BatchUpdater) backgroundUpdater() {
+	ctx := context.Background()
 	started := make(chan struct{})
 
 	flushDuration := time.NewTicker(u.maxTimeBetweenFlushes)
