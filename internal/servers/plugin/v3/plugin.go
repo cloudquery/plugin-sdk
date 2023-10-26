@@ -210,6 +210,10 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		}
 	}
 
+	if err := s.Plugin.OnSyncFinish(ctx); err != nil {
+		return status.Errorf(codes.Internal, "failed to finish sync: %v", err)
+	}
+
 	return syncErr
 }
 
