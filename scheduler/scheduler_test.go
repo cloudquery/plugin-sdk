@@ -292,7 +292,11 @@ func TestScheduler_Cancellation(t *testing.T) {
 						[]*schema.Table{testTableSuccessWithData(tc.data)},
 						messages,
 					)
-					require.NoError(t, err)
+					if tc.cancel {
+						assert.Equal(t, err, context.Canceled)
+					} else {
+						require.NoError(t, err)
+					}
 					close(messages)
 				}()
 

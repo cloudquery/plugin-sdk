@@ -186,7 +186,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		select {
 		case res <- &message.SyncInsert{Record: resourceToRecord(resource)}:
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		}
 	}
 	return nil
