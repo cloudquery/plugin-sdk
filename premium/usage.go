@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
+	"github.com/cloudquery/cloudquery-api-go/auth"
+	"github.com/cloudquery/cloudquery-api-go/config"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"math/rand"
 	"net/http"
@@ -13,6 +16,7 @@ import (
 )
 
 const (
+	defaultAPIURL                = "https://api.cloudquery.io"
 	defaultBatchLimit            = 1000
 	defaultMaxRetries            = 5
 	defaultMaxWaitTime           = 60 * time.Second
@@ -20,60 +24,108 @@ const (
 	defaultMaxTimeBetweenFlushes = 30 * time.Second
 )
 
-type UsageClient interface {
-	// Increase updates the usage by the given number of rows
-	Increase(context.Context, uint32)
+type QuotaMonitor interface {
 	// HasQuota returns true if the quota has not been exceeded
 	HasQuota(context.Context) (bool, error)
+}
+
+type UsageClient interface {
+	QuotaMonitor
+	// Increase updates the usage by the given number of rows
+	Increase(uint32) error
 	// Close flushes any remaining rows and closes the quota service
 	Close() error
 }
 
-type UpdaterOptions func(updater *BatchUpdater)
+type UsageClientOptions func(updater *BatchUpdater)
 
 // WithBatchLimit sets the maximum number of rows to update in a single request
-func WithBatchLimit(batchLimit uint32) UpdaterOptions {
+func WithBatchLimit(batchLimit uint32) UsageClientOptions {
 	return func(updater *BatchUpdater) {
 		updater.batchLimit = batchLimit
 	}
 }
 
 // WithMaxTimeBetweenFlushes sets the flush duration - the time at which an update will be triggered even if the batch limit is not reached
-func WithMaxTimeBetweenFlushes(maxTimeBetweenFlushes time.Duration) UpdaterOptions {
+func WithMaxTimeBetweenFlushes(maxTimeBetweenFlushes time.Duration) UsageClientOptions {
 	return func(updater *BatchUpdater) {
 		updater.maxTimeBetweenFlushes = maxTimeBetweenFlushes
 	}
 }
 
 // WithMinTimeBetweenFlushes sets the minimum time between updates
-func WithMinTimeBetweenFlushes(minTimeBetweenFlushes time.Duration) UpdaterOptions {
+func WithMinTimeBetweenFlushes(minTimeBetweenFlushes time.Duration) UsageClientOptions {
 	return func(updater *BatchUpdater) {
 		updater.minTimeBetweenFlushes = minTimeBetweenFlushes
 	}
 }
 
 // WithMaxRetries sets the maximum number of retries to update the usage in case of an API error
-func WithMaxRetries(maxRetries int) UpdaterOptions {
+func WithMaxRetries(maxRetries int) UsageClientOptions {
 	return func(updater *BatchUpdater) {
 		updater.maxRetries = maxRetries
 	}
 }
 
 // WithMaxWaitTime sets the maximum time to wait before retrying a failed update
-func WithMaxWaitTime(maxWaitTime time.Duration) UpdaterOptions {
+func WithMaxWaitTime(maxWaitTime time.Duration) UsageClientOptions {
 	return func(updater *BatchUpdater) {
 		updater.maxWaitTime = maxWaitTime
 	}
 }
 
+// WithLogger sets the logger to use - defaults to a no-op logger
+func WithLogger(logger zerolog.Logger) UsageClientOptions {
+	return func(updater *BatchUpdater) {
+		updater.logger = logger
+	}
+}
+
+// WithURL sets the API URL to use - defaults to https://api.cloudquery.io
+func WithURL(url string) UsageClientOptions {
+	return func(updater *BatchUpdater) {
+		updater.url = url
+	}
+}
+
+// WithTeamName sets the team name to use - defaults to the team name from the configuration
+func WithTeamName(teamName cqapi.TeamName) UsageClientOptions {
+	return func(updater *BatchUpdater) {
+		updater.teamName = teamName
+	}
+}
+
+// WithAPIClient sets the API client to use - defaults to a client using a bearer token generated from the refresh token stored in the configuration
+func WithAPIClient(apiClient *cqapi.ClientWithResponses) UsageClientOptions {
+	return func(updater *BatchUpdater) {
+		updater.apiClient = apiClient
+	}
+}
+
+func WithPluginTeam(pluginTeam string) cqapi.PluginTeam {
+	return pluginTeam
+}
+
+func WithPluginKind(pluginKind string) cqapi.PluginKind {
+	return cqapi.PluginKind(pluginKind)
+}
+
+func WithPluginName(pluginName string) cqapi.PluginName {
+	return pluginName
+}
+
+var _ UsageClient = (*BatchUpdater)(nil)
+
 type BatchUpdater struct {
+	logger    zerolog.Logger
+	url       string
 	apiClient *cqapi.ClientWithResponses
 
 	// Plugin details
-	teamName   string
-	pluginTeam string
-	pluginKind string
-	pluginName string
+	teamName   cqapi.TeamName
+	pluginTeam cqapi.PluginTeam
+	pluginKind cqapi.PluginKind
+	pluginName cqapi.PluginName
 
 	// Configuration
 	batchLimit            uint32
@@ -91,11 +143,11 @@ type BatchUpdater struct {
 	isClosed       bool
 }
 
-func NewUsageClient(ctx context.Context, apiClient *cqapi.ClientWithResponses, teamName, pluginTeam, pluginKind, pluginName string, ops ...UpdaterOptions) *BatchUpdater {
+func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pluginName cqapi.PluginName, ops ...UsageClientOptions) (*BatchUpdater, error) {
 	u := &BatchUpdater{
-		apiClient: apiClient,
+		logger: zerolog.Nop(),
+		url:    defaultAPIURL,
 
-		teamName:   teamName,
 		pluginTeam: pluginTeam,
 		pluginKind: pluginKind,
 		pluginName: pluginName,
@@ -113,12 +165,38 @@ func NewUsageClient(ctx context.Context, apiClient *cqapi.ClientWithResponses, t
 		op(u)
 	}
 
-	u.backgroundUpdater(ctx)
+	// Set team name from configuration if not provided
+	if u.teamName == "" {
+		teamName, err := config.GetValue("team")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get team name from config: %w", err)
+		}
+		u.teamName = teamName
+	}
 
-	return u
+	// Create a default api client if none was provided
+	if u.apiClient == nil {
+		tokenClient := auth.NewTokenClient()
+		ac, err := cqapi.NewClientWithResponses(u.url, cqapi.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+			token, err := tokenClient.GetToken()
+			if err != nil {
+				return fmt.Errorf("failed to get token: %w", err)
+			}
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+			return nil
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create api client: %w", err)
+		}
+		u.apiClient = ac
+	}
+
+	u.backgroundUpdater()
+
+	return u, nil
 }
 
-func (u *BatchUpdater) Increase(_ context.Context, rows uint32) error {
+func (u *BatchUpdater) Increase(rows uint32) error {
 	if rows <= 0 {
 		return fmt.Errorf("rows must be greater than zero got %d", rows)
 	}
@@ -140,7 +218,7 @@ func (u *BatchUpdater) Increase(_ context.Context, rows uint32) error {
 }
 
 func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
-	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginTeam, cqapi.PluginKind(u.pluginKind), u.pluginName)
+	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginTeam, u.pluginKind, u.pluginName)
 	if err != nil {
 		return false, fmt.Errorf("failed to get usage: %w", err)
 	}
@@ -150,7 +228,7 @@ func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
 	return *usage.JSON200.RemainingRows > 0, nil
 }
 
-func (u *BatchUpdater) Close(_ context.Context) error {
+func (u *BatchUpdater) Close() error {
 	u.isClosed = true
 
 	close(u.done)
@@ -158,7 +236,8 @@ func (u *BatchUpdater) Close(_ context.Context) error {
 	return <-u.closeError
 }
 
-func (u *BatchUpdater) backgroundUpdater(ctx context.Context) {
+func (u *BatchUpdater) backgroundUpdater() {
+	ctx := context.Background()
 	started := make(chan struct{})
 
 	flushDuration := time.NewTicker(u.maxTimeBetweenFlushes)
@@ -221,7 +300,7 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
 			PluginTeam: u.pluginTeam,
-			PluginKind: cqapi.PluginKind(u.pluginKind),
+			PluginKind: u.pluginKind,
 			PluginName: u.pluginName,
 			Rows:       int(numberToUpdate),
 		})
