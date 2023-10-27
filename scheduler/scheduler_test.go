@@ -2,6 +2,9 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/apache/arrow/go/v14/arrow"
@@ -38,6 +41,22 @@ func testPreResourceResolverPanic(context.Context, schema.ClientMeta, *schema.Re
 
 func testColumnResolverPanic(context.Context, schema.ClientMeta, *schema.Resource, schema.Column) error {
 	panic("ColumnResolver")
+}
+
+func testTableSuccessWithData(data []any) *schema.Table {
+	return &schema.Table{
+		Name: "test_table_success",
+		Resolver: func(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			res <- data
+			return nil
+		},
+		Columns: []schema.Column{
+			{
+				Name: "test_column",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+		},
+	}
 }
 
 func testTableSuccess() *schema.Table {
@@ -228,6 +247,68 @@ func TestScheduler(t *testing.T) {
 			}
 			t.Run(testName, func(t *testing.T) {
 				testSyncTable(t, tc, strategy, tc.deterministicCQID)
+			})
+		}
+	}
+}
+
+func TestScheduler_Cancellation(t *testing.T) {
+	data := make([]any, 100)
+
+	tests := []struct {
+		name         string
+		data         []any
+		cancel       bool
+		messageCount int
+	}{
+		{
+			name:         "should consume all message",
+			data:         data,
+			cancel:       false,
+			messageCount: len(data) + 1, // 9 data + 1 migration message
+		},
+		{
+			name:         "should not consume all message on cancel",
+			data:         data,
+			cancel:       true,
+			messageCount: len(data) + 1, // 9 data + 1 migration message
+		},
+	}
+
+	for _, strategy := range AllStrategies {
+		for _, tc := range tests {
+			tc := tc
+			t.Run(fmt.Sprintf("%s_%s", tc.name, strategy.String()), func(t *testing.T) {
+				sc := NewScheduler(WithLogger(zerolog.New(zerolog.NewTestWriter(t))), WithStrategy(strategy))
+
+				messages := make(chan message.SyncMessage)
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				go func() {
+					err := sc.Sync(
+						ctx,
+						&testExecutionClient{},
+						[]*schema.Table{testTableSuccessWithData(tc.data)},
+						messages,
+					)
+					require.NoError(t, err)
+					close(messages)
+				}()
+
+				messageConsumed := 0
+				for range messages {
+					if tc.cancel {
+						cancel()
+					}
+					messageConsumed++
+				}
+
+				if tc.cancel {
+					assert.NotEqual(t, tc.messageCount, messageConsumed)
+				} else {
+					assert.Equal(t, tc.messageCount, messageConsumed)
+				}
 			})
 		}
 	}
