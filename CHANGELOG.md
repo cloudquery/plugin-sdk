@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.17.0](https://github.com/cloudquery/plugin-sdk/compare/v4.16.1...v4.17.0) (2023-10-30)
+
+
+### Features
+
+* Add IsPaid flag to table definition ([#1327](https://github.com/cloudquery/plugin-sdk/issues/1327)) ([ffd14bf](https://github.com/cloudquery/plugin-sdk/commit/ffd14bf398fb8fd6831da34e3b99be0eb1a618ab))
+* Add OnBeforeSend hook ([#1325](https://github.com/cloudquery/plugin-sdk/issues/1325)) ([023ebbc](https://github.com/cloudquery/plugin-sdk/commit/023ebbc522959e1826a6bf2480395cb38c27aea0))
+* Adding a batch updater to allow usage updates to be batched ([#1326](https://github.com/cloudquery/plugin-sdk/issues/1326)) ([0301ed7](https://github.com/cloudquery/plugin-sdk/commit/0301ed75928a6e8bc50984cb5ec29880396cbc4f))
+* Adding quota monitoring for premium plugins ([#1333](https://github.com/cloudquery/plugin-sdk/issues/1333)) ([b7a2ca5](https://github.com/cloudquery/plugin-sdk/commit/b7a2ca547a3d819eff7283d8a3afa312335617a9))
+* Allow sync to be cancelled when in progress ([#1334](https://github.com/cloudquery/plugin-sdk/issues/1334)) ([6d7be0b](https://github.com/cloudquery/plugin-sdk/commit/6d7be0bd9e25710d0e92407f34fe38a11c3f8dad))
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/arrow/go/v14 digest to 50d3871 ([#1337](https://github.com/cloudquery/plugin-sdk/issues/1337)) ([f15a89d](https://github.com/cloudquery/plugin-sdk/commit/f15a89d64e604642455951895bf3db3e04ae4afe))
+* **deps:** Update github.com/cloudquery/arrow/go/v14 digest to f46436f ([#1329](https://github.com/cloudquery/plugin-sdk/issues/1329)) ([ee24384](https://github.com/cloudquery/plugin-sdk/commit/ee243848baa2e6c6e5737233c926c44897de0ef0))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.4.2 ([#1335](https://github.com/cloudquery/plugin-sdk/issues/1335)) ([2ecd2a1](https://github.com/cloudquery/plugin-sdk/commit/2ecd2a1f47ac6ad3d529da0aded01fcdd8f8cb18))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.13.0 ([#1332](https://github.com/cloudquery/plugin-sdk/issues/1332)) ([5553f85](https://github.com/cloudquery/plugin-sdk/commit/5553f8556a7dda0be9425c70f9694140c7afb103))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.13.1 ([#1336](https://github.com/cloudquery/plugin-sdk/issues/1336)) ([b782ee7](https://github.com/cloudquery/plugin-sdk/commit/b782ee714e87cac8901eac4f032e51fd4362a997))
+* **deps:** Update module google.golang.org/grpc to v1.58.3 [SECURITY] ([#1331](https://github.com/cloudquery/plugin-sdk/issues/1331)) ([43f60c2](https://github.com/cloudquery/plugin-sdk/commit/43f60c2d229dc4947cb4a020bd6a54b9b4d8325e))
+
 ## [4.16.1](https://github.com/cloudquery/plugin-sdk/compare/v4.16.0...v4.16.1) (2023-10-19)
 
 
