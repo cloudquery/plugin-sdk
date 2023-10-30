@@ -219,7 +219,7 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 }
 
 func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
-	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginTeam).Str("pluginKind", string(u.pluginKind)).Str("pluginName", string(u.pluginName)).Msg("checking quota")
+	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginTeam).Str("pluginKind", string(u.pluginKind)).Str("pluginName", u.pluginName).Msg("checking quota")
 	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginTeam, u.pluginKind, u.pluginName)
 	if err != nil {
 		return false, fmt.Errorf("failed to get usage: %w", err)
