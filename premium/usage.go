@@ -3,16 +3,17 @@ package premium
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"net/http"
+	"sync/atomic"
+	"time"
+
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"math/rand"
-	"net/http"
-	"sync/atomic"
-	"time"
 )
 
 const (
@@ -218,6 +219,7 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 }
 
 func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
+	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginTeam).Str("pluginKind", string(u.pluginKind)).Str("pluginName", string(u.pluginName)).Msg("checking quota")
 	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginTeam, u.pluginKind, u.pluginName)
 	if err != nil {
 		return false, fmt.Errorf("failed to get usage: %w", err)
@@ -295,6 +297,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 
 func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numberToUpdate uint32) error {
 	for retry := 0; retry < u.maxRetries; retry++ {
+		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", numberToUpdate).Msg("updating usage")
 		queryStartTime := time.Now()
 
 		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, cqapi.IncreaseTeamPluginUsageJSONRequestBody{
@@ -308,6 +311,7 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 			return fmt.Errorf("failed to update usage: %w", err)
 		}
 		if resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
+			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", numberToUpdate).Msg("usage updated")
 			u.lastUpdateTime = time.Now().UTC()
 			return nil
 		}
