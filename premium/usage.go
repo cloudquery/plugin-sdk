@@ -89,8 +89,8 @@ func WithURL(url string) UsageClientOptions {
 	}
 }
 
-// WithTeamName sets the team name to use - defaults to the team name from the configuration
-func WithTeamName(teamName cqapi.TeamName) UsageClientOptions {
+// withTeamName sets the team name to use - defaults to the team name from the configuration
+func withTeamName(teamName cqapi.TeamName) UsageClientOptions {
 	return func(updater *BatchUpdater) {
 		updater.teamName = teamName
 	}

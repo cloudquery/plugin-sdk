@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	cqapi "github.com/cloudquery/cloudquery-api-go"
-	"github.com/cloudquery/cloudquery-api-go/config"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	cqapi "github.com/cloudquery/cloudquery-api-go"
+	"github.com/cloudquery/cloudquery-api-go/config"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUsageService_NewUsageClient_Defaults(t *testing.T) {
@@ -44,7 +45,17 @@ func TestUsageService_NewUsageClient_Override(t *testing.T) {
 
 	logger := zerolog.New(zerolog.NewTestWriter(t))
 
-	uc, err := NewUsageClient(WithPluginTeam("plugin-team"), WithPluginKind("source"), WithPluginName("vault"), WithLogger(logger), WithAPIClient(ac), WithTeamName("override-team-name"), WithMaxRetries(10), WithMaxWaitTime(120*time.Second), WithMaxTimeBetweenFlushes(10*time.Second))
+	uc, err := NewUsageClient(
+		WithPluginTeam("plugin-team"),
+		WithPluginKind("source"),
+		WithPluginName("vault"),
+		WithLogger(logger),
+		WithAPIClient(ac),
+		withTeamName("override-team-name"),
+		WithMaxRetries(10),
+		WithMaxWaitTime(120*time.Second),
+		WithMaxTimeBetweenFlushes(10*time.Second),
+	)
 	require.NoError(t, err)
 
 	assert.Equal(t, ac, uc.apiClient)
@@ -341,7 +352,11 @@ func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
 }
 
 func newClient(t *testing.T, apiClient *cqapi.ClientWithResponses, ops ...UsageClientOptions) *BatchUpdater {
-	client, err := NewUsageClient(WithPluginTeam("plugin-team"), WithPluginKind("source"), WithPluginName("vault"), append(ops, WithTeamName("team-name"), WithAPIClient(apiClient))...)
+	client, err := NewUsageClient(
+		WithPluginTeam("plugin-team"),
+		WithPluginKind("source"),
+		WithPluginName("vault"),
+		append(ops, withTeamName("team-name"), WithAPIClient(apiClient))...)
 	require.NoError(t, err)
 
 	return client
