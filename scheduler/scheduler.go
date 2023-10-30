@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/apache/arrow/go/v14/arrow"
 	"runtime/debug"
 	"sync/atomic"
 	"time"
+
+	"github.com/apache/arrow/go/v14/arrow"
 
 	"github.com/apache/arrow/go/v14/arrow/array"
 	"github.com/apache/arrow/go/v14/arrow/memory"
@@ -186,10 +187,11 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		select {
 		case res <- &message.SyncInsert{Record: resourceToRecord(resource)}:
 		case <-ctx.Done():
-			return ctx.Err()
+			s.logger.Debug().Msg("sync context cancelled")
+			return context.Cause(ctx)
 		}
 	}
-	return nil
+	return context.Cause(ctx)
 }
 
 func resourceToRecord(resource *schema.Resource) arrow.Record {
