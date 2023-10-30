@@ -141,6 +141,19 @@ func (p *Plugin) OnBeforeSend(ctx context.Context, msg message.SyncMessage) (mes
 	return msg, nil
 }
 
+// OnSyncFinisher is an interface that can be implemented by a plugin client to be notified when a sync finishes.
+type OnSyncFinisher interface {
+	OnSyncFinish(context.Context) error
+}
+
+// OnSyncFinish gets called after a sync finishes.
+func (p *Plugin) OnSyncFinish(ctx context.Context) error {
+	if v, ok := p.client.(OnSyncFinisher); ok {
+		return v.OnSyncFinish(ctx)
+	}
+	return nil
+}
+
 // IsStaticLinkingEnabled whether static linking is to be enabled
 func (p *Plugin) IsStaticLinkingEnabled() bool {
 	return p.staticLinking
