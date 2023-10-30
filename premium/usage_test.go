@@ -4,15 +4,67 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	cqapi "github.com/cloudquery/cloudquery-api-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	cqapi "github.com/cloudquery/cloudquery-api-go"
+	"github.com/cloudquery/cloudquery-api-go/config"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestUsageService_NewUsageClient_Defaults(t *testing.T) {
+	err := config.SetConfigHome(t.TempDir())
+	require.NoError(t, err)
+
+	err = config.SetValue("team", "config-team")
+	require.NoError(t, err)
+
+	uc, err := NewUsageClient(
+		WithPluginTeam("plugin-team"),
+		WithPluginKind("source"),
+		WithPluginName("vault"),
+	)
+	require.NoError(t, err)
+
+	assert.NotNil(t, uc.apiClient)
+	assert.Equal(t, "config-team", uc.teamName)
+	assert.Equal(t, zerolog.Nop(), uc.logger)
+	assert.Equal(t, 5, uc.maxRetries)
+	assert.Equal(t, 60*time.Second, uc.maxWaitTime)
+	assert.Equal(t, 30*time.Second, uc.maxTimeBetweenFlushes)
+}
+
+func TestUsageService_NewUsageClient_Override(t *testing.T) {
+	ac, err := cqapi.NewClientWithResponses("http://localhost")
+	require.NoError(t, err)
+
+	logger := zerolog.New(zerolog.NewTestWriter(t))
+
+	uc, err := NewUsageClient(
+		WithPluginTeam("plugin-team"),
+		WithPluginKind("source"),
+		WithPluginName("vault"),
+		WithLogger(logger),
+		WithAPIClient(ac),
+		withTeamName("override-team-name"),
+		WithMaxRetries(10),
+		WithMaxWaitTime(120*time.Second),
+		WithMaxTimeBetweenFlushes(10*time.Second),
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, ac, uc.apiClient)
+	assert.Equal(t, "override-team-name", uc.teamName)
+	assert.Equal(t, logger, uc.logger)
+	assert.Equal(t, 10, uc.maxRetries)
+	assert.Equal(t, 120*time.Second, uc.maxWaitTime)
+	assert.Equal(t, 10*time.Second, uc.maxTimeBetweenFlushes)
+}
 
 func TestUsageService_HasQuota_NoRowsRemaining(t *testing.T) {
 	ctx := context.Background()
@@ -23,7 +75,7 @@ func TestUsageService_HasQuota_NoRowsRemaining(t *testing.T) {
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(0))
+	usageClient := newClient(t, apiClient, WithBatchLimit(0))
 
 	hasQuota, err := usageClient.HasQuota(ctx)
 	require.NoError(t, err)
@@ -40,7 +92,7 @@ func TestUsageService_HasQuota_WithRowsRemaining(t *testing.T) {
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(0))
+	usageClient := newClient(t, apiClient, WithBatchLimit(0))
 
 	hasQuota, err := usageClient.HasQuota(ctx)
 	require.NoError(t, err)
@@ -49,29 +101,26 @@ func TestUsageService_HasQuota_WithRowsRemaining(t *testing.T) {
 }
 
 func TestUsageService_ZeroBatchSize(t *testing.T) {
-	ctx := context.Background()
-
 	s := createTestServer(t)
 	defer s.server.Close()
 
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(0))
+	usageClient := newClient(t, apiClient, WithBatchLimit(0))
 
 	for i := 0; i < 10000; i++ {
-		err = usageClient.Increase(ctx, 1)
+		err = usageClient.Increase(1)
 		require.NoError(t, err)
 	}
 
-	err = usageClient.Close(ctx)
+	err = usageClient.Close()
 	require.NoError(t, err)
 
 	assert.Equal(t, 10000, s.sumOfUpdates(), "total should equal number of updated rows")
 }
 
 func TestUsageService_WithBatchSize(t *testing.T) {
-	ctx := context.Background()
 	batchSize := 2000
 
 	s := createTestServer(t)
@@ -80,13 +129,13 @@ func TestUsageService_WithBatchSize(t *testing.T) {
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(uint32(batchSize)))
+	usageClient := newClient(t, apiClient, WithBatchLimit(uint32(batchSize)))
 
 	for i := 0; i < 10000; i++ {
-		err = usageClient.Increase(ctx, 1)
+		err = usageClient.Increase(1)
 		require.NoError(t, err)
 	}
-	err = usageClient.Close(ctx)
+	err = usageClient.Close()
 	require.NoError(t, err)
 
 	assert.Equal(t, 10000, s.sumOfUpdates(), "total should equal number of updated rows")
@@ -94,7 +143,6 @@ func TestUsageService_WithBatchSize(t *testing.T) {
 }
 
 func TestUsageService_WithFlushDuration(t *testing.T) {
-	ctx := context.Background()
 	batchSize := 2000
 
 	s := createTestServer(t)
@@ -103,14 +151,14 @@ func TestUsageService_WithFlushDuration(t *testing.T) {
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(uint32(batchSize)), WithMaxTimeBetweenFlushes(1*time.Millisecond), WithMinTimeBetweenFlushes(0*time.Millisecond))
+	usageClient := newClient(t, apiClient, WithBatchLimit(uint32(batchSize)), WithMaxTimeBetweenFlushes(1*time.Millisecond), WithMinTimeBetweenFlushes(0*time.Millisecond))
 
 	for i := 0; i < 10; i++ {
-		err = usageClient.Increase(ctx, 10)
+		err = usageClient.Increase(10)
 		require.NoError(t, err)
 		time.Sleep(5 * time.Millisecond)
 	}
-	err = usageClient.Close(ctx)
+	err = usageClient.Close()
 	require.NoError(t, err)
 
 	assert.Equal(t, 100, s.sumOfUpdates(), "total should equal number of updated rows")
@@ -118,21 +166,19 @@ func TestUsageService_WithFlushDuration(t *testing.T) {
 }
 
 func TestUsageService_WithMinimumUpdateDuration(t *testing.T) {
-	ctx := context.Background()
-
 	s := createTestServer(t)
 	defer s.server.Close()
 
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(0), WithMinTimeBetweenFlushes(30*time.Second))
+	usageClient := newClient(t, apiClient, WithBatchLimit(0), WithMinTimeBetweenFlushes(30*time.Second))
 
 	for i := 0; i < 10000; i++ {
-		err = usageClient.Increase(ctx, 1)
+		err = usageClient.Increase(1)
 		require.NoError(t, err)
 	}
-	err = usageClient.Close(ctx)
+	err = usageClient.Close()
 	require.NoError(t, err)
 
 	assert.Equal(t, 10000, s.sumOfUpdates(), "total should equal number of updated rows")
@@ -140,58 +186,52 @@ func TestUsageService_WithMinimumUpdateDuration(t *testing.T) {
 }
 
 func TestUsageService_NoUpdates(t *testing.T) {
-	ctx := context.Background()
-
 	s := createTestServer(t)
 	defer s.server.Close()
 
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(0))
+	usageClient := newClient(t, apiClient, WithBatchLimit(0))
 
-	err = usageClient.Close(ctx)
+	err = usageClient.Close()
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, s.numberOfUpdates(), "total number of updates should be zero")
 }
 
 func TestUsageService_UpdatesWithZeroRows(t *testing.T) {
-	ctx := context.Background()
-
 	s := createTestServer(t)
 	defer s.server.Close()
 
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(0))
+	usageClient := newClient(t, apiClient, WithBatchLimit(0))
 
-	err = usageClient.Increase(ctx, 0)
+	err = usageClient.Increase(0)
 	require.Error(t, err, "should not be able to update with zero rows")
 
-	err = usageClient.Close(ctx)
+	err = usageClient.Close()
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, s.numberOfUpdates(), "total number of updates should be zero")
 }
 
 func TestUsageService_ShouldNotUpdateClosedService(t *testing.T) {
-	ctx := context.Background()
-
 	s := createTestServer(t)
 	defer s.server.Close()
 
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
 	require.NoError(t, err)
 
-	usageClient := newClient(ctx, apiClient, WithBatchLimit(0))
+	usageClient := newClient(t, apiClient, WithBatchLimit(0))
 
 	// Close the service first
-	err = usageClient.Close(ctx)
+	err = usageClient.Close()
 	require.NoError(t, err)
 
-	err = usageClient.Increase(ctx, 10)
+	err = usageClient.Increase(10)
 	require.Error(t, err, "should not be able to update closed service")
 
 	assert.Equal(t, 0, s.numberOfUpdates(), "total number of updates should be zero")
@@ -247,7 +287,7 @@ func TestUsageService_CalculateRetryDuration_Exp(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		usageClient := newClient(context.Background(), nil)
+		usageClient := newClient(t, nil)
 		if tt.ops != nil {
 			tt.ops(usageClient)
 		}
@@ -294,7 +334,7 @@ func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		usageClient := newClient(context.Background(), nil)
+		usageClient := newClient(t, nil)
 		if tt.ops != nil {
 			tt.ops(usageClient)
 		}
@@ -311,8 +351,15 @@ func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
 	}
 }
 
-func newClient(ctx context.Context, apiClient *cqapi.ClientWithResponses, ops ...UpdaterOptions) *BatchUpdater {
-	return NewUsageClient(ctx, apiClient, "myteam", "mnorbury-team", "source", "vault", ops...)
+func newClient(t *testing.T, apiClient *cqapi.ClientWithResponses, ops ...UsageClientOptions) *BatchUpdater {
+	client, err := NewUsageClient(
+		WithPluginTeam("plugin-team"),
+		WithPluginKind("source"),
+		WithPluginName("vault"),
+		append(ops, withTeamName("team-name"), WithAPIClient(apiClient))...)
+	require.NoError(t, err)
+
+	return client
 }
 
 func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testStage {
