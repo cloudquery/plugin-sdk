@@ -2,32 +2,42 @@ package premium
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
+	"errors"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
-func newFakeQuotaMonitor(hasQuota ...bool) *fakeQuotaMonitor {
-	return &fakeQuotaMonitor{hasQuota: hasQuota}
+type quotaResponse struct {
+	hasQuota bool
+	err      error
+}
+
+func newFakeQuotaMonitor(hasQuota ...quotaResponse) *fakeQuotaMonitor {
+	return &fakeQuotaMonitor{responses: hasQuota}
 }
 
 type fakeQuotaMonitor struct {
-	hasQuota []bool
-	calls    int
+	responses []quotaResponse
+	calls     int
 }
 
 func (f *fakeQuotaMonitor) HasQuota(_ context.Context) (bool, error) {
-	hasQuota := f.hasQuota[f.calls]
-	if f.calls < len(f.hasQuota)-1 {
+	resp := f.responses[f.calls]
+	if f.calls < len(f.responses)-1 {
 		f.calls++
 	}
-	return hasQuota, nil
+	return resp.hasQuota, resp.err
 }
 
 func TestWithCancelOnQuotaExceeded_NoInitialQuota(t *testing.T) {
 	ctx := context.Background()
 
-	_, _, err := WithCancelOnQuotaExceeded(ctx, newFakeQuotaMonitor(false))
+	responses := []quotaResponse{
+		{false, nil},
+	}
+	_, err := WithCancelOnQuotaExceeded(ctx, newFakeQuotaMonitor(responses...))
 
 	require.Error(t, err)
 }
@@ -35,18 +45,33 @@ func TestWithCancelOnQuotaExceeded_NoInitialQuota(t *testing.T) {
 func TestWithCancelOnQuotaExceeded_NoQuota(t *testing.T) {
 	ctx := context.Background()
 
-	ctx, _, err := WithCancelOnQuotaExceeded(ctx, newFakeQuotaMonitor(true, false), WithQuotaCheckPeriod(1*time.Millisecond))
+	responses := []quotaResponse{
+		{true, nil},
+		{false, nil},
+	}
+	ctx, err := WithCancelOnQuotaExceeded(ctx, newFakeQuotaMonitor(responses...), WithQuotaCheckPeriod(1*time.Millisecond))
 	require.NoError(t, err)
 
 	<-ctx.Done()
+	cause := context.Cause(ctx)
+	require.Equal(t, ErrNoQuota, cause)
 }
 
-func TestWithCancelOnQuotaExceeded_HasQuotaCanceled(t *testing.T) {
+func TestWithCancelOnQuotaCheckConsecutiveFailures(t *testing.T) {
 	ctx := context.Background()
 
-	ctx, cancel, err := WithCancelOnQuotaExceeded(ctx, newFakeQuotaMonitor(true, true, true), WithQuotaCheckPeriod(1*time.Millisecond))
+	responses := []quotaResponse{
+		{true, nil},
+		{false, errors.New("test2")},
+		{false, errors.New("test3")},
+	}
+	ctx, err := WithCancelOnQuotaExceeded(ctx,
+		newFakeQuotaMonitor(responses...),
+		WithQuotaCheckPeriod(1*time.Millisecond),
+		WithQuotaMaxConsecutiveFailures(2),
+	)
 	require.NoError(t, err)
-	cancel()
-
 	<-ctx.Done()
+	cause := context.Cause(ctx)
+	require.Equal(t, "test2\ntest3", cause.Error())
 }
