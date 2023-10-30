@@ -10,7 +10,7 @@ require (
 
 replace github.com/cloudquery/plugin-sdk/v4 => ../../
 
-replace github.com/apache/arrow/go/v14 => github.com/cloudquery/arrow/go/v14 v14.0.0-20231023001216-f46436fa3561
+replace github.com/apache/arrow/go/v14 => github.com/cloudquery/arrow/go/v14 v14.0.0-20231029080147-50d3871d0804
 
 require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
@@ -28,8 +28,8 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.0 // indirect
-	github.com/cloudquery/cloudquery-api-go v1.4.1 // indirect
-	github.com/cloudquery/plugin-pb-go v1.13.0 // indirect
+	github.com/cloudquery/cloudquery-api-go v1.4.2 // indirect
+	github.com/cloudquery/plugin-pb-go v1.13.1 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.15.0 // indirect

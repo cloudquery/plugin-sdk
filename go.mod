@@ -5,8 +5,8 @@ go 1.21.1
 require (
 	github.com/apache/arrow/go/v14 v14.0.0-20230929201650-00efb06dc0de
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/cloudquery-api-go v1.4.1
-	github.com/cloudquery/plugin-pb-go v1.13.0
+	github.com/cloudquery/cloudquery-api-go v1.4.2
+	github.com/cloudquery/plugin-pb-go v1.13.1
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.24.1
 	github.com/goccy/go-json v0.10.2
@@ -30,7 +30,7 @@ require (
 	google.golang.org/protobuf v1.31.0
 )
 
-replace github.com/apache/arrow/go/v14 => github.com/cloudquery/arrow/go/v14 v14.0.0-20231023001216-f46436fa3561
+replace github.com/apache/arrow/go/v14 => github.com/cloudquery/arrow/go/v14 v14.0.0-20231029080147-50d3871d0804
 
 require (
 	github.com/BurntSushi/toml v1.3.2 // indirect

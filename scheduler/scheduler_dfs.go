@@ -176,7 +176,10 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
 				}
-				resourcesChan <- resolvedResource
+				select {
+				case resourcesChan <- resolvedResource:
+				case <-ctx.Done():
+				}
 			}()
 		}
 		wg.Wait()

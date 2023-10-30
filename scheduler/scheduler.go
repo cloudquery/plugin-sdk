@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/apache/arrow/go/v14/arrow"
 	"runtime/debug"
 	"sync/atomic"
 	"time"
@@ -182,13 +183,21 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		}
 	}()
 	for resource := range resources {
-		vector := resource.GetValues()
-		bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
-		scalar.AppendToRecordBuilder(bldr, vector)
-		rec := bldr.NewRecord()
-		res <- &message.SyncInsert{Record: rec}
+		select {
+		case res <- &message.SyncInsert{Record: resourceToRecord(resource)}:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	return nil
+}
+
+func resourceToRecord(resource *schema.Resource) arrow.Record {
+	vector := resource.GetValues()
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
+	scalar.AppendToRecordBuilder(bldr, vector)
+	rec := bldr.NewRecord()
+	return rec
 }
 
 func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
