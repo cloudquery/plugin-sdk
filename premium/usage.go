@@ -227,7 +227,8 @@ func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
 	if usage.StatusCode() != http.StatusOK {
 		return false, fmt.Errorf("failed to get usage: %s", usage.Status())
 	}
-	return *usage.JSON200.RemainingRows > 0, nil
+	hasQuota := usage.JSON200.RemainingRows == nil || *usage.JSON200.RemainingRows > 0
+	return hasQuota, nil
 }
 
 func (u *BatchUpdater) Close() error {
