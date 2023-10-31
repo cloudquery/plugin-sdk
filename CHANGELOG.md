@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.17.1](https://github.com/cloudquery/plugin-sdk/compare/v4.17.0...v4.17.1) (2023-10-31)
+
+
+### Bug Fixes
+
+* Fix nil pointer dereference when remaining rows not set ([#1339](https://github.com/cloudquery/plugin-sdk/issues/1339)) ([36a9d35](https://github.com/cloudquery/plugin-sdk/commit/36a9d3534c2613df926c0ddd0460f3b548336b5c))
+
 ## [4.17.0](https://github.com/cloudquery/plugin-sdk/compare/v4.16.1...v4.17.0) (2023-10-30)
 
 
