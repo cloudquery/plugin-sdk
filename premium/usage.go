@@ -2,6 +2,7 @@ package premium
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -144,7 +145,7 @@ type BatchUpdater struct {
 	isClosed       bool
 }
 
-func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pluginName cqapi.PluginName, ops ...UsageClientOptions) (*BatchUpdater, error) {
+func NewUsageClient(ctx context.Context, pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pluginName cqapi.PluginName, ops ...UsageClientOptions) (*BatchUpdater, error) {
 	u := &BatchUpdater{
 		logger: zerolog.Nop(),
 		url:    defaultAPIURL,
@@ -166,15 +167,6 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 		op(u)
 	}
 
-	// Set team name from configuration if not provided
-	if u.teamName == "" {
-		teamName, err := config.GetValue("team")
-		if err != nil {
-			return nil, fmt.Errorf("failed to get team name from config: %w", err)
-		}
-		u.teamName = teamName
-	}
-
 	// Create a default api client if none was provided
 	if u.apiClient == nil {
 		tokenClient := auth.NewTokenClient()
@@ -192,9 +184,61 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 		u.apiClient = ac
 	}
 
+	// Set team name from configuration if not provided
+	if u.teamName == "" {
+		teamName, err := config.GetValue("team")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get team name from config: %w", err)
+		}
+		if teamName == "" {
+			teamName, err = u.inferTeamNameFromAPI(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to infer team name from API: %w", err)
+			}
+		}
+		u.teamName = teamName
+	}
+
 	u.backgroundUpdater()
 
 	return u, nil
+}
+
+// inferTeamNameFromAPI fetches the team name from the API using the provided API token. If the user is part
+// of exactly one team, this team will be returned. Otherwise, an error is returned. Users in
+// multiple teams must specify the team name using `cloudquery switch <team_name>`.
+// This method works for API keys as well, because API keys are by definition tied to a single team.
+func (u *BatchUpdater) inferTeamNameFromAPI(ctx context.Context) (string, error) {
+	u.logger.Debug().Msg("")
+	perPage := cqapi.PerPage(10)
+	params := cqapi.ListTeamsParams{
+		PerPage: &perPage,
+	}
+	var err error
+	for try := 0; try < 3; try++ {
+		teams, err := u.apiClient.ListTeamsWithResponse(ctx, &params)
+		if err != nil {
+			return "", fmt.Errorf("while listing teams: %w", err)
+		}
+		if teams.StatusCode() != http.StatusOK {
+			return "", fmt.Errorf("got non-200 status code listing teams: %d %s", teams.StatusCode(), teams.Status())
+		}
+		if teams.StatusCode() == http.StatusTooManyRequests || teams.StatusCode() >= 500 {
+			u.logger.Warn().Int("code", teams.StatusCode()).Msg("got retryable code while listing teams, retrying in 2 seconds")
+			time.Sleep(2 * time.Second)
+			err = errors.Join(fmt.Errorf("got retryable code while listing teams: %v", teams.StatusCode()))
+			continue
+		}
+		items := teams.JSON200.Items
+		if len(items) == 0 {
+			return "", fmt.Errorf("no teams found for user")
+		}
+		if len(items) > 1 {
+			return "", fmt.Errorf("more than one team found. Hint: Try specifying a team using `cloudquery switch <team_name>`")
+		}
+		return items[0].Name, nil
+	}
+	return "", err
 }
 
 func (u *BatchUpdater) Increase(rows uint32) error {
