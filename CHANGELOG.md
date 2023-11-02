@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.17.2](https://github.com/cloudquery/plugin-sdk/compare/v4.17.1...v4.17.2) (2023-11-02)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v14 digest to c49e242 ([#1343](https://github.com/cloudquery/plugin-sdk/issues/1343)) ([8f6362e](https://github.com/cloudquery/plugin-sdk/commit/8f6362e8f2153c597bed2577729efa8cd7924d1b))
+* **deps:** Update golang.org/x/xerrors digest to 104605a ([#1345](https://github.com/cloudquery/plugin-sdk/issues/1345)) ([5b3e9c6](https://github.com/cloudquery/plugin-sdk/commit/5b3e9c61634e9169895facb37deb2a403f833792))
+* **deps:** Update google.golang.org/genproto digest to d783a09 ([#1346](https://github.com/cloudquery/plugin-sdk/issues/1346)) ([2af9c70](https://github.com/cloudquery/plugin-sdk/commit/2af9c70fe1bf54f3654d06b5028520e5ade9b2df))
+* **deps:** Update google.golang.org/genproto/googleapis/api digest to d783a09 ([#1347](https://github.com/cloudquery/plugin-sdk/issues/1347)) ([6f43900](https://github.com/cloudquery/plugin-sdk/commit/6f43900227fe95b58c278cc2b86ca2bf909fcf33))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to d783a09 ([#1348](https://github.com/cloudquery/plugin-sdk/issues/1348)) ([bdf7a32](https://github.com/cloudquery/plugin-sdk/commit/bdf7a321af9d748bb19ea08182c4333d43ed6deb))
+* **deps:** Update module github.com/andybalholm/brotli to v1.0.6 ([#1349](https://github.com/cloudquery/plugin-sdk/issues/1349)) ([2e79c6f](https://github.com/cloudquery/plugin-sdk/commit/2e79c6f6d37d3f6c8496b4de35232f34639151f5))
+* **deps:** Update module github.com/bytedance/sonic to v1.10.2 ([#1350](https://github.com/cloudquery/plugin-sdk/issues/1350)) ([147b381](https://github.com/cloudquery/plugin-sdk/commit/147b381f2d4a2d48d3799530463c2b41ed79e5f3))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.13.2 ([#1351](https://github.com/cloudquery/plugin-sdk/issues/1351)) ([d3d34e5](https://github.com/cloudquery/plugin-sdk/commit/d3d34e55c95d95ab95753abf3a4a9704de349f8c))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.13.3 ([#1352](https://github.com/cloudquery/plugin-sdk/issues/1352)) ([31137ad](https://github.com/cloudquery/plugin-sdk/commit/31137ad67036202d901fc1e84994e8ed050bd458))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.13.4 ([#1353](https://github.com/cloudquery/plugin-sdk/issues/1353)) ([f5c1bbe](https://github.com/cloudquery/plugin-sdk/commit/f5c1bbe4ae30029accd5698be1384d414baff4c8))
+* Return clearer error when team name empty or not set ([#1354](https://github.com/cloudquery/plugin-sdk/issues/1354)) ([e82c69e](https://github.com/cloudquery/plugin-sdk/commit/e82c69ec37050432bc551b93c9526eae9716e0b4))
+
 ## [4.17.1](https://github.com/cloudquery/plugin-sdk/compare/v4.17.0...v4.17.1) (2023-10-31)
 
 
