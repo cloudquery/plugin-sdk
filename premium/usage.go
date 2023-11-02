@@ -2,9 +2,11 @@ package premium
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -166,15 +168,6 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 		op(u)
 	}
 
-	// Set team name from configuration if not provided
-	if u.teamName == "" {
-		teamName, err := config.GetValue("team")
-		if err != nil {
-			return nil, fmt.Errorf("failed to get team name from config: %w", err)
-		}
-		u.teamName = teamName
-	}
-
 	// Create a default api client if none was provided
 	if u.apiClient == nil {
 		tokenClient := auth.NewTokenClient()
@@ -190,6 +183,20 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 			return nil, fmt.Errorf("failed to create api client: %w", err)
 		}
 		u.apiClient = ac
+	}
+
+	// Set team name from configuration if not provided
+	if u.teamName == "" {
+		teamName, err := config.GetValue("team")
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("config file for reading team name not found (%w). Hint: use `cloudquery login` and/or `cloudquery switch <team>`", err)
+		} else if err != nil {
+			return nil, fmt.Errorf("failed to get team name from config: %w", err)
+		}
+		if teamName == "" {
+			return nil, fmt.Errorf("team name not set. Hint: use `cloudquery switch <team>`")
+		}
+		u.teamName = teamName
 	}
 
 	u.backgroundUpdater()
