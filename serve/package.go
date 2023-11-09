@@ -286,7 +286,7 @@ func (*PluginServe) validatePluginExports(pluginPath string) error {
 		return fmt.Errorf("plugin directory must contain at least one of the following directories: %s", strings.Join(checkRelativeDirs, ", "))
 	}
 
-	versionRegex := regexp.MustCompile(`^\s?Version\s*=`)
+	versionRegex := regexp.MustCompile(`^(var)?\s?Version\s*=`)
 
 	foundVersion := false
 	for _, dir := range foundDirs {
