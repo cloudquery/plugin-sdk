@@ -331,7 +331,7 @@ func (w *BatchWriter) startWorker(_ context.Context, msg *message.WriteInsert) e
 	w.workersWaitGroup.Add(1)
 	go func() {
 		defer w.workersWaitGroup.Done()
-		// TODO: we need to create a canalleble context that then can be cancelled via
+		// TODO: we need to create a cancellable context that then can be cancelled via
 		// w.cancelWorkers()
 		w.worker(context.Background(), tableName, ch, flush)
 	}()
