@@ -2,10 +2,12 @@ package serve
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -111,7 +113,7 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 	if err != nil {
 		return nil, err
 	}
-	ldFlags := fmt.Sprintf("-s -w -X %s/plugin.Version=%s", importPath, pluginVersion)
+	ldFlags := fmt.Sprintf("-s -w -X %[1]s/plugin.Version=%[2]s -X %[1]s/resources/plugin.Version=%[2]s", importPath, pluginVersion)
 	if s.plugin.IsStaticLinkingEnabled() && strings.EqualFold(goos, plugin.GoOSLinux) {
 		ldFlags += " -linkmode external -extldflags=-static"
 	}
@@ -262,6 +264,70 @@ func (*PluginServe) copyDocs(distPath, docsPath string) error {
 	return nil
 }
 
+func (*PluginServe) versionRegex() *regexp.Regexp {
+	return regexp.MustCompile(`^(var)?\s?Version\s*=`)
+}
+
+func (s *PluginServe) validatePluginExports(pluginPath string) error {
+	st, err := os.Stat(pluginPath)
+	if err != nil {
+		return err
+	}
+	if !st.IsDir() {
+		return errors.New("plugin path must be a directory")
+	}
+
+	checkRelativeDirs := []string{"resources" + string(filepath.Separator) + "plugin", "plugin"}
+	foundDirs := []string{}
+	for _, dir := range checkRelativeDirs {
+		p := filepath.Join(pluginPath, dir)
+		s, err := os.Stat(p)
+		if err == nil && s.IsDir() {
+			foundDirs = append(foundDirs, dir)
+		}
+	}
+	if len(foundDirs) == 0 {
+		return fmt.Errorf("plugin directory must contain at least one of the following directories: %s", strings.Join(checkRelativeDirs, ", "))
+	}
+
+	findVersion := s.versionRegex()
+
+	foundVersion := false
+	for _, dir := range foundDirs {
+		p := filepath.Join(pluginPath, dir)
+		if err := filepath.WalkDir(p, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || foundVersion {
+				return nil
+			}
+			if !strings.HasSuffix(strings.ToLower(d.Name()), ".go") {
+				return nil
+			}
+
+			f, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			if ok, err := containsRegex(f, findVersion); err != nil {
+				return err
+			} else if ok {
+				foundVersion = true
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+	if !foundVersion {
+		return fmt.Errorf("could not find `Version` global variable in package")
+	}
+
+	return nil
+}
+
 func copyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -278,6 +344,16 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return nil
+}
+
+func containsRegex(r io.Reader, needle *regexp.Regexp) (bool, error) {
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		if needle.MatchString(scanner.Text()) {
+			return true, nil
+		}
+	}
+	return false, scanner.Err()
 }
 
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
@@ -320,11 +396,16 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				return fmt.Errorf("plugin name is required for packaging")
 			}
 			if s.plugin.Team() == "" {
-				return fmt.Errorf("plugin team is required (hint: use the plugin.WithTeam() option")
+				return fmt.Errorf("plugin team is required (hint: use the plugin.WithTeam() option)")
 			}
 			if s.plugin.Kind() == "" {
-				return fmt.Errorf("plugin kind is required (hint: use the plugin.WithKind() option")
+				return fmt.Errorf("plugin kind is required (hint: use the plugin.WithKind() option)")
 			}
+
+			if err := s.validatePluginExports(pluginDirectory); err != nil {
+				return err
+			}
+
 			if s.plugin.Kind() == plugin.KindSource {
 				if err := s.plugin.Init(cmd.Context(), nil, plugin.NewClientOptions{
 					NoConnection: true,
