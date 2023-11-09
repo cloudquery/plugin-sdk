@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
@@ -204,6 +205,64 @@ with multiple lines and **markdown**`
 				"overview.md",
 			}
 			checkDocs(t, filepath.Join(distDir, "docs"), expectDocs)
+		})
+	}
+}
+
+func TestVersionRegex(t *testing.T) {
+	t.Parallel()
+	re := Plugin(&plugin.Plugin{}).versionRegex()
+	testCases := []struct {
+		input string
+		want  bool
+	}{
+		{
+			input: `var Version = ""`,
+			want:  true,
+		},
+		{
+			input: `var (
+Version = ""
+)
+`,
+			want: true,
+		},
+		{
+			input: ` var Version = ""`,
+			want:  false,
+		},
+		{
+			input: `var (
+  Version = ""
+)
+`,
+		},
+		{
+			input: `var (
+	Version = ""
+)
+`,
+			want: true,
+		},
+	}
+	for i, tc := range testCases {
+		tc := tc
+		t.Run(fmt.Sprintf("Case %d", i+1), func(t *testing.T) {
+			t.Parallel()
+			// only match the line with "Version"
+			lines := strings.Split(tc.input, "\n")
+			realInput := ""
+			for _, line := range lines {
+				if strings.Contains(line, "Version") {
+					realInput = line
+					break
+				}
+			}
+			if realInput == "" {
+				t.Fatalf("failed to find line with Version: %q", tc.input)
+			}
+			got := re.MatchString(realInput)
+			require.Equalf(t, tc.want, got, "input: %q", realInput)
 		})
 	}
 }

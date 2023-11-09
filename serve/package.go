@@ -264,12 +264,16 @@ func (*PluginServe) copyDocs(distPath, docsPath string) error {
 	return nil
 }
 
-func (*PluginServe) validatePluginExports(pluginPath string) error {
-	s, err := os.Stat(pluginPath)
+func (*PluginServe) versionRegex() *regexp.Regexp {
+	return regexp.MustCompile(`^(var)?\s?Version\s*=`)
+}
+
+func (s *PluginServe) validatePluginExports(pluginPath string) error {
+	st, err := os.Stat(pluginPath)
 	if err != nil {
 		return err
 	}
-	if !s.IsDir() {
+	if !st.IsDir() {
 		return errors.New("plugin path must be a directory")
 	}
 
@@ -286,7 +290,7 @@ func (*PluginServe) validatePluginExports(pluginPath string) error {
 		return fmt.Errorf("plugin directory must contain at least one of the following directories: %s", strings.Join(checkRelativeDirs, ", "))
 	}
 
-	versionRegex := regexp.MustCompile(`^(var)?\s?Version\s*=`)
+	findVersion := s.versionRegex()
 
 	foundVersion := false
 	for _, dir := range foundDirs {
@@ -307,7 +311,7 @@ func (*PluginServe) validatePluginExports(pluginPath string) error {
 				return err
 			}
 			defer f.Close()
-			if ok, err := containsRegex(f, versionRegex); err != nil {
+			if ok, err := containsRegex(f, findVersion); err != nil {
 				return err
 			} else if ok {
 				foundVersion = true
