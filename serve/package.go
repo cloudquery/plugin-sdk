@@ -2,10 +2,12 @@ package serve
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -111,7 +113,7 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 	if err != nil {
 		return nil, err
 	}
-	ldFlags := fmt.Sprintf("-s -w -X %s/plugin.Version=%s", importPath, pluginVersion)
+	ldFlags := fmt.Sprintf("-s -w -X %s/plugin.Version=%s -X %s/resources/plugin.Version=%s", importPath, pluginVersion, importPath, pluginVersion)
 	if s.plugin.IsStaticLinkingEnabled() && strings.EqualFold(goos, plugin.GoOSLinux) {
 		ldFlags += " -linkmode external -extldflags=-static"
 	}
@@ -262,6 +264,64 @@ func (*PluginServe) copyDocs(distPath, docsPath string) error {
 	return nil
 }
 
+func (*PluginServe) validatePluginExports(pluginPath string) error {
+	s, err := os.Stat(pluginPath)
+	if err != nil {
+		return err
+	}
+	if !s.IsDir() {
+		return errors.New("plugin path must be a directory")
+	}
+
+	checkRelativeDirs := []string{"resources" + string(filepath.Separator) + "plugin", "plugin"}
+	foundDirs := []string{}
+	for _, dir := range checkRelativeDirs {
+		p := filepath.Join(pluginPath, dir)
+		s, err := os.Stat(p)
+		if err == nil && s.IsDir() {
+			foundDirs = append(foundDirs, dir)
+		}
+	}
+	if len(foundDirs) == 0 {
+		return fmt.Errorf("plugin directory must contain at least one of the following directories: %s", strings.Join(checkRelativeDirs, ", "))
+	}
+
+	foundVersion := false
+	for _, dir := range foundDirs {
+		p := filepath.Join(pluginPath, dir)
+		if err := filepath.WalkDir(p, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || foundVersion {
+				return nil
+			}
+			if !strings.HasSuffix(strings.ToLower(d.Name()), ".go") {
+				return nil
+			}
+
+			f, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			if ok, err := fileContains(f, "Version"); err != nil {
+				return err
+			} else if ok {
+				foundVersion = true
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+	if !foundVersion {
+		return fmt.Errorf("could not find `Version` global variable in package")
+	}
+
+	return nil
+}
+
 func copyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -278,6 +338,16 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return nil
+}
+
+func fileContains(r io.Reader, needle string) (bool, error) {
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), needle) {
+			return true, nil
+		}
+	}
+	return false, scanner.Err()
 }
 
 func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
@@ -325,6 +395,11 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			if s.plugin.Kind() == "" {
 				return fmt.Errorf("plugin kind is required (hint: use the plugin.WithKind() option")
 			}
+
+			if err := s.validatePluginExports(pluginDirectory); err != nil {
+				return err
+			}
+
 			if s.plugin.Kind() == plugin.KindSource {
 				if err := s.plugin.Init(cmd.Context(), nil, plugin.NewClientOptions{
 					NoConnection: true,
