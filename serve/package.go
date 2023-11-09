@@ -286,6 +286,8 @@ func (*PluginServe) validatePluginExports(pluginPath string) error {
 		return fmt.Errorf("plugin directory must contain at least one of the following directories: %s", strings.Join(checkRelativeDirs, ", "))
 	}
 
+	versionRegex := regexp.MustCompile(`^\s?Version\s*=`)
+
 	foundVersion := false
 	for _, dir := range foundDirs {
 		p := filepath.Join(pluginPath, dir)
@@ -305,7 +307,7 @@ func (*PluginServe) validatePluginExports(pluginPath string) error {
 				return err
 			}
 			defer f.Close()
-			if ok, err := fileContains(f, "Version"); err != nil {
+			if ok, err := containsRegex(f, versionRegex); err != nil {
 				return err
 			} else if ok {
 				foundVersion = true
@@ -340,10 +342,10 @@ func copyFile(src, dst string) error {
 	return nil
 }
 
-func fileContains(r io.Reader, needle string) (bool, error) {
+func containsRegex(r io.Reader, needle *regexp.Regexp) (bool, error) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		if strings.Contains(scanner.Text(), needle) {
+		if needle.MatchString(scanner.Text()) {
 			return true, nil
 		}
 	}
