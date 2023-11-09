@@ -396,10 +396,10 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				return fmt.Errorf("plugin name is required for packaging")
 			}
 			if s.plugin.Team() == "" {
-				return fmt.Errorf("plugin team is required (hint: use the plugin.WithTeam() option")
+				return fmt.Errorf("plugin team is required (hint: use the plugin.WithTeam() option)")
 			}
 			if s.plugin.Kind() == "" {
-				return fmt.Errorf("plugin kind is required (hint: use the plugin.WithKind() option")
+				return fmt.Errorf("plugin kind is required (hint: use the plugin.WithKind() option)")
 			}
 
 			if err := s.validatePluginExports(pluginDirectory); err != nil {
