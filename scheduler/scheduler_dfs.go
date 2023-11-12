@@ -12,6 +12,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/getsentry/sentry-go"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *schema.Resource) {
@@ -72,6 +73,7 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 
 func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
 	ctx, span := otel.Tracer(otelName).Start(ctx, "resolveTableDfs_"+table.Name)
+	span.SetAttributes(attribute.Key("client-id").String(client.ID()))
 	defer span.End()
 	var validationErr *schema.ValidationError
 	clientName := client.ID()
