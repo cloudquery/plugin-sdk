@@ -23,5 +23,6 @@ func MakeAllTablesPaid(tables schema.Tables) schema.Tables {
 // MakeTablePaid sets the table to paid
 func MakeTablePaid(table *schema.Table) *schema.Table {
 	table.IsPaid = true
+	MakeAllTablesPaid(table.Relations)
 	return table
 }
