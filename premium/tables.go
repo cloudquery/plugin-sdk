@@ -12,7 +12,7 @@ func ContainsPaidTables(tables schema.Tables) bool {
 	return false
 }
 
-// MakeAllTablesPaid sets all tables to paid
+// MakeAllTablesPaid sets all tables to paid (including relations)
 func MakeAllTablesPaid(tables schema.Tables) schema.Tables {
 	for _, table := range tables {
 		MakeTablePaid(table)
@@ -20,7 +20,7 @@ func MakeAllTablesPaid(tables schema.Tables) schema.Tables {
 	return tables
 }
 
-// MakeTablePaid sets the table to paid
+// MakeTablePaid sets the table to paid (including relations)
 func MakeTablePaid(table *schema.Table) *schema.Table {
 	table.IsPaid = true
 	MakeAllTablesPaid(table.Relations)
