@@ -377,7 +377,7 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 			return "", fmt.Errorf("failed to list teams for API key: %w", err)
 		}
 		if resp.StatusCode() != http.StatusOK {
-			return "", fmt.Errorf("failed to list teams for API key status code: %s", resp.Status())
+			return "", fmt.Errorf("failed to list teams for API key, status code: %s", resp.Status())
 		}
 		if len(resp.JSON200.Items) != 1 {
 			return "", fmt.Errorf("expected to find exactly one team for API key, found %d", len(resp.JSON200.Items))
