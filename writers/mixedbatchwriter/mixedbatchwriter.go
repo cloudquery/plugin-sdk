@@ -227,7 +227,7 @@ func (m *insertBatchManager) flush(ctx context.Context) error {
 		m.logger.Err(err).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 		return err
 	}
-	m.logger.Info().Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+	m.logger.Debug().Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 
 	m.batch = m.batch[:0]
 	m.curBatchSizeBytes = 0
