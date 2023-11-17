@@ -168,9 +168,10 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 		op(u)
 	}
 
+	tokenClient := auth.NewTokenClient()
+
 	// Create a default api client if none was provided
 	if u.apiClient == nil {
-		tokenClient := auth.NewTokenClient()
 		ac, err := cqapi.NewClientWithResponses(u.url, cqapi.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
 			token, err := tokenClient.GetToken()
 			if err != nil {
@@ -187,14 +188,9 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 
 	// Set team name from configuration if not provided
 	if u.teamName == "" {
-		teamName, err := config.GetValue("team")
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("config file for reading team name not found (%w). Hint: use `cloudquery login` and/or `cloudquery switch <team>`", err)
-		} else if err != nil {
-			return nil, fmt.Errorf("failed to get team name from config: %w", err)
-		}
-		if teamName == "" {
-			return nil, fmt.Errorf("team name not set. Hint: use `cloudquery switch <team>`")
+		teamName, err := u.getTeamNameByTokenType(tokenClient.GetTokenType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get team name: %w", err)
 		}
 		u.teamName = teamName
 	}
@@ -360,4 +356,34 @@ func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Heade
 
 func retryableStatusCode(statusCode int) bool {
 	return statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable
+}
+
+func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string, error) {
+	switch tokenType {
+	case auth.BearerToken:
+		teamName, err := config.GetValue("team")
+		if errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("config file for reading team name not found (%w). Hint: use `cloudquery login` and/or `cloudquery switch <team>`", err)
+		} else if err != nil {
+			return "", fmt.Errorf("failed to get team name from config: %w", err)
+		}
+		if teamName == "" {
+			return "", fmt.Errorf("team name not set. Hint: use `cloudquery switch <team>`")
+		}
+		return teamName, nil
+	case auth.APIKey:
+		resp, err := u.apiClient.ListTeamsWithResponse(context.Background(), &cqapi.ListTeamsParams{})
+		if err != nil {
+			return "", fmt.Errorf("failed to list teams for API key: %w", err)
+		}
+		if resp.StatusCode() != http.StatusOK {
+			return "", fmt.Errorf("failed to list teams for API key, status code: %s", resp.Status())
+		}
+		if len(resp.JSON200.Items) != 1 {
+			return "", fmt.Errorf("expected to find exactly one team for API key, found %d", len(resp.JSON200.Items))
+		}
+		return resp.JSON200.Items[0].Name, nil
+	default:
+		return "", fmt.Errorf("unsupported token type: %v", tokenType)
+	}
 }
