@@ -93,6 +93,7 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 		batch:             make([]*message.WriteInsert, 0, w.batchSize),
 		writeFunc:         w.client.InsertBatch,
 		maxBatchSizeBytes: int64(w.batchSizeBytes),
+		logger:            w.logger,
 	}
 	deleteStale := &batchManager[message.WriteDeleteStales, *message.WriteDeleteStale]{
 		batch:     make([]*message.WriteDeleteStale, 0, w.batchSize),
@@ -201,6 +202,7 @@ type insertBatchManager struct {
 	writeFunc         func(ctx context.Context, messages message.WriteInserts) error
 	curBatchSizeBytes int64
 	maxBatchSizeBytes int64
+	logger            zerolog.Logger
 }
 
 func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInsert) error {
@@ -218,11 +220,16 @@ func (m *insertBatchManager) flush(ctx context.Context) error {
 	if len(m.batch) == 0 {
 		return nil
 	}
-
+	start := time.Now()
+	batchSize := len(m.batch)
 	err := m.writeFunc(ctx, m.batch)
 	if err != nil {
+		m.logger.Err(err).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 		return err
 	}
+	m.logger.Debug().Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+
 	m.batch = m.batch[:0]
+	m.curBatchSizeBytes = 0
 	return nil
 }

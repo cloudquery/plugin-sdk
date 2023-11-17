@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.18.2](https://github.com/cloudquery/plugin-sdk/compare/v4.18.1...v4.18.2) (2023-11-16)
+
+
+### Bug Fixes
+
+* Batching for mixedbatchwriter ([#1374](https://github.com/cloudquery/plugin-sdk/issues/1374)) ([ca435cf](https://github.com/cloudquery/plugin-sdk/commit/ca435cfe4a42271dadc9ea0a119a4515804efebb))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.4.6 ([#1368](https://github.com/cloudquery/plugin-sdk/issues/1368)) ([ea05199](https://github.com/cloudquery/plugin-sdk/commit/ea0519920ab1fadced3a27320a7f50a20e0bf080))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.5.1 ([#1370](https://github.com/cloudquery/plugin-sdk/issues/1370)) ([309b1cb](https://github.com/cloudquery/plugin-sdk/commit/309b1cb8267c867d6be827f36dd63fdb138485ae))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.6.0 ([#1373](https://github.com/cloudquery/plugin-sdk/issues/1373)) ([63fc4bb](https://github.com/cloudquery/plugin-sdk/commit/63fc4bbb605bf92a79def791a2b7e5d3fd09f42a))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.14.0 ([#1371](https://github.com/cloudquery/plugin-sdk/issues/1371)) ([8ec6a34](https://github.com/cloudquery/plugin-sdk/commit/8ec6a3422dc387662a5028b81a483bf8b2e8d1dc))
+
 ## [4.18.1](https://github.com/cloudquery/plugin-sdk/compare/v4.18.0...v4.18.1) (2023-11-14)
 
 
