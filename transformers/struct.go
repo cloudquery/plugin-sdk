@@ -67,14 +67,14 @@ func WithUnwrapAllEmbeddedStructs() StructTransformerOption {
 // WithUnwrapStructFields allows to unwrap specific struct fields (1 level deep only)
 func WithUnwrapStructFields(fields ...string) StructTransformerOption {
 	return func(t *structTransformer) {
-		t.structFieldsToUnwrap = fields
+		t.structFieldsToUnwrap = append(t.structFieldsToUnwrap, fields...)
 	}
 }
 
 // WithSkipFields allows to specify what struct fields should be skipped.
 func WithSkipFields(fields ...string) StructTransformerOption {
 	return func(t *structTransformer) {
-		t.skipFields = fields
+		t.skipFields = append(t.skipFields, fields...)
 	}
 }
 

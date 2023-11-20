@@ -161,6 +161,17 @@ var (
 		Name:    "test_struct",
 		Columns: expectedColumns,
 	}
+	expectedTestTableWithNoBoolColOrJsonColField = schema.Table{
+		Name: "test_struct",
+		Columns: func(base schema.ColumnList) schema.ColumnList {
+			cols := slices.Clone(base)
+			for _, c := range []string{"bool_col", "json_col"} {
+				i := cols.Index(c)
+				cols = append(cols[:i], cols[i+1:]...)
+			}
+			return cols
+		}(expectedColumns),
+	}
 	expectedTestTableEmbeddedStruct = schema.Table{
 		Name:    "test_struct",
 		Columns: append(expectedColumns, schema.Column{Name: "embedded_string", Type: arrow.BinaryTypes.String}),
@@ -383,6 +394,27 @@ func TestTableFromGoStruct(t *testing.T) {
 				},
 			},
 			want: expectedTestTableNonEmbeddedStructWithUnwrappedPK,
+		},
+		{
+			name: "should skip specified fields",
+			args: args{
+				testStruct: testStruct{},
+				options: []StructTransformerOption{
+					WithSkipFields("BoolCol", "JSONCol"),
+				},
+			},
+			want: expectedTestTableWithNoBoolColOrJsonColField,
+		},
+		{
+			name: "should skip all specified fields specified separately",
+			args: args{
+				testStruct: testStruct{},
+				options: []StructTransformerOption{
+					WithSkipFields("BoolCol"),
+					WithSkipFields("JSONCol"),
+				},
+			},
+			want: expectedTestTableWithNoBoolColOrJsonColField,
 		},
 		{
 			name: "should generate table from slice struct",
