@@ -161,7 +161,7 @@ var (
 		Name:    "test_struct",
 		Columns: expectedColumns,
 	}
-	expectedTestTableWithNoBoolColOrJsonColField = schema.Table{
+	expectedTestTableWithNoBoolColOrJSONColField = schema.Table{
 		Name: "test_struct",
 		Columns: func(base schema.ColumnList) schema.ColumnList {
 			cols := slices.Clone(base)
@@ -403,7 +403,7 @@ func TestTableFromGoStruct(t *testing.T) {
 					WithSkipFields("BoolCol", "JSONCol"),
 				},
 			},
-			want: expectedTestTableWithNoBoolColOrJsonColField,
+			want: expectedTestTableWithNoBoolColOrJSONColField,
 		},
 		{
 			name: "should skip all specified fields specified separately",
@@ -414,7 +414,7 @@ func TestTableFromGoStruct(t *testing.T) {
 					WithSkipFields("JSONCol"),
 				},
 			},
-			want: expectedTestTableWithNoBoolColOrJsonColField,
+			want: expectedTestTableWithNoBoolColOrJSONColField,
 		},
 		{
 			name: "should generate table from slice struct",
