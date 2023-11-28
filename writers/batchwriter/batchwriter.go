@@ -69,7 +69,6 @@ func WithBatchSizeBytes(size int) Option {
 }
 
 type worker struct {
-	count int
 	ch    chan *message.WriteInsert
 	flush chan chan bool
 }
@@ -322,7 +321,6 @@ func (w *BatchWriter) startWorker(_ context.Context, msg *message.WriteInsert) e
 	ch := make(chan *message.WriteInsert)
 	flush := make(chan chan bool)
 	wr = &worker{
-		count: 1,
 		ch:    ch,
 		flush: flush,
 	}
