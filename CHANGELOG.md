@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.18.3](https://github.com/cloudquery/plugin-sdk/compare/v4.18.2...v4.18.3) (2023-11-17)
+
+
+### Bug Fixes
+
+* Retrieve team for api key ([#1372](https://github.com/cloudquery/plugin-sdk/issues/1372)) ([940d87f](https://github.com/cloudquery/plugin-sdk/commit/940d87f7cc71d8e2367c3f751dcf1d081e2b8126))
+
+## [4.18.2](https://github.com/cloudquery/plugin-sdk/compare/v4.18.1...v4.18.2) (2023-11-16)
+
+
+### Bug Fixes
+
+* Batching for mixedbatchwriter ([#1374](https://github.com/cloudquery/plugin-sdk/issues/1374)) ([ca435cf](https://github.com/cloudquery/plugin-sdk/commit/ca435cfe4a42271dadc9ea0a119a4515804efebb))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.4.6 ([#1368](https://github.com/cloudquery/plugin-sdk/issues/1368)) ([ea05199](https://github.com/cloudquery/plugin-sdk/commit/ea0519920ab1fadced3a27320a7f50a20e0bf080))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.5.1 ([#1370](https://github.com/cloudquery/plugin-sdk/issues/1370)) ([309b1cb](https://github.com/cloudquery/plugin-sdk/commit/309b1cb8267c867d6be827f36dd63fdb138485ae))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.6.0 ([#1373](https://github.com/cloudquery/plugin-sdk/issues/1373)) ([63fc4bb](https://github.com/cloudquery/plugin-sdk/commit/63fc4bbb605bf92a79def791a2b7e5d3fd09f42a))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.14.0 ([#1371](https://github.com/cloudquery/plugin-sdk/issues/1371)) ([8ec6a34](https://github.com/cloudquery/plugin-sdk/commit/8ec6a3422dc387662a5028b81a483bf8b2e8d1dc))
+
+## [4.18.1](https://github.com/cloudquery/plugin-sdk/compare/v4.18.0...v4.18.1) (2023-11-14)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.4.4 ([#1364](https://github.com/cloudquery/plugin-sdk/issues/1364)) ([d5a5760](https://github.com/cloudquery/plugin-sdk/commit/d5a5760c7f876fbb50db5fe09cfcd03bb42fdb04))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.4.5 ([#1365](https://github.com/cloudquery/plugin-sdk/issues/1365)) ([2ec138f](https://github.com/cloudquery/plugin-sdk/commit/2ec138f178100f96c36cc0a07c223a676a423a58))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.13.5 ([#1362](https://github.com/cloudquery/plugin-sdk/issues/1362)) ([6663a64](https://github.com/cloudquery/plugin-sdk/commit/6663a64ec9b0acbb3d8fea4f2585d780e8af651d))
+* Mark relations as paid as well ([#1366](https://github.com/cloudquery/plugin-sdk/issues/1366)) ([ca833eb](https://github.com/cloudquery/plugin-sdk/commit/ca833eb5c83aa580d4fe2568a3dfa079b3a3614e))
+
 ## [4.18.0](https://github.com/cloudquery/plugin-sdk/compare/v4.17.2...v4.18.0) (2023-11-09)
 
 
