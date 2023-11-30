@@ -117,7 +117,10 @@ func WithPluginName(pluginName string) cqapi.PluginName {
 	return pluginName
 }
 
-var _ UsageClient = (*BatchUpdater)(nil)
+var (
+	_ UsageClient = (*BatchUpdater)(nil)
+	_ UsageClient = (*NoOpUsageClient)(nil)
+)
 
 type BatchUpdater struct {
 	logger    zerolog.Logger
@@ -354,10 +357,6 @@ func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Heade
 	return retryDelay - time.Since(queryStartTime), nil
 }
 
-func retryableStatusCode(statusCode int) bool {
-	return statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable
-}
-
 func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string, error) {
 	switch tokenType {
 	case auth.BearerToken:
@@ -386,4 +385,22 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 	default:
 		return "", fmt.Errorf("unsupported token type: %v", tokenType)
 	}
+}
+
+func retryableStatusCode(statusCode int) bool {
+	return statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable
+}
+
+type NoOpUsageClient struct{}
+
+func (_ NoOpUsageClient) HasQuota(_ context.Context) (bool, error) {
+	return true, nil
+}
+
+func (n NoOpUsageClient) Increase(_ uint32) error {
+	return nil
+}
+
+func (n NoOpUsageClient) Close() error {
+	return nil
 }
