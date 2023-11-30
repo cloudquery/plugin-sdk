@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.19.0](https://github.com/cloudquery/plugin-sdk/compare/v4.18.3...v4.19.0) (2023-11-30)
+
+
+### Features
+
+* Improved tracing ([#1387](https://github.com/cloudquery/plugin-sdk/issues/1387)) ([68cfc32](https://github.com/cloudquery/plugin-sdk/commit/68cfc322c6e35525833bc79cfe2c1c6c8ef2fe71))
+
+
+### Bug Fixes
+
+* Cleanup batch writers ([#1386](https://github.com/cloudquery/plugin-sdk/issues/1386)) ([cde7462](https://github.com/cloudquery/plugin-sdk/commit/cde7462e3f33897136b9120e73351dc253449e8a))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.14.1 ([#1380](https://github.com/cloudquery/plugin-sdk/issues/1380)) ([e5451c6](https://github.com/cloudquery/plugin-sdk/commit/e5451c636c54b987daac2cdeaef97a826155671f))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.14.2 ([#1382](https://github.com/cloudquery/plugin-sdk/issues/1382)) ([8acdb72](https://github.com/cloudquery/plugin-sdk/commit/8acdb720ce4d16e132868ff3851b10395d596ba2))
+
 ## [4.18.3](https://github.com/cloudquery/plugin-sdk/compare/v4.18.2...v4.18.3) (2023-11-17)
 
 
