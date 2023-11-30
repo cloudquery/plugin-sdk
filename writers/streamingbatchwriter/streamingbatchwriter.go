@@ -226,12 +226,11 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			return nil
 		}
 		ch := make(chan *message.WriteMigrateTable)
-		flush := make(chan chan bool)
 		w.migrateWorker = &streamingWorkerManager[*message.WriteMigrateTable]{
 			ch:        ch,
 			writeFunc: w.client.MigrateTable,
 
-			flush: flush,
+			flush: make(chan chan bool),
 			errCh: errCh,
 
 			batchSizeRows: w.batchSizeRows,
@@ -251,12 +250,11 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			return nil
 		}
 		ch := make(chan *message.WriteDeleteStale)
-		flush := make(chan chan bool)
 		w.deleteStaleWorker = &streamingWorkerManager[*message.WriteDeleteStale]{
 			ch:        ch,
 			writeFunc: w.client.DeleteStale,
 
-			flush: flush,
+			flush: make(chan chan bool),
 			errCh: errCh,
 
 			batchSizeRows: w.batchSizeRows,
@@ -278,12 +276,11 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		}
 
 		ch := make(chan *message.WriteInsert)
-		flush := make(chan chan bool)
 		wr = &streamingWorkerManager[*message.WriteInsert]{
 			ch:        ch,
 			writeFunc: w.client.WriteTable,
 
-			flush: flush,
+			flush: make(chan chan bool),
 			errCh: errCh,
 
 			batchSizeRows:  w.batchSizeRows,
@@ -292,6 +289,14 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			tickerFn:       w.tickerFn,
 		}
 		w.workersLock.Lock()
+		wrOld, ok := w.insertWorkers[tableName]
+		if ok {
+			w.workersLock.Unlock()
+			// some other goroutine could have already added the worker
+			// just send the message to it & discard our allocated worker
+			wrOld.ch <- m
+			return nil
+		}
 		w.insertWorkers[tableName] = wr
 		w.workersLock.Unlock()
 
@@ -307,13 +312,12 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			return nil
 		}
 		ch := make(chan *message.WriteDeleteRecord)
-		flush := make(chan chan bool)
 		// TODO: flush all workers for nested tables as well (See https://github.com/cloudquery/plugin-sdk/issues/1296)
 		w.deleteRecordWorker = &streamingWorkerManager[*message.WriteDeleteRecord]{
 			ch:        ch,
 			writeFunc: w.client.DeleteRecords,
 
-			flush: flush,
+			flush: make(chan chan bool),
 			errCh: errCh,
 
 			batchSizeRows: w.batchSizeRows,
