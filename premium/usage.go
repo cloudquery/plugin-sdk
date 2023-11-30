@@ -393,14 +393,14 @@ func retryableStatusCode(statusCode int) bool {
 
 type NoOpUsageClient struct{}
 
-func (_ NoOpUsageClient) HasQuota(_ context.Context) (bool, error) {
+func (NoOpUsageClient) HasQuota(_ context.Context) (bool, error) {
 	return true, nil
 }
 
-func (n NoOpUsageClient) Increase(_ uint32) error {
+func (NoOpUsageClient) Increase(_ uint32) error {
 	return nil
 }
 
-func (n NoOpUsageClient) Close() error {
+func (NoOpUsageClient) Close() error {
 	return nil
 }
