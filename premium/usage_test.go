@@ -11,11 +11,23 @@ import (
 	"time"
 
 	cqapi "github.com/cloudquery/cloudquery-api-go"
+	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type MockTokenClient struct {
+}
+
+func (m *MockTokenClient) GetToken() (auth.Token, error) {
+	return auth.Token{}, nil
+}
+
+func (m *MockTokenClient) GetTokenType() auth.TokenType {
+	return auth.BearerToken
+}
 
 func TestUsageService_NewUsageClient_Defaults(t *testing.T) {
 	err := config.SetConfigHome(t.TempDir())
@@ -28,6 +40,7 @@ func TestUsageService_NewUsageClient_Defaults(t *testing.T) {
 		WithPluginTeam("plugin-team"),
 		WithPluginKind("source"),
 		WithPluginName("vault"),
+		withTokenClient(&MockTokenClient{}),
 	)
 	require.NoError(t, err)
 
@@ -55,6 +68,7 @@ func TestUsageService_NewUsageClient_Override(t *testing.T) {
 		WithMaxRetries(10),
 		WithMaxWaitTime(120*time.Second),
 		WithMaxTimeBetweenFlushes(10*time.Second),
+		withTokenClient(&MockTokenClient{}),
 	)
 	require.NoError(t, err)
 
@@ -356,7 +370,7 @@ func newClient(t *testing.T, apiClient *cqapi.ClientWithResponses, ops ...UsageC
 		WithPluginTeam("plugin-team"),
 		WithPluginKind("source"),
 		WithPluginName("vault"),
-		append(ops, withTeamName("team-name"), WithAPIClient(apiClient))...)
+		append(ops, withTeamName("team-name"), WithAPIClient(apiClient), withTokenClient(&MockTokenClient{}))...)
 	require.NoError(t, err)
 
 	return client
