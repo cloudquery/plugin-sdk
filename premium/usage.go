@@ -170,6 +170,11 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 
 	tokenClient := auth.NewTokenClient()
 
+	// Fail early if the token is not set
+	if _, err := tokenClient.GetToken(); err != nil {
+		return nil, err
+	}
+
 	// Create a default api client if none was provided
 	if u.apiClient == nil {
 		ac, err := cqapi.NewClientWithResponses(u.url, cqapi.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
