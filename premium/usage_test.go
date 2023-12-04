@@ -21,11 +21,11 @@ import (
 type MockTokenClient struct {
 }
 
-func (m *MockTokenClient) GetToken() (auth.Token, error) {
+func (*MockTokenClient) GetToken() (auth.Token, error) {
 	return auth.Token{}, nil
 }
 
-func (m *MockTokenClient) GetTokenType() auth.TokenType {
+func (*MockTokenClient) GetTokenType() auth.TokenType {
 	return auth.BearerToken
 }
 
