@@ -366,12 +366,12 @@ func (tt Tables) ValidateDuplicateTables() error {
 	return nil
 }
 
-func (tt Tables) GetPaidTables() []string {
-	paidTables := make([]string, 0, len(tt))
+func (tt Tables) GetPaidTables() Tables {
+	paidTables := make(Tables, 0, len(tt))
 	flattenedTables := tt.FlattenTables()
-	for _, t := range flattenedTables {
-		if t.IsPaid {
-			paidTables = append(paidTables, t.Name)
+	for i := range flattenedTables {
+		if flattenedTables[i].IsPaid {
+			paidTables = append(paidTables, flattenedTables[i])
 		}
 	}
 	return paidTables
