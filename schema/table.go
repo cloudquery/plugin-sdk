@@ -367,8 +367,8 @@ func (tt Tables) ValidateDuplicateTables() error {
 }
 
 func (tt Tables) GetPaidTables() Tables {
-	paidTables := make(Tables, 0, len(tt))
 	flattenedTables := tt.FlattenTables()
+	paidTables := make(Tables, 0, len(flattenedTables))
 	for i := range flattenedTables {
 		if flattenedTables[i].IsPaid {
 			paidTables = append(paidTables, flattenedTables[i])
