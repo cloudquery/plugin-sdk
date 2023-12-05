@@ -27,6 +27,11 @@ const (
 	defaultMaxTimeBetweenFlushes = 30 * time.Second
 )
 
+type TokenClient interface {
+	GetToken() (auth.Token, error)
+	GetTokenType() auth.TokenType
+}
+
 type QuotaMonitor interface {
 	// HasQuota returns true if the quota has not been exceeded
 	HasQuota(context.Context) (bool, error)
@@ -105,6 +110,13 @@ func WithAPIClient(apiClient *cqapi.ClientWithResponses) UsageClientOptions {
 	}
 }
 
+// withTokenClient sets the token client to use - defaults to auth.NewTokenClient(). Used in tests to mock the token client
+func withTokenClient(tokenClient TokenClient) UsageClientOptions {
+	return func(updater *BatchUpdater) {
+		updater.tokenClient = tokenClient
+	}
+}
+
 func WithPluginTeam(pluginTeam string) cqapi.PluginTeam {
 	return pluginTeam
 }
@@ -123,9 +135,10 @@ var (
 )
 
 type BatchUpdater struct {
-	logger    zerolog.Logger
-	url       string
-	apiClient *cqapi.ClientWithResponses
+	logger      zerolog.Logger
+	url         string
+	apiClient   *cqapi.ClientWithResponses
+	tokenClient TokenClient
 
 	// Plugin details
 	teamName   cqapi.TeamName
@@ -171,12 +184,19 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 		op(u)
 	}
 
-	tokenClient := auth.NewTokenClient()
+	if u.tokenClient == nil {
+		u.tokenClient = auth.NewTokenClient()
+	}
+
+	// Fail early if the token is not set
+	if _, err := u.tokenClient.GetToken(); err != nil {
+		return nil, err
+	}
 
 	// Create a default api client if none was provided
 	if u.apiClient == nil {
 		ac, err := cqapi.NewClientWithResponses(u.url, cqapi.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
-			token, err := tokenClient.GetToken()
+			token, err := u.tokenClient.GetToken()
 			if err != nil {
 				return fmt.Errorf("failed to get token: %w", err)
 			}
@@ -191,7 +211,7 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 
 	// Set team name from configuration if not provided
 	if u.teamName == "" {
-		teamName, err := u.getTeamNameByTokenType(tokenClient.GetTokenType())
+		teamName, err := u.getTeamNameByTokenType(u.tokenClient.GetTokenType())
 		if err != nil {
 			return nil, fmt.Errorf("failed to get team name: %w", err)
 		}

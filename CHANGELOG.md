@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.19.1](https://github.com/cloudquery/plugin-sdk/compare/v4.19.0...v4.19.1) (2023-12-04)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/gomarkdown/markdown digest to a660076 ([#1392](https://github.com/cloudquery/plugin-sdk/issues/1392)) ([8a1c31a](https://github.com/cloudquery/plugin-sdk/commit/8a1c31a609d98319c6cef0a01c37f208968f3bba))
+* **deps:** Update golang.org/x/exp digest to 6522937 ([#1394](https://github.com/cloudquery/plugin-sdk/issues/1394)) ([5b4f9ac](https://github.com/cloudquery/plugin-sdk/commit/5b4f9acb3de89cef6e0dd999c411a60eae8b68fe))
+* **deps:** Update google.golang.org/genproto/googleapis/api digest to 3a041ad ([#1396](https://github.com/cloudquery/plugin-sdk/issues/1396)) ([403be86](https://github.com/cloudquery/plugin-sdk/commit/403be86e1b76ec887957fd1be791c5fa6b3074e7))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to 3a041ad ([#1397](https://github.com/cloudquery/plugin-sdk/issues/1397)) ([89a063f](https://github.com/cloudquery/plugin-sdk/commit/89a063f63a3d4915ba50f986b8a80b94645ca26b))
+* **deps:** Update module github.com/chenzhuoyu/iasm to v0.9.1 ([#1398](https://github.com/cloudquery/plugin-sdk/issues/1398)) ([a0e516a](https://github.com/cloudquery/plugin-sdk/commit/a0e516a563d663b95f88d3e726e6728c8e17b45b))
+* **deps:** Update module github.com/gorilla/css to v1.0.1 ([#1399](https://github.com/cloudquery/plugin-sdk/issues/1399)) ([8bbeafa](https://github.com/cloudquery/plugin-sdk/commit/8bbeafab587b61553100741d1547f17c994f37e4))
+* Fail early on usage client init if token is not set ([#1401](https://github.com/cloudquery/plugin-sdk/issues/1401)) ([dce2b0d](https://github.com/cloudquery/plugin-sdk/commit/dce2b0db513aa8ea1755b6846022004c082db49d))
+
 ## [4.19.0](https://github.com/cloudquery/plugin-sdk/compare/v4.18.3...v4.19.0) (2023-11-30)
 
 
