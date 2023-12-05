@@ -366,6 +366,21 @@ func (tt Tables) ValidateDuplicateTables() error {
 	return nil
 }
 
+func (tt Tables) GetPaidTables() []string {
+	paidTables := make([]string, 0, len(tt))
+	flattenedTables := tt.FlattenTables()
+	for _, t := range flattenedTables {
+		if t.IsPaid {
+			paidTables = append(paidTables, t.Name)
+		}
+	}
+	return paidTables
+}
+
+func (tt Tables) HasPaidTables() bool {
+	return len(tt.GetPaidTables()) > 0
+}
+
 // this will filter the tree in-place
 func (t *Table) filterDfs(parentMatched bool, include, exclude func(*Table) bool, skipDependentTables bool) *Table {
 	if exclude(t) {
