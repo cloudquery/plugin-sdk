@@ -198,10 +198,19 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 				wg.Wait()
 				return
 			}
+			// tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(table.Name+"-"+client.ID(), semaphore.NewWeighted(int64(s.scheduler.singleTableMaxConcurrency)))
+			// tableSem := tableSemVal.(*semaphore.Weighted)
+			// if err := tableSem.Acquire(ctx, 1); err != nil {
+			// 	// This means context was cancelled
+			// 	defer s.scheduler.tableSems[depth].Release(1)
+			// 	wg.Wait()
+			// 	return
+			// }
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				defer s.scheduler.tableSems[depth].Release(1)
+				// defer tableSem.Release(1)
 				s.resolveTableDfs(ctx, relation, client, resource, resolvedResources, depth+1)
 			}()
 		}
