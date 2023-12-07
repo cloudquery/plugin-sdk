@@ -15,7 +15,8 @@
     "is_incremental": false,
     "name": "table1",
     "relations": ["table2"],
-    "title": ""
+    "title": "",
+    "is_paid": false
   },
   {
     "columns": [
@@ -34,7 +35,8 @@
     "relations": ["table3"],
     "is_incremental": false,
     "name": "table2",
-    "title": ""
+    "title": "",
+    "is_paid": false
   },
   {
     "columns": [
@@ -53,6 +55,7 @@
     "relations": [],
     "is_incremental": false,
     "name": "table3",
-    "title": ""
+    "title": "",
+    "is_paid": true
   }
 ]
