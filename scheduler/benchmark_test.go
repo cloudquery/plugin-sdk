@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 
 	"sync"
@@ -22,35 +23,35 @@ import (
 )
 
 type BenchmarkScenario struct {
-	Client                sync.Map
-	ClientInit            func() Client
-	Scheduler             scheduler.Strategy
-	Clients               int
-	Tables                int
-	ChildrenPerTable      int
-	Columns               int
-	ColumnResolvers       int // number of columns with custom resolvers
-	ResourcesPerTable     int
-	ResourcesPerPage      int
-	NoPreResourceResolver bool
-	Concurrency           uint64
+	Client                 *sync.Map
+	ClientInit             func() Client
+	Scheduler              scheduler.Strategy
+	Clients                int
+	Tables                 int
+	ChildrenPerTable       int
+	Columns                int
+	ColumnResolvers        int // number of columns with custom resolvers
+	ResourcesPerTable      int
+	ResourcesPerPage       int
+	NoPreResourceResolver  bool
+	Concurrency            uint64
+	SingleTableConcurrency int
+	MaxRetries             int
+	GlobalRateLimiter      bool
 }
 
-func (s *BenchmarkScenario) SetDefaults() {
-	if s.Clients == 0 {
-		s.Clients = 1
-	}
-	if s.Tables == 0 {
-		s.Tables = 1
-	}
-	if s.Columns == 0 {
-		s.Columns = 10
-	}
-	if s.ResourcesPerTable == 0 {
-		s.ResourcesPerTable = 100
-	}
-	if s.ResourcesPerPage == 0 {
-		s.ResourcesPerPage = 10
+func defaultBenchmarkScenario() BenchmarkScenario {
+	return BenchmarkScenario{
+		Client:                 &sync.Map{},
+		Clients:                1,
+		Tables:                 1,
+		Columns:                10,
+		ColumnResolvers:        1,
+		ResourcesPerTable:      50,
+		ResourcesPerPage:       10,
+		MaxRetries:             5,
+		Concurrency:            50000,
+		SingleTableConcurrency: 50000,
 	}
 }
 
@@ -65,11 +66,11 @@ type Benchmark struct {
 	tables            []*schema.Table
 	plugin            *plugin.Plugin
 	failedApiCalls    atomic.Int64
+	timeSpentSleeping atomic.Int64
 	succeededApiCalls atomic.Int64
 }
 
 func NewBenchmark(b *testing.B, scenario BenchmarkScenario) *Benchmark {
-	scenario.SetDefaults()
 	sb := &Benchmark{
 		BenchmarkScenario: &scenario,
 		b:                 b,
@@ -125,14 +126,19 @@ func (s *Benchmark) Configure(ctx context.Context, logger zerolog.Logger, specBy
 		scheduler.WithConcurrency(int(s.Concurrency)),
 		scheduler.WithLogger(c.logger),
 		scheduler.WithStrategy(s.Scheduler),
+		// scheduler.WithSingleTableMaxConcurrency(s.SingleTableConcurrency),
 	)
 
-	createResolvers := func(tableName string) (schema.TableResolver, schema.RowResolver, schema.ColumnResolver) {
+	createResolvers := func(tableName string, depth int) (schema.TableResolver, schema.RowResolver, schema.ColumnResolver) {
 		tableResolver := func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- any) error {
 			total := 0
+			ResourcesPerPage := s.ResourcesPerPage
+			if depth > 0 {
+				ResourcesPerPage = s.ResourcesPerTable
+			}
 			for total < s.ResourcesPerTable {
 				s.simulateAPICall(meta.ID(), tableName)
-				num := min(s.ResourcesPerPage, s.ResourcesPerTable-total)
+				num := min(ResourcesPerPage, s.ResourcesPerTable-total)
 				resources := make([]struct {
 					Column1 string
 				}, num)
@@ -166,7 +172,7 @@ func (s *Benchmark) Configure(ctx context.Context, logger zerolog.Logger, specBy
 
 	s.tables = make([]*schema.Table, s.Tables)
 	for i := 0; i < s.Tables; i++ {
-		tableResolver, preResourceResolver, columnResolver := createResolvers(fmt.Sprintf("table%d", i))
+		tableResolver, preResourceResolver, columnResolver := createResolvers(fmt.Sprintf("table%d", i), i)
 		columns := make([]schema.Column, s.Columns)
 		for u := 0; u < s.Columns; u++ {
 			columns[u] = schema.Column{
@@ -207,20 +213,41 @@ func (s *Benchmark) Configure(ctx context.Context, logger zerolog.Logger, specBy
 }
 
 func (s *Benchmark) simulateAPICall(clientID, tableName string) {
+	retries := 0
 	for {
+		if retries > s.MaxRetries {
+			s.failedApiCalls.Add(1)
+			return
+		}
+		key := clientID + "-" + tableName
+		if s.GlobalRateLimiter {
+			key = "global"
+		}
 
-		client, _ := s.Client.LoadOrStore(clientID+"-"+tableName, s.ClientInit())
+		client, _ := s.Client.LoadOrStore(key, s.ClientInit())
 		err := client.(Client).Call(clientID, tableName)
 		if err == nil {
 			// if no error, we are done
-			s.failedApiCalls.Add(1)
+			s.succeededApiCalls.Add(1)
 			break
 		}
-		s.succeededApiCalls.Add(1)
+		retries++
 		// if error, we have to retry
 		// we simulate a random backoff
-		time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+
+		sleepDur := s.calculateBackoff(retries)
+		s.timeSpentSleeping.Add(int64(sleepDur.Seconds()))
+		time.Sleep(sleepDur)
+
 	}
+}
+
+func (s *Benchmark) calculateBackoff(retry int) time.Duration {
+	backoffDuration := time.Duration(float64(1.2)*math.Pow(float64(1.5), float64(retry))) * time.Millisecond
+	if backoffDuration > time.Duration(15*time.Second) {
+		backoffDuration = 15 * time.Second
+	}
+	return backoffDuration
 }
 
 func min(a, b int) int {
@@ -272,7 +299,10 @@ func (s *Benchmark) Run() {
 		}
 
 		end := time.Now()
-		s.b.ReportMetric(0, "ns/op") // drop default ns/op output
+		s.b.ReportMetric(0, "ns/op")     // drop default ns/op output
+		s.b.ReportMetric(0, "B/op")      // drop default B/op output
+		s.b.ReportMetric(0, "allocs/op") // drop default allocs/op output
+
 		s.b.ReportMetric(float64(totalResources)/(end.Sub(start).Seconds()), "resources/s")
 
 		// Enable the below metrics for more verbose information about the scenario:
@@ -280,6 +310,7 @@ func (s *Benchmark) Run() {
 		s.b.ReportMetric(float64(totalResources), "resources")
 		s.b.ReportMetric(float64(s.succeededApiCalls.Load()), "succeededApiCalls")
 		s.b.ReportMetric(float64(s.failedApiCalls.Load()), "failedApiCalls")
+		s.b.ReportMetric(float64(s.failedApiCalls.Load()), "total-time-spent-sleeping")
 	}
 }
 
@@ -303,58 +334,32 @@ func nMultiplexer(n int) schema.Multiplexer {
 	}
 }
 
-func BenchmarkDefaultConcurrencyDFS(b *testing.B) {
-	benchmarkWithScheduler(b, scheduler.StrategyDFS)
-}
-
-func BenchmarkDefaultConcurrencyRoundRobin(b *testing.B) {
-	benchmarkWithScheduler(b, scheduler.StrategyRoundRobin)
-}
-
 func benchmarkWithScheduler(b *testing.B, scheduler scheduler.Strategy) {
-	b.ReportAllocs()
+	// b.ReportAllocs()
 	minTime := 1 * time.Millisecond
 	mean := 10 * time.Millisecond
 	stdDev := 100 * time.Millisecond
-	bs := BenchmarkScenario{
-		Client:            sync.Map{},
-		ClientInit:        func() Client { return NewDefaultClient(minTime, mean, stdDev) },
-		Clients:           25,
-		Tables:            5,
-		Columns:           10,
-		ColumnResolvers:   1,
-		ResourcesPerTable: 100,
-		ResourcesPerPage:  50,
-		Scheduler:         scheduler,
-	}
+
+	bs := defaultBenchmarkScenario()
+	bs.ClientInit = func() Client { return NewDefaultClient(minTime, mean, stdDev) }
+	bs.Scheduler = scheduler
+
 	sb := NewBenchmark(b, bs)
 	sb.Run()
 }
 
-func BenchmarkTablesWithChildrenDFS(b *testing.B) {
-	benchmarkTablesWithChildrenScheduler(b, scheduler.StrategyDFS)
-}
-
-func BenchmarkTablesWithChildrenRoundRobin(b *testing.B) {
-	benchmarkTablesWithChildrenScheduler(b, scheduler.StrategyRoundRobin)
-}
-
-func benchmarkTablesWithChildrenScheduler(b *testing.B, scheduler scheduler.Strategy) {
-	b.ReportAllocs()
+func benchmarkTablesWithChildrenScheduler(b *testing.B, scheduler scheduler.Strategy, options ...TestOptions) {
+	// b.ReportAllocs()
 	minTime := 1 * time.Millisecond
 	mean := 10 * time.Millisecond
 	stdDev := 100 * time.Millisecond
-	bs := BenchmarkScenario{
-		Client:            sync.Map{},
-		ClientInit:        func() Client { return NewDefaultClient(minTime, mean, stdDev) },
-		Clients:           2,
-		Tables:            2,
-		ChildrenPerTable:  2,
-		Columns:           10,
-		ColumnResolvers:   1,
-		ResourcesPerTable: 100,
-		ResourcesPerPage:  50,
-		Scheduler:         scheduler,
+	bs := defaultBenchmarkScenario()
+	bs.Client = &sync.Map{}
+	bs.ClientInit = func() Client { return NewDefaultClient(minTime, mean, stdDev) }
+	bs.ChildrenPerTable = 2
+	bs.Scheduler = scheduler
+	for _, option := range options {
+		option(&bs)
 	}
 	sb := NewBenchmark(b, bs)
 	sb.Run()
@@ -366,7 +371,7 @@ type DefaultClient struct {
 
 func NewDefaultClient(min, mean, stdDev time.Duration) *DefaultClient {
 	if min == 0 {
-		min = time.Millisecond
+		min = 1 * time.Millisecond
 	}
 	if mean == 0 {
 		mean = 10 * time.Millisecond
@@ -397,14 +402,16 @@ type RateLimitClient struct {
 	callsLock         sync.Mutex
 	window            time.Duration
 	maxCallsPerWindow int
+	global            bool
 }
 
-func NewRateLimitClient(min, mean, stdDev time.Duration, maxCallsPerWindow int, window time.Duration) *RateLimitClient {
+func NewGlobalRateLimitClient(min, mean, stdDev time.Duration, maxCallsPerWindow int, window time.Duration) *RateLimitClient {
 	return &RateLimitClient{
 		DefaultClient:     NewDefaultClient(min, mean, stdDev),
 		calls:             map[string][]time.Time{},
 		window:            window,
 		maxCallsPerWindow: maxCallsPerWindow,
+		global:            true,
 	}
 }
 
@@ -438,45 +445,94 @@ func (r *RateLimitClient) Call(clientID, table string) error {
 	return nil
 }
 
+// In this benchmark, we set up a scenario where each table has a global rate limit of 1 call per 100ms.
+// Every table requires 1 call to resolve, and has 10 clients. This means, at best, each table can resolve in 1 second.
+// We have 100 such tables and a concurrency that allows 1000 calls at a time. A good scheduler for this scenario
+// should be able to resolve all tables in a bit more than 1 second.
+func benchmarkTablesWithRateLimitingScheduler(b *testing.B, scheduler scheduler.Strategy, options ...TestOptions) {
+	// b.ReportAllocs()
+
+	minTime := 50 * time.Millisecond
+	mean := 250 * time.Millisecond
+	stdDev := 50 * time.Millisecond
+
+	maxCallsPerWindow := 3
+	window := 500 * time.Millisecond
+	bs := defaultBenchmarkScenario()
+	bs.Clients = 10
+	bs.ClientInit = func() Client { return NewGlobalRateLimitClient(minTime, mean, stdDev, maxCallsPerWindow, window) }
+	bs.Scheduler = scheduler
+	bs.ColumnResolvers = 0
+	bs.ChildrenPerTable = 1
+	bs.NoPreResourceResolver = true
+	for _, option := range options {
+		option(&bs)
+	}
+	sb := NewBenchmark(b, bs)
+	sb.Run()
+}
+
 // BenchmarkDefaultConcurrency represents a benchmark scenario where rate limiting is applied
 // by the cloud provider. In this rate limiter, the limit is applied globally per table.
 // This mirrors the behavior of GCP, where rate limiting is applied per project *token*, not
 // per project. A good scheduler should spread the load across tables so that other tables can make
 // progress while waiting for the rate limit to reset.
-func BenchmarkTablesWithRateLimitingDFS(b *testing.B) {
-	benchmarkTablesWithRateLimitingScheduler(b, scheduler.StrategyDFS)
-}
 
-func BenchmarkTablesWithRateLimitingRoundRobin(b *testing.B) {
-	benchmarkTablesWithRateLimitingScheduler(b, scheduler.StrategyRoundRobin)
-}
-
-// In this benchmark, we set up a scenario where each table has a global rate limit of 1 call per 100ms.
-// Every table requires 1 call to resolve, and has 10 clients. This means, at best, each table can resolve in 1 second.
-// We have 100 such tables and a concurrency that allows 1000 calls at a time. A good scheduler for this scenario
-// should be able to resolve all tables in a bit more than 1 second.
-func benchmarkTablesWithRateLimitingScheduler(b *testing.B, scheduler scheduler.Strategy) {
-	b.ReportAllocs()
-	minTime := 1 * time.Millisecond
-	mean := 1 * time.Millisecond
-	stdDev := 1 * time.Millisecond
-	maxCallsPerWindow := 1
-	window := 100 * time.Millisecond
-
-	bs := BenchmarkScenario{
-		Client:                sync.Map{},
-		ClientInit:            func() Client { return NewRateLimitClient(minTime, mean, stdDev, maxCallsPerWindow, window) },
-		Scheduler:             scheduler,
-		Clients:               10,
-		Tables:                100,
-		ChildrenPerTable:      0,
-		Columns:               10,
-		ColumnResolvers:       0,
-		ResourcesPerTable:     1,
-		ResourcesPerPage:      1,
-		Concurrency:           10000,
-		NoPreResourceResolver: true,
+func BenchmarkTablesWithGlobalRateLimiting(b *testing.B) {
+	for _, strategy := range scheduler.AllStrategies {
+		for _, concurrency := range []int{50000, 5, 3, 2, 1} {
+			b.Run(fmt.Sprintf("%s-%d", strategy.String(), concurrency), func(b *testing.B) {
+				benchmarkTablesWithRateLimitingScheduler(b, strategy, WithSingleTableMaxConcurrency(concurrency), WithGlobalRateLimiting(true))
+			})
+		}
 	}
-	sb := NewBenchmark(b, bs)
-	sb.Run()
+}
+
+// BenchmarkTablesWithTableClientRateLimiting represents a benchmark scenario where rate limiting is applied
+// by the cloud provider. In this rate limiter, the limit is applied on a per table + client basis. It makes the assumption that each client + table pair have separate rate limits
+// This mirrors the behavior of AWS, where rate limiting is applied per account, region and table. This will help test nested tables
+func BenchmarkTablesWithTableClientRateLimiting(b *testing.B) {
+	for _, concurrency := range []int{50000, 10000, 1000, 100, 1} {
+		b.Run(fmt.Sprintf("concurrency-%d", concurrency), func(b *testing.B) {
+			benchmarkTablesWithRateLimitingScheduler(b, scheduler.StrategyShuffle, WithConcurrency(uint64(concurrency)), WithGlobalRateLimiting(false))
+		})
+	}
+}
+
+func BenchmarkDefaultConcurrency(b *testing.B) {
+	for _, strategy := range scheduler.AllStrategies {
+		b.Run(strategy.String(), func(b *testing.B) {
+			benchmarkWithScheduler(b, strategy)
+		})
+	}
+}
+
+func BenchmarkTablesWithChildren(b *testing.B) {
+	for _, strategy := range scheduler.AllStrategies {
+		for _, concurrency := range []int{1000, 10, 1} {
+			b.Run(fmt.Sprintf("%s-%d", strategy.String(), concurrency), func(b *testing.B) {
+				benchmarkTablesWithChildrenScheduler(b, strategy, WithSingleTableMaxConcurrency(concurrency))
+			})
+		}
+	}
+}
+
+type TestOptions func(*BenchmarkScenario)
+
+func WithConcurrency(concurrency uint64) TestOptions {
+	return func(s *BenchmarkScenario) {
+		s.Concurrency = concurrency
+	}
+}
+
+func WithSingleTableMaxConcurrency(concurrency int) TestOptions {
+	return func(s *BenchmarkScenario) {
+		s.SingleTableConcurrency = concurrency
+	}
+}
+
+func WithGlobalRateLimiting(global bool) TestOptions {
+	return func(s *BenchmarkScenario) {
+		s.GlobalRateLimiter = global
+	}
 }
