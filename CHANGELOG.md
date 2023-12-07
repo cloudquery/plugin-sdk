@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.20.0](https://github.com/cloudquery/plugin-sdk/compare/v4.19.1...v4.20.0) (2023-12-07)
+
+
+### Features
+
+* Add `GetPaidTables()` and `HasPaidTables()` to `schema.Tables` ([#1403](https://github.com/cloudquery/plugin-sdk/issues/1403)) ([b355fa0](https://github.com/cloudquery/plugin-sdk/commit/b355fa07dd8a1265b93c6f3b4f6d17f663a93912))
+* Include `is_paid` field when creating tables json during package ([#1405](https://github.com/cloudquery/plugin-sdk/issues/1405)) ([455a1e3](https://github.com/cloudquery/plugin-sdk/commit/455a1e3ebf0eea79bbd11c0f31315775d8609b2b))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.14.3 ([#1406](https://github.com/cloudquery/plugin-sdk/issues/1406)) ([7833342](https://github.com/cloudquery/plugin-sdk/commit/783334242e12d4d3fe78ddfd5acd11ecd8220fff))
+
 ## [4.19.1](https://github.com/cloudquery/plugin-sdk/compare/v4.19.0...v4.19.1) (2023-12-04)
 
 
