@@ -65,6 +65,12 @@ func WithStrategy(strategy Strategy) Option {
 	}
 }
 
+// func WithSingleTableMaxConcurrency(concurrency int) Option {
+// 	return func(s *Scheduler) {
+// 		s.singleTableMaxConcurrency = concurrency
+// 	}
+// }
+
 type SyncOption func(*syncClient)
 
 func WithSyncDeterministicCQID(deterministicCQID bool) SyncOption {
@@ -88,6 +94,7 @@ type Scheduler struct {
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
 	logger      zerolog.Logger
 	concurrency int
+	// singleTableMaxConcurrency int
 }
 
 type syncClient struct {
