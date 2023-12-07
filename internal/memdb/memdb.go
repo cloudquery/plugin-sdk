@@ -86,6 +86,7 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 										Unique:         false,
 									},
 								},
+								IsPaid: true,
 							},
 						},
 					},
