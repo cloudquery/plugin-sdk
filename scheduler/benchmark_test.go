@@ -40,21 +40,6 @@ type BenchmarkScenario struct {
 	GlobalRateLimiter      bool
 }
 
-func defaultBenchmarkScenario() BenchmarkScenario {
-	return BenchmarkScenario{
-		Client:                 &sync.Map{},
-		Clients:                1,
-		Tables:                 1,
-		Columns:                10,
-		ColumnResolvers:        1,
-		ResourcesPerTable:      50,
-		ResourcesPerPage:       10,
-		MaxRetries:             5,
-		Concurrency:            50000,
-		SingleTableConcurrency: 50000,
-	}
-}
-
 type Client interface {
 	Call(clientID, tableName string) error
 }
@@ -341,24 +326,19 @@ func nMultiplexer(n int) schema.Multiplexer {
 func runBenchmark(b *testing.B, options ...TestOptions) {
 	// b.ReportAllocs()
 
-	bs := defaultBenchmarkScenario()
-
-	for _, option := range options {
-		option(&bs)
+	bs := BenchmarkScenario{
+		Client:                 &sync.Map{},
+		Clients:                1,
+		Tables:                 1,
+		Columns:                10,
+		ColumnResolvers:        1,
+		ResourcesPerTable:      50,
+		ResourcesPerPage:       10,
+		MaxRetries:             5,
+		Concurrency:            50000,
+		SingleTableConcurrency: 50000,
 	}
-	sb := NewBenchmark(b, bs)
-	sb.Run()
-}
 
-func benchmarkTablesWithChildrenScheduler(b *testing.B, scheduler scheduler.Strategy, options ...TestOptions) {
-	// b.ReportAllocs()
-	minTime := 1 * time.Millisecond
-	mean := 10 * time.Millisecond
-	stdDev := 100 * time.Millisecond
-	bs := defaultBenchmarkScenario()
-	bs.ClientInit = func() Client { return NewDefaultClient(minTime, mean, stdDev) }
-	bs.ChildrenPerTable = 2
-	bs.Scheduler = scheduler
 	for _, option := range options {
 		option(&bs)
 	}
@@ -511,7 +491,8 @@ func BenchmarkDefaultConcurrency(b *testing.B) {
 		b.Run(strategy.String(), func(b *testing.B) {
 			runBenchmark(b,
 				WithScheduler(strategy),
-				WithClientInit(func() Client { return NewDefaultClient(1*time.Millisecond, 10*time.Millisecond, 100*time.Millisecond) }))
+				WithClientInit(func() Client { return NewDefaultClient(1*time.Millisecond, 10*time.Millisecond, 100*time.Millisecond) }),
+			)
 		})
 	}
 }
@@ -520,9 +501,11 @@ func BenchmarkTablesWithChildren(b *testing.B) {
 	for _, strategy := range scheduler.AllStrategies {
 		for _, concurrency := range []int{1000, 10, 1} {
 			b.Run(fmt.Sprintf("%s-%d", strategy.String(), concurrency), func(b *testing.B) {
-				benchmarkTablesWithChildrenScheduler(b, strategy,
-					WithClientInit(func() Client { return NewDefaultClient(1*time.Millisecond, 10*time.Millisecond, 100*time.Millisecond) }))
-				// WithSingleTableMaxConcurrency(concurrency),
+				runBenchmark(b,
+					WithScheduler(strategy),
+					WithClientInit(func() Client { return NewDefaultClient(1*time.Millisecond, 10*time.Millisecond, 100*time.Millisecond) }),
+					WithChildTables(2),
+				)
 			})
 		}
 	}
