@@ -50,9 +50,9 @@ type Benchmark struct {
 	b                 *testing.B
 	tables            []*schema.Table
 	plugin            *plugin.Plugin
-	failedApiCalls    atomic.Int64
+	failedAPICalls    atomic.Int64
 	timeSpentSleeping atomic.Int64
-	succeededApiCalls atomic.Int64
+	succeededAPICalls atomic.Int64
 	throttles         atomic.Int64
 }
 
@@ -68,14 +68,13 @@ func NewBenchmark(b *testing.B, scenario BenchmarkScenario) *Benchmark {
 }
 
 func (s *Benchmark) setup(b *testing.B) {
-
-	plugin := plugin.NewPlugin(
+	newPlugin := plugin.NewPlugin(
 		"testPlugin",
 		"1.0.0",
 		s.Configure,
 	)
-	plugin.SetLogger(zerolog.New(zerolog.NewTestWriter(b)).Level(zerolog.WarnLevel))
-	s.plugin = plugin
+	newPlugin.SetLogger(zerolog.New(zerolog.NewTestWriter(b)).Level(zerolog.WarnLevel))
+	s.plugin = newPlugin
 	s.b = b
 }
 
@@ -102,7 +101,7 @@ func (c *PluginClient) Sync(ctx context.Context, options plugin.SyncOptions, res
 
 	return c.scheduler.Sync(ctx, nil, tt, res, scheduler.WithSyncDeterministicCQID(options.DeterministicCQID))
 }
-func (s *Benchmark) Configure(ctx context.Context, logger zerolog.Logger, specBytes []byte, options plugin.NewClientOptions) (plugin.Client, error) {
+func (s *Benchmark) Configure(_ context.Context, logger zerolog.Logger, _ []byte, options plugin.NewClientOptions) (plugin.Client, error) {
 	c := &PluginClient{
 		options: options,
 		logger:  logger,
@@ -118,13 +117,13 @@ func (s *Benchmark) Configure(ctx context.Context, logger zerolog.Logger, specBy
 	createResolvers := func(tableName string, depth int) (schema.TableResolver, schema.RowResolver, schema.ColumnResolver) {
 		tableResolver := func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- any) error {
 			total := 0
-			ResourcesPerPage := s.ResourcesPerPage
+			resourcesPerPage := s.ResourcesPerPage
 			if depth > 0 {
-				ResourcesPerPage = s.ResourcesPerTable
+				resourcesPerPage = s.ResourcesPerTable
 			}
 			for total < s.ResourcesPerTable {
 				s.simulateAPICall(meta.ID(), tableName)
-				num := min(ResourcesPerPage, s.ResourcesPerTable-total)
+				num := min(resourcesPerPage, s.ResourcesPerTable-total)
 				resources := make([]struct {
 					Column1 string
 				}, num)
@@ -202,7 +201,7 @@ func (s *Benchmark) simulateAPICall(clientID, tableName string) {
 	retries := 0
 	for {
 		if retries > s.MaxRetries {
-			s.failedApiCalls.Add(1)
+			s.failedAPICalls.Add(1)
 			return
 		}
 		key := clientID + "-" + tableName
@@ -214,7 +213,7 @@ func (s *Benchmark) simulateAPICall(clientID, tableName string) {
 		err := client.(Client).Call(clientID, tableName)
 		if err == nil {
 			// if no error, we are done
-			s.succeededApiCalls.Add(1)
+			s.succeededAPICalls.Add(1)
 			break
 		}
 		s.throttles.Add(1)
@@ -225,13 +224,12 @@ func (s *Benchmark) simulateAPICall(clientID, tableName string) {
 		sleepDur := s.calculateBackoff(retries)
 		s.timeSpentSleeping.Add(int64(sleepDur.Seconds()))
 		time.Sleep(sleepDur)
-
 	}
 }
 
-func (s *Benchmark) calculateBackoff(retry int) time.Duration {
+func (*Benchmark) calculateBackoff(retry int) time.Duration {
 	backoffDuration := time.Duration(float64(1.2)*math.Pow(float64(1.5), float64(retry))) * time.Second
-	if backoffDuration > time.Duration(15*time.Second) {
+	if backoffDuration > time.Duration(15) {
 		backoffDuration = 15 * time.Second
 	}
 	return backoffDuration
@@ -294,10 +292,10 @@ func (s *Benchmark) Run() {
 		s.b.ReportMetric(float64(totalResources)/(end.Sub(start).Seconds()), "resources/s")
 
 		// Enable the below metrics for more verbose information about the scenario:
-		s.b.ReportMetric((float64(s.succeededApiCalls.Load()))/(end.Sub(start).Seconds()), "successful-api-calls/s")
+		s.b.ReportMetric((float64(s.succeededAPICalls.Load()))/(end.Sub(start).Seconds()), "successful-api-calls/s")
 		s.b.ReportMetric(float64(totalResources), "resources")
-		s.b.ReportMetric(float64(s.succeededApiCalls.Load()), "succeededApiCalls")
-		s.b.ReportMetric(float64(s.failedApiCalls.Load()), "failedApiCalls")
+		s.b.ReportMetric(float64(s.succeededAPICalls.Load()), "succeededAPICalls")
+		s.b.ReportMetric(float64(s.failedAPICalls.Load()), "failedAPICalls")
 		s.b.ReportMetric(float64(s.throttles.Load()), "throttles")
 		s.b.ReportMetric(float64(s.timeSpentSleeping.Load()), "total-time-spent-sleeping")
 	}
@@ -367,7 +365,7 @@ func NewDefaultClient(min, mean, stdDev time.Duration) *DefaultClient {
 	}
 }
 
-func (c *DefaultClient) Call(clientID, Table string) error {
+func (c *DefaultClient) Call(_, _ string) error {
 	sample := int(rand.NormFloat64()*float64(c.stdDev) + float64(c.mean))
 	duration := time.Duration(sample)
 	if duration < c.min {
@@ -386,7 +384,7 @@ type RateLimitClient struct {
 	global            bool
 }
 
-func NewGlobalRateLimitClient(min, mean, stdDev time.Duration, maxCallsPerWindow int, window time.Duration) *RateLimitClient {
+func NewRateLimitClient(min, mean, stdDev time.Duration, maxCallsPerWindow int, window time.Duration) *RateLimitClient {
 	return &RateLimitClient{
 		DefaultClient:     NewDefaultClient(min, mean, stdDev),
 		calls:             map[string][]time.Time{},
@@ -439,7 +437,7 @@ func BenchmarkTablesWithGlobalRateLimiting(b *testing.B) {
 				runBenchmark(b,
 					WithScheduler(strategy),
 					WithClientInit(func() Client {
-						return NewGlobalRateLimitClient(50*time.Millisecond, 250*time.Millisecond, 50*time.Millisecond, 3, 500*time.Millisecond)
+						return NewRateLimitClient(50*time.Millisecond, 250*time.Millisecond, 50*time.Millisecond, 3, 500*time.Millisecond)
 					}),
 					WithGlobalRateLimiting(true),
 					WithClients(10),
@@ -470,7 +468,7 @@ func BenchmarkTablesWithTableClientRateLimiting(b *testing.B) {
 		b.Run(fmt.Sprintf("concurrency-%d", concurrency), func(b *testing.B) {
 			runBenchmark(b,
 				WithClientInit(func() Client {
-					return NewGlobalRateLimitClient(50*time.Millisecond, 250*time.Millisecond, 50*time.Millisecond, 3, 500*time.Millisecond)
+					return NewRateLimitClient(50*time.Millisecond, 250*time.Millisecond, 50*time.Millisecond, 3, 500*time.Millisecond)
 				}),
 				WithGlobalRateLimiting(false),
 				WithClients(1),
@@ -537,9 +535,9 @@ func WithTables(tables int) TestOptions {
 	}
 }
 
-func WithScheduler(scheduler scheduler.Strategy) TestOptions {
+func WithScheduler(schedulerStrategy scheduler.Strategy) TestOptions {
 	return func(s *BenchmarkScenario) {
-		s.Scheduler = scheduler
+		s.Scheduler = schedulerStrategy
 	}
 }
 
