@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -66,12 +65,6 @@ func WithStrategy(strategy Strategy) Option {
 	}
 }
 
-func WithSingleTableMaxConcurrency(concurrency int) Option {
-	return func(s *Scheduler) {
-		s.singleTableMaxConcurrency = concurrency
-	}
-}
-
 type SyncOption func(*syncClient)
 
 func WithSyncDeterministicCQID(deterministicCQID bool) SyncOption {
@@ -93,10 +86,8 @@ type Scheduler struct {
 	// tableSem is a semaphore that limits the number of concurrent tables being fetched
 	tableSems []*semaphore.Weighted
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
-	logger                    zerolog.Logger
-	concurrency               int
-	singleTableConcurrency    sync.Map
-	singleTableMaxConcurrency int
+	logger      zerolog.Logger
+	concurrency int
 }
 
 type syncClient struct {
