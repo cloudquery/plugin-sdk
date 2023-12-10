@@ -25,11 +25,12 @@ import (
 )
 
 const (
-	DefaultConcurrency     = 50000
-	DefaultMaxDepth        = 4
-	minTableConcurrency    = 1
-	minResourceConcurrency = 100
-	otelName               = "schedule"
+	DefaultConcurrency               = 50000
+	DefaultMaxDepth                  = 4
+	minTableConcurrency              = 1
+	minResourceConcurrency           = 100
+	otelName                         = "schedule"
+	defaultSingleTableMaxConcurrency = 10
 )
 
 var ErrNoTables = errors.New("no tables specified for syncing, review `tables` and `skip_tables` in your config and specify at least one table to sync")
@@ -111,9 +112,10 @@ type syncClient struct {
 
 func NewScheduler(opts ...Option) *Scheduler {
 	s := Scheduler{
-		caser:       caser.New(),
-		concurrency: DefaultConcurrency,
-		maxDepth:    DefaultMaxDepth,
+		caser:                     caser.New(),
+		concurrency:               DefaultConcurrency,
+		maxDepth:                  DefaultMaxDepth,
+		singleTableMaxConcurrency: defaultSingleTableMaxConcurrency,
 	}
 	for _, opt := range opts {
 		opt(&s)
