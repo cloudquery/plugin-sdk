@@ -68,6 +68,7 @@ type Benchmark struct {
 	failedApiCalls    atomic.Int64
 	timeSpentSleeping atomic.Int64
 	succeededApiCalls atomic.Int64
+	throttles         atomic.Int64
 }
 
 func NewBenchmark(b *testing.B, scenario BenchmarkScenario) *Benchmark {
@@ -126,7 +127,7 @@ func (s *Benchmark) Configure(ctx context.Context, logger zerolog.Logger, specBy
 		scheduler.WithConcurrency(int(s.Concurrency)),
 		scheduler.WithLogger(c.logger),
 		scheduler.WithStrategy(s.Scheduler),
-		// scheduler.WithSingleTableMaxConcurrency(s.SingleTableConcurrency),
+		scheduler.WithSingleTableMaxConcurrency(s.SingleTableConcurrency),
 	)
 
 	createResolvers := func(tableName string, depth int) (schema.TableResolver, schema.RowResolver, schema.ColumnResolver) {
@@ -231,6 +232,7 @@ func (s *Benchmark) simulateAPICall(clientID, tableName string) {
 			s.succeededApiCalls.Add(1)
 			break
 		}
+		s.throttles.Add(1)
 		retries++
 		// if error, we have to retry
 		// we simulate a random backoff
@@ -243,7 +245,7 @@ func (s *Benchmark) simulateAPICall(clientID, tableName string) {
 }
 
 func (s *Benchmark) calculateBackoff(retry int) time.Duration {
-	backoffDuration := time.Duration(float64(1.2)*math.Pow(float64(1.5), float64(retry))) * time.Millisecond
+	backoffDuration := time.Duration(float64(1.2)*math.Pow(float64(1.5), float64(retry))) * time.Second
 	if backoffDuration > time.Duration(15*time.Second) {
 		backoffDuration = 15 * time.Second
 	}
@@ -303,14 +305,16 @@ func (s *Benchmark) Run() {
 		s.b.ReportMetric(0, "B/op")      // drop default B/op output
 		s.b.ReportMetric(0, "allocs/op") // drop default allocs/op output
 
+		s.b.ReportMetric(end.Sub(start).Seconds(), "duration(seconds)")
 		s.b.ReportMetric(float64(totalResources)/(end.Sub(start).Seconds()), "resources/s")
 
 		// Enable the below metrics for more verbose information about the scenario:
-		s.b.ReportMetric((float64(s.succeededApiCalls.Load())+float64(s.failedApiCalls.Load()))/(end.Sub(start).Seconds()), "api-calls/s")
+		s.b.ReportMetric((float64(s.succeededApiCalls.Load()))/(end.Sub(start).Seconds()), "successful-api-calls/s")
 		s.b.ReportMetric(float64(totalResources), "resources")
 		s.b.ReportMetric(float64(s.succeededApiCalls.Load()), "succeededApiCalls")
 		s.b.ReportMetric(float64(s.failedApiCalls.Load()), "failedApiCalls")
-		s.b.ReportMetric(float64(s.failedApiCalls.Load()), "total-time-spent-sleeping")
+		s.b.ReportMetric(float64(s.throttles.Load()), "throttles")
+		s.b.ReportMetric(float64(s.timeSpentSleeping.Load()), "total-time-spent-sleeping")
 	}
 }
 
@@ -492,9 +496,9 @@ func BenchmarkTablesWithGlobalRateLimiting(b *testing.B) {
 // by the cloud provider. In this rate limiter, the limit is applied on a per table + client basis. It makes the assumption that each client + table pair have separate rate limits
 // This mirrors the behavior of AWS, where rate limiting is applied per account, region and table. This will help test nested tables
 func BenchmarkTablesWithTableClientRateLimiting(b *testing.B) {
-	for _, concurrency := range []int{50000, 10000, 1000, 100, 1} {
+	for _, concurrency := range []int{10000, 1000} {
 		b.Run(fmt.Sprintf("concurrency-%d", concurrency), func(b *testing.B) {
-			benchmarkTablesWithRateLimitingScheduler(b, scheduler.StrategyShuffle, WithConcurrency(uint64(concurrency)), WithGlobalRateLimiting(false))
+			benchmarkTablesWithRateLimitingScheduler(b, scheduler.StrategyShuffle, WithConcurrency(uint64(concurrency)), WithSingleTableMaxConcurrency(3), WithGlobalRateLimiting(false))
 		})
 	}
 }
