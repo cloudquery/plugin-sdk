@@ -228,8 +228,8 @@ func (s *Benchmark) simulateAPICall(clientID, tableName string) {
 }
 
 func (*Benchmark) calculateBackoff(retry int) time.Duration {
-	backoffDuration := time.Duration(float64(1.2)*math.Pow(float64(1.5), float64(retry))) * time.Second
-	if backoffDuration > time.Duration(15) {
+	backoffDuration := time.Duration(float64(1.1)*math.Pow(float64(1.25), float64(retry))) * time.Second
+	if backoffDuration > time.Duration(7) {
 		backoffDuration = 15 * time.Second
 	}
 	return backoffDuration
@@ -330,8 +330,8 @@ func runBenchmark(b *testing.B, options ...TestOptions) {
 		Tables:                 1,
 		Columns:                10,
 		ColumnResolvers:        1,
-		ResourcesPerTable:      50,
-		ResourcesPerPage:       10,
+		ResourcesPerTable:      5,
+		ResourcesPerPage:       2,
 		MaxRetries:             5,
 		Concurrency:            50000,
 		SingleTableConcurrency: 50000,
@@ -437,10 +437,10 @@ func BenchmarkTablesWithGlobalRateLimiting(b *testing.B) {
 				runBenchmark(b,
 					WithScheduler(strategy),
 					WithClientInit(func() Client {
-						return NewRateLimitClient(50*time.Millisecond, 250*time.Millisecond, 50*time.Millisecond, 3, 500*time.Millisecond)
+						return NewRateLimitClient(25*time.Millisecond, 125*time.Millisecond, 25*time.Millisecond, 3, 250*time.Millisecond)
 					}),
 					WithGlobalRateLimiting(true),
-					WithClients(10),
+					WithClients(3),
 					WithTables(100),
 					WithScheduler(strategy),
 					WithColumnResolvers(0),
@@ -468,7 +468,7 @@ func BenchmarkTablesWithTableClientRateLimiting(b *testing.B) {
 		b.Run(fmt.Sprintf("concurrency-%d", concurrency), func(b *testing.B) {
 			runBenchmark(b,
 				WithClientInit(func() Client {
-					return NewRateLimitClient(50*time.Millisecond, 250*time.Millisecond, 50*time.Millisecond, 3, 500*time.Millisecond)
+					return NewRateLimitClient(25*time.Millisecond, 125*time.Millisecond, 25*time.Millisecond, 3, 250*time.Millisecond)
 				}),
 				WithGlobalRateLimiting(false),
 				WithClients(1),
