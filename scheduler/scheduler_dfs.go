@@ -199,7 +199,7 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 				wg.Wait()
 				return
 			}
-			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(table.Name+"-"+client.ID(), semaphore.NewWeighted(int64(s.scheduler.singleTableMaxConcurrency)))
+			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(table.Name+"-"+client.ID(), semaphore.NewWeighted(s.scheduler.singleTableMaxConcurrency))
 			tableSem := tableSemVal.(*semaphore.Weighted)
 			if err := tableSem.Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
