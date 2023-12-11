@@ -67,9 +67,9 @@ func WithStrategy(strategy Strategy) Option {
 	}
 }
 
-func WithSingleTableMaxConcurrency(concurrency int) Option {
+func WithSingleTableMaxConcurrency(concurrency int64) Option {
 	return func(s *Scheduler) {
-		s.singleTableMaxConcurrency = int64(concurrency)
+		s.singleTableMaxConcurrency = concurrency
 	}
 }
 
