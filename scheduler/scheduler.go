@@ -69,7 +69,7 @@ func WithStrategy(strategy Strategy) Option {
 
 func WithSingleTableMaxConcurrency(concurrency int) Option {
 	return func(s *Scheduler) {
-		s.singleTableMaxConcurrency = concurrency
+		s.singleTableMaxConcurrency = int64(concurrency)
 	}
 }
 
@@ -97,7 +97,7 @@ type Scheduler struct {
 	logger                    zerolog.Logger
 	concurrency               int
 	singleTableConcurrency    sync.Map
-	singleTableMaxConcurrency int
+	singleTableMaxConcurrency int64
 }
 
 type syncClient struct {
