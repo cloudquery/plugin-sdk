@@ -30,7 +30,7 @@ const (
 	minTableConcurrency              = 1
 	minResourceConcurrency           = 100
 	otelName                         = "schedule"
-	defaultSingleTableMaxConcurrency = 10
+	defaultSingleTableMaxConcurrency = 50
 )
 
 var ErrNoTables = errors.New("no tables specified for syncing, review `tables` and `skip_tables` in your config and specify at least one table to sync")
