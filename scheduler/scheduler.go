@@ -66,9 +66,9 @@ func WithStrategy(strategy Strategy) Option {
 	}
 }
 
-func WithSingleTableMaxConcurrency(concurrency int64) Option {
+func WithSingleNestedTableMaxConcurrency(concurrency int64) Option {
 	return func(s *Scheduler) {
-		s.singleTableMaxConcurrency = concurrency
+		s.singleNestedTableMaxConcurrency = concurrency
 	}
 }
 
@@ -97,8 +97,8 @@ type Scheduler struct {
 	concurrency int
 	// This Map holds all of the concurrency semaphores for each table+client pair.
 	singleTableConcurrency sync.Map
-	// The maximum number of go routines that can be spawned for a single table+client pair.
-	singleTableMaxConcurrency int64
+	// The maximum number of go routines that can be spawned for a single table+client pair
+	singleNestedTableMaxConcurrency int64
 }
 
 type syncClient struct {
@@ -133,8 +133,8 @@ func NewScheduler(opts ...Option) *Scheduler {
 	s.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
 
 	// To preserve backwards compatibility, if singleTableMaxConcurrency is not set, set it to the max concurrency
-	if s.singleTableMaxConcurrency == 0 {
-		s.singleTableMaxConcurrency = int64(tableConcurrency)
+	if s.singleNestedTableMaxConcurrency == 0 {
+		s.singleNestedTableMaxConcurrency = int64(tableConcurrency)
 	}
 	return &s
 }
