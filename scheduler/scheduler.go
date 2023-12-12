@@ -25,12 +25,11 @@ import (
 )
 
 const (
-	DefaultConcurrency               = 50000
-	DefaultMaxDepth                  = 4
-	minTableConcurrency              = 1
-	minResourceConcurrency           = 100
-	otelName                         = "schedule"
-	defaultSingleTableMaxConcurrency = 50
+	DefaultConcurrency     = 50000
+	DefaultMaxDepth        = 4
+	minTableConcurrency    = 1
+	minResourceConcurrency = 100
+	otelName               = "schedule"
 )
 
 var ErrNoTables = errors.New("no tables specified for syncing, review `tables` and `skip_tables` in your config and specify at least one table to sync")
@@ -73,6 +72,12 @@ func WithSingleTableMaxConcurrency(concurrency int64) Option {
 	}
 }
 
+func WithGlobalRateLimiting() Option {
+	return func(s *Scheduler) {
+		s.globalRateLimiting = true
+	}
+}
+
 type SyncOption func(*syncClient)
 
 func WithSyncDeterministicCQID(deterministicCQID bool) SyncOption {
@@ -94,10 +99,14 @@ type Scheduler struct {
 	// tableSem is a semaphore that limits the number of concurrent tables being fetched
 	tableSems []*semaphore.Weighted
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
-	logger                    zerolog.Logger
-	concurrency               int
-	singleTableConcurrency    sync.Map
+	logger      zerolog.Logger
+	concurrency int
+	// This Map holds all of the concurrency semaphores for each table+client pair.
+	singleTableConcurrency sync.Map
+	// The maximum number of go routines that can be spawned for a single table+client pair.
 	singleTableMaxConcurrency int64
+	// A boolean that indicates whether or not to use the global rate limiter. By default rate limiting is assumed to be table+client specific.
+	globalRateLimiting bool
 }
 
 type syncClient struct {
@@ -112,10 +121,9 @@ type syncClient struct {
 
 func NewScheduler(opts ...Option) *Scheduler {
 	s := Scheduler{
-		caser:                     caser.New(),
-		concurrency:               DefaultConcurrency,
-		maxDepth:                  DefaultMaxDepth,
-		singleTableMaxConcurrency: defaultSingleTableMaxConcurrency,
+		caser:       caser.New(),
+		concurrency: DefaultConcurrency,
+		maxDepth:    DefaultMaxDepth,
 	}
 	for _, opt := range opts {
 		opt(&s)
@@ -131,6 +139,11 @@ func NewScheduler(opts ...Option) *Scheduler {
 		tableConcurrency = max(tableConcurrency/2, minTableConcurrency)
 	}
 	s.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
+
+	// To preserve backwards compatibility, if singleTableMaxConcurrency is not set, set it to the max concurrency
+	if s.singleTableMaxConcurrency == 0 {
+		s.singleTableMaxConcurrency = int64(tableConcurrency)
+	}
 	return &s
 }
 
