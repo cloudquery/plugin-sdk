@@ -194,24 +194,31 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 		resolvedResources <- resource
 		for _, relation := range resource.Table.Relations {
 			relation := relation
-			if err := s.scheduler.tableSems[depth].Acquire(ctx, 1); err != nil {
+			// Depending on the source, rate limiting might be done on the table basis (GCP) or client + table (AWS)
+			tableConcurrencyKey := table.Name + "-" + client.ID()
+			if s.scheduler.globalRateLimiting {
+				tableConcurrencyKey = table.Name
+			}
+			// Acquire the semaphore for the table
+			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(tableConcurrencyKey, semaphore.NewWeighted(s.scheduler.singleTableMaxConcurrency))
+			tableSem := tableSemVal.(*semaphore.Weighted)
+			if err := tableSem.Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				wg.Wait()
 				return
 			}
-			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(table.Name+"-"+client.ID(), semaphore.NewWeighted(s.scheduler.singleTableMaxConcurrency))
-			tableSem := tableSemVal.(*semaphore.Weighted)
-			if err := tableSem.Acquire(ctx, 1); err != nil {
+			// Once table semaphore is acquired we can acquire the global semaphore
+			if err := s.scheduler.tableSems[depth].Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
-				s.scheduler.tableSems[depth].Release(1)
+				tableSem.Release(1)
 				wg.Wait()
 				return
 			}
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				defer s.scheduler.tableSems[depth].Release(1)
 				defer tableSem.Release(1)
+				defer s.scheduler.tableSems[depth].Release(1)
 				s.resolveTableDfs(ctx, relation, client, resource, resolvedResources, depth+1)
 			}()
 		}
