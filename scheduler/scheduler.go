@@ -72,12 +72,6 @@ func WithSingleTableMaxConcurrency(concurrency int64) Option {
 	}
 }
 
-func WithGlobalRateLimiting() Option {
-	return func(s *Scheduler) {
-		s.globalRateLimiting = true
-	}
-}
-
 type SyncOption func(*syncClient)
 
 func WithSyncDeterministicCQID(deterministicCQID bool) SyncOption {
@@ -105,8 +99,6 @@ type Scheduler struct {
 	singleTableConcurrency sync.Map
 	// The maximum number of go routines that can be spawned for a single table+client pair.
 	singleTableMaxConcurrency int64
-	// A boolean that indicates whether or not to use the global rate limiter. By default rate limiting is assumed to be table+client specific.
-	globalRateLimiting bool
 }
 
 type syncClient struct {

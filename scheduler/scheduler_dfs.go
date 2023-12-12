@@ -194,11 +194,7 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 		resolvedResources <- resource
 		for _, relation := range resource.Table.Relations {
 			relation := relation
-			// Depending on the source, rate limiting might be done on the table basis (GCP) or client + table (AWS)
 			tableConcurrencyKey := table.Name + "-" + client.ID()
-			if s.scheduler.globalRateLimiting {
-				tableConcurrencyKey = table.Name
-			}
 			// Acquire the semaphore for the table
 			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(tableConcurrencyKey, semaphore.NewWeighted(s.scheduler.singleTableMaxConcurrency))
 			tableSem := tableSemVal.(*semaphore.Weighted)
