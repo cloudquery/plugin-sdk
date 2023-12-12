@@ -77,7 +77,7 @@ func main() {
 		}
 	}
 	for _, dr := range deltaResults {
-		name := fmt.Sprintf(".delta.%s", dr.Name)
+		name := fmt.Sprintf(".delta.%s", strings.ReplaceAll(dr.Name, "/", "_"))
 		fmt.Printf("Writing to %s\n", name)
 		data := []byte(fmt.Sprintf("%v (%s)", dr.Value, dr.Metric))
 		err := os.WriteFile(name, data, 0664)
