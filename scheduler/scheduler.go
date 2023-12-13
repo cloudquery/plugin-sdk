@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -65,6 +66,12 @@ func WithStrategy(strategy Strategy) Option {
 	}
 }
 
+func WithSingleNestedTableMaxConcurrency(concurrency int64) Option {
+	return func(s *Scheduler) {
+		s.singleNestedTableMaxConcurrency = concurrency
+	}
+}
+
 type SyncOption func(*syncClient)
 
 func WithSyncDeterministicCQID(deterministicCQID bool) SyncOption {
@@ -88,6 +95,10 @@ type Scheduler struct {
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
 	logger      zerolog.Logger
 	concurrency int
+	// This Map holds all of the concurrency semaphores for each table+client pair.
+	singleTableConcurrency sync.Map
+	// The maximum number of go routines that can be spawned for a single table+client pair
+	singleNestedTableMaxConcurrency int64
 }
 
 type syncClient struct {
@@ -120,6 +131,11 @@ func NewScheduler(opts ...Option) *Scheduler {
 		tableConcurrency = max(tableConcurrency/2, minTableConcurrency)
 	}
 	s.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
+
+	// To preserve backwards compatibility, if singleTableMaxConcurrency is not set, set it to the max concurrency
+	if s.singleNestedTableMaxConcurrency == 0 {
+		s.singleNestedTableMaxConcurrency = int64(tableConcurrency)
+	}
 	return &s
 }
 
