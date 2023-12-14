@@ -3,10 +3,17 @@ package premium
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 )
 
-var ErrNoQuota = errors.New("no remaining quota for the month, please increase your usage limit if you want to continue syncing this plugin")
+type ErrNoQuota struct {
+	team string
+}
+
+func (e ErrNoQuota) Error() string {
+	return fmt.Sprintf("You have reached this plugin's usage limit for the month, please visit https://cloudquery.io/teams/%s/billing to upgrade your plan or increase the limit.", e.team)
+}
 
 const DefaultQuotaCheckInterval = 30 * time.Second
 const DefaultMaxQuotaFailures = 10 // 5 minutes
@@ -60,7 +67,7 @@ func (qc quotaChecker) checkInitialQuota(ctx context.Context) error {
 	}
 
 	if !hasQuota {
-		return ErrNoQuota
+		return ErrNoQuota{team: qc.qm.TeamName()}
 	}
 
 	return nil
@@ -90,7 +97,7 @@ func (qc quotaChecker) startQuotaMonitor(ctx context.Context) context.Context {
 				consecutiveFailures = 0
 				hasQuotaErrors = nil
 				if !hasQuota {
-					cancelWithCause(ErrNoQuota)
+					cancelWithCause(ErrNoQuota{team: qc.qm.TeamName()})
 					return
 				}
 			}
