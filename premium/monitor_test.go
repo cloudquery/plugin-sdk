@@ -31,6 +31,10 @@ func (f *fakeQuotaMonitor) HasQuota(_ context.Context) (bool, error) {
 	return resp.hasQuota, resp.err
 }
 
+func (f *fakeQuotaMonitor) TeamName() string {
+	return "test"
+}
+
 func TestWithCancelOnQuotaExceeded_NoInitialQuota(t *testing.T) {
 	ctx := context.Background()
 
@@ -54,7 +58,7 @@ func TestWithCancelOnQuotaExceeded_NoQuota(t *testing.T) {
 
 	<-ctx.Done()
 	cause := context.Cause(ctx)
-	require.Equal(t, ErrNoQuota, cause)
+	require.ErrorIs(t, ErrNoQuota{team: "test"}, cause)
 }
 
 func TestWithCancelOnQuotaCheckConsecutiveFailures(t *testing.T) {

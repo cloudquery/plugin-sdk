@@ -33,6 +33,8 @@ type TokenClient interface {
 }
 
 type QuotaMonitor interface {
+	// TeamName returns the team name
+	TeamName() string
 	// HasQuota returns true if the quota has not been exceeded
 	HasQuota(context.Context) (bool, error)
 }
@@ -241,6 +243,10 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 	return nil
 }
 
+func (u *BatchUpdater) TeamName() string {
+	return u.teamName
+}
+
 func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
 	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginTeam).Str("pluginKind", string(u.pluginKind)).Str("pluginName", u.pluginName).Msg("checking quota")
 	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginTeam, u.pluginKind, u.pluginName)
@@ -250,6 +256,7 @@ func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
 	if usage.StatusCode() != http.StatusOK {
 		return false, fmt.Errorf("failed to get usage: %s", usage.Status())
 	}
+
 	hasQuota := usage.JSON200.RemainingRows == nil || *usage.JSON200.RemainingRows > 0
 	return hasQuota, nil
 }
