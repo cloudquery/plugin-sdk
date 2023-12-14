@@ -31,7 +31,7 @@ func (f *fakeQuotaMonitor) HasQuota(_ context.Context) (bool, error) {
 	return resp.hasQuota, resp.err
 }
 
-func (f *fakeQuotaMonitor) TeamName() string {
+func (*fakeQuotaMonitor) TeamName() string {
 	return "test"
 }
 
