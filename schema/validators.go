@@ -18,7 +18,7 @@ func FindEmptyColumns(table *Table, records []arrow.Record) []string {
 					if arrow.TypeEqual(arr.DataType(), types.ExtensionTypes.JSON) {
 						// JSON column shouldn't be empty
 						val := arr.GetOneForMarshal(i).(json.RawMessage)
-						if len(val) == 0 || string(val) == "null" || string(val) == "{}" || string(val) == "[]" {
+						if isEmptyJSON(val) {
 							continue
 						}
 					}
@@ -38,4 +38,16 @@ func FindEmptyColumns(table *Table, records []arrow.Record) []string {
 		}
 	}
 	return emptyColumns
+}
+
+func isEmptyJSON(msg json.RawMessage) bool {
+	if len(msg) == 0 {
+		return true
+	}
+	switch string(msg) {
+	case "null", "{}", "[]":
+		return true
+	default:
+		return false
+	}
 }
