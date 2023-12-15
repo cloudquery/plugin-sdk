@@ -13,6 +13,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"golang.org/x/sync/semaphore"
 )
 
 func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *schema.Resource) {
@@ -193,14 +194,26 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 		resolvedResources <- resource
 		for _, relation := range resource.Table.Relations {
 			relation := relation
+			tableConcurrencyKey := table.Name + "-" + client.ID()
+			// Acquire the semaphore for the table
+			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(tableConcurrencyKey, semaphore.NewWeighted(s.scheduler.singleNestedTableMaxConcurrency))
+			tableSem := tableSemVal.(*semaphore.Weighted)
+			if err := tableSem.Acquire(ctx, 1); err != nil {
+				// This means context was cancelled
+				wg.Wait()
+				return
+			}
+			// Once table semaphore is acquired we can acquire the global semaphore
 			if err := s.scheduler.tableSems[depth].Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
+				tableSem.Release(1)
 				wg.Wait()
 				return
 			}
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
+				defer tableSem.Release(1)
 				defer s.scheduler.tableSems[depth].Release(1)
 				s.resolveTableDfs(ctx, relation, client, resource, resolvedResources, depth+1)
 			}()

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.21.1](https://github.com/cloudquery/plugin-sdk/compare/v4.21.0...v4.21.1) (2023-12-14)
+
+
+### Bug Fixes
+
+* Update usage limit message ([#1415](https://github.com/cloudquery/plugin-sdk/issues/1415)) ([98438ff](https://github.com/cloudquery/plugin-sdk/commit/98438ffc22ebdec58a6637b02c0fef2a45e19dd5))
+
+## [4.21.0](https://github.com/cloudquery/plugin-sdk/compare/v4.20.0...v4.21.0) (2023-12-13)
+
+
+### Features
+
+* Individual Table and Client rate limit ([#1411](https://github.com/cloudquery/plugin-sdk/issues/1411)) ([4d13b18](https://github.com/cloudquery/plugin-sdk/commit/4d13b18b5ef33d3159155289703dce67e1ad750c))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.6.2 ([#1413](https://github.com/cloudquery/plugin-sdk/issues/1413)) ([f5a0d47](https://github.com/cloudquery/plugin-sdk/commit/f5a0d47b0ea5628166eb9138a1b9f67241598344))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.14.4 ([#1408](https://github.com/cloudquery/plugin-sdk/issues/1408)) ([7544967](https://github.com/cloudquery/plugin-sdk/commit/754496784a2c182e1765aa7a5ef832a337e6a7f8))
+
 ## [4.20.0](https://github.com/cloudquery/plugin-sdk/compare/v4.19.1...v4.20.0) (2023-12-07)
 
 
