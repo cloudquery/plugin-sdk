@@ -1,7 +1,10 @@
 package schema
 
 import (
+	"encoding/json"
+
 	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/cloudquery/plugin-sdk/v4/types"
 )
 
 func FindEmptyColumns(table *Table, records []arrow.Record) []string {
@@ -12,6 +15,14 @@ func FindEmptyColumns(table *Table, records []arrow.Record) []string {
 		for colIndex, arr := range resource.Columns() {
 			for i := 0; i < arr.Len(); i++ {
 				if arr.IsValid(i) {
+					if arrow.TypeEqual(arr.DataType(), types.ExtensionTypes.JSON) {
+						// JSON column shouldn't be empty
+						val := arr.GetOneForMarshal(i).(json.RawMessage)
+						if len(val) == 0 || string(val) == "null" || string(val) == "{}" || string(val) == "[]" {
+							continue
+						}
+					}
+
 					columnsWithValues[colIndex] = true
 				}
 			}
