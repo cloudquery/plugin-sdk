@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.21.2](https://github.com/cloudquery/plugin-sdk/compare/v4.21.1...v4.21.2) (2023-12-18)
+
+
+### Bug Fixes
+
+* **tests:** Find empty columns for JSON types ([#1418](https://github.com/cloudquery/plugin-sdk/issues/1418)) ([027273c](https://github.com/cloudquery/plugin-sdk/commit/027273c1be6b4163406a4127139a9870c1eafec8))
+
 ## [4.21.1](https://github.com/cloudquery/plugin-sdk/compare/v4.21.0...v4.21.1) (2023-12-14)
 
 
