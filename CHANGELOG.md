@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.21.3](https://github.com/cloudquery/plugin-sdk/compare/v4.21.2...v4.21.3) (2023-12-19)
+
+
+### Bug Fixes
+
+* **deps:** Update `github.com/apache/arrow/go` to `v15` ([#1424](https://github.com/cloudquery/plugin-sdk/issues/1424)) ([64db12d](https://github.com/cloudquery/plugin-sdk/commit/64db12d30dfb09b434c1399e81a8943c3fa2e046))
+* **deps:** Update module golang.org/x/crypto to v0.17.0 [SECURITY] ([#1422](https://github.com/cloudquery/plugin-sdk/issues/1422)) ([975adba](https://github.com/cloudquery/plugin-sdk/commit/975adba3b3ea5b3249b14a1e671631ce2604563e))
+
 ## [4.21.2](https://github.com/cloudquery/plugin-sdk/compare/v4.21.1...v4.21.2) (2023-12-18)
 
 
