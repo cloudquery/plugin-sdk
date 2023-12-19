@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apache/arrow/go/v14/arrow"
+	"github.com/apache/arrow/go/v15/arrow"
 )
 
 type Duration struct {
