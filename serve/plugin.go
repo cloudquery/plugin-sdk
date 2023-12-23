@@ -118,7 +118,9 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	var network string
 	var noSentry bool
 	var otelEndpoint string
+	var otelEndpointHeaders []string
 	var otelEndpointInsecure bool
+	var otelEndpointURLPath string
 	logLevel := newEnum([]string{"trace", "debug", "info", "warn", "error"}, "info")
 	logFormat := newEnum([]string{"text", "json"}, "text")
 	telemetryLevel := newEnum([]string{"none", "errors", "stats", "all"}, "all")
@@ -153,6 +155,21 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				if otelEndpointInsecure {
 					opts = append(opts, otlptracehttp.WithInsecure())
 				}
+				if len(otelEndpointHeaders) > 0 {
+					headers := make(map[string]string, len(otelEndpointHeaders))
+					for _, h := range otelEndpointHeaders {
+						parts := strings.SplitN(h, ":", 2)
+						if len(parts) != 2 {
+							return fmt.Errorf("invalid header %q", h)
+						}
+						headers[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+					}
+					opts = append(opts, otlptracehttp.WithHeaders(headers))
+				}
+				if otelEndpointURLPath != "" {
+					opts = append(opts, otlptracehttp.WithURLPath(otelEndpointURLPath))
+				}
+				
 				client := otlptracehttp.NewClient(opts...)
 				exp, err := otlptrace.New(cmd.Context(), client)
 				if err != nil {
@@ -275,6 +292,8 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	cmd.Flags().Var(logLevel, "log-level", fmt.Sprintf("log level. one of: %s", strings.Join(logLevel.Allowed, ",")))
 	cmd.Flags().Var(logFormat, "log-format", fmt.Sprintf("log format. one of: %s", strings.Join(logFormat.Allowed, ",")))
 	cmd.Flags().StringVar(&otelEndpoint, "otel-endpoint", "", "Open Telemetry HTTP collector endpoint")
+	cmd.Flags().StringVar(&otelEndpointURLPath, "otel-endpoint-urlpath", "", "Open Telemetry HTTP collector endpoint URL path")
+	cmd.Flags().StringArrayVar(&otelEndpointHeaders, "otel-endpoint-headers", []string{}, "Open Telemetry HTTP collector endpoint headers")
 	cmd.Flags().BoolVar(&otelEndpointInsecure, "otel-endpoint-insecure", false, "use Open Telemetry HTTP endpoint (for development only)")
 	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
 	sendErrors := funk.ContainsString([]string{"all", "errors"}, telemetryLevel.String())
