@@ -169,7 +169,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				if otelEndpointURLPath != "" {
 					opts = append(opts, otlptracehttp.WithURLPath(otelEndpointURLPath))
 				}
-				
+
 				client := otlptracehttp.NewClient(opts...)
 				exp, err := otlptrace.New(cmd.Context(), client)
 				if err != nil {
