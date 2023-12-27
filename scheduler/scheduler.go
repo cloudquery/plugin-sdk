@@ -25,11 +25,13 @@ import (
 )
 
 const (
-	DefaultConcurrency     = 50000
-	DefaultMaxDepth        = 4
-	minTableConcurrency    = 1
-	minResourceConcurrency = 100
-	otelName               = "schedule"
+	singleResourceMaxConcurrency    = 5
+	singleNestedTableMaxConcurrency = 5
+	DefaultConcurrency              = 50000
+	DefaultMaxDepth                 = 4
+	minTableConcurrency             = 1
+	minResourceConcurrency          = 100
+	otelName                        = "schedule"
 )
 
 var ErrNoTables = errors.New("no tables specified for syncing, review `tables` and `skip_tables` in your config and specify at least one table to sync")
@@ -122,9 +124,11 @@ type syncClient struct {
 
 func NewScheduler(opts ...Option) *Scheduler {
 	s := Scheduler{
-		caser:       caser.New(),
-		concurrency: DefaultConcurrency,
-		maxDepth:    DefaultMaxDepth,
+		caser:                           caser.New(),
+		concurrency:                     DefaultConcurrency,
+		maxDepth:                        DefaultMaxDepth,
+		singleResourceMaxConcurrency:    singleResourceMaxConcurrency,
+		singleNestedTableMaxConcurrency: singleNestedTableMaxConcurrency,
 	}
 	for _, opt := range opts {
 		opt(&s)
@@ -141,15 +145,6 @@ func NewScheduler(opts ...Option) *Scheduler {
 	}
 	s.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
 
-	// To preserve backwards compatibility, if singleResourceMaxConcurrency is not set, set it to the max concurrency
-	if s.singleResourceMaxConcurrency == 0 {
-		s.singleResourceMaxConcurrency = int64(resourceConcurrency)
-	}
-
-	// To preserve backwards compatibility, if singleTableMaxConcurrency is not set, set it to the max concurrency
-	if s.singleNestedTableMaxConcurrency == 0 {
-		s.singleNestedTableMaxConcurrency = int64(tableConcurrency)
-	}
 	return &s
 }
 
