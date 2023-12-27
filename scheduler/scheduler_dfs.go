@@ -135,14 +135,28 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 		sentValidationErrors := sync.Map{}
 		for i := range resourcesSlice {
 			i := i
-			if err := s.scheduler.resourceSem.Acquire(ctx, 1); err != nil {
+			resourceConcurrencyKey := table.Name + "-" + client.ID() + "-" + "resource"
+			resourceSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(resourceConcurrencyKey, semaphore.NewWeighted(s.scheduler.singleResourceMaxConcurrency))
+			resourceSem := resourceSemVal.(*semaphore.Weighted)
+			if err := resourceSem.Acquire(ctx, 1); err != nil {
 				s.logger.Warn().Err(err).Msg("failed to acquire semaphore. context cancelled")
+				// This means context was cancelled
+				wg.Wait()
+				// we have to continue emptying the channel to exit gracefully
+				return
+			}
+
+			// Once Resource semaphore is acquired we can acquire the global semaphore
+			if err := s.scheduler.resourceSem.Acquire(ctx, 1); err != nil {
+				// This means context was cancelled
+				resourceSem.Release(1)
 				wg.Wait()
 				// we have to continue emptying the channel to exit gracefully
 				return
 			}
 			wg.Add(1)
 			go func() {
+				defer resourceSem.Release(1)
 				defer s.scheduler.resourceSem.Release(1)
 				defer wg.Done()
 				//nolint:all
