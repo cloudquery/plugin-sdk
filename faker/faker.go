@@ -48,11 +48,19 @@ func (f faker) getFakedValue(a any) (reflect.Value, error) {
 			ft := time.Now().Add(time.Duration(rand.Int63()))
 			return reflect.ValueOf(ft), nil
 		default:
+			cur := reflect.ValueOf(a)
+
 			v := reflect.New(t).Elem()
 			for i := 0; i < v.NumField(); i++ {
 				if !v.Field(i).CanSet() {
 					continue // to avoid panic to set on unexported field in struct
 				}
+				curField := cur.Field(i)
+				if curField.IsValid() && !curField.IsZero() {
+					v.Field(i).Set(curField) // preserve non-empty field values
+					continue
+				}
+
 				val, err := f.getFakedValue(v.Field(i).Interface())
 				if err != nil {
 					if err == errEFaceNotAllowed { // skip empty interfaces

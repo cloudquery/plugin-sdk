@@ -4,8 +4,11 @@ import "github.com/cloudquery/plugin-sdk/v4/schema"
 
 // ContainsPaidTables returns true if any of the tables are paid
 func ContainsPaidTables(tables schema.Tables) bool {
+	if tables == nil {
+		return false
+	}
 	for _, t := range tables {
-		if t.IsPaid {
+		if t.IsPaid || ContainsPaidTables(t.Relations) {
 			return true
 		}
 	}

@@ -51,6 +51,22 @@ func TestFakerWithCustomType(t *testing.T) {
 	assert.NotEmpty(t, a.D)
 }
 
+func TestFakerWithCustomTypePreserve(t *testing.T) {
+	a := fakerStructWithCustomType{
+		A: "A",
+		B: map[string]customType{"b": "B"},
+		C: map[customType]string{"c": "C"},
+		D: []customType{"D", "D2"},
+	}
+	if err := FakeObject(&a); err != nil {
+		t.Fatal(err)
+	}
+	assert.EqualValues(t, "A", a.A)
+	assert.EqualValues(t, map[string]customType{"b": "B"}, a.B)
+	assert.EqualValues(t, map[customType]string{"c": "C"}, a.C)
+	assert.EqualValues(t, []customType{"D", "D2"}, a.D)
+}
+
 type complexType struct {
 	IPAddress      net.IP
 	IPAddresses    []net.IP

@@ -3,10 +3,10 @@ module github.com/cloudquery/plugin-sdk/v4
 go 1.21.1
 
 require (
-	github.com/apache/arrow/go/v14 v14.0.0-20231031200323-c49e24273160
+	github.com/apache/arrow/go/v15 v15.0.0-20231223155039-ec41209ea02b
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/cloudquery-api-go v1.6.1
-	github.com/cloudquery/plugin-pb-go v1.14.4
+	github.com/cloudquery/cloudquery-api-go v1.6.3
+	github.com/cloudquery/plugin-pb-go v1.14.6
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.24.1
 	github.com/goccy/go-json v0.10.2
@@ -29,8 +29,6 @@ require (
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
 )
-
-replace github.com/apache/arrow/go/v14 => github.com/cloudquery/arrow/go/v14 v14.0.0-20231029080147-50d3871d0804
 
 require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
@@ -112,7 +110,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.20.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.16.0 // indirect
+	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
