@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.23.0](https://github.com/cloudquery/plugin-sdk/compare/v4.22.0...v4.23.0) (2023-12-27)
+
+
+### Features
+
+* Introduce a per resource rate limit in addition to a global resource rate limit ([2918402](https://github.com/cloudquery/plugin-sdk/commit/29184024a39264669b1f2e70daf2149361ef9c7f))
+* Set default rate limit of `5` for `SingleResourceMaxConcurrency` and `SingleNestedTableMaxConcurrency` ([2918402](https://github.com/cloudquery/plugin-sdk/commit/29184024a39264669b1f2e70daf2149361ef9c7f))
+
 ## [4.22.0](https://github.com/cloudquery/plugin-sdk/compare/v4.21.3...v4.22.0) (2023-12-26)
 
 
