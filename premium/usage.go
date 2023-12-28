@@ -133,9 +133,7 @@ type BatchUpdater struct {
 
 	// Plugin details
 	teamName   cqapi.TeamName
-	pluginTeam cqapi.PluginTeam
-	pluginKind cqapi.PluginKind
-	pluginName cqapi.PluginName
+	pluginMeta plugin.Meta
 
 	// Configuration
 	batchLimit            uint32
@@ -158,9 +156,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		logger: zerolog.Nop(),
 		url:    defaultAPIURL,
 
-		pluginTeam: meta.Team,
-		pluginKind: meta.Kind,
-		pluginName: meta.Name,
+		pluginMeta: meta,
 
 		batchLimit:            defaultBatchLimit,
 		minTimeBetweenFlushes: defaultMinTimeBetweenFlushes,
@@ -178,7 +174,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 	if meta.SkipUsageClient {
 		u.logger.Debug().Msg("Disabling usage client")
 		return &NoOpUsageClient{
-			TeamNameValue: meta.Team,
+			TeamNameValue: u.teamName,
 		}, nil
 	}
 
@@ -247,8 +243,8 @@ func (u *BatchUpdater) TeamName() string {
 }
 
 func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
-	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginTeam).Str("pluginKind", string(u.pluginKind)).Str("pluginName", u.pluginName).Msg("checking quota")
-	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginTeam, u.pluginKind, u.pluginName)
+	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginMeta.Team).Str("pluginKind", string(u.pluginMeta.Kind)).Str("pluginName", u.pluginMeta.Name).Msg("checking quota")
+	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginMeta.Team, u.pluginMeta.Kind, u.pluginMeta.Name)
 	if err != nil {
 		return false, fmt.Errorf("failed to get usage: %w", err)
 	}
@@ -332,9 +328,9 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 
 		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
-			PluginTeam: u.pluginTeam,
-			PluginKind: u.pluginKind,
-			PluginName: u.pluginName,
+			PluginTeam: u.pluginMeta.Team,
+			PluginKind: u.pluginMeta.Kind,
+			PluginName: u.pluginMeta.Name,
 			Rows:       int(numberToUpdate),
 		})
 		if err != nil {
