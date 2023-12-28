@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -408,6 +409,8 @@ func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testSta
 			err := dec.Decode(&req)
 			require.NoError(t, err)
 
+			stage.mu.Lock()
+			defer stage.mu.Unlock()
 			stage.update = append(stage.update, req.Rows)
 
 			w.WriteHeader(http.StatusOK)
@@ -429,13 +432,18 @@ type testStage struct {
 
 	remainingRows int
 	update        []int
+	mu            sync.RWMutex
 }
 
 func (s *testStage) numberOfUpdates() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return len(s.update)
 }
 
 func (s *testStage) sumOfUpdates() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	sum := 0
 	for _, val := range s.update {
 		sum += val
@@ -444,6 +452,8 @@ func (s *testStage) sumOfUpdates() int {
 }
 
 func (s *testStage) minExcludingClose() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	m := math.MaxInt
 	for i := 0; i < len(s.update); i++ {
 		if s.update[i] < m {
