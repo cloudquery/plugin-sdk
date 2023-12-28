@@ -13,6 +13,7 @@ import (
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -119,19 +120,10 @@ func withTokenClient(tokenClient TokenClient) UsageClientOptions {
 	}
 }
 
-func WithPluginTeam(pluginTeam string) cqapi.PluginTeam {
-	return pluginTeam
-}
-
-func WithPluginKind(pluginKind string) cqapi.PluginKind {
-	return cqapi.PluginKind(pluginKind)
-}
-
-func WithPluginName(pluginName string) cqapi.PluginName {
-	return pluginName
-}
-
-var _ UsageClient = (*BatchUpdater)(nil)
+var (
+	_ UsageClient = (*BatchUpdater)(nil)
+	_ UsageClient = (*NoOpUsageClient)(nil)
+)
 
 type BatchUpdater struct {
 	logger      zerolog.Logger
@@ -141,9 +133,7 @@ type BatchUpdater struct {
 
 	// Plugin details
 	teamName   cqapi.TeamName
-	pluginTeam cqapi.PluginTeam
-	pluginKind cqapi.PluginKind
-	pluginName cqapi.PluginName
+	pluginMeta plugin.Meta
 
 	// Configuration
 	batchLimit            uint32
@@ -161,14 +151,12 @@ type BatchUpdater struct {
 	isClosed       bool
 }
 
-func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pluginName cqapi.PluginName, ops ...UsageClientOptions) (*BatchUpdater, error) {
+func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, error) {
 	u := &BatchUpdater{
 		logger: zerolog.Nop(),
 		url:    defaultAPIURL,
 
-		pluginTeam: pluginTeam,
-		pluginKind: pluginKind,
-		pluginName: pluginName,
+		pluginMeta: meta,
 
 		batchLimit:            defaultBatchLimit,
 		minTimeBetweenFlushes: defaultMinTimeBetweenFlushes,
@@ -181,6 +169,13 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 	}
 	for _, op := range ops {
 		op(u)
+	}
+
+	if meta.SkipUsageClient {
+		u.logger.Debug().Msg("Disabling usage client")
+		return &NoOpUsageClient{
+			TeamNameValue: u.teamName,
+		}, nil
 	}
 
 	if u.tokenClient == nil {
@@ -248,8 +243,8 @@ func (u *BatchUpdater) TeamName() string {
 }
 
 func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
-	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginTeam).Str("pluginKind", string(u.pluginKind)).Str("pluginName", u.pluginName).Msg("checking quota")
-	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginTeam, u.pluginKind, u.pluginName)
+	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginMeta.Team).Str("pluginKind", string(u.pluginMeta.Kind)).Str("pluginName", u.pluginMeta.Name).Msg("checking quota")
+	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginMeta.Team, u.pluginMeta.Kind, u.pluginMeta.Name)
 	if err != nil {
 		return false, fmt.Errorf("failed to get usage: %w", err)
 	}
@@ -333,9 +328,9 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 
 		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
-			PluginTeam: u.pluginTeam,
-			PluginKind: u.pluginKind,
-			PluginName: u.pluginName,
+			PluginTeam: u.pluginMeta.Team,
+			PluginKind: u.pluginMeta.Kind,
+			PluginName: u.pluginMeta.Name,
 			Rows:       int(numberToUpdate),
 		})
 		if err != nil {
@@ -413,4 +408,24 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 	default:
 		return "", fmt.Errorf("unsupported token type: %v", tokenType)
 	}
+}
+
+type NoOpUsageClient struct {
+	TeamNameValue string
+}
+
+func (n *NoOpUsageClient) TeamName() string {
+	return n.TeamNameValue
+}
+
+func (NoOpUsageClient) HasQuota(_ context.Context) (bool, error) {
+	return true, nil
+}
+
+func (NoOpUsageClient) Increase(_ uint32) error {
+	return nil
+}
+
+func (NoOpUsageClient) Close() error {
+	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/apache/arrow/go/v15/arrow"
+	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
@@ -17,6 +18,7 @@ var ErrNotImplemented = fmt.Errorf("not implemented")
 
 type NewClientOptions struct {
 	NoConnection bool
+	PluginMeta   Meta
 }
 
 type NewClientFunc func(context.Context, zerolog.Logger, []byte, NewClientOptions) (Client, error)
@@ -78,6 +80,8 @@ type Plugin struct {
 	schema string
 	// validator object to validate specs
 	schemaValidator *jsonschema.Schema
+	// skips the usage client
+	skipUsageClient bool
 }
 
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
@@ -122,6 +126,11 @@ func (p *Plugin) Team() string {
 // Version returns the version of this plugin
 func (p *Plugin) Version() string {
 	return p.version
+}
+
+// SetSkipUsageClient sets whether the usage client should be skipped
+func (p *Plugin) SetSkipUsageClient(v bool) {
+	p.skipUsageClient = v
 }
 
 type OnBeforeSender interface {
@@ -194,6 +203,13 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 		if err := p.schemaValidator.Validate(v); err != nil {
 			p.logger.Err(err).Msg("failed JSON schema validation for spec")
 		}
+	}
+
+	options.PluginMeta = Meta{
+		Team:            p.team,
+		Kind:            cqapi.PluginKind(p.kind),
+		Name:            p.name,
+		SkipUsageClient: p.skipUsageClient,
 	}
 
 	p.client, err = p.newClient(ctx, p.logger, spec, options)
