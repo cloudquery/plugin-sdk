@@ -2,6 +2,7 @@ package premium
 
 import (
 	"crypto/ed25519"
+	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -29,6 +30,9 @@ var (
 	ErrLicenseExpired          = errors.New("license expired")
 )
 
+//go:embed offline.key
+var publicKey string
+
 func ValidateLicense(logger zerolog.Logger, licenseFile string) error {
 	licenseContents, err := os.ReadFile(licenseFile)
 	if err != nil {
@@ -44,8 +48,6 @@ func ValidateLicense(logger zerolog.Logger, licenseFile string) error {
 }
 
 func UnpackLicense(lic []byte) (*License, error) {
-	const publicKey = "96e4749b7550d33bd776cb7fb056d74cb16ed69dfe8e59c16e8c2500a94162b1"
-
 	publicKeyBytes, err := hex.DecodeString(publicKey)
 	if err != nil {
 		return nil, err
@@ -72,6 +74,7 @@ func UnpackLicense(lic []byte) (*License, error) {
 
 	return &l, nil
 }
+
 func (l *License) IsValid(logger zerolog.Logger) error {
 	now := time.Now().UTC()
 	if now.Before(l.ValidFrom) {
