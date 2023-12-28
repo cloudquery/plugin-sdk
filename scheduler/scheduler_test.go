@@ -3,9 +3,10 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/apache/arrow/go/v15/arrow/array"
@@ -276,10 +277,15 @@ func TestScheduler_Cancellation(t *testing.T) {
 	}
 
 	for _, strategy := range AllStrategies {
+		strategy := strategy
 		for _, tc := range tests {
 			tc := tc
 			t.Run(fmt.Sprintf("%s_%s", tc.name, strategy.String()), func(t *testing.T) {
-				sc := NewScheduler(WithLogger(zerolog.New(zerolog.NewTestWriter(t))), WithStrategy(strategy))
+				logger := zerolog.New(zerolog.NewTestWriter(t))
+				if tc.cancel {
+					logger = zerolog.Nop() // FIXME without this, zerolog usage causes a race condition when tests are run with `-race -count=100`
+				}
+				sc := NewScheduler(WithLogger(logger), WithStrategy(strategy))
 
 				messages := make(chan message.SyncMessage)
 				ctx, cancel := context.WithCancel(context.Background())
