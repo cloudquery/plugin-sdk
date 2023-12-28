@@ -192,6 +192,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				if err := premium.ValidateLicense(logger, licenseFile, s.plugin.Team(), string(s.plugin.Kind()), s.plugin.Name()); err != nil {
 					return fmt.Errorf("failed to validate license: %w", err)
 				}
+				s.plugin.SetSkipUsageClient(true)
 			}
 
 			var listener net.Listener

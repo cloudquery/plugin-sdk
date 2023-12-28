@@ -13,6 +13,7 @@ import (
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,19 +38,23 @@ func TestUsageService_NewUsageClient_Defaults(t *testing.T) {
 	require.NoError(t, err)
 
 	uc, err := NewUsageClient(
-		WithPluginTeam("plugin-team"),
-		WithPluginKind("source"),
-		WithPluginName("vault"),
+		plugin.Meta{
+			Team: "plugin-team",
+			Kind: cqapi.Source,
+			Name: "vault",
+		},
 		withTokenClient(&MockTokenClient{}),
 	)
 	require.NoError(t, err)
 
-	assert.NotNil(t, uc.apiClient)
-	assert.Equal(t, "config-team", uc.teamName)
-	assert.Equal(t, zerolog.Nop(), uc.logger)
-	assert.Equal(t, 5, uc.maxRetries)
-	assert.Equal(t, 60*time.Second, uc.maxWaitTime)
-	assert.Equal(t, 30*time.Second, uc.maxTimeBetweenFlushes)
+	bu := uc.(*BatchUpdater)
+
+	assert.NotNil(t, bu.apiClient)
+	assert.Equal(t, "config-team", bu.teamName)
+	assert.Equal(t, zerolog.Nop(), bu.logger)
+	assert.Equal(t, 5, bu.maxRetries)
+	assert.Equal(t, 60*time.Second, bu.maxWaitTime)
+	assert.Equal(t, 30*time.Second, bu.maxTimeBetweenFlushes)
 }
 
 func TestUsageService_NewUsageClient_Override(t *testing.T) {
@@ -59,9 +64,11 @@ func TestUsageService_NewUsageClient_Override(t *testing.T) {
 	logger := zerolog.New(zerolog.NewTestWriter(t))
 
 	uc, err := NewUsageClient(
-		WithPluginTeam("plugin-team"),
-		WithPluginKind("source"),
-		WithPluginName("vault"),
+		plugin.Meta{
+			Team: "plugin-team",
+			Kind: cqapi.Source,
+			Name: "vault",
+		},
 		WithLogger(logger),
 		WithAPIClient(ac),
 		withTeamName("override-team-name"),
@@ -72,12 +79,14 @@ func TestUsageService_NewUsageClient_Override(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	assert.Equal(t, ac, uc.apiClient)
-	assert.Equal(t, "override-team-name", uc.teamName)
-	assert.Equal(t, logger, uc.logger)
-	assert.Equal(t, 10, uc.maxRetries)
-	assert.Equal(t, 120*time.Second, uc.maxWaitTime)
-	assert.Equal(t, 10*time.Second, uc.maxTimeBetweenFlushes)
+	bu := uc.(*BatchUpdater)
+
+	assert.Equal(t, ac, bu.apiClient)
+	assert.Equal(t, "override-team-name", bu.teamName)
+	assert.Equal(t, logger, bu.logger)
+	assert.Equal(t, 10, bu.maxRetries)
+	assert.Equal(t, 120*time.Second, bu.maxWaitTime)
+	assert.Equal(t, 10*time.Second, bu.maxTimeBetweenFlushes)
 }
 
 func TestUsageService_HasQuota_NoRowsRemaining(t *testing.T) {
@@ -367,13 +376,15 @@ func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
 
 func newClient(t *testing.T, apiClient *cqapi.ClientWithResponses, ops ...UsageClientOptions) *BatchUpdater {
 	client, err := NewUsageClient(
-		WithPluginTeam("plugin-team"),
-		WithPluginKind("source"),
-		WithPluginName("vault"),
+		plugin.Meta{
+			Team: "plugin-team",
+			Kind: cqapi.Source,
+			Name: "vault",
+		},
 		append(ops, withTeamName("team-name"), WithAPIClient(apiClient), withTokenClient(&MockTokenClient{}))...)
 	require.NoError(t, err)
 
-	return client
+	return client.(*BatchUpdater)
 }
 
 func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testStage {

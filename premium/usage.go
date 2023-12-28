@@ -13,6 +13,7 @@ import (
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -119,19 +120,10 @@ func withTokenClient(tokenClient TokenClient) UsageClientOptions {
 	}
 }
 
-func WithPluginTeam(pluginTeam string) cqapi.PluginTeam {
-	return pluginTeam
-}
-
-func WithPluginKind(pluginKind string) cqapi.PluginKind {
-	return cqapi.PluginKind(pluginKind)
-}
-
-func WithPluginName(pluginName string) cqapi.PluginName {
-	return pluginName
-}
-
-var _ UsageClient = (*BatchUpdater)(nil)
+var (
+	_ UsageClient = (*BatchUpdater)(nil)
+	_ UsageClient = (*NoOpUsageClient)(nil)
+)
 
 type BatchUpdater struct {
 	logger      zerolog.Logger
@@ -161,14 +153,14 @@ type BatchUpdater struct {
 	isClosed       bool
 }
 
-func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pluginName cqapi.PluginName, ops ...UsageClientOptions) (*BatchUpdater, error) {
+func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, error) {
 	u := &BatchUpdater{
 		logger: zerolog.Nop(),
 		url:    defaultAPIURL,
 
-		pluginTeam: pluginTeam,
-		pluginKind: pluginKind,
-		pluginName: pluginName,
+		pluginTeam: meta.Team,
+		pluginKind: meta.Kind,
+		pluginName: meta.Name,
 
 		batchLimit:            defaultBatchLimit,
 		minTimeBetweenFlushes: defaultMinTimeBetweenFlushes,
@@ -181,6 +173,13 @@ func NewUsageClient(pluginTeam cqapi.PluginTeam, pluginKind cqapi.PluginKind, pl
 	}
 	for _, op := range ops {
 		op(u)
+	}
+
+	if meta.SkipUsageClient {
+		u.logger.Debug().Msg("Disabling usage client")
+		return &NoOpUsageClient{
+			TeamNameValue: meta.Team,
+		}, nil
 	}
 
 	if u.tokenClient == nil {
@@ -413,4 +412,24 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 	default:
 		return "", fmt.Errorf("unsupported token type: %v", tokenType)
 	}
+}
+
+type NoOpUsageClient struct {
+	TeamNameValue string
+}
+
+func (n *NoOpUsageClient) TeamName() string {
+	return n.TeamNameValue
+}
+
+func (NoOpUsageClient) HasQuota(_ context.Context) (bool, error) {
+	return true, nil
+}
+
+func (NoOpUsageClient) Increase(_ uint32) error {
+	return nil
+}
+
+func (NoOpUsageClient) Close() error {
+	return nil
 }
