@@ -76,7 +76,7 @@ func UnpackLicense(lic []byte) (*License, error) {
 }
 func (l *License) IsValid(logger zerolog.Logger, pluginTeam, pluginKind, pluginName string) error {
 	expectPlugin := pluginTeam + "/" + pluginKind + "/" + pluginName
-	if l.Plugin != expectPlugin {
+	if l.Plugin != expectPlugin && l.Plugin != pluginTeam+"/*" {
 		return ErrInvalidLicenseDetails
 	}
 	now := time.Now().UTC()
