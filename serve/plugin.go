@@ -189,7 +189,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				otel.SetTracerProvider(tp)
 			}
 			if licenseFile != "" {
-				if err := premium.ValidateLicense(logger, licenseFile, s.plugin.Team(), string(s.plugin.Kind()), s.plugin.Name()); err != nil {
+				if err := premium.ValidateLicense(logger, licenseFile); err != nil {
 					return fmt.Errorf("failed to validate license: %w", err)
 				}
 				s.plugin.SetSkipUsageClient(true)

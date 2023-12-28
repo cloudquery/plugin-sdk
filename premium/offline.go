@@ -13,7 +13,6 @@ import (
 
 type License struct {
 	LicensedTo string    `json:"licensed_to"` // Customers name, e.g. "Acme Inc"
-	Plugin     string    `json:"plugin"`      // This is <team>/<kind>/<name>
 	IssuedAt   time.Time `json:"issued_at"`
 	ValidFrom  time.Time `json:"valid_from"`
 	ExpiresAt  time.Time `json:"expires_at"`
@@ -26,12 +25,11 @@ type LicenseWrapper struct {
 
 var (
 	ErrInvalidLicenseSignature = errors.New("invalid license signature")
-	ErrInvalidLicenseDetails   = errors.New("invalid license details")
 	ErrLicenseNotValidYet      = errors.New("license not valid yet")
 	ErrLicenseExpired          = errors.New("license expired")
 )
 
-func ValidateLicense(logger zerolog.Logger, licenseFile, pluginTeam, pluginKind, pluginName string) error {
+func ValidateLicense(logger zerolog.Logger, licenseFile string) error {
 	licenseContents, err := os.ReadFile(licenseFile)
 	if err != nil {
 		return err
@@ -42,7 +40,7 @@ func ValidateLicense(logger zerolog.Logger, licenseFile, pluginTeam, pluginKind,
 		return err
 	}
 
-	return l.IsValid(logger, pluginTeam, pluginKind, pluginName)
+	return l.IsValid(logger)
 }
 
 func UnpackLicense(lic []byte) (*License, error) {
@@ -74,11 +72,7 @@ func UnpackLicense(lic []byte) (*License, error) {
 
 	return &l, nil
 }
-func (l *License) IsValid(logger zerolog.Logger, pluginTeam, pluginKind, pluginName string) error {
-	expectPlugin := pluginTeam + "/" + pluginKind + "/" + pluginName
-	if l.Plugin != expectPlugin && l.Plugin != pluginTeam+"/*" {
-		return ErrInvalidLicenseDetails
-	}
+func (l *License) IsValid(logger zerolog.Logger) error {
 	now := time.Now().UTC()
 	if now.Before(l.ValidFrom) {
 		return ErrLicenseNotValidYet
