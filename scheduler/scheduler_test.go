@@ -282,7 +282,7 @@ func TestScheduler_Cancellation(t *testing.T) {
 			t.Run(fmt.Sprintf("%s_%s", tc.name, strategy.String()), func(t *testing.T) {
 				logger := zerolog.New(zerolog.NewTestWriter(t))
 				if tc.cancel {
-					logger = zerolog.Nop() // FIXME without this, zerolog usage causes a race condition when tests are run with `-race -count=100`
+					logger = getTestLogger(t)
 				}
 				sc := NewScheduler(WithLogger(logger), WithStrategy(strategy))
 

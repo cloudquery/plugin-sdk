@@ -1,6 +1,6 @@
 .PHONY: test
 test:
-	go test -tags=assert -race ./...
+	go test -tags=assert -race -count=100 ./...
 
 .PHONY: lint
 lint:
