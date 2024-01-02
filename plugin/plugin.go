@@ -128,6 +128,15 @@ func (p *Plugin) Version() string {
 	return p.version
 }
 
+func (p *Plugin) Meta() Meta {
+	return Meta{
+		Team:            p.team,
+		Kind:            cqapi.PluginKind(p.kind),
+		Name:            p.name,
+		SkipUsageClient: p.skipUsageClient,
+	}
+}
+
 // SetSkipUsageClient sets whether the usage client should be skipped
 func (p *Plugin) SetSkipUsageClient(v bool) {
 	p.skipUsageClient = v
@@ -205,12 +214,7 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 		}
 	}
 
-	options.PluginMeta = Meta{
-		Team:            p.team,
-		Kind:            cqapi.PluginKind(p.kind),
-		Name:            p.name,
-		SkipUsageClient: p.skipUsageClient,
-	}
+	options.PluginMeta = p.Meta()
 
 	p.client, err = p.newClient(ctx, p.logger, spec, options)
 	if err != nil {
