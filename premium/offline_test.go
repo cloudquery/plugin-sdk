@@ -47,7 +47,7 @@ func TestValidateLicense(t *testing.T) {
 		t.Run("Expired", licenseTest(f, nopMeta, expiredTime, ErrLicenseExpired))
 		t.Run("Success", licenseTest(f, nopMeta, validTime, nil))
 	})
-	t.Run("SingleDir", func(t *testing.T) {
+	t.Run("Dir", func(t *testing.T) {
 		dir := t.TempDir()
 		f := filepath.Join(dir, "testlicense.cqlicense")
 		if err := os.WriteFile(f, []byte(licData), 0644); err != nil {
