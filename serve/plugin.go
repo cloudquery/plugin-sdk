@@ -189,7 +189,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				otel.SetTracerProvider(tp)
 			}
 			if licenseFile != "" {
-				if err := premium.ValidateLicense(logger, licenseFile); err != nil {
+				if err := premium.ValidateLicense(logger, s.plugin.Meta(), licenseFile); err != nil {
 					return fmt.Errorf("failed to validate license: %w", err)
 				}
 				s.plugin.SetSkipUsageClient(true)
@@ -303,7 +303,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	cmd.Flags().StringArrayVar(&otelEndpointHeaders, "otel-endpoint-headers", []string{}, "Open Telemetry HTTP collector endpoint headers")
 	cmd.Flags().BoolVar(&otelEndpointInsecure, "otel-endpoint-insecure", false, "use Open Telemetry HTTP endpoint (for development only)")
 	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
-	cmd.Flags().StringVar(&licenseFile, "license", "", "Path to offline license file")
+	cmd.Flags().StringVar(&licenseFile, "license", "", "Path to offline license file or directory")
 	sendErrors := funk.ContainsString([]string{"all", "errors"}, telemetryLevel.String())
 	if !sendErrors {
 		noSentry = true

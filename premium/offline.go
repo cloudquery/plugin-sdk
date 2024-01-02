@@ -7,13 +7,18 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/rs/zerolog"
 )
 
 type License struct {
-	LicensedTo string    `json:"licensed_to"` // Customers name, e.g. "Acme Inc"
+	LicensedTo string    `json:"licensed_to"`       // Customers name, e.g. "Acme Inc"
+	Plugins    []string  `json:"plugins,omitempty"` // List of plugins, each in the format <org>/<kind>/<name>, e.g. "cloudquery/source/aws". Optional, if empty all plugins are allowed.
 	IssuedAt   time.Time `json:"issued_at"`
 	ValidFrom  time.Time `json:"valid_from"`
 	ExpiresAt  time.Time `json:"expires_at"`
@@ -28,12 +33,65 @@ var (
 	ErrInvalidLicenseSignature = errors.New("invalid license signature")
 	ErrLicenseNotValidYet      = errors.New("license not valid yet")
 	ErrLicenseExpired          = errors.New("license expired")
+	ErrLicenseNotApplicable    = errors.New("license not applicable to this plugin")
 )
 
 //go:embed offline.key
 var publicKey string
 
-func ValidateLicense(logger zerolog.Logger, licenseFile string) error {
+var timeFunc = time.Now
+
+func ValidateLicense(logger zerolog.Logger, meta plugin.Meta, licenseFileOrDirectory string) error {
+	fi, err := os.Stat(licenseFileOrDirectory)
+	if err != nil {
+		return err
+	}
+	if !fi.IsDir() {
+		return validateLicenseFile(logger, meta, licenseFileOrDirectory)
+	}
+
+	found := false
+	var lastError error
+	err = filepath.WalkDir(licenseFileOrDirectory, func(path string, d os.DirEntry, err error) error {
+		if d.IsDir() {
+			if path == licenseFileOrDirectory {
+				return nil
+			}
+			return filepath.SkipDir
+		}
+		if err != nil {
+			return err
+		}
+
+		if filepath.Ext(path) != ".cqlicense" {
+			return nil
+		}
+
+		logger.Debug().Str("path", path).Msg("considering license file")
+		lastError = validateLicenseFile(logger, meta, path)
+		switch lastError {
+		case nil:
+			found = true
+			return filepath.SkipAll
+		case ErrLicenseNotApplicable:
+			return nil
+		default:
+			return lastError
+		}
+	})
+	if err != nil {
+		return err
+	}
+	if found {
+		return nil
+	}
+	if lastError != nil {
+		return lastError
+	}
+	return errors.New("failed to validate license directory")
+}
+
+func validateLicenseFile(logger zerolog.Logger, meta plugin.Meta, licenseFile string) error {
 	licenseContents, err := os.ReadFile(licenseFile)
 	if err != nil {
 		return err
@@ -42,6 +100,13 @@ func ValidateLicense(logger zerolog.Logger, licenseFile string) error {
 	l, err := UnpackLicense(licenseContents)
 	if err != nil {
 		return err
+	}
+
+	if len(l.Plugins) > 0 {
+		ref := strings.Join([]string{meta.Team, string(meta.Kind), meta.Name}, "/")
+		if !slices.Contains(l.Plugins, ref) {
+			return ErrLicenseNotApplicable
+		}
 	}
 
 	return l.IsValid(logger)
@@ -76,7 +141,7 @@ func UnpackLicense(lic []byte) (*License, error) {
 }
 
 func (l *License) IsValid(logger zerolog.Logger) error {
-	now := time.Now().UTC()
+	now := timeFunc().UTC()
 	if now.Before(l.ValidFrom) {
 		return ErrLicenseNotValidYet
 	}
