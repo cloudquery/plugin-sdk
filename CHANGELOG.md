@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.24.1](https://github.com/cloudquery/plugin-sdk/compare/v4.24.0...v4.24.1) (2024-01-01)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v15 digest to 7c3480e ([#1443](https://github.com/cloudquery/plugin-sdk/issues/1443)) ([bc8644f](https://github.com/cloudquery/plugin-sdk/commit/bc8644f40c11ab9d39d14e90d2cdb07d7b89898d))
+* **deps:** Update github.com/gomarkdown/markdown digest to 1d6d208 ([#1445](https://github.com/cloudquery/plugin-sdk/issues/1445)) ([9a29286](https://github.com/cloudquery/plugin-sdk/commit/9a2928606c7f627ab7b5c74efdfc4b2d2484d98f))
+* **deps:** Update golang.org/x/exp digest to 02704c9 ([#1446](https://github.com/cloudquery/plugin-sdk/issues/1446)) ([496d59d](https://github.com/cloudquery/plugin-sdk/commit/496d59d34ef540d8a2b4a683f838938e3de3b239))
+* **deps:** Update google.golang.org/genproto/googleapis/api digest to 995d672 ([#1447](https://github.com/cloudquery/plugin-sdk/issues/1447)) ([21771e7](https://github.com/cloudquery/plugin-sdk/commit/21771e759b0dba180c679e7221bad62a26466ce1))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to 995d672 ([#1448](https://github.com/cloudquery/plugin-sdk/issues/1448)) ([2135e11](https://github.com/cloudquery/plugin-sdk/commit/2135e1105800bd65a57806cf8ed6c1a0283e0188))
+* **deps:** Update module github.com/klauspost/compress to v1.17.4 ([#1450](https://github.com/cloudquery/plugin-sdk/issues/1450)) ([04323d7](https://github.com/cloudquery/plugin-sdk/commit/04323d7f599f10693b072322eb6e6ec1714fa835))
+
 ## [4.24.0](https://github.com/cloudquery/plugin-sdk/compare/v4.23.0...v4.24.0) (2023-12-29)
 
 
