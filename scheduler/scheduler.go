@@ -189,6 +189,14 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 
 	// send migrate messages first
 	for _, table := range tables.FlattenTables() {
+		if syncClient.deterministicCQID {
+			for i, c := range table.Columns {
+				if c.PrimaryKey && c.Name != schema.CqIDColumn.Name {
+					table.Columns[i].PrimaryKey = false
+				}
+			}
+		}
+
 		res <- &message.SyncMigrateTable{
 			Table: table,
 		}

@@ -18,7 +18,7 @@ var CqIDColumn = Column{
 	Type:        types.ExtensionTypes.UUID,
 	Description: "Internal CQ ID of the row",
 	NotNull:     true,
-	Unique:      true,
+	Unique:      false,
 }
 
 var CqParentIDColumn = Column{
