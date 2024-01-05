@@ -208,12 +208,7 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 		resolvedResources <- resource
 		for _, relation := range resource.Table.Relations {
 			relation := relation
-
 			tableConcurrencyKey := table.Name + "-" + client.ID()
-			if table.TableConcurrencyKey != nil {
-				tableConcurrencyKey = *table.TableConcurrencyKey
-			}
-
 			// Acquire the semaphore for the table
 			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(tableConcurrencyKey, semaphore.NewWeighted(s.scheduler.singleNestedTableMaxConcurrency))
 			tableSem := tableSemVal.(*semaphore.Weighted)
