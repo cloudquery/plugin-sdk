@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -196,7 +197,7 @@ func calcChecksum(p string) (string, error) {
 	if _, err := io.Copy(hash, f); err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {

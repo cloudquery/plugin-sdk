@@ -3,6 +3,7 @@ package serve
 import (
 	"crypto/sha256"
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -278,7 +279,7 @@ func sha256sum(filename string) string {
 	if err != nil {
 		panic(err)
 	}
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func checkDocs(t *testing.T, dir string, expect []string) {

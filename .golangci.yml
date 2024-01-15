@@ -76,6 +76,7 @@ linters:
     - importas
     - misspell
     - nakedret
+    - perfsprint
     - prealloc
     - revive
     - staticcheck

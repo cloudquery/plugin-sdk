@@ -338,13 +338,13 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 	if arrow.IsUnsignedInteger(dataType.ID()) {
 		switch dataType {
 		case arrow.PrimitiveTypes.Uint8:
-			return fmt.Sprintf("%d", rnd.Uint64n(uint64(^uint8(0))))
+			return strconv.FormatUint(rnd.Uint64n(uint64(^uint8(0))), 10)
 		case arrow.PrimitiveTypes.Uint16:
-			return fmt.Sprintf("%d", rnd.Uint64n(uint64(^uint16(0))))
+			return strconv.FormatUint(rnd.Uint64n(uint64(^uint16(0))), 10)
 		case arrow.PrimitiveTypes.Uint32:
-			return fmt.Sprintf("%d", rnd.Uint64n(uint64(^uint32(0))))
+			return strconv.FormatUint(rnd.Uint64n(uint64(^uint32(0))), 10)
 		case arrow.PrimitiveTypes.Uint64:
-			return fmt.Sprintf("%d", rnd.Uint64())
+			return strconv.FormatUint(rnd.Uint64(), 10)
 		}
 	}
 
@@ -464,11 +464,10 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 
 	// handle date types
 	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Date32) {
-		return fmt.Sprintf("%d", 19471+rnd.Intn(100))
+		return strconv.Itoa(19471 + rnd.Intn(100))
 	}
 	if arrow.TypeEqual(dataType, arrow.FixedWidthTypes.Date64) {
-		ms := (19471 + rnd.Intn(100)) * 86400000
-		return fmt.Sprintf("%d", ms)
+		return strconv.Itoa((19471 + rnd.Intn(100)) * 86400000)
 	}
 
 	// handle duration and interval types
@@ -491,8 +490,7 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 	}
 	for _, durationType := range durationTypes {
 		if arrow.TypeEqual(dataType, durationType) {
-			n := rnd.Intn(10000000)
-			return fmt.Sprintf("%d", n)
+			return strconv.Itoa(rnd.Intn(10000000))
 		}
 	}
 
