@@ -191,13 +191,16 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	for _, table := range tables.FlattenTables() {
 		if syncClient.deterministicCQID {
 			for i, c := range table.Columns {
+				if !c.PrimaryKey {
+					continue
+				}
 				if c.Name == schema.CqIDColumn.Name {
 					// CQ_ID should be PK and not have a Unique Clause on it
 					table.Columns[i].PrimaryKey = true
 					table.Columns[i].Unique = false
-				} else if c.PrimaryKey {
-					table.Columns[i].PrimaryKey = false
+					continue
 				}
+				table.Columns[i].PrimaryKey = false
 			}
 		}
 
