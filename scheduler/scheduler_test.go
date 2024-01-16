@@ -360,6 +360,7 @@ func TestScheduler_Cancellation(t *testing.T) {
 	}
 }
 
+// nolint:revive
 func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, deterministicCQID bool) {
 	ctx := context.Background()
 	var tables schema.Tables
@@ -417,11 +418,10 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 				if pks[0] != schema.CqIDColumn.Name {
 					t.Fatalf("expected pk name %s. got %s", schema.CqIDColumn.Name, pks[0])
 				}
-			} else {
-				if len(pks) != len(initialTable.PrimaryKeys()) {
-					t.Fatalf("expected 0 pk. got %d", len(pks))
-				}
+			} else if len(pks) != len(initialTable.PrimaryKeys()) {
+				t.Fatalf("expected 0 pk. got %d", len(pks))
 			}
+
 			if len(pks) == 0 {
 				continue
 			}
