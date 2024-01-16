@@ -195,8 +195,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 					continue
 				}
 				if c.Name == schema.CqIDColumn.Name {
-					// CQ_ID should be PK and not have a Unique Clause on it
-					table.Columns[i].PrimaryKey = true
+					// If CQ_ID is a PK and it should not have a Unique Clause on it
 					table.Columns[i].Unique = false
 					continue
 				}
