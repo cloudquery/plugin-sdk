@@ -188,7 +188,9 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}
 
 	// send migrate messages first
-	for _, table := range tables.FlattenTables() {
+	for _, tableOriginal := range tables.FlattenTables() {
+		// var table *schema.Table
+		table := tableOriginal.Copy(nil)
 		if syncClient.deterministicCQID {
 			// No PK adjustment should occur if `_cq_id` is not present in the table
 			cqIDCol := table.Columns.Get(schema.CqIDColumn.Name)
