@@ -3,10 +3,10 @@ module github.com/cloudquery/plugin-sdk/v4
 go 1.21.1
 
 require (
-	github.com/apache/arrow/go/v15 v15.0.0-20231229025812-7c3480e2f028
+	github.com/apache/arrow/go/v15 v15.0.0-20240114144300-7e703aae55c1
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.6.4
-	github.com/cloudquery/plugin-pb-go v1.16.3
+	github.com/cloudquery/plugin-pb-go v1.16.4
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.24.1
 	github.com/goccy/go-json v0.10.2

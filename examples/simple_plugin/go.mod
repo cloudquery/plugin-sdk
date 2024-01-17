@@ -3,8 +3,8 @@ module github.com/cloudquery/plugin-sdk/examples/simple_plugin
 go 1.21.1
 
 require (
-	github.com/apache/arrow/go/v15 v15.0.0-20231229025812-7c3480e2f028
-	github.com/cloudquery/plugin-sdk/v4 v4.25.1
+	github.com/apache/arrow/go/v15 v15.0.0-20240114144300-7e703aae55c1
+	github.com/cloudquery/plugin-sdk/v4 v4.25.2
 	github.com/rs/zerolog v1.30.0
 )
 
@@ -33,7 +33,7 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/cloudquery/cloudquery-api-go v1.6.4 // indirect
-	github.com/cloudquery/plugin-pb-go v1.16.3 // indirect
+	github.com/cloudquery/plugin-pb-go v1.16.4 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.15.0 // indirect

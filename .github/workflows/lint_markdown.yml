@@ -18,6 +18,7 @@ jobs:
         with:
           vale_flags: "--glob=!{docs/testdata/*,CHANGELOG.md,.github/styles/proselint/README.md,examples/simple_plugin/docs/*.md}"
           filter_mode: nofilter
+          version: '3.0.3'
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   lint-structure:
