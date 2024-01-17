@@ -345,6 +345,131 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 			},
 		},
 	},
+
+	{
+		name: "move to cq_id as primary key",
+		target: &Table{
+			Name: "test",
+			Columns: []Column{
+				{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					Unique:      true,
+					PrimaryKey:  true,
+				},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, PrimaryKey: false},
+			},
+		},
+		source: &Table{
+			Name: "test",
+			Columns: []Column{
+				{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					Unique:      true,
+				},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, PrimaryKey: true},
+			},
+		},
+		expectedChanges: []TableColumnChange{
+			{
+				Type: TableColumnChangeTypeMoveToCQOnly,
+			},
+		},
+	},
+
+	{
+		name: "move to cq_id as primary key and drop unique constraint",
+		target: &Table{
+			Name: "test",
+			Columns: []Column{
+				{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					// Unique:      true,
+					PrimaryKey: true,
+				},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, PrimaryKey: false},
+			},
+		},
+		source: &Table{
+			Name: "test",
+			Columns: []Column{
+				{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					Unique:      true,
+				},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, PrimaryKey: true},
+			},
+		},
+		expectedChanges: []TableColumnChange{
+			{
+				Type: TableColumnChangeTypeMoveToCQOnly,
+			},
+			{
+				Type:       TableColumnChangeTypeRemoveUniqueConstraint,
+				ColumnName: "_cq_id",
+				Previous: Column{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					Unique:      true,
+				},
+			},
+		},
+	},
+
+	{
+		name: "drop unique constraint",
+		target: &Table{
+			Name: "test",
+			Columns: []Column{
+				{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+				},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, PrimaryKey: true},
+			},
+		},
+		source: &Table{
+			Name: "test",
+			Columns: []Column{
+				{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					Unique:      true,
+				},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, PrimaryKey: true},
+			},
+		},
+		expectedChanges: []TableColumnChange{
+			{
+				Type:       TableColumnChangeTypeRemoveUniqueConstraint,
+				ColumnName: "_cq_id",
+				Previous: Column{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					Unique:      true,
+				},
+			},
+		},
+	},
 }
 
 func TestTableGetChanges(t *testing.T) {
