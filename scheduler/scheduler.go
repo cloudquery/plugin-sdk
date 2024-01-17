@@ -199,8 +199,6 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 			}
 			for i, c := range table.Columns {
 				if c.Name == schema.CqIDColumn.Name {
-					// Remove unique clause from `_cq_id` as it doesn't add any value
-					table.Columns[i].Unique = false
 					// Ensure that the cq_id column is the primary key
 					table.Columns[i].PrimaryKey = true
 					continue
