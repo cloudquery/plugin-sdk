@@ -497,7 +497,6 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 				Previous:   *otherColumn,
 			})
 		}
-
 	}
 	// A column was removed from the table definition
 	for _, c := range old.Columns {
