@@ -8,6 +8,7 @@ import (
 
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
+	"github.com/thoas/go-funk"
 )
 
 // TableResolver is the main entry point when a table is sync is called.
@@ -40,6 +41,11 @@ const (
 	TableColumnChangeTypeAdd
 	TableColumnChangeTypeUpdate
 	TableColumnChangeTypeRemove
+	// These are special cases to help users migrate
+	// As we remove unique constraints on _cq_id columns this will give destination plugins the ability to auto migrate
+	TableColumnChangeTypeRemoveUniqueConstraint
+	// Moving from composite pks to singular PK on _cq_id this will give destination plugins the ability to auto migrate
+	TableColumnChangeTypeMoveToCQOnly
 )
 
 type TableColumnChange struct {
@@ -177,6 +183,10 @@ func (t TableColumnChangeType) String() string {
 		return "update"
 	case TableColumnChangeTypeRemove:
 		return "remove"
+	case TableColumnChangeTypeRemoveUniqueConstraint:
+		return "remove_unique_constraint"
+	case TableColumnChangeTypeMoveToCQOnly:
+		return "move_to_cq_only"
 	default:
 		return "unknown"
 	}
@@ -190,6 +200,10 @@ func (t TableColumnChange) String() string {
 		return fmt.Sprintf("column: %s, type: %s, current: %s, previous: %s", t.ColumnName, t.Type, t.Current, t.Previous)
 	case TableColumnChangeTypeRemove:
 		return fmt.Sprintf("column: %s, type: %s, previous: %s", t.ColumnName, t.Type, t.Previous)
+	case TableColumnChangeTypeRemoveUniqueConstraint:
+		return fmt.Sprintf("column: %s, previous: %s", t.ColumnName, t.Previous)
+	case TableColumnChangeTypeMoveToCQOnly:
+		return fmt.Sprintf("multi-column: %s, type: %s, previous: %s", t.ColumnName, t.Type, t.Previous)
 	default:
 		return fmt.Sprintf("column: %s, type: %s, current: %s, previous: %s", t.ColumnName, t.Type, t.Current, t.Previous)
 	}
@@ -443,6 +457,14 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 // GetChanges returns changes between two tables when t is the new one and old is the old one.
 func (t *Table) GetChanges(old *Table) []TableColumnChange {
 	var changes []TableColumnChange
+
+	//  Special case: Moving from individual pks to singular PK on _cq_id
+	newPks := t.PrimaryKeys()
+	if len(newPks) == 1 && newPks[0] == CqIDColumn.Name && !funk.Contains(old.PrimaryKeys(), CqIDColumn.Name) && len(old.PrimaryKeys()) > 0 {
+		changes = append(changes, TableColumnChange{
+			Type: TableColumnChangeTypeMoveToCQOnly,
+		})
+	}
 	for _, c := range t.Columns {
 		otherColumn := old.Columns.Get(c.Name)
 		// A column was added to the table definition
@@ -454,12 +476,22 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 			})
 			continue
 		}
+
 		// Column type or options (e.g. PK, Not Null) changed in the new table definition
 		if !arrow.TypeEqual(c.Type, otherColumn.Type) || c.NotNull != otherColumn.NotNull || c.PrimaryKey != otherColumn.PrimaryKey {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeUpdate,
 				ColumnName: c.Name,
 				Current:    c,
+				Previous:   *otherColumn,
+			})
+		}
+
+		// Unique constraint was removed
+		if !c.Unique && otherColumn.Unique {
+			changes = append(changes, TableColumnChange{
+				Type:       TableColumnChangeTypeRemoveUniqueConstraint,
+				ColumnName: c.Name,
 				Previous:   *otherColumn,
 			})
 		}
