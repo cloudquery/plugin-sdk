@@ -379,6 +379,31 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 			{
 				Type: TableColumnChangeTypeMoveToCQOnly,
 			},
+			{
+				Type:       TableColumnChangeTypeUpdate,
+				ColumnName: "_cq_id",
+				Current: Column{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					Unique:      true,
+					PrimaryKey:  true,
+				},
+				Previous: Column{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					Unique:      true,
+				},
+			},
+			{
+				Type:       TableColumnChangeTypeUpdate,
+				ColumnName: "bool",
+				Current:    Column{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, PrimaryKey: false},
+				Previous:   Column{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, PrimaryKey: true},
+			},
 		},
 	},
 
@@ -416,6 +441,25 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 				Type: TableColumnChangeTypeMoveToCQOnly,
 			},
 			{
+				Type:       TableColumnChangeTypeUpdate,
+				ColumnName: "_cq_id",
+				Current: Column{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					Unique:      false,
+					PrimaryKey:  true,
+				},
+				Previous: Column{
+					Name:        "_cq_id",
+					Type:        types.ExtensionTypes.UUID,
+					Description: "Internal CQ ID of the row",
+					NotNull:     true,
+					Unique:      true,
+				},
+			},
+			{
 				Type:       TableColumnChangeTypeRemoveUniqueConstraint,
 				ColumnName: "_cq_id",
 				Previous: Column{
@@ -425,6 +469,12 @@ var testTableGetChangeTestCases = []testTableGetChangeTestCase{
 					NotNull:     true,
 					Unique:      true,
 				},
+			},
+			{
+				Type:       TableColumnChangeTypeUpdate,
+				ColumnName: "bool",
+				Current:    Column{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, PrimaryKey: false},
+				Previous:   Column{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, PrimaryKey: true},
 			},
 		},
 	},

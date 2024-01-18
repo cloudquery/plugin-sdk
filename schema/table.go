@@ -457,11 +457,10 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 // GetChanges returns changes between two tables when t is the new one and old is the old one.
 func (t *Table) GetChanges(old *Table) []TableColumnChange {
 	var changes []TableColumnChange
-	var movingToCQOnly bool
+
 	//  Special case: Moving from individual pks to singular PK on _cq_id
 	newPks := t.PrimaryKeys()
 	if len(newPks) == 1 && newPks[0] == CqIDColumn.Name && !funk.Contains(old.PrimaryKeys(), CqIDColumn.Name) && len(old.PrimaryKeys()) > 0 {
-		movingToCQOnly = true
 		changes = append(changes, TableColumnChange{
 			Type: TableColumnChangeTypeMoveToCQOnly,
 		})
@@ -479,8 +478,7 @@ func (t *Table) GetChanges(old *Table) []TableColumnChange {
 		}
 
 		// Column type or options (e.g. PK, Not Null) changed in the new table definition
-		if !arrow.TypeEqual(c.Type, otherColumn.Type) || c.NotNull != otherColumn.NotNull || (c.PrimaryKey != otherColumn.PrimaryKey && !movingToCQOnly) {
-			// If the PK is changing, only add this change if the new PK is not _cq_id
+		if !arrow.TypeEqual(c.Type, otherColumn.Type) || c.NotNull != otherColumn.NotNull || c.PrimaryKey != otherColumn.PrimaryKey {
 			changes = append(changes, TableColumnChange{
 				Type:       TableColumnChangeTypeUpdate,
 				ColumnName: c.Name,
