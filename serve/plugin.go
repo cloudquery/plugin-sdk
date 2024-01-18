@@ -189,10 +189,14 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				otel.SetTracerProvider(tp)
 			}
 			if licenseFile != "" {
-				if err := premium.ValidateLicense(logger, s.plugin.Meta(), licenseFile); err != nil {
+				switch err := premium.ValidateLicense(logger, s.plugin.Meta(), licenseFile); err {
+				case nil:
+					s.plugin.SetSkipUsageClient(true)
+				case premium.ErrLicenseNotApplicable:
+					// no-op: Treat as if no license was provided
+				default:
 					return fmt.Errorf("failed to validate license: %w", err)
 				}
-				s.plugin.SetSkipUsageClient(true)
 			}
 
 			var listener net.Listener
