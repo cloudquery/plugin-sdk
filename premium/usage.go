@@ -393,7 +393,7 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 			return "", fmt.Errorf("team name not set. Hint: use `cloudquery switch <team>`")
 		}
 		return teamName, nil
-	case auth.APIKey:
+	case auth.APIKey, auth.SyncRunAPIKey:
 		resp, err := u.apiClient.ListTeamsWithResponse(context.Background(), &cqapi.ListTeamsParams{})
 		if err != nil {
 			return "", fmt.Errorf("failed to list teams for API key: %w", err)
