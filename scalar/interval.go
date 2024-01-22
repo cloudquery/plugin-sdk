@@ -65,7 +65,8 @@ func (s *MonthInterval) Set(value any) error {
 		return nil
 	case *string:
 		if v == nil {
-			return s.Int.Set(nil)
+			s.Valid = false
+			return nil
 		}
 		return s.Set(*v)
 	case map[string]any:
