@@ -230,6 +230,32 @@ func (s *WriterTestSuite) testMigrate(
 		}
 	})
 
+	t.Run("move_to_cq_id_only"+suffix, func(t *testing.T) {
+		if !forceMigrate && !s.tests.SafeMigrations.MovePKToCQOnly {
+			t.Skip("skipping test: move_to_cq_id_only")
+		}
+		tableName := "move_to_cq_id_only" + suffix + "_" + tableUUIDSuffix()
+		source := &schema.Table{
+			Name: tableName,
+			Columns: schema.ColumnList{
+				{Name: "_cq_id", Type: types.ExtensionTypes.UUID, NotNull: true, Unique: true},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64, PrimaryKey: true},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
+			}}
+		target := &schema.Table{
+			Name: tableName,
+			Columns: schema.ColumnList{
+				{Name: "_cq_id", Type: types.ExtensionTypes.UUID, NotNull: true, Unique: true, PrimaryKey: true},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
+			}}
+		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.MovePKToCQOnly, forceMigrate); err != nil {
+			t.Fatalf("failed to migrate move_to_cq_id_only: %v", err)
+		}
+	})
+
 	t.Run("double_migration", func(t *testing.T) {
 		if forceMigrate {
 			t.Skip("double migration test has sense only for safe migrations")
