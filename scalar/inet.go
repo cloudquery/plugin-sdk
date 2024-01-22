@@ -92,17 +92,23 @@ func (s *Inet) Set(val any) error {
 		}
 		s.Value = ipnet
 	case *net.IPNet:
-		if err := s.Set(*value); err != nil {
-			return err
+		if value == nil {
+			s.Valid = false
+			return nil
 		}
+		return s.Set(*value)
 	case *net.IP:
-		if err := s.Set(*value); err != nil {
-			return err
+		if value == nil {
+			s.Valid = false
+			return nil
 		}
+		return s.Set(*value)
 	case *string:
-		if err := s.Set(*value); err != nil {
-			return err
+		if value == nil {
+			s.Valid = false
+			return nil
 		}
+		return s.Set(*value)
 	default:
 		if tv, ok := value.(encoding.TextMarshaler); ok {
 			text, err := tv.MarshalText()

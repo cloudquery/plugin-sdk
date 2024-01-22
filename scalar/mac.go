@@ -44,6 +44,7 @@ func (s *Mac) Get() any {
 
 func (s *Mac) Set(val any) error {
 	if val == nil {
+		s.Valid = false
 		return nil
 	}
 
@@ -68,11 +69,13 @@ func (s *Mac) Set(val any) error {
 		s.Value = addr
 	case *net.HardwareAddr:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
 	case *string:
 		if value == nil {
+			s.Valid = false
 			return nil
 		}
 		return s.Set(*value)
