@@ -36,6 +36,12 @@ func (s *Duration) Equal(rhs Scalar) bool {
 }
 
 func (s *Duration) Set(value any) error {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(value) {
+		s.Valid = false
+		return nil
+	}
+
 	if dur, ok := value.(arrow.Duration); ok {
 		return s.Int.Set(int64(dur))
 	}
@@ -44,18 +50,10 @@ func (s *Duration) Set(value any) error {
 		stripped := strings.TrimSuffix(v, s.Unit.String())
 		return s.Int.Set(stripped)
 	case *string:
-		if v == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*v)
 	case time.Duration:
 		return s.Int.Set(v / s.Unit.Multiplier())
 	case *time.Duration:
-		if v == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*v)
 	}
 	return s.Int.Set(value)

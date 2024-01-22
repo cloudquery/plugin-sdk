@@ -43,7 +43,8 @@ func (s *Decimal256) Get() any {
 }
 
 func (s *Decimal256) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		s.Valid = false
 		return nil
 	}
@@ -62,16 +63,8 @@ func (s *Decimal256) Set(val any) error {
 	case decimal128.Num:
 		s.Value = decimal256.FromDecimal128(value)
 	case *decimal256.Num:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *decimal128.Num:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case int:
 		s.Value = decimal256.FromI64(int64(value))
@@ -100,73 +93,29 @@ func (s *Decimal256) Set(val any) error {
 		}
 		s.Value = v
 	case *int:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *int8:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *int16:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *int32:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *int64:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *uint:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *uint8:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *uint16:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *uint32:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *uint64:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *string:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	default:
-		if originalSrc, ok := underlyingPtrType(val); ok {
+		if originalSrc, ok := underlyingPointerType(val); ok {
 			return s.Set(originalSrc)
 		}
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}
@@ -212,7 +161,8 @@ func (s *Decimal128) Get() any {
 }
 
 func (s *Decimal128) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		s.Valid = false
 		return nil
 	}
@@ -229,10 +179,6 @@ func (s *Decimal128) Set(val any) error {
 	case decimal128.Num:
 		s.Value = value
 	case *decimal128.Num:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case int:
 		s.Value = decimal128.FromI64(int64(value))
@@ -261,73 +207,29 @@ func (s *Decimal128) Set(val any) error {
 		}
 		s.Value = v
 	case *int:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *int8:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *int16:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *int32:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *int64:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *uint:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *uint8:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *uint16:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *uint32:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *uint64:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *string:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	default:
-		if originalSrc, ok := underlyingPtrType(val); ok {
+		if originalSrc, ok := underlyingPointerType(val); ok {
 			return s.Set(originalSrc)
 		}
 		return &ValidationError{Type: s.DataType(), Msg: noConversion, Value: value}

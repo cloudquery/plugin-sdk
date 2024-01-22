@@ -43,7 +43,8 @@ func (s *Mac) Get() any {
 }
 
 func (s *Mac) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		return nil
 	}
 
@@ -67,17 +68,11 @@ func (s *Mac) Set(val any) error {
 		}
 		s.Value = addr
 	case *net.HardwareAddr:
-		if value == nil {
-			return nil
-		}
 		return s.Set(*value)
 	case *string:
-		if value == nil {
-			return nil
-		}
 		return s.Set(*value)
 	default:
-		if originalSrc, ok := underlyingPtrType(value); ok {
+		if originalSrc, ok := underlyingPointerType(value); ok {
 			return s.Set(originalSrc)
 		}
 		return &ValidationError{Type: types.ExtensionTypes.MAC, Msg: noConversion, Value: value}

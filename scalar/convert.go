@@ -7,9 +7,7 @@ import (
 
 // underlyingNumberType gets the underlying type that can be converted to Int2, Int4, Int8, Float4, or Float8
 func underlyingNumberType(val any) (any, bool) {
-	refVal := reflect.ValueOf(val)
-
-	switch refVal.Kind() {
+	switch refVal := reflect.ValueOf(val); refVal.Kind() {
 	case reflect.Ptr:
 		if refVal.IsNil() {
 			return nil, false
@@ -59,16 +57,14 @@ func underlyingNumberType(val any) (any, bool) {
 	case reflect.String:
 		convVal := refVal.String()
 		return convVal, reflect.TypeOf(convVal) != refVal.Type()
+	default:
+		return nil, false
 	}
-
-	return nil, false
 }
 
 // underlyingStringType gets the underlying type that can be converted to String
 func underlyingStringType(val any) (any, bool) {
-	refVal := reflect.ValueOf(val)
-
-	switch refVal.Kind() {
+	switch refVal := reflect.ValueOf(val); refVal.Kind() {
 	case reflect.Ptr:
 		if refVal.IsNil() {
 			return nil, false
@@ -78,16 +74,14 @@ func underlyingStringType(val any) (any, bool) {
 	case reflect.String:
 		convVal := refVal.String()
 		return convVal, reflect.TypeOf(convVal) != refVal.Type()
+	default:
+		return nil, false
 	}
-
-	return nil, false
 }
 
 // underlyingBoolType gets the underlying type that can be converted to Bool
 func underlyingBoolType(val any) (any, bool) {
-	refVal := reflect.ValueOf(val)
-
-	switch refVal.Kind() {
+	switch refVal := reflect.ValueOf(val); refVal.Kind() {
 	case reflect.Ptr:
 		if refVal.IsNil() {
 			return nil, false
@@ -97,16 +91,14 @@ func underlyingBoolType(val any) (any, bool) {
 	case reflect.Bool:
 		convVal := refVal.Bool()
 		return convVal, reflect.TypeOf(convVal) != refVal.Type()
+	default:
+		return nil, false
 	}
-
-	return nil, false
 }
 
 // underlyingBytesType gets the underlying type that can be converted to []byte
 func underlyingBytesType(val any) (any, bool) {
-	refVal := reflect.ValueOf(val)
-
-	switch refVal.Kind() {
+	switch refVal := reflect.ValueOf(val); refVal.Kind() {
 	case reflect.Ptr:
 		if refVal.IsNil() {
 			return nil, false
@@ -118,18 +110,17 @@ func underlyingBytesType(val any) (any, bool) {
 			convVal := refVal.Bytes()
 			return convVal, reflect.TypeOf(convVal) != refVal.Type()
 		}
+		return nil, false
+	default:
+		return nil, false
 	}
-
-	return nil, false
 }
 
 // underlyingTimeType gets the underlying type that can be converted to time.Time
 func underlyingTimeType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
-	// nolint:gocritic,revive
-	switch refVal.Kind() {
-	case reflect.Ptr:
+	if refVal.Kind() == reflect.Pointer {
 		if refVal.IsNil() {
 			return nil, false
 		}
@@ -149,9 +140,7 @@ func underlyingTimeType(val any) (any, bool) {
 func underlyingUUIDType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
-	//nolint:revive,gocritic
-	switch refVal.Kind() {
-	case reflect.Ptr:
+	if refVal.Kind() == reflect.Pointer {
 		if refVal.IsNil() {
 			return nil, false
 		}
@@ -167,13 +156,11 @@ func underlyingUUIDType(val any) (any, bool) {
 	return nil, false
 }
 
-// underlyingPtrType dereferences a pointer
-func underlyingPtrType(val any) (any, bool) {
+// underlyingPointerType dereferences a pointer
+func underlyingPointerType(val any) (any, bool) {
 	refVal := reflect.ValueOf(val)
 
-	//nolint:gocritic,revive
-	switch refVal.Kind() {
-	case reflect.Ptr:
+	if refVal.Kind() == reflect.Pointer {
 		if refVal.IsNil() {
 			return nil, false
 		}

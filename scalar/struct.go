@@ -43,7 +43,8 @@ func (s *Struct) Get() any {
 }
 
 func (s *Struct) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		s.Valid = false
 		return nil
 	}
@@ -94,19 +95,10 @@ func (s *Struct) Set(val any) error {
 		s.Value = x
 
 	case *string:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 
 	default:
 		s.Value = val
-	}
-
-	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Pointer && !rv.Elem().IsValid() { // typed nil
-		s.Valid = false
-		return nil
 	}
 
 	s.Valid = true

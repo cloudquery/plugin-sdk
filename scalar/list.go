@@ -64,7 +64,8 @@ func (s *List) Get() any {
 }
 
 func (s *List) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		s.Valid = false
 		return nil
 	}
@@ -86,9 +87,7 @@ func (s *List) Set(val any) error {
 	}
 
 	switch reflectedValue.Kind() {
-	case reflect.Array:
-		fallthrough
-	case reflect.Slice:
+	case reflect.Array, reflect.Slice:
 		length := reflectedValue.Len()
 		s.Value = make(Vector, length)
 		for i := 0; i < length; i++ {
@@ -101,21 +100,12 @@ func (s *List) Set(val any) error {
 				return err
 			}
 		}
+	default:
+		// not a list
+		s.Valid = false
+		return nil
 	}
 
 	s.Valid = true
 	return nil
-}
-
-func isReflectValueNil(v reflect.Value) bool {
-	switch v.Kind() {
-	case reflect.Pointer,
-		reflect.UnsafePointer,
-		reflect.Map,
-		reflect.Slice,
-		reflect.Interface:
-		return v.IsNil()
-	default:
-		return false
-	}
 }

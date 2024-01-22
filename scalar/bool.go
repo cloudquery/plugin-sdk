@@ -42,7 +42,8 @@ func (s *Bool) Get() any {
 }
 
 func (s *Bool) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		s.Valid = false
 		return nil
 	}
@@ -65,16 +66,8 @@ func (s *Bool) Set(val any) error {
 		}
 		s.Value = bb
 	case *bool:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case *string:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingBoolType(value); ok {

@@ -39,6 +39,12 @@ func (s *MonthInterval) String() string {
 }
 
 func (s *MonthInterval) Set(value any) error {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(value) {
+		s.Valid = false
+		return nil
+	}
+
 	if mi, ok := value.(arrow.MonthInterval); ok {
 		return s.Int.Set(int32(mi))
 	}
@@ -49,7 +55,7 @@ func (s *MonthInterval) Set(value any) error {
 			s.Valid = false
 			return nil
 		}
-		return s.Int.Set(value)
+		return s.Int.Set(v)
 	case []byte:
 		if len(v) == 0 {
 			s.Valid = false
@@ -64,15 +70,12 @@ func (s *MonthInterval) Set(value any) error {
 		s.Value = int64(mi.Months)
 		return nil
 	case *string:
-		if v == nil {
-			return s.Int.Set(nil)
-		}
-		return s.Set(value)
+		return s.Set(*v)
 	case map[string]any:
 		b, _ := json.Marshal(v)
 		return s.Set(b)
 	default:
-		return s.Int.Set(value)
+		return s.Int.Set(v)
 	}
 }
 
@@ -109,7 +112,8 @@ func (s *DayTimeInterval) Equal(rhs Scalar) bool {
 }
 
 func (s *DayTimeInterval) Set(value any) error {
-	if value == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(value) {
 		s.Valid = false
 		return nil
 	}
@@ -148,10 +152,6 @@ func (s *DayTimeInterval) Set(value any) error {
 		s.Value = dti
 		return nil
 	case *string:
-		if v == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*v)
 	case map[string]any:
 		b, _ := json.Marshal(v)
@@ -202,7 +202,8 @@ func (s *MonthDayNanoInterval) Equal(rhs Scalar) bool {
 }
 
 func (s *MonthDayNanoInterval) Set(value any) error {
-	if value == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(value) {
 		s.Valid = false
 		return nil
 	}
@@ -241,10 +242,6 @@ func (s *MonthDayNanoInterval) Set(value any) error {
 		s.Value = dti
 		return nil
 	case *string:
-		if v == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*v)
 	case map[string]any:
 		b, _ := json.Marshal(v)

@@ -44,7 +44,8 @@ func (s *Date32) Get() any {
 }
 
 func (s *Date32) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		s.Valid = false
 		return nil
 	}
@@ -63,13 +64,9 @@ func (s *Date32) Set(val any) error {
 	case time.Time:
 		return s.Set(arrow.Date32FromTime(value))
 	case *time.Time:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case string:
-		if value == "" {
+		if len(value) == 0 {
 			s.Valid = false
 			return nil
 		}
@@ -80,10 +77,6 @@ func (s *Date32) Set(val any) error {
 		}
 		return s.Set(p)
 	case *string:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingTimeType(val); ok {

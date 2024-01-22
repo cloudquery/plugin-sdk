@@ -38,7 +38,8 @@ func (s *Binary) Get() any {
 }
 
 func (s *Binary) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		s.Valid = false
 		return nil
 	}
@@ -53,24 +54,12 @@ func (s *Binary) Set(val any) error {
 
 	switch value := val.(type) {
 	case *[]byte:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case []byte:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		s.Value = value
 	case string:
 		s.Value = []byte(value)
 	case *string:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingBytesType(value); ok {

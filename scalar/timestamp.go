@@ -55,7 +55,8 @@ func (s *Timestamp) Get() any {
 }
 
 func (s *Timestamp) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		s.Valid = false
 		return nil
 	}
@@ -81,18 +82,10 @@ func (s *Timestamp) Set(val any) error {
 	case time.Time:
 		s.Value = value.UTC()
 	case *time.Time:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case string:
 		return s.DecodeText([]byte(value))
 	case *string:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingTimeType(val); ok {

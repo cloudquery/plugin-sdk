@@ -45,7 +45,8 @@ func (s *UUID) Get() any {
 }
 
 func (s *UUID) Set(src any) error {
-	if src == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(src) {
 		return nil
 	}
 
@@ -64,16 +65,8 @@ func (s *UUID) Set(src any) error {
 	case [16]byte:
 		s.Value = uuid.UUID(value)
 	case *[]byte:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	case []byte:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		if len(value) != 16 {
 			return &ValidationError{Type: types.ExtensionTypes.UUID, Msg: "[]byte must be 16 bytes to convert to UUID", Value: value}
 		}
@@ -85,10 +78,6 @@ func (s *UUID) Set(src any) error {
 		}
 		s.Value = uuidVal
 	case *string:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingUUIDType(src); ok {

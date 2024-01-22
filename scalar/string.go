@@ -45,7 +45,8 @@ func (s *String) Get() any {
 }
 
 func (s *String) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		s.Valid = false
 		return nil
 	}
@@ -62,14 +63,10 @@ func (s *String) Set(val any) error {
 	case []byte:
 		s.Value = string(value)
 	case string:
-		s.Value = (value)
+		s.Value = value
 	case fmt.Stringer:
 		s.Value = value.String()
 	case *string:
-		if value == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*value)
 	default:
 		if originalSrc, ok := underlyingStringType(value); ok {

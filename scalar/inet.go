@@ -46,7 +46,8 @@ func (s *Inet) Get() any {
 }
 
 func (s *Inet) Set(val any) error {
-	if val == nil {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(val) {
 		return nil
 	}
 
@@ -114,7 +115,7 @@ func (s *Inet) Set(val any) error {
 		if sv, ok := value.(fmt.Stringer); ok {
 			return s.Set(sv.String())
 		}
-		if originalSrc, ok := underlyingPtrType(val); ok {
+		if originalSrc, ok := underlyingPointerType(val); ok {
 			return s.Set(originalSrc)
 		}
 		return &ValidationError{Type: types.ExtensionTypes.UUID, Msg: noConversion, Value: value}

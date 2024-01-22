@@ -57,6 +57,8 @@ func (s *JSON) String() string {
 }
 
 func (s *JSON) Set(val any) error {
+	// JSON is an outlier in a sense that we want to properly store `null` values as well.
+	// That means, here we indeed want a trivial check & not an IsNil call.
 	if val == nil {
 		return nil
 	}
@@ -84,10 +86,7 @@ func (s *JSON) Set(val any) error {
 		}
 		return s.Set(*value)
 	case []byte:
-		if value == nil {
-			return nil
-		}
-		if string(value) == "" {
+		if len(value) == 0 {
 			return nil
 		}
 

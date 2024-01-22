@@ -61,6 +61,12 @@ func (s *Time) Get() any {
 }
 
 func (s *Time) Set(value any) error {
+	// this will check for typed nils as well, so no need to check below
+	if IsNil(value) {
+		s.Valid = false
+		return nil
+	}
+
 	switch v := value.(type) {
 	case arrow.Time32:
 		return s.Int.Set(int64(v))
@@ -85,10 +91,6 @@ func (s *Time) Set(value any) error {
 			return s.Int.Set(v)
 		}
 	case *string:
-		if v == nil {
-			s.Valid = false
-			return nil
-		}
 		return s.Set(*v)
 	default:
 		return s.Int.Set(value)
