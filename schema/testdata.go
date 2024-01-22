@@ -3,7 +3,6 @@ package schema
 import (
 	"encoding/base64"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -252,16 +251,7 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 		records = append(records, bldr.NewRecord())
 		bldr.Release()
 	}
-	if indices := sc.FieldIndices(CqIDColumn.Name); len(indices) > 0 {
-		cqIDIndex := indices[0]
-		sort.Slice(records, func(i, j int) bool {
-			firstUUID := records[i].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
-			secondUUID := records[j].Column(cqIDIndex).(*types.UUIDArray).Value(0).String()
-			return strings.Compare(firstUUID, secondUUID) < 0
-		})
-	}
 
-	// now we have sorted 1-row-records. Transform them into a single record with opts.MaxRows rows
 	arrowTable := array.NewTableFromRecords(sc, records)
 	columns := make([]arrow.Array, sc.NumFields())
 	for n := 0; n < sc.NumFields(); n++ {
