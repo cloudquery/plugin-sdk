@@ -67,7 +67,7 @@ func (s *MonthInterval) Set(value any) error {
 		if v == nil {
 			return s.Int.Set(nil)
 		}
-		return s.Set(value)
+		return s.Set(*v)
 	case map[string]any:
 		b, _ := json.Marshal(v)
 		return s.Set(b)
