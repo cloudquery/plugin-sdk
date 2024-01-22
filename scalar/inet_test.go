@@ -72,6 +72,7 @@ func TestInetSet(t *testing.T) {
 			return &b
 		}("127.0.0.1"), result: Inet{Value: mustParseInet(t, "127.0.0.1"), Valid: true}},
 		{source: &Inet{Value: &net.IPNet{IP: net.ParseIP("::ffff:0.0.0.0"), Mask: net.CIDRMask(104, 128)}, Valid: true}, result: Inet{Value: &net.IPNet{IP: net.ParseIP("::ffff:0.0.0.0"), Mask: net.CIDRMask(104, 128)}, Valid: true}},
+		{source: (*net.IP)(nil), result: Inet{Value: nil, Valid: false}},
 	}
 
 	for i, tt := range successfulTests {
