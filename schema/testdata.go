@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"sort"
@@ -190,8 +191,6 @@ type GenTestDataOptions struct {
 	SyncTime time.Time
 	// MaxRows is the number of rows to generate.
 	MaxRows int
-	// StableUUID is the UUID to use for all rows. If set to uuid.Nil, a new UUID will be generated
-	StableUUID uuid.UUID
 	// StableTime is the time to use for all rows other than sync time. If set to time.Time{}, a new time will be generated
 	StableTime time.Time
 	// TimePrecision is the precision to use for time columns.
@@ -301,10 +300,10 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 	}
 	// handle extension types
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.UUID) {
-		u := uuid.New()
-		if opts.StableUUID != uuid.Nil {
-			u = opts.StableUUID
-		}
+		// This will make UUIDs deterministic like all other types
+		hash := sha256.New()
+		hash.Write([]byte(fmt.Sprintf(`"AString%d"`, rnd.Intn(100000))))
+		u := uuid.NewSHA1(uuid.UUID{}, hash.Sum(nil))
 		return `"` + u.String() + `"`
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.JSON) {
