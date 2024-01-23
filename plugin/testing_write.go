@@ -42,6 +42,7 @@ type SafeMigrations struct {
 	RemoveColumn        bool
 	RemoveColumnNotNull bool
 	ChangeColumn        bool
+	MovePKToCQOnly      bool
 }
 
 type WriterTestSuiteTests struct {
