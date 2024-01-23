@@ -393,7 +393,7 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 			return "", fmt.Errorf("team name not set. Hint: use `cloudquery switch <team>`")
 		}
 		return teamName, nil
-	case auth.APIKey, auth.SyncRunAPIKey:
+	case auth.APIKey:
 		resp, err := u.apiClient.ListTeamsWithResponse(context.Background(), &cqapi.ListTeamsParams{})
 		if err != nil {
 			return "", fmt.Errorf("failed to list teams for API key: %w", err)
@@ -405,6 +405,12 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 			return "", fmt.Errorf("expected to find exactly one team for API key, found %d", len(resp.JSON200.Items))
 		}
 		return resp.JSON200.Items[0].Name, nil
+	case auth.SyncRunAPIKey:
+		team := os.Getenv("_CQ_TEAM_NAME")
+		if team == "" {
+			return "", fmt.Errorf("_CQ_TEAM_NAME environment variable not set")
+		}
+		return team, nil
 	default:
 		return "", fmt.Errorf("unsupported token type: %v", tokenType)
 	}
