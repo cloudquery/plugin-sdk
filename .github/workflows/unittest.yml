@@ -24,11 +24,7 @@ jobs:
       - run: go mod download
       - run: go build ./...
       - name: Run tests
-        if: matrix.os != 'large-ubuntu-plugin-sdk'
-        run: go test -tags=assert -race ./...
-      - name: Run tests
-        if: matrix.os == 'large-ubuntu-plugin-sdk'
-        run: go test -tags=assert -race -coverprofile=coverage.out ./...
+        run: make test
       - name: Run benchmark
         if: matrix.os == 'large-ubuntu-plugin-sdk'
         run: make benchmark-ci
@@ -44,9 +40,3 @@ jobs:
           path: |
             .delta.*
             pr_number
-      - name: Generate coverage report
-        if: always() && matrix.os == 'large-ubuntu-plugin-sdk'
-        run: go test -race -coverprofile=coverage.out -covermode=atomic  ./...
-      - name: Upload coverage to Codecov
-        if: always() && matrix.os == 'large-ubuntu-plugin-sdk'
-        uses: codecov/codecov-action@bbeaa140357942e4e8d8e15f1cd2f4e612f64c59
