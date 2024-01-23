@@ -24,11 +24,7 @@ jobs:
       - run: go mod download
       - run: go build ./...
       - name: Run tests
-        if: matrix.os != 'large-ubuntu-plugin-sdk'
-        run: go test -tags=assert -race ./...
-      - name: Run tests
-        if: matrix.os == 'large-ubuntu-plugin-sdk'
-        run: go test -tags=assert -race -coverprofile=coverage.out ./...
+        run: make test
       - name: Run benchmark
         if: matrix.os == 'large-ubuntu-plugin-sdk'
         run: make benchmark-ci
