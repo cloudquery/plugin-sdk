@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.27.0](https://github.com/cloudquery/plugin-sdk/compare/v4.26.0...v4.27.0) (2024-01-23)
+
+
+### Features
+
+* Add Sync Run API Token Type ([#1473](https://github.com/cloudquery/plugin-sdk/issues/1473)) ([c776750](https://github.com/cloudquery/plugin-sdk/commit/c7767505318c98c7c4b11dea8796df52537c53df))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.7.0 ([#1483](https://github.com/cloudquery/plugin-sdk/issues/1483)) ([01961cb](https://github.com/cloudquery/plugin-sdk/commit/01961cb11ef6e590d14dcc145ec94c9a1767d76d))
+
 ## [4.26.0](https://github.com/cloudquery/plugin-sdk/compare/v4.25.2...v4.26.0) (2024-01-23)
 
 
