@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.26.0](https://github.com/cloudquery/plugin-sdk/compare/v4.25.2...v4.26.0) (2024-01-23)
+
+
+### Features
+
+* Expose Migration test for new special case for moving to `_cq_id` as only primary key ([#1480](https://github.com/cloudquery/plugin-sdk/issues/1480)) ([321e355](https://github.com/cloudquery/plugin-sdk/commit/321e35557d656c92b88cd5ca1a3ae0cfda8c3bfb))
+* Expose special migration paths ([#1470](https://github.com/cloudquery/plugin-sdk/issues/1470)) ([d70eaff](https://github.com/cloudquery/plugin-sdk/commit/d70eafff3324f81be67e1cbe360814d68892886c))
+* Make UUID in `testdata` always deterministic like all other columns ([#1479](https://github.com/cloudquery/plugin-sdk/issues/1479)) ([78027f0](https://github.com/cloudquery/plugin-sdk/commit/78027f0eae3a66b6d13fd3f86af4c28f142329fb))
+* Support CQ ID on the source only ([#1461](https://github.com/cloudquery/plugin-sdk/issues/1461)) ([f583cea](https://github.com/cloudquery/plugin-sdk/commit/f583ceabc11cab9be2371b90ce1c7f44e17f8ca4))
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/apache/arrow/go/v15 digest to 7e703aa ([#1467](https://github.com/cloudquery/plugin-sdk/issues/1467)) ([7645b7a](https://github.com/cloudquery/plugin-sdk/commit/7645b7a3c9d12544a3609c181e43353fbffe777d))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.6.5 ([#1471](https://github.com/cloudquery/plugin-sdk/issues/1471)) ([acb1ac7](https://github.com/cloudquery/plugin-sdk/commit/acb1ac7dcda5b99e7f8697fc12f4b6239dac7d83))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.16.5 ([#1474](https://github.com/cloudquery/plugin-sdk/issues/1474)) ([aa35ce7](https://github.com/cloudquery/plugin-sdk/commit/aa35ce79e4821aad32893d36da95a6bc9b229f79))
+* Eternal recursion in `scalar.MonthInterval` ([#1477](https://github.com/cloudquery/plugin-sdk/issues/1477)) ([78219a6](https://github.com/cloudquery/plugin-sdk/commit/78219a68e536c4cab7dcf1ab93c40f4691101487))
+* Handle unrelated licenses ([#1472](https://github.com/cloudquery/plugin-sdk/issues/1472)) ([4936425](https://github.com/cloudquery/plugin-sdk/commit/49364255b2fe4c2a2982d0e616cd60c16f9f54a8))
+* Verify `nil` value consistently ([#1478](https://github.com/cloudquery/plugin-sdk/issues/1478)) ([31085d2](https://github.com/cloudquery/plugin-sdk/commit/31085d23fc3940ba8ee422e25b33978695df5272))
+
 ## [4.25.2](https://github.com/cloudquery/plugin-sdk/compare/v4.25.1...v4.25.2) (2024-01-12)
 
 
