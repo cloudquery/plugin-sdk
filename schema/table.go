@@ -577,6 +577,26 @@ func (t *Table) TableNames() []string {
 	return ret
 }
 
+func (t *Table) CqIDAsPK() *Table {
+	table := t.Copy(nil)
+	cqIDCol := table.Columns.Get(CqIDColumn.Name)
+	if cqIDCol == nil {
+		return table
+	}
+	for i, c := range table.Columns {
+		if c.Name == CqIDColumn.Name {
+			// Ensure that the cq_id column is the primary key
+			table.Columns[i].PrimaryKey = true
+			continue
+		}
+		if !c.PrimaryKey {
+			continue
+		}
+		table.Columns[i].PrimaryKey = false
+	}
+	return table
+}
+
 func (t *Table) Copy(parent *Table) *Table {
 	c := *t
 	c.Parent = parent
