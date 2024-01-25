@@ -411,7 +411,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 			initialTable := tables.Get(v.Table.Name)
 
 			pks := migratedTable.PrimaryKeys()
-			if deterministicCQID {
+			if deterministicCQID && initialTable.Columns.Get(schema.CqIDColumn.Name) != nil {
 				if len(pks) != 1 {
 					t.Fatalf("expected 1 pk. got %d", len(pks))
 				}
