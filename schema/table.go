@@ -124,6 +124,28 @@ func AddCqIDs(table *Table) {
 	}
 }
 
+// CqIDAsPK sets the cq_id column as primary key if it exists
+// and removes the primary key from all other columns
+func CqIDAsPK(t *Table) *Table {
+	table := t.Copy(nil)
+	cqIDCol := table.Columns.Get(CqIDColumn.Name)
+	if cqIDCol == nil {
+		return table
+	}
+	for i, c := range table.Columns {
+		if c.Name == CqIDColumn.Name {
+			// Ensure that the cq_id column is the primary key
+			table.Columns[i].PrimaryKey = true
+			continue
+		}
+		if !c.PrimaryKey {
+			continue
+		}
+		table.Columns[i].PrimaryKey = false
+	}
+	return table
+}
+
 func NewTablesFromArrowSchemas(schemas []*arrow.Schema) (Tables, error) {
 	tables := make(Tables, len(schemas))
 	for i, schema := range schemas {
@@ -575,26 +597,6 @@ func (t *Table) TableNames() []string {
 		ret = append(ret, rel.TableNames()...)
 	}
 	return ret
-}
-
-func CqIDAsPK(t *Table) *Table {
-	table := t.Copy(nil)
-	cqIDCol := table.Columns.Get(CqIDColumn.Name)
-	if cqIDCol == nil {
-		return table
-	}
-	for i, c := range table.Columns {
-		if c.Name == CqIDColumn.Name {
-			// Ensure that the cq_id column is the primary key
-			table.Columns[i].PrimaryKey = true
-			continue
-		}
-		if !c.PrimaryKey {
-			continue
-		}
-		table.Columns[i].PrimaryKey = false
-	}
-	return table
 }
 
 func (t *Table) Copy(parent *Table) *Table {

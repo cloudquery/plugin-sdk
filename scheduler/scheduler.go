@@ -189,14 +189,13 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 
 	// send migrate messages first
 	for _, tableOriginal := range tables.FlattenTables() {
-		// var table *schema.Table
-		table := tableOriginal.Copy(nil)
+		migrateMessage := &message.SyncMigrateTable{
+			Table: tableOriginal,
+		}
 		if syncClient.deterministicCQID {
-			table = schema.CqIDAsPK(table)
+			migrateMessage.Table = schema.CqIDAsPK(tableOriginal.Copy(nil))
 		}
-		res <- &message.SyncMigrateTable{
-			Table: table,
-		}
+		res <- migrateMessage
 	}
 
 	resources := make(chan *schema.Resource)
