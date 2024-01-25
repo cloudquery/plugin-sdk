@@ -190,10 +190,10 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	// send migrate messages first
 	for _, tableOriginal := range tables.FlattenTables() {
 		migrateMessage := &message.SyncMigrateTable{
-			Table: tableOriginal,
+			Table: tableOriginal.Copy(nil),
 		}
 		if syncClient.deterministicCQID {
-			migrateMessage.Table = schema.CqIDAsPK(tableOriginal.Copy(nil))
+			schema.CqIDAsPK(migrateMessage.Table)
 		}
 		res <- migrateMessage
 	}
