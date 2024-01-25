@@ -577,7 +577,7 @@ func (t *Table) TableNames() []string {
 	return ret
 }
 
-func (t *Table) CqIDAsPK() *Table {
+func CqIDAsPK(t *Table) *Table {
 	table := t.Copy(nil)
 	cqIDCol := table.Columns.Get(CqIDColumn.Name)
 	if cqIDCol == nil {
