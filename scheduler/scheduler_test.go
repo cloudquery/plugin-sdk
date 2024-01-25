@@ -45,7 +45,7 @@ func testColumnResolverPanic(context.Context, schema.ClientMeta, *schema.Resourc
 
 func testTableSuccessWithData(data []any) *schema.Table {
 	return &schema.Table{
-		Name: "test_table_success",
+		Name: "test_table_success_with_data",
 		Resolver: func(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 			res <- data
 			return nil
@@ -74,7 +74,7 @@ func testTableSuccess() *schema.Table {
 
 func testTableSuccessWithPK() *schema.Table {
 	return &schema.Table{
-		Name:     "test_table_success",
+		Name:     "test_table_success_pk",
 		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
 			{
@@ -88,7 +88,7 @@ func testTableSuccessWithPK() *schema.Table {
 
 func testTableSuccessWithCQIDPK() *schema.Table {
 	return &schema.Table{
-		Name:     "test_table_success",
+		Name:     "test_table_success_cq_id",
 		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
 			schema.CqIDColumn,
