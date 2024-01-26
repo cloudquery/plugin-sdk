@@ -26,6 +26,8 @@ type structTransformer struct {
 	structFieldsToUnwrap          []string
 	pkFields                      []string
 	pkFieldsFound                 []string
+	virtualPKFields               []string
+	virtualPKFieldsFound          []string
 }
 
 type NameTransformer func(reflect.StructField) (string, error)
@@ -117,6 +119,13 @@ func WithPrimaryKeys(fields ...string) StructTransformerOption {
 	}
 }
 
+// WithVirtualPrimaryKeys allows to specify what struct fields should be used as virtual primary keys
+func WithVirtualPrimaryKeys(fields ...string) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.virtualPKFields = fields
+	}
+}
+
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
 		nameTransformer:          DefaultNameTransformer,
@@ -158,6 +167,10 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 		// Validate that all expected PK fields were found
 		if diff := funk.SubtractString(t.pkFields, t.pkFieldsFound); len(diff) > 0 {
 			return fmt.Errorf("failed to create all of the desired primary keys: %v", diff)
+		}
+
+		if diff := funk.SubtractString(t.virtualPKFields, t.virtualPKFieldsFound); len(diff) > 0 {
+			return fmt.Errorf("failed to create all of the desired virtual primary keys: %v", diff)
 		}
 		return nil
 	}
@@ -283,6 +296,16 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 			// 2. Allow specifying the nested unwrapped field as part of the PK.
 			column.PrimaryKey = true
 			t.pkFieldsFound = append(t.pkFieldsFound, pk)
+		}
+	}
+
+	for _, pk := range t.virtualPKFields {
+		if pk == path {
+			// use path to allow the following
+			// 1. Don't duplicate the PK fields if the unwrapped struct contains a fields with the same name
+			// 2. Allow specifying the nested unwrapped field as part of the PK.
+			column.VirtualPrimaryKey = true
+			t.virtualPKFieldsFound = append(t.virtualPKFieldsFound, pk)
 		}
 	}
 

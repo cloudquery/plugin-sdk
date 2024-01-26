@@ -3,6 +3,7 @@ package schema
 import (
 	"crypto/sha256"
 	"fmt"
+	"hash"
 	"slices"
 
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
@@ -79,21 +80,34 @@ func (r *Resource) GetValues() scalar.Vector {
 
 //nolint:revive
 func (r *Resource) CalculateCQID(deterministicCQID bool) error {
+	// if `virtualPK` is set, we calculate the CQID based on the virtual primary keys
+	virtualPrimaryKeys := r.Table.VirtualPrimaryKeys()
+	if len(virtualPrimaryKeys) > 0 {
+		return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, calculateCqIDValue(r, virtualPrimaryKeys).Sum(nil)))
+	}
+
+	// If deterministicCQID is false, we generate a random CQID
 	if !deterministicCQID {
 		return r.storeCQID(uuid.New())
 	}
 	names := r.Table.PrimaryKeys()
+	// If there are no primary keys or if CQID is the only PK, we generate a random CQID
 	if len(names) == 0 || (len(names) == 1 && names[0] == CqIDColumn.Name) {
 		return r.storeCQID(uuid.New())
 	}
-	slices.Sort(names)
+
+	return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, calculateCqIDValue(r, names).Sum(nil)))
+}
+
+func calculateCqIDValue(r *Resource, cols []string) hash.Hash {
 	h := sha256.New()
-	for _, name := range names {
+	slices.Sort(cols)
+	for _, col := range cols {
 		// We need to include the column name in the hash because the same value can be present in multiple columns and therefore lead to the same hash
-		h.Write([]byte(name))
-		h.Write([]byte(r.Get(name).String()))
+		h.Write([]byte(col))
+		h.Write([]byte(r.Get(col).String()))
 	}
-	return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, h.Sum(nil)))
+	return h
 }
 
 func (r *Resource) storeCQID(value uuid.UUID) error {

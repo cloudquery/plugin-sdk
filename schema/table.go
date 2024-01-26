@@ -589,6 +589,17 @@ func (t *Table) IncrementalKeys() []string {
 	return incrementalKeys
 }
 
+func (t *Table) VirtualPrimaryKeys() []string {
+	var virtualPrimaryKeys []string
+	for _, c := range t.Columns {
+		if c.VirtualPrimaryKey {
+			virtualPrimaryKeys = append(virtualPrimaryKeys, c.Name)
+		}
+	}
+
+	return virtualPrimaryKeys
+}
+
 func (t *Table) TableNames() []string {
 	ret := []string{t.Name}
 	for _, rel := range t.Relations {
