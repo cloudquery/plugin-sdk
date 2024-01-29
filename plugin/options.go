@@ -29,12 +29,6 @@ func WithJSONSchema(schema string) Option {
 	}
 }
 
-func WithStaticLinking() Option {
-	return func(p *Plugin) {
-		p.staticLinking = true
-	}
-}
-
 func WithKind(kind string) Option {
 	k := Kind(kind)
 	err := k.Validate()

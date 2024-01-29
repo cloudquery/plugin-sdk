@@ -34,14 +34,23 @@ const (
 )
 
 type BuildTarget struct {
-	OS   string `json:"os"`
-	Arch string `json:"arch"`
+	OS   string   `json:"os"`
+	Arch string   `json:"arch"`
+	Env  []string `json:"env"`
+}
+
+func (t BuildTarget) GetEnvVariables() []string {
+	return append([]string{
+		"GOOS=" + t.OS,
+		"GOARCH=" + t.Arch,
+		"CGO_ENABLED=0", // default is this, but adding `CGO_ENABLED=1` to BuildTarget.Env solves the issue
+	}, t.Env...)
 }
 
 var DefaultBuildTargets = []BuildTarget{
-	{GoOSLinux, GoArchAmd64},
-	{GoOSLinux, GoArchArm64},
-	{GoOSWindows, GoArchAmd64},
-	{GoOSDarwin, GoArchAmd64},
-	{GoOSDarwin, GoArchArm64},
+	{OS: GoOSLinux, Arch: GoArchAmd64},
+	{OS: GoOSLinux, Arch: GoArchArm64},
+	{OS: GoOSWindows, Arch: GoArchAmd64},
+	{OS: GoOSDarwin, Arch: GoArchAmd64},
+	{OS: GoOSDarwin, Arch: GoArchArm64},
 }
