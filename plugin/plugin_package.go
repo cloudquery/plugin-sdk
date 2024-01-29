@@ -36,14 +36,21 @@ const (
 type BuildTarget struct {
 	OS   string   `json:"os"`
 	Arch string   `json:"arch"`
+	CGO  bool     `json:"cgo"`
 	Env  []string `json:"env"`
 }
 
 func (t BuildTarget) GetEnvVariables() []string {
+	cgo := "CGO_ENABLED="
+	if t.CGO {
+		cgo += "1"
+	} else {
+		cgo += "0"
+	}
 	return append([]string{
 		"GOOS=" + t.OS,
 		"GOARCH=" + t.Arch,
-		"CGO_ENABLED=0", // default is this, but adding `CGO_ENABLED=1` to BuildTarget.Env solves the issue
+		cgo, // default is to tool at the param. Can be overridden by adding `CGO_ENABLED=1` to BuildTarget.Env
 	}, t.Env...)
 }
 
