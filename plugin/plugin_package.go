@@ -40,7 +40,7 @@ type BuildTarget struct {
 	Env  []string `json:"env"`
 }
 
-func (t BuildTarget) GetEnvVariables() []string {
+func (t BuildTarget) EnvVariables() []string {
 	cgo := "CGO_ENABLED="
 	if t.CGO {
 		cgo += "1"

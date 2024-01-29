@@ -122,7 +122,7 @@ func (s *PluginServe) build(pluginDirectory string, target plugin.BuildTarget, d
 	cmd.Dir = pluginDirectory
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), target.GetEnvVariables()...)
+	cmd.Env = append(os.Environ(), target.EnvVariables()...)
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed to build plugin with `go %v`: %w", args, err)
 	}
