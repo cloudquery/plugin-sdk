@@ -128,6 +128,10 @@ func (p *Plugin) Version() string {
 	return p.version
 }
 
+func (p *Plugin) JSONSchema() string {
+	return p.schema
+}
+
 func (p *Plugin) Meta() Meta {
 	return Meta{
 		Team:            p.team,

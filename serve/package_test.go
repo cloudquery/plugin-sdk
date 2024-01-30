@@ -21,6 +21,12 @@ import (
 //go:embed testdata/memdbtables.json
 var memDBPackageJSON string
 
+//go:embed testdata/source_spec_schema.json
+var sourceSpecSchema string
+
+//go:embed testdata/destination_spec_schema.json
+var destinationSpecSchema string
+
 func TestPluginPackage_Source(t *testing.T) {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
@@ -39,6 +45,7 @@ func TestPluginPackage_Source(t *testing.T) {
 		}),
 		plugin.WithKind("source"),
 		plugin.WithTeam("test-team"),
+		plugin.WithJSONSchema(sourceSpecSchema),
 	)
 	msg := `Test message
 with multiple lines and **markdown**`
@@ -78,6 +85,7 @@ with multiple lines and **markdown**`
 				"package.json",
 				"plugin-test-plugin-v1.2.3-linux-amd64.zip",
 				"plugin-test-plugin-v1.2.3-windows-amd64.zip",
+				"spec_json_schema.json",
 				"tables.json",
 			}
 			if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
@@ -112,6 +120,7 @@ with multiple lines and **markdown**`
 			}
 			checkDocs(t, filepath.Join(distDir, "docs"), expectDocs)
 			checkTables(t, distDir)
+			checkFileContent(t, filepath.Join(distDir, "spec_json_schema.json"), sourceSpecSchema)
 		})
 	}
 }
@@ -134,6 +143,7 @@ func TestPluginPackage_Destination(t *testing.T) {
 		}),
 		plugin.WithKind("destination"),
 		plugin.WithTeam("test-team"),
+		plugin.WithJSONSchema(destinationSpecSchema),
 	)
 	msg := `Test message
 with multiple lines and **markdown**`
@@ -173,6 +183,7 @@ with multiple lines and **markdown**`
 				"package.json",
 				"plugin-test-plugin-v1.2.3-darwin-amd64.zip",
 				"plugin-test-plugin-v1.2.3-windows-amd64.zip",
+				"spec_json_schema.json",
 			}
 			if diff := cmp.Diff(expect, fileNames(files)); diff != "" {
 				t.Fatalf("unexpected files in dist directory (-want +got):\n%s", diff)
@@ -205,6 +216,7 @@ with multiple lines and **markdown**`
 				"overview.md",
 			}
 			checkDocs(t, filepath.Join(distDir, "docs"), expectDocs)
+			checkFileContent(t, filepath.Join(distDir, "spec_json_schema.json"), destinationSpecSchema)
 		})
 	}
 }
@@ -324,6 +336,21 @@ func checkPackageJSONContents(t *testing.T, filename string, expect PackageJSON)
 	}
 	if diff := cmp.Diff(expect, j); diff != "" {
 		t.Fatalf("package.json contents mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func checkFileContent(t *testing.T, filename string, expect string) {
+	f, err := os.Open(filename)
+	if err != nil {
+		t.Fatalf("failed to open %s: %v", filename, err)
+	}
+	defer f.Close()
+	b, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatalf("failed to read %s: %v", filename, err)
+	}
+	if diff := cmp.Diff(expect, string(b)); diff != "" {
+		t.Fatalf("%s contents mismatch (-want +got):\n%s", filename, diff)
 	}
 }
 
