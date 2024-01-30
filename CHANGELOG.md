@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.27.2](https://github.com/cloudquery/plugin-sdk/compare/v4.27.1...v4.27.2) (2024-01-29)
+
+
+### Bug Fixes
+
+* Better build overrides ([#1492](https://github.com/cloudquery/plugin-sdk/issues/1492)) ([ca5afc1](https://github.com/cloudquery/plugin-sdk/commit/ca5afc1aca7c2fa994ddb0e371d8b507435501e1))
+* When `_cq_id` SyncMigrateMessage not sent ([#1489](https://github.com/cloudquery/plugin-sdk/issues/1489)) ([d177320](https://github.com/cloudquery/plugin-sdk/commit/d177320d62fb104a24381b1ba6cb0bfd9864c723))
+
 ## [4.27.1](https://github.com/cloudquery/plugin-sdk/compare/v4.27.0...v4.27.1) (2024-01-23)
 
 

@@ -124,6 +124,26 @@ func AddCqIDs(table *Table) {
 	}
 }
 
+// CqIDAsPK sets the cq_id column as primary key if it exists
+// and removes the primary key from all other columns
+func CqIDAsPK(t *Table) {
+	cqIDCol := t.Columns.Get(CqIDColumn.Name)
+	if cqIDCol == nil {
+		return
+	}
+	for i, c := range t.Columns {
+		if c.Name == CqIDColumn.Name {
+			// Ensure that the cq_id column is the primary key
+			t.Columns[i].PrimaryKey = true
+			continue
+		}
+		if !c.PrimaryKey {
+			continue
+		}
+		t.Columns[i].PrimaryKey = false
+	}
+}
+
 func NewTablesFromArrowSchemas(schemas []*arrow.Schema) (Tables, error) {
 	tables := make(Tables, len(schemas))
 	for i, schema := range schemas {

@@ -63,8 +63,6 @@ type Plugin struct {
 	targets []BuildTarget
 	// Called upon init call to validate and init configuration
 	newClient NewClientFunc
-	// staticLinking true if C libraries should be added to compiled executable
-	staticLinking bool
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
 	logger zerolog.Logger
 	// mu is a mutex that limits the number of concurrent init/syncs (can only be one at a time)
@@ -174,11 +172,6 @@ func (p *Plugin) OnSyncFinish(ctx context.Context) error {
 		return v.OnSyncFinish(ctx)
 	}
 	return nil
-}
-
-// IsStaticLinkingEnabled whether static linking is to be enabled
-func (p *Plugin) IsStaticLinkingEnabled() bool {
-	return p.staticLinking
 }
 
 func (p *Plugin) Targets() []BuildTarget {

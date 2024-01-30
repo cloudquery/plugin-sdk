@@ -107,17 +107,14 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
-func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersion string) (*TargetBuild, error) {
-	pluginFileName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, goos, goarch)
+func (s *PluginServe) build(pluginDirectory string, target plugin.BuildTarget, distPath, pluginVersion string) (*TargetBuild, error) {
+	pluginFileName := fmt.Sprintf("plugin-%s-%s-%s-%s", s.plugin.Name(), pluginVersion, target.OS, target.Arch)
 	pluginPath := path.Join(distPath, pluginFileName)
 	importPath, err := s.getModuleName(pluginDirectory)
 	if err != nil {
 		return nil, err
 	}
 	ldFlags := fmt.Sprintf("-s -w -X %[1]s/plugin.Version=%[2]s -X %[1]s/resources/plugin.Version=%[2]s", importPath, pluginVersion)
-	if s.plugin.IsStaticLinkingEnabled() && strings.EqualFold(goos, plugin.GoOSLinux) {
-		ldFlags += " -linkmode external -extldflags=-static"
-	}
 	args := []string{"build", "-o", pluginPath}
 	args = append(args, "-buildmode=exe")
 	args = append(args, "-ldflags", ldFlags)
@@ -125,10 +122,7 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 	cmd.Dir = pluginDirectory
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, fmt.Sprintf("GOOS=%s", goos))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("GOARCH=%s", goarch))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("CGO_ENABLED=%v", getEnvOrDefault("CGO_ENABLED", "0"))) // default to CGO_ENABLED=0
+	cmd.Env = append(os.Environ(), target.EnvVariables()...)
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed to build plugin with `go %v`: %w", args, err)
 	}
@@ -178,8 +172,8 @@ func (s *PluginServe) build(pluginDirectory, goos, goarch, distPath, pluginVersi
 	}
 
 	return &TargetBuild{
-		OS:       goos,
-		Arch:     goarch,
+		OS:       target.OS,
+		Arch:     target.Arch,
 		Path:     targetZip,
 		Checksum: "sha256:" + checksum,
 	}, nil
@@ -429,7 +423,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			targets := []TargetBuild{}
 			for _, target := range s.plugin.Targets() {
 				fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
-				targetBuild, err := s.build(pluginDirectory, target.OS, target.Arch, distPath, pluginVersion)
+				targetBuild, err := s.build(pluginDirectory, target, distPath, pluginVersion)
 				if err != nil {
 					return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
 				}
