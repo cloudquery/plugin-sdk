@@ -34,14 +34,30 @@ const (
 )
 
 type BuildTarget struct {
-	OS   string `json:"os"`
-	Arch string `json:"arch"`
+	OS   string   `json:"os"`
+	Arch string   `json:"arch"`
+	CGO  bool     `json:"cgo"`
+	Env  []string `json:"env"`
+}
+
+func (t BuildTarget) EnvVariables() []string {
+	cgo := "CGO_ENABLED="
+	if t.CGO {
+		cgo += "1"
+	} else {
+		cgo += "0"
+	}
+	return append([]string{
+		"GOOS=" + t.OS,
+		"GOARCH=" + t.Arch,
+		cgo, // default is to tool at the param. Can be overridden by adding `CGO_ENABLED=1` to BuildTarget.Env
+	}, t.Env...)
 }
 
 var DefaultBuildTargets = []BuildTarget{
-	{GoOSLinux, GoArchAmd64},
-	{GoOSLinux, GoArchArm64},
-	{GoOSWindows, GoArchAmd64},
-	{GoOSDarwin, GoArchAmd64},
-	{GoOSDarwin, GoArchArm64},
+	{OS: GoOSLinux, Arch: GoArchAmd64},
+	{OS: GoOSLinux, Arch: GoArchArm64},
+	{OS: GoOSWindows, Arch: GoArchAmd64},
+	{OS: GoOSDarwin, Arch: GoArchAmd64},
+	{OS: GoOSDarwin, Arch: GoArchArm64},
 }
