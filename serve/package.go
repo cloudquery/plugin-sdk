@@ -234,6 +234,14 @@ func (s *PluginServe) writePackageJSON(dir, version, message string, targets []T
 	return os.WriteFile(outputPath, buffer.Bytes(), 0644)
 }
 
+func (s *PluginServe) writeSpecJSONSchema(dir string) error {
+	if s.plugin.JSONSchema() == "" {
+		return nil
+	}
+
+	return os.WriteFile(filepath.Join(dir, "spec_json_schema.json"), []byte(s.plugin.JSONSchema()), 0644)
+}
+
 func (*PluginServe) copyDocs(distPath, docsPath string) error {
 	err := os.MkdirAll(filepath.Join(distPath, "docs"), 0755)
 	if err != nil {
@@ -426,6 +434,9 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			}
 			if err := s.copyDocs(distPath, docsPath); err != nil {
 				return fmt.Errorf("failed to copy docs: %w", err)
+			}
+			if err := s.writeSpecJSONSchema(distPath); err != nil {
+				return fmt.Errorf("failed to write spec json schema: %w", err)
 			}
 			return nil
 		},
