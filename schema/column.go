@@ -44,8 +44,8 @@ type Column struct {
 	// Unique requires the destinations supporting this to mark this column as unique
 	Unique bool `json:"unique"`
 
-	// VirtualPrimaryKey is a flag that indicates if the column is used as part of the input to calculate the value of `_cq_id`.
-	VirtualPrimaryKey bool `json:"virtual_primary_key"`
+	// PrimaryKeyComponent is a flag that indicates if the column is used as part of the input to calculate the value of `_cq_id`.
+	PrimaryKeyComponent bool `json:"primary_key_component"`
 }
 
 // NewColumnFromArrowField creates a new Column from an arrow.Field
@@ -67,18 +67,18 @@ func NewColumnFromArrowField(f arrow.Field) Column {
 	v, ok = f.Metadata.GetValue(MetadataIncremental)
 	column.IncrementalKey = ok && v == MetadataTrue
 
-	v, ok = f.Metadata.GetValue(MetadataVirtualPrimaryKey)
-	column.VirtualPrimaryKey = ok && v == MetadataTrue
+	v, ok = f.Metadata.GetValue(MetadataPrimaryKeyComponent)
+	column.PrimaryKeyComponent = ok && v == MetadataTrue
 
 	return column
 }
 
 func (c Column) ToArrowField() arrow.Field {
 	mdKV := map[string]string{
-		MetadataPrimaryKey:        MetadataFalse,
-		MetadataUnique:            MetadataFalse,
-		MetadataIncremental:       MetadataFalse,
-		MetadataVirtualPrimaryKey: MetadataFalse,
+		MetadataPrimaryKey:          MetadataFalse,
+		MetadataUnique:              MetadataFalse,
+		MetadataIncremental:         MetadataFalse,
+		MetadataPrimaryKeyComponent: MetadataFalse,
 	}
 	if c.PrimaryKey {
 		mdKV[MetadataPrimaryKey] = MetadataTrue
@@ -89,8 +89,8 @@ func (c Column) ToArrowField() arrow.Field {
 	if c.IncrementalKey {
 		mdKV[MetadataIncremental] = MetadataTrue
 	}
-	if c.VirtualPrimaryKey {
-		mdKV[MetadataVirtualPrimaryKey] = MetadataTrue
+	if c.PrimaryKeyComponent {
+		mdKV[MetadataPrimaryKeyComponent] = MetadataTrue
 	}
 
 	return arrow.Field{
@@ -103,14 +103,14 @@ func (c Column) ToArrowField() arrow.Field {
 
 func (c Column) MarshalJSON() ([]byte, error) {
 	type Alias struct {
-		Name              string `json:"name"`
-		Type              string `json:"type"`
-		Description       string `json:"description"`
-		PrimaryKey        bool   `json:"primary_key"`
-		NotNull           bool   `json:"not_null"`
-		Unique            bool   `json:"unique"`
-		IncrementalKey    bool   `json:"incremental_key"`
-		VirtualPrimaryKey bool   `json:"virtual_primary_key"`
+		Name                string `json:"name"`
+		Type                string `json:"type"`
+		Description         string `json:"description"`
+		PrimaryKey          bool   `json:"primary_key"`
+		NotNull             bool   `json:"not_null"`
+		Unique              bool   `json:"unique"`
+		IncrementalKey      bool   `json:"incremental_key"`
+		PrimaryKeyComponent bool   `json:"primary_key_component"`
 	}
 	var alias Alias
 	alias.Name = c.Name
@@ -120,7 +120,7 @@ func (c Column) MarshalJSON() ([]byte, error) {
 	alias.NotNull = c.NotNull
 	alias.Unique = c.Unique
 	alias.IncrementalKey = c.IncrementalKey
-	alias.VirtualPrimaryKey = c.VirtualPrimaryKey
+	alias.PrimaryKeyComponent = c.PrimaryKeyComponent
 
 	return json.Marshal(alias)
 }
@@ -143,8 +143,8 @@ func (c Column) String() string {
 		sb.WriteString(":IncrementalKey")
 	}
 
-	if c.VirtualPrimaryKey {
-		sb.WriteString(":VirtualPrimaryKey")
+	if c.PrimaryKeyComponent {
+		sb.WriteString(":PrimaryKeyComponent")
 	}
 	return sb.String()
 }

@@ -26,8 +26,8 @@ type structTransformer struct {
 	structFieldsToUnwrap          []string
 	pkFields                      []string
 	pkFieldsFound                 []string
-	virtualPKFields               []string
-	virtualPKFieldsFound          []string
+	pkComponentFields             []string
+	pkComponentFieldsFound        []string
 }
 
 type NameTransformer func(reflect.StructField) (string, error)
@@ -119,10 +119,10 @@ func WithPrimaryKeys(fields ...string) StructTransformerOption {
 	}
 }
 
-// WithVirtualPrimaryKeys allows to specify what struct fields should be used as virtual primary keys
-func WithVirtualPrimaryKeys(fields ...string) StructTransformerOption {
+// WithPrimaryKeyComponents allows to specify what struct fields should be used as primary key components
+func WithPrimaryKeyComponents(fields ...string) StructTransformerOption {
 	return func(t *structTransformer) {
-		t.virtualPKFields = fields
+		t.pkComponentFields = fields
 	}
 }
 
@@ -169,8 +169,8 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 			return fmt.Errorf("failed to create all of the desired primary keys: %v", diff)
 		}
 
-		if diff := funk.SubtractString(t.virtualPKFields, t.virtualPKFieldsFound); len(diff) > 0 {
-			return fmt.Errorf("failed to create all of the desired virtual primary keys: %v", diff)
+		if diff := funk.SubtractString(t.pkComponentFields, t.pkComponentFieldsFound); len(diff) > 0 {
+			return fmt.Errorf("failed to find all of the desired primary key components: %v", diff)
 		}
 		return nil
 	}
@@ -299,13 +299,13 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		}
 	}
 
-	for _, pk := range t.virtualPKFields {
+	for _, pk := range t.pkComponentFields {
 		if pk == path {
 			// use path to allow the following
 			// 1. Don't duplicate the PK fields if the unwrapped struct contains a fields with the same name
 			// 2. Allow specifying the nested unwrapped field as part of the PK.
-			column.VirtualPrimaryKey = true
-			t.virtualPKFieldsFound = append(t.virtualPKFieldsFound, pk)
+			column.PrimaryKeyComponent = true
+			t.pkComponentFieldsFound = append(t.pkComponentFieldsFound, pk)
 		}
 	}
 

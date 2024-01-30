@@ -80,10 +80,10 @@ func (r *Resource) GetValues() scalar.Vector {
 
 //nolint:revive
 func (r *Resource) CalculateCQID(deterministicCQID bool) error {
-	// if `virtualPK` is set, we calculate the CQID based on the virtual primary keys
-	virtualPrimaryKeys := r.Table.VirtualPrimaryKeys()
-	if len(virtualPrimaryKeys) > 0 {
-		return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, calculateCqIDValue(r, virtualPrimaryKeys).Sum(nil)))
+	// if `PrimaryKeyComponent` is set, we calculate the CQID based on those components
+	pkComponents := r.Table.PrimaryKeyComponents()
+	if len(pkComponents) > 0 {
+		return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, calculateCqIDValue(r, pkComponents).Sum(nil)))
 	}
 
 	// If deterministicCQID is false, we generate a random CQID

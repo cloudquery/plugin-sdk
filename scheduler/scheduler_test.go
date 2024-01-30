@@ -101,7 +101,7 @@ func testTableSuccessWithCQIDPK() *schema.Table {
 	}
 }
 
-func testTableSuccessWithCQIDPKVirtualPK() *schema.Table {
+func testTableSuccessWithPKComponents() *schema.Table {
 	cqID := schema.CqIDColumn
 	cqID.PrimaryKey = true
 	return &schema.Table{
@@ -110,9 +110,9 @@ func testTableSuccessWithCQIDPKVirtualPK() *schema.Table {
 		Columns: []schema.Column{
 			cqID,
 			{
-				Name:              "test_column",
-				Type:              arrow.PrimitiveTypes.Int64,
-				VirtualPrimaryKey: true,
+				Name:                "test_column",
+				Type:                arrow.PrimitiveTypes.Int64,
+				PrimaryKeyComponent: true,
 			},
 		},
 	}
@@ -288,7 +288,7 @@ var syncTestCases = []syncTestCase{
 		deterministicCQID: false,
 	},
 	{
-		table: testTableSuccessWithCQIDPKVirtualPK(),
+		table: testTableSuccessWithPKComponents(),
 		data: []scalar.Vector{
 			{
 				// This value will not be validated as it will be randomly set by the scheduler
@@ -367,7 +367,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 			initialTable := tables.Get(v.Table.Name)
 
 			pks := migratedTable.PrimaryKeys()
-			if (deterministicCQID || len(migratedTable.VirtualPrimaryKeys()) > 0) && initialTable.Columns.Get(schema.CqIDColumn.Name) != nil {
+			if (deterministicCQID || len(migratedTable.PrimaryKeyComponents()) > 0) && initialTable.Columns.Get(schema.CqIDColumn.Name) != nil {
 				if len(pks) != 1 {
 					t.Fatalf("expected 1 pk. got %d", len(pks))
 				}

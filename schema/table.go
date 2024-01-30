@@ -589,15 +589,15 @@ func (t *Table) IncrementalKeys() []string {
 	return incrementalKeys
 }
 
-func (t *Table) VirtualPrimaryKeys() []string {
-	var virtualPrimaryKeys []string
+func (t *Table) PrimaryKeyComponents() []string {
+	var primaryKeyComponents []string
 	for _, c := range t.Columns {
-		if c.VirtualPrimaryKey {
-			virtualPrimaryKeys = append(virtualPrimaryKeys, c.Name)
+		if c.PrimaryKeyComponent {
+			primaryKeyComponents = append(primaryKeyComponents, c.Name)
 		}
 	}
 
-	return virtualPrimaryKeys
+	return primaryKeyComponents
 }
 
 func (t *Table) TableNames() []string {
