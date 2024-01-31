@@ -143,10 +143,10 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 			t.Skip("skipping " + t.Name())
 		}
 		t.Run("Basic", func(t *testing.T) {
-			suite.testDeleteStaleBasic(t, ctx)
+			suite.testDeleteStaleBasic(ctx, t)
 		})
 		t.Run("All", func(t *testing.T) {
-			suite.testDeleteStaleAll(t, ctx)
+			suite.testDeleteStaleAll(ctx, t)
 		})
 	})
 
@@ -155,10 +155,10 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 			t.Skip("skipping " + t.Name())
 		}
 		t.Run("Basic", func(t *testing.T) {
-			suite.testDeleteRecordBasic(t, ctx)
+			suite.testDeleteRecordBasic(ctx, t)
 		})
 		t.Run("DeleteAll", func(t *testing.T) {
-			suite.testDeleteAllRecords(t, ctx)
+			suite.testDeleteAllRecords(ctx, t)
 		})
 	})
 

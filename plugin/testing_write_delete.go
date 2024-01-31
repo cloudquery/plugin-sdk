@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func (s *WriterTestSuite) testDeleteStaleBasic(t *testing.T, ctx context.Context) {
+func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context, t *testing.T) {
 	r := require.New(t)
 	tableName := s.tableNameForTest("delete_basic")
 	syncTime := time.Now().UTC().Truncate(s.genDatOptions.TimePrecision).
@@ -79,7 +79,7 @@ func (s *WriterTestSuite) testDeleteStaleBasic(t *testing.T, ctx context.Context
 	r.Emptyf(RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record2}), "record differs after second delete stale")
 }
 
-func (s *WriterTestSuite) testDeleteStaleAll(t *testing.T, ctx context.Context) {
+func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) {
 	const rowsPerRecord = 10
 
 	r := require.New(t)
@@ -146,7 +146,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(t *testing.T, ctx context.Context) 
 	r.Emptyf(RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{nullRecord}), "record differs")
 }
 
-func (s *WriterTestSuite) testDeleteRecordBasic(t *testing.T, ctx context.Context) {
+func (s *WriterTestSuite) testDeleteRecordBasic(ctx context.Context, t *testing.T) {
 	r := require.New(t)
 	tableName := s.tableNameForTest("delete_all_rows")
 	syncTime := time.Now().UTC().Truncate(s.genDatOptions.TimePrecision).
@@ -241,7 +241,7 @@ func (s *WriterTestSuite) testDeleteRecordBasic(t *testing.T, ctx context.Contex
 	r.EqualValuesf(0, TotalRows(records), "unexpected amount of items after delete with match")
 }
 
-func (s *WriterTestSuite) testDeleteAllRecords(t *testing.T, ctx context.Context) {
+func (s *WriterTestSuite) testDeleteAllRecords(ctx context.Context, t *testing.T) {
 	r := require.New(t)
 	tableName := s.tableNameForTest("delete_all_records")
 	syncTime := time.Now().UTC().Truncate(s.genDatOptions.TimePrecision).
