@@ -19,6 +19,7 @@ import (
 
 	cloudquery_api "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/spf13/cobra"
 )
 
@@ -80,8 +81,11 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 				Type:           column.Type.String(),
 				IncrementalKey: column.IncrementalKey,
 				NotNull:        column.NotNull,
-				PrimaryKey:     column.PrimaryKey,
-				Unique:         column.Unique,
+				// PrimaryKey Will be set to true Under the following conditions:
+				// 1. If the column is a `PrimaryKeyComponent`
+				// 2. If the column is a `PrimaryKey` and both of the following are true column name is NOT `_cq_id`  and there are other columns that are a PrimaryKeyComponent
+				PrimaryKey: (column.PrimaryKey && !(column.Name == schema.CqIDColumn.Name && len(table.PrimaryKeyComponents()) > 0)) || column.PrimaryKeyComponent,
+				Unique:     column.Unique,
 			})
 		}
 		tablesToEncode = append(tablesToEncode, cloudquery_api.PluginTableCreate{
