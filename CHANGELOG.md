@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.29.0](https://github.com/cloudquery/plugin-sdk/compare/v4.28.0...v4.29.0) (2024-01-31)
+
+
+### Features
+
+* Introduce `PrimaryKeyComponent` ([#1491](https://github.com/cloudquery/plugin-sdk/issues/1491)) ([ae4a26e](https://github.com/cloudquery/plugin-sdk/commit/ae4a26e627f0d9d4df86eb93fee031753044f682))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.7.1 ([#1499](https://github.com/cloudquery/plugin-sdk/issues/1499)) ([165be4d](https://github.com/cloudquery/plugin-sdk/commit/165be4dd7d22019c41546940f0b4913a2536f834))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.16.7 ([#1500](https://github.com/cloudquery/plugin-sdk/issues/1500)) ([2b98dab](https://github.com/cloudquery/plugin-sdk/commit/2b98daba1af1b26bd917f419a788c3a54113dd41))
+* Remove access to parent tests in test suite ([#1497](https://github.com/cloudquery/plugin-sdk/issues/1497)) ([63e95e7](https://github.com/cloudquery/plugin-sdk/commit/63e95e7b36cfc9c277e03c4fc939868e7a377da6))
+
 ## [4.28.0](https://github.com/cloudquery/plugin-sdk/compare/v4.27.2...v4.28.0) (2024-01-30)
 
 
