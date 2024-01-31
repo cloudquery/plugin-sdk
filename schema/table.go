@@ -589,6 +589,17 @@ func (t *Table) IncrementalKeys() []string {
 	return incrementalKeys
 }
 
+func (t *Table) PrimaryKeyComponents() []string {
+	var primaryKeyComponents []string
+	for _, c := range t.Columns {
+		if c.PrimaryKeyComponent {
+			primaryKeyComponents = append(primaryKeyComponents, c.Name)
+		}
+	}
+
+	return primaryKeyComponents
+}
+
 func (t *Table) TableNames() []string {
 	ret := []string{t.Name}
 	for _, rel := range t.Relations {

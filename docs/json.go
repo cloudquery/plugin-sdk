@@ -18,10 +18,11 @@ type jsonTable struct {
 }
 
 type jsonColumn struct {
-	Name             string `json:"name"`
-	Type             string `json:"type"`
-	IsPrimaryKey     bool   `json:"is_primary_key,omitempty"`
-	IsIncrementalKey bool   `json:"is_incremental_key,omitempty"`
+	Name                  string `json:"name"`
+	Type                  string `json:"type"`
+	IsPrimaryKey          bool   `json:"is_primary_key,omitempty"`
+	IsPrimaryKeyComponent bool   `json:"is_primary_key_component,omitempty"`
+	IsIncrementalKey      bool   `json:"is_incremental_key,omitempty"`
 }
 
 func (g *Generator) renderTablesAsJSON(dir string) error {
@@ -44,10 +45,11 @@ func (g *Generator) jsonifyTables(tables schema.Tables) []jsonTable {
 		jsonColumns := make([]jsonColumn, len(table.Columns))
 		for c, col := range table.Columns {
 			jsonColumns[c] = jsonColumn{
-				Name:             col.Name,
-				Type:             col.Type.String(),
-				IsPrimaryKey:     col.PrimaryKey,
-				IsIncrementalKey: col.IncrementalKey,
+				Name:                  col.Name,
+				Type:                  col.Type.String(),
+				IsPrimaryKey:          col.PrimaryKey,
+				IsPrimaryKeyComponent: col.PrimaryKeyComponent,
+				IsIncrementalKey:      col.IncrementalKey,
 			}
 		}
 		jsonTables[i] = jsonTable{
