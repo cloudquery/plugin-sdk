@@ -22,7 +22,7 @@ require (
 	github.com/Joker/jade v1.1.3 // indirect
 	github.com/Shopify/goreferrer v0.0.0-20220729165902-8cddb4f5de06 // indirect
 	github.com/adrg/xdg v0.4.0 // indirect
-	github.com/andybalholm/brotli v1.0.6 // indirect
+	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/apache/arrow/go/v13 v13.0.0-20230731205701-112f94971882 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
@@ -54,7 +54,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20231222211730-1d6d20845b47 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
@@ -65,7 +65,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kataras/blocks v0.0.8 // indirect
 	github.com/kataras/golog v0.1.11 // indirect
-	github.com/kataras/iris/v12 v12.2.8 // indirect
+	github.com/kataras/iris/v12 v12.2.10 // indirect
 	github.com/kataras/pio v0.0.13 // indirect
 	github.com/kataras/sitemap v0.0.6 // indirect
 	github.com/kataras/tunnel v0.0.4 // indirect
@@ -91,8 +91,8 @@ require (
 	github.com/spf13/cobra v1.6.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
-	github.com/tdewolff/minify/v2 v2.20.6 // indirect
-	github.com/tdewolff/parse/v2 v2.7.4 // indirect
+	github.com/tdewolff/minify/v2 v2.20.14 // indirect
+	github.com/tdewolff/parse/v2 v2.7.8 // indirect
 	github.com/thoas/go-funk v0.9.3 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
