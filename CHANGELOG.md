@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.29.1](https://github.com/cloudquery/plugin-sdk/compare/v4.29.0...v4.29.1) (2024-02-01)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 1b97071 ([#1505](https://github.com/cloudquery/plugin-sdk/issues/1505)) ([14d8545](https://github.com/cloudquery/plugin-sdk/commit/14d8545ac6c39d64f893c60d97dc19d2e144bdbc))
+* **deps:** Update google.golang.org/genproto/googleapis/api digest to 1f4bbc5 ([#1506](https://github.com/cloudquery/plugin-sdk/issues/1506)) ([4021d65](https://github.com/cloudquery/plugin-sdk/commit/4021d65d966363f5efc37c16626c81f1e4b2f435))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to 1f4bbc5 ([#1507](https://github.com/cloudquery/plugin-sdk/issues/1507)) ([b1316a8](https://github.com/cloudquery/plugin-sdk/commit/b1316a8423902b454505bc67f0582df9282ae0c1))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.7.2 ([#1501](https://github.com/cloudquery/plugin-sdk/issues/1501)) ([f5ecd8e](https://github.com/cloudquery/plugin-sdk/commit/f5ecd8e65e00a44b85cad183277d6cf448b721d2))
+* **deps:** Update module github.com/kataras/iris/v12 to v12.2.10 ([#1508](https://github.com/cloudquery/plugin-sdk/issues/1508)) ([611982b](https://github.com/cloudquery/plugin-sdk/commit/611982b154ddd56c4722c809422dc394b1be2bef))
+* **deps:** Update module github.com/klauspost/compress to v1.17.5 ([#1509](https://github.com/cloudquery/plugin-sdk/issues/1509)) ([e8d3c6b](https://github.com/cloudquery/plugin-sdk/commit/e8d3c6b2f4b518d05d5bf2f5b7a8415a064e79e0))
+* **deps:** Update module github.com/pierrec/lz4/v4 to v4.1.21 ([#1510](https://github.com/cloudquery/plugin-sdk/issues/1510)) ([8af0e4e](https://github.com/cloudquery/plugin-sdk/commit/8af0e4e47fcebb0ef888ecdc364a1df1467418d0))
+* **deps:** Update module github.com/tdewolff/minify/v2 to v2.20.16 ([#1511](https://github.com/cloudquery/plugin-sdk/issues/1511)) ([b1433cc](https://github.com/cloudquery/plugin-sdk/commit/b1433cc85889209d18c4c264a78b15d7bfd5c1dc))
+* **deps:** Update module github.com/tdewolff/parse/v2 to v2.7.11 ([#1512](https://github.com/cloudquery/plugin-sdk/issues/1512)) ([401fa4a](https://github.com/cloudquery/plugin-sdk/commit/401fa4a27048f61cb2cb659e8340866466f9acf3))
+* Handle PrimaryKeyComponents in packaging ([#1503](https://github.com/cloudquery/plugin-sdk/issues/1503)) ([8c8fdc9](https://github.com/cloudquery/plugin-sdk/commit/8c8fdc918569a04dbfb779f1134d273ffc1d9b1e))
+
 ## [4.29.0](https://github.com/cloudquery/plugin-sdk/compare/v4.28.0...v4.29.0) (2024-01-31)
 
 
