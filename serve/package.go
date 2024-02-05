@@ -21,6 +21,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -424,14 +425,22 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 				}
 			}
 
+			g := new(errgroup.Group)
 			targets := []TargetBuild{}
 			for _, target := range s.plugin.Targets() {
-				fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
-				targetBuild, err := s.build(pluginDirectory, target, distPath, pluginVersion)
-				if err != nil {
-					return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
-				}
-				targets = append(targets, *targetBuild)
+				target := target
+				g.Go(func() error {
+					fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
+					targetBuild, err := s.build(pluginDirectory, target, distPath, pluginVersion)
+					if err != nil {
+						return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
+					}
+					targets = append(targets, *targetBuild)
+					return nil
+				})
+			}
+			if err := g.Wait(); err != nil {
+				return err
 			}
 			if err := s.writePackageJSON(distPath, pluginVersion, message, targets); err != nil {
 				return fmt.Errorf("failed to write manifest: %w", err)
