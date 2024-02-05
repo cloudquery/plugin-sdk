@@ -104,7 +104,8 @@ func validateLicenseFile(logger zerolog.Logger, meta plugin.Meta, licenseFile st
 
 	if len(l.Plugins) > 0 {
 		ref := strings.Join([]string{meta.Team, string(meta.Kind), meta.Name}, "/")
-		if !slices.Contains(l.Plugins, ref) {
+		teamRef := meta.Team + "/*"
+		if !slices.Contains(l.Plugins, ref) && !slices.Contains(l.Plugins, teamRef) {
 			return ErrLicenseNotApplicable
 		}
 	}
