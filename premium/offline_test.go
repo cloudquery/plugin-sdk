@@ -113,6 +113,41 @@ func TestValidateSpecificLicenseMultiFile(t *testing.T) {
 	t.Run("NotApplicable", licenseTest(dir, invalidMeta, validTime, ErrLicenseNotApplicable))
 }
 
+func TestValidateTeamLicense(t *testing.T) {
+	publicKey = `de452e6028fe488f56ee0dfcf5b387ee773f03d24de66f00c40ec5b17085c549`
+	licData := `{"license":"eyJsaWNlbnNlZF90byI6IlVOTElDRU5TRUQgVEVTVCIsInBsdWdpbnMiOlsidGVzdC10ZWFtLyoiXSwiaXNzdWVkX2F0IjoiMjAyNC0wMi0wNVQxNjozOTozMy4zMzkxMjZaIiwidmFsaWRfZnJvbSI6IjIwMjQtMDItMDVUMTY6Mzk6MzMuMzM5MTI2WiIsImV4cGlyZXNfYXQiOiIyMDI0LTAyLTA2VDE2OjM5OjMzLjMzOTEyNloifQ==","signature":"cba85dcbd48d909f92d6e84d1d56b47075484efb2a7db1c478fc09659bb498e2a761add3c743c2d9a50b82b29b1730600cd8f68d6571896ca7d08f3107751e07"}`
+	validTime := time.Date(2024, 2, 5, 18, 0, 0, 0, time.UTC)
+	expiredTime := time.Date(2024, 2, 6, 18, 0, 0, 0, time.UTC)
+	invalidMeta := plugin.Meta{Team: "cloudquery", Kind: "source", Name: "test"}
+	validMeta1 := plugin.Meta{Team: "test-team", Kind: "source", Name: "some-plugin"}
+	validMeta2 := plugin.Meta{Team: "test-team", Kind: "destination", Name: "some-plugin2"}
+
+	t.Run("SingleFile", func(t *testing.T) {
+		dir := t.TempDir()
+		f := filepath.Join(dir, "testlicense.cqlicense")
+		if err := os.WriteFile(f, []byte(licData), 0644); err != nil {
+			require.NoError(t, err)
+		}
+
+		t.Run("Expired1", licenseTest(f, validMeta1, expiredTime, ErrLicenseExpired))
+		t.Run("Expired2", licenseTest(f, validMeta2, expiredTime, ErrLicenseExpired))
+		t.Run("Success1", licenseTest(f, validMeta1, validTime, nil))
+		t.Run("Success2", licenseTest(f, validMeta2, validTime, nil))
+		t.Run("NotApplicable", licenseTest(f, invalidMeta, validTime, ErrLicenseNotApplicable))
+	})
+	t.Run("SingleDir", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "testlicense.cqlicense"), []byte(licData), 0644); err != nil {
+			require.NoError(t, err)
+		}
+		t.Run("Expired1", licenseTest(dir, validMeta1, expiredTime, ErrLicenseExpired))
+		t.Run("Expired2", licenseTest(dir, validMeta2, expiredTime, ErrLicenseExpired))
+		t.Run("Success1", licenseTest(dir, validMeta1, validTime, nil))
+		t.Run("Success2", licenseTest(dir, validMeta2, validTime, nil))
+		t.Run("NotApplicable", licenseTest(dir, invalidMeta, validTime, ErrLicenseNotApplicable))
+	})
+}
+
 func licenseTest(inputPath string, meta plugin.Meta, timeIs time.Time, expectError error) func(t *testing.T) {
 	return func(t *testing.T) {
 		timeFunc = func() time.Time {
