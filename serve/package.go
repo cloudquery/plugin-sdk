@@ -426,8 +426,10 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			}
 
 			g := new(errgroup.Group)
-			targets := []TargetBuild{}
-			for _, target := range s.plugin.Targets() {
+
+			targets := make([]TargetBuild, len(s.plugin.Targets()))
+			for i, target := range s.plugin.Targets() {
+				i := i
 				target := target
 				g.Go(func() error {
 					fmt.Println("Building for OS: " + target.OS + ", ARCH: " + target.Arch)
@@ -435,7 +437,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 					if err != nil {
 						return fmt.Errorf("failed to build plugin for %s/%s: %w", target.OS, target.Arch, err)
 					}
-					targets = append(targets, *targetBuild)
+					targets[i] = *targetBuild
 					return nil
 				})
 			}
