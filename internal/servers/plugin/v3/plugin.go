@@ -67,7 +67,7 @@ func (s *Server) GetSpecSchema(context.Context, *pb.GetSpecSchema_Request) (*pb.
 		return &pb.GetSpecSchema_Response{}, nil
 	}
 
-	return &pb.GetSpecSchema_Response{JsonSchema: []byte(sc)}, nil
+	return &pb.GetSpecSchema_Response{JsonSchema: &sc}, nil
 }
 
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
