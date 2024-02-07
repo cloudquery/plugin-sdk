@@ -61,6 +61,15 @@ func (s *Server) GetVersion(context.Context, *pb.GetVersion_Request) (*pb.GetVer
 	}, nil
 }
 
+func (s *Server) GetSpecSchema(context.Context, *pb.GetSpecSchema_Request) (*pb.GetSpecSchema_Response, error) {
+	sc := s.Plugin.JSONSchema()
+	if len(sc) == 0 {
+		return &pb.GetSpecSchema_Response{}, nil
+	}
+
+	return &pb.GetSpecSchema_Response{JsonSchema: []byte(sc)}, nil
+}
+
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
 	if err := s.Plugin.Init(ctx, req.Spec, plugin.NewClientOptions{NoConnection: req.NoConnection}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
