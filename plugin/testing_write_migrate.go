@@ -21,13 +21,20 @@ func tableUUIDSuffix() string {
 
 // nolint:revive
 func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, source *schema.Table, supportsSafeMigrate bool, writeOptionMigrateForce bool) error {
-	const rowsPerRecord = 10
+	var rowsPerRecord = int(10)
 	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
 		Table:        source,
 		MigrateForce: writeOptionMigrateForce,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
+
+	records, err := s.plugin.readAll(ctx, source)
+	if err != nil {
+		return fmt.Errorf("failed to read initial records: %w", err)
+	}
+
+	initialItems := int(TotalRows(records))
 
 	sourceName := target.Name
 	syncTime := time.Now().UTC().Round(1 * time.Second)
@@ -37,7 +44,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
 	}
-	tg := schema.NewTestDataGenerator()
+	tg := schema.NewTestDataGenerator(uint64(initialItems))
 	resource1 := tg.Generate(source, opts)
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: resource1,
@@ -46,16 +53,17 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	}
 	resource1 = s.handleNulls(resource1) // we process nulls after writing
 
-	records, err := s.plugin.readAll(ctx, source)
+	records, err = s.plugin.readAll(ctx, source)
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
 	totalItems := TotalRows(records)
-	if totalItems != rowsPerRecord {
+	if totalItems-int64(initialItems) != int64(rowsPerRecord) {
 		return fmt.Errorf("expected items: %d, got: %d", rowsPerRecord, totalItems)
 	}
 	sortRecords(source, records, "id")
-	if diff := RecordsDiff(source.ToArrowSchema(), records, []arrow.Record{resource1}); diff != "" {
+
+	if diff := RecordsDiff(source.ToArrowSchema(), records[initialItems:], []arrow.Record{resource1}); diff != "" {
 		return fmt.Errorf("first record differs from expectation: %s", diff)
 	}
 
@@ -79,14 +87,14 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to readAll: %w", err)
 	}
 	sortRecords(target, records, "id")
-
+	records = records[initialItems:]
 	lastRow := resource2.NewSlice(resource2.NumRows()-1, resource2.NumRows())
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
 	if !writeOptionMigrateForce || supportsSafeMigrate {
-		if err := expectRows(target.ToArrowSchema(), records, 2*rowsPerRecord, lastRow); err != nil {
-			if writeOptionMigrateForce && TotalRows(records) == rowsPerRecord {
+		if err := expectRows(target.ToArrowSchema(), records, 2*int64(rowsPerRecord), lastRow); err != nil {
+			if writeOptionMigrateForce && TotalRows(records) == int64(rowsPerRecord) {
 				// if force migration is required, we can also expect 1 item to be dropped
-				return expectRows(target.ToArrowSchema(), records, rowsPerRecord, lastRow)
+				return expectRows(target.ToArrowSchema(), records, int64(rowsPerRecord), lastRow)
 			}
 
 			return err
@@ -95,7 +103,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return nil
 	}
 
-	return expectRows(target.ToArrowSchema(), records, rowsPerRecord, lastRow)
+	return expectRows(target.ToArrowSchema(), records, int64(rowsPerRecord), lastRow)
 }
 
 // nolint:revive
@@ -254,6 +262,35 @@ func (s *WriterTestSuite) testMigrate(
 		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.MovePKToCQOnly, forceMigrate); err != nil {
 			t.Fatalf("failed to migrate move_to_cq_id_only: %v", err)
 		}
+		require.NoError(t, s.migrate(ctx, target, target, true, false))
+
+	})
+	t.Run("move_to_cq_id_only_adding_pkc"+suffix, func(t *testing.T) {
+		if !forceMigrate && !s.tests.SafeMigrations.MovePKToCQOnly {
+			t.Skip("skipping test: move_to_cq_id_only_adding_pk")
+		}
+		tableName := "move_to_cq_id_only_adding_pkc" + suffix + "_" + tableUUIDSuffix()
+		source := &schema.Table{
+			Name: tableName,
+			Columns: schema.ColumnList{
+				{Name: "_cq_id", Type: types.ExtensionTypes.UUID, NotNull: true, Unique: true},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64, PrimaryKey: true},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true, PrimaryKeyComponent: true},
+			}}
+		target := &schema.Table{
+			Name: tableName,
+			Columns: schema.ColumnList{
+				{Name: "_cq_id", Type: types.ExtensionTypes.UUID, NotNull: true, Unique: true, PrimaryKey: true},
+				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "uuid", Type: types.ExtensionTypes.UUID},
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
+			}}
+		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.MovePKToCQOnly, forceMigrate); err != nil {
+			t.Fatalf("failed to migrate move_to_cq_id_only_adding_pkc: %v", err)
+		}
+		require.NoError(t, s.migrate(ctx, target, target, true, false))
+
 	})
 
 	t.Run("double_migration", func(t *testing.T) {
