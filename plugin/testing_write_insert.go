@@ -89,7 +89,7 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
-	tg := schema.NewTestDataGenerator()
+	tg := schema.NewTestDataGenerator(0)
 	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
