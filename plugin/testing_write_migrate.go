@@ -33,7 +33,6 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if err != nil {
 		return fmt.Errorf("failed to read initial records: %w", err)
 	}
-
 	initialItems := int(TotalRows(records))
 
 	sourceName := target.Name
@@ -44,6 +43,9 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,
 	}
+	// Test Generator should be initialized with the current number of items in the destination
+	// this allows us to have multi-pass tests that ensure the migrations are stable
+	// create--> write --> migrate --> write -->migrate -->write-->migrate -->write
 	tg := schema.NewTestDataGenerator(uint64(initialItems))
 	resource1 := tg.Generate(source, opts)
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
@@ -57,13 +59,15 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	if err != nil {
 		return fmt.Errorf("failed to sync: %w", err)
 	}
+	sortRecords(source, records, "id")
+	records = records[initialItems:]
+
 	totalItems := TotalRows(records)
-	if totalItems-int64(initialItems) != int64(rowsPerRecord) {
+	if totalItems != int64(rowsPerRecord) {
 		return fmt.Errorf("expected items: %d, got: %d", rowsPerRecord, totalItems)
 	}
-	sortRecords(source, records, "id")
 
-	if diff := RecordsDiff(source.ToArrowSchema(), records[initialItems:], []arrow.Record{resource1}); diff != "" {
+	if diff := RecordsDiff(source.ToArrowSchema(), records, []arrow.Record{resource1}); diff != "" {
 		return fmt.Errorf("first record differs from expectation: %s", diff)
 	}
 
@@ -137,8 +141,9 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 			},
 		}
-		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.AddColumn, forceMigrate); err != nil {
-			t.Fatalf("failed to migrate %s: %v", tableName, err)
+		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.AddColumn, forceMigrate))
+		if !forceMigrate {
+			require.NoError(t, s.migrate(ctx, target, target, true, false))
 		}
 	})
 
@@ -162,9 +167,11 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.AddColumnNotNull, forceMigrate); err != nil {
-			t.Fatalf("failed to migrate add_column_not_null: %v", err)
+		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.AddColumnNotNull, forceMigrate))
+		if !forceMigrate {
+			require.NoError(t, s.migrate(ctx, target, target, true, false))
 		}
+
 	})
 
 	t.Run("remove_column"+suffix, func(t *testing.T) {
@@ -185,8 +192,9 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
 				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveColumn, forceMigrate); err != nil {
-			t.Fatalf("failed to migrate remove_column: %v", err)
+		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveColumn, forceMigrate))
+		if !forceMigrate {
+			require.NoError(t, s.migrate(ctx, target, target, true, false))
 		}
 	})
 
@@ -209,8 +217,9 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "id", Type: arrow.PrimitiveTypes.Int64},
 				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveColumnNotNull, forceMigrate); err != nil {
-			t.Fatalf("failed to migrate remove_column_not_null: %v", err)
+		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveColumnNotNull, forceMigrate))
+		if !forceMigrate {
+			require.NoError(t, s.migrate(ctx, target, target, true, false))
 		}
 	})
 
@@ -233,8 +242,9 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.BinaryTypes.String, NotNull: true},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.ChangeColumn, forceMigrate); err != nil {
-			t.Fatalf("failed to migrate change_column: %v", err)
+		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.ChangeColumn, forceMigrate))
+		if !forceMigrate {
+			require.NoError(t, s.migrate(ctx, target, target, true, false))
 		}
 	})
 
@@ -259,11 +269,10 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.MovePKToCQOnly, forceMigrate); err != nil {
-			t.Fatalf("failed to migrate move_to_cq_id_only: %v", err)
+		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.MovePKToCQOnly, forceMigrate))
+		if !forceMigrate {
+			require.NoError(t, s.migrate(ctx, target, target, true, false))
 		}
-		require.NoError(t, s.migrate(ctx, target, target, true, false))
-
 	})
 	t.Run("move_to_cq_id_only_adding_pkc"+suffix, func(t *testing.T) {
 		if !forceMigrate && !s.tests.SafeMigrations.MovePKToCQOnly {
@@ -286,11 +295,10 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
-		if err := s.migrate(ctx, target, source, s.tests.SafeMigrations.MovePKToCQOnly, forceMigrate); err != nil {
-			t.Fatalf("failed to migrate move_to_cq_id_only_adding_pkc: %v", err)
+		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.MovePKToCQOnly, forceMigrate))
+		if !forceMigrate {
+			require.NoError(t, s.migrate(ctx, target, target, true, false))
 		}
-		require.NoError(t, s.migrate(ctx, target, target, true, false))
-
 	})
 
 	t.Run("double_migration", func(t *testing.T) {
