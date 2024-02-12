@@ -124,7 +124,7 @@ func (s *WriterTestSuite) testMigrate(
 		if !forceMigrate && !s.tests.SafeMigrations.AddColumn {
 			t.Skip("skipping test: add_column")
 		}
-		tableName := "add_column" + suffix + "_" + tableUUIDSuffix()
+		tableName := "cq_add_column" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -151,7 +151,7 @@ func (s *WriterTestSuite) testMigrate(
 		if !forceMigrate && !s.tests.SafeMigrations.AddColumnNotNull {
 			t.Skip("skipping test: add_column_not_null")
 		}
-		tableName := "add_column_not_null" + suffix + "_" + tableUUIDSuffix()
+		tableName := "cq_add_column_not_null" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -178,7 +178,7 @@ func (s *WriterTestSuite) testMigrate(
 		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumn {
 			t.Skip("skipping test: remove_column")
 		}
-		tableName := "remove_column" + suffix + "_" + tableUUIDSuffix()
+		tableName := "cq_remove_column" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -202,7 +202,7 @@ func (s *WriterTestSuite) testMigrate(
 		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumnNotNull {
 			t.Skip("skipping test: remove_column_not_null")
 		}
-		tableName := "remove_column_not_null" + suffix + "_" + tableUUIDSuffix()
+		tableName := "cq_remove_column_not_null" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -227,7 +227,7 @@ func (s *WriterTestSuite) testMigrate(
 		if !forceMigrate && !s.tests.SafeMigrations.ChangeColumn {
 			t.Skip("skipping test: change_column")
 		}
-		tableName := "change_column" + suffix + "_" + tableUUIDSuffix()
+		tableName := "cq_change_column" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -252,7 +252,7 @@ func (s *WriterTestSuite) testMigrate(
 		if !forceMigrate && !s.tests.SafeMigrations.MovePKToCQOnly {
 			t.Skip("skipping test: move_to_cq_id_only")
 		}
-		tableName := "move_to_cq_id_only" + suffix + "_" + tableUUIDSuffix()
+		tableName := "cq_move_to_cq_id_only" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -278,7 +278,7 @@ func (s *WriterTestSuite) testMigrate(
 		if !forceMigrate && !s.tests.SafeMigrations.MovePKToCQOnly {
 			t.Skip("skipping test: move_to_cq_id_only_adding_pk")
 		}
-		tableName := "move_to_cq_id_only_adding_pkc" + suffix + "_" + tableUUIDSuffix()
+		tableName := "cq_move_to_cq_id_only_adding_pkc" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
 			Columns: schema.ColumnList{
@@ -305,7 +305,7 @@ func (s *WriterTestSuite) testMigrate(
 		if forceMigrate {
 			t.Skip("double migration test has sense only for safe migrations")
 		}
-		tableName := "double_migration_" + tableUUIDSuffix()
+		tableName := "cq_double_migration_" + tableUUIDSuffix()
 		table := schema.TestTable(tableName, s.genDatOptions)
 		// s.migrate will perform create->write->migrate->write
 		require.NoError(t, s.migrate(ctx, table, table, true, false))
