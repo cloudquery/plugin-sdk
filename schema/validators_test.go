@@ -13,7 +13,7 @@ import (
 
 func TestFindEmptyColumns(t *testing.T) {
 	table := TestTable("test", TestSourceOptions{})
-	tg := NewTestDataGenerator()
+	tg := NewTestDataGenerator(0)
 	record := tg.Generate(table, GenTestDataOptions{
 		MaxRows:  1,
 		NullRows: true,
@@ -25,7 +25,7 @@ func TestFindEmptyColumns(t *testing.T) {
 
 func TestFindEmptyColumnsNotEmpty(t *testing.T) {
 	table := TestTable("test", TestSourceOptions{})
-	tg := NewTestDataGenerator()
+	tg := NewTestDataGenerator(0)
 	record := tg.Generate(table, GenTestDataOptions{
 		MaxRows:  1,
 		NullRows: false,
