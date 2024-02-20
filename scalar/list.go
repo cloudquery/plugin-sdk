@@ -106,7 +106,7 @@ func (s *List) Set(val any) error {
 
 	case []byte:
 		var x []any
-		if err := json.Unmarshal([]byte(value), &x); err != nil {
+		if err := json.Unmarshal(value, &x); err != nil {
 			return err
 		}
 		length := len(x)
