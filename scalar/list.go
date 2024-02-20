@@ -1,6 +1,7 @@
 package scalar
 
 import (
+	"encoding/json"
 	"reflect"
 	"strings"
 
@@ -83,6 +84,49 @@ func (s *List) Set(val any) error {
 	reflectedValue := reflect.ValueOf(val)
 	if !reflectedValue.IsValid() || reflectedValue.IsZero() {
 		return nil
+	}
+
+	switch value := val.(type) {
+	case string:
+		var x []any
+		if err := json.Unmarshal([]byte(value), &x); err != nil {
+			return err
+		}
+		length := len(x)
+		s.Value = make(Vector, length)
+		for i := 0; i < length; i++ {
+			s.Value[i] = NewScalar(s.Type.(*arrow.ListType).Elem())
+			if x[i] == nil {
+				continue
+			}
+			if err := s.Value[i].Set(x[i]); err != nil {
+				return err
+			}
+		}
+
+	case []byte:
+		var x []any
+		if err := json.Unmarshal([]byte(value), &x); err != nil {
+			return err
+		}
+		length := len(x)
+		s.Value = make(Vector, length)
+		for i := 0; i < length; i++ {
+			s.Value[i] = NewScalar(s.Type.(*arrow.ListType).Elem())
+			if x[i] == nil {
+				continue
+			}
+			if err := s.Value[i].Set(x[i]); err != nil {
+				return err
+			}
+		}
+
+	case *string:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		return s.Set(*value)
 	}
 
 	switch reflectedValue.Kind() {
