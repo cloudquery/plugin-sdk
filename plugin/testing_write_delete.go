@@ -91,7 +91,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 	table.Columns[table.Columns.Index("id")].PrimaryKey = true
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteMigrateTable{Table: table}), "failed to create table")
 
-	tg := schema.NewTestDataGenerator()
+	tg := schema.NewTestDataGenerator(0)
 	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:       rowsPerRecord,
 		TimePrecision: s.genDatOptions.TimePrecision,

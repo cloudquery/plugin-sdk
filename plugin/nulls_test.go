@@ -14,7 +14,7 @@ import (
 func TestWithTestIgnoreNullsInLists(t *testing.T) {
 	s := &WriterTestSuite{ignoreNullsInLists: true}
 
-	tg := schema.NewTestDataGenerator()
+	tg := schema.NewTestDataGenerator(0)
 	source := schema.TestTable("ignore_nulls_in_lists", schema.TestSourceOptions{})
 	resource := s.handleNulls(tg.Generate(source, schema.GenTestDataOptions{
 		SourceName: "allow_null",
@@ -59,7 +59,7 @@ func TestWithTestSourceAllowNull(t *testing.T) {
 		}
 	}}
 
-	tg := schema.NewTestDataGenerator()
+	tg := schema.NewTestDataGenerator(0)
 	source := schema.TestTable("allow_null", schema.TestSourceOptions{})
 	resource := s.handleNulls(tg.Generate(source, schema.GenTestDataOptions{
 		SourceName: "allow_null",
