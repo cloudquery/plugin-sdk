@@ -37,6 +37,15 @@ func TestListSet(t *testing.T) {
 			&Inet{Valid: false},
 			&Inet{Valid: false},
 		}, Valid: true, Type: arrow.ListOf(types.ExtensionTypes.Inet)}},
+		{source: `[1, 2]`, result: List{Value: []Scalar{
+			&Int{Value: 1, Valid: true},
+			&Int{Value: 2, Valid: true},
+		}, Valid: true, Type: arrow.ListOf(arrow.PrimitiveTypes.Int64)}},
+		{source: `[1, null, 2]`, result: List{Value: []Scalar{
+			&Int{Value: 1, Valid: true},
+			&Int{Valid: false},
+			&Int{Value: 2, Valid: true},
+		}, Valid: true, Type: arrow.ListOf(arrow.PrimitiveTypes.Int64)}},
 	}
 
 	for i, tt := range successfulTests {
