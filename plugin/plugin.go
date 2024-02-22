@@ -179,7 +179,7 @@ func (p *Plugin) Targets() []BuildTarget {
 }
 
 func (p *Plugin) SetLogger(logger zerolog.Logger) {
-	p.logger = logger.With().Str("module", p.name+"-src").Logger()
+	p.logger = logger.With().Str("module", p.name+"-"+string(p.Kind())).Logger()
 }
 
 func (p *Plugin) Tables(ctx context.Context, options TableOptions) (schema.Tables, error) {
