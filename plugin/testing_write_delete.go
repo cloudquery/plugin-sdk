@@ -93,10 +93,11 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 
 	tg := schema.NewTestDataGenerator(0)
 	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
-		MaxRows:       rowsPerRecord,
-		TimePrecision: s.genDatOptions.TimePrecision,
-		SourceName:    "test",
-		SyncTime:      syncTime, // Generate call may truncate the value further based on the options
+		MaxRows:            rowsPerRecord,
+		TimePrecision:      s.genDatOptions.TimePrecision,
+		SourceName:         "test",
+		SyncTime:           syncTime, // Generate call may truncate the value further based on the options
+		UseHomogeneousType: s.useHomogeneousTypes,
 	})
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteInsert{Record: normalRecord}), "failed to insert record")
 	normalRecord = s.handleNulls(normalRecord) // we process nulls after writing
@@ -118,11 +119,12 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 	// https://github.com/golang/go/issues/41087
 	syncTime = time.Now().UTC().Truncate(time.Microsecond)
 	nullRecord := tg.Generate(table, schema.GenTestDataOptions{
-		MaxRows:       rowsPerRecord,
-		TimePrecision: s.genDatOptions.TimePrecision,
-		NullRows:      true,
-		SourceName:    "test",
-		SyncTime:      syncTime, // Generate call may truncate the value further based on the options
+		MaxRows:            rowsPerRecord,
+		TimePrecision:      s.genDatOptions.TimePrecision,
+		NullRows:           true,
+		SourceName:         "test",
+		SyncTime:           syncTime, // Generate call may truncate the value further based on the options
+		UseHomogeneousType: s.useHomogeneousTypes,
 	})
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteInsert{Record: nullRecord}), "failed to insert record second time")
 	nullRecord = s.handleNulls(nullRecord) // we process nulls after writing

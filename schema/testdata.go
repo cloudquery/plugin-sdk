@@ -196,6 +196,8 @@ type GenTestDataOptions struct {
 	TimePrecision time.Duration
 	// NullRows indicates whether to generate rows with all null values.
 	NullRows bool
+	// UseHomogeneousType indicates whether to use a single type for JSON arrays.
+	UseHomogeneousType bool
 }
 
 type TestDataGenerator struct {
@@ -298,6 +300,9 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.JSON) {
 		if strings.HasSuffix(colName, "_array") {
 			return `[{"test":"test"},123,{"test_number":456}]`
+		}
+		if opts.UseHomogeneousType {
+			return `{"test":["a", "b", "c"]}`
 		}
 		return `{"test":["a","b",3]}`
 	}
