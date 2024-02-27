@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.31.0](https://github.com/cloudquery/plugin-sdk/compare/v4.30.0...v4.31.0) (2024-02-27)
+
+
+### Features
+
+* Allow homogeneous data types to be configured ([#1533](https://github.com/cloudquery/plugin-sdk/issues/1533)) ([ca7cdb8](https://github.com/cloudquery/plugin-sdk/commit/ca7cdb8b150900a315a694626d394775bcfc6b90))
+
+
+### Bug Fixes
+
+* Default Plugin logger assumes plugin is a `source` ([#1531](https://github.com/cloudquery/plugin-sdk/issues/1531)) ([b7dcd56](https://github.com/cloudquery/plugin-sdk/commit/b7dcd56e25abfea5992f4746910d5c39ce93e121))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.18.0 ([#1528](https://github.com/cloudquery/plugin-sdk/issues/1528)) ([4cc6ade](https://github.com/cloudquery/plugin-sdk/commit/4cc6adeb4edfb9bf8b8b51716ceefec284d43548))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.0 ([#1532](https://github.com/cloudquery/plugin-sdk/issues/1532)) ([4b475bb](https://github.com/cloudquery/plugin-sdk/commit/4b475bbd5d61e533fd0aad1d80f7dfe5e58b039d))
+* Support list scalars from JSON ([#1530](https://github.com/cloudquery/plugin-sdk/issues/1530)) ([cf13dd5](https://github.com/cloudquery/plugin-sdk/commit/cf13dd56e0d54a1c6d5f72d7590991d8c676a233))
+
 ## [4.30.0](https://github.com/cloudquery/plugin-sdk/compare/v4.29.1...v4.30.0) (2024-02-16)
 
 
