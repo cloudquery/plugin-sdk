@@ -38,10 +38,11 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 	sourceName := target.Name
 	syncTime := time.Now().UTC().Round(1 * time.Second)
 	opts := schema.GenTestDataOptions{
-		SourceName:    sourceName,
-		SyncTime:      syncTime,
-		MaxRows:       rowsPerRecord,
-		TimePrecision: s.genDatOptions.TimePrecision,
+		SourceName:         sourceName,
+		SyncTime:           syncTime,
+		MaxRows:            rowsPerRecord,
+		TimePrecision:      s.genDatOptions.TimePrecision,
+		UseHomogeneousType: s.useHomogeneousTypes,
 	}
 	// Test Generator should be initialized with the current number of items in the destination
 	// this allows us to have multi-pass tests that ensure the migrations are stable
