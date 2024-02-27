@@ -299,6 +299,9 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.JSON) {
 		if strings.HasSuffix(colName, "_array") {
+			if opts.UseHomogeneousType {
+				return `[{"test1":"test1"},{"test2":"test2"},{"test3":"test3"}]`
+			}
 			return `[{"test":"test"},123,{"test_number":456}]`
 		}
 		if opts.UseHomogeneousType {
