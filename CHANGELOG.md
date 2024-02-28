@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.32.0](https://github.com/cloudquery/plugin-sdk/compare/v4.31.0...v4.32.0) (2024-02-28)
+
+
+### Features
+
+* Skip table validation during init ([#1536](https://github.com/cloudquery/plugin-sdk/issues/1536)) ([fb09f20](https://github.com/cloudquery/plugin-sdk/commit/fb09f20cdc3603bcbfdff6fc060c49992ee4e881))
+
+
+### Bug Fixes
+
+* Remove unreachable code ([#1537](https://github.com/cloudquery/plugin-sdk/issues/1537)) ([6cae5a4](https://github.com/cloudquery/plugin-sdk/commit/6cae5a44323169d568c0c7a8e236bbcac83d7498))
+
 ## [4.31.0](https://github.com/cloudquery/plugin-sdk/compare/v4.30.0...v4.31.0) (2024-02-27)
 
 
