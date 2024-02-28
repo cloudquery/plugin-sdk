@@ -23,6 +23,9 @@ func validateTables(tables schema.Tables) error {
 }
 
 func (p *Plugin) validate(ctx context.Context) error {
+	if p.skipTableValidation {
+		return nil
+	}
 	tables, err := p.client.Tables(ctx, TableOptions{Tables: []string{"*"}})
 	// ErrNotImplemented means it's a destination only plugin
 	if err != nil && !errors.Is(err, ErrNotImplemented) {
