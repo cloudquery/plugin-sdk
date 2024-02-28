@@ -208,9 +208,6 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 		return "", fmt.Errorf("failed to parse import path from go.mod")
 	}
 	importPath := importPathMatches[1]
-	if err != nil {
-		return "", fmt.Errorf("failed to get import path: %w", err)
-	}
 	return strings.TrimSpace(importPath), nil
 }
 
