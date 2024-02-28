@@ -80,6 +80,8 @@ type Plugin struct {
 	schemaValidator *jsonschema.Schema
 	// skips the usage client
 	skipUsageClient bool
+	// skips table validation
+	skipTableValidation bool
 }
 
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
@@ -142,6 +144,11 @@ func (p *Plugin) Meta() Meta {
 // SetSkipUsageClient sets whether the usage client should be skipped
 func (p *Plugin) SetSkipUsageClient(v bool) {
 	p.skipUsageClient = v
+}
+
+// SetSkipTableValidation sets whether table validation should be skipped
+func (p *Plugin) SetSkipTableValidation(v bool) {
+	p.skipTableValidation = v
 }
 
 type OnBeforeSender interface {
