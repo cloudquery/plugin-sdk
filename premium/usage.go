@@ -189,7 +189,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 
 	// Create a default api client if none was provided
 	if u.apiClient == nil {
-		ac, err := cqapi.NewClientWithResponses(u.url, cqapi.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+		ac, err := cqapi.NewClientWithResponses(u.url, cqapi.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
 			token, err := u.tokenClient.GetToken()
 			if err != nil {
 				return fmt.Errorf("failed to get token: %w", err)
