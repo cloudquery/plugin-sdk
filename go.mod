@@ -11,7 +11,7 @@ require (
 	github.com/getsentry/sentry-go v0.24.1
 	github.com/goccy/go-json v0.10.2
 	github.com/google/go-cmp v0.6.0
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1
 	github.com/invopop/jsonschema v0.10.0
 	github.com/rs/zerolog v1.29.1
@@ -26,7 +26,7 @@ require (
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	golang.org/x/sync v0.6.0
 	golang.org/x/text v0.14.0
-	google.golang.org/grpc v1.61.1
+	google.golang.org/grpc v1.62.0
 	google.golang.org/protobuf v1.32.0
 )
 
