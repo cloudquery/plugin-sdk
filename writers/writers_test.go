@@ -143,7 +143,7 @@ func makeWideRecord() func() arrow.Record {
 }
 
 func writerMatrix[T writers.Writer, C any, O ~func(T)](prefix string, constructor func(C, ...O) (T, error), client C, recordMaker func() func() arrow.Record, optsMatrix map[string][]O) []bCase {
-	var bCases []bCase
+	bCases := make([]bCase, len(optsMatrix))
 
 	k := maps.Keys(optsMatrix)
 	sort.Strings(k)
