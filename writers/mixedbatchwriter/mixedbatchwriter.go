@@ -192,7 +192,7 @@ func (m *batchManager[A, T]) flush(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	m.batch = m.batch[:0]
+	m.batch = nil
 	return nil
 }
 
