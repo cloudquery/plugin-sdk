@@ -24,6 +24,9 @@ type WriterTestSuite struct {
 	// Destination setups that don't support nulls in lists should set this to true.
 	ignoreNullsInLists bool
 
+	// useHomogeneousTypes use the same type for all items within an array - useful for destinations that don't support mixed types.
+	useHomogeneousTypes bool
+
 	// genDataOptions define how to generate test data and which data types to skip
 	genDatOptions schema.TestSourceOptions
 
@@ -89,6 +92,12 @@ func WithTestDataOptions(opts schema.TestSourceOptions) func(o *WriterTestSuite)
 func WithRandomSeed(seed int64) func(o *WriterTestSuite) {
 	return func(o *WriterTestSuite) {
 		o.randSeed = seed
+	}
+}
+
+func WithHomogeneousTypes() func(o *WriterTestSuite) {
+	return func(o *WriterTestSuite) {
+		o.useHomogeneousTypes = true
 	}
 }
 

@@ -11,11 +11,8 @@ import (
 
 	"github.com/apache/arrow/go/v15/arrow"
 
-	"github.com/apache/arrow/go/v15/arrow/array"
-	"github.com/apache/arrow/go/v15/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
-	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
@@ -225,10 +222,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 
 func resourceToRecord(resource *schema.Resource) arrow.Record {
 	vector := resource.GetValues()
-	bldr := array.NewRecordBuilder(memory.DefaultAllocator, resource.Table.ToArrowSchema())
-	scalar.AppendToRecordBuilder(bldr, vector)
-	rec := bldr.NewRecord()
-	return rec
+	return vector.ToArrowRecord(resource.Table.ToArrowSchema())
 }
 
 func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {

@@ -91,8 +91,9 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	}
 	tg := schema.NewTestDataGenerator(0)
 	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
-		MaxRows:       rowsPerRecord,
-		TimePrecision: s.genDatOptions.TimePrecision,
+		MaxRows:            rowsPerRecord,
+		TimePrecision:      s.genDatOptions.TimePrecision,
+		UseHomogeneousType: s.useHomogeneousTypes,
 	})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: normalRecord,
