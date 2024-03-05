@@ -39,7 +39,7 @@ func BenchmarkWriterMemory(b *testing.B) {
 		"defaults":  nil,
 		"bytes100M": {streamingbatchwriter.WithBatchSizeBytes(100000000)},
 	}
-	const Nmultiplier = 1000
+	const multiplyN = 1000
 
 	var bCases []bCase
 	bCases = append(bCases, writerMatrix[*batchwriter.BatchWriter, batchwriter.Client, batchwriter.Option]("BatchWriter", batchwriter.New, &batchwriterClient{}, makeRecord, batchwriterOpts)...)
@@ -66,7 +66,7 @@ func BenchmarkWriterMemory(b *testing.B) {
 
 			runtime.ReadMemStats(&mStart)
 			b.ResetTimer()
-			for i := 0; i < b.N*Nmultiplier; i++ {
+			for i := 0; i < b.N*multiplyN; i++ {
 				rec := c.rec()
 				ch <- &message.WriteInsert{
 					Record: rec,
