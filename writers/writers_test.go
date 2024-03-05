@@ -29,11 +29,11 @@ type bCase struct {
 func BenchmarkWriterMemory(b *testing.B) {
 	batchwriterOpts := map[string][]batchwriter.Option{
 		"defaults":           nil,
-		"batch10k/bytes100M": {batchwriter.WithBatchSizeBytes(100000000), batchwriter.WithBatchSize(10000)},
+		"batch10k bytes100M": {batchwriter.WithBatchSizeBytes(100000000), batchwriter.WithBatchSize(10000)},
 	}
 	mixedbatchwriterOpts := map[string][]mixedbatchwriter.Option{
 		"defaults":           nil,
-		"batch10k/bytes100M": {mixedbatchwriter.WithBatchSizeBytes(100000000), mixedbatchwriter.WithBatchSize(10000)},
+		"batch10k bytes100M": {mixedbatchwriter.WithBatchSizeBytes(100000000), mixedbatchwriter.WithBatchSize(10000)},
 	}
 	streamingbatchwriterOpts := map[string][]streamingbatchwriter.Option{
 		"defaults":  nil,
@@ -42,11 +42,11 @@ func BenchmarkWriterMemory(b *testing.B) {
 
 	var bCases []bCase
 	bCases = append(bCases, writerMatrix[*batchwriter.BatchWriter, batchwriter.Client, batchwriter.Option]("BatchWriter", batchwriter.New, &batchwriterClient{}, makeRecord, batchwriterOpts)...)
-	bCases = append(bCases, writerMatrix[*batchwriter.BatchWriter, batchwriter.Client, batchwriter.Option]("BatchWriter: wide", batchwriter.New, &batchwriterClient{}, makeWideRecord, batchwriterOpts)...)
+	bCases = append(bCases, writerMatrix[*batchwriter.BatchWriter, batchwriter.Client, batchwriter.Option]("BatchWriter wide", batchwriter.New, &batchwriterClient{}, makeWideRecord, batchwriterOpts)...)
 	bCases = append(bCases, writerMatrix[*mixedbatchwriter.MixedBatchWriter, mixedbatchwriter.Client, mixedbatchwriter.Option]("MixedBatchWriter", mixedbatchwriter.New, &mixedbatchwriterClient{}, makeRecord, mixedbatchwriterOpts)...)
-	bCases = append(bCases, writerMatrix[*mixedbatchwriter.MixedBatchWriter, mixedbatchwriter.Client, mixedbatchwriter.Option]("MixedBatchWriter: wide", mixedbatchwriter.New, &mixedbatchwriterClient{}, makeWideRecord, mixedbatchwriterOpts)...)
+	bCases = append(bCases, writerMatrix[*mixedbatchwriter.MixedBatchWriter, mixedbatchwriter.Client, mixedbatchwriter.Option]("MixedBatchWriter wide", mixedbatchwriter.New, &mixedbatchwriterClient{}, makeWideRecord, mixedbatchwriterOpts)...)
 	bCases = append(bCases, writerMatrix[*streamingbatchwriter.StreamingBatchWriter, streamingbatchwriter.Client, streamingbatchwriter.Option]("StreamingBatchWriter", streamingbatchwriter.New, &streamingbatchwriterClient{}, makeRecord, streamingbatchwriterOpts)...)
-	bCases = append(bCases, writerMatrix[*streamingbatchwriter.StreamingBatchWriter, streamingbatchwriter.Client, streamingbatchwriter.Option]("StreamingBatchWriter: wide", streamingbatchwriter.New, &streamingbatchwriterClient{}, makeWideRecord, streamingbatchwriterOpts)...)
+	bCases = append(bCases, writerMatrix[*streamingbatchwriter.StreamingBatchWriter, streamingbatchwriter.Client, streamingbatchwriter.Option]("StreamingBatchWriter wide", streamingbatchwriter.New, &streamingbatchwriterClient{}, makeWideRecord, streamingbatchwriterOpts)...)
 
 	for _, c := range bCases {
 		c := c
@@ -140,7 +140,7 @@ func makeWideRecord() func() arrow.Record {
 }
 
 func writerMatrix[T writers.Writer, C any, O ~func(T)](prefix string, constructor func(C, ...O) (T, error), client C, recordMaker func() func() arrow.Record, optsMatrix map[string][]O) []bCase {
-	bCases := make([]bCase, len(optsMatrix))
+	bCases := make([]bCase, 0, len(optsMatrix))
 
 	k := maps.Keys(optsMatrix)
 	sort.Strings(k)
@@ -152,7 +152,7 @@ func writerMatrix[T writers.Writer, C any, O ~func(T)](prefix string, constructo
 			panic(err)
 		}
 		bCases = append(bCases, bCase{
-			name: prefix + ": " + name,
+			name: prefix + " " + name,
 			wr:   wr,
 			rec:  recordMaker(),
 		})
