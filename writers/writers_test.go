@@ -48,9 +48,6 @@ func BenchmarkWriterMemory(b *testing.B) {
 	bCases = append(bCases, writerMatrix[*streamingbatchwriter.StreamingBatchWriter, streamingbatchwriter.Client, streamingbatchwriter.Option]("StreamingBatchWriter", streamingbatchwriter.New, &streamingbatchwriterClient{}, makeRecord, streamingbatchwriterOpts)...)
 	bCases = append(bCases, writerMatrix[*streamingbatchwriter.StreamingBatchWriter, streamingbatchwriter.Client, streamingbatchwriter.Option]("StreamingBatchWriter: wide", streamingbatchwriter.New, &streamingbatchwriterClient{}, makeWideRecord, streamingbatchwriterOpts)...)
 
-	_ = batchwriterOpts
-	_ = streamingbatchwriterOpts
-
 	for _, c := range bCases {
 		c := c
 		b.Run(c.name, func(b *testing.B) {
