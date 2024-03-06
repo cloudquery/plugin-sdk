@@ -42,12 +42,12 @@ func BenchmarkWriterMemory(b *testing.B) {
 	const multiplyN = 1000
 
 	var bCases []bCase
-	bCases = append(bCases, writerMatrix("BatchWriter", batchwriter.New, (batchwriter.Client)(new(batchwriterClient)), makeRecord, batchwriterOpts)...)
-	bCases = append(bCases, writerMatrix("BatchWriter wide", batchwriter.New, (batchwriter.Client)(new(batchwriterClient)), makeWideRecord, batchwriterOpts)...)
-	bCases = append(bCases, writerMatrix("MixedBatchWriter", mixedbatchwriter.New, (mixedbatchwriter.Client)(new(mixedbatchwriterClient)), makeRecord, mixedbatchwriterOpts)...)
-	bCases = append(bCases, writerMatrix("MixedBatchWriter wide", mixedbatchwriter.New, (mixedbatchwriter.Client)(new(mixedbatchwriterClient)), makeWideRecord, mixedbatchwriterOpts)...)
-	bCases = append(bCases, writerMatrix("StreamingBatchWriter", streamingbatchwriter.New, (streamingbatchwriter.Client)(new(streamingbatchwriterClient)), makeRecord, streamingbatchwriterOpts)...)
-	bCases = append(bCases, writerMatrix("StreamingBatchWriter wide", streamingbatchwriter.New, (streamingbatchwriter.Client)(new(streamingbatchwriterClient)), makeWideRecord, streamingbatchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("BatchWriter", batchwriter.New, newBatchWriterClient(), makeRecord, batchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("BatchWriter wide", batchwriter.New, newBatchWriterClient(), makeWideRecord, batchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("MixedBatchWriter", mixedbatchwriter.New, newMixedBatchWriterClient(), makeRecord, mixedbatchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("MixedBatchWriter wide", mixedbatchwriter.New, newMixedBatchWriterClient(), makeWideRecord, mixedbatchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("StreamingBatchWriter", streamingbatchwriter.New, newStreamingBatchWriterClient(), makeRecord, streamingbatchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("StreamingBatchWriter wide", streamingbatchwriter.New, newStreamingBatchWriterClient(), makeWideRecord, streamingbatchwriterOpts)...)
 
 	for _, c := range bCases {
 		c := c
@@ -169,6 +169,10 @@ type mixedbatchwriterClient struct {
 	mixedbatchwriter.UnimplementedDeleteRecordsBatch
 }
 
+func newMixedBatchWriterClient() mixedbatchwriter.Client {
+	return &mixedbatchwriterClient{}
+}
+
 func (mixedbatchwriterClient) InsertBatch(_ context.Context, msgs message.WriteInserts) error {
 	for _, m := range msgs {
 		m.Record.Release()
@@ -184,6 +188,10 @@ type batchwriterClient struct {
 	batchwriter.UnimplementedDeleteRecord
 }
 
+func newBatchWriterClient() batchwriter.Client {
+	return &batchwriterClient{}
+}
+
 func (batchwriterClient) WriteTableBatch(_ context.Context, _ string, msgs message.WriteInserts) error {
 	for _, m := range msgs {
 		m.Record.Release()
@@ -197,6 +205,10 @@ type streamingbatchwriterClient struct {
 	streamingbatchwriter.IgnoreMigrateTable
 	streamingbatchwriter.UnimplementedDeleteStale
 	streamingbatchwriter.UnimplementedDeleteRecords
+}
+
+func newStreamingBatchWriterClient() streamingbatchwriter.Client {
+	return &streamingbatchwriterClient{}
 }
 
 func (streamingbatchwriterClient) WriteTable(_ context.Context, ch <-chan *message.WriteInsert) error {
