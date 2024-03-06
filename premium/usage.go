@@ -38,6 +38,8 @@ type QuotaMonitor interface {
 	TeamName() string
 	// HasQuota returns true if the quota has not been exceeded
 	HasQuota(context.Context) (bool, error)
+	// RemainingRows returns the remaining rows for the plugin
+	RemainingRows(context.Context) (*int64, error)
 }
 
 type UsageClient interface {
@@ -126,10 +128,11 @@ var (
 )
 
 type BatchUpdater struct {
-	logger      zerolog.Logger
-	url         string
-	apiClient   *cqapi.ClientWithResponses
-	tokenClient TokenClient
+	logger       zerolog.Logger
+	url          string
+	apiClient    *cqapi.ClientWithResponses
+	tokenClient  TokenClient
+	quotaChecker *quotaChecker
 
 	// Plugin details
 	teamName   cqapi.TeamName
@@ -244,16 +247,24 @@ func (u *BatchUpdater) TeamName() string {
 
 func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
 	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginMeta.Team).Str("pluginKind", string(u.pluginMeta.Kind)).Str("pluginName", u.pluginMeta.Name).Msg("checking quota")
+	remainingRows, err := u.RemainingRows(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to get remaining rows: %w", err)
+	}
+	return remainingRows == nil || *remainingRows > 0, nil
+}
+
+func (u *BatchUpdater) RemainingRows(ctx context.Context) (*int64, error) {
+	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginMeta.Team).Str("pluginKind", string(u.pluginMeta.Kind)).Str("pluginName", u.pluginMeta.Name).Msg("getting remaining rows")
 	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginMeta.Team, u.pluginMeta.Kind, u.pluginMeta.Name)
 	if err != nil {
-		return false, fmt.Errorf("failed to get usage: %w", err)
+		return nil, fmt.Errorf("failed to get usage: %w", err)
 	}
 	if usage.StatusCode() != http.StatusOK {
-		return false, fmt.Errorf("failed to get usage: %s", usage.Status())
+		return nil, fmt.Errorf("failed to get usage: %s", usage.Status())
 	}
 
-	hasQuota := usage.JSON200.RemainingRows == nil || *usage.JSON200.RemainingRows > 0
-	return hasQuota, nil
+	return usage.JSON200.RemainingRows, nil
 }
 
 func (u *BatchUpdater) Close() error {
@@ -275,12 +286,18 @@ func (u *BatchUpdater) backgroundUpdater() {
 		for {
 			select {
 			case <-u.triggerUpdate:
+				rowsToUpdate := u.rowsToUpdate.Load()
+
+				if ok := u.hasSufficientRemainingRows(int64(rowsToUpdate)); !ok {
+					u.quotaChecker.triggerQuotaCheck <- struct{}{}
+					continue
+				}
+
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
 				}
 
-				rowsToUpdate := u.rowsToUpdate.Load()
 				if rowsToUpdate < u.batchLimit {
 					// Not enough rows to update
 					continue
@@ -291,11 +308,17 @@ func (u *BatchUpdater) backgroundUpdater() {
 				}
 				u.rowsToUpdate.Add(-rowsToUpdate)
 			case <-flushDuration.C:
+				rowsToUpdate := u.rowsToUpdate.Load()
+
+				if ok := u.hasSufficientRemainingRows(int64(rowsToUpdate)); !ok {
+					u.quotaChecker.triggerQuotaCheck <- struct{}{}
+					continue
+				}
+
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
 				}
-				rowsToUpdate := u.rowsToUpdate.Load()
 				if rowsToUpdate == 0 {
 					continue
 				}
@@ -321,6 +344,16 @@ func (u *BatchUpdater) backgroundUpdater() {
 	<-started
 }
 
+func (u *BatchUpdater) hasSufficientRemainingRows(rowsToUpdate int64) bool {
+	if u.quotaChecker != nil && u.quotaChecker.remainingRows != nil {
+		remainingRows := u.quotaChecker.remainingRows.Load()
+		if remainingRows < rowsToUpdate {
+			return false
+		}
+	}
+	return true
+}
+
 func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numberToUpdate uint32) error {
 	for retry := 0; retry < u.maxRetries; retry++ {
 		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", numberToUpdate).Msg("updating usage")
@@ -339,6 +372,9 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 		if resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
 			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", numberToUpdate).Msg("usage updated")
 			u.lastUpdateTime = time.Now().UTC()
+			if u.quotaChecker != nil && u.quotaChecker.remainingRows != nil {
+				u.quotaChecker.remainingRows.Add(-int64(numberToUpdate))
+			}
 			return nil
 		}
 
@@ -420,7 +456,7 @@ type NoOpUsageClient struct {
 	TeamNameValue string
 }
 
-func (n *NoOpUsageClient) TeamName() string {
+func (n NoOpUsageClient) TeamName() string {
 	return n.TeamNameValue
 }
 
@@ -434,4 +470,8 @@ func (NoOpUsageClient) Increase(_ uint32) error {
 
 func (NoOpUsageClient) Close() error {
 	return nil
+}
+
+func (NoOpUsageClient) RemainingRows(_ context.Context) (*int64, error) {
+	return nil, nil
 }

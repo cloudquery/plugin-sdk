@@ -242,6 +242,31 @@ func TestUsageService_UpdatesWithZeroRows(t *testing.T) {
 	assert.Equal(t, 0, s.numberOfUpdates(), "total number of updates should be zero")
 }
 
+func TestUsageService_TriggerQuotaUpdate_WithNoRowsRemaining(t *testing.T) {
+	ctx := context.Background()
+
+	s := createTestServerWithRemainingRows(t, 100, 0)
+	defer s.server.Close()
+
+	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
+	require.NoError(t, err)
+
+	usageClient := newClient(t, apiClient, WithBatchLimit(0))
+
+	newCtx, err := WithCancelOnQuotaExceeded(ctx, usageClient, WithQuotaCheckPeriod(30*time.Second))
+	require.NoError(t, err)
+
+	go func() {
+		for i := 0; i < 100; i++ {
+			_ = usageClient.Increase(50)
+		}
+	}()
+
+	<-newCtx.Done()
+	err = context.Cause(newCtx)
+	require.ErrorIs(t, ErrNoQuota{team: "team-name"}, err)
+}
+
 func TestUsageService_ShouldNotUpdateClosedService(t *testing.T) {
 	s := createTestServer(t)
 	defer s.server.Close()
@@ -388,19 +413,29 @@ func newClient(t *testing.T, apiClient *cqapi.ClientWithResponses, ops ...UsageC
 	return client.(*BatchUpdater)
 }
 
-func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testStage {
-	stage := testStage{
+func createTestServerWithRemainingRows(t *testing.T, remainingRows ...int) *testStage {
+	stage := &testStage{
 		remainingRows: remainingRows,
 		update:        make([]int, 0),
+		calls:         make(map[string]int),
 	}
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			stage.mu.Lock()
+			defer stage.mu.Unlock()
+			stage.calls[r.Method]++
+		}()
 		if r.Method == "GET" {
 			w.Header().Set("Content-Type", "application/json")
-			if _, err := fmt.Fprintf(w, `{"remaining_rows": %d}`, stage.remainingRows); err != nil {
+			methodCalls := stage.calls[r.Method]
+			if methodCalls >= len(stage.remainingRows) {
+				methodCalls = len(stage.remainingRows) - 1
+			}
+			remainingRows := stage.remainingRows[methodCalls]
+			if _, err := fmt.Fprintf(w, `{"remaining_rows": %d}`, remainingRows); err != nil {
 				t.Fatal(err)
 			}
-			w.WriteHeader(http.StatusOK)
 			return
 		}
 		if r.Method == "POST" {
@@ -420,7 +455,7 @@ func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testSta
 
 	stage.server = httptest.NewServer(handler)
 
-	return &stage
+	return stage
 }
 
 func createTestServer(t *testing.T) *testStage {
@@ -430,8 +465,9 @@ func createTestServer(t *testing.T) *testStage {
 type testStage struct {
 	server *httptest.Server
 
-	remainingRows int
+	remainingRows []int
 	update        []int
+	calls         map[string]int
 	mu            sync.RWMutex
 }
 

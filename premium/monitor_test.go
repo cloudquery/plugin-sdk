@@ -9,26 +9,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type quotaResponse struct {
-	hasQuota bool
-	err      error
+type remainingQuotaResponse struct {
+	remainingRows *int64
+	err           error
 }
 
-func newFakeQuotaMonitor(hasQuota ...quotaResponse) *fakeQuotaMonitor {
+func newFakeQuotaMonitor(hasQuota ...remainingQuotaResponse) *fakeQuotaMonitor {
 	return &fakeQuotaMonitor{responses: hasQuota}
 }
 
 type fakeQuotaMonitor struct {
-	responses []quotaResponse
+	responses []remainingQuotaResponse
 	calls     int
 }
 
-func (f *fakeQuotaMonitor) HasQuota(_ context.Context) (bool, error) {
+func (*fakeQuotaMonitor) HasQuota(_ context.Context) (bool, error) {
+	return true, nil
+}
+
+func (f *fakeQuotaMonitor) RemainingRows(_ context.Context) (*int64, error) {
 	resp := f.responses[f.calls]
 	if f.calls < len(f.responses)-1 {
 		f.calls++
 	}
-	return resp.hasQuota, resp.err
+	return resp.remainingRows, resp.err
 }
 
 func (*fakeQuotaMonitor) TeamName() string {
@@ -38,8 +42,8 @@ func (*fakeQuotaMonitor) TeamName() string {
 func TestWithCancelOnQuotaExceeded_NoInitialQuota(t *testing.T) {
 	ctx := context.Background()
 
-	responses := []quotaResponse{
-		{false, nil},
+	responses := []remainingQuotaResponse{
+		{int64ptr(0), nil},
 	}
 	_, err := WithCancelOnQuotaExceeded(ctx, newFakeQuotaMonitor(responses...))
 
@@ -49,9 +53,9 @@ func TestWithCancelOnQuotaExceeded_NoInitialQuota(t *testing.T) {
 func TestWithCancelOnQuotaExceeded_NoQuota(t *testing.T) {
 	ctx := context.Background()
 
-	responses := []quotaResponse{
-		{true, nil},
-		{false, nil},
+	responses := []remainingQuotaResponse{
+		{int64ptr(1000), nil},
+		{int64ptr(0), nil},
 	}
 	ctx, err := WithCancelOnQuotaExceeded(ctx, newFakeQuotaMonitor(responses...), WithQuotaCheckPeriod(1*time.Millisecond))
 	require.NoError(t, err)
@@ -64,10 +68,10 @@ func TestWithCancelOnQuotaExceeded_NoQuota(t *testing.T) {
 func TestWithCancelOnQuotaCheckConsecutiveFailures(t *testing.T) {
 	ctx := context.Background()
 
-	responses := []quotaResponse{
-		{true, nil},
-		{false, errors.New("test2")},
-		{false, errors.New("test3")},
+	responses := []remainingQuotaResponse{
+		{int64ptr(1000), nil},
+		{int64ptr(0), errors.New("test2")},
+		{int64ptr(0), errors.New("test3")},
 	}
 	ctx, err := WithCancelOnQuotaExceeded(ctx,
 		newFakeQuotaMonitor(responses...),
@@ -78,4 +82,8 @@ func TestWithCancelOnQuotaCheckConsecutiveFailures(t *testing.T) {
 	<-ctx.Done()
 	cause := context.Cause(ctx)
 	require.Equal(t, "test2\ntest3", cause.Error())
+}
+
+func int64ptr(i int64) *int64 {
+	return &i
 }
