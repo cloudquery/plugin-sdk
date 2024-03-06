@@ -52,6 +52,7 @@ func main() {
 	for _, run := range d {
 		for _, suite := range run.Suites {
 			for _, bm := range suite.Benchmarks {
+				bm.Name = strings.ReplaceAll(bm.Name, "/", "_")
 				if bm.NsPerOp > 0 {
 					fmt.Println(bm.Name, "ns/op", bm.NsPerOp)
 					deltaResults = append(deltaResults, deltaResult{
