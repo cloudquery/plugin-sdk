@@ -39,7 +39,6 @@ func BenchmarkWriterMemory(b *testing.B) {
 		"defaults":  nil,
 		"bytes100M": {streamingbatchwriter.WithBatchSizeBytes(100000000)},
 	}
-	const multiplyN = 1000
 
 	var bCases []bCase
 	bCases = append(bCases, writerMatrix("BatchWriter", batchwriter.New, newBatchWriterClient(), makeRecord, batchwriterOpts)...)
@@ -64,11 +63,9 @@ func BenchmarkWriterMemory(b *testing.B) {
 				errCh <- c.wr.Write(context.Background(), ch)
 			}()
 
-			newN := b.N * multiplyN
-
 			runtime.ReadMemStats(&mStart)
 			b.ResetTimer()
-			for i := 0; i < newN; i++ {
+			for i := 0; i < b.N; i++ {
 				rec := c.rec()
 				ch <- &message.WriteInsert{
 					Record: rec,
@@ -86,7 +83,7 @@ func BenchmarkWriterMemory(b *testing.B) {
 			runtime.ReadMemStats(&mEnd)
 
 			allocatedBytes := mEnd.Alloc - mStart.Alloc
-			b.ReportMetric(float64(allocatedBytes)/float64(newN), "bytes/op")
+			b.ReportMetric(float64(allocatedBytes)/float64(b.N), "bytes/op") // this is different from -benchmem result "B/op"
 		})
 	}
 }
