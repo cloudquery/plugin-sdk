@@ -42,12 +42,12 @@ func BenchmarkWriterMemory(b *testing.B) {
 	const multiplyN = 1000
 
 	var bCases []bCase
-	bCases = append(bCases, writerMatrix[*batchwriter.BatchWriter, batchwriter.Client, batchwriter.Option]("BatchWriter", batchwriter.New, &batchwriterClient{}, makeRecord, batchwriterOpts)...)
-	bCases = append(bCases, writerMatrix[*batchwriter.BatchWriter, batchwriter.Client, batchwriter.Option]("BatchWriter wide", batchwriter.New, &batchwriterClient{}, makeWideRecord, batchwriterOpts)...)
-	bCases = append(bCases, writerMatrix[*mixedbatchwriter.MixedBatchWriter, mixedbatchwriter.Client, mixedbatchwriter.Option]("MixedBatchWriter", mixedbatchwriter.New, &mixedbatchwriterClient{}, makeRecord, mixedbatchwriterOpts)...)
-	bCases = append(bCases, writerMatrix[*mixedbatchwriter.MixedBatchWriter, mixedbatchwriter.Client, mixedbatchwriter.Option]("MixedBatchWriter wide", mixedbatchwriter.New, &mixedbatchwriterClient{}, makeWideRecord, mixedbatchwriterOpts)...)
-	bCases = append(bCases, writerMatrix[*streamingbatchwriter.StreamingBatchWriter, streamingbatchwriter.Client, streamingbatchwriter.Option]("StreamingBatchWriter", streamingbatchwriter.New, &streamingbatchwriterClient{}, makeRecord, streamingbatchwriterOpts)...)
-	bCases = append(bCases, writerMatrix[*streamingbatchwriter.StreamingBatchWriter, streamingbatchwriter.Client, streamingbatchwriter.Option]("StreamingBatchWriter wide", streamingbatchwriter.New, &streamingbatchwriterClient{}, makeWideRecord, streamingbatchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("BatchWriter", batchwriter.New, (batchwriter.Client)(new(batchwriterClient)), makeRecord, batchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("BatchWriter wide", batchwriter.New, (batchwriter.Client)(new(batchwriterClient)), makeWideRecord, batchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("MixedBatchWriter", mixedbatchwriter.New, (mixedbatchwriter.Client)(new(mixedbatchwriterClient)), makeRecord, mixedbatchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("MixedBatchWriter wide", mixedbatchwriter.New, (mixedbatchwriter.Client)(new(mixedbatchwriterClient)), makeWideRecord, mixedbatchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("StreamingBatchWriter", streamingbatchwriter.New, (streamingbatchwriter.Client)(new(streamingbatchwriterClient)), makeRecord, streamingbatchwriterOpts)...)
+	bCases = append(bCases, writerMatrix("StreamingBatchWriter wide", streamingbatchwriter.New, (streamingbatchwriter.Client)(new(streamingbatchwriterClient)), makeWideRecord, streamingbatchwriterOpts)...)
 
 	for _, c := range bCases {
 		c := c
