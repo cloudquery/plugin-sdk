@@ -10,7 +10,7 @@ import (
 
 // InterceptorLogger adapts zerolog logger to interceptor logger.
 func InterceptorLogger(l zerolog.Logger) logging.Logger {
-	return logging.LoggerFunc(func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {
+	return logging.LoggerFunc(func(_ context.Context, lvl logging.Level, msg string, fields ...any) {
 		l := l.With().Fields(fields).Logger()
 
 		switch lvl {

@@ -137,7 +137,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 		Short: servePluginShort,
 		Long:  servePluginShort,
 		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			zerologLevel, err := zerolog.ParseLevel(logLevel.String())
 			if err != nil {
 				return err

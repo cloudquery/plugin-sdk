@@ -13,7 +13,7 @@ import (
 // PathResolver("InnerStruct.Field")
 // PathResolver("InnerStruct.InnerInnerStruct.Field")
 func PathResolver(path string) ColumnResolver {
-	return func(_ context.Context, meta ClientMeta, r *Resource, c Column) error {
+	return func(_ context.Context, _ ClientMeta, r *Resource, c Column) error {
 		return r.Set(c.Name, funk.Get(r.Item, path, funk.WithAllowZero()))
 	}
 }
