@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.32.1](https://github.com/cloudquery/plugin-sdk/compare/v4.32.0...v4.32.1) (2024-03-06)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 814bf88 ([#1540](https://github.com/cloudquery/plugin-sdk/issues/1540)) ([e80fb24](https://github.com/cloudquery/plugin-sdk/commit/e80fb24ad916e84e391595ed482b4285ea5e1a9c))
+* **deps:** Update google.golang.org/genproto/googleapis/api digest to df926f6 ([#1541](https://github.com/cloudquery/plugin-sdk/issues/1541)) ([9d8a3ec](https://github.com/cloudquery/plugin-sdk/commit/9d8a3ec5c7a4bffe3e625f148de43d71c836794d))
+* **deps:** Update google.golang.org/genproto/googleapis/rpc digest to df926f6 ([#1543](https://github.com/cloudquery/plugin-sdk/issues/1543)) ([9315c16](https://github.com/cloudquery/plugin-sdk/commit/9315c1639e02474e97670ffb6c9b198b63aec5ef))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.1 ([#1549](https://github.com/cloudquery/plugin-sdk/issues/1549)) ([3112739](https://github.com/cloudquery/plugin-sdk/commit/3112739d2a897b784ed85f27ee7632f5fbcb5091))
+* **deps:** Update module github.com/klauspost/compress to v1.17.7 ([#1544](https://github.com/cloudquery/plugin-sdk/issues/1544)) ([4e04027](https://github.com/cloudquery/plugin-sdk/commit/4e04027488cb1c32830d5fd14440beabf4a07500))
+* **deps:** Update module github.com/klauspost/cpuid/v2 to v2.2.7 ([#1545](https://github.com/cloudquery/plugin-sdk/issues/1545)) ([0fff7ed](https://github.com/cloudquery/plugin-sdk/commit/0fff7ed4464ac572e00eb5e0dc289e467b8e7afb))
+* **deps:** Update module github.com/tdewolff/minify/v2 to v2.20.18 ([#1546](https://github.com/cloudquery/plugin-sdk/issues/1546)) ([45fa641](https://github.com/cloudquery/plugin-sdk/commit/45fa641b50f177d2ab01298b0c14fc764464fcd7))
+* **deps:** Update module github.com/ugorji/go/codec to v1.2.12 ([#1547](https://github.com/cloudquery/plugin-sdk/issues/1547)) ([cd3488a](https://github.com/cloudquery/plugin-sdk/commit/cd3488ab730499dd513996d73987c9b86fca34c0))
+* **deps:** Update module google.golang.org/grpc to v1.62.0 ([#1550](https://github.com/cloudquery/plugin-sdk/issues/1550)) ([9ccec98](https://github.com/cloudquery/plugin-sdk/commit/9ccec989cd143e685fd7d3f66d840c2e2cb8d74b))
+* **deps:** Update module google.golang.org/grpc to v1.62.0 ([#1551](https://github.com/cloudquery/plugin-sdk/issues/1551)) ([d907120](https://github.com/cloudquery/plugin-sdk/commit/d907120661cb2ebead90c68b0f1a42767112bba3))
+* MixedBatchWriter should nil the slice instead of zeroing ([#1553](https://github.com/cloudquery/plugin-sdk/issues/1553)) ([f565da8](https://github.com/cloudquery/plugin-sdk/commit/f565da8961db0b9f88efcdaa6f083faa789de324))
+
 ## [4.32.0](https://github.com/cloudquery/plugin-sdk/compare/v4.31.0...v4.32.0) (2024-02-28)
 
 
