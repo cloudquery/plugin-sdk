@@ -39,12 +39,13 @@ type WriterTestSuite struct {
 
 // SafeMigrations defines which migrations are supported by the plugin in safe migrate mode
 type SafeMigrations struct {
-	AddColumn           bool
-	AddColumnNotNull    bool
-	RemoveColumn        bool
-	RemoveColumnNotNull bool
-	ChangeColumn        bool
-	MovePKToCQOnly      bool
+	AddColumn              bool
+	AddColumnNotNull       bool
+	RemoveColumn           bool
+	RemoveColumnNotNull    bool
+	ChangeColumn           bool
+	RemoveUniqueConstraint bool
+	MovePKToCQOnly         bool
 }
 
 type WriterTestSuiteTests struct {
