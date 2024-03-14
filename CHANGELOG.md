@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.33.0](https://github.com/cloudquery/plugin-sdk/compare/v4.32.1...v4.33.0) (2024-03-13)
+
+
+### Features
+
+* Add destination tests for removing a unique constraint ([#1558](https://github.com/cloudquery/plugin-sdk/issues/1558)) ([8add2b3](https://github.com/cloudquery/plugin-sdk/commit/8add2b36b8a9bf37bd24bc6cb03597c9843a592e))
+
+
+### Bug Fixes
+
+* **deps:** Update Google Golang modules ([#1556](https://github.com/cloudquery/plugin-sdk/issues/1556)) ([e89d4ce](https://github.com/cloudquery/plugin-sdk/commit/e89d4cea569abf81973d14db600a00db1d5133f3))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.2 ([#1554](https://github.com/cloudquery/plugin-sdk/issues/1554)) ([09c24f1](https://github.com/cloudquery/plugin-sdk/commit/09c24f1e6b2f53c1a40df65bb7e0cea7b66c3722))
+
 ## [4.32.1](https://github.com/cloudquery/plugin-sdk/compare/v4.32.0...v4.32.1) (2024-03-06)
 
 
