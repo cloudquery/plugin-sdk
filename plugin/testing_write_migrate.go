@@ -122,6 +122,9 @@ func (s *WriterTestSuite) testMigrate(
 		suffix = "_force"
 	}
 	t.Run("add_column"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.AddColumn {
+			t.Skip("skipping test completely: add_column")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.AddColumn {
 			t.Skip("skipping test: add_column")
 		}
@@ -149,6 +152,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("add_column_not_null"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.AddColumn {
+			t.Skip("skipping test completely: add_column_not_null")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.AddColumnNotNull {
 			t.Skip("skipping test: add_column_not_null")
 		}
@@ -176,6 +182,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("remove_column"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.RemoveColumn {
+			t.Skip("skipping test completely: remove_column")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumn {
 			t.Skip("skipping test: remove_column")
 		}
@@ -200,6 +209,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("remove_column_not_null"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.RemoveColumn {
+			t.Skip("skipping test completely: remove_column_not_null")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumnNotNull {
 			t.Skip("skipping test: remove_column_not_null")
 		}
@@ -225,6 +237,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("change_column"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.ChangeColumn {
+			t.Skip("skipping test completely: change_column")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.ChangeColumn {
 			t.Skip("skipping test: change_column")
 		}
@@ -250,6 +265,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("remove_unique_constraint_only"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.RemoveUniqueConstraint {
+			t.Skip("skipping test completely: remove_unique_constraint_only")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.RemoveUniqueConstraint {
 			t.Skip("skipping test: remove_unique_constraint_only")
 		}
@@ -270,13 +288,16 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
-		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveUniqueConstraint, forceMigrate))
+		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.MovePKToCQOnly, forceMigrate))
 		if !forceMigrate {
 			require.NoError(t, s.migrate(ctx, target, target, true, false))
 		}
 	})
 
 	t.Run("move_to_cq_id_only"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.MovePKToCQOnly {
+			t.Skip("skipping test completely: move_to_cq_id_only")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.MovePKToCQOnly {
 			t.Skip("skipping test: move_to_cq_id_only")
 		}
@@ -303,8 +324,11 @@ func (s *WriterTestSuite) testMigrate(
 		}
 	})
 	t.Run("move_to_cq_id_only_adding_pkc"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.MovePKToCQOnly {
+			t.Skip("skipping test completely: move_to_cq_id_only_adding_pkc")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.MovePKToCQOnly {
-			t.Skip("skipping test: move_to_cq_id_only_adding_pk")
+			t.Skip("skipping test: move_to_cq_id_only_adding_pkc")
 		}
 		tableName := "cq_move_to_cq_id_only_adding_pkc" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
