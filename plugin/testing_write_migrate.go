@@ -250,6 +250,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("remove_unique_constraint_only"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.RemoveUniqueConstraint {
+			t.Skip("skipping test completely: remove_unique_constraint_only")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.RemoveUniqueConstraint {
 			t.Skip("skipping test: remove_unique_constraint_only")
 		}
@@ -277,6 +280,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("move_to_cq_id_only"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.MovePKToCQOnly {
+			t.Skip("skipping test completely: move_to_cq_id_only")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.MovePKToCQOnly {
 			t.Skip("skipping test: move_to_cq_id_only")
 		}
@@ -303,8 +309,11 @@ func (s *WriterTestSuite) testMigrate(
 		}
 	})
 	t.Run("move_to_cq_id_only_adding_pkc"+suffix, func(t *testing.T) {
+		if s.tests.SkipSpecificMigrations.MovePKToCQOnly {
+			t.Skip("skipping test completely: move_to_cq_id_only_adding_pkc")
+		}
 		if !forceMigrate && !s.tests.SafeMigrations.MovePKToCQOnly {
-			t.Skip("skipping test: move_to_cq_id_only_adding_pk")
+			t.Skip("skipping test: move_to_cq_id_only_adding_pkc")
 		}
 		tableName := "cq_move_to_cq_id_only_adding_pkc" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
