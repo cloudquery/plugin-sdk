@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.34.0](https://github.com/cloudquery/plugin-sdk/compare/v4.33.0...v4.34.0) (2024-03-15)
+
+
+### Features
+
+* Enable destinations to completely skip migration that are not supported ([#1560](https://github.com/cloudquery/plugin-sdk/issues/1560)) ([3d3479b](https://github.com/cloudquery/plugin-sdk/commit/3d3479bcf7f4b10a50f19bf32af4aa71361b526f))
+
 ## [4.33.0](https://github.com/cloudquery/plugin-sdk/compare/v4.32.1...v4.33.0) (2024-03-13)
 
 
