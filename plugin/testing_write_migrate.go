@@ -200,6 +200,9 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("remove_column_not_null"+suffix, func(t *testing.T) {
+		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumnNotNull {
+			t.Skip("skipping test: remove_column_not_null")
+		}
 		tableName := "cq_remove_column_not_null" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
