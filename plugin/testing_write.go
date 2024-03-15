@@ -50,11 +50,6 @@ type SafeMigrations struct {
 
 // Migrations defines which migrations should be skipped completely
 type Migrations struct {
-	AddColumn              bool
-	AddColumnNotNull       bool
-	RemoveColumn           bool
-	RemoveColumnNotNull    bool
-	ChangeColumn           bool
 	RemoveUniqueConstraint bool
 	MovePKToCQOnly         bool
 }

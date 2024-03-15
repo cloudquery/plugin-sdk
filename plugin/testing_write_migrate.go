@@ -122,9 +122,6 @@ func (s *WriterTestSuite) testMigrate(
 		suffix = "_force"
 	}
 	t.Run("add_column"+suffix, func(t *testing.T) {
-		if s.tests.SkipSpecificMigrations.AddColumn {
-			t.Skip("skipping test completely: add_column")
-		}
 		if !forceMigrate && !s.tests.SafeMigrations.AddColumn {
 			t.Skip("skipping test: add_column")
 		}
@@ -152,9 +149,6 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("add_column_not_null"+suffix, func(t *testing.T) {
-		if s.tests.SkipSpecificMigrations.AddColumn {
-			t.Skip("skipping test completely: add_column_not_null")
-		}
 		if !forceMigrate && !s.tests.SafeMigrations.AddColumnNotNull {
 			t.Skip("skipping test: add_column_not_null")
 		}
@@ -182,9 +176,6 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("remove_column"+suffix, func(t *testing.T) {
-		if s.tests.SkipSpecificMigrations.RemoveColumn {
-			t.Skip("skipping test completely: remove_column")
-		}
 		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumn {
 			t.Skip("skipping test: remove_column")
 		}
@@ -209,12 +200,6 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("remove_column_not_null"+suffix, func(t *testing.T) {
-		if s.tests.SkipSpecificMigrations.RemoveColumn {
-			t.Skip("skipping test completely: remove_column_not_null")
-		}
-		if !forceMigrate && !s.tests.SafeMigrations.RemoveColumnNotNull {
-			t.Skip("skipping test: remove_column_not_null")
-		}
 		tableName := "cq_remove_column_not_null" + suffix + "_" + tableUUIDSuffix()
 		source := &schema.Table{
 			Name: tableName,
@@ -237,9 +222,6 @@ func (s *WriterTestSuite) testMigrate(
 	})
 
 	t.Run("change_column"+suffix, func(t *testing.T) {
-		if s.tests.SkipSpecificMigrations.ChangeColumn {
-			t.Skip("skipping test completely: change_column")
-		}
 		if !forceMigrate && !s.tests.SafeMigrations.ChangeColumn {
 			t.Skip("skipping test: change_column")
 		}
