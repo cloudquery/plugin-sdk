@@ -270,7 +270,7 @@ func (s *WriterTestSuite) testMigrate(
 				{Name: "uuid", Type: types.ExtensionTypes.UUID},
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean, NotNull: true},
 			}}
-		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.MovePKToCQOnly, forceMigrate))
+		require.NoError(t, s.migrate(ctx, target, source, s.tests.SafeMigrations.RemoveUniqueConstraint, forceMigrate))
 		if !forceMigrate {
 			require.NoError(t, s.migrate(ctx, target, target, true, false))
 		}
