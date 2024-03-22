@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.35.0](https://github.com/cloudquery/plugin-sdk/compare/v4.34.2...v4.35.0) (2024-03-22)
+
+
+### Features
+
+* Handle unknown token types when getting team name in usage client ([#1572](https://github.com/cloudquery/plugin-sdk/issues/1572)) ([b6cb796](https://github.com/cloudquery/plugin-sdk/commit/b6cb79643a10bd79016478ee74629e8db6d16031))
+
 ## [4.34.2](https://github.com/cloudquery/plugin-sdk/compare/v4.34.1...v4.34.2) (2024-03-18)
 
 
