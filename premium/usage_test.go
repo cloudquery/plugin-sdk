@@ -21,14 +21,19 @@ import (
 )
 
 type MockTokenClient struct {
+	tokenType auth.TokenType
 }
 
 func (*MockTokenClient) GetToken() (auth.Token, error) {
 	return auth.Token{}, nil
 }
 
-func (*MockTokenClient) GetTokenType() auth.TokenType {
-	return auth.BearerToken
+func (c *MockTokenClient) GetTokenType() auth.TokenType {
+	return c.tokenType
+}
+
+func newMockTokenClient(tokenType auth.TokenType) *MockTokenClient {
+	return &MockTokenClient{tokenType: tokenType}
 }
 
 func TestUsageService_NewUsageClient_Defaults(t *testing.T) {
@@ -44,7 +49,7 @@ func TestUsageService_NewUsageClient_Defaults(t *testing.T) {
 			Kind: cqapi.Source,
 			Name: "vault",
 		},
-		withTokenClient(&MockTokenClient{}),
+		withTokenClient(newMockTokenClient(auth.BearerToken)),
 	)
 	require.NoError(t, err)
 
@@ -76,7 +81,7 @@ func TestUsageService_NewUsageClient_Override(t *testing.T) {
 		WithMaxRetries(10),
 		WithMaxWaitTime(120*time.Second),
 		WithMaxTimeBetweenFlushes(10*time.Second),
-		withTokenClient(&MockTokenClient{}),
+		withTokenClient(newMockTokenClient(auth.BearerToken)),
 	)
 	require.NoError(t, err)
 
@@ -382,7 +387,7 @@ func newClient(t *testing.T, apiClient *cqapi.ClientWithResponses, ops ...UsageC
 			Kind: cqapi.Source,
 			Name: "vault",
 		},
-		append(ops, withTeamName("team-name"), WithAPIClient(apiClient), withTokenClient(&MockTokenClient{}))...)
+		append(ops, withTeamName("team-name"), WithAPIClient(apiClient), withTokenClient(newMockTokenClient(auth.BearerToken)))...)
 	require.NoError(t, err)
 
 	return client.(*BatchUpdater)
@@ -461,4 +466,108 @@ func (s *testStage) minExcludingClose() int {
 		}
 	}
 	return m
+}
+
+func Test_UsageClientInit_FromManagedSyncsAPIKeys(t *testing.T) {
+	type testCase struct {
+		name string
+		envs map[string]string
+		err  string
+	}
+	testCases := []testCase{
+		{
+			name: "sync run API key with team name",
+			envs: map[string]string{
+				auth.EnvVarCloudQueryAPIKey: "cqsr_api_key",
+				"_CQ_TEAM_NAME":             "cqrn_team_name",
+			},
+		},
+		{
+			name: "sync run API key no team name",
+			envs: map[string]string{
+				auth.EnvVarCloudQueryAPIKey: "cqsr_api_key",
+			},
+			err: "failed to get team name: _CQ_TEAM_NAME environment variable not set",
+		},
+		{
+			name: "sync test connection API key with team name",
+			envs: map[string]string{
+				auth.EnvVarCloudQueryAPIKey: "cqstc_api_key",
+				"_CQ_TEAM_NAME":             "cqstc_team_name",
+			},
+		},
+		{
+			name: "sync test connection API key no team name",
+			envs: map[string]string{
+				auth.EnvVarCloudQueryAPIKey: "cqstc_api_key",
+			},
+			err: "failed to get team name: _CQ_TEAM_NAME environment variable not set",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for k, v := range tc.envs {
+				t.Setenv(k, v)
+			}
+
+			_, err := NewUsageClient(
+				plugin.Meta{
+					Team: "plugin-team",
+					Kind: cqapi.Source,
+					Name: "test",
+				},
+			)
+			if tc.err != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func Test_UsageClientInit_UnknownTokenType(t *testing.T) {
+	type testCase struct {
+		name string
+		envs map[string]string
+		err  string
+	}
+	testCases := []testCase{
+		{
+			name: "unknown API key with team name",
+			envs: map[string]string{
+				"_CQ_TEAM_NAME": "team_name",
+			},
+		},
+		{
+			name: "unknown API key no team name",
+			envs: map[string]string{},
+			err:  "unsupported token type:",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for k, v := range tc.envs {
+				t.Setenv(k, v)
+			}
+
+			_, err := NewUsageClient(
+				plugin.Meta{
+					Team: "plugin-team",
+					Kind: cqapi.Source,
+					Name: "test",
+				},
+				withTokenClient(newMockTokenClient(math.MaxInt)),
+			)
+			if tc.err != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
