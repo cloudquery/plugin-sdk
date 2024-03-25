@@ -228,8 +228,12 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 
 	options.PluginMeta = p.Meta()
 
+	clientLogger := p.logger
+
 	p.invocationID = options.InvocationID
-	clientLogger := p.logger.With().Str("invocation_id", p.invocationID).Logger()
+	if options.InvocationID != "" {
+		clientLogger = p.logger.With().Str("invocation_id", p.invocationID).Logger()
+	}
 
 	p.client, err = p.newClient(ctx, clientLogger, spec, options)
 	if err != nil {
