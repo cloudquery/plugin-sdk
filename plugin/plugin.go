@@ -18,6 +18,7 @@ var ErrNotImplemented = fmt.Errorf("not implemented")
 
 type NewClientOptions struct {
 	NoConnection bool
+	InvocationID string
 	PluginMeta   Meta
 }
 
@@ -82,6 +83,8 @@ type Plugin struct {
 	skipUsageClient bool
 	// skips table validation
 	skipTableValidation bool
+	// the invocation ID for the current execution
+	invocationID string
 }
 
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
@@ -106,6 +109,11 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 	}
 
 	return &p
+}
+
+// InvocationID returns the invocation ID for the current execution
+func (p *Plugin) InvocationID() string {
+	return p.invocationID
 }
 
 // Name returns the name of this plugin
@@ -220,7 +228,14 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 
 	options.PluginMeta = p.Meta()
 
-	p.client, err = p.newClient(ctx, p.logger, spec, options)
+	clientLogger := p.logger
+
+	p.invocationID = options.InvocationID
+	if options.InvocationID != "" {
+		clientLogger = p.logger.With().Str("invocation_id", p.invocationID).Logger()
+	}
+
+	p.client, err = p.newClient(ctx, clientLogger, spec, options)
 	if err != nil {
 		return fmt.Errorf("failed to initialize client: %w", err)
 	}
