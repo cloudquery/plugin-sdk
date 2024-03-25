@@ -48,6 +48,12 @@ type SafeMigrations struct {
 	MovePKToCQOnly         bool
 }
 
+// Migrations defines which migrations should be skipped completely
+type Migrations struct {
+	RemoveUniqueConstraint bool
+	MovePKToCQOnly         bool
+}
+
 type WriterTestSuiteTests struct {
 	// SkipUpsert skips testing with message.Insert and Upsert=true.
 	// Usually when a destination is not supporting primary keys
@@ -68,6 +74,8 @@ type WriterTestSuiteTests struct {
 	// SafeMigrations defines which tests should work with force migration
 	// and which should pass with safe migration
 	SafeMigrations SafeMigrations
+
+	SkipSpecificMigrations Migrations
 }
 
 type NewPluginFunc func() *Plugin

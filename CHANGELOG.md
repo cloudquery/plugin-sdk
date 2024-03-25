@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.35.0](https://github.com/cloudquery/plugin-sdk/compare/v4.34.2...v4.35.0) (2024-03-22)
+
+
+### Features
+
+* Handle unknown token types when getting team name in usage client ([#1572](https://github.com/cloudquery/plugin-sdk/issues/1572)) ([b6cb796](https://github.com/cloudquery/plugin-sdk/commit/b6cb79643a10bd79016478ee74629e8db6d16031))
+
+## [4.34.2](https://github.com/cloudquery/plugin-sdk/compare/v4.34.1...v4.34.2) (2024-03-18)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.8.1 ([#1567](https://github.com/cloudquery/plugin-sdk/issues/1567)) ([d6f5c18](https://github.com/cloudquery/plugin-sdk/commit/d6f5c18aad252a1a82451362d6834238360baa0f))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.4 ([#1569](https://github.com/cloudquery/plugin-sdk/issues/1569)) ([e4895d3](https://github.com/cloudquery/plugin-sdk/commit/e4895d3c17bc4c01e81b620d19d88527f3fb1bf3))
+
+## [4.34.1](https://github.com/cloudquery/plugin-sdk/compare/v4.34.0...v4.34.1) (2024-03-15)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.8.0 ([#1563](https://github.com/cloudquery/plugin-sdk/issues/1563)) ([abf3794](https://github.com/cloudquery/plugin-sdk/commit/abf37940ef2b413774d452dce907003f9deb7ff6))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.3 ([#1565](https://github.com/cloudquery/plugin-sdk/issues/1565)) ([5107ad0](https://github.com/cloudquery/plugin-sdk/commit/5107ad08419f4c3f5d46e0c68da942d0ebba41a5))
+
+## [4.34.0](https://github.com/cloudquery/plugin-sdk/compare/v4.33.0...v4.34.0) (2024-03-15)
+
+
+### Features
+
+* Enable destinations to completely skip migration that are not supported ([#1560](https://github.com/cloudquery/plugin-sdk/issues/1560)) ([3d3479b](https://github.com/cloudquery/plugin-sdk/commit/3d3479bcf7f4b10a50f19bf32af4aa71361b526f))
+
 ## [4.33.0](https://github.com/cloudquery/plugin-sdk/compare/v4.32.1...v4.33.0) (2024-03-13)
 
 
