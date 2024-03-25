@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.36.0](https://github.com/cloudquery/plugin-sdk/compare/v4.35.0...v4.36.0) (2024-03-25)
+
+
+### Features
+
+* Expose InvocationID to Plugin Client ([#1571](https://github.com/cloudquery/plugin-sdk/issues/1571)) ([038e401](https://github.com/cloudquery/plugin-sdk/commit/038e401e37062ef82d7c3439dbbdd998ab520fab))
+
 ## [4.35.0](https://github.com/cloudquery/plugin-sdk/compare/v4.34.2...v4.35.0) (2024-03-22)
 
 
