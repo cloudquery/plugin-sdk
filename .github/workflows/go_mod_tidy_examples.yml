@@ -1,0 +1,28 @@
+name: Run go mod tidy on examples plugins
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    paths:
+      - go.mod'
+jobs:
+  go-mod-tidy-example:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'cq-bot' && startsWith(github.event.pull_request.title, 'fix(deps)') && startsWith(github.head_ref, 'renovate/')
+    strategy:
+      matrix:
+        plugin: [simple_plugin]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Run go mod tidy
+        working-directory: examples/${{ matrix.plugin }}
+        run: go mod tidy
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+            commit_message: "chore: Tidy"
