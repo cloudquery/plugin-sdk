@@ -170,7 +170,6 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 				t.Fatal(err)
 			}
 		})
-
 	})
 
 	t.Run("TestDeleteStale", func(t *testing.T) {
