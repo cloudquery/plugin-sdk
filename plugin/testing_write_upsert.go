@@ -132,3 +132,74 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 
 	return nil
 }
+
+func (s *WriterTestSuite) testInsertDuplicatePK(ctx context.Context) error {
+	const rowsPerRecord = 10
+	tableName := s.tableNameForTest("upsert_duplicate_pk")
+	table := schema.TestTable(tableName, s.genDatOptions)
+	table.Columns.Get("id").PrimaryKey = true
+	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
+		Table: table,
+	}); err != nil {
+		return fmt.Errorf("failed to create table: %w", err)
+	}
+	tg := schema.NewTestDataGenerator(0)
+
+	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
+		MaxRows:            rowsPerRecord,
+		TimePrecision:      s.genDatOptions.TimePrecision,
+		UseHomogeneousType: s.useHomogeneousTypes,
+		DuplicateData:      true,
+	})
+
+	// normalRecord
+	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
+		Record: normalRecord,
+	}); err != nil {
+		return fmt.Errorf("failed to insert record: %w", err)
+	}
+
+	records, err := s.plugin.readAll(ctx, table)
+	if err != nil {
+		return fmt.Errorf("failed to readAll: %w", err)
+	}
+	sortRecords(table, records, "id")
+
+	totalItems := TotalRows(records)
+	if totalItems != 1 {
+		return fmt.Errorf("expected items after initial insert: %d, got %d", 1, totalItems)
+	}
+
+	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{extractLastRowFromRecord(table, normalRecord)}); diff != "" {
+		return fmt.Errorf("record differs after insert: %s", diff)
+	}
+
+	return nil
+}
+
+func extractLastRowFromRecord(table *schema.Table, existingRecord arrow.Record) arrow.Record {
+	sc := table.ToArrowSchema()
+	var lastRecord []arrow.Record
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+	for i, c := range table.Columns {
+		col := existingRecord.Column(i)
+		err := bldr.Field(i).AppendValueFromString(col.ValueStr(int(existingRecord.NumRows()) - 1))
+		if err != nil {
+			panic(fmt.Sprintf("failed to unmarshal json `%v` for column %v: %v", col.ValueStr(int(existingRecord.NumRows())-1), c.Name, err))
+		}
+	}
+	lastRecord = append(lastRecord, bldr.NewRecord())
+	bldr.Release()
+
+	arrowTable := array.NewTableFromRecords(sc, lastRecord)
+	columns := make([]arrow.Array, sc.NumFields())
+	for n := 0; n < sc.NumFields(); n++ {
+		concatenated, err := array.Concatenate(arrowTable.Column(n).Data().Chunks(), memory.DefaultAllocator)
+		if err != nil {
+			panic(fmt.Sprintf("failed to concatenate arrays: %v", err))
+		}
+		columns[n] = concatenated
+	}
+
+	return array.NewRecord(sc, columns, -1)
+}
