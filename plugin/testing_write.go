@@ -54,6 +54,11 @@ type Migrations struct {
 	MovePKToCQOnly         bool
 }
 
+// WriteTests defines which tests should be skipped in the write test suite
+type WriteTests struct {
+	DuplicatePK bool
+}
+
 type WriterTestSuiteTests struct {
 	// SkipUpsert skips testing with message.Insert and Upsert=true.
 	// Usually when a destination is not supporting primary keys
@@ -76,6 +81,8 @@ type WriterTestSuiteTests struct {
 	SafeMigrations SafeMigrations
 
 	SkipSpecificMigrations Migrations
+
+	SkipSpecificWriteTests WriteTests
 }
 
 type NewPluginFunc func() *Plugin
@@ -138,6 +145,15 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 				t.Fatal(err)
 			}
 		})
+
+		t.Run("Duplicate PKs", func(t *testing.T) {
+			if tests.SkipSpecificWriteTests.DuplicatePK {
+				t.Skip("skipping " + t.Name())
+			}
+			if err := suite.testInsertDuplicatePK(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
 	})
 
 	t.Run("TestInsert", func(t *testing.T) {
@@ -154,6 +170,7 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 				t.Fatal(err)
 			}
 		})
+
 	})
 
 	t.Run("TestDeleteStale", func(t *testing.T) {
