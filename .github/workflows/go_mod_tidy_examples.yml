@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, reopened]
     paths:
-      - go.mod'
+      - 'go.mod'
 jobs:
   go-mod-tidy-example:
     timeout-minutes: 5
