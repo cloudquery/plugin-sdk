@@ -149,7 +149,7 @@ func (s *WriterTestSuite) testInsertDuplicatePK(ctx context.Context) error {
 		MaxRows:            rowsPerRecord,
 		TimePrecision:      s.genDatOptions.TimePrecision,
 		UseHomogeneousType: s.useHomogeneousTypes,
-		DuplicateData:      true,
+		DuplicateID:        true,
 	})
 
 	// normalRecord

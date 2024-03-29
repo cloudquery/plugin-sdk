@@ -199,7 +199,7 @@ type GenTestDataOptions struct {
 	// UseHomogeneousType indicates whether to use a single type for JSON arrays.
 	UseHomogeneousType bool
 
-	DuplicateData bool
+	DuplicateID bool
 }
 
 type TestDataGenerator struct {
@@ -233,7 +233,7 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 
 	var records []arrow.Record
 	for j := 0; j < opts.MaxRows; j++ {
-		if !opts.DuplicateData {
+		if !opts.DuplicateID {
 			tg.counter++
 		}
 
