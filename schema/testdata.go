@@ -231,6 +231,7 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 
 	var records []arrow.Record
 	for j := 0; j < opts.MaxRows; j++ {
+		tg.counter++
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		for i, c := range table.Columns {
 			if opts.NullRows && !c.NotNull && !c.PrimaryKey &&
