@@ -136,21 +136,39 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 func (s *WriterTestSuite) testInsertDuplicatePK(ctx context.Context) error {
 	const rowsPerRecord = 10
 	tableName := s.tableNameForTest("upsert_duplicate_pk")
-	table := schema.TestTable(tableName, s.genDatOptions)
-	table.Columns.Get("id").PrimaryKey = true
+	table := &schema.Table{
+		Name: tableName,
+		Columns: []schema.Column{
+			{Name: "id", Type: arrow.PrimitiveTypes.Int64, NotNull: true, PrimaryKey: true},
+			{Name: "name", Type: arrow.BinaryTypes.String},
+		},
+	}
 	if err := s.plugin.writeOne(ctx, &message.WriteMigrateTable{
 		Table: table,
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
-	tg := schema.NewTestDataGenerator(0)
+	sc := table.ToArrowSchema()
+	var records []arrow.Record
+	for j := 0; j < rowsPerRecord; j++ {
+		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+		bldr.Field(0).(*array.Int64Builder).Append(1)
+		bldr.Field(1).(*array.StringBuilder).Append("foo" + fmt.Sprint(j))
+		records = append(records, bldr.NewRecord())
+		bldr.Release()
+	}
 
-	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
-		MaxRows:            rowsPerRecord,
-		TimePrecision:      s.genDatOptions.TimePrecision,
-		UseHomogeneousType: s.useHomogeneousTypes,
-		DuplicateID:        true,
-	})
+	arrowTable := array.NewTableFromRecords(sc, records)
+	columns := make([]arrow.Array, sc.NumFields())
+	for n := 0; n < sc.NumFields(); n++ {
+		concatenated, err := array.Concatenate(arrowTable.Column(n).Data().Chunks(), memory.DefaultAllocator)
+		if err != nil {
+			return fmt.Errorf("failed to concatenate arrays: %v", err)
+		}
+		columns[n] = concatenated
+	}
+
+	normalRecord := array.NewRecord(sc, columns, -1)
 
 	// normalRecord
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
