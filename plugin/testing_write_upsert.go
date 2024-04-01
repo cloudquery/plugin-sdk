@@ -169,26 +169,29 @@ func (s *WriterTestSuite) testInsertDuplicatePK(ctx context.Context) error {
 	if totalItems != 1 {
 		return fmt.Errorf("expected items after initial insert: %d, got %d", 1, totalItems)
 	}
-
-	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{extractLastRowFromRecord(table, normalRecord)}); diff != "" {
+	lastRow, err := extractLastRowFromRecord(table, normalRecord)
+	if err != nil {
+		return fmt.Errorf("failed to extract last row from record: %w", err)
+	}
+	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{lastRow}); diff != "" {
 		return fmt.Errorf("record differs after insert: %s", diff)
 	}
 
 	return nil
 }
 
-func extractLastRowFromRecord(table *schema.Table, existingRecord arrow.Record) arrow.Record {
+func extractLastRowFromRecord(table *schema.Table, existingRecord arrow.Record) (arrow.Record, error) {
 	sc := table.ToArrowSchema()
-	var lastRecord []arrow.Record
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 	for i, c := range table.Columns {
 		col := existingRecord.Column(i)
-		err := bldr.Field(i).AppendValueFromString(col.ValueStr(int(existingRecord.NumRows()) - 1))
+		lastRow := int(existingRecord.NumRows()) - 1
+		err := bldr.Field(i).AppendValueFromString(col.ValueStr(lastRow))
 		if err != nil {
-			panic(fmt.Sprintf("failed to unmarshal json `%v` for column %v: %v", col.ValueStr(int(existingRecord.NumRows())-1), c.Name, err))
+			return nil, fmt.Errorf("failed to unmarshal json `%v` for column %v: %v", col.ValueStr(lastRow), c.Name, err)
 		}
 	}
-	lastRecord = append(lastRecord, bldr.NewRecord())
+	lastRecord := append([]arrow.Record{}, bldr.NewRecord())
 	bldr.Release()
 
 	arrowTable := array.NewTableFromRecords(sc, lastRecord)
@@ -196,10 +199,10 @@ func extractLastRowFromRecord(table *schema.Table, existingRecord arrow.Record) 
 	for n := 0; n < sc.NumFields(); n++ {
 		concatenated, err := array.Concatenate(arrowTable.Column(n).Data().Chunks(), memory.DefaultAllocator)
 		if err != nil {
-			panic(fmt.Sprintf("failed to concatenate arrays: %v", err))
+			return nil, fmt.Errorf("failed to concatenate arrays: %v", err)
 		}
 		columns[n] = concatenated
 	}
 
-	return array.NewRecord(sc, columns, -1)
+	return array.NewRecord(sc, columns, -1), nil
 }
