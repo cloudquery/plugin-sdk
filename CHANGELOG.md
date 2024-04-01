@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.36.2](https://github.com/cloudquery/plugin-sdk/compare/v4.36.1...v4.36.2) (2024-04-01)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to a685a6e ([#1585](https://github.com/cloudquery/plugin-sdk/issues/1585)) ([824e745](https://github.com/cloudquery/plugin-sdk/commit/824e7455a6be58b59cc6d322216e3bea00738269))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.6 ([#1594](https://github.com/cloudquery/plugin-sdk/issues/1594)) ([dd25ea9](https://github.com/cloudquery/plugin-sdk/commit/dd25ea9b4d3f0552491c83d6034834499cac6f49))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.27.0 ([#1588](https://github.com/cloudquery/plugin-sdk/issues/1588)) ([88ec704](https://github.com/cloudquery/plugin-sdk/commit/88ec704fda1dc4fa599e7bcfdc3cfb5a27bf13e4))
+* **deps:** Update module github.com/grpc-ecosystem/go-grpc-middleware/v2 to v2.1.0 ([#1589](https://github.com/cloudquery/plugin-sdk/issues/1589)) ([5dfa082](https://github.com/cloudquery/plugin-sdk/commit/5dfa0829d476c0a3f958a37fbafbef39b704127e))
+* **deps:** Update module github.com/invopop/jsonschema to v0.12.0 ([#1590](https://github.com/cloudquery/plugin-sdk/issues/1590)) ([3e71418](https://github.com/cloudquery/plugin-sdk/commit/3e7141855dde7a746dd0111d58f2af4b015d0feb))
+* **deps:** Update module github.com/rs/zerolog to v1.32.0 ([#1591](https://github.com/cloudquery/plugin-sdk/issues/1591)) ([5331564](https://github.com/cloudquery/plugin-sdk/commit/5331564babe505c2145329e47a67adf126b25f0c))
+* **deps:** Update module github.com/spf13/cobra to v1.8.0 ([#1592](https://github.com/cloudquery/plugin-sdk/issues/1592)) ([fc8558b](https://github.com/cloudquery/plugin-sdk/commit/fc8558b20e90a8c7eaeff86c177dcf09cf81f63a))
+* **deps:** Update module github.com/stretchr/testify to v1.9.0 ([#1593](https://github.com/cloudquery/plugin-sdk/issues/1593)) ([59cc967](https://github.com/cloudquery/plugin-sdk/commit/59cc9677f363a92f635852b0e711c9136315d30d))
+
 ## [4.36.1](https://github.com/cloudquery/plugin-sdk/compare/v4.36.0...v4.36.1) (2024-03-28)
 
 
