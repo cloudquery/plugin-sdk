@@ -6,7 +6,7 @@ require (
 	github.com/apache/arrow/go/v15 v15.0.0-20240114144300-7e703aae55c1
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.9.0
-	github.com/cloudquery/plugin-pb-go v1.19.5
+	github.com/cloudquery/plugin-pb-go v1.19.6
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.27.0
 	github.com/goccy/go-json v0.10.2
@@ -17,7 +17,7 @@ require (
 	github.com/rs/zerolog v1.32.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.8.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/thoas/go-funk v0.9.3
 	go.opentelemetry.io/otel v1.20.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.20.0
