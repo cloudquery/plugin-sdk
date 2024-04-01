@@ -148,6 +148,8 @@ func (s *WriterTestSuite) testInsertDuplicatePK(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
+
+	// Create a multi-row record with a duplicate PK value, but different values for the other columns.
 	sc := table.ToArrowSchema()
 	var records []arrow.Record
 	for j := 0; j < rowsPerRecord; j++ {
@@ -167,7 +169,6 @@ func (s *WriterTestSuite) testInsertDuplicatePK(ctx context.Context) error {
 		}
 		columns[n] = concatenated
 	}
-
 	normalRecord := array.NewRecord(sc, columns, -1)
 
 	// normalRecord
@@ -183,10 +184,13 @@ func (s *WriterTestSuite) testInsertDuplicatePK(ctx context.Context) error {
 	}
 	sortRecords(table, records, "id")
 
+	// We are only expecting a single row to be inserted.
 	totalItems := TotalRows(records)
 	if totalItems != 1 {
 		return fmt.Errorf("expected items after initial insert: %d, got %d", 1, totalItems)
 	}
+
+	// Only the last row should be inserted.
 	lastRow, err := extractLastRowFromRecord(table, normalRecord)
 	if err != nil {
 		return fmt.Errorf("failed to extract last row from record: %w", err)
