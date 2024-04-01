@@ -198,8 +198,6 @@ type GenTestDataOptions struct {
 	NullRows bool
 	// UseHomogeneousType indicates whether to use a single type for JSON arrays.
 	UseHomogeneousType bool
-
-	DuplicateID bool
 }
 
 type TestDataGenerator struct {
@@ -233,10 +231,6 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 
 	var records []arrow.Record
 	for j := 0; j < opts.MaxRows; j++ {
-		if !opts.DuplicateID {
-			tg.counter++
-		}
-
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		for i, c := range table.Columns {
 			if opts.NullRows && !c.NotNull && !c.PrimaryKey &&
