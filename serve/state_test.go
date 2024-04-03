@@ -124,8 +124,11 @@ func TestStateOverwrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	const finalValue = "value2"
-	setValues := []string{"valua", "value", finalValue}
+	const (
+		finalValueToWrite = "value2"
+		finalValueToRead  = "value3"
+	)
+	setValues := []string{"valua", "value", finalValueToRead, finalValueToWrite}
 
 	for _, v := range setValues {
 		if err := stateClient.SetKey(ctx, "key", v); err != nil {
@@ -141,8 +144,8 @@ func TestStateOverwrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if val != finalValue {
-		t.Fatalf("expected value to be %q but got %q", finalValue, val)
+	if val != finalValueToWrite {
+		t.Fatalf("expected value to be %q but got %q", finalValueToWrite, val)
 	}
 
 	stateClient, err = state.NewClientWithTable(ctx, c, table)
@@ -153,8 +156,8 @@ func TestStateOverwrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if val != finalValue {
-		t.Fatalf("expected value to be %q but got %q", finalValue, val)
+	if val != finalValueToRead {
+		t.Fatalf("expected value to be %q but got %q", finalValueToRead, val)
 	}
 
 	cancel()

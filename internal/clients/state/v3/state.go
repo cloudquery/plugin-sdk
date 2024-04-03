@@ -3,8 +3,8 @@ package state
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	"github.com/apache/arrow/go/v15/arrow"
@@ -114,8 +114,11 @@ func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *sc
 			keys := record.Columns()[0].(*array.String)
 			values := record.Columns()[1].(*array.String)
 			for i := 0; i < keys.Len(); i++ {
-				fmt.Println(keys.Value(i), values.Value(i))
-				c.mem[keys.Value(i)] = values.Value(i)
+				k, v := keys.Value(i), values.Value(i)
+				curVal, ok := c.mem[k]
+				if !ok || strings.Compare(curVal, v) == -1 { // set only if not exists or greater lexicographically
+					c.mem[k] = v
+				}
 			}
 		}
 	}
