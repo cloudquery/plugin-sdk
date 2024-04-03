@@ -83,171 +83,102 @@ func TestState(t *testing.T) {
 }
 
 func TestStateOverwrite(t *testing.T) {
-	p := plugin.NewPlugin(
-		"testPluginV3",
-		"v1.0.0",
-		memdb.NewMemDBClient)
-	srv := Plugin(p, WithArgs("serve"), WithTestListener())
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	var serverErr error
-	go func() {
-		defer wg.Done()
-		serverErr = srv.Serve(ctx)
-	}()
-	defer func() {
-		cancel()
-		wg.Wait()
-	}()
-
-	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	if err != nil {
-		t.Fatalf("Failed to dial bufnet: %v", err)
+	cases := []struct {
+		name   string
+		values []string
+		expect string
+	}{
+		{
+			"Overwrite",
+			[]string{"valua1", "value1", "value3", "value2"}, // All same length, expect largest value
+			"value3", // Largest value lexicographically
+		},
+		{
+			"Overwrite with integers",
+			[]string{"1", "32", "4"},
+			"1", // First value written, last value read from memdb?
+		},
 	}
 
-	c := pb.NewPluginClient(conn)
-	if _, err := c.Init(ctx, &pb.Init_Request{}); err != nil {
-		t.Fatal(err)
-	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			p := plugin.NewPlugin(
+				"testPluginV3",
+				"v1.0.0",
+				memdb.NewMemDBClient)
+			srv := Plugin(p, WithArgs("serve"), WithTestListener())
+			ctx := context.Background()
+			ctx, cancel := context.WithCancel(ctx)
+			var wg sync.WaitGroup
+			wg.Add(1)
+			var serverErr error
+			go func() {
+				defer wg.Done()
+				serverErr = srv.Serve(ctx)
+			}()
+			defer func() {
+				cancel()
+				wg.Wait()
+			}()
 
-	table := state.Table("test_no_pk")
-	// Remove PKs
-	for i := range table.Columns {
-		table.Columns[i].PrimaryKey = false
-	}
+			// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
 
-	stateClient, err := state.NewClientWithTable(ctx, c, table)
-	if err != nil {
-		t.Fatal(err)
-	}
+			c := pb.NewPluginClient(conn)
+			if _, err := c.Init(ctx, &pb.Init_Request{}); err != nil {
+				t.Fatal(err)
+			}
 
-	const (
-		finalValueToWrite = "value2"
-		finalValueToRead  = "value3"
-	)
-	setValues := []string{"valua1", "value1", finalValueToRead, finalValueToWrite}
+			table := state.Table("test_no_pk")
+			// Remove PKs
+			for i := range table.Columns {
+				table.Columns[i].PrimaryKey = false
+			}
 
-	for _, v := range setValues {
-		if err := stateClient.SetKey(ctx, "key", v); err != nil {
-			t.Fatal(err)
-		}
-		// Without Flush(), value will only be updated in memory, and we won't get duplicate entries in memdb
-		if err := stateClient.Flush(ctx); err != nil {
-			t.Fatal(err)
-		}
-	}
+			stateClient, err := state.NewClientWithTable(ctx, c, table)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	val, err := stateClient.GetKey(ctx, "key")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if val != finalValueToWrite {
-		t.Fatalf("expected value to be %q but got %q", finalValueToWrite, val)
-	}
+			for _, v := range tc.values {
+				if err := stateClient.SetKey(ctx, "key", v); err != nil {
+					t.Fatal(err)
+				}
+				// Without Flush(), value will only be updated in memory, and we won't get duplicate entries in memdb
+				if err := stateClient.Flush(ctx); err != nil {
+					t.Fatal(err)
+				}
+			}
 
-	stateClient, err = state.NewClientWithTable(ctx, c, table)
-	if err != nil {
-		t.Fatal(err)
-	}
-	val, err = stateClient.GetKey(ctx, "key")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if val != finalValueToRead {
-		t.Fatalf("expected value to be %q but got %q", finalValueToRead, val)
-	}
+			val, err := stateClient.GetKey(ctx, "key")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if finalValueWritten := tc.values[len(tc.values)-1]; val != finalValueWritten {
+				t.Fatalf("expected value to be %q but got %q", finalValueWritten, val)
+			}
 
-	cancel()
-	wg.Wait()
-	if serverErr != nil {
-		t.Fatal(serverErr)
-	}
-}
+			stateClient, err = state.NewClientWithTable(ctx, c, table)
+			if err != nil {
+				t.Fatal(err)
+			}
+			val, err = stateClient.GetKey(ctx, "key")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if val != tc.expect {
+				t.Fatalf("expected value to be %q but got %q", tc.expect, val)
+			}
 
-func TestStateOverwriteIntegers(t *testing.T) {
-	p := plugin.NewPlugin(
-		"testPluginV3",
-		"v1.0.0",
-		memdb.NewMemDBClient)
-	srv := Plugin(p, WithArgs("serve"), WithTestListener())
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	var serverErr error
-	go func() {
-		defer wg.Done()
-		serverErr = srv.Serve(ctx)
-	}()
-	defer func() {
-		cancel()
-		wg.Wait()
-	}()
-
-	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	if err != nil {
-		t.Fatalf("Failed to dial bufnet: %v", err)
-	}
-
-	c := pb.NewPluginClient(conn)
-	if _, err := c.Init(ctx, &pb.Init_Request{}); err != nil {
-		t.Fatal(err)
-	}
-
-	table := state.Table("test_no_pk")
-	// Remove PKs
-	for i := range table.Columns {
-		table.Columns[i].PrimaryKey = false
-	}
-
-	stateClient, err := state.NewClientWithTable(ctx, c, table)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	const (
-		finalValueToRead  = "1" // First value written, last value read from memdb?
-		finalValueToWrite = "4"
-	)
-	setValues := []string{finalValueToRead, "32", finalValueToWrite}
-
-	for _, v := range setValues {
-		if err := stateClient.SetKey(ctx, "key", v); err != nil {
-			t.Fatal(err)
-		}
-		// Without Flush(), value will only be updated in memory, and we won't get duplicate entries in memdb
-		if err := stateClient.Flush(ctx); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	val, err := stateClient.GetKey(ctx, "key")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if val != finalValueToWrite {
-		t.Fatalf("expected value to be %q but got %q", finalValueToWrite, val)
-	}
-
-	stateClient, err = state.NewClientWithTable(ctx, c, table)
-	if err != nil {
-		t.Fatal(err)
-	}
-	val, err = stateClient.GetKey(ctx, "key")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if val != finalValueToRead {
-		t.Fatalf("expected value to be %q but got %q", finalValueToRead, val)
-	}
-
-	cancel()
-	wg.Wait()
-	if serverErr != nil {
-		t.Fatal(serverErr)
+			cancel()
+			wg.Wait()
+			if serverErr != nil {
+				t.Fatal(serverErr)
+			}
+		})
 	}
 }
