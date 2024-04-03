@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"sync"
 
@@ -18,26 +19,17 @@ const keyColumn = "key"
 const valueColumn = "value"
 
 type Client struct {
-	client    pb.PluginClient
-	tableName string
-	mem       map[string]string
-	mutex     *sync.RWMutex
-	keys      []string
-	values    []string
-	schema    *arrow.Schema
+	client pb.PluginClient
+	mem    map[string]string
+	mutex  *sync.RWMutex
+	keys   []string
+	values []string
+	schema *arrow.Schema
 }
 
-func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) (*Client, error) {
-	c := &Client{
-		client:    pbClient,
-		tableName: tableName,
-		mem:       make(map[string]string),
-		mutex:     &sync.RWMutex{},
-		keys:      make([]string, 0),
-		values:    make([]string, 0),
-	}
-	table := &schema.Table{
-		Name: tableName,
+func Table(name string) *schema.Table {
+	return &schema.Table{
+		Name: name,
 		Columns: []schema.Column{
 			{
 				Name:       keyColumn,
@@ -49,6 +41,20 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 				Type: arrow.BinaryTypes.String,
 			},
 		},
+	}
+}
+
+func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) (*Client, error) {
+	return NewClientWithTable(ctx, pbClient, Table(tableName))
+}
+
+func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *schema.Table) (*Client, error) {
+	c := &Client{
+		client: pbClient,
+		mem:    make(map[string]string),
+		mutex:  &sync.RWMutex{},
+		keys:   make([]string, 0),
+		values: make([]string, 0),
 	}
 	sc := table.ToArrowSchema()
 	c.schema = sc
@@ -108,6 +114,7 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 			keys := record.Columns()[0].(*array.String)
 			values := record.Columns()[1].(*array.String)
 			for i := 0; i < keys.Len(); i++ {
+				fmt.Println(keys.Value(i), values.Value(i))
 				c.mem[keys.Value(i)] = values.Value(i)
 			}
 		}
