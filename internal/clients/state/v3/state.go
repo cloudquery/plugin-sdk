@@ -118,7 +118,7 @@ func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *sc
 			for i := 0; i < keys.Len(); i++ {
 				k, v := keys.Value(i), values.Value(i)
 				curVal, ok := c.mem[k]
-				if !ok || strings.Compare(curVal, v) == -1 { // set only if not exists or greater lexicographically
+				if !ok || len(curVal) != len(v) || strings.Compare(curVal, v) == -1 { // set only if not exists, of different length, or greater lexicographically
 					c.mem[k] = v
 				}
 			}
