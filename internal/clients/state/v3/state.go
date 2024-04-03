@@ -19,12 +19,13 @@ const keyColumn = "key"
 const valueColumn = "value"
 
 type Client struct {
-	client pb.PluginClient
-	mem    map[string]string
-	mutex  *sync.RWMutex
-	keys   []string
-	values []string
-	schema *arrow.Schema
+	client  pb.PluginClient
+	mem     map[string]string
+	changes map[string]struct{}
+	mutex   *sync.RWMutex
+	keys    []string
+	values  []string
+	schema  *arrow.Schema
 }
 
 func Table(name string) *schema.Table {
@@ -50,11 +51,12 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 
 func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *schema.Table) (*Client, error) {
 	c := &Client{
-		client: pbClient,
-		mem:    make(map[string]string),
-		mutex:  &sync.RWMutex{},
-		keys:   make([]string, 0),
-		values: make([]string, 0),
+		client:  pbClient,
+		mem:     make(map[string]string),
+		changes: make(map[string]struct{}),
+		mutex:   &sync.RWMutex{},
+		keys:    make([]string, 0),
+		values:  make([]string, 0),
 	}
 	sc := table.ToArrowSchema()
 	c.schema = sc
@@ -129,16 +131,17 @@ func (c *Client) SetKey(_ context.Context, key string, value string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.mem[key] = value
+	c.changes[key] = struct{}{}
 	return nil
 }
 
 func (c *Client) Flush(ctx context.Context) error {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, c.schema)
-	for k, v := range c.mem {
+	for k := range c.changes {
 		bldr.Field(0).(*array.StringBuilder).Append(k)
-		bldr.Field(1).(*array.StringBuilder).Append(v)
+		bldr.Field(1).(*array.StringBuilder).Append(c.mem[k])
 	}
 	rec := bldr.NewRecord()
 	recordBytes, err := pb.RecordToBytes(rec)
@@ -161,6 +164,8 @@ func (c *Client) Flush(ctx context.Context) error {
 	if _, err := writeClient.CloseAndRecv(); err != nil {
 		return err
 	}
+
+	c.changes = make(map[string]struct{})
 	return nil
 }
 
