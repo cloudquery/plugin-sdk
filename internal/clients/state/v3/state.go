@@ -151,18 +151,13 @@ func (c *Client) SetKey(_ context.Context, key string, value string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	val := versionedValue{
+	if c.mem[key].value == value {
+		return nil // don't update if the value is the same
+	}
+	c.mem[key] = versionedValue{
 		value:   value,
-		version: 1,
+		version: c.mem[key].version + 1,
 	}
-	if cur, ok := c.mem[key]; ok {
-		if cur.value == value {
-			return nil // don't update if the value is the same
-		}
-
-		val.version = cur.version + 1
-	}
-	c.mem[key] = val
 	c.changes[key] = struct{}{}
 	return nil
 }
