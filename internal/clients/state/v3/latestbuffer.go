@@ -1,6 +1,7 @@
 package state
 
 import (
+	"errors"
 	"strconv"
 	"time"
 )
@@ -30,21 +31,25 @@ func (l *LatestBuffer) Add(key, value string) {
 	l.data[key] = append(l.data[key], possibleFormats(value))
 }
 
-func (l *LatestBuffer) All() map[string]string {
+func (l *LatestBuffer) All() (map[string]string, error) {
 	ret := make(map[string]string, len(l.data))
+	var err error
 	for key := range l.data {
-		ret[key] = l.Get(key)
+		ret[key], err = l.Get(key)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return ret
+	return ret, nil
 }
 
-func (l *LatestBuffer) Get(key string) string {
+func (l *LatestBuffer) Get(key string) (string, error) {
 	vals := l.data[key]
 	switch len(vals) {
 	case 0: // unknown key
-		return ""
+		return "", nil
 	case 1: // single value
-		return vals[0][fOriginal].(string)
+		return vals[0][fOriginal].(string), nil
 	}
 
 	var common *format
@@ -67,7 +72,7 @@ func (l *LatestBuffer) Get(key string) string {
 		}
 	}
 	if common == nil || *common == fOriginal {
-		return vals[0][fOriginal].(string) // no known common format, return first value
+		return vals[0][fOriginal].(string), nil // no known common format, return first value
 	}
 
 	valIndex := -1
@@ -79,7 +84,7 @@ func (l *LatestBuffer) Get(key string) string {
 		for i, fVal := range vals {
 			v, ok := fVal.Get(fInt)
 			if !ok {
-				panic("wanted to get fInt but not found")
+				return "", errors.New("wanted to get fInt but not found")
 			}
 			vt := v.(int64)
 			if valIndex == -1 || vt > maxVal {
@@ -98,7 +103,7 @@ func (l *LatestBuffer) Get(key string) string {
 				}
 			}
 			if !ok {
-				panic("wanted to get fFloat but not found")
+				return "", errors.New("wanted to get fFloat but not found")
 			}
 			vt := v.(float64)
 			if valIndex == -1 || vt > maxVal {
@@ -111,7 +116,7 @@ func (l *LatestBuffer) Get(key string) string {
 		for i, fVal := range vals {
 			v, ok := fVal.Get(fTime)
 			if !ok {
-				panic("wanted to get fTime but not found")
+				return "", errors.New("wanted to get fTime but not found")
 			}
 			vt := v.(time.Time)
 			if valIndex == -1 || vt.After(maxVal) {
@@ -121,13 +126,7 @@ func (l *LatestBuffer) Get(key string) string {
 		}
 	}
 
-	if valIndex == -1 {
-		// should not happen
-		panic("valIndex is -1, common is " + strconv.FormatInt(int64(*common), 10))
-		//return vals[0][fOriginal].(string) // return first value
-	}
-
-	return vals[valIndex][fOriginal].(string) // Return original value (of the largest value)
+	return vals[valIndex][fOriginal].(string), nil // Return original value (of the largest value)
 }
 
 func possibleFormats(s string) formatMap {

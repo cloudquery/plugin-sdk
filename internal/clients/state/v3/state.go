@@ -136,7 +136,10 @@ func (c *Client) Flush(ctx context.Context) error {
 	defer c.mutex.Unlock()
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, c.schema)
 	for k := range c.changes {
-		v := c.mem.Get(k)
+		v, err := c.mem.Get(k)
+		if err != nil {
+			return err
+		}
 		bldr.Field(0).(*array.StringBuilder).Append(k)
 		bldr.Field(1).(*array.StringBuilder).Append(v)
 	}
@@ -169,5 +172,5 @@ func (c *Client) Flush(ctx context.Context) error {
 func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	return c.mem.Get(key), nil
+	return c.mem.Get(key)
 }

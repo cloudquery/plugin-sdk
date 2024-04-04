@@ -169,16 +169,11 @@ func TestStateOverwrite(t *testing.T) {
 				}
 			}
 
-			val, err := stateClient.GetKey(ctx, "key")
-			if err != nil {
-				t.Fatal(err)
-			}
-
 			stateClient, err = state.NewClientWithTable(ctx, c, table)
 			if err != nil {
 				t.Fatal(err)
 			}
-			val, err = stateClient.GetKey(ctx, "key")
+			val, err := stateClient.GetKey(ctx, "key")
 			if err != nil {
 				t.Fatal(err)
 			}
