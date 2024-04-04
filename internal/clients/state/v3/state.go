@@ -22,11 +22,15 @@ const (
 
 type Client struct {
 	client  pb.PluginClient
-	mem     map[string]map[uint64]string
+	mem     map[string]versionedValue
 	changes map[string]struct{} // changed keys
-	latest  map[string]uint64   // latest versions
 	mutex   *sync.RWMutex
 	schema  *arrow.Schema
+}
+
+type versionedValue struct {
+	value   string
+	version uint64
 }
 
 func Table(name string) *schema.Table {
@@ -58,9 +62,8 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *schema.Table) (*Client, error) {
 	c := &Client{
 		client:  pbClient,
-		mem:     make(map[string]map[uint64]string), // key vs. version vs. value
+		mem:     make(map[string]versionedValue),
 		changes: make(map[string]struct{}),
-		latest:  make(map[string]uint64),
 		mutex:   &sync.RWMutex{},
 	}
 	sc := table.ToArrowSchema()
@@ -124,26 +127,21 @@ func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *sc
 			for i := 0; i < keys.Len(); i++ {
 				k, val := keys.Value(i), values.Value(i)
 
-				if _, ok := c.mem[k]; !ok {
-					c.mem[k] = make(map[uint64]string)
-				}
 				var ver uint64
 				if versions.IsValid(i) {
 					ver = versions.Value(i)
 				}
-				c.mem[k][ver] = val
+				if cur, ok := c.mem[k]; ok {
+					if cur.version > ver {
+						continue
+					}
+				}
+				c.mem[k] = versionedValue{
+					value:   val,
+					version: ver,
+				}
 			}
 		}
-	}
-
-	for k, v := range c.mem {
-		var maxVer uint64
-		for ver := range v {
-			if ver > maxVer {
-				maxVer = ver
-			}
-		}
-		c.latest[k] = maxVer
 	}
 
 	return c, nil
@@ -152,11 +150,19 @@ func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *sc
 func (c *Client) SetKey(_ context.Context, key string, value string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.latest[key]++
-	if _, ok := c.mem[key]; !ok {
-		c.mem[key] = make(map[uint64]string)
+
+	val := versionedValue{
+		value:   value,
+		version: 1,
 	}
-	c.mem[key][c.latest[key]] = value
+	if cur, ok := c.mem[key]; ok {
+		if cur.value == value {
+			return nil // don't update if the value is the same
+		}
+
+		val.version = cur.version + 1
+	}
+	c.mem[key] = val
 	c.changes[key] = struct{}{}
 	return nil
 }
@@ -166,11 +172,10 @@ func (c *Client) Flush(ctx context.Context) error {
 	defer c.mutex.Unlock()
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, c.schema)
 	for k := range c.changes {
-		ver := c.latest[k]
-		val := c.mem[k][ver]
+		val := c.mem[k]
 		bldr.Field(0).(*array.StringBuilder).Append(k)
-		bldr.Field(1).(*array.StringBuilder).Append(val)
-		bldr.Field(2).(*array.Uint64Builder).Append(ver)
+		bldr.Field(1).(*array.StringBuilder).Append(val.value)
+		bldr.Field(2).(*array.Uint64Builder).Append(val.version)
 	}
 	rec := bldr.NewRecord()
 	recordBytes, err := pb.RecordToBytes(rec)
@@ -201,8 +206,5 @@ func (c *Client) Flush(ctx context.Context) error {
 func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	if ver, ok := c.latest[key]; ok {
-		return c.mem[key][ver], nil
-	}
-	return "", nil
+	return c.mem[key].value, nil
 }
