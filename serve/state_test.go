@@ -90,13 +90,13 @@ func TestStateOverwrite(t *testing.T) {
 	}{
 		{
 			"Overwrite",
-			[]string{"valua1", "value1", "value3", "value2"}, // All same length, expect largest value
-			"value3", // Largest value lexicographically
+			[]string{"valua", "value1", "value3", "value2"}, // All strings, expect first value
+			"valua",
 		},
 		{
 			"Overwrite with integers",
 			[]string{"1", "32", "4"},
-			"1", // First value written, last value read from memdb?
+			"32",
 		},
 		{
 			"Overwrite with timestamps",
@@ -110,7 +110,7 @@ func TestStateOverwrite(t *testing.T) {
 		},
 		{
 			"Overwrite with float unix timestamps with int in between",
-			[]string{"1712226133.860000", "1712226134", "1712226133.859000"},
+			[]string{"123", "1712226133.860000", "1712226134", "1712226133.859000"},
 			"1712226134",
 		},
 	}
@@ -172,9 +172,6 @@ func TestStateOverwrite(t *testing.T) {
 			val, err := stateClient.GetKey(ctx, "key")
 			if err != nil {
 				t.Fatal(err)
-			}
-			if finalValueWritten := tc.values[len(tc.values)-1]; val != finalValueWritten {
-				t.Fatalf("expected value to be %q but got %q", finalValueWritten, val)
 			}
 
 			stateClient, err = state.NewClientWithTable(ctx, c, table)

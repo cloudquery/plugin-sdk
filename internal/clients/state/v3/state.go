@@ -19,7 +19,7 @@ const valueColumn = "value"
 
 type Client struct {
 	client  pb.PluginClient
-	mem     map[string]string
+	mem     *LatestBuffer
 	changes map[string]struct{}
 	mutex   *sync.RWMutex
 	keys    []string
@@ -51,7 +51,7 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *schema.Table) (*Client, error) {
 	c := &Client{
 		client:  pbClient,
-		mem:     make(map[string]string),
+		mem:     NewLatestBuffer(),
 		changes: make(map[string]struct{}),
 		mutex:   &sync.RWMutex{},
 		keys:    make([]string, 0),
@@ -115,21 +115,18 @@ func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *sc
 			keys := record.Columns()[0].(*array.String)
 			values := record.Columns()[1].(*array.String)
 			for i := 0; i < keys.Len(); i++ {
-				k, v := keys.Value(i), values.Value(i)
-				curVal, ok := c.mem[k]
-				if !ok || len(curVal) != len(v) || v > curVal { // set only if not exists, of different length, or greater lexicographically
-					c.mem[k] = v
-				}
+				c.mem.Add(keys.Value(i), values.Value(i))
 			}
 		}
 	}
+
 	return c, nil
 }
 
 func (c *Client) SetKey(_ context.Context, key string, value string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.mem[key] = value
+	c.mem.Add(key, value)
 	c.changes[key] = struct{}{}
 	return nil
 }
@@ -139,8 +136,9 @@ func (c *Client) Flush(ctx context.Context) error {
 	defer c.mutex.Unlock()
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, c.schema)
 	for k := range c.changes {
+		v := c.mem.Get(k)
 		bldr.Field(0).(*array.StringBuilder).Append(k)
-		bldr.Field(1).(*array.StringBuilder).Append(c.mem[k])
+		bldr.Field(1).(*array.StringBuilder).Append(v)
 	}
 	rec := bldr.NewRecord()
 	recordBytes, err := pb.RecordToBytes(rec)
@@ -171,8 +169,5 @@ func (c *Client) Flush(ctx context.Context) error {
 func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	if val, ok := c.mem[key]; ok {
-		return val, nil
-	}
-	return "", nil
+	return c.mem.Get(key), nil
 }
