@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
-	"github.com/cloudquery/plugin-sdk/v4/internal/clients/state/v3"
+	"github.com/cloudquery/plugin-sdk/v4/internal/clients/state/v4"
 	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func TestState(t *testing.T) {
+func TestStateV4(t *testing.T) {
 	p := plugin.NewPlugin(
 		"testPluginV3",
 		"v1.0.0",
@@ -82,7 +82,7 @@ func TestState(t *testing.T) {
 	}
 }
 
-func TestStateOverwriteGetLatest(t *testing.T) {
+func TestStateV4OverwriteGetLatest(t *testing.T) {
 	p := plugin.NewPlugin(
 		"testPluginV3",
 		"v1.0.0",

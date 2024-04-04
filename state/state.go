@@ -8,6 +8,7 @@ import (
 	pbDiscovery "github.com/cloudquery/plugin-pb-go/pb/discovery/v1"
 	pbPluginV3 "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	stateV3 "github.com/cloudquery/plugin-sdk/v4/internal/clients/state/v3"
+	stateV4 "github.com/cloudquery/plugin-sdk/v4/internal/clients/state/v4"
 	"google.golang.org/grpc"
 )
 
@@ -25,6 +26,18 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Cl
 	}
 	if slices.Contains(versions.Versions, 3) {
 		return stateV3.NewClient(ctx, pbPluginV3.NewPluginClient(conn), tableName)
+	}
+	return nil, fmt.Errorf("please upgrade your state backend plugin. state supporting version 3 plugin has %v", versions.Versions)
+}
+
+func NewVersionedClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Client, error) {
+	discoveryClient := pbDiscovery.NewDiscoveryClient(conn)
+	versions, err := discoveryClient.GetVersions(ctx, &pbDiscovery.GetVersions_Request{})
+	if err != nil {
+		return nil, err
+	}
+	if slices.Contains(versions.Versions, 3) {
+		return stateV4.NewClient(ctx, pbPluginV3.NewPluginClient(conn), tableName)
 	}
 	return nil, fmt.Errorf("please upgrade your state backend plugin. state supporting version 3 plugin has %v", versions.Versions)
 }
