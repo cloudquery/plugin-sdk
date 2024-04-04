@@ -98,6 +98,21 @@ func TestStateOverwrite(t *testing.T) {
 			[]string{"1", "32", "4"},
 			"1", // First value written, last value read from memdb?
 		},
+		{
+			"Overwrite with timestamps",
+			[]string{"2024-04-03T16:02:55.20412Z", "2024-04-03T16:03:37.06Z", "2024-04-03T16:03:22.440487Z", "2024-04-03T16:03:37.058413Z"},
+			"2024-04-03T16:03:37.06Z", // Latest timestamp despite rounding zeroes
+		},
+		{
+			"Overwrite with float unix timestamps",
+			[]string{"1712226133.860000", "1712226134.759", "1712226133.859000"},
+			"1712226134.759",
+		},
+		{
+			"Overwrite with float unix timestamps with int in between",
+			[]string{"1712226133.860000", "1712226134", "1712226133.859000"},
+			"1712226134",
+		},
 	}
 
 	for _, tc := range cases {
