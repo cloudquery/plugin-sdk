@@ -203,7 +203,6 @@ func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	defer c.mutex.RUnlock()
 	if ver, ok := c.latest[key]; ok {
 		return c.mem[key][ver], nil
-
 	}
 	return "", nil
 }
