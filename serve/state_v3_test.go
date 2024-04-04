@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func TestStateV3(t *testing.T) {
+func TestStateV3in(t *testing.T) {
 	p := plugin.NewPlugin(
 		"testPluginV3",
 		"v1.0.0",
