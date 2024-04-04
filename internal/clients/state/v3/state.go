@@ -21,11 +21,12 @@ const (
 )
 
 type Client struct {
-	client  pb.PluginClient
-	mem     map[string]versionedValue
-	changes map[string]struct{} // changed keys
-	mutex   *sync.RWMutex
-	schema  *arrow.Schema
+	client        pb.PluginClient
+	mem           map[string]versionedValue
+	changes       map[string]struct{} // changed keys
+	mutex         *sync.RWMutex
+	schema        *arrow.Schema
+	versionedMode bool
 }
 
 type versionedValue struct {
@@ -46,13 +47,18 @@ func Table(name string) *schema.Table {
 				Name: valueColumn,
 				Type: arrow.BinaryTypes.String,
 			},
-			{
-				// Not defined as PrimaryKey to enable single keys if the destination supports PKs
-				Name: versionColumn,
-				Type: arrow.PrimitiveTypes.Uint64,
-			},
 		},
 	}
+}
+
+func VersionedTable(name string) *schema.Table {
+	t := Table(name)
+	t.Columns = append(t.Columns, schema.Column{
+		// Not defined as PrimaryKey to enable single keys if the destination supports PKs
+		Name: versionColumn,
+		Type: arrow.PrimitiveTypes.Uint64,
+	})
+	return t
 }
 
 func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) (*Client, error) {
@@ -61,10 +67,11 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 
 func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *schema.Table) (*Client, error) {
 	c := &Client{
-		client:  pbClient,
-		mem:     make(map[string]versionedValue),
-		changes: make(map[string]struct{}),
-		mutex:   &sync.RWMutex{},
+		client:        pbClient,
+		mem:           make(map[string]versionedValue),
+		changes:       make(map[string]struct{}),
+		mutex:         &sync.RWMutex{},
+		versionedMode: table.Column(versionColumn) != nil,
 	}
 	sc := table.ToArrowSchema()
 	c.schema = sc
@@ -123,12 +130,16 @@ func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *sc
 			}
 			keys := record.Columns()[0].(*array.String)
 			values := record.Columns()[1].(*array.String)
-			versions := record.Columns()[2].(*array.Uint64)
+
+			var versions *array.Uint64
+			if c.versionedMode {
+				versions = record.Columns()[2].(*array.Uint64)
+			}
 			for i := 0; i < keys.Len(); i++ {
 				k, val := keys.Value(i), values.Value(i)
 
 				var ver uint64
-				if versions.IsValid(i) {
+				if versions != nil && versions.IsValid(i) {
 					ver = versions.Value(i)
 				}
 				if cur, ok := c.mem[k]; ok {
@@ -170,7 +181,9 @@ func (c *Client) Flush(ctx context.Context) error {
 		val := c.mem[k]
 		bldr.Field(0).(*array.StringBuilder).Append(k)
 		bldr.Field(1).(*array.StringBuilder).Append(val.value)
-		bldr.Field(2).(*array.Uint64Builder).Append(val.version)
+		if c.versionedMode {
+			bldr.Field(2).(*array.Uint64Builder).Append(val.version)
+		}
 	}
 	rec := bldr.NewRecord()
 	recordBytes, err := pb.RecordToBytes(rec)

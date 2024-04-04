@@ -113,7 +113,7 @@ func TestStateOverwriteGetLatest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	table := state.Table("test_no_pk")
+	table := state.VersionedTable("test_no_pk")
 	// Remove PKs
 	for i := range table.Columns {
 		table.Columns[i].PrimaryKey = false

@@ -17,13 +17,24 @@ type Client interface {
 	Flush(ctx context.Context) error
 }
 
+type ClientOptions struct {
+	Versioned bool
+}
+
 func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Client, error) {
+	return NewClientWithOptions(ctx, conn, tableName, ClientOptions{})
+}
+
+func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, opts ClientOptions) (Client, error) {
 	discoveryClient := pbDiscovery.NewDiscoveryClient(conn)
 	versions, err := discoveryClient.GetVersions(ctx, &pbDiscovery.GetVersions_Request{})
 	if err != nil {
 		return nil, err
 	}
 	if slices.Contains(versions.Versions, 3) {
+		if opts.Versioned {
+			return stateV3.NewClientWithTable(ctx, pbPluginV3.NewPluginClient(conn), stateV3.VersionedTable(tableName))
+		}
 		return stateV3.NewClient(ctx, pbPluginV3.NewPluginClient(conn), tableName)
 	}
 	return nil, fmt.Errorf("please upgrade your state backend plugin. state supporting version 3 plugin has %v", versions.Versions)
