@@ -14,30 +14,24 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-const keyColumn = "key"
-const valueColumn = "value"
+const (
+	keyColumn     = "key"
+	valueColumn   = "value"
+	versionColumn = "version"
+)
 
 type Client struct {
-	client    pb.PluginClient
-	tableName string
-	mem       map[string]string
-	mutex     *sync.RWMutex
-	keys      []string
-	values    []string
-	schema    *arrow.Schema
+	client  pb.PluginClient
+	mem     map[string]map[uint64]string
+	changes map[string]struct{} // changed keys
+	latest  map[string]uint64   // latest versions
+	mutex   *sync.RWMutex
+	schema  *arrow.Schema
 }
 
-func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) (*Client, error) {
-	c := &Client{
-		client:    pbClient,
-		tableName: tableName,
-		mem:       make(map[string]string),
-		mutex:     &sync.RWMutex{},
-		keys:      make([]string, 0),
-		values:    make([]string, 0),
-	}
-	table := &schema.Table{
-		Name: tableName,
+func Table(name string) *schema.Table {
+	return &schema.Table{
+		Name: name,
 		Columns: []schema.Column{
 			{
 				Name:       keyColumn,
@@ -48,7 +42,26 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 				Name: valueColumn,
 				Type: arrow.BinaryTypes.String,
 			},
+			{
+				// Not defined as PrimaryKey to enable single keys if the destination supports PKs
+				Name: versionColumn,
+				Type: arrow.PrimitiveTypes.Uint64,
+			},
 		},
+	}
+}
+
+func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) (*Client, error) {
+	return NewClientWithTable(ctx, pbClient, Table(tableName))
+}
+
+func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *schema.Table) (*Client, error) {
+	c := &Client{
+		client:  pbClient,
+		mem:     make(map[string]map[uint64]string), // key vs. version vs. value
+		changes: make(map[string]struct{}),
+		latest:  make(map[string]uint64),
+		mutex:   &sync.RWMutex{},
 	}
 	sc := table.ToArrowSchema()
 	c.schema = sc
@@ -107,28 +120,57 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 			}
 			keys := record.Columns()[0].(*array.String)
 			values := record.Columns()[1].(*array.String)
+			versions := record.Columns()[2].(*array.Uint64)
 			for i := 0; i < keys.Len(); i++ {
-				c.mem[keys.Value(i)] = values.Value(i)
+				k, val := keys.Value(i), values.Value(i)
+
+				if _, ok := c.mem[k]; !ok {
+					c.mem[k] = make(map[uint64]string)
+				}
+				var ver uint64
+				if versions.IsValid(i) {
+					ver = versions.Value(i)
+				}
+				c.mem[k][ver] = val
 			}
 		}
 	}
+
+	for k, v := range c.mem {
+		var maxVer uint64
+		for ver := range v {
+			if ver > maxVer {
+				maxVer = ver
+			}
+		}
+		c.latest[k] = maxVer
+	}
+
 	return c, nil
 }
 
 func (c *Client) SetKey(_ context.Context, key string, value string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.mem[key] = value
+	c.latest[key]++
+	if _, ok := c.mem[key]; !ok {
+		c.mem[key] = make(map[uint64]string)
+	}
+	c.mem[key][c.latest[key]] = value
+	c.changes[key] = struct{}{}
 	return nil
 }
 
 func (c *Client) Flush(ctx context.Context) error {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, c.schema)
-	for k, v := range c.mem {
+	for k := range c.changes {
+		ver := c.latest[k]
+		val := c.mem[k][ver]
 		bldr.Field(0).(*array.StringBuilder).Append(k)
-		bldr.Field(1).(*array.StringBuilder).Append(v)
+		bldr.Field(1).(*array.StringBuilder).Append(val)
+		bldr.Field(2).(*array.Uint64Builder).Append(ver)
 	}
 	rec := bldr.NewRecord()
 	recordBytes, err := pb.RecordToBytes(rec)
@@ -151,14 +193,17 @@ func (c *Client) Flush(ctx context.Context) error {
 	if _, err := writeClient.CloseAndRecv(); err != nil {
 		return err
 	}
+
+	c.changes = make(map[string]struct{})
 	return nil
 }
 
 func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	if val, ok := c.mem[key]; ok {
-		return val, nil
+	if ver, ok := c.latest[key]; ok {
+		return c.mem[key][ver], nil
+
 	}
 	return "", nil
 }
