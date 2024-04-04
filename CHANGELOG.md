@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.36.5](https://github.com/cloudquery/plugin-sdk/compare/v4.36.4...v4.36.5) (2024-04-04)
+
+
+### Bug Fixes
+
+* Update Otel Schema version ([#1605](https://github.com/cloudquery/plugin-sdk/issues/1605)) ([601ef35](https://github.com/cloudquery/plugin-sdk/commit/601ef352b4871c0396ad98b3b41aa30636f6924f))
+
 ## [4.36.4](https://github.com/cloudquery/plugin-sdk/compare/v4.36.3...v4.36.4) (2024-04-04)
 
 
