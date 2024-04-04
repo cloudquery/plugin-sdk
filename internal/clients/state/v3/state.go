@@ -22,8 +22,6 @@ type Client struct {
 	mem     *LatestBuffer
 	changes map[string]struct{}
 	mutex   *sync.RWMutex
-	keys    []string
-	values  []string
 	schema  *arrow.Schema
 }
 
@@ -54,8 +52,6 @@ func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *sc
 		mem:     NewLatestBuffer(),
 		changes: make(map[string]struct{}),
 		mutex:   &sync.RWMutex{},
-		keys:    make([]string, 0),
-		values:  make([]string, 0),
 	}
 	sc := table.ToArrowSchema()
 	c.schema = sc
