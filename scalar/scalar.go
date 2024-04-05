@@ -211,17 +211,18 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		v := s.(*Struct).Value
 		m, ok := v.(map[string]any)
 		if !ok {
-			if reflectedMap := reflect.ValueOf(v); reflectedMap.Kind() == reflect.Map {
-				m = make(map[string]any, reflectedMap.Len())
-				for _, key := range reflectedMap.MapKeys() {
-					if key.Kind() != reflect.String {
-						panic(fmt.Sprintf("expected map[string]any, got %T", v))
-					}
-					value := reflectedMap.MapIndex(key)
-					m[key.String()] = value.Interface()
-				}
-			} else {
+			reflectedMap := reflect.ValueOf(v)
+			if reflectedMap.Kind() != reflect.Map {
 				panic(fmt.Sprintf("expected map[string]any, got %T", v))
+			}
+
+			m = make(map[string]any, reflectedMap.Len())
+			for _, key := range reflectedMap.MapKeys() {
+				if key.Kind() != reflect.String {
+					panic(fmt.Sprintf("expected map[string]any, got %T", v))
+				}
+				value := reflectedMap.MapIndex(key)
+				m[key.String()] = value.Interface()
 			}
 		}
 
