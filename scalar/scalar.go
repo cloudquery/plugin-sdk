@@ -2,6 +2,7 @@ package scalar
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/apache/arrow/go/v15/arrow/array"
@@ -208,7 +209,22 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		sb.Append(true)
 
 		v := s.(*Struct).Value
-		m := v.(map[string]any)
+		m, ok := v.(map[string]any)
+		if !ok {
+			if reflectedMap := reflect.ValueOf(v); reflectedMap.Kind() == reflect.Map {
+				m = make(map[string]any, reflectedMap.Len())
+				for _, key := range reflectedMap.MapKeys() {
+					if key.Kind() != reflect.String {
+						panic(fmt.Sprintf("expected map[string]any, got %T", v))
+					}
+					value := reflectedMap.MapIndex(key)
+					m[key.String()] = value.Interface()
+				}
+			} else {
+				panic(fmt.Sprintf("expected map[string]any, got %T", v))
+			}
+		}
+
 		names := make(map[string]struct{}, len(m))
 		for k := range m {
 			names[k] = struct{}{}
