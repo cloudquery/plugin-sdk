@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.37.0](https://github.com/cloudquery/plugin-sdk/compare/v4.36.5...v4.37.0) (2024-04-05)
+
+
+### Features
+
+* Add versioning to state client ([#1604](https://github.com/cloudquery/plugin-sdk/issues/1604)) ([8957223](https://github.com/cloudquery/plugin-sdk/commit/89572235c39042d1dc03469c2819909e26b3ca17))
+
 ## [4.36.5](https://github.com/cloudquery/plugin-sdk/compare/v4.36.4...v4.36.5) (2024-04-04)
 
 
