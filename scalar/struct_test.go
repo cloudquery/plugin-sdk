@@ -10,6 +10,7 @@ import (
 	"github.com/apache/arrow/go/v15/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStructEncodeDecode(t *testing.T) {
@@ -98,6 +99,48 @@ func TestStructMissingKeys(t *testing.T) {
 
 			assert.True(t, s.IsValid())
 			AppendToBuilder(bldr, s)
+		})
+	}
+}
+
+func TestStructSet(t *testing.T) {
+	type testType any
+
+	tl := []struct {
+		schema arrow.DataType
+		input  any
+	}{
+		{
+			schema: arrow.StructOf(arrow.Field{Name: "a", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "b", Type: arrow.PrimitiveTypes.Int64}),
+			input:  map[string]any{"a": 1, "b": 2},
+		},
+		{
+			schema: arrow.StructOf(arrow.Field{Name: "a", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "b", Type: arrow.PrimitiveTypes.Int64}),
+			input:  map[string]testType{"a": 1, "b": 2},
+		},
+		{
+			schema: arrow.StructOf(arrow.Field{Name: "nested", Type: arrow.StructOf(arrow.Field{Name: "a", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "b", Type: arrow.PrimitiveTypes.Int64})}),
+			input:  map[string]any{"x": map[string]any{"a": 1, "b": 2}},
+		},
+		{
+			schema: arrow.StructOf(arrow.Field{Name: "nested", Type: arrow.StructOf(arrow.Field{Name: "a", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "b", Type: arrow.PrimitiveTypes.Int64})}),
+			input:  map[string]testType{"x": map[string]testType{"a": 1, "b": 2}},
+		},
+		{
+			schema: arrow.StructOf(arrow.Field{Name: "nested", Type: arrow.StructOf(arrow.Field{Name: "a", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "b", Type: arrow.PrimitiveTypes.Int64})}),
+			input:  map[string]testType{"x": map[string]any{"a": 1, "b": 2}},
+		},
+		{
+			schema: arrow.StructOf(arrow.Field{Name: "nested", Type: arrow.StructOf(arrow.Field{Name: "a", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "b", Type: arrow.PrimitiveTypes.Int64})}),
+			input:  map[string]any{"x": map[string]testType{"a": 1, "b": 2}},
+		},
+	}
+
+	for idx, tc := range tl {
+		tc := tc
+		t.Run(strconv.Itoa(idx), func(t *testing.T) {
+			s := NewScalar(tc.schema)
+			require.NoError(t, s.Set(tc.input))
 		})
 	}
 }
