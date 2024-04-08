@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.38.0](https://github.com/cloudquery/plugin-sdk/compare/v4.37.0...v4.38.0) (2024-04-08)
+
+
+### Features
+
+* Support arbitrary map values for structs (scalar) ([#1611](https://github.com/cloudquery/plugin-sdk/issues/1611)) ([d8fde8c](https://github.com/cloudquery/plugin-sdk/commit/d8fde8c87a82617dc180c273cfd9cb70dcddfe13))
+* Test duplicated primary key insertion ([#1584](https://github.com/cloudquery/plugin-sdk/issues/1584)) ([6c57402](https://github.com/cloudquery/plugin-sdk/commit/6c57402388df153d752d85a4f7793499a36a78bd))
+
 ## [4.37.0](https://github.com/cloudquery/plugin-sdk/compare/v4.36.5...v4.37.0) (2024-04-05)
 
 
