@@ -18,8 +18,16 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table) ([]arrow.Reco
 	// nolint:prealloc
 	var records []arrow.Record
 	for record := range ch {
-		records = append(records, record)
+		records = append(records, sliceToSingleRowRecord(record)...)
 	}
 
 	return records, err
+}
+
+func sliceToSingleRowRecord(record arrow.Record) []arrow.Record {
+	result := make([]arrow.Record, record.NumRows())
+	for i := int64(0); i < record.NumRows(); i++ {
+		result[i] = record.NewSlice(i, i+1)
+	}
+	return result
 }
