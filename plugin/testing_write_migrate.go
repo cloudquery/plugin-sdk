@@ -61,7 +61,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to sync: %w", err)
 	}
 	sortRecords(source, records, "id")
-	records = records[initialItems:]
+	records = SkipRows(records, int64(initialItems))
 
 	totalItems := TotalRows(records)
 	if totalItems != int64(rowsPerRecord) {
@@ -92,7 +92,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("failed to readAll: %w", err)
 	}
 	sortRecords(target, records, "id")
-	records = records[initialItems:]
+	SkipRows(records, int64(initialItems))
 	lastRow := resource2.NewSlice(resource2.NumRows()-1, resource2.NumRows())
 	// if force migration is not required, we don't expect any items to be dropped (so there should be 2 items)
 	if !writeOptionMigrateForce || supportsSafeMigrate {
