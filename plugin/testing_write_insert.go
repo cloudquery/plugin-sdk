@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/apache/arrow/go/v15/arrow/array"
@@ -18,29 +17,6 @@ func TotalRows(records []arrow.Record) int64 {
 		totalRows += record.NumRows()
 	}
 	return totalRows
-}
-
-func SkipRows(records []arrow.Record, toSkip int64) []arrow.Record {
-	if toSkip < 0 {
-		panic(fmt.Sprintf("toSkip(%d) < 0", toSkip))
-
-	}
-	if total := TotalRows(records); total < toSkip {
-		panic(fmt.Sprintf("total(%d) < toSkip(%d)", total, toSkip))
-	}
-	var first arrow.Record
-	result := slices.Clone(records)
-	for toSkip > 0 {
-		first, result = result[0], result[1:]
-		rows := first.NumRows()
-		if rows > toSkip {
-			// we need to split rows
-			return append([]arrow.Record{first.NewSlice(toSkip, rows)}, result...)
-		}
-		toSkip -= rows
-	}
-	// shouldn't even get here
-	return nil
 }
 
 func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
