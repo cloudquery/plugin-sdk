@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.38.1](https://github.com/cloudquery/plugin-sdk/compare/v4.38.0...v4.38.1) (2024-04-12)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to c0f41cb ([#1615](https://github.com/cloudquery/plugin-sdk/issues/1615)) ([0c21bfb](https://github.com/cloudquery/plugin-sdk/commit/0c21bfbc0faed5c12e415820dc95c1f1cb2c8e7d))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.9 ([#1631](https://github.com/cloudquery/plugin-sdk/issues/1631)) ([5d45003](https://github.com/cloudquery/plugin-sdk/commit/5d450034a835d2e9620310394bc0cf776d44c337))
+* **deps:** Update module google.golang.org/grpc to v1.63.2 ([#1617](https://github.com/cloudquery/plugin-sdk/issues/1617)) ([02461b1](https://github.com/cloudquery/plugin-sdk/commit/02461b1ba112a87dc97575320fe5327383e8bae9))
+* **test:** Slice rows properly when reading in tests ([#1632](https://github.com/cloudquery/plugin-sdk/issues/1632)) ([537b64c](https://github.com/cloudquery/plugin-sdk/commit/537b64c6ca2fbe2c7208e152fb4f77015fc875f1))
+
 ## [4.38.0](https://github.com/cloudquery/plugin-sdk/compare/v4.37.0...v4.38.0) (2024-04-08)
 
 
