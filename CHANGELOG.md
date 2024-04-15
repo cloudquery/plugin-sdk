@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.38.2](https://github.com/cloudquery/plugin-sdk/compare/v4.38.1...v4.38.2) (2024-04-15)
+
+
+### Bug Fixes
+
+* **deps:** Update opentelemetry-go monorepo to v1.25.0 ([#1634](https://github.com/cloudquery/plugin-sdk/issues/1634)) ([c1477d5](https://github.com/cloudquery/plugin-sdk/commit/c1477d544a6000f45ae30f019c17e22fc679ff13))
+
 ## [4.38.1](https://github.com/cloudquery/plugin-sdk/compare/v4.38.0...v4.38.1) (2024-04-12)
 
 
