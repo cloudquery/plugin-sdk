@@ -1,6 +1,8 @@
 package plugin
 
-import "errors"
+import (
+	"errors"
+)
 
 const (
 	GoOSLinux   = "linux"
@@ -41,17 +43,36 @@ type BuildTarget struct {
 }
 
 func (t BuildTarget) EnvVariables() []string {
-	cgo := "CGO_ENABLED="
-	if t.CGO {
-		cgo += "1"
-	} else {
-		cgo += "0"
+	variables := append(t.cgoEnvVariables(), "GOOS="+t.OS, "GOARCH="+t.Arch)
+	return append(variables, t.Env...)
+}
+
+func (t BuildTarget) cgoEnvVariables() []string {
+	// default is to tool at the param. Can be overridden by adding `CGO_ENABLED=1` to BuildTarget.Env
+	if !t.CGO {
+		return []string{"CGO_ENABLED=0"}
 	}
-	return append([]string{
-		"GOOS=" + t.OS,
-		"GOARCH=" + t.Arch,
-		cgo, // default is to tool at the param. Can be overridden by adding `CGO_ENABLED=1` to BuildTarget.Env
-	}, t.Env...)
+
+	switch t.OS {
+	case GoOSWindows:
+		return []string{"CGO_ENABLED=1", "CC=x86_64-w64-mingw32-gcc", "CXX=x86_64-w64-mingw32-g++"}
+	case GoOSDarwin:
+		return []string{"CGO_ENABLED=1", "CC=o64-clang", "CXX=o64-clang++"}
+	case GoOSLinux:
+		// nop, see below
+	default:
+		return []string{"CGO_ENABLED=1"}
+	}
+
+	// linux
+	switch t.Arch {
+	case GoArchAmd64:
+		return []string{"CGO_ENABLED=1", "CC=gcc", "CXX=g++"}
+	case GoArchArm64:
+		return []string{"CGO_ENABLED=1", "CC=aarch64-linux-gnu-gcc", "CXX=aarch64-linux-gnu-g++"}
+	default:
+		return []string{"CGO_ENABLED=1"}
+	}
 }
 
 var DefaultBuildTargets = []BuildTarget{
