@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.39.0](https://github.com/cloudquery/plugin-sdk/compare/v4.38.2...v4.39.0) (2024-04-19)
+
+
+### Features
+
+* Fill in `CC` and `CXX` environment variables for `package` command ([#1637](https://github.com/cloudquery/plugin-sdk/issues/1637)) ([c0282e1](https://github.com/cloudquery/plugin-sdk/commit/c0282e11e873112a563406678fb2da5b85ee006c))
+
 ## [4.38.2](https://github.com/cloudquery/plugin-sdk/compare/v4.38.1...v4.38.2) (2024-04-15)
 
 
