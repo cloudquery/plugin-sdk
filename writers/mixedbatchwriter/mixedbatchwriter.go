@@ -192,7 +192,8 @@ func (m *batchManager[A, T]) flush(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	m.batch = nil
+	clear(m.batch) // GC can work
+	m.batch = m.batch[:0]
 	return nil
 }
 
@@ -229,7 +230,8 @@ func (m *insertBatchManager) flush(ctx context.Context) error {
 	}
 	m.logger.Debug().Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 
-	m.batch = nil
+	clear(m.batch) // GC can work
+	m.batch = m.batch[:0]
 	m.curBatchSizeBytes = 0
 	return nil
 }
