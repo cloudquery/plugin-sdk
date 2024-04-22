@@ -162,7 +162,6 @@ loop:
 			if err := flush(prevMsgType); err != nil {
 				return err
 			}
-			ticker.Reset(w.batchTimeout)
 			prevMsgType = writers.MsgTypeUnset
 		}
 	}
