@@ -394,22 +394,22 @@ func TestScheduler_Cancellation(t *testing.T) {
 	data := make([]any, 100)
 
 	tests := []struct {
-		name         string
-		data         []any
-		cancel       bool
-		messageCount int
+		name           string
+		data           []any
+		cancel         bool
+		messagesOrRows int
 	}{
 		{
-			name:         "should consume all message",
-			data:         data,
-			cancel:       false,
-			messageCount: len(data) + 1, // 9 data + 1 migration message
+			name:           "should consume all message",
+			data:           data,
+			cancel:         false,
+			messagesOrRows: len(data) + 1, // 9 data + 1 migration message
 		},
 		{
-			name:         "should not consume all message on cancel",
-			data:         data,
-			cancel:       true,
-			messageCount: len(data) + 1, // 9 data + 1 migration message
+			name:           "should not consume all message on cancel",
+			data:           data,
+			cancel:         true,
+			messagesOrRows: len(data) + 1, // 9 data + 1 migration message
 		},
 	}
 
@@ -443,18 +443,22 @@ func TestScheduler_Cancellation(t *testing.T) {
 					close(messages)
 				}()
 
-				messageConsumed := 0
-				for range messages {
+				messagesOrRows := 0
+				for msg := range messages {
 					if tc.cancel {
 						cancel()
 					}
-					messageConsumed++
+					if r, ok := msg.(*message.SyncInsert); ok {
+						messagesOrRows += int(r.Record.NumRows())
+					} else {
+						messagesOrRows++
+					}
 				}
 
 				if tc.cancel {
-					assert.NotEqual(t, tc.messageCount, messageConsumed)
+					assert.NotEqual(t, tc.messagesOrRows, messagesOrRows)
 				} else {
-					assert.Equal(t, tc.messageCount, messageConsumed)
+					assert.Equal(t, tc.messagesOrRows, messagesOrRows)
 				}
 			})
 		}
