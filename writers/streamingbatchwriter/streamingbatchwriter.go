@@ -395,9 +395,10 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				return
 			}
 
-			var recSize int64
+			var recSize, rows int64
 			if ins, ok := any(r).(*message.WriteInsert); ok {
 				recSize = util.TotalRecordSize(ins.Record)
+				rows = ins.Record.NumRows()
 			}
 
 			if (s.batchSizeRows > 0 && sizeRows >= s.batchSizeRows) || (s.batchSizeBytes > 0 && sizeBytes+recSize >= s.batchSizeBytes) {
@@ -407,7 +408,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 
 			ensureOpened()
 			clientCh <- r
-			sizeRows++
+			sizeRows += rows
 			sizeBytes += recSize
 		case <-ticker.Chan():
 			if sizeRows > 0 {
