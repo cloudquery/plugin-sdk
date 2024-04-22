@@ -192,7 +192,6 @@ func (m *batchManager[A, T]) flush(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	m.batch = nil
 	clear(m.batch) // GC can work
 	m.batch = m.batch[:0]
 	return nil
