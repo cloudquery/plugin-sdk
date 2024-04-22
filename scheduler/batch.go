@@ -50,11 +50,7 @@ func (w *worker) sync() {
 func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
 	ticker := writers.NewTicker(timeout)
 	defer ticker.Stop()
-	flush := func() {
-		w.sync()
-		ticker.Reset(timeout)
-		w.rows = w.rows[:0]
-	}
+
 	for {
 		select {
 		case r, ok := <-w.ch:
@@ -65,14 +61,24 @@ func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
 
 			w.rows = append(w.rows, r)
 			if size > 0 && len(w.rows) == size {
-				flush()
+				w.sync()
+				ticker.Reset(timeout)
+				w.rows = w.rows[:0]
 			}
 
 		case <-ticker.Chan():
-			flush()
+			if len(w.rows) > 0 {
+				w.sync()
+				ticker.Reset(timeout)
+				w.rows = w.rows[:0]
+			}
 
 		case done := <-w.flush:
-			flush()
+			if len(w.rows) > 0 {
+				w.sync()
+				ticker.Reset(timeout)
+				w.rows = w.rows[:0]
+			}
 			close(done)
 
 		case <-ctx.Done():
