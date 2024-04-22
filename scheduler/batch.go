@@ -106,7 +106,7 @@ func (b *batcher) worker(ctx context.Context, res *schema.Resource) {
 	wr := v.(*worker)
 	if !loaded {
 		// now loaded basically determines if we need to call the goroutine.
-		// Note that loaded will be false oly for the goroutine that actually successfully stores the worker
+		// Note that loaded will be false only for the goroutine that actually successfully stores the worker
 		b.wg.Add(1)
 		go func() {
 			defer b.wg.Done()
