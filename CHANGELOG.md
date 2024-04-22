@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.39.1](https://github.com/cloudquery/plugin-sdk/compare/v4.39.0...v4.39.1) (2024-04-22)
+
+
+### Bug Fixes
+
+* Fix link to billing page ([#1643](https://github.com/cloudquery/plugin-sdk/issues/1643)) ([ca216b6](https://github.com/cloudquery/plugin-sdk/commit/ca216b6dbacfb16afc587d03bdf84fef796eff33))
+* Use `clear` for mixed batch writer ([#1645](https://github.com/cloudquery/plugin-sdk/issues/1645)) ([07945ac](https://github.com/cloudquery/plugin-sdk/commit/07945ac593e2965b8f80ed3b4ed8724ac610f2bd))
+
 ## [4.39.0](https://github.com/cloudquery/plugin-sdk/compare/v4.38.2...v4.39.0) (2024-04-19)
 
 
