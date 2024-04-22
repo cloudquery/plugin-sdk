@@ -40,6 +40,7 @@ func (w *worker) send() {
 		scalar.AppendToRecordBuilder(w.builder, row.GetValues())
 	}
 
+	clear(w.rows) // ease GC
 	w.rows = w.rows[:0]
 	w.res <- &message.SyncInsert{Record: w.builder.NewRecord()}
 }
