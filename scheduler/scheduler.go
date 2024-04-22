@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -195,7 +194,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}
 
 	resources := make(chan *schema.Resource)
-	b := newBatcher(res, 50, 30*time.Second)
+	b := newBatcher(res, 50, 15*time.Second)
 	defer b.close()
 
 	go func() {
@@ -222,11 +221,6 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		}
 	}
 	return context.Cause(ctx)
-}
-
-func resourceToRecord(resource *schema.Resource) arrow.Record {
-	vector := resource.GetValues()
-	return vector.ToArrowRecord(resource.Table.ToArrowSchema())
 }
 
 func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
