@@ -59,7 +59,7 @@ func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
 			}
 
 			w.rows = append(w.rows, r)
-			if size > 0 && len(w.rows) == size {
+			if len(w.rows) == size {
 				w.send()
 				ticker.Reset(timeout)
 			}
