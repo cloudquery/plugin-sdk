@@ -35,8 +35,8 @@ type BatchWriter struct {
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
-	batchSize      int
-	batchSizeBytes int
+	batchSize      int64
+	batchSizeBytes int64
 }
 
 // Assert at compile-time that BatchWriter implements the Writer interface
@@ -58,13 +58,13 @@ func WithBatchTimeout(timeout time.Duration) Option {
 
 func WithBatchSize(size int) Option {
 	return func(p *BatchWriter) {
-		p.batchSize = size
+		p.batchSize = int64(size)
 	}
 }
 
 func WithBatchSizeBytes(size int) Option {
 	return func(p *BatchWriter) {
-		p.batchSizeBytes = size
+		p.batchSizeBytes = int64(size)
 	}
 }
 
@@ -122,10 +122,15 @@ func (w *BatchWriter) Close(context.Context) error {
 }
 
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
-	sizeBytes := int64(0)
-	resources := make([]*message.WriteInsert, 0, w.batchSize)
+	sizeBytes, sizeRows := int64(0), int64(0)
+	resources := make([]*message.WriteInsert, 0, w.batchSize) // at least we have 1 row per record
 	ticker := writers.NewTicker(w.batchTimeout)
 	defer ticker.Stop()
+
+	send := func() {
+		w.flushTable(ctx, tableName, resources)
+		resources, sizeBytes, sizeRows = resources[:0], 0, 0
+	}
 	for {
 		select {
 		case r, ok := <-ch:
@@ -136,25 +141,23 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 				return
 			}
 
-			if (w.batchSize > 0 && len(resources) >= w.batchSize) || (w.batchSizeBytes > 0 && sizeBytes+util.TotalRecordSize(r.Record) >= int64(w.batchSizeBytes)) {
-				w.flushTable(ctx, tableName, resources)
-				ticker.Reset(w.batchTimeout)
-				resources, sizeBytes = resources[:0], 0
-			}
-
 			resources = append(resources, r)
 			sizeBytes += util.TotalRecordSize(r.Record)
+			sizeRows += r.Record.NumRows()
+
+			if (w.batchSize > 0 && sizeRows >= w.batchSize) || (w.batchSizeBytes > 0 && sizeBytes >= w.batchSizeBytes) {
+				send()
+				ticker.Reset(w.batchTimeout)
+			}
+
 		case <-ticker.Chan():
 			if len(resources) > 0 {
-				w.flushTable(ctx, tableName, resources)
-				ticker.Reset(w.batchTimeout)
-				resources, sizeBytes = resources[:0], 0
+				send()
 			}
 		case done := <-flush:
 			if len(resources) > 0 {
-				w.flushTable(ctx, tableName, resources)
+				send()
 				ticker.Reset(w.batchTimeout)
-				resources, sizeBytes = resources[:0], 0
 			}
 			done <- true
 		case <-ctx.Done():
@@ -247,7 +250,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.flushInsert(m.TableName)
 			w.deleteStaleLock.Lock()
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
-			l := len(w.deleteStaleMessages)
+			l := int64(len(w.deleteStaleMessages))
 			w.deleteStaleLock.Unlock()
 			if w.batchSize > 0 && l > w.batchSize {
 				if err := w.flushDeleteStaleTables(ctx); err != nil {
@@ -267,7 +270,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			}
 			w.deleteRecordLock.Lock()
 			w.deleteRecordMessages = append(w.deleteRecordMessages, m)
-			l := len(w.deleteRecordMessages)
+			l := int64(len(w.deleteRecordMessages))
 			w.deleteRecordLock.Unlock()
 			if w.batchSize > 0 && l > w.batchSize {
 				if err := w.flushDeleteRecordTables(ctx); err != nil {
@@ -291,7 +294,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			}
 			w.migrateTableLock.Lock()
 			w.migrateTableMessages = append(w.migrateTableMessages, m)
-			l := len(w.migrateTableMessages)
+			l := int64(len(w.migrateTableMessages))
 			w.migrateTableLock.Unlock()
 			if w.batchSize > 0 && l > w.batchSize {
 				if err := w.flushMigrateTables(ctx); err != nil {

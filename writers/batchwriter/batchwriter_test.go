@@ -130,7 +130,11 @@ func TestBatchSize(t *testing.T) {
 		t.Fatal(err)
 	}
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
-	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
+	builder := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+	for _, f := range builder.Fields() {
+		f.AppendEmptyValue()
+	}
+	record := builder.NewRecord() // len of 1
 	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteInsert{
 		Record: record,
 	}}); err != nil {
