@@ -32,18 +32,15 @@ type worker struct {
 	res     chan<- message.SyncMessage
 }
 
-func (w *worker) sync() {
-	if len(w.rows) == 0 {
-		return
-	}
-
-	// at least 1 row
+// send must be called on len(rows) > 0
+func (w *worker) send() {
 	w.builder.Reserve(len(w.rows)) // prealloc
 
 	for _, row := range w.rows {
 		scalar.AppendToRecordBuilder(w.builder, row.GetValues())
 	}
 
+	w.rows = w.rows[:0]
 	w.res <- &message.SyncInsert{Record: w.builder.NewRecord()}
 }
 
@@ -55,29 +52,27 @@ func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
 		select {
 		case r, ok := <-w.ch:
 			if !ok {
-				w.sync()
+				if len(w.rows) > 0 {
+					w.send()
+				}
 				return
 			}
 
 			w.rows = append(w.rows, r)
 			if size > 0 && len(w.rows) == size {
-				w.sync()
+				w.send()
 				ticker.Reset(timeout)
-				w.rows = w.rows[:0]
 			}
 
 		case <-ticker.Chan():
 			if len(w.rows) > 0 {
-				w.sync()
-				ticker.Reset(timeout)
-				w.rows = w.rows[:0]
+				w.send()
 			}
 
 		case done := <-w.flush:
 			if len(w.rows) > 0 {
-				w.sync()
+				w.send()
 				ticker.Reset(timeout)
-				w.rows = w.rows[:0]
 			}
 			close(done)
 
