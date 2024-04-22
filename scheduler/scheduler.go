@@ -211,7 +211,6 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		}
 	}()
 	for resource := range resources {
-		b.worker(ctx, resource)
 		select {
 		case <-ctx.Done():
 			s.logger.Debug().Msg("sync context cancelled")
