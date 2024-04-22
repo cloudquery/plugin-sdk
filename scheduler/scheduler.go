@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v16/arrow"
-
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -196,6 +195,9 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}
 
 	resources := make(chan *schema.Resource)
+	b := newBatcher(res, 50, 30*time.Second)
+	defer b.close()
+
 	go func() {
 		defer close(resources)
 		switch s.strategy {
@@ -210,11 +212,13 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		}
 	}()
 	for resource := range resources {
+		b.worker(ctx, resource)
 		select {
-		case res <- &message.SyncInsert{Record: resourceToRecord(resource)}:
 		case <-ctx.Done():
 			s.logger.Debug().Msg("sync context cancelled")
 			return context.Cause(ctx)
+		default:
+			b.worker(ctx, resource)
 		}
 	}
 	return context.Cause(ctx)
