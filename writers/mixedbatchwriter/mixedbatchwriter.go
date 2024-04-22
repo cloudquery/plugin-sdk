@@ -8,6 +8,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
 	"github.com/rs/zerolog"
+	"golang.org/x/exp/constraints"
 )
 
 // Client is a client that will receive batches of messages with a mixture of tables.
@@ -21,8 +22,8 @@ type Client interface {
 type MixedBatchWriter struct {
 	client         Client
 	logger         zerolog.Logger
-	batchSize      int
-	batchSizeBytes int
+	batchSize      int64
+	batchSizeBytes int64
 	batchTimeout   time.Duration
 	tickerFn       writers.TickerFunc
 }
@@ -40,13 +41,13 @@ func WithLogger(logger zerolog.Logger) Option {
 
 func WithBatchSize(size int) Option {
 	return func(p *MixedBatchWriter) {
-		p.batchSize = size
+		p.batchSize = int64(size)
 	}
 }
 
 func WithBatchSizeBytes(size int) Option {
 	return func(p *MixedBatchWriter) {
-		p.batchSizeBytes = size
+		p.batchSizeBytes = int64(size)
 	}
 }
 
@@ -90,10 +91,11 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 		writeFunc: w.client.MigrateTableBatch,
 	}
 	insert := &insertBatchManager{
-		batch:             make([]*message.WriteInsert, 0, w.batchSize),
-		writeFunc:         w.client.InsertBatch,
-		maxBatchSizeBytes: int64(w.batchSizeBytes),
-		logger:            w.logger,
+		batch:          make([]*message.WriteInsert, 0, w.batchSize),
+		writeFunc:      w.client.InsertBatch,
+		size:           capped[int64]{limit: w.batchSize},
+		batchSizeBytes: capped[int64]{limit: w.batchSizeBytes},
+		logger:         w.logger,
 	}
 	deleteStale := &batchManager[message.WriteDeleteStales, *message.WriteDeleteStale]{
 		batch:     make([]*message.WriteDeleteStale, 0, w.batchSize),
@@ -199,21 +201,30 @@ func (m *batchManager[A, T]) flush(ctx context.Context) error {
 
 // special batch manager for insert messages that also keeps track of the total size of the batch
 type insertBatchManager struct {
-	batch             []*message.WriteInsert
-	writeFunc         func(ctx context.Context, messages message.WriteInserts) error
-	curBatchSizeBytes int64
-	maxBatchSizeBytes int64
-	logger            zerolog.Logger
+	batch          []*message.WriteInsert
+	writeFunc      func(ctx context.Context, messages message.WriteInserts) error
+	batchSizeBytes capped[int64]
+	size           capped[int64]
+	logger         zerolog.Logger
+}
+
+type capped[A constraints.Integer] struct {
+	curr, limit A
+}
+
+func (c capped[A]) overflownBy(extra A) bool {
+	return c.curr+extra > c.limit
 }
 
 func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInsert) error {
-	if len(m.batch) == cap(m.batch) || m.curBatchSizeBytes+util.TotalRecordSize(msg.Record) > m.maxBatchSizeBytes {
+	if m.size.overflownBy(msg.Record.NumRows()) || m.batchSizeBytes.overflownBy(util.TotalRecordSize(msg.Record)) {
 		if err := m.flush(ctx); err != nil {
 			return err
 		}
 	}
 	m.batch = append(m.batch, msg)
-	m.curBatchSizeBytes += util.TotalRecordSize(msg.Record)
+	m.size.curr += msg.Record.NumRows()
+	m.batchSizeBytes.curr += util.TotalRecordSize(msg.Record)
 	return nil
 }
 
@@ -232,6 +243,6 @@ func (m *insertBatchManager) flush(ctx context.Context) error {
 
 	clear(m.batch) // GC can work
 	m.batch = m.batch[:0]
-	m.curBatchSizeBytes = 0
+	m.size.curr, m.batchSizeBytes.curr = 0, 0
 	return nil
 }
