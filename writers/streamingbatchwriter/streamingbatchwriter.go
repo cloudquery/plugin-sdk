@@ -396,7 +396,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			}
 
 			var recSize int64
-			rows := int64(1) // at least 1 row for messages wothout records
+			rows := int64(1) // at least 1 row for messages without records
 			if ins, ok := any(r).(*message.WriteInsert); ok {
 				recSize = util.TotalRecordSize(ins.Record)
 				rows = ins.Record.NumRows()
