@@ -122,40 +122,44 @@ func (w *BatchWriter) Close(context.Context) error {
 }
 
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
-	sizeBytes, sizeRows := int64(0), int64(0)
+	bytes, rows := writers.NewCapped(w.batchSizeBytes), writers.NewCapped(w.batchSize)
 	resources := make([]*message.WriteInsert, 0, w.batchSize) // at least we have 1 row per record
 	ticker := writers.NewTicker(w.batchTimeout)
 	defer ticker.Stop()
 
 	send := func() {
 		w.flushTable(ctx, tableName, resources)
-		resources, sizeBytes, sizeRows = resources[:0], 0, 0
+		clear(resources)
+		resources = resources[:0]
+		bytes.Reset()
+		rows.Reset()
 	}
 	for {
 		select {
 		case r, ok := <-ch:
 			if !ok {
-				if len(resources) > 0 {
+				if rows.Current() > 0 {
 					w.flushTable(ctx, tableName, resources)
 				}
 				return
 			}
 
+			// we append data first not to call calculations twice
 			resources = append(resources, r)
-			sizeBytes += util.TotalRecordSize(r.Record)
-			sizeRows += r.Record.NumRows()
+			bytes.Add(util.TotalRecordSize(r.Record))
+			rows.Add(r.Record.NumRows())
 
-			if (w.batchSize > 0 && sizeRows >= w.batchSize) || (w.batchSizeBytes > 0 && sizeBytes >= w.batchSizeBytes) {
+			if rows.ReachedLimit() || bytes.ReachedLimit() {
 				send()
 				ticker.Reset(w.batchTimeout)
 			}
 
 		case <-ticker.Chan():
-			if len(resources) > 0 {
+			if rows.Current() > 0 {
 				send()
 			}
 		case done := <-flush:
-			if len(resources) > 0 {
+			if rows.Current() > 0 {
 				send()
 				ticker.Reset(w.batchTimeout)
 			}

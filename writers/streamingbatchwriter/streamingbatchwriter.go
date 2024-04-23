@@ -350,10 +350,10 @@ type streamingWorkerManager[T message.WriteMessage] struct {
 func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup, tableName string) {
 	defer wg.Done()
 	var (
-		clientCh            chan T
-		clientErrCh         chan error
-		open                bool
-		sizeBytes, sizeRows int64
+		clientCh    chan T
+		clientErrCh chan error
+		open        bool
+		bytes, rows = writers.NewCapped(s.batchSizeBytes), writers.NewCapped(s.batchSizeRows)
 	)
 
 	ensureOpened := func() {
@@ -382,7 +382,8 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			}
 		}
 		open = false
-		sizeBytes, sizeRows = 0, 0
+		bytes.Reset()
+		rows.Reset()
 	}
 	defer closeFlush()
 
@@ -396,27 +397,27 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			}
 
 			var recSize int64
-			rows := int64(1) // at least 1 row for messages without records
+			rowSize := int64(1) // at least 1 row for messages without records
 			if ins, ok := any(r).(*message.WriteInsert); ok {
 				recSize = util.TotalRecordSize(ins.Record)
-				rows = ins.Record.NumRows()
-			}
-
-			if (s.batchSizeRows > 0 && sizeRows >= s.batchSizeRows) || (s.batchSizeBytes > 0 && sizeBytes+recSize >= s.batchSizeBytes) {
-				closeFlush()
-				ticker.Reset(s.batchTimeout)
+				rowSize = ins.Record.NumRows()
 			}
 
 			ensureOpened()
 			clientCh <- r
-			sizeRows += rows
-			sizeBytes += recSize
+			rows.Add(rowSize)
+			bytes.Add(recSize)
+
+			if rows.ReachedLimit() || bytes.ReachedLimit() {
+				closeFlush()
+				ticker.Reset(s.batchTimeout)
+			}
 		case <-ticker.Chan():
-			if sizeRows > 0 {
+			if rows.Current() > 0 {
 				closeFlush()
 			}
 		case done := <-s.flush:
-			if sizeRows > 0 {
+			if rows.Current() > 0 {
 				closeFlush()
 				ticker.Reset(s.batchTimeout)
 			}

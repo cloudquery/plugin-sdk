@@ -8,7 +8,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
 	"github.com/rs/zerolog"
-	"golang.org/x/exp/constraints"
 )
 
 // Client is a client that will receive batches of messages with a mixture of tables.
@@ -91,11 +90,11 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 		writeFunc: w.client.MigrateTableBatch,
 	}
 	insert := &insertBatchManager{
-		batch:          make([]*message.WriteInsert, 0, w.batchSize),
-		writeFunc:      w.client.InsertBatch,
-		size:           capped[int64]{limit: w.batchSize},
-		batchSizeBytes: capped[int64]{limit: w.batchSizeBytes},
-		logger:         w.logger,
+		batch:     make([]*message.WriteInsert, 0, w.batchSize),
+		writeFunc: w.client.InsertBatch,
+		rows:      writers.NewCapped(w.batchSize),
+		bytes:     writers.NewCapped(w.batchSizeBytes),
+		logger:    w.logger,
 	}
 	deleteStale := &batchManager[message.WriteDeleteStales, *message.WriteDeleteStale]{
 		batch:     make([]*message.WriteDeleteStale, 0, w.batchSize),
@@ -200,48 +199,41 @@ func (m *batchManager[A, T]) flush(ctx context.Context) error {
 
 // special batch manager for insert messages that also keeps track of the total size of the batch
 type insertBatchManager struct {
-	batch          []*message.WriteInsert
-	writeFunc      func(ctx context.Context, messages message.WriteInserts) error
-	batchSizeBytes capped[int64]
-	size           capped[int64]
-	logger         zerolog.Logger
-}
-
-type capped[A constraints.Integer] struct {
-	curr, limit A
-}
-
-func (c capped[A]) overflownBy(extra A) bool {
-	return c.curr+extra > c.limit
+	batch     []*message.WriteInsert
+	writeFunc func(ctx context.Context, messages message.WriteInserts) error
+	bytes     writers.Capped[int64]
+	rows      writers.Capped[int64]
+	logger    zerolog.Logger
 }
 
 func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInsert) error {
-	if m.size.overflownBy(msg.Record.NumRows()) || m.batchSizeBytes.overflownBy(util.TotalRecordSize(msg.Record)) {
-		if err := m.flush(ctx); err != nil {
-			return err
-		}
-	}
+	// we append data first not to call calculations twice
 	m.batch = append(m.batch, msg)
-	m.size.curr += msg.Record.NumRows()
-	m.batchSizeBytes.curr += util.TotalRecordSize(msg.Record)
+	m.rows.Add(msg.Record.NumRows())
+	m.bytes.Add(util.TotalRecordSize(msg.Record))
+	if m.rows.ReachedLimit() || m.bytes.ReachedLimit() {
+		return m.flush(ctx)
+	}
 	return nil
 }
 
 func (m *insertBatchManager) flush(ctx context.Context) error {
-	if len(m.batch) == 0 {
+	batchSize := m.rows.Current()
+	if batchSize == 0 {
+		// no rows to insert
 		return nil
 	}
 	start := time.Now()
-	batchSize := len(m.batch)
 	err := m.writeFunc(ctx, m.batch)
 	if err != nil {
-		m.logger.Err(err).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
+		m.logger.Err(err).Int64("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
 		return err
 	}
-	m.logger.Debug().Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+	m.logger.Debug().Int64("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
 
 	clear(m.batch) // GC can work
 	m.batch = m.batch[:0]
-	m.size.curr, m.batchSizeBytes.curr = 0, 0
+	m.rows.Reset()
+	m.bytes.Reset()
 	return nil
 }
