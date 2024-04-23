@@ -194,9 +194,6 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}
 
 	resources := make(chan *schema.Resource)
-	b := newBatcher(res, 50, 15*time.Second)
-	defer b.close()
-
 	go func() {
 		defer close(resources)
 		switch s.strategy {
@@ -210,16 +207,22 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 			panic(fmt.Errorf("unknown scheduler %s", s.strategy.String()))
 		}
 	}()
-	for resource := range resources {
+
+	b := newBatcher(res, 50, 15*time.Second)
+	done := ctx.Done()
+	for {
 		select {
-		case <-ctx.Done():
+		case <-done:
 			s.logger.Debug().Msg("sync context cancelled")
 			return context.Cause(ctx)
-		default:
-			b.worker(ctx, resource)
+		case r, ok := <-resources:
+			if ok {
+				b.worker(ctx, r)
+			} else {
+				return context.Cause(ctx)
+			}
 		}
 	}
-	return context.Cause(ctx)
 }
 
 func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
