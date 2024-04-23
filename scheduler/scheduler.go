@@ -193,13 +193,8 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		res <- migrateMessage
 	}
 
-	const (
-		batchSize    = 50
-		batchTimeout = 15 * time.Second
-	)
-
-	resources := make(chan *schema.Resource, batchSize*len(tables)) // alloc somewhat reasonably sized chan
-	b := newBatcher(res, batchSize, batchTimeout)
+	resources := make(chan *schema.Resource)
+	b := newBatcher(res, 50, 15*time.Second)
 	defer b.close()
 
 	go func() {
