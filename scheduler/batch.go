@@ -20,6 +20,9 @@ type batcher struct {
 	timeout time.Duration
 
 	// using sync primitives by value here implies that batcher is to be used by pointer only
+	// workers is a sync.Map rather than a map + mutex pair
+	// because worker allocation & lookup falls into one of the sync.Map use-cases,
+	// namely, ever-growing cache (write once, read many times).
 	workers sync.Map // k = table name, v = *worker
 	wg      sync.WaitGroup
 }
@@ -86,31 +89,41 @@ func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
 
 func (b *batcher) worker(ctx context.Context, res *schema.Resource) {
 	table := res.Table
-	newWorker := &worker{
+	// already running worker
+	v, loaded := b.workers.Load(table.Name)
+	if loaded {
+		v.(*worker).ch <- res
+		return
+	}
+
+	// now allocate
+	wr := &worker{
 		ch:      make(chan *schema.Resource, b.size),
 		flush:   make(chan chan struct{}),
 		rows:    make(schema.Resources, 0, b.size),
 		builder: array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema()),
 		res:     b.res,
 	}
-	// we use LoadOrStore as there may be other goroutine doing the same
-	v, loaded := b.workers.LoadOrStore(table.Name, newWorker)
-	wr := v.(*worker)
+
+	v, loaded = b.workers.LoadOrStore(table.Name, wr)
 	if loaded {
-		// discard newWorker
-		close(newWorker.ch)
-		close(newWorker.flush)
-		newWorker.builder.Release()
-	} else {
-		// loaded basically determines if we need to call the goroutine.
-		// Note that loaded will be false only for the goroutine that actually successfully stores the worker
-		b.wg.Add(1)
-		go func() {
-			defer b.wg.Done()
-			wr.work(ctx, b.size, b.timeout)
-		}()
+		// the value was set by other goroutine
+		// discard wr
+		close(wr.ch)
+		close(wr.flush)
+		wr.builder.Release()
+
+		// send res to the already allocated worker
+		v.(*worker).ch <- res
+		return
 	}
 
+	// start wr
+	b.wg.Add(1)
+	go func() {
+		defer b.wg.Done()
+		wr.work(ctx, b.size, b.timeout)
+	}()
 	wr.ch <- res
 }
 
