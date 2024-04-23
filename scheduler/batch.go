@@ -86,27 +86,23 @@ func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
 
 func (b *batcher) worker(ctx context.Context, res *schema.Resource) {
 	table := res.Table
-	v, loaded := b.workers.Load(table.Name)
-	if !loaded {
-		newWorker := &worker{
-			ch:      make(chan *schema.Resource),
-			flush:   make(chan chan struct{}),
-			rows:    make(schema.Resources, 0, b.size),
-			builder: array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema()),
-			res:     b.res,
-		}
-		// we use LoadOrStore as there may be other goroutine doing the same
-		v, loaded = b.workers.LoadOrStore(table.Name, newWorker)
-		if loaded {
-			// discard newWorker
-			close(newWorker.ch)
-			close(newWorker.flush)
-			newWorker.builder.Release()
-		}
+	newWorker := &worker{
+		ch:      make(chan *schema.Resource, b.size),
+		flush:   make(chan chan struct{}),
+		rows:    make(schema.Resources, 0, b.size),
+		builder: array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema()),
+		res:     b.res,
 	}
+	// we use LoadOrStore as there may be other goroutine doing the same
+	v, loaded := b.workers.LoadOrStore(table.Name, newWorker)
 	wr := v.(*worker)
-	if !loaded {
-		// now loaded basically determines if we need to call the goroutine.
+	if loaded {
+		// discard newWorker
+		close(newWorker.ch)
+		close(newWorker.flush)
+		newWorker.builder.Release()
+	} else {
+		// loaded basically determines if we need to call the goroutine.
 		// Note that loaded will be false only for the goroutine that actually successfully stores the worker
 		b.wg.Add(1)
 		go func() {
