@@ -209,6 +209,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}()
 
 	b := newBatcher(res, 50, 15*time.Second)
+	defer b.close() // wait for all resources to be processed
 	done := ctx.Done()
 	for {
 		select {
