@@ -14,6 +14,7 @@ import (
 )
 
 type batcher struct {
+	ctx context.Context
 	res chan<- message.SyncMessage
 
 	size    int
@@ -51,6 +52,7 @@ func (w *worker) send() {
 func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
 	ticker := writers.NewTicker(timeout)
 	defer ticker.Stop()
+	tick, ctxDone := ticker.Chan(), ctx.Done()
 
 	for {
 		select {
@@ -68,7 +70,7 @@ func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
 				ticker.Reset(timeout)
 			}
 
-		case <-ticker.Chan():
+		case <-tick:
 			if len(w.rows) > 0 {
 				w.send()
 			}
@@ -80,14 +82,14 @@ func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
 			}
 			close(done)
 
-		case <-ctx.Done():
+		case <-ctxDone:
 			// this means the request was cancelled
 			return // after this NO other call will succeed
 		}
 	}
 }
 
-func (b *batcher) worker(ctx context.Context, res *schema.Resource) {
+func (b *batcher) process(res *schema.Resource) {
 	table := res.Table
 	// already running worker
 	v, loaded := b.workers.Load(table.Name)
@@ -119,11 +121,12 @@ func (b *batcher) worker(ctx context.Context, res *schema.Resource) {
 	}
 
 	// start wr
-	b.wg.Add(1)
 	go func() {
+		b.wg.Add(1)
 		defer b.wg.Done()
-		wr.work(ctx, b.size, b.timeout)
+		wr.work(b.ctx, b.size, b.timeout)
 	}()
+
 	wr.ch <- res
 }
 
@@ -135,8 +138,9 @@ func (b *batcher) close() {
 	b.wg.Wait()
 }
 
-func newBatcher(res chan<- message.SyncMessage, size int, timeout time.Duration) *batcher {
+func newBatcher(ctx context.Context, res chan<- message.SyncMessage, size int, timeout time.Duration) *batcher {
 	return &batcher{
+		ctx:     ctx,
 		res:     res,
 		size:    size,
 		timeout: timeout,

@@ -208,22 +208,19 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		}
 	}()
 
-	b := newBatcher(res, 50, 15*time.Second)
-	defer b.close() // wait for all resources to be processed
-	done := ctx.Done()
-	for {
+	b := newBatcher(ctx, res, 50, 15*time.Second)
+	defer b.close()    // wait for all resources to be processed
+	done := ctx.Done() // no need to do the lookups in loop
+	for resource := range resources {
 		select {
 		case <-done:
 			s.logger.Debug().Msg("sync context cancelled")
 			return context.Cause(ctx)
-		case r, ok := <-resources:
-			if ok {
-				b.worker(ctx, r)
-			} else {
-				return context.Cause(ctx)
-			}
+		default:
+			b.process(resource)
 		}
 	}
+	return context.Cause(ctx)
 }
 
 func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
