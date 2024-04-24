@@ -14,11 +14,14 @@ import (
 )
 
 type batcher struct {
-	ctx context.Context
+	ctx     context.Context
+	ctxDone <-chan struct{}
+
 	res chan<- message.SyncMessage
 
-	size    int
-	timeout time.Duration
+	size     int
+	ticker   writers.Ticker // we share tick across all the workers for ease of procurement
+	tickerCh <-chan time.Time
 
 	// using sync primitives by value here implies that batcher is to be used by pointer only
 	// workers is a sync.Map rather than a map + mutex pair
@@ -49,11 +52,7 @@ func (w *worker) send() {
 	w.res <- &message.SyncInsert{Record: w.builder.NewRecord()}
 }
 
-func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
-	ticker := writers.NewTicker(timeout)
-	defer ticker.Stop()
-	tick, ctxDone := ticker.Chan(), ctx.Done()
-
+func (w *worker) work(done <-chan struct{}, size int, ticker <-chan time.Time) {
 	for {
 		select {
 		case r, ok := <-w.ch:
@@ -67,22 +66,20 @@ func (w *worker) work(ctx context.Context, size int, timeout time.Duration) {
 			w.rows = append(w.rows, r)
 			if len(w.rows) == size {
 				w.send()
-				ticker.Reset(timeout)
 			}
 
-		case <-tick:
+		case <-ticker:
 			if len(w.rows) > 0 {
 				w.send()
 			}
 
-		case done := <-w.flush:
+		case ch := <-w.flush:
 			if len(w.rows) > 0 {
 				w.send()
-				ticker.Reset(timeout)
 			}
-			close(done)
+			close(ch)
 
-		case <-ctxDone:
+		case <-done:
 			// this means the request was cancelled
 			return // after this NO other call will succeed
 		}
@@ -124,13 +121,14 @@ func (b *batcher) process(res *schema.Resource) {
 	go func() {
 		b.wg.Add(1)
 		defer b.wg.Done()
-		wr.work(b.ctx, b.size, b.timeout)
+		wr.work(b.ctxDone, b.size, b.tickerCh)
 	}()
 
 	wr.ch <- res
 }
 
 func (b *batcher) close() {
+	defer b.ticker.Stop() // for cleanup
 	b.workers.Range(func(_, v any) bool {
 		close(v.(*worker).ch)
 		return true
@@ -139,10 +137,13 @@ func (b *batcher) close() {
 }
 
 func newBatcher(ctx context.Context, res chan<- message.SyncMessage, size int, timeout time.Duration) *batcher {
+	ticker := writers.NewTicker(timeout)
 	return &batcher{
-		ctx:     ctx,
-		res:     res,
-		size:    size,
-		timeout: timeout,
+		ctx:      ctx,
+		ctxDone:  ctx.Done(),
+		res:      res,
+		size:     size,
+		ticker:   ticker,
+		tickerCh: ticker.Chan(),
 	}
 }
