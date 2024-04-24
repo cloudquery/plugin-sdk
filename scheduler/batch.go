@@ -19,9 +19,8 @@ type batcher struct {
 
 	res chan<- message.SyncMessage
 
-	size     int
-	ticker   writers.Ticker // we share tick across all the workers for ease of procurement
-	tickerCh <-chan time.Time
+	size    int
+	timeout time.Duration
 
 	// using sync primitives by value here implies that batcher is to be used by pointer only
 	// workers is a sync.Map rather than a map + mutex pair
@@ -51,7 +50,11 @@ func (w *worker) send() {
 	w.rows = w.rows[:0]
 }
 
-func (w *worker) work(done <-chan struct{}, size int, ticker <-chan time.Time) {
+func (w *worker) work(done <-chan struct{}, size int, timeout time.Duration) {
+	ticker := writers.NewTicker(timeout)
+	defer ticker.Stop()
+	tickerCh := ticker.Chan()
+
 	for {
 		select {
 		case r, ok := <-w.ch:
@@ -65,9 +68,10 @@ func (w *worker) work(done <-chan struct{}, size int, ticker <-chan time.Time) {
 			w.rows = append(w.rows, r)
 			if len(w.rows) == size {
 				w.send()
+				ticker.Reset(timeout)
 			}
 
-		case <-ticker:
+		case <-tickerCh:
 			if len(w.rows) > 0 {
 				w.send()
 			}
@@ -75,6 +79,7 @@ func (w *worker) work(done <-chan struct{}, size int, ticker <-chan time.Time) {
 		case ch := <-w.flush:
 			if len(w.rows) > 0 {
 				w.send()
+				ticker.Reset(timeout)
 			}
 			close(ch)
 
@@ -121,14 +126,13 @@ func (b *batcher) process(res *schema.Resource) {
 		b.wg.Add(1)
 		defer b.wg.Done()
 		wr.builder.Reserve(b.size) // prealloc once, we won't be sending batches larger
-		wr.work(b.ctxDone, b.size, b.tickerCh)
+		wr.work(b.ctxDone, b.size, b.timeout)
 	}()
 
 	wr.ch <- res
 }
 
 func (b *batcher) close() {
-	defer b.ticker.Stop() // for cleanup
 	b.workers.Range(func(_, v any) bool {
 		close(v.(*worker).ch)
 		return true
@@ -137,13 +141,11 @@ func (b *batcher) close() {
 }
 
 func newBatcher(ctx context.Context, res chan<- message.SyncMessage, size int, timeout time.Duration) *batcher {
-	ticker := writers.NewTicker(timeout)
 	return &batcher{
-		ctx:      ctx,
-		ctxDone:  ctx.Done(),
-		res:      res,
-		size:     size,
-		ticker:   ticker,
-		tickerCh: ticker.Chan(),
+		ctx:     ctx,
+		ctxDone: ctx.Done(),
+		res:     res,
+		size:    size,
+		timeout: timeout,
 	}
 }
