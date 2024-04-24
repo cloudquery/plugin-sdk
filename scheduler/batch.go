@@ -122,8 +122,8 @@ func (b *batcher) process(res *schema.Resource) {
 	}
 
 	// start wr
+	b.wg.Add(1)
 	go func() {
-		b.wg.Add(1)
 		defer b.wg.Done()
 		wr.builder.Reserve(b.size) // prealloc once, we won't be sending batches larger
 		wr.work(b.ctxDone, b.size, b.timeout)
