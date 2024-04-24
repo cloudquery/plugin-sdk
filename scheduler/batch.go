@@ -41,15 +41,14 @@ type worker struct {
 
 // send must be called on len(rows) > 0
 func (w *worker) send() {
-	w.builder.Reserve(len(w.rows)) // prealloc
-
 	for _, row := range w.rows {
 		scalar.AppendToRecordBuilder(w.builder, row.GetValues())
 	}
 
+	w.res <- &message.SyncInsert{Record: w.builder.NewRecord()}
+
 	clear(w.rows) // ease GC
 	w.rows = w.rows[:0]
-	w.res <- &message.SyncInsert{Record: w.builder.NewRecord()}
 }
 
 func (w *worker) work(done <-chan struct{}, size int, ticker <-chan time.Time) {
@@ -121,6 +120,7 @@ func (b *batcher) process(res *schema.Resource) {
 	go func() {
 		b.wg.Add(1)
 		defer b.wg.Done()
+		wr.builder.Reserve(b.size) // prealloc once, we won't be sending batches larger
 		wr.work(b.ctxDone, b.size, b.tickerCh)
 	}()
 
