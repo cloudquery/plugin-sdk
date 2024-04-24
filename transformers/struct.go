@@ -332,9 +332,9 @@ func DefaultTypeTransformer(v reflect.StructField) (arrow.DataType, error) {
 func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 	// Non-primitive types
 	switch v {
-	case reflect.TypeFor[net.IP]():
+	case reflect.TypeOf(net.IP{}):
 		return types.ExtensionTypes.Inet, nil
-	case reflect.TypeFor[time.Duration]():
+	case reflect.TypeOf(time.Nanosecond):
 		return arrow.FixedWidthTypes.Duration_us, nil
 	}
 
