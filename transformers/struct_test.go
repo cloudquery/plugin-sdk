@@ -43,11 +43,13 @@ type (
 
 		AnyArrayCol []any `json:"any_array_col,omitempty"`
 
-		TimeCol        time.Time  `json:"time_col,omitempty"`
-		TimePointerCol *time.Time `json:"time_pointer_col,omitempty"`
-		JSONTag        *string    `json:"json_tag"`
-		SkipJSONTag    *string    `json:"-"`
-		NoJSONTag      *string
+		TimeCol            time.Time      `json:"time_col,omitempty"`
+		TimePointerCol     *time.Time     `json:"time_pointer_col,omitempty"`
+		DurationCol        time.Duration  `json:"duration_col,omitempty"`
+		DurationPointerCol *time.Duration `json:"duration_pointer_col,omitempty"`
+		JSONTag            *string        `json:"json_tag"`
+		SkipJSONTag        *string        `json:"-"`
+		NoJSONTag          *string
 		*embeddedStruct
 	}
 	testStructWithEmbeddedStruct struct {
@@ -147,6 +149,14 @@ var (
 		{
 			Name: "time_pointer_col",
 			Type: arrow.FixedWidthTypes.Timestamp_us,
+		},
+		{
+			Name: "duration_col",
+			Type: arrow.FixedWidthTypes.Duration_us,
+		},
+		{
+			Name: "duration_pointer_col",
+			Type: arrow.FixedWidthTypes.Duration_us,
 		},
 		{
 			Name: "json_tag",
