@@ -14,15 +14,21 @@ type ConnectionOptions struct {
 	MaxMsgSizeInBytes int
 }
 
-// NewGrpcConnectedClient returns a state client and a gRPC connection to the state backend with a 100MiB max message size.
+type NopCloser interface {
+	Close() error
+}
+
+// NewGrpcConnectedClient returns a state client and initialises the gRPC connection to the state backend with a 100MiB max message size.
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
-func NewGrpcConnectedClient(ctx context.Context, backendOpts *plugin.BackendOptions) (Client, *grpc.ClientConn, error) {
+// You must call Close() on the returned closer object.
+func NewGrpcConnectedClient(ctx context.Context, backendOpts *plugin.BackendOptions) (Client, NopCloser, error) {
 	return NewGrpcConnectedClientWithOptions(ctx, backendOpts, ConnectionOptions{MaxMsgSizeInBytes: defaultMaxMsgSizeInBytes})
 }
 
-// NewGrpcConnectedClientWithOptions returns a state client and a gRPC connection to the state backend.
+// NewGrpcConnectedClientWithOptions returns a state client and initialises the gRPC connection to the state backend.
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
-func NewGrpcConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.BackendOptions, opts ConnectionOptions) (Client, *grpc.ClientConn, error) {
+// You must call Close() on the returned closer object.
+func NewGrpcConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.BackendOptions, opts ConnectionOptions) (Client, NopCloser, error) {
 	if backendOpts == nil {
 		return &NoOpClient{}, nil, nil
 	}
