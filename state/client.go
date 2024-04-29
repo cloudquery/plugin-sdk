@@ -14,10 +14,6 @@ type ConnectionOptions struct {
 	MaxMsgSizeInBytes int
 }
 
-type NopCloser interface {
-	Close() error
-}
-
 // NewGrpcConnectedClient returns a state client and initialises the gRPC connection to the state backend with a 100MiB max message size.
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
 // You must call Close() on the returned Client object.

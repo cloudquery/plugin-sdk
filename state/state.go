@@ -22,10 +22,12 @@ type ClientOptions struct {
 	Versioned bool
 }
 
+// NewClient returns a client object on which you must call Close().
 func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Client, error) {
 	return NewClientWithOptions(ctx, conn, tableName, ClientOptions{})
 }
 
+// NewClientWithOptions returns a client object on which you must call Close().
 func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, opts ClientOptions) (Client, error) {
 	discoveryClient := pbDiscovery.NewDiscoveryClient(conn)
 	versions, err := discoveryClient.GetVersions(ctx, &pbDiscovery.GetVersions_Request{})
