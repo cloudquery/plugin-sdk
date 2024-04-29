@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.40.0](https://github.com/cloudquery/plugin-sdk/compare/v4.39.1...v4.40.0) (2024-04-29)
+
+
+### Features
+
+* Add function to create state client and gRPC backend connection ([#1650](https://github.com/cloudquery/plugin-sdk/issues/1650)) ([e150c58](https://github.com/cloudquery/plugin-sdk/commit/e150c5813de51175d10a4d79ec331f724e2593fc))
+
 ## [4.39.1](https://github.com/cloudquery/plugin-sdk/compare/v4.39.0...v4.39.1) (2024-04-22)
 
 
