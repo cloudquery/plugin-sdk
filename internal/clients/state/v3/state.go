@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"context"
+	"google.golang.org/grpc"
 	"io"
 	"sync"
 
@@ -20,10 +21,6 @@ const (
 	versionColumn = "version"
 )
 
-type Closer interface {
-	Close() error
-}
-
 type Client struct {
 	client        pb.PluginClient
 	mem           map[string]versionedValue
@@ -31,7 +28,7 @@ type Client struct {
 	mutex         *sync.RWMutex
 	schema        *arrow.Schema
 	versionedMode bool
-	conn          Closer
+	conn          *grpc.ClientConn
 }
 
 type versionedValue struct {
@@ -66,14 +63,14 @@ func VersionedTable(name string) *schema.Table {
 	return t
 }
 
-func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string, conn Closer) (*Client, error) {
-	return NewClientWithTable(ctx, pbClient, Table(tableName), conn)
+func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (*Client, error) {
+	return NewClientWithTable(ctx, conn, Table(tableName))
 }
 
-func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *schema.Table, conn Closer) (*Client, error) {
+func NewClientWithTable(ctx context.Context, conn *grpc.ClientConn, table *schema.Table) (*Client, error) {
 	c := &Client{
 		conn:          conn,
-		client:        pbClient,
+		client:        pb.NewPluginClient(conn),
 		mem:           make(map[string]versionedValue),
 		changes:       make(map[string]struct{}),
 		mutex:         &sync.RWMutex{},
