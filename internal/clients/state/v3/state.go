@@ -20,6 +20,10 @@ const (
 	versionColumn = "version"
 )
 
+type Closer interface {
+	Close() error
+}
+
 type Client struct {
 	client        pb.PluginClient
 	mem           map[string]versionedValue
@@ -27,6 +31,7 @@ type Client struct {
 	mutex         *sync.RWMutex
 	schema        *arrow.Schema
 	versionedMode bool
+	closer        Closer
 }
 
 type versionedValue struct {
@@ -61,12 +66,13 @@ func VersionedTable(name string) *schema.Table {
 	return t
 }
 
-func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) (*Client, error) {
-	return NewClientWithTable(ctx, pbClient, Table(tableName))
+func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string, closer Closer) (*Client, error) {
+	return NewClientWithTable(ctx, pbClient, Table(tableName), closer)
 }
 
-func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *schema.Table) (*Client, error) {
+func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *schema.Table, closer Closer) (*Client, error) {
 	c := &Client{
+		closer:        closer,
 		client:        pbClient,
 		mem:           make(map[string]versionedValue),
 		changes:       make(map[string]struct{}),
@@ -215,4 +221,11 @@ func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.mem[key].value, nil
+}
+
+func (c *Client) Close() error {
+	if c.closer != nil {
+		return c.closer.Close()
+	}
+	return nil
 }

@@ -20,17 +20,17 @@ type NopCloser interface {
 
 // NewGrpcConnectedClient returns a state client and initialises the gRPC connection to the state backend with a 100MiB max message size.
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
-// You must call Close() on the returned closer object.
-func NewGrpcConnectedClient(ctx context.Context, backendOpts *plugin.BackendOptions) (Client, NopCloser, error) {
+// You must call Close() on the returned Client object.
+func NewGrpcConnectedClient(ctx context.Context, backendOpts *plugin.BackendOptions) (Client, error) {
 	return NewGrpcConnectedClientWithOptions(ctx, backendOpts, ConnectionOptions{MaxMsgSizeInBytes: defaultMaxMsgSizeInBytes})
 }
 
 // NewGrpcConnectedClientWithOptions returns a state client and initialises the gRPC connection to the state backend.
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
-// You must call Close() on the returned closer object.
-func NewGrpcConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.BackendOptions, opts ConnectionOptions) (Client, NopCloser, error) {
+// You must call Close() on the returned Client object.
+func NewGrpcConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.BackendOptions, opts ConnectionOptions) (Client, error) {
 	if backendOpts == nil {
-		return &NoOpClient{}, nil, nil
+		return &NoOpClient{}, nil
 	}
 
 	backendConn, err := grpc.DialContext(ctx, backendOpts.Connection,
@@ -42,13 +42,13 @@ func NewGrpcConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.
 	)
 
 	if err != nil {
-		return &NoOpClient{}, nil, fmt.Errorf("failed to dial grpc source plugin at %s: %w", backendOpts.Connection, err)
+		return &NoOpClient{}, fmt.Errorf("failed to dial grpc source plugin at %s: %w", backendOpts.Connection, err)
 	}
 
 	stateClient, err := NewClient(ctx, backendConn, backendOpts.TableName)
 	if err != nil {
-		return &NoOpClient{}, nil, fmt.Errorf("failed to create state client: %w", err)
+		return &NoOpClient{}, fmt.Errorf("failed to create state client: %w", err)
 	}
 
-	return stateClient, backendConn, nil
+	return stateClient, nil
 }
