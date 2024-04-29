@@ -28,12 +28,10 @@ type ConnectionOptions struct {
 	MaxMsgSizeInBytes int
 }
 
-// NewClient returns a client object on which you must call Close().
 func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Client, error) {
 	return NewClientWithOptions(ctx, conn, tableName, ClientOptions{})
 }
 
-// NewClientWithOptions returns a client object on which you must call Close().
 func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, opts ClientOptions) (Client, error) {
 	discoveryClient := pbDiscovery.NewDiscoveryClient(conn)
 	versions, err := discoveryClient.GetVersions(ctx, &pbDiscovery.GetVersions_Request{})
@@ -49,17 +47,17 @@ func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName 
 	return nil, fmt.Errorf("please upgrade your state backend plugin. state supporting version 3 plugin has %v", versions.Versions)
 }
 
-// NewGrpcConnectedClient returns a state client and initialises the gRPC connection to the state backend with a 100MiB max message size.
+// NewConnectedClient returns a state client and initialises the gRPC connection to the state backend with a 100MiB max message size.
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
 // You must call Close() on the returned Client object.
-func NewGrpcConnectedClient(ctx context.Context, backendOpts *plugin.BackendOptions) (Client, error) {
-	return NewGrpcConnectedClientWithOptions(ctx, backendOpts, ConnectionOptions{MaxMsgSizeInBytes: defaultMaxMsgSizeInBytes})
+func NewConnectedClient(ctx context.Context, backendOpts *plugin.BackendOptions) (Client, error) {
+	return NewConnectedClientWithOptions(ctx, backendOpts, ConnectionOptions{MaxMsgSizeInBytes: defaultMaxMsgSizeInBytes})
 }
 
-// NewGrpcConnectedClientWithOptions returns a state client and initialises the gRPC connection to the state backend.
+// NewConnectedClientWithOptions returns a state client and initialises the gRPC connection to the state backend.
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
 // You must call Close() on the returned Client object.
-func NewGrpcConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.BackendOptions, opts ConnectionOptions) (Client, error) {
+func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.BackendOptions, opts ConnectionOptions) (Client, error) {
 	if backendOpts == nil {
 		return &NoOpClient{}, nil
 	}
