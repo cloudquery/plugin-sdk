@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"context"
+	"google.golang.org/grpc"
 	"io"
 	"sync"
 
@@ -27,6 +28,7 @@ type Client struct {
 	mutex         *sync.RWMutex
 	schema        *arrow.Schema
 	versionedMode bool
+	conn          *grpc.ClientConn
 }
 
 type versionedValue struct {
@@ -61,13 +63,14 @@ func VersionedTable(name string) *schema.Table {
 	return t
 }
 
-func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) (*Client, error) {
-	return NewClientWithTable(ctx, pbClient, Table(tableName))
+func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (*Client, error) {
+	return NewClientWithTable(ctx, conn, Table(tableName))
 }
 
-func NewClientWithTable(ctx context.Context, pbClient pb.PluginClient, table *schema.Table) (*Client, error) {
+func NewClientWithTable(ctx context.Context, conn *grpc.ClientConn, table *schema.Table) (*Client, error) {
 	c := &Client{
-		client:        pbClient,
+		conn:          conn,
+		client:        pb.NewPluginClient(conn),
 		mem:           make(map[string]versionedValue),
 		changes:       make(map[string]struct{}),
 		mutex:         &sync.RWMutex{},
@@ -215,4 +218,11 @@ func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.mem[key].value, nil
+}
+
+func (c *Client) Close() error {
+	if c.conn != nil {
+		return c.conn.Close()
+	}
+	return nil
 }
