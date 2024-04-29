@@ -43,19 +43,19 @@ func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName 
 
 type NoOpClient struct{}
 
-func (c *NoOpClient) SetKey(_ context.Context, _ string, _ string) error {
+func (*NoOpClient) SetKey(_ context.Context, _ string, _ string) error {
 	return nil
 }
 
-func (c *NoOpClient) GetKey(_ context.Context, _ string) (string, error) {
+func (*NoOpClient) GetKey(_ context.Context, _ string) (string, error) {
 	return "", nil
 }
 
-func (c *NoOpClient) Flush(_ context.Context) error {
+func (*NoOpClient) Flush(_ context.Context) error {
 	return nil
 }
 
-func (c *NoOpClient) Close() error {
+func (*NoOpClient) Close() error {
 	return nil
 }
 
