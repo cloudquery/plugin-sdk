@@ -43,7 +43,7 @@ func TestState(t *testing.T) {
 	if _, err := c.Init(ctx, &pb.Init_Request{}); err != nil {
 		t.Fatal(err)
 	}
-	stateClient, err := state.NewClient(ctx, c, "test")
+	stateClient, err := state.NewClient(ctx, conn, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestState(t *testing.T) {
 	if err := stateClient.Flush(ctx); err != nil {
 		t.Fatal(err)
 	}
-	stateClient, err = state.NewClient(ctx, c, "test")
+	stateClient, err = state.NewClient(ctx, conn, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestStateOverwriteGetLatest(t *testing.T) {
 		table.Columns[i].PrimaryKey = false
 	}
 
-	stateClient, err := state.NewClientWithTable(ctx, c, table)
+	stateClient, err := state.NewClientWithTable(ctx, conn, table)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestStateOverwriteGetLatest(t *testing.T) {
 		}
 	}
 
-	stateClient, err = state.NewClientWithTable(ctx, c, table)
+	stateClient, err = state.NewClientWithTable(ctx, conn, table)
 	if err != nil {
 		t.Fatal(err)
 	}
