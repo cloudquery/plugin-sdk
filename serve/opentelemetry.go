@@ -4,7 +4,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 
 	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 )
 
 // newResource returns a resource describing this application.
