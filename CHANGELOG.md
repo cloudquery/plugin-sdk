@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.40.2](https://github.com/cloudquery/plugin-sdk/compare/v4.40.1...v4.40.2) (2024-05-06)
+
+
+### Bug Fixes
+
+* **deps:** Upgrade `github.com/apache/arrow/go` to `v16` ([#1661](https://github.com/cloudquery/plugin-sdk/issues/1661)) ([04d9585](https://github.com/cloudquery/plugin-sdk/commit/04d95859f000e2fc2823bb5b470ccd6a7d117bb7))
+
 ## [4.40.1](https://github.com/cloudquery/plugin-sdk/compare/v4.40.0...v4.40.1) (2024-05-06)
 
 
