@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"slices"
 
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
 	"github.com/thoas/go-funk"
 )

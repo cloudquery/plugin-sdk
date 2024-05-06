@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apache/arrow/go/v15/arrow"
-	"github.com/apache/arrow/go/v15/arrow/array"
-	"github.com/apache/arrow/go/v15/arrow/memory"
+	"github.com/apache/arrow/go/v16/arrow"
+	"github.com/apache/arrow/go/v16/arrow/array"
+	"github.com/apache/arrow/go/v16/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
 	"golang.org/x/exp/rand"

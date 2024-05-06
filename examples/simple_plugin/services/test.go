@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/cloudquery/plugin-sdk/examples/simple_plugin/client"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )

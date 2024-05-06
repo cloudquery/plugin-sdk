@@ -3,10 +3,10 @@ module github.com/cloudquery/plugin-sdk/v4
 go 1.21.5
 
 require (
-	github.com/apache/arrow/go/v15 v15.0.0-20240114144300-7e703aae55c1
+	github.com/apache/arrow/go/v16 v16.0.0
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.9.1
-	github.com/cloudquery/plugin-pb-go v1.19.10
+	github.com/cloudquery/plugin-pb-go v1.19.11
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.27.0
 	github.com/goccy/go-json v0.10.2
@@ -62,7 +62,7 @@ require (
 	github.com/go-playground/validator/v10 v10.14.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20231222211730-1d6d20845b47 // indirect
-	github.com/google/flatbuffers v23.5.26+incompatible // indirect
+	github.com/google/flatbuffers v24.3.25+incompatible // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
