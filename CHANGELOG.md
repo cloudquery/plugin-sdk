@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.40.2](https://github.com/cloudquery/plugin-sdk/compare/v4.40.1...v4.40.2) (2024-05-06)
+
+
+### Bug Fixes
+
+* **deps:** Upgrade `github.com/apache/arrow/go` to `v16` ([#1661](https://github.com/cloudquery/plugin-sdk/issues/1661)) ([04d9585](https://github.com/cloudquery/plugin-sdk/commit/04d95859f000e2fc2823bb5b470ccd6a7d117bb7))
+
+## [4.40.1](https://github.com/cloudquery/plugin-sdk/compare/v4.40.0...v4.40.1) (2024-05-06)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.10 ([#1658](https://github.com/cloudquery/plugin-sdk/issues/1658)) ([cf1c5a0](https://github.com/cloudquery/plugin-sdk/commit/cf1c5a08dfa93a4c7a1a50e1a24ad3d25c4ac85d))
+* **deps:** Update module golang.org/x/exp to v0.0.0-20240416160154-fe59bbe5cc7f ([#1653](https://github.com/cloudquery/plugin-sdk/issues/1653)) ([e759eac](https://github.com/cloudquery/plugin-sdk/commit/e759eacb2a1a97bdca4fa7c92d81a22a540199ea))
+* **deps:** Update module google.golang.org/protobuf to v1.34.0 ([#1657](https://github.com/cloudquery/plugin-sdk/issues/1657)) ([b492bdc](https://github.com/cloudquery/plugin-sdk/commit/b492bdc86d913a264353e06391c01fbba6e6d3aa))
+* **deps:** Update opentelemetry-go monorepo to v1.26.0 ([#1654](https://github.com/cloudquery/plugin-sdk/issues/1654)) ([4ea5b0d](https://github.com/cloudquery/plugin-sdk/commit/4ea5b0d71a4f2e280fdc0486f66f5c59e23461ea))
+
 ## [4.40.0](https://github.com/cloudquery/plugin-sdk/compare/v4.39.1...v4.40.0) (2024-04-29)
 
 
