@@ -40,5 +40,5 @@ The following tables depend on {{.Name}}:
 | Name          | Type          |
 | ------------- | ------------- |
 {{- range $column := $.Columns }}
-|{{$column.Name}}{{if $column.PrimaryKey}} (PK){{end}}{{if $column.IncrementalKey}} (Incremental Key){{end}}|`{{$column.Type}}`|
+|{{$column.Name}}{{if $column.PrimaryKey}} (PK){{end}}{{if $column.IncrementalKey}} (Incremental Key){{end}}|{{$column.Type | colTypeWithCode}}|
 {{- end }}
