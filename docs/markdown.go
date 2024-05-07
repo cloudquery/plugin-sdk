@@ -126,6 +126,9 @@ func colType(dt arrow.DataType, level int) string {
 }
 
 func structType(dt *arrow.StructType, level int) string {
+	if res, ok := simpleStruct(dt); ok {
+		return res
+	}
 	var buf strings.Builder
 	buf.WriteString("<br>") // for starting elems with a newline
 	pfx := strings.Repeat("&nbsp;", level+1)
@@ -142,6 +145,21 @@ func structType(dt *arrow.StructType, level int) string {
 		}
 	}
 	return "struct<" + buf.String() + "<br>" + strings.Repeat("&nbsp;", level) + ">"
+}
+
+func simpleStruct(dt *arrow.StructType) (string, bool) {
+	if dt.NumFields() != 1 {
+		return "", false
+	}
+	field := dt.Field(0)
+	if _, nested := field.Type.(arrow.NestedType); nested {
+		return "", false
+	}
+	res := "struct<" + field.Name + ": " + field.Type.String()
+	if field.Nullable {
+		res += "?"
+	}
+	return res + ">", true
 }
 
 func mapType(dt *arrow.MapType, level int) string {
