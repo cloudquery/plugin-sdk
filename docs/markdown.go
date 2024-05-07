@@ -126,9 +126,10 @@ func colType(dt arrow.DataType, level int) string {
 }
 
 func structType(dt *arrow.StructType, level int) string {
-	if res, ok := simpleStruct(dt); ok {
-		return res
+	if !needsMultiline(dt) {
+		return simpleStruct(dt)
 	}
+
 	var buf strings.Builder
 	buf.WriteString("<br>") // for starting elems with a newline
 	pfx := strings.Repeat("&nbsp;", level+1)
@@ -147,19 +148,13 @@ func structType(dt *arrow.StructType, level int) string {
 	return "struct<" + buf.String() + "<br>" + strings.Repeat("&nbsp;", level) + ">"
 }
 
-func simpleStruct(dt *arrow.StructType) (string, bool) {
-	if dt.NumFields() != 1 {
-		return "", false
-	}
+func simpleStruct(dt *arrow.StructType) string {
 	field := dt.Field(0)
-	if _, nested := field.Type.(arrow.NestedType); nested {
-		return "", false
-	}
 	res := "struct<" + field.Name + ": " + field.Type.String()
 	if field.Nullable {
 		res += "?"
 	}
-	return res + ">", true
+	return res + ">"
 }
 
 func mapType(dt *arrow.MapType, level int) string {
@@ -170,7 +165,7 @@ func mapType(dt *arrow.MapType, level int) string {
 
 func listLikeType(dt arrow.ListLikeType, level int) string {
 	elemField := dt.ElemField()
-	nested := false
+	nested := needsMultiline(dt)
 	if _, nested = elemField.Type.(arrow.NestedType); nested {
 		level += 1 // nested types will require additional handling
 	}
@@ -200,5 +195,29 @@ func listLikeType(dt arrow.ListLikeType, level int) string {
 		return "list_view" + elems
 	default:
 		return dt.Name() + elems
+	}
+}
+
+func needsMultiline(dt arrow.DataType) bool {
+	nested, ok := dt.(arrow.NestedType)
+	if !ok {
+		return false
+	}
+	switch nested := nested.(type) {
+	case *arrow.MapType:
+		return needsMultiline(nested.ItemType()) // keys are presumed to be simple
+	case arrow.ListLikeType:
+		return needsMultiline(nested.Elem())
+	case *arrow.StructType:
+		switch nested.NumFields() {
+		case 0:
+			return false
+		case 1:
+			return needsMultiline(nested.Field(0).Type)
+		default:
+			return true
+		}
+	default:
+		return false
 	}
 }
