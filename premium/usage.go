@@ -28,6 +28,12 @@ const (
 	defaultMaxTimeBetweenFlushes = 30 * time.Second
 )
 
+const (
+	UsageIncreaseMethodUnset = iota
+	UsageIncreaseMethodTotal
+	UsageIncreaseMethodBreakdown
+)
+
 type TokenClient interface {
 	GetToken() (auth.Token, error)
 	GetTokenType() auth.TokenType
@@ -144,13 +150,14 @@ type BatchUpdater struct {
 
 	// State
 	sync.Mutex
-	rows           uint32
-	tables         map[string]uint32
-	lastUpdateTime time.Time
-	triggerUpdate  chan struct{}
-	done           chan struct{}
-	closeError     chan error
-	isClosed       bool
+	rows                uint32
+	tables              map[string]uint32
+	lastUpdateTime      time.Time
+	triggerUpdate       chan struct{}
+	done                chan struct{}
+	closeError          chan error
+	isClosed            bool
+	usageIncreaseMethod int
 }
 
 func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, error) {
@@ -222,6 +229,10 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 }
 
 func (u *BatchUpdater) Increase(rows uint32) error {
+	if u.usageIncreaseMethod == UsageIncreaseMethodBreakdown {
+		return fmt.Errorf("mixing usage increase methods is not allowed, use IncreaseForTable instead")
+	}
+
 	if rows <= 0 {
 		return fmt.Errorf("rows must be greater than zero got %d", rows)
 	}
@@ -232,6 +243,10 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 
 	u.Lock()
 	defer u.Unlock()
+
+	if u.usageIncreaseMethod == UsageIncreaseMethodUnset {
+		u.usageIncreaseMethod = UsageIncreaseMethodTotal
+	}
 	u.rows += rows
 
 	// Trigger an update unless an update is already in process
@@ -244,6 +259,10 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 }
 
 func (u *BatchUpdater) IncreaseForTable(table string, rows uint32) error {
+	if u.usageIncreaseMethod == UsageIncreaseMethodTotal {
+		return fmt.Errorf("mixing usage increase methods is not allowed, use Increase instead")
+	}
+
 	if rows <= 0 {
 		return fmt.Errorf("rows must be greater than zero got %d", rows)
 	}
@@ -254,6 +273,10 @@ func (u *BatchUpdater) IncreaseForTable(table string, rows uint32) error {
 
 	u.Lock()
 	defer u.Unlock()
+
+	if u.usageIncreaseMethod == UsageIncreaseMethodUnset {
+		u.usageIncreaseMethod = UsageIncreaseMethodBreakdown
+	}
 
 	u.tables[table] += rows
 	u.rows += rows
