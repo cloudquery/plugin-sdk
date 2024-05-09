@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	cqapi "github.com/cloudquery/cloudquery-api-go"
@@ -26,6 +26,12 @@ const (
 	defaultMaxWaitTime           = 60 * time.Second
 	defaultMinTimeBetweenFlushes = 10 * time.Second
 	defaultMaxTimeBetweenFlushes = 30 * time.Second
+)
+
+const (
+	UsageIncreaseMethodUnset = iota
+	UsageIncreaseMethodTotal
+	UsageIncreaseMethodBreakdown
 )
 
 type TokenClient interface {
@@ -143,12 +149,15 @@ type BatchUpdater struct {
 	maxTimeBetweenFlushes time.Duration
 
 	// State
-	lastUpdateTime time.Time
-	rowsToUpdate   atomic.Uint32
-	triggerUpdate  chan struct{}
-	done           chan struct{}
-	closeError     chan error
-	isClosed       bool
+	sync.Mutex
+	rows                uint32
+	tables              map[string]uint32
+	lastUpdateTime      time.Time
+	triggerUpdate       chan struct{}
+	done                chan struct{}
+	closeError          chan error
+	isClosed            bool
+	usageIncreaseMethod int
 }
 
 func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, error) {
@@ -166,6 +175,8 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		triggerUpdate:         make(chan struct{}),
 		done:                  make(chan struct{}),
 		closeError:            make(chan error),
+
+		tables: map[string]uint32{},
 	}
 	for _, op := range ops {
 		op(u)
@@ -218,6 +229,10 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 }
 
 func (u *BatchUpdater) Increase(rows uint32) error {
+	if u.usageIncreaseMethod == UsageIncreaseMethodBreakdown {
+		return fmt.Errorf("mixing usage increase methods is not allowed, use IncreaseForTable instead")
+	}
+
 	if rows <= 0 {
 		return fmt.Errorf("rows must be greater than zero got %d", rows)
 	}
@@ -226,13 +241,50 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 		return fmt.Errorf("usage updater is closed")
 	}
 
-	u.rowsToUpdate.Add(rows)
+	u.Lock()
+	defer u.Unlock()
+
+	if u.usageIncreaseMethod == UsageIncreaseMethodUnset {
+		u.usageIncreaseMethod = UsageIncreaseMethodTotal
+	}
+	u.rows += rows
 
 	// Trigger an update unless an update is already in process
 	select {
 	case u.triggerUpdate <- struct{}{}:
 	default:
-		return nil
+	}
+
+	return nil
+}
+
+func (u *BatchUpdater) IncreaseForTable(table string, rows uint32) error {
+	if u.usageIncreaseMethod == UsageIncreaseMethodTotal {
+		return fmt.Errorf("mixing usage increase methods is not allowed, use Increase instead")
+	}
+
+	if rows <= 0 {
+		return fmt.Errorf("rows must be greater than zero got %d", rows)
+	}
+
+	if u.isClosed {
+		return fmt.Errorf("usage updater is closed")
+	}
+
+	u.Lock()
+	defer u.Unlock()
+
+	if u.usageIncreaseMethod == UsageIncreaseMethodUnset {
+		u.usageIncreaseMethod = UsageIncreaseMethodBreakdown
+	}
+
+	u.tables[table] += rows
+	u.rows += rows
+
+	// Trigger an update unless an update is already in process
+	select {
+	case u.triggerUpdate <- struct{}{}:
+	default:
 	}
 
 	return nil
@@ -264,6 +316,31 @@ func (u *BatchUpdater) Close() error {
 	return <-u.closeError
 }
 
+func (u *BatchUpdater) getTableUsage() (usage []cqapi.UsageIncreaseTablesInner, total uint32) {
+	u.Lock()
+	defer u.Unlock()
+
+	for key, value := range u.tables {
+		usage = append(usage, cqapi.UsageIncreaseTablesInner{
+			Name: key,
+			Rows: int(value),
+		})
+	}
+
+	return usage, u.rows
+}
+
+func (u *BatchUpdater) subtractTableUsage(usage []cqapi.UsageIncreaseTablesInner, total uint32) {
+	u.Lock()
+	defer u.Unlock()
+
+	for _, table := range usage {
+		u.tables[table.Name] -= uint32(table.Rows)
+	}
+
+	u.rows -= total
+}
+
 func (u *BatchUpdater) backgroundUpdater() {
 	ctx := context.Background()
 	started := make(chan struct{})
@@ -280,38 +357,45 @@ func (u *BatchUpdater) backgroundUpdater() {
 					continue
 				}
 
-				rowsToUpdate := u.rowsToUpdate.Load()
-				if rowsToUpdate < u.batchLimit {
+				tables, totals := u.getTableUsage()
+
+				if totals < u.batchLimit {
 					// Not enough rows to update
 					continue
 				}
-				if err := u.updateUsageWithRetryAndBackoff(ctx, rowsToUpdate); err != nil {
+
+				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					log.Warn().Err(err).Msg("failed to update usage")
 					continue
 				}
-				u.rowsToUpdate.Add(-rowsToUpdate)
+				u.subtractTableUsage(tables, totals)
+
 			case <-flushDuration.C:
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
 				}
-				rowsToUpdate := u.rowsToUpdate.Load()
-				if rowsToUpdate == 0 {
+
+				tables, totals := u.getTableUsage()
+
+				if totals == 0 {
 					continue
 				}
-				if err := u.updateUsageWithRetryAndBackoff(ctx, rowsToUpdate); err != nil {
+
+				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					log.Warn().Err(err).Msg("failed to update usage")
 					continue
 				}
-				u.rowsToUpdate.Add(-rowsToUpdate)
+				u.subtractTableUsage(tables, totals)
+
 			case <-u.done:
-				remainingRows := u.rowsToUpdate.Load()
-				if remainingRows != 0 {
-					if err := u.updateUsageWithRetryAndBackoff(ctx, remainingRows); err != nil {
+				tables, totals := u.getTableUsage()
+				if totals != 0 {
+					if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 						u.closeError <- err
 						return
 					}
-					u.rowsToUpdate.Add(-remainingRows)
+					u.subtractTableUsage(tables, totals)
 				}
 				u.closeError <- nil
 				return
@@ -321,23 +405,29 @@ func (u *BatchUpdater) backgroundUpdater() {
 	<-started
 }
 
-func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numberToUpdate uint32) error {
+func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows uint32, tables []cqapi.UsageIncreaseTablesInner) error {
 	for retry := 0; retry < u.maxRetries; retry++ {
-		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", numberToUpdate).Msg("updating usage")
+		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
 		queryStartTime := time.Now()
 
-		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, cqapi.IncreaseTeamPluginUsageJSONRequestBody{
+		payload := cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
 			PluginTeam: u.pluginMeta.Team,
 			PluginKind: u.pluginMeta.Kind,
 			PluginName: u.pluginMeta.Name,
-			Rows:       int(numberToUpdate),
-		})
+			Rows:       int(rows),
+		}
+
+		if len(tables) > 0 {
+			payload.Tables = &tables
+		}
+
+		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, payload)
 		if err != nil {
 			return fmt.Errorf("failed to update usage: %w", err)
 		}
 		if resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
-			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", numberToUpdate).Msg("usage updated")
+			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", rows).Msg("usage updated")
 			u.lastUpdateTime = time.Now().UTC()
 			return nil
 		}

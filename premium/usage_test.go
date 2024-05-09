@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -129,7 +130,7 @@ func TestUsageService_HasQuota_WithRowsRemaining(t *testing.T) {
 	assert.True(t, hasQuota, "should have quota")
 }
 
-func TestUsageService_ZeroBatchSize(t *testing.T) {
+func TestUsageService_Increase_ZeroBatchSize(t *testing.T) {
 	s := createTestServer(t)
 	defer s.server.Close()
 
@@ -149,7 +150,31 @@ func TestUsageService_ZeroBatchSize(t *testing.T) {
 	assert.Equal(t, 10000, s.sumOfUpdates(), "total should equal number of updated rows")
 }
 
-func TestUsageService_WithBatchSize(t *testing.T) {
+func TestUsageService_IncreaseForTable_ZeroBatchSize(t *testing.T) {
+	s := createTestServer(t)
+	defer s.server.Close()
+
+	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
+	require.NoError(t, err)
+
+	usageClient := newClient(t, apiClient, WithBatchLimit(0))
+
+	tables := 3
+	rows := 9999
+	for i := 0; i < rows; i++ {
+		table := "table:" + strconv.Itoa(i%tables)
+		err = usageClient.IncreaseForTable(table, 1)
+		require.NoError(t, err)
+	}
+
+	err = usageClient.Close()
+	require.NoError(t, err)
+
+	assert.Equal(t, rows, s.sumOfUpdates(), "total should equal number of updated rows")
+	assert.Equal(t, rows, s.sumOfTableUpdates(), "breakdown over tables should equal number of updated rows")
+}
+
+func TestUsageService_Increase_WithBatchSize(t *testing.T) {
 	batchSize := 2000
 
 	s := createTestServer(t)
@@ -171,7 +196,33 @@ func TestUsageService_WithBatchSize(t *testing.T) {
 	assert.True(t, true, s.minExcludingClose() > batchSize, "minimum should be greater than batch size")
 }
 
-func TestUsageService_WithFlushDuration(t *testing.T) {
+func TestUsageService_IncreaseForTable_WithBatchSize(t *testing.T) {
+	batchSize := 2000
+
+	s := createTestServer(t)
+	defer s.server.Close()
+
+	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
+	require.NoError(t, err)
+
+	usageClient := newClient(t, apiClient, WithBatchLimit(uint32(batchSize)))
+
+	tables := 3
+	rows := 9999
+	for i := 0; i < rows; i++ {
+		table := "table:" + strconv.Itoa(i%tables)
+		err = usageClient.IncreaseForTable(table, 1)
+		require.NoError(t, err)
+	}
+	err = usageClient.Close()
+	require.NoError(t, err)
+
+	assert.Equal(t, rows, s.sumOfUpdates(), "total should equal number of updated rows")
+	assert.Equal(t, rows, s.sumOfTableUpdates(), "breakdown over tables should equal number of updated rows")
+	assert.True(t, true, s.minExcludingClose() > batchSize, "minimum should be greater than batch size")
+}
+
+func TestUsageService_Increase_WithFlushDuration(t *testing.T) {
 	batchSize := 2000
 
 	s := createTestServer(t)
@@ -194,7 +245,34 @@ func TestUsageService_WithFlushDuration(t *testing.T) {
 	assert.True(t, s.minExcludingClose() < batchSize, "we should see updates less than batchsize if ticker is firing")
 }
 
-func TestUsageService_WithMinimumUpdateDuration(t *testing.T) {
+func TestUsageService_IncreaseForTable_WithFlushDuration(t *testing.T) {
+	batchSize := 2000
+
+	s := createTestServer(t)
+	defer s.server.Close()
+
+	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
+	require.NoError(t, err)
+
+	usageClient := newClient(t, apiClient, WithBatchLimit(uint32(batchSize)), WithMaxTimeBetweenFlushes(1*time.Millisecond), WithMinTimeBetweenFlushes(0*time.Millisecond))
+
+	tables := 3
+	rows := 30
+	for i := 0; i < rows; i++ {
+		table := "table:" + strconv.Itoa(i%tables)
+		err = usageClient.IncreaseForTable(table, 1)
+		require.NoError(t, err)
+		time.Sleep(5 * time.Millisecond)
+	}
+	err = usageClient.Close()
+	require.NoError(t, err)
+
+	assert.Equal(t, rows, s.sumOfUpdates(), "total should equal number of updated rows")
+	assert.Equal(t, rows, s.sumOfTableUpdates(), "breakdown over tables should equal number of updated rows")
+	assert.True(t, s.minExcludingClose() < batchSize, "we should see updates less than batchsize if ticker is firing")
+}
+
+func TestUsageService_Increase_WithMinimumUpdateDuration(t *testing.T) {
 	s := createTestServer(t)
 	defer s.server.Close()
 
@@ -212,6 +290,110 @@ func TestUsageService_WithMinimumUpdateDuration(t *testing.T) {
 
 	assert.Equal(t, 10000, s.sumOfUpdates(), "total should equal number of updated rows")
 	assert.Equal(t, 2, s.numberOfUpdates(), "should only update first time and on close if minimum update duration is set")
+}
+
+func TestUsageService_IncreaseForTable_WithMinimumUpdateDuration(t *testing.T) {
+	s := createTestServer(t)
+	defer s.server.Close()
+
+	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
+	require.NoError(t, err)
+
+	usageClient := newClient(t, apiClient, WithBatchLimit(0), WithMinTimeBetweenFlushes(30*time.Second))
+
+	tables := 3
+	rows := 9999
+	for i := 0; i < rows; i++ {
+		table := "table:" + strconv.Itoa(i%tables)
+		err = usageClient.IncreaseForTable(table, 1)
+		require.NoError(t, err)
+	}
+	err = usageClient.Close()
+	require.NoError(t, err)
+
+	assert.Equal(t, rows, s.sumOfUpdates(), "total should equal number of updated rows")
+	assert.Equal(t, rows, s.sumOfTableUpdates(), "breakdown over tables should equal number of updated rows")
+	assert.Equal(t, 2, s.numberOfUpdates(), "should only update first time and on close if minimum update duration is set")
+}
+
+func TestUsageService_IncreaseForTable_CorrectByTable(t *testing.T) {
+	s := createTestServer(t)
+	defer s.server.Close()
+
+	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
+	require.NoError(t, err)
+
+	usageClient := newClient(t, apiClient, WithBatchLimit(50))
+
+	tables := 9
+	rows := 9999
+	for i := 0; i < rows; i++ {
+		table := "table:" + strconv.Itoa(i%tables)
+		err = usageClient.IncreaseForTable(table, 1)
+		require.NoError(t, err)
+	}
+
+	err = usageClient.Close()
+	require.NoError(t, err)
+
+	assert.Equal(t, rows, s.sumOfUpdates(), "total should equal number of updated rows")
+	assert.Equal(t, rows, s.sumOfTableUpdates(), "breakdown over tables should equal number of updated rows")
+
+	for i := 0; i < tables; i++ {
+		assert.Equal(t, 1111, s.tables["table:"+strconv.Itoa(i)].Rows, "table should have correct number of rows")
+	}
+}
+
+func TestUsageService_Increase_ErrorOnMixingMethods(t *testing.T) {
+	s := createTestServer(t)
+	defer s.server.Close()
+
+	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
+	require.NoError(t, err)
+
+	usageClient := newClient(t, apiClient, WithBatchLimit(50))
+
+	assert.Equal(t, usageClient.usageIncreaseMethod, UsageIncreaseMethodUnset, "usage increase method should not be set")
+
+	err = usageClient.Increase(1)
+	require.NoError(t, err)
+
+	assert.Equal(t, usageClient.usageIncreaseMethod, UsageIncreaseMethodTotal, "usage increase method should be total")
+
+	err = usageClient.IncreaseForTable("test_table", 1)
+	require.ErrorContains(t, err, "mixing usage increase methods is not allowed")
+
+	err = usageClient.Close()
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, s.sumOfUpdates(), "total should equal number of updated rows")
+	assert.Equal(t, 0, s.sumOfTableUpdates(), "breakdown over tables should equal number of updated rows")
+}
+
+func TestUsageService_IncreaseForTable_ErrorOnMixingMethods(t *testing.T) {
+	s := createTestServer(t)
+	defer s.server.Close()
+
+	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
+	require.NoError(t, err)
+
+	usageClient := newClient(t, apiClient, WithBatchLimit(50))
+
+	assert.Equal(t, usageClient.usageIncreaseMethod, UsageIncreaseMethodUnset, "usage increase method should not be set")
+
+	err = usageClient.IncreaseForTable("test_table", 1)
+	require.NoError(t, err)
+
+	assert.Equal(t, usageClient.usageIncreaseMethod, UsageIncreaseMethodBreakdown, "usage increase method should be breakdown")
+
+	err = usageClient.Increase(1)
+	require.ErrorContains(t, err, "mixing usage increase methods is not allowed")
+
+	err = usageClient.Close()
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, s.sumOfUpdates(), "total should equal number of updated rows")
+	assert.Equal(t, 1, s.sumOfTableUpdates(), "breakdown over tables should equal number of updated rows")
 }
 
 func TestUsageService_NoUpdates(t *testing.T) {
@@ -397,6 +579,10 @@ func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testSta
 	stage := testStage{
 		remainingRows: remainingRows,
 		update:        make([]int, 0),
+		tables: make(map[string]struct {
+			Name string
+			Rows int
+		}),
 	}
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -418,6 +604,23 @@ func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testSta
 			defer stage.mu.Unlock()
 			stage.update = append(stage.update, req.Rows)
 
+			if req.Tables != nil {
+				for _, table := range *req.Tables {
+					tbl, ok := stage.tables[table.Name]
+
+					if !ok {
+						stage.tables[table.Name] = struct {
+							Name string
+							Rows int
+						}{Name: table.Name, Rows: table.Rows}
+						continue
+					}
+
+					tbl.Rows += table.Rows
+					stage.tables[table.Name] = tbl
+				}
+			}
+
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -437,7 +640,11 @@ type testStage struct {
 
 	remainingRows int
 	update        []int
-	mu            sync.RWMutex
+	tables        map[string]struct {
+		Name string
+		Rows int
+	}
+	mu sync.RWMutex
 }
 
 func (s *testStage) numberOfUpdates() int {
@@ -452,6 +659,16 @@ func (s *testStage) sumOfUpdates() int {
 	sum := 0
 	for _, val := range s.update {
 		sum += val
+	}
+	return sum
+}
+
+func (s *testStage) sumOfTableUpdates() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	sum := 0
+	for _, val := range s.tables {
+		sum += val.Rows
 	}
 	return sum
 }
