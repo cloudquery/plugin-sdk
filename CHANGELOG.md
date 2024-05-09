@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.41.1](https://github.com/cloudquery/plugin-sdk/compare/v4.41.0...v4.41.1) (2024-05-09)
+
+
+### Bug Fixes
+
+* Expose IncreaseForTable on UsageClient interface ([#1672](https://github.com/cloudquery/plugin-sdk/issues/1672)) ([52c145c](https://github.com/cloudquery/plugin-sdk/commit/52c145c0be55023eb044ac32d1c099f7b1f6bd25))
+
 ## [4.41.0](https://github.com/cloudquery/plugin-sdk/compare/v4.40.2...v4.41.0) (2024-05-09)
 
 
