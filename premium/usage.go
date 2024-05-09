@@ -126,11 +126,6 @@ var (
 	_ UsageClient = (*NoOpUsageClient)(nil)
 )
 
-type tableUsage struct {
-	name string
-	rows int
-}
-
 type BatchUpdater struct {
 	logger      zerolog.Logger
 	url         string
@@ -300,7 +295,7 @@ func (u *BatchUpdater) Close() error {
 	return <-u.closeError
 }
 
-func (u *BatchUpdater) getTableUsage() (usage []tableUsage, total uint32) {
+func (u *BatchUpdater) getTableUsage() (usage []cqapi.UsageIncreaseTablesInner, total uint32) {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
@@ -309,25 +304,25 @@ func (u *BatchUpdater) getTableUsage() (usage []tableUsage, total uint32) {
 			continue
 		}
 
-		usage = append(usage, tableUsage{
-			name: key,
-			rows: int(value),
+		usage = append(usage, cqapi.UsageIncreaseTablesInner{
+			Name: key,
+			Rows: int(value),
 		})
 	}
 
 	return usage, u.tables[totalsTableKey]
 }
 
-func (u *BatchUpdater) chunkTableUsage(usage []tableUsage, total uint32) {
+func (u *BatchUpdater) chunkTableUsage(usage []cqapi.UsageIncreaseTablesInner, total uint32) {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
 	for _, table := range usage {
-		if table.name == totalsTableKey {
+		if table.Name == totalsTableKey {
 			continue
 		}
 
-		u.tables[table.name] -= uint32(table.rows)
+		u.tables[table.Name] -= uint32(table.Rows)
 	}
 
 	u.tables[totalsTableKey] -= total
@@ -397,24 +392,10 @@ func (u *BatchUpdater) backgroundUpdater() {
 	<-started
 }
 
-func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rowsToUpdate uint32, tablesToUpdate []tableUsage) error {
+func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rowsToUpdate uint32, tables []cqapi.UsageIncreaseTablesInner) error {
 	for retry := 0; retry < u.maxRetries; retry++ {
 		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rowsToUpdate).Msg("updating usage")
 		queryStartTime := time.Now()
-
-		var tables []struct {
-			Name string `json:"name"`
-			Rows int    `json:"rows"`
-		}
-		for _, t := range tablesToUpdate {
-			tables = append(tables, struct {
-				Name string `json:"name"`
-				Rows int    `json:"rows"`
-			}{
-				Name: t.name,
-				Rows: t.rows,
-			})
-		}
 
 		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),

@@ -47,7 +47,7 @@ func TestUsageService_NewUsageClient_Defaults(t *testing.T) {
 	uc, err := NewUsageClient(
 		plugin.Meta{
 			Team: "plugin-team",
-			Kind: cqapi.Source,
+			Kind: cqapi.PluginKindSource,
 			Name: "vault",
 		},
 		withTokenClient(newMockTokenClient(auth.BearerToken)),
@@ -73,7 +73,7 @@ func TestUsageService_NewUsageClient_Override(t *testing.T) {
 	uc, err := NewUsageClient(
 		plugin.Meta{
 			Team: "plugin-team",
-			Kind: cqapi.Source,
+			Kind: cqapi.PluginKindSource,
 			Name: "vault",
 		},
 		WithLogger(logger),
@@ -514,7 +514,7 @@ func newClient(t *testing.T, apiClient *cqapi.ClientWithResponses, ops ...UsageC
 	client, err := NewUsageClient(
 		plugin.Meta{
 			Team: "plugin-team",
-			Kind: cqapi.Source,
+			Kind: cqapi.PluginKindSource,
 			Name: "vault",
 		},
 		append(ops, withTeamName("team-name"), WithAPIClient(apiClient), withTokenClient(newMockTokenClient(auth.BearerToken)))...)
@@ -678,7 +678,7 @@ func Test_UsageClientInit_FromManagedSyncsAPIKeys(t *testing.T) {
 			_, err := NewUsageClient(
 				plugin.Meta{
 					Team: "plugin-team",
-					Kind: cqapi.Source,
+					Kind: cqapi.PluginKindSource,
 					Name: "test",
 				},
 			)
@@ -721,7 +721,7 @@ func Test_UsageClientInit_UnknownTokenType(t *testing.T) {
 			_, err := NewUsageClient(
 				plugin.Meta{
 					Team: "plugin-team",
-					Kind: cqapi.Source,
+					Kind: cqapi.PluginKindSource,
 					Name: "test",
 				},
 				withTokenClient(newMockTokenClient(math.MaxInt)),
