@@ -244,7 +244,7 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 	return nil
 }
 
-func (u *BatchUpdater) IncreaseWithTableBreakdown(table string, rows uint32) error {
+func (u *BatchUpdater) IncreaseForTable(table string, rows uint32) error {
 	if rows <= 0 {
 		return fmt.Errorf("rows must be greater than zero got %d", rows)
 	}
@@ -309,7 +309,7 @@ func (u *BatchUpdater) getTableUsage() (usage []cqapi.UsageIncreaseTablesInner, 
 	return usage, u.rows
 }
 
-func (u *BatchUpdater) chunkTableUsage(usage []cqapi.UsageIncreaseTablesInner, total uint32) {
+func (u *BatchUpdater) subtractTableUsage(usage []cqapi.UsageIncreaseTablesInner, total uint32) {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
@@ -347,7 +347,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 					log.Warn().Err(err).Msg("failed to update usage")
 					continue
 				}
-				u.chunkTableUsage(tables, totals)
+				u.subtractTableUsage(tables, totals)
 
 			case <-flushDuration.C:
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
@@ -365,7 +365,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 					log.Warn().Err(err).Msg("failed to update usage")
 					continue
 				}
-				u.chunkTableUsage(tables, totals)
+				u.subtractTableUsage(tables, totals)
 
 			case <-u.done:
 				tables, totals := u.getTableUsage()
@@ -374,7 +374,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 						u.closeError <- err
 						return
 					}
-					u.chunkTableUsage(tables, totals)
+					u.subtractTableUsage(tables, totals)
 				}
 				u.closeError <- nil
 				return
@@ -384,24 +384,29 @@ func (u *BatchUpdater) backgroundUpdater() {
 	<-started
 }
 
-func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rowsToUpdate uint32, tables []cqapi.UsageIncreaseTablesInner) error {
+func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows uint32, tables []cqapi.UsageIncreaseTablesInner) error {
 	for retry := 0; retry < u.maxRetries; retry++ {
-		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rowsToUpdate).Msg("updating usage")
+		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
 		queryStartTime := time.Now()
 
-		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, cqapi.IncreaseTeamPluginUsageJSONRequestBody{
+		payload := cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
 			PluginTeam: u.pluginMeta.Team,
 			PluginKind: u.pluginMeta.Kind,
 			PluginName: u.pluginMeta.Name,
-			Rows:       int(rowsToUpdate),
-			Tables:     &tables,
-		})
+			Rows:       int(rows),
+		}
+
+		if len(tables) > 0 {
+			payload.Tables = &tables
+		}
+
+		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, payload)
 		if err != nil {
 			return fmt.Errorf("failed to update usage: %w", err)
 		}
 		if resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
-			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", rowsToUpdate).Msg("usage updated")
+			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", rows).Msg("usage updated")
 			u.lastUpdateTime = time.Now().UTC()
 			return nil
 		}

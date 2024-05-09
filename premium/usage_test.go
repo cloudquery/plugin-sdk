@@ -163,7 +163,7 @@ func TestUsageService_IncreaseWithTableBreakdown_ZeroBatchSize(t *testing.T) {
 	rows := 9999
 	for i := 0; i < rows; i++ {
 		table := "table:" + strconv.Itoa(i%tables)
-		err = usageClient.IncreaseWithTableBreakdown(table, 1)
+		err = usageClient.IncreaseForTable(table, 1)
 		require.NoError(t, err)
 	}
 
@@ -211,7 +211,7 @@ func TestUsageService_IncreaseWithTableBreakdown_WithBatchSize(t *testing.T) {
 	rows := 9999
 	for i := 0; i < rows; i++ {
 		table := "table:" + strconv.Itoa(i%tables)
-		err = usageClient.IncreaseWithTableBreakdown(table, 1)
+		err = usageClient.IncreaseForTable(table, 1)
 		require.NoError(t, err)
 	}
 	err = usageClient.Close()
@@ -260,7 +260,7 @@ func TestUsageService_IncreaseWithTableBreakdown_WithFlushDuration(t *testing.T)
 	rows := 30
 	for i := 0; i < rows; i++ {
 		table := "table:" + strconv.Itoa(i%tables)
-		err = usageClient.IncreaseWithTableBreakdown(table, 1)
+		err = usageClient.IncreaseForTable(table, 1)
 		require.NoError(t, err)
 		time.Sleep(5 * time.Millisecond)
 	}
@@ -305,7 +305,7 @@ func TestUsageService_IncreaseWithTableBreakdown_WithMinimumUpdateDuration(t *te
 	rows := 9999
 	for i := 0; i < rows; i++ {
 		table := "table:" + strconv.Itoa(i%tables)
-		err = usageClient.IncreaseWithTableBreakdown(table, 1)
+		err = usageClient.IncreaseForTable(table, 1)
 		require.NoError(t, err)
 	}
 	err = usageClient.Close()
@@ -329,7 +329,7 @@ func TestUsageService_WithTableBreakdown_CorrectByTable(t *testing.T) {
 	rows := 9999
 	for i := 0; i < rows; i++ {
 		table := "table:" + strconv.Itoa(i%tables)
-		err = usageClient.IncreaseWithTableBreakdown(table, 1)
+		err = usageClient.IncreaseForTable(table, 1)
 		require.NoError(t, err)
 	}
 
