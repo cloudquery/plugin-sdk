@@ -143,9 +143,9 @@ type BatchUpdater struct {
 	maxTimeBetweenFlushes time.Duration
 
 	// State
+	sync.Mutex
 	rows           uint32
 	tables         map[string]uint32
-	mutex          sync.Mutex
 	lastUpdateTime time.Time
 	triggerUpdate  chan struct{}
 	done           chan struct{}
@@ -230,15 +230,14 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 		return fmt.Errorf("usage updater is closed")
 	}
 
-	u.mutex.Lock()
-	defer u.mutex.Unlock()
+	u.Lock()
+	defer u.Unlock()
 	u.rows += rows
 
 	// Trigger an update unless an update is already in process
 	select {
 	case u.triggerUpdate <- struct{}{}:
 	default:
-		return nil
 	}
 
 	return nil
@@ -253,8 +252,8 @@ func (u *BatchUpdater) IncreaseForTable(table string, rows uint32) error {
 		return fmt.Errorf("usage updater is closed")
 	}
 
-	u.mutex.Lock()
-	defer u.mutex.Unlock()
+	u.Lock()
+	defer u.Unlock()
 
 	u.tables[table] += rows
 	u.rows += rows
@@ -263,7 +262,6 @@ func (u *BatchUpdater) IncreaseForTable(table string, rows uint32) error {
 	select {
 	case u.triggerUpdate <- struct{}{}:
 	default:
-		return nil
 	}
 
 	return nil
@@ -296,8 +294,8 @@ func (u *BatchUpdater) Close() error {
 }
 
 func (u *BatchUpdater) getTableUsage() (usage []cqapi.UsageIncreaseTablesInner, total uint32) {
-	u.mutex.Lock()
-	defer u.mutex.Unlock()
+	u.Lock()
+	defer u.Unlock()
 
 	for key, value := range u.tables {
 		usage = append(usage, cqapi.UsageIncreaseTablesInner{
@@ -310,8 +308,8 @@ func (u *BatchUpdater) getTableUsage() (usage []cqapi.UsageIncreaseTablesInner, 
 }
 
 func (u *BatchUpdater) subtractTableUsage(usage []cqapi.UsageIncreaseTablesInner, total uint32) {
-	u.mutex.Lock()
-	defer u.mutex.Unlock()
+	u.Lock()
+	defer u.Unlock()
 
 	for _, table := range usage {
 		u.tables[table.Name] -= uint32(table.Rows)
