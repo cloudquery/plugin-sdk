@@ -554,18 +554,19 @@ func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testSta
 
 			if req.Tables != nil {
 				for _, table := range *req.Tables {
-					if tbl, ok := stage.tables[table.Name]; !ok {
+					tbl, ok := stage.tables[table.Name]
+
+					if !ok {
 						stage.tables[table.Name] = struct {
 							Name string
 							Rows int
 						}{Name: table.Name, Rows: table.Rows}
 						continue
-					} else {
-						tbl.Rows += table.Rows
-						stage.tables[table.Name] = tbl
 					}
-				}
 
+					tbl.Rows += table.Rows
+					stage.tables[table.Name] = tbl
+				}
 			}
 
 			w.WriteHeader(http.StatusOK)
