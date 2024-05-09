@@ -26,7 +26,6 @@ const (
 	defaultMaxWaitTime           = 60 * time.Second
 	defaultMinTimeBetweenFlushes = 10 * time.Second
 	defaultMaxTimeBetweenFlushes = 30 * time.Second
-	totalsTableKey               = "__cq_totals"
 )
 
 type TokenClient interface {
@@ -144,9 +143,10 @@ type BatchUpdater struct {
 	maxTimeBetweenFlushes time.Duration
 
 	// State
-	lastUpdateTime time.Time
+	rows           uint32
 	tables         map[string]uint32
 	mutex          sync.Mutex
+	lastUpdateTime time.Time
 	triggerUpdate  chan struct{}
 	done           chan struct{}
 	closeError     chan error
@@ -232,7 +232,7 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
-	u.tables[totalsTableKey] += rows
+	u.rows += rows
 
 	// Trigger an update unless an update is already in process
 	select {
@@ -257,7 +257,7 @@ func (u *BatchUpdater) IncreaseWithTableBreakdown(table string, rows uint32) err
 	defer u.mutex.Unlock()
 
 	u.tables[table] += rows
-	u.tables[totalsTableKey] += rows
+	u.rows += rows
 
 	// Trigger an update unless an update is already in process
 	select {
@@ -300,17 +300,13 @@ func (u *BatchUpdater) getTableUsage() (usage []cqapi.UsageIncreaseTablesInner, 
 	defer u.mutex.Unlock()
 
 	for key, value := range u.tables {
-		if key == totalsTableKey {
-			continue
-		}
-
 		usage = append(usage, cqapi.UsageIncreaseTablesInner{
 			Name: key,
 			Rows: int(value),
 		})
 	}
 
-	return usage, u.tables[totalsTableKey]
+	return usage, u.rows
 }
 
 func (u *BatchUpdater) chunkTableUsage(usage []cqapi.UsageIncreaseTablesInner, total uint32) {
@@ -318,14 +314,10 @@ func (u *BatchUpdater) chunkTableUsage(usage []cqapi.UsageIncreaseTablesInner, t
 	defer u.mutex.Unlock()
 
 	for _, table := range usage {
-		if table.Name == totalsTableKey {
-			continue
-		}
-
 		u.tables[table.Name] -= uint32(table.Rows)
 	}
 
-	u.tables[totalsTableKey] -= total
+	u.rows -= total
 }
 
 func (u *BatchUpdater) backgroundUpdater() {
