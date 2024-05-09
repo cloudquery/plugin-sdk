@@ -50,6 +50,8 @@ type UsageClient interface {
 	QuotaMonitor
 	// Increase updates the usage by the given number of rows
 	Increase(uint32) error
+	// IncreaseForTable updates the usage of a table by the given number of rows
+	IncreaseForTable(string, uint32) error
 	// Close flushes any remaining rows and closes the quota service
 	Close() error
 }
@@ -521,6 +523,10 @@ func (NoOpUsageClient) HasQuota(_ context.Context) (bool, error) {
 }
 
 func (NoOpUsageClient) Increase(_ uint32) error {
+	return nil
+}
+
+func (NoOpUsageClient) IncreaseForTable(_ string, _ uint32) error {
 	return nil
 }
 
