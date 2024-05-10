@@ -396,6 +396,36 @@ func TestUsageService_IncreaseForTable_ErrorOnMixingMethods(t *testing.T) {
 	assert.Equal(t, 1, s.sumOfTableUpdates(), "breakdown over tables should equal number of updated rows")
 }
 
+func TestUsageService_Increase_Header(t *testing.T) {
+	s := createTestServer(t)
+	s.headers[BatchLimitHeader] = "1000"
+	s.headers[MinimumUpdateIntervalHeader] = "60"
+	s.headers[MaximumUpdateIntervalHeader] = "120"
+	defer s.server.Close()
+
+	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
+	require.NoError(t, err)
+
+	usageClient := newClient(t, apiClient, WithBatchLimit(50))
+
+	// Initial configuration
+	assert.Equal(t, uint32(50), usageClient.batchLimit)
+	assert.Equal(t, 10*time.Second, usageClient.minTimeBetweenFlushes)
+	assert.Equal(t, 30*time.Second, usageClient.maxTimeBetweenFlushes)
+
+	// Generate some usage
+	err = usageClient.Increase(100)
+	require.NoError(t, err)
+	err = usageClient.Close()
+	require.NoError(t, err)
+
+	// Check the resulting configuration
+	assert.Equal(t, 1, s.numberOfUpdates())
+	assert.Equal(t, uint32(1000), usageClient.batchLimit)
+	assert.Equal(t, 60*time.Second, usageClient.minTimeBetweenFlushes)
+	assert.Equal(t, 120*time.Second, usageClient.maxTimeBetweenFlushes)
+}
+
 func TestUsageService_NoUpdates(t *testing.T) {
 	s := createTestServer(t)
 	defer s.server.Close()
@@ -578,6 +608,7 @@ func newClient(t *testing.T, apiClient *cqapi.ClientWithResponses, ops ...UsageC
 func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testStage {
 	stage := testStage{
 		remainingRows: remainingRows,
+		headers:       make(map[string]string),
 		update:        make([]int, 0),
 		tables: make(map[string]struct {
 			Name string
@@ -621,6 +652,11 @@ func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testSta
 				}
 			}
 
+			// Set response headers
+			for k, v := range stage.headers {
+				w.Header().Set(k, v)
+			}
+
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -637,6 +673,8 @@ func createTestServer(t *testing.T) *testStage {
 
 type testStage struct {
 	server *httptest.Server
+
+	headers map[string]string
 
 	remainingRows int
 	update        []int

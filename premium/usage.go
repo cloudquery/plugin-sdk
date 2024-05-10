@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -32,6 +33,12 @@ const (
 	UsageIncreaseMethodUnset = iota
 	UsageIncreaseMethodTotal
 	UsageIncreaseMethodBreakdown
+)
+
+const (
+	BatchLimitHeader            = "x-cq-batch-limit"
+	MinimumUpdateIntervalHeader = "x-cq-minimum-update-interval"
+	MaximumUpdateIntervalHeader = "x-cq-maximum-update-interval"
 )
 
 type TokenClient interface {
@@ -69,6 +76,7 @@ func WithBatchLimit(batchLimit uint32) UsageClientOptions {
 func WithMaxTimeBetweenFlushes(maxTimeBetweenFlushes time.Duration) UsageClientOptions {
 	return func(updater *BatchUpdater) {
 		updater.maxTimeBetweenFlushes = maxTimeBetweenFlushes
+		updater.flushDuration.Reset(maxTimeBetweenFlushes)
 	}
 }
 
@@ -152,6 +160,7 @@ type BatchUpdater struct {
 
 	// State
 	sync.Mutex
+	flushDuration       *time.Ticker
 	rows                uint32
 	tables              map[string]uint32
 	lastUpdateTime      time.Time
@@ -174,6 +183,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		maxTimeBetweenFlushes: defaultMaxTimeBetweenFlushes,
 		maxRetries:            defaultMaxRetries,
 		maxWaitTime:           defaultMaxWaitTime,
+		flushDuration:         time.NewTicker(defaultMaxTimeBetweenFlushes),
 		triggerUpdate:         make(chan struct{}),
 		done:                  make(chan struct{}),
 		closeError:            make(chan error),
@@ -347,8 +357,6 @@ func (u *BatchUpdater) backgroundUpdater() {
 	ctx := context.Background()
 	started := make(chan struct{})
 
-	flushDuration := time.NewTicker(u.maxTimeBetweenFlushes)
-
 	go func() {
 		started <- struct{}{}
 		for {
@@ -372,7 +380,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 				}
 				u.subtractTableUsage(tables, totals)
 
-			case <-flushDuration.C:
+			case <-u.flushDuration.C:
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
@@ -431,6 +439,7 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 		if resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
 			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", rows).Msg("usage updated")
 			u.lastUpdateTime = time.Now().UTC()
+			u.updateConfigurationFromHeaders(resp.HTTPResponse.Header)
 			return nil
 		}
 
@@ -443,6 +452,37 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 		}
 	}
 	return fmt.Errorf("failed to update usage: max retries exceeded")
+}
+
+// updateConfigurationFromHeaders updates the configuration based on the headers returned by the API
+func (u *BatchUpdater) updateConfigurationFromHeaders(header http.Header) {
+	if headerValue := header.Get(BatchLimitHeader); headerValue != "" {
+		if newBatchLimit, err := strconv.ParseUint(headerValue, 10, 32); err != nil {
+			u.logger.Warn().Err(err).Str("batch_limit", headerValue).Msg("failed to parse batch limit")
+		} else {
+			u.batchLimit = uint32(newBatchLimit)
+		}
+	}
+
+	if headerValue := header.Get(MinimumUpdateIntervalHeader); headerValue != "" {
+		if newInterval, err := strconv.ParseInt(headerValue, 10, 32); err != nil {
+			u.logger.Warn().Err(err).Str("minimum_update_interval", headerValue).Msg("failed to parse minimum update interval")
+		} else {
+			u.minTimeBetweenFlushes = time.Duration(newInterval) * time.Second
+		}
+	}
+
+	if headerValue := header.Get(MaximumUpdateIntervalHeader); headerValue != "" {
+		if newInterval, err := strconv.ParseInt(headerValue, 10, 32); err != nil {
+			u.logger.Warn().Err(err).Str("maximum_update_interval", headerValue).Msg("failed to parse maximum update interval")
+		} else {
+			newMaxTimeBetweenFlushes := time.Duration(newInterval) * time.Second
+			if u.maxTimeBetweenFlushes != newMaxTimeBetweenFlushes {
+				u.maxTimeBetweenFlushes = newMaxTimeBetweenFlushes
+				u.flushDuration.Reset(u.maxTimeBetweenFlushes)
+			}
+		}
+	}
 }
 
 // calculateRetryDuration calculates the duration to sleep relative to the query start time before retrying an update
