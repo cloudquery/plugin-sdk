@@ -439,7 +439,9 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 		if resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
 			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", rows).Msg("usage updated")
 			u.lastUpdateTime = time.Now().UTC()
-			u.updateConfigurationFromHeaders(resp.HTTPResponse.Header)
+			if resp.HTTPResponse != nil {
+				u.updateConfigurationFromHeaders(resp.HTTPResponse.Header)
+			}
 			return nil
 		}
 
