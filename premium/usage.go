@@ -458,7 +458,7 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 func (u *BatchUpdater) updateConfigurationFromHeaders(header http.Header) {
 	if headerValue := header.Get(BatchLimitHeader); headerValue != "" {
 		if newBatchLimit, err := strconv.ParseUint(headerValue, 10, 32); err != nil {
-			u.logger.Warn().Err(err).Str("batch_limit", headerValue).Msg("failed to parse batch limit")
+			u.logger.Warn().Err(err).Str(BatchLimitHeader, headerValue).Msg("failed to parse batch limit")
 		} else {
 			u.batchLimit = uint32(newBatchLimit)
 		}
@@ -466,7 +466,7 @@ func (u *BatchUpdater) updateConfigurationFromHeaders(header http.Header) {
 
 	if headerValue := header.Get(MinimumUpdateIntervalHeader); headerValue != "" {
 		if newInterval, err := strconv.ParseInt(headerValue, 10, 32); err != nil {
-			u.logger.Warn().Err(err).Str("minimum_update_interval", headerValue).Msg("failed to parse minimum update interval")
+			u.logger.Warn().Err(err).Str(MinimumUpdateIntervalHeader, headerValue).Msg("failed to parse minimum update interval")
 		} else {
 			u.minTimeBetweenFlushes = time.Duration(newInterval) * time.Second
 		}
@@ -474,7 +474,7 @@ func (u *BatchUpdater) updateConfigurationFromHeaders(header http.Header) {
 
 	if headerValue := header.Get(MaximumUpdateIntervalHeader); headerValue != "" {
 		if newInterval, err := strconv.ParseInt(headerValue, 10, 32); err != nil {
-			u.logger.Warn().Err(err).Str("maximum_update_interval", headerValue).Msg("failed to parse maximum update interval")
+			u.logger.Warn().Err(err).Str(MaximumUpdateIntervalHeader, headerValue).Msg("failed to parse maximum update interval")
 		} else {
 			newMaxTimeBetweenFlushes := time.Duration(newInterval) * time.Second
 			if u.maxTimeBetweenFlushes != newMaxTimeBetweenFlushes {
