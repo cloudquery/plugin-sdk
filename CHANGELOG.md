@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.41.1](https://github.com/cloudquery/plugin-sdk/compare/v4.41.0...v4.41.1) (2024-05-09)
+
+
+### Bug Fixes
+
+* Expose IncreaseForTable on UsageClient interface ([#1672](https://github.com/cloudquery/plugin-sdk/issues/1672)) ([52c145c](https://github.com/cloudquery/plugin-sdk/commit/52c145c0be55023eb044ac32d1c099f7b1f6bd25))
+
+## [4.41.0](https://github.com/cloudquery/plugin-sdk/compare/v4.40.2...v4.41.0) (2024-05-09)
+
+
+### Features
+
+* Allow reporting usage as breakdown by table ([#1668](https://github.com/cloudquery/plugin-sdk/issues/1668)) ([0a93aec](https://github.com/cloudquery/plugin-sdk/commit/0a93aecd8ad365b54d03034f6984d6228f134b53))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.10.0 ([#1669](https://github.com/cloudquery/plugin-sdk/issues/1669)) ([7068bcb](https://github.com/cloudquery/plugin-sdk/commit/7068bcb7b2b6f7c310e5c029c27868dc2646c798))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.11.0 ([#1670](https://github.com/cloudquery/plugin-sdk/issues/1670)) ([32a78c9](https://github.com/cloudquery/plugin-sdk/commit/32a78c975f51e4dcf1c4a950dd7b51ff2a3175cf))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.9.2 ([#1665](https://github.com/cloudquery/plugin-sdk/issues/1665)) ([bdbc8ca](https://github.com/cloudquery/plugin-sdk/commit/bdbc8ca6488a541b19256d91a4f3fd30ffd0f035))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.12 ([#1667](https://github.com/cloudquery/plugin-sdk/issues/1667)) ([36024dc](https://github.com/cloudquery/plugin-sdk/commit/36024dc799e734cff0adb587532010f69cec5c87))
+
 ## [4.40.2](https://github.com/cloudquery/plugin-sdk/compare/v4.40.1...v4.40.2) (2024-05-06)
 
 
