@@ -45,6 +45,8 @@ func (w *worker) send() {
 	}
 
 	w.res <- &message.SyncInsert{Record: w.builder.NewRecord()}
+	// we need to reserve here as NewRecord (& underlying NewArray calls) reset the memory
+	w.builder.Reserve(cap(w.rows))
 
 	clear(w.rows) // ease GC
 	w.rows = w.rows[:0]
@@ -99,33 +101,31 @@ func (b *batcher) process(res *schema.Resource) {
 		return
 	}
 
-	// now allocate
-	wr := &worker{
-		ch:      make(chan *schema.Resource, b.size),
-		flush:   make(chan chan struct{}),
-		rows:    make(schema.Resources, 0, b.size),
-		builder: array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema()),
-		res:     b.res,
-	}
-
+	// we alloc only ch here, as it may be needed right away
+	// for instance, if another goroutine will get the value allocated by us
+	wr := &worker{ch: make(chan *schema.Resource, b.size)}
 	v, loaded = b.workers.LoadOrStore(table.Name, wr)
 	if loaded {
-		// the value was set by other goroutine
-		// discard wr
-		close(wr.ch)
-		close(wr.flush)
-		wr.builder.Release()
-
-		// send res to the already allocated worker
-		v.(*worker).ch <- res
+		// means that the worker was already in tne sync.Map, so we just discard the wr value
+		close(wr.ch)          // for GC
+		v.(*worker).ch <- res // send res to the already allocated worker
 		return
 	}
 
+	// fill in the required data
 	// start wr
 	b.wg.Add(1)
 	go func() {
 		defer b.wg.Done()
-		wr.builder.Reserve(b.size) // prealloc once, we won't be sending batches larger
+
+		// fill in the worker fields
+		wr.flush = make(chan chan struct{})
+		wr.rows = make(schema.Resources, 0, b.size)
+		wr.builder = array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+		wr.res = b.res
+		wr.builder.Reserve(b.size)
+
+		// start processing
 		wr.work(b.ctxDone, b.size, b.timeout)
 	}()
 
