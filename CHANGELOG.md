@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.42.0](https://github.com/cloudquery/plugin-sdk/compare/v4.41.1...v4.42.0) (2024-05-11)
+
+
+### Features
+
+* Re-configure batch updater using response headers ([#1677](https://github.com/cloudquery/plugin-sdk/issues/1677)) ([e6313f9](https://github.com/cloudquery/plugin-sdk/commit/e6313f9bf20677cdbcce75875946c33c05dc8fc7))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.11.1 ([#1675](https://github.com/cloudquery/plugin-sdk/issues/1675)) ([6cd035d](https://github.com/cloudquery/plugin-sdk/commit/6cd035dfc9ad9a3ae6c35a5006d5b67c97685786))
+* **deps:** Update module google.golang.org/protobuf to v1.34.1 ([#1678](https://github.com/cloudquery/plugin-sdk/issues/1678)) ([49cadc8](https://github.com/cloudquery/plugin-sdk/commit/49cadc89eb01e46e13520c613b58fe356a2f12c0))
+
 ## [4.41.1](https://github.com/cloudquery/plugin-sdk/compare/v4.41.0...v4.41.1) (2024-05-09)
 
 
