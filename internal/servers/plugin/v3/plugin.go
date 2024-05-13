@@ -79,7 +79,7 @@ func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Respo
 
 func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
 	records := make(chan arrow.Record)
-	var syncErr error
+	var readErr error
 	ctx := stream.Context()
 
 	sc, err := pb.NewSchemaFromBytes(req.Table)
@@ -94,7 +94,7 @@ func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
 		defer close(records)
 		err := s.Plugin.Read(ctx, table, records)
 		if err != nil {
-			syncErr = fmt.Errorf("failed to sync records: %w", err)
+			readErr = fmt.Errorf("failed to read records: %w", err)
 		}
 	}()
 
@@ -111,7 +111,7 @@ func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
 		}
 	}
 
-	return syncErr
+	return readErr
 }
 
 func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
