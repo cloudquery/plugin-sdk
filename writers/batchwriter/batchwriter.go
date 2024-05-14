@@ -144,15 +144,14 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 				return
 			}
 
-			// we append data first not to call calculations twice
-			resources = append(resources, r)
-			bytes.Add(util.TotalRecordSize(r.Record))
-			rows.Add(r.Record.NumRows())
-
-			if rows.ReachedLimit() || bytes.ReachedLimit() {
+			dataBytes := util.TotalRecordSize(r.Record)
+			if rows.OverflownBy(r.Record.NumRows()) || bytes.OverflownBy(dataBytes) {
 				send()
 				ticker.Reset(w.batchTimeout)
 			}
+			resources = append(resources, r)
+			rows.Add(r.Record.NumRows())
+			bytes.Add(dataBytes)
 
 		case <-ticker.Chan():
 			if rows.Current() > 0 {

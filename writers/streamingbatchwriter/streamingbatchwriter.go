@@ -403,15 +403,16 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				rowSize = ins.Record.NumRows()
 			}
 
+			if rows.OverflownBy(rowSize) || bytes.OverflownBy(recSize) {
+				closeFlush()
+				ticker.Reset(s.batchTimeout)
+			}
+
 			ensureOpened()
 			clientCh <- r
 			rows.Add(rowSize)
 			bytes.Add(recSize)
 
-			if rows.ReachedLimit() || bytes.ReachedLimit() {
-				closeFlush()
-				ticker.Reset(s.batchTimeout)
-			}
 		case <-ticker.Chan():
 			if rows.Current() > 0 {
 				closeFlush()
