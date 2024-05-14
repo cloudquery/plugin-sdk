@@ -206,17 +206,19 @@ type insertBatchManager struct {
 	logger    zerolog.Logger
 }
 
-func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInsert) (err error) {
+func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInsert) error {
 	dataBytes := util.TotalRecordSize(msg.Record)
 	if m.rows.OverflownBy(msg.Record.NumRows()) || m.bytes.OverflownBy(dataBytes) {
-		err = m.flush(ctx)
+		if err := m.flush(ctx); err != nil {
+			return err
+		}
 	}
 
 	m.batch = append(m.batch, msg)
 	m.rows.Add(msg.Record.NumRows())
 	m.bytes.Add(dataBytes)
 
-	return err
+	return nil
 }
 
 func (m *insertBatchManager) flush(ctx context.Context) error {
