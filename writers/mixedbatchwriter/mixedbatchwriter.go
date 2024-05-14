@@ -92,8 +92,8 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 	insert := &insertBatchManager{
 		batch:     make([]*message.WriteInsert, 0, w.batchSize),
 		writeFunc: w.client.InsertBatch,
-		rows:      writers.NewCapped(w.batchSize),
-		bytes:     writers.NewCapped(w.batchSizeBytes),
+		maxRows:   w.batchSize,
+		maxBytes:  w.batchSizeBytes,
 		logger:    w.logger,
 	}
 	deleteStale := &batchManager[message.WriteDeleteStales, *message.WriteDeleteStale]{
@@ -199,45 +199,47 @@ func (m *batchManager[A, T]) flush(ctx context.Context) error {
 
 // special batch manager for insert messages that also keeps track of the total size of the batch
 type insertBatchManager struct {
-	batch     []*message.WriteInsert
-	writeFunc func(ctx context.Context, messages message.WriteInserts) error
-	bytes     writers.Capped[int64]
-	rows      writers.Capped[int64]
-	logger    zerolog.Logger
+	batch              []*message.WriteInsert
+	writeFunc          func(ctx context.Context, messages message.WriteInserts) error
+	curRows, maxRows   int64
+	curBytes, maxBytes int64
+	logger             zerolog.Logger
 }
 
 func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInsert) error {
-	dataBytes := util.TotalRecordSize(msg.Record)
-	if m.rows.OverflownBy(msg.Record.NumRows()) || m.bytes.OverflownBy(dataBytes) {
+	recordRows, recordBytes := msg.Record.NumRows(), util.TotalRecordSize(msg.Record)
+	if (m.maxRows > 0 && m.curRows+recordRows > m.maxRows) ||
+		(m.maxBytes > 0 && m.curBytes+recordBytes > m.maxBytes) {
 		if err := m.flush(ctx); err != nil {
 			return err
 		}
 	}
 
-	m.batch = append(m.batch, msg)
-	m.rows.Add(msg.Record.NumRows())
-	m.bytes.Add(dataBytes)
+	if recordRows > 0 {
+		// only save records with rows
+		m.batch = append(m.batch, msg)
+		m.curRows += recordRows
+		m.curBytes += recordBytes
+	}
 
 	return nil
 }
 
 func (m *insertBatchManager) flush(ctx context.Context) error {
-	batchSize := m.rows.Current()
-	if batchSize == 0 {
+	if m.curRows == 0 {
 		// no rows to insert
 		return nil
 	}
 	start := time.Now()
 	err := m.writeFunc(ctx, m.batch)
 	if err != nil {
-		m.logger.Err(err).Int64("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
+		m.logger.Err(err).Int64("len", m.curRows).Dur("duration", time.Since(start)).Msg("failed to write batch")
 		return err
 	}
-	m.logger.Debug().Int64("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+	m.logger.Debug().Int64("len", m.curRows).Dur("duration", time.Since(start)).Msg("batch written successfully")
 
 	clear(m.batch) // GC can work
 	m.batch = m.batch[:0]
-	m.rows.Reset()
-	m.bytes.Reset()
+	m.curRows, m.curBytes = 0, 0
 	return nil
 }

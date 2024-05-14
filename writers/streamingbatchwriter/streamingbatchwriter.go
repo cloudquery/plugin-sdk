@@ -350,10 +350,10 @@ type streamingWorkerManager[T message.WriteMessage] struct {
 func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup, tableName string) {
 	defer wg.Done()
 	var (
-		clientCh    chan T
-		clientErrCh chan error
-		open        bool
-		bytes, rows = writers.NewCapped(s.batchSizeBytes), writers.NewCapped(s.batchSizeRows)
+		clientCh            chan T
+		clientErrCh         chan error
+		open                bool
+		sizeBytes, sizeRows int64
 	)
 
 	ensureOpened := func() {
@@ -382,13 +382,15 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			}
 		}
 		open = false
-		bytes.Reset()
-		rows.Reset()
+		sizeBytes, sizeRows = 0, 0
 	}
 	defer closeFlush()
 
 	ticker := s.tickerFn(s.batchTimeout)
 	defer ticker.Stop()
+
+	tickerCh, ctxDone := ticker.Chan(), ctx.Done()
+
 	for {
 		select {
 		case r, ok := <-s.ch:
@@ -396,33 +398,51 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				return
 			}
 
-			var recSize int64
-			rowSize := int64(1) // at least 1 row for messages without records
+			recordRows := int64(1) // at least 1 row for messages without records
+			var recordBytes int64
 			if ins, ok := any(r).(*message.WriteInsert); ok {
-				recSize = util.TotalRecordSize(ins.Record)
-				rowSize = ins.Record.NumRows()
+				recordBytes = util.TotalRecordSize(ins.Record)
+				recordRows = ins.Record.NumRows()
 			}
 
-			if rows.OverflownBy(rowSize) || bytes.OverflownBy(recSize) {
+			if (s.batchSizeRows > 0 && sizeRows+recordRows > s.batchSizeRows) ||
+				(s.batchSizeBytes > 0 && sizeBytes+recordBytes > s.batchSizeBytes) {
+				if sizeRows == 0 {
+					// New record overflows batch by itself.
+					// Flush right away.
+					// TODO: slice
+					ensureOpened()
+					clientCh <- r
+					closeFlush()
+					ticker.Reset(s.batchTimeout)
+					continue
+				}
+				// sizeRows > 0
 				closeFlush()
 				ticker.Reset(s.batchTimeout)
 			}
 
-			ensureOpened()
-			clientCh <- r
-			rows.Add(rowSize)
-			bytes.Add(recSize)
+			if recordRows > 0 {
+				// only save records with rows
+				ensureOpened()
+				clientCh <- r
+				sizeRows += recordRows
+				sizeBytes += recordBytes
+			}
 
-		case <-ticker.Chan():
-			if rows.Current() > 0 {
+		case <-tickerCh:
+			if sizeRows > 0 {
 				closeFlush()
 			}
 		case done := <-s.flush:
-			if rows.Current() > 0 {
+			if sizeRows > 0 {
 				closeFlush()
 				ticker.Reset(s.batchTimeout)
 			}
 			done <- true
+		case <-ctxDone:
+			// this means the request was cancelled
+			return // after this NO other call will succeed
 		}
 	}
 }
