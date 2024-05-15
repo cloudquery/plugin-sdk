@@ -91,7 +91,7 @@ func Configure(_ context.Context, logger zerolog.Logger, spec []byte, opts plugi
 	}, nil
 }
 
-func TestConnection(_ context.Context, spec []byte) *plugin.TestConnError {
+func TestConnection(_ context.Context, _ zerolog.Logger, spec []byte) *plugin.TestConnError {
 	config := &client.Spec{}
 	if err := json.Unmarshal(spec, config); err != nil {
 		return plugin.NewTestConnError(plugin.TestConnFailureCodeInvalidSpec, fmt.Errorf("failed to unmarshal spec: %w", err))

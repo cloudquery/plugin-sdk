@@ -2,6 +2,8 @@ package plugin
 
 import (
 	"context"
+
+	"github.com/rs/zerolog"
 )
 
 type TestConnFailureCode string
@@ -47,13 +49,13 @@ func (e *TestConnError) Is(err error) bool {
 	return false
 }
 
-type ConnectionTester func(ctx context.Context, spec []byte) *TestConnError
+type ConnectionTester func(ctx context.Context, logger zerolog.Logger, spec []byte) *TestConnError
 
-func (p *Plugin) TestConnection(ctx context.Context, spec []byte) *TestConnError {
-	return p.testConnFn(ctx, spec)
+func (p *Plugin) TestConnection(ctx context.Context, logger zerolog.Logger, spec []byte) *TestConnError {
+	return p.testConnFn(ctx, logger, spec)
 }
 
-func UnimplementedTestConnectionFn(context.Context, []byte) *TestConnError {
+func UnimplementedTestConnectionFn(context.Context, zerolog.Logger, []byte) *TestConnError {
 	return ErrTestConnUnimplemented
 }
 

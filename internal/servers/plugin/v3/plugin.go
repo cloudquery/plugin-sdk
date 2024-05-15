@@ -71,7 +71,7 @@ func (s *Server) GetSpecSchema(context.Context, *pb.GetSpecSchema_Request) (*pb.
 }
 
 func (s *Server) TestConnection(ctx context.Context, req *pb.TestConnection_Request) (*pb.TestConnection_Response, error) {
-	err := s.Plugin.TestConnection(ctx, req.Spec)
+	err := s.Plugin.TestConnection(ctx, s.Logger, req.Spec)
 	if err == nil {
 		return &pb.TestConnection_Response{Success: true}, nil
 	}
