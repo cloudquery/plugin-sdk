@@ -46,6 +46,13 @@ func WithTeam(team string) Option {
 	}
 }
 
+// WithConnectionTester can be specified by a plugin to enable explicit connection testing, given a spec.
+func WithConnectionTester(tester ConnectionTester) Option {
+	return func(p *Plugin) {
+		p.testConnFn = tester
+	}
+}
+
 type TableOptions struct {
 	Tables              []string
 	SkipTables          []string

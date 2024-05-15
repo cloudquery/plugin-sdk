@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"fmt"
 )
 
 type TestConnFailureCode string
@@ -48,23 +47,14 @@ func (e *TestConnError) Is(err error) bool {
 	return false
 }
 
-// ConnectionTester is an interface that can be implemented by a plugin client to enable explicit connection testing.
-type ConnectionTester interface {
-	TestConnection(context.Context, []byte) *TestConnError
-}
+type ConnectionTester func(ctx context.Context, spec []byte) *TestConnError
 
 func (p *Plugin) TestConnection(ctx context.Context, spec []byte) *TestConnError {
-	if !p.mu.TryLock() {
-		return &TestConnError{
-			Code:    TestConnFailureCodeUnknown,
-			Message: fmt.Errorf("plugin already in use"),
-		}
-	}
-	defer p.mu.Unlock()
+	return p.testConnFn(ctx, spec)
+}
 
-	if v, ok := p.client.(ConnectionTester); ok {
-		return v.TestConnection(ctx, spec)
-	}
-
+func UnimplementedTestConnectionFn(context.Context, []byte) *TestConnError {
 	return ErrTestConnUnimplemented
 }
+
+var _ ConnectionTester = UnimplementedTestConnectionFn

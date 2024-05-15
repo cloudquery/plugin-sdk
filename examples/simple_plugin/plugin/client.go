@@ -91,6 +91,19 @@ func Configure(_ context.Context, logger zerolog.Logger, spec []byte, opts plugi
 	}, nil
 }
 
+func TestConnection(_ context.Context, spec []byte) *plugin.TestConnError {
+	config := &client.Spec{}
+	if err := json.Unmarshal(spec, config); err != nil {
+		return plugin.NewTestConnError(plugin.TestConnFailureCodeInvalidSpec, fmt.Errorf("failed to unmarshal spec: %w", err))
+	}
+
+	config.SetDefaults()
+	if err := config.Validate(); err != nil {
+		return plugin.NewTestConnError(plugin.TestConnFailureCodeInvalidSpec, fmt.Errorf("failed to validate spec: %w", err))
+	}
+	return nil
+}
+
 func getTables() schema.Tables {
 	tables := schema.Tables{
 		services.TestSomeTable(),
