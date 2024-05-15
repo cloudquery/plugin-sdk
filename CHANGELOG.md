@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.42.1](https://github.com/cloudquery/plugin-sdk/compare/v4.42.0...v4.42.1) (2024-05-15)
+
+
+### Bug Fixes
+
+* Correct error message on Read failure ([#1680](https://github.com/cloudquery/plugin-sdk/issues/1680)) ([dc31c3a](https://github.com/cloudquery/plugin-sdk/commit/dc31c3aa8639250df277de8b857727b88e503d3b))
+* Properly handle records with multiple rows in batching ([#1647](https://github.com/cloudquery/plugin-sdk/issues/1647)) ([926a7fc](https://github.com/cloudquery/plugin-sdk/commit/926a7fc97ae08adf6be30662f3ece58157294f22))
+
 ## [4.42.0](https://github.com/cloudquery/plugin-sdk/compare/v4.41.1...v4.42.0) (2024-05-11)
 
 
