@@ -70,6 +70,24 @@ func (s *Server) GetSpecSchema(context.Context, *pb.GetSpecSchema_Request) (*pb.
 	return &pb.GetSpecSchema_Response{JsonSchema: &sc}, nil
 }
 
+func (s *Server) TestConnection(ctx context.Context, req *pb.TestConnection_Request) (*pb.TestConnection_Response, error) {
+	err := s.Plugin.TestConnection(ctx, req.Spec)
+	if err == nil {
+		return &pb.TestConnection_Response{Success: true}, nil
+	}
+	resp := &pb.TestConnection_Response{
+		Success:     false,
+		FailureCode: string(err.Code),
+	}
+	if resp.FailureCode == "" {
+		resp.FailureCode = string(plugin.TestConnFailureCodeUnknown)
+	}
+	if err.Message != nil {
+		resp.FailureDescription = err.Message.Error()
+	}
+	return resp, nil
+}
+
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
 	if err := s.Plugin.Init(ctx, req.Spec, plugin.NewClientOptions{NoConnection: req.NoConnection, InvocationID: req.InvocationId}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
