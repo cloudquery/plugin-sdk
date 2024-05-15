@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -75,15 +76,25 @@ func (s *Server) TestConnection(ctx context.Context, req *pb.TestConnection_Requ
 	if err == nil {
 		return &pb.TestConnection_Response{Success: true}, nil
 	}
+
+	var testConnErr *plugin.TestConnError
+	if !errors.As(err, &testConnErr) {
+		return &pb.TestConnection_Response{
+			Success:            false,
+			FailureCode:        string(plugin.TestConnFailureCodeUnknown),
+			FailureDescription: err.Error(),
+		}, nil
+	}
+
 	resp := &pb.TestConnection_Response{
 		Success:     false,
-		FailureCode: string(err.Code),
+		FailureCode: string(testConnErr.Code),
 	}
 	if resp.FailureCode == "" {
 		resp.FailureCode = string(plugin.TestConnFailureCodeUnknown)
 	}
-	if err.Message != nil {
-		resp.FailureDescription = err.Message.Error()
+	if testConnErr.Message != nil {
+		resp.FailureDescription = testConnErr.Message.Error()
 	}
 	return resp, nil
 }

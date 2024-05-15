@@ -49,13 +49,13 @@ func (e *TestConnError) Is(err error) bool {
 	return false
 }
 
-type ConnectionTester func(ctx context.Context, logger zerolog.Logger, spec []byte) *TestConnError
+type ConnectionTester func(ctx context.Context, logger zerolog.Logger, spec []byte) error
 
-func (p *Plugin) TestConnection(ctx context.Context, logger zerolog.Logger, spec []byte) *TestConnError {
+func (p *Plugin) TestConnection(ctx context.Context, logger zerolog.Logger, spec []byte) error {
 	return p.testConnFn(ctx, logger, spec)
 }
 
-func UnimplementedTestConnectionFn(context.Context, zerolog.Logger, []byte) *TestConnError {
+func UnimplementedTestConnectionFn(context.Context, zerolog.Logger, []byte) error {
 	return ErrTestConnUnimplemented
 }
 
