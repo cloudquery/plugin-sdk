@@ -197,7 +197,7 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 	}()
 
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
-	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
+	record := getRecord(table.ToArrowSchema(), 1)
 	ch <- &message.WriteInsert{
 		Record: record,
 	}
@@ -249,7 +249,7 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	}()
 
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
-	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
+	record := getRecord(table.ToArrowSchema(), 1)
 	ch <- &message.WriteInsert{
 		Record: record,
 	}
@@ -297,7 +297,7 @@ func TestStreamingBatchNoTimeout(t *testing.T) {
 	}()
 
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
-	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
+	record := getRecord(table.ToArrowSchema(), 1)
 	ch <- &message.WriteInsert{
 		Record: record,
 	}
@@ -399,4 +399,15 @@ func waitForLength(t *testing.T, checkLen func(messageType) int, msgType message
 			}
 		}
 	}
+}
+
+func getRecord(sc *arrow.Schema, rows int) arrow.Record {
+	builder := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+	defer builder.Release()
+
+	for _, f := range builder.Fields() {
+		f.AppendEmptyValues(rows)
+	}
+
+	return builder.NewRecord()
 }
