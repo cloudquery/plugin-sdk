@@ -125,3 +125,5 @@ require (
 )
 
 replace github.com/cloudquery/plugin-sdk/v4 => ../../
+
+replace github.com/cloudquery/plugin-pb-go => github.com/cloudquery/plugin-pb-go v1.19.13-0.20240516105108-3fdf6ac15ea2
