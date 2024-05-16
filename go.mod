@@ -125,4 +125,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/cloudquery/plugin-pb-go => ../plugin-pb-go
+replace github.com/cloudquery/plugin-pb-go => github.com/cloudquery/plugin-pb-go v1.19.13-0.20240516104406-b7ca0d0e608b
