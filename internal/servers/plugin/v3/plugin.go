@@ -86,6 +86,10 @@ func (s *Server) TestConnection(ctx context.Context, req *pb.TestConnection_Requ
 		}, nil
 	}
 
+	if errors.Is(err, plugin.ErrNotImplemented) {
+		return &pb.TestConnection_Response{}, status.Error(codes.Unimplemented, err.Error())
+	}
+
 	resp := &pb.TestConnection_Response{
 		Success:     false,
 		FailureCode: string(testConnErr.Code),

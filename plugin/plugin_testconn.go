@@ -10,7 +10,6 @@ type TestConnFailureCode string
 
 const (
 	TestConnFailureCodeUnknown            TestConnFailureCode = "UNKNOWN"
-	TestConnFailureCodeUnimplemented      TestConnFailureCode = "UNIMPLEMENTED"
 	TestConnFailureCodeInvalidSpec        TestConnFailureCode = "INVALID_SPEC"
 	TestConnFailureCodeInvalidCredentials TestConnFailureCode = "INVALID_CREDENTIALS"
 )
@@ -28,10 +27,6 @@ func NewTestConnError(code TestConnFailureCode, err error) *TestConnError {
 		Code:    code,
 		Message: err,
 	}
-}
-
-var ErrTestConnUnimplemented = &TestConnError{
-	Code: TestConnFailureCodeUnimplemented,
 }
 
 func (e *TestConnError) Error() string {
@@ -56,7 +51,7 @@ func (p *Plugin) TestConnection(ctx context.Context, logger zerolog.Logger, spec
 }
 
 func UnimplementedTestConnectionFn(context.Context, zerolog.Logger, []byte) error {
-	return ErrTestConnUnimplemented
+	return ErrNotImplemented
 }
 
 var _ ConnectionTester = UnimplementedTestConnectionFn
