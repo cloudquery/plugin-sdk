@@ -80,15 +80,15 @@ func (s *Server) TestConnection(ctx context.Context, req *pb.TestConnection_Requ
 	const unknown = "UNKNOWN"
 	var testConnErr *plugin.TestConnError
 	if !errors.As(err, &testConnErr) {
+		if errors.Is(err, plugin.ErrNotImplemented) {
+			return nil, status.Errorf(codes.Unimplemented, "TestConnection feature is not implemented in this plugin")
+		}
+
 		return &pb.TestConnection_Response{
 			Success:            false,
 			FailureCode:        unknown,
 			FailureDescription: err.Error(),
 		}, nil
-	}
-
-	if errors.Is(err, plugin.ErrNotImplemented) {
-		return &pb.TestConnection_Response{}, status.Error(codes.Unimplemented, err.Error())
 	}
 
 	resp := &pb.TestConnection_Response{
