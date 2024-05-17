@@ -77,11 +77,12 @@ func (s *Server) TestConnection(ctx context.Context, req *pb.TestConnection_Requ
 		return &pb.TestConnection_Response{Success: true}, nil
 	}
 
+	const unknown = "UNKNOWN"
 	var testConnErr *plugin.TestConnError
 	if !errors.As(err, &testConnErr) {
 		return &pb.TestConnection_Response{
 			Success:            false,
-			FailureCode:        string(plugin.TestConnFailureCodeUnknown),
+			FailureCode:        unknown,
 			FailureDescription: err.Error(),
 		}, nil
 	}
@@ -92,10 +93,10 @@ func (s *Server) TestConnection(ctx context.Context, req *pb.TestConnection_Requ
 
 	resp := &pb.TestConnection_Response{
 		Success:     false,
-		FailureCode: string(testConnErr.Code),
+		FailureCode: testConnErr.Code,
 	}
 	if resp.FailureCode == "" {
-		resp.FailureCode = string(plugin.TestConnFailureCodeUnknown)
+		resp.FailureCode = unknown
 	}
 	if testConnErr.Message != nil {
 		resp.FailureDescription = testConnErr.Message.Error()

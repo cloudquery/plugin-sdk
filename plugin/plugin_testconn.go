@@ -6,23 +6,12 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type TestConnFailureCode string
-
-const (
-	TestConnFailureCodeUnknown            TestConnFailureCode = "UNKNOWN"
-	TestConnFailureCodeInvalidSpec        TestConnFailureCode = "INVALID_SPEC"
-	TestConnFailureCodeInvalidCredentials TestConnFailureCode = "INVALID_CREDENTIALS"
-)
-
 type TestConnError struct {
-	Code    TestConnFailureCode
+	Code    string
 	Message error
 }
 
-func NewTestConnError(code TestConnFailureCode, err error) *TestConnError {
-	if code == "" {
-		code = TestConnFailureCodeUnknown
-	}
+func NewTestConnError(code string, err error) *TestConnError {
 	return &TestConnError{
 		Code:    code,
 		Message: err,
