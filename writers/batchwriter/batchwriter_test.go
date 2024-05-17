@@ -2,6 +2,8 @@ package batchwriter
 
 import (
 	"context"
+	"math/rand"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -89,9 +91,7 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bldr := array.NewRecordBuilder(memory.DefaultAllocator, batchTestTables[0].ToArrowSchema())
-	bldr.Field(0).(*array.Int64Builder).Append(1)
-	record := bldr.NewRecord()
+	record := getRecord(batchTestTables[0].ToArrowSchema(), 1)
 	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteMigrateTable{Table: batchTestTables[0]}}); err != nil {
 		t.Fatal(err)
 	}
@@ -122,40 +122,44 @@ func TestBatchFlushDifferentMessages(t *testing.T) {
 }
 
 func TestBatchSize(t *testing.T) {
-	ctx := context.Background()
+	for i := 0; i < 5; i++ {
+		batchSize := rand.Intn(100) + 10
+		t.Run(strconv.Itoa(batchSize), func(t *testing.T) {
+			t.Parallel()
+			testClient := &testBatchClient{}
+			wr, err := New(testClient, WithBatchSize(batchSize*2))
+			if err != nil {
+				t.Fatal(err)
+			}
+			table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+			record := getRecord(table.ToArrowSchema(), batchSize)
+			if err := wr.writeAll(context.TODO(), []message.WriteMessage{&message.WriteInsert{
+				Record: record,
+			}}); err != nil {
+				t.Fatal(err)
+			}
 
-	testClient := &testBatchClient{}
-	wr, err := New(testClient, WithBatchSize(2))
-	if err != nil {
-		t.Fatal(err)
-	}
-	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
-	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
-	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteInsert{
-		Record: record,
-	}}); err != nil {
-		t.Fatal(err)
-	}
+			if testClient.InsertsLen() != 0 {
+				t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
+			}
 
-	if testClient.InsertsLen() != 0 {
-		t.Fatalf("expected 0 insert messages, got %d", testClient.InsertsLen())
-	}
+			if err := wr.writeAll(context.TODO(), []message.WriteMessage{
+				&message.WriteInsert{
+					Record: record,
+				},
+				&message.WriteInsert{ // third message to exceed the batch size
+					Record: record,
+				},
+			}); err != nil {
+				t.Fatal(err)
+			}
+			// we need to wait for the batch to be flushed
+			time.Sleep(time.Second * 2)
 
-	if err := wr.writeAll(ctx, []message.WriteMessage{
-		&message.WriteInsert{
-			Record: record,
-		},
-		&message.WriteInsert{ // third message to exceed the batch size
-			Record: record,
-		},
-	}); err != nil {
-		t.Fatal(err)
-	}
-	// we need to wait for the batch to be flushed
-	time.Sleep(time.Second * 2)
-
-	if testClient.InsertsLen() != 2 {
-		t.Fatalf("expected 2 insert messages, got %d", testClient.InsertsLen())
+			if testClient.InsertsLen() != 2 {
+				t.Fatalf("expected 2 insert messages, got %d", testClient.InsertsLen())
+			}
+		})
 	}
 }
 
@@ -168,7 +172,7 @@ func TestBatchTimeout(t *testing.T) {
 		t.Fatal(err)
 	}
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
-	record := array.NewRecord(table.ToArrowSchema(), nil, 0)
+	record := getRecord(table.ToArrowSchema(), 1)
 	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteInsert{
 		Record: record,
 	}}); err != nil {
@@ -204,9 +208,7 @@ func TestBatchUpserts(t *testing.T) {
 	}
 	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64, PrimaryKey: true}}}
 
-	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
-	bldr.Field(0).(*array.Int64Builder).Append(1)
-	record := bldr.NewRecord()
+	record := getRecord(table.ToArrowSchema(), 1)
 
 	if err := wr.writeAll(ctx, []message.WriteMessage{&message.WriteInsert{
 		Record: record,
@@ -229,4 +231,15 @@ func TestBatchUpserts(t *testing.T) {
 	if testClient.InsertsLen() != 2 {
 		t.Fatalf("expected 2 insert messages, got %d", testClient.InsertsLen())
 	}
+}
+
+func getRecord(sc *arrow.Schema, rows int) arrow.Record {
+	builder := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+	defer builder.Release()
+
+	for _, f := range builder.Fields() {
+		f.AppendEmptyValues(rows)
+	}
+
+	return builder.NewRecord()
 }

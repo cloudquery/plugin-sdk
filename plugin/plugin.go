@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -218,16 +217,6 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 	}
 	defer p.mu.Unlock()
 	var err error
-
-	if !options.NoConnection && p.schemaValidator != nil {
-		var v any
-		if err := json.Unmarshal(spec, &v); err != nil {
-			return fmt.Errorf("failed to unmarshal plugin spec: %w", err)
-		}
-		if err := p.schemaValidator.Validate(v); err != nil {
-			p.logger.Err(err).Msg("failed JSON schema validation for spec")
-		}
-	}
 
 	options.PluginMeta = p.Meta()
 
