@@ -5,8 +5,8 @@ go 1.21.5
 require (
 	github.com/apache/arrow/go/v16 v16.0.0
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/cloudquery-api-go v1.11.1
-	github.com/cloudquery/plugin-pb-go v1.19.12
+	github.com/cloudquery/cloudquery-api-go v1.11.2
+	github.com/cloudquery/plugin-pb-go v1.19.13
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.27.0
 	github.com/goccy/go-json v0.10.2
@@ -124,5 +124,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/cloudquery/plugin-pb-go => github.com/cloudquery/plugin-pb-go v1.19.13-0.20240516105108-3fdf6ac15ea2
