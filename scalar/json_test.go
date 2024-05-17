@@ -1,9 +1,24 @@
 package scalar
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 type Foo struct {
 	Num int
+}
+
+type marshaler []byte // to test nil
+
+var _ json.Marshaler = marshaler{}
+
+func (m marshaler) MarshalJSON() ([]byte, error) {
+	return m, nil
+}
+
+type nestedJSON struct {
+	Foo marshaler
 }
 
 func TestJSONSet(t *testing.T) {
@@ -30,6 +45,12 @@ func TestJSONSet(t *testing.T) {
 		{source: []Foo{}, result: JSON{Value: []byte(`[]`), Valid: true}},
 		{source: []Foo{{1}}, result: JSON{Value: []byte(`[{"Num":1}]`), Valid: true}},
 
+		// tricky cases
+		{source: nestedJSON{}, result: JSON{}},
+		{source: []nestedJSON{{}}, result: JSON{}},
+		{source: marshaler{}, result: JSON{}},
+		{source: []marshaler{{}}, result: JSON{}},
+
 		{source: map[string]any{"foo": "bar"}, result: JSON{Value: []byte(`{"foo":"bar"}`), Valid: true}},
 		{source: map[string]any(nil), result: JSON{Value: []byte(`{}`), Valid: true}},
 		{source: map[string]any{}, result: JSON{Value: []byte(`{}`), Valid: true}},
@@ -54,7 +75,7 @@ func TestJSONSet(t *testing.T) {
 		}
 
 		if !d.Equal(&tt.result) {
-			t.Errorf("%d: %v != %v", i, d, tt.result)
+			t.Errorf("%d: %v (%s) != %v (%s)", i, d, d.String(), tt.result, tt.result.String())
 		}
 	}
 }

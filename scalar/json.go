@@ -3,6 +3,7 @@ package scalar
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"reflect"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -104,13 +105,16 @@ func (s *JSON) Set(val any) error {
 		buffer := &bytes.Buffer{}
 		encoder := json.NewEncoder(buffer)
 		encoder.SetEscapeHTML(false)
-		err := encoder.Encode(value)
+		err := validateJSONMarshalError(encoder.Encode(value))
 		if err != nil {
 			return err
 		}
 
 		// JSON encoder adds a newline to the end of the output that we don't want.
 		buf := bytes.TrimSuffix(buffer.Bytes(), []byte("\n"))
+		if len(buf) == 0 {
+			return nil // just means that the underlying error was set to nil by validateJSONMarshalError
+		}
 		// For map and slice jsons, it is easier for users to work with '[]' or '{}' instead of JSON's 'null'.
 		if bytes.Equal(buf, []byte(`null`)) {
 			if isEmptyStringMap(value) {
@@ -167,4 +171,16 @@ func jsonBytesEqual(a, b []byte) (bool, error) {
 		return false, err
 	}
 	return reflect.DeepEqual(j2, j), nil
+}
+
+func validateJSONMarshalError(err error) error {
+	var mErr *json.MarshalerError
+	var sErr *json.SyntaxError
+	if errors.As(err, &mErr) {
+		if errors.As(mErr.Err, &sErr) {
+			// means that we encountered the issue with marshaller interface, possibly empty result
+			return nil
+		}
+	}
+	return err
 }
