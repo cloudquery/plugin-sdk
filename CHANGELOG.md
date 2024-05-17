@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.42.2](https://github.com/cloudquery/plugin-sdk/compare/v4.42.1...v4.42.2) (2024-05-17)
+
+
+### Bug Fixes
+
+* Remove JSON schema validation warnings ([#1685](https://github.com/cloudquery/plugin-sdk/issues/1685)) ([c6f39f4](https://github.com/cloudquery/plugin-sdk/commit/c6f39f4da587fd5b8397994cad35c8e81a80de4c))
+
 ## [4.42.1](https://github.com/cloudquery/plugin-sdk/compare/v4.42.0...v4.42.1) (2024-05-15)
 
 
