@@ -34,6 +34,8 @@ func TestState(t *testing.T) {
 	}()
 
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
+	// TODO: Remove once there's a documented migration path per https://github.com/grpc/grpc-go/issues/7244
+	// nolint:staticcheck
 	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
@@ -103,6 +105,8 @@ func TestStateOverwriteGetLatest(t *testing.T) {
 	}()
 
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
+	// TODO: Remove once there's a documented migration path per https://github.com/grpc/grpc-go/issues/7244
+	// nolint:staticcheck
 	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
