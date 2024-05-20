@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.43.1](https://github.com/cloudquery/plugin-sdk/compare/v4.43.0...v4.43.1) (2024-05-20)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.14 ([#1696](https://github.com/cloudquery/plugin-sdk/issues/1696)) ([4f1f3f8](https://github.com/cloudquery/plugin-sdk/commit/4f1f3f8fa56eafd20c9df08ef587fe2a60d80daa))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.15 ([#1697](https://github.com/cloudquery/plugin-sdk/issues/1697)) ([0135160](https://github.com/cloudquery/plugin-sdk/commit/0135160f1f2bb5805edef62707104e1757138a95))
+* **deps:** Update module google.golang.org/grpc to v1.64.0 ([#1692](https://github.com/cloudquery/plugin-sdk/issues/1692)) ([f9e2053](https://github.com/cloudquery/plugin-sdk/commit/f9e20536d0abd4f5ae8cac67b17af04c4ae6faa9))
+
 ## [4.43.0](https://github.com/cloudquery/plugin-sdk/compare/v4.42.2...v4.43.0) (2024-05-20)
 
 
