@@ -3,12 +3,13 @@ package state
 import (
 	"context"
 	"fmt"
+	"slices"
+
 	pbDiscovery "github.com/cloudquery/plugin-pb-go/pb/discovery/v1"
 	stateV3 "github.com/cloudquery/plugin-sdk/v4/internal/clients/state/v3"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"slices"
 )
 
 const defaultMaxMsgSizeInBytes = 100 * 1024 * 1024 // 100 MiB
@@ -62,6 +63,8 @@ func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.Back
 		return &NoOpClient{}, nil
 	}
 
+	// TODO: Remove once there's a documented migration path per https://github.com/grpc/grpc-go/issues/7244
+	// nolint:staticcheck
 	backendConn, err := grpc.DialContext(ctx, backendOpts.Connection,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
