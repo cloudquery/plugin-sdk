@@ -84,6 +84,8 @@ type Plugin struct {
 	skipTableValidation bool
 	// the invocation ID for the current execution
 	invocationID string
+	// Method to test connection given a spec
+	testConnFn ConnectionTester
 }
 
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
@@ -95,6 +97,7 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 		internalColumns: true,
 		newClient:       newClient,
 		targets:         DefaultBuildTargets,
+		testConnFn:      UnimplementedTestConnectionFn,
 	}
 	for _, opt := range options {
 		opt(&p)

@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -68,6 +69,39 @@ func (s *Server) GetSpecSchema(context.Context, *pb.GetSpecSchema_Request) (*pb.
 	}
 
 	return &pb.GetSpecSchema_Response{JsonSchema: &sc}, nil
+}
+
+func (s *Server) TestConnection(ctx context.Context, req *pb.TestConnection_Request) (*pb.TestConnection_Response, error) {
+	err := s.Plugin.TestConnection(ctx, s.Logger, req.Spec)
+	if err == nil {
+		return &pb.TestConnection_Response{Success: true}, nil
+	}
+
+	const unknown = "UNKNOWN"
+	var testConnErr *plugin.TestConnError
+	if !errors.As(err, &testConnErr) {
+		if errors.Is(err, plugin.ErrNotImplemented) {
+			return nil, status.Errorf(codes.Unimplemented, "TestConnection feature is not implemented in this plugin")
+		}
+
+		return &pb.TestConnection_Response{
+			Success:            false,
+			FailureCode:        unknown,
+			FailureDescription: err.Error(),
+		}, nil
+	}
+
+	resp := &pb.TestConnection_Response{
+		Success:     false,
+		FailureCode: testConnErr.Code,
+	}
+	if resp.FailureCode == "" {
+		resp.FailureCode = unknown
+	}
+	if testConnErr.Message != nil {
+		resp.FailureDescription = testConnErr.Message.Error()
+	}
+	return resp, nil
 }
 
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
