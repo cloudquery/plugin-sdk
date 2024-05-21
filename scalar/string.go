@@ -82,20 +82,14 @@ func (s *String) Set(val any) error {
 	return nil
 }
 
-type LargeString struct {
-	s String
-}
+func (s *String) ByteSize() int64 { return int64(len(s.Value)) }
 
-func (s *LargeString) IsValid() bool {
-	return s.s.Valid
+type LargeString struct {
+	String
 }
 
 func (*LargeString) DataType() arrow.DataType {
 	return arrow.BinaryTypes.LargeString
-}
-
-func (s *LargeString) String() string {
-	return s.s.String()
 }
 
 func (s *LargeString) Equal(rhs Scalar) bool {
@@ -106,13 +100,10 @@ func (s *LargeString) Equal(rhs Scalar) bool {
 	if !ok {
 		return false
 	}
-	return s.s.Valid == r.s.Valid && s.s.Value == r.s.Value
+	return s.Valid == r.Valid && s.Value == r.Value
 }
 
-func (s *LargeString) Get() any {
-	return s.s.Get()
-}
-
-func (s *LargeString) Set(val any) error {
-	return s.s.Set(val)
-}
+var (
+	_ Scalar = (*String)(nil)
+	_ Scalar = (*LargeString)(nil)
+)

@@ -85,3 +85,9 @@ func (s *Bool) Set(val any) error {
 	s.Valid = true
 	return nil
 }
+
+func (*Bool) ByteSize() int64 { return int64(1) }
+
+var (
+	_ Scalar = (*Bool)(nil)
+)
