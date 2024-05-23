@@ -10,6 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
+	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
@@ -131,6 +134,8 @@ type BatchUpdater struct {
 	apiClient   *cqapi.ClientWithResponses
 	tokenClient TokenClient
 
+	awsMarketPlaceClient *marketplacemetering.Client
+
 	// Plugin details
 	teamName   cqapi.TeamName
 	pluginMeta plugin.Meta
@@ -176,6 +181,9 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		return &NoOpUsageClient{
 			TeamNameValue: u.teamName,
 		}, nil
+	}
+	if os.Getenv("CQ_AWS_MARKETPLACE") == "true" {
+		u.awsMarketPlaceClient = marketplacemetering.New(marketplacemetering.Options{})
 	}
 
 	if u.tokenClient == nil {
@@ -325,7 +333,28 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, numbe
 	for retry := 0; retry < u.maxRetries; retry++ {
 		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", numberToUpdate).Msg("updating usage")
 		queryStartTime := time.Now()
-
+		if u.awsMarketPlaceClient != nil {
+			_, err := u.awsMarketPlaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
+				ProductCode:    aws.String("cloudquery"),
+				Timestamp:      aws.Time(time.Now()),
+				UsageDimension: aws.String("rows"),
+				UsageAllocations: []types.UsageAllocation{
+					{
+						AllocatedUsageQuantity: aws.Int32(int32(numberToUpdate)),
+						Tags: []types.Tag{
+							{
+								Key:   aws.String("plugin"),
+								Value: aws.String(fmt.Sprintf("%s/%s/%s", u.pluginMeta.Team, u.pluginMeta.Kind, u.pluginMeta.Name)),
+							},
+						},
+					},
+				},
+				UsageQuantity: aws.Int32(int32(numberToUpdate)),
+			})
+			if err != nil {
+				return fmt.Errorf("failed to update usage with : %w", err)
+			}
+		}
 		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
 			PluginTeam: u.pluginMeta.Team,
