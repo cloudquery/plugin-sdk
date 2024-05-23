@@ -52,7 +52,7 @@ func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName 
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
 // You must call Close() on the returned Client object.
 func NewConnectedClient(ctx context.Context, backendOpts *plugin.BackendOptions) (Client, error) {
-	return NewConnectedClientWithOptions(ctx, backendOpts, ConnectionOptions{MaxMsgSizeInBytes: defaultMaxMsgSizeInBytes})
+	return NewConnectedClientWithOptions(ctx, backendOpts, ConnectionOptions{MaxMsgSizeInBytes: defaultMaxMsgSizeInBytes}, ClientOptions{})
 }
 
 // NewConnectedClientWithOptions returns a state client and initialises the gRPC connection to the state backend.
