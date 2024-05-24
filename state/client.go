@@ -39,13 +39,14 @@ func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName 
 	if err != nil {
 		return nil, err
 	}
-	if slices.Contains(versions.Versions, 3) {
-		if opts.Versioned {
-			return stateV3.NewClientWithTable(ctx, conn, stateV3.VersionedTable(tableName))
-		}
-		return stateV3.NewClient(ctx, conn, tableName)
+	if !slices.Contains(versions.Versions, 3) {
+		return nil, fmt.Errorf("please upgrade your state backend plugin. state supporting version 3 plugin has %v", versions.Versions)
 	}
-	return nil, fmt.Errorf("please upgrade your state backend plugin. state supporting version 3 plugin has %v", versions.Versions)
+
+	if opts.Versioned {
+		return stateV3.NewClientWithTable(ctx, conn, stateV3.VersionedTable(tableName))
+	}
+	return stateV3.NewClient(ctx, conn, tableName)
 }
 
 // NewConnectedClient returns a state client and initialises the gRPC connection to the state backend with a 100MiB max message size.
