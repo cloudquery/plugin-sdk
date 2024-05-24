@@ -3,7 +3,6 @@ package state
 import (
 	"bytes"
 	"context"
-	"google.golang.org/grpc"
 	"io"
 	"sync"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/apache/arrow/go/v16/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -36,25 +36,8 @@ type versionedValue struct {
 	version uint64
 }
 
-func Table(name string) *schema.Table {
-	return &schema.Table{
-		Name: name,
-		Columns: []schema.Column{
-			{
-				Name:       keyColumn,
-				Type:       arrow.BinaryTypes.String,
-				PrimaryKey: true,
-			},
-			{
-				Name: valueColumn,
-				Type: arrow.BinaryTypes.String,
-			},
-		},
-	}
-}
-
 func VersionedTable(name string) *schema.Table {
-	t := Table(name)
+	t := table(name)
 	t.Columns = append(t.Columns, schema.Column{
 		// Not defined as PrimaryKey to enable single keys if the destination supports PKs
 		Name: versionColumn,
@@ -64,7 +47,7 @@ func VersionedTable(name string) *schema.Table {
 }
 
 func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (*Client, error) {
-	return NewClientWithTable(ctx, conn, Table(tableName))
+	return NewClientWithTable(ctx, conn, table(tableName))
 }
 
 func NewClientWithTable(ctx context.Context, conn *grpc.ClientConn, table *schema.Table) (*Client, error) {
@@ -225,4 +208,21 @@ func (c *Client) Close() error {
 		return c.conn.Close()
 	}
 	return nil
+}
+
+func table(name string) *schema.Table {
+	return &schema.Table{
+		Name: name,
+		Columns: []schema.Column{
+			{
+				Name:       keyColumn,
+				Type:       arrow.BinaryTypes.String,
+				PrimaryKey: true,
+			},
+			{
+				Name: valueColumn,
+				Type: arrow.BinaryTypes.String,
+			},
+		},
+	}
 }
