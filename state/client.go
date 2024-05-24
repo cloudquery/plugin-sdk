@@ -52,13 +52,13 @@ func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName 
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
 // You must call Close() on the returned Client object.
 func NewConnectedClient(ctx context.Context, backendOpts *plugin.BackendOptions) (Client, error) {
-	return NewConnectedClientWithOptions(ctx, backendOpts, ConnectionOptions{MaxMsgSizeInBytes: defaultMaxMsgSizeInBytes})
+	return NewConnectedClientWithOptions(ctx, backendOpts, ConnectionOptions{MaxMsgSizeInBytes: defaultMaxMsgSizeInBytes}, ClientOptions{})
 }
 
 // NewConnectedClientWithOptions returns a state client and initialises the gRPC connection to the state backend.
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
 // You must call Close() on the returned Client object.
-func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.BackendOptions, opts ConnectionOptions) (Client, error) {
+func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.BackendOptions, connOpts ConnectionOptions, clOpts ClientOptions) (Client, error) {
 	if backendOpts == nil {
 		return &NoOpClient{}, nil
 	}
@@ -68,8 +68,8 @@ func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.Back
 	backendConn, err := grpc.DialContext(ctx, backendOpts.Connection,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(opts.MaxMsgSizeInBytes),
-			grpc.MaxCallSendMsgSize(opts.MaxMsgSizeInBytes),
+			grpc.MaxCallRecvMsgSize(connOpts.MaxMsgSizeInBytes),
+			grpc.MaxCallSendMsgSize(connOpts.MaxMsgSizeInBytes),
 		),
 	)
 
@@ -77,7 +77,7 @@ func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.Back
 		return &NoOpClient{}, fmt.Errorf("failed to dial grpc source plugin at %s: %w", backendOpts.Connection, err)
 	}
 
-	stateClient, err := NewClient(ctx, backendConn, backendOpts.TableName)
+	stateClient, err := NewClientWithOptions(ctx, backendConn, backendOpts.TableName, clOpts)
 	if err != nil {
 		return &NoOpClient{}, fmt.Errorf("failed to create state client: %w", err)
 	}
