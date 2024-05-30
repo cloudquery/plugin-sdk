@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.44.0](https://github.com/cloudquery/plugin-sdk/compare/v4.43.1...v4.44.0) (2024-05-24)
+
+
+### Features
+
+* Enable `NewConnectedClientWithOptions` to set `ClientOptions` ([#1700](https://github.com/cloudquery/plugin-sdk/issues/1700)) ([8797a18](https://github.com/cloudquery/plugin-sdk/commit/8797a182be8f6d667f6c567c4a6f9132402ebf00))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.16 ([#1699](https://github.com/cloudquery/plugin-sdk/issues/1699)) ([3b15ac6](https://github.com/cloudquery/plugin-sdk/commit/3b15ac6730b2d36898b8ea418bf8ee15414356f6))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.17 ([#1703](https://github.com/cloudquery/plugin-sdk/issues/1703)) ([7501fdd](https://github.com/cloudquery/plugin-sdk/commit/7501fdd5a6c7c484eac4e6ade3e90f762ea7855f))
+
 ## [4.43.1](https://github.com/cloudquery/plugin-sdk/compare/v4.43.0...v4.43.1) (2024-05-20)
 
 
