@@ -130,6 +130,12 @@ func (s *List) Set(val any) error {
 	}
 
 	switch reflectedValue.Kind() {
+	case reflect.Pointer:
+		if reflectedValue.IsNil() {
+			return nil
+		}
+		reflectedValue = reflectedValue.Elem()
+		fallthrough
 	case reflect.Array:
 		fallthrough
 	case reflect.Slice:
