@@ -82,6 +82,10 @@ func (s *List) Set(val any) error {
 	}
 
 	reflectedValue := reflect.ValueOf(val)
+	for reflectedValue.Kind() == reflect.Pointer && !reflectedValue.IsNil() {
+		reflectedValue = reflectedValue.Elem()
+	}
+
 	if !reflectedValue.IsValid() || reflectedValue.IsZero() {
 		return nil
 	}
@@ -130,15 +134,7 @@ func (s *List) Set(val any) error {
 	}
 
 	switch reflectedValue.Kind() {
-	case reflect.Pointer:
-		if reflectedValue.IsNil() {
-			return nil
-		}
-		reflectedValue = reflectedValue.Elem()
-		fallthrough
-	case reflect.Array:
-		fallthrough
-	case reflect.Slice:
+	case reflect.Array, reflect.Slice:
 		length := reflectedValue.Len()
 		s.Value = make(Vector, length)
 		for i := 0; i < length; i++ {
