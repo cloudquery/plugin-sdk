@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.44.2](https://github.com/cloudquery/plugin-sdk/compare/v4.44.1...v4.44.2) (2024-06-03)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to fd00a4e ([#1708](https://github.com/cloudquery/plugin-sdk/issues/1708)) ([93866a9](https://github.com/cloudquery/plugin-sdk/commit/93866a9b94f8d93ff56fd14e5f44f54b18b6f531))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.11.3 ([#1716](https://github.com/cloudquery/plugin-sdk/issues/1716)) ([36c97c8](https://github.com/cloudquery/plugin-sdk/commit/36c97c819d45cc0d41abe1c9e4afdd4ec6004c2a))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.18 ([#1717](https://github.com/cloudquery/plugin-sdk/issues/1717)) ([f36d5d2](https://github.com/cloudquery/plugin-sdk/commit/f36d5d2947de236f5a601be99c35977af7e4e6c7))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.28.0 ([#1712](https://github.com/cloudquery/plugin-sdk/issues/1712)) ([82d78cb](https://github.com/cloudquery/plugin-sdk/commit/82d78cbf2d552907171a192e9b1490c41907ff25))
+* **deps:** Update module github.com/goccy/go-json to v0.10.3 ([#1709](https://github.com/cloudquery/plugin-sdk/issues/1709)) ([32a2dca](https://github.com/cloudquery/plugin-sdk/commit/32a2dca6919bd5ebd2fd18405bd5f3ed22d4fc47))
+* **deps:** Update module github.com/rs/zerolog to v1.33.0 ([#1713](https://github.com/cloudquery/plugin-sdk/issues/1713)) ([a09376d](https://github.com/cloudquery/plugin-sdk/commit/a09376d7b8a4904d5cb90e3b7613e38b208ed217))
+* **deps:** Update opentelemetry-go monorepo to v1.27.0 ([#1714](https://github.com/cloudquery/plugin-sdk/issues/1714)) ([4f29cf1](https://github.com/cloudquery/plugin-sdk/commit/4f29cf1bf50f3ccbea1d8039cd4addc0fb758d77))
+
 ## [4.44.1](https://github.com/cloudquery/plugin-sdk/compare/v4.44.0...v4.44.1) (2024-05-31)
 
 
