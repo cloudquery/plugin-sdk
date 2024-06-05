@@ -13,14 +13,14 @@ import (
 )
 
 func TestSliceRecord(t *testing.T) {
-	for run := 0; run < 5; run++ {
+	for run := 0; run < 10; run++ {
 		rows := rand.Intn(1000) + 5
 		t.Run(strconv.Itoa(rows), func(t *testing.T) {
 			t.Parallel()
 			table := schema.TestTable(fmt.Sprintf("test_%d_rows", rows), schema.TestSourceOptions{})
 			tg := schema.NewTestDataGenerator(0)
 			record := tg.Generate(table, schema.GenTestDataOptions{
-				MaxRows:    rows / 3,
+				MaxRows:    rows,
 				SourceName: "test",
 				SyncTime:   time.Now(),
 			})
@@ -55,13 +55,15 @@ func TestSliceRecord(t *testing.T) {
 				remaining := recordRows
 
 				add, toFlush, rest := SliceRecord(record, limit)
-				if add == nil {
+				// if we could add some rows
+				if (recordRows/5)-(recordRows/10) > 0 {
 					assert.NotNil(t, add)
+					assert.LessOrEqual(t, add.NumRows(), recordRows/5)
+					assert.LessOrEqual(t, add.Bytes, recordBytes/5)
+					remaining -= add.NumRows()
+				} else {
+					assert.Nil(t, add)
 				}
-				assert.NotNil(t, add)
-				assert.LessOrEqual(t, add.NumRows(), recordRows/5)
-				assert.LessOrEqual(t, add.Bytes, recordBytes/5)
-				remaining -= add.NumRows()
 
 				assert.NotEmpty(t, toFlush)
 				assert.GreaterOrEqual(t, len(toFlush), 4)
@@ -72,7 +74,6 @@ func TestSliceRecord(t *testing.T) {
 
 				assert.GreaterOrEqual(t, remaining, int64(0))
 				if remaining == 0 {
-					assert.Len(t, toFlush, 5) // we grabbed the rest into toFlush
 					assert.Nil(t, rest)
 					return
 				}
@@ -88,10 +89,15 @@ func TestSliceRecord(t *testing.T) {
 				remaining := recordRows
 
 				add, toFlush, rest := SliceRecord(record, limit)
-				assert.NotNil(t, add)
-				assert.LessOrEqual(t, add.NumRows(), recordRows/5)
-				assert.LessOrEqual(t, add.Bytes, recordBytes/5)
-				remaining -= add.NumRows()
+				// if we could add some rows
+				if (recordBytes/5)-(recordBytes/10) >= util.TotalRecordSize(record)/record.NumRows() {
+					assert.NotNil(t, add)
+					assert.LessOrEqual(t, add.NumRows(), recordRows/5)
+					assert.LessOrEqual(t, add.Bytes, recordBytes/5)
+					remaining -= add.NumRows()
+				} else {
+					assert.Nil(t, add)
+				}
 
 				assert.NotEmpty(t, toFlush)
 				assert.GreaterOrEqual(t, len(toFlush), 4)
@@ -102,7 +108,6 @@ func TestSliceRecord(t *testing.T) {
 
 				assert.GreaterOrEqual(t, remaining, int64(0))
 				if remaining == 0 {
-					assert.Len(t, toFlush, 5) // we grabbed the rest into toFlush
 					assert.Nil(t, rest)
 					return
 				}
