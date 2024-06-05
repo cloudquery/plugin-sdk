@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/v4/batch"
+	"github.com/cloudquery/plugin-sdk/v4/internal/batch"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
 	"github.com/rs/zerolog"
