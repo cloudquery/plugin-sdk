@@ -6,9 +6,6 @@ import (
 )
 
 type (
-	Cap struct {
-		current, limit int64
-	}
 	SlicedRecord struct {
 		arrow.Record
 		Bytes       int64 // we need this as the util.TotalRecordSize will report the full size even for the sliced record
