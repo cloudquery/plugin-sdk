@@ -83,7 +83,7 @@ func (s *Binary) Set(val any) error {
 	return nil
 }
 
-func (b *Binary) ByteSize() int64 { return int64(len(b.Value)) }
+func (s *Binary) ByteSize() int64 { return int64(len(s.Value)) }
 
 func (*Binary) DataType() arrow.DataType {
 	return arrow.BinaryTypes.Binary

@@ -168,5 +168,4 @@ func newDefaultBatcher(ctx context.Context, res chan<- message.SyncMessage) *bat
 		timeout = 5 * time.Second
 	)
 	return newBatcher(ctx, res, rows, bytes, timeout)
-
 }
