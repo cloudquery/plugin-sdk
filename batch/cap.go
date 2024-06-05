@@ -11,8 +11,8 @@ type Cap struct {
 }
 
 func (c *Cap) ReachedLimit() bool { return c.bytes.reachedLimit() || c.rows.reachedLimit() }
-
-func (c *Cap) Rows() int64 { return c.rows.current }
+func (c *Cap) Rows() int64        { return c.rows.current }
+func (c *Cap) AddRows(rows int64) { c.rows.current += rows }
 
 func (c *Cap) Reset() {
 	c.bytes.current = 0
