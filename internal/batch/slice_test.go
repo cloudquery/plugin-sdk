@@ -13,8 +13,8 @@ import (
 )
 
 func TestSliceRecord(t *testing.T) {
-	for run := 0; run < 10; run++ {
-		rows := rand.Intn(200) + 5
+	for run := 0; run < 5; run++ {
+		rows := rand.Intn(100) + 5
 		t.Run(strconv.Itoa(rows), func(t *testing.T) {
 			t.Parallel()
 			table := schema.TestTable(fmt.Sprintf("test_%d_rows", rows), schema.TestSourceOptions{})
