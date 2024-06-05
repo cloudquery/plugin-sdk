@@ -112,7 +112,6 @@ func TestSliceRecord(t *testing.T) {
 				assert.Equal(t, remaining, rest.NumRows())
 				assert.Less(t, rest.Bytes, recordBytes/5)
 			})
-
 		})
 	}
 }
