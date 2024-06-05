@@ -89,3 +89,9 @@ func (s *Mac) Set(val any) error {
 	s.Valid = true
 	return nil
 }
+
+func (s *Mac) ByteSize() int64 { return int64(len(s.Value)) }
+
+var (
+	_ Scalar = (*Mac)(nil)
+)

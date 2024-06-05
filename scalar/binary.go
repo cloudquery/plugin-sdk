@@ -83,6 +83,8 @@ func (s *Binary) Set(val any) error {
 	return nil
 }
 
+func (s *Binary) ByteSize() int64 { return int64(len(s.Value)) }
+
 func (*Binary) DataType() arrow.DataType {
 	return arrow.BinaryTypes.Binary
 }
@@ -94,3 +96,8 @@ type LargeBinary struct {
 func (*LargeBinary) DataType() arrow.DataType {
 	return arrow.BinaryTypes.LargeBinary
 }
+
+var (
+	_ Scalar = (*Binary)(nil)
+	_ Scalar = (*LargeBinary)(nil)
+)

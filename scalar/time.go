@@ -94,3 +94,7 @@ func (s *Time) Set(value any) error {
 		return s.Int.Set(value)
 	}
 }
+
+var (
+	_ Scalar = (*Time)(nil)
+)
