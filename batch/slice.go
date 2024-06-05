@@ -40,29 +40,20 @@ func (s *SlicedRecord) split(limit *Cap) (add *SlicedRecord, toFlush []arrow.Rec
 }
 
 func (s *SlicedRecord) getAdd(limit *Cap) *SlicedRecord {
-	grabBytesRows := int64(-1)
-	if limit.bytes.limit > 0 {
-		grabBytesRows = (limit.bytes.limit - limit.bytes.current) / s.bytesPerRow
+	rowsByBytes := limit.bytes.remainingPerN(s.bytesPerRow)
+	rows := limit.rows.remaining()
+	switch {
+	case rows < 0:
+		rows = rowsByBytes
+	case rows > rowsByBytes && rowsByBytes >= 0:
+		rows = rowsByBytes
 	}
 
-	grabRows := int64(-1)
-	if limit.rows.limit > 0 {
-		grabRows = limit.rows.limit - limit.rows.current
-	}
-
-	if grabRows < 0 && grabBytesRows < 0 {
-		// no limits
-		res := *s
-		s.Bytes = 0
-		s.Record = nil
-		return &res
-	}
-
-	grabRows = min(max(grabRows, 0), max(grabBytesRows, 0))
-	if grabRows == 0 {
+	switch {
+	case rows == 0:
 		return nil
-	}
-	if grabRows >= s.NumRows() {
+	case rows < 0, rows >= s.NumRows():
+		// grab the whole record (either no limits or not overflowing)
 		res := *s
 		s.Bytes = 0
 		s.Record = nil
@@ -70,40 +61,43 @@ func (s *SlicedRecord) getAdd(limit *Cap) *SlicedRecord {
 	}
 
 	res := SlicedRecord{
-		Record:      s.NewSlice(0, grabRows),
-		Bytes:       grabRows * s.bytesPerRow,
+		Record:      s.NewSlice(0, rows),
+		Bytes:       rows * s.bytesPerRow,
 		bytesPerRow: s.bytesPerRow,
 	}
-	s.Record = s.NewSlice(grabRows, s.NumRows()+1)
+	s.Record = s.NewSlice(rows, s.NumRows())
 	s.Bytes -= res.Bytes
 	return &res
 }
 
 func (s *SlicedRecord) getToFlush(limit *Cap) []arrow.Record {
-	// as s.Record != nil we know that the limits are there in place & the s.Record.NumRows() > 0
-	grabBytesRows := int64(-1)
-	if limit.bytes.limit > 0 {
-		grabBytesRows = limit.bytes.limit / s.bytesPerRow
+	rowsByBytes := limit.bytes.capPerN(s.bytesPerRow)
+	rows := limit.rows.cap()
+	switch {
+	case rows < 0:
+		rows = rowsByBytes
+	case rows > rowsByBytes && rowsByBytes >= 0:
+		rows = rowsByBytes
 	}
-	grabRows := int64(-1)
-	if limit.rows.limit > 0 {
-		grabRows = limit.rows.limit
-	}
-	grabRows = min(max(grabRows, 0), max(grabBytesRows, 0))
-	if grabRows == 0 {
+
+	switch {
+	case rows == 0:
 		// not even a single row fits
+		// we still need to process this, so slice by single row
 		return s.slice()
-	}
-	if grabRows > s.NumRows() {
+	case rows < 0:
+		// as s.Record != nil we know that the limits are there in place & the s.Record.NumRows() > 0
+		panic("should never be here")
+	case rows > s.NumRows():
 		// no need to flush anything, as the amount of rows isn't enough to grant this
 		return nil
 	}
 
-	flush := make([]arrow.Record, 0, s.NumRows()/grabRows)
+	flush := make([]arrow.Record, 0, s.NumRows()/rows)
 	offset := int64(0)
-	for offset+grabRows <= s.NumRows() {
-		flush = append(flush, s.NewSlice(offset, offset+grabRows))
-		offset += grabRows
+	for offset+rows <= s.NumRows() {
+		flush = append(flush, s.NewSlice(offset, offset+rows))
+		offset += rows
 	}
 	if offset == s.NumRows() {
 		// we processed everything for flush

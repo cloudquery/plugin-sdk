@@ -5,6 +5,32 @@ type capped struct {
 }
 
 func (c capped) reachedLimit() bool { return c.limit > 0 && c.current >= c.limit }
+func (c capped) remaining() int64 {
+	if c.limit > 0 {
+		return c.limit - c.current
+	}
+	return -1
+}
+
+func (c capped) remainingPerN(n int64) int64 {
+	if c.limit > 0 {
+		return (c.limit - c.current) / n
+	}
+	return -1
+}
+
+func (c capped) cap() int64 {
+	if c.limit > 0 {
+		return c.limit
+	}
+	return -1
+}
+func (c capped) capPerN(n int64) int64 {
+	if c.limit > 0 {
+		return c.limit / n
+	}
+	return -1
+}
 
 type Cap struct {
 	bytes, rows capped
