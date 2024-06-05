@@ -226,6 +226,15 @@ func TestTablesFilterDFS(t *testing.T) {
 			want:                    []string{"main_table", "sub_table_1"},
 		},
 		{
+			name: "when specifying a single child table, return only the parent and the specified child",
+			tables: []*Table{
+				{Name: "main_table", Relations: []*Table{
+					{Name: "sub_table_1", Parent: &Table{Name: "main_table"}},
+					{Name: "sub_table_2", Parent: &Table{Name: "main_table"}}}}},
+			configurationTables: []string{"sub_table_1"},
+			want:                []string{"main_table", "sub_table_1"},
+		},
+		{
 			name: "skip child tables if skip_dependent_tables is true",
 			tables: []*Table{
 				{Name: "main_table", Relations: []*Table{
