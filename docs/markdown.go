@@ -166,8 +166,8 @@ func mapType(dt *arrow.MapType, level int) string {
 func listLikeType(dt arrow.ListLikeType, level int) string {
 	elemField := dt.ElemField()
 	nested := needsMultiline(dt)
-	if _, nested = elemField.Type.(arrow.NestedType); nested {
-		level += 1 // nested types will require additional handling
+	if nested {
+		level++ // nested types will require additional handling
 	}
 
 	var elems string
