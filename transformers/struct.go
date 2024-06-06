@@ -67,13 +67,20 @@ func (t *structTransformer) getUnwrappedFields(field reflect.StructField) []refl
 func (t *structTransformer) unwrapField(field reflect.StructField) error {
 	unwrappedFields := t.getUnwrappedFields(field)
 	var parent *reflect.StructField
-	// For non embedded structs we need to add the parent field name to the path
+	// For non-embedded structs we need to add the parent field name to the path
 	if !field.Anonymous {
 		parent = &field
 	}
 	for _, f := range unwrappedFields {
-		if err := t.addColumnFromField(f, parent); err != nil {
-			return fmt.Errorf("failed to add column from field %s: %w", f.Name, err)
+		switch {
+		case t.shouldUnwrapField(f):
+			if err := t.unwrapField(f); err != nil {
+				return err
+			}
+		default:
+			if err := t.addColumnFromField(f, parent); err != nil {
+				return fmt.Errorf("failed to add column from field %s: %w", f.Name, err)
+			}
 		}
 	}
 	return nil
@@ -98,9 +105,10 @@ func (t *structTransformer) ignoreField(field reflect.StructField) bool {
 	switch {
 	case len(field.Name) == 0,
 		slices.Contains(t.skipFields, field.Name),
-		!field.IsExported(),
 		isTypeIgnored(field.Type):
 		return true
+	case !field.IsExported():
+		return !t.shouldUnwrapField(field)
 	default:
 		return false
 	}
@@ -207,20 +215,8 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 		if e.Kind() != reflect.Struct {
 			return fmt.Errorf("expected struct, got %s", e.Kind())
 		}
-		eType := e.Type()
-		for i := 0; i < e.NumField(); i++ {
-			field := eType.Field(i)
-
-			switch {
-			case t.shouldUnwrapField(field):
-				if err := t.unwrapField(field); err != nil {
-					return err
-				}
-			default:
-				if err := t.addColumnFromField(field, nil); err != nil {
-					return fmt.Errorf("failed to add column for field %s: %w", field.Name, err)
-				}
-			}
+		if err := t.unwrapField(reflect.StructField{Anonymous: true, Type: e.Type()}); err != nil {
+			return err
 		}
 		// Validate that all expected PK fields were found
 		if diff := funk.SubtractString(t.pkFields, t.pkFieldsFound); len(diff) > 0 {
