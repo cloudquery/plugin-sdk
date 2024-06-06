@@ -3,6 +3,7 @@ package scalar
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"reflect"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -10,7 +11,7 @@ import (
 
 type Struct struct {
 	Valid bool
-	Value any
+	Value map[string]any
 
 	Type *arrow.StructType
 }
@@ -56,7 +57,18 @@ func (s *Struct) Set(val any) error {
 		return s.Set(sc.Get())
 	}
 
-	switch value := val.(type) {
+	rv := reflect.ValueOf(val)
+	for rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			s.Value = nil
+			s.Valid = false
+			return nil
+		}
+		rv = rv.Elem()
+	}
+
+	value := rv.Interface()
+	switch value := value.(type) {
 	case string:
 		var x map[string]any
 		if err := json.Unmarshal([]byte(value), &x); err != nil {
@@ -99,14 +111,32 @@ func (s *Struct) Set(val any) error {
 			return nil
 		}
 		return s.Set(*value)
+	case map[string]any:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		s.Value = value
 
 	default:
-		s.Value = val
-	}
-
-	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Pointer && !rv.Elem().IsValid() { // typed nil
-		s.Valid = false
-		return nil
+		if rv.Kind() != reflect.Struct {
+			s.Valid = false
+			return fmt.Errorf("failed to set Struct to the value of type %T", val)
+		}
+		t := rv.Type()
+		m := make(map[string]any, t.NumField())
+		for _, sF := range s.Type.Fields() {
+			tF, ok := t.FieldByName(sF.Name)
+			if !ok {
+				return fmt.Errorf("failed to set Struct to the value of type %T: missing field %q", val, sF.Name)
+			}
+			v := rv.FieldByIndex(tF.Index)
+			if v.IsValid() && v.CanInterface() {
+				m[sF.Name] = v.Interface()
+			} else {
+				m[sF.Name] = nil
+			}
+		}
 	}
 
 	s.Valid = true
