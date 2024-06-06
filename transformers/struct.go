@@ -109,6 +109,8 @@ func (t *structTransformer) ignoreField(field reflect.StructField) bool {
 		return true
 	case !field.IsExported():
 		return !t.shouldUnwrapField(field)
+	case getJSONTagName(field) == "-":
+		return true
 	default:
 		return false
 	}

@@ -107,8 +107,8 @@ var (
 		{
 			Name: "json_col",
 			Type: arrow.StructOf(
-				arrow.Field{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
-				arrow.Field{Name: "string_col", Type: arrow.BinaryTypes.String},
+				arrow.Field{Name: "IntCol", Type: arrow.PrimitiveTypes.Int64},
+				arrow.Field{Name: "StringCol", Type: arrow.BinaryTypes.String},
 			),
 		},
 		{
@@ -160,6 +160,86 @@ var (
 			Type: arrow.BinaryTypes.String,
 		},
 	}
+	expectedAsStruct = schema.Column{
+		Name: "test_struct",
+		Type: arrow.StructOf(
+			arrow.Field{
+				Name: "IntCol",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+			arrow.Field{
+				Name: "Int64Col",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+			arrow.Field{
+				Name: "StringCol",
+				Type: arrow.BinaryTypes.String,
+			},
+			arrow.Field{
+				Name: "FloatCol",
+				Type: arrow.PrimitiveTypes.Float64,
+			},
+			arrow.Field{
+				Name: "BoolCol",
+				Type: arrow.FixedWidthTypes.Boolean,
+			},
+			arrow.Field{
+				Name: "JSONCol",
+				Type: arrow.StructOf(
+					arrow.Field{Name: "IntCol", Type: arrow.PrimitiveTypes.Int64},
+					arrow.Field{Name: "StringCol", Type: arrow.BinaryTypes.String},
+				),
+			},
+			arrow.Field{
+				Name: "IntArrayCol",
+				Type: arrow.ListOf(arrow.PrimitiveTypes.Int64),
+			},
+			arrow.Field{
+				Name: "IntPointerArrayCol",
+				Type: arrow.ListOf(arrow.PrimitiveTypes.Int64),
+			},
+			arrow.Field{
+				Name: "StringArrayCol",
+				Type: arrow.ListOf(arrow.BinaryTypes.String),
+			},
+			arrow.Field{
+				Name: "StringPointerArrayCol",
+				Type: arrow.ListOf(arrow.BinaryTypes.String),
+			},
+			arrow.Field{
+				Name: "InetCol",
+				Type: types.ExtensionTypes.Inet,
+			},
+			arrow.Field{
+				Name: "InetPointerCol",
+				Type: types.ExtensionTypes.Inet,
+			},
+			arrow.Field{
+				Name: "ByteArrayCol",
+				Type: arrow.BinaryTypes.Binary,
+			},
+			arrow.Field{
+				Name: "AnyArrayCol",
+				Type: types.ExtensionTypes.JSON,
+			},
+			arrow.Field{
+				Name: "TimeCol",
+				Type: arrow.FixedWidthTypes.Timestamp_us,
+			},
+			arrow.Field{
+				Name: "TimePointerCol",
+				Type: arrow.FixedWidthTypes.Timestamp_us,
+			},
+			arrow.Field{
+				Name: "JSONTag",
+				Type: arrow.BinaryTypes.String,
+			},
+			arrow.Field{
+				Name: "NoJSONTag",
+				Type: arrow.BinaryTypes.String,
+			},
+		),
+	}
 	expectedTestTable = schema.Table{
 		Name:    "test_struct",
 		Columns: expectedColumns,
@@ -191,18 +271,7 @@ var (
 		Columns: schema.ColumnList{
 			schema.Column{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
 			// Should not be unwrapped
-			schema.Column{
-				Name: "test_struct",
-				Type: arrow.StructOf(
-					func() []arrow.Field {
-						fields := make([]arrow.Field, len(expectedColumns))
-						for i, col := range expectedColumns {
-							fields[i] = arrow.Field{Name: col.Name, Type: col.Type}
-						}
-						return fields
-					}()...,
-				),
-			},
+			expectedAsStruct,
 			// Should be unwrapped
 			schema.Column{Name: "non_embedded_embedded_string", Type: arrow.BinaryTypes.String},
 			schema.Column{Name: "non_embedded_int_col", Type: arrow.PrimitiveTypes.Int64},
@@ -217,18 +286,7 @@ var (
 				PrimaryKey: true,
 			},
 			// Should not be unwrapped
-			schema.Column{
-				Name: "test_struct",
-				Type: arrow.StructOf(
-					func() []arrow.Field {
-						fields := make([]arrow.Field, len(expectedColumns))
-						for i, col := range expectedColumns {
-							fields[i] = arrow.Field{Name: col.Name, Type: col.Type}
-						}
-						return fields
-					}()...,
-				),
-			},
+			expectedAsStruct,
 			// Should be unwrapped
 			schema.Column{
 				Name: "non_embedded_embedded_string",
@@ -243,18 +301,7 @@ var (
 			// shouldn't be PK
 			schema.Column{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
 			// Should not be unwrapped
-			schema.Column{
-				Name: "test_struct",
-				Type: arrow.StructOf(
-					func() []arrow.Field {
-						fields := make([]arrow.Field, len(expectedColumns))
-						for i, col := range expectedColumns {
-							fields[i] = arrow.Field{Name: col.Name, Type: col.Type}
-						}
-						return fields
-					}()...,
-				),
-			},
+			expectedAsStruct,
 			// Should be unwrapped
 			schema.Column{
 				Name: "non_embedded_embedded_string",

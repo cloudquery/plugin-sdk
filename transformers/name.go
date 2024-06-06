@@ -12,9 +12,13 @@ type NameTransformer func(reflect.StructField) (string, error)
 
 var defaultCaser = caser.New()
 
+func getJSONTagName(field reflect.StructField) string {
+	return strings.Split(field.Tag.Get("json"), ",")[0]
+}
+
 func DefaultNameTransformer(field reflect.StructField) (string, error) {
 	name := field.Name
-	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
+	if jsonTag := getJSONTagName(field); len(jsonTag) > 0 {
 		// return empty string if the field is not related api response
 		if jsonTag == "-" {
 			return "", nil

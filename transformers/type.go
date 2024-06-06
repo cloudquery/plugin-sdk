@@ -115,15 +115,6 @@ func (t *structTransformer) structTypeTransformer(typ reflect.Type, visited tran
 			continue
 		}
 
-		name, err := t.nameTransformer(field)
-		if err != nil {
-			return nil, fmt.Errorf("failed to transform field name for field %s: %w", field.Name, err)
-		}
-		// skip field if there is no name
-		if name == "" {
-			continue
-		}
-
 		dt, err := t.typeTransformer(field.Type, visited)
 		if err != nil {
 			return nil, fmt.Errorf("failed to transform %q struct field: %w", field.Name, err)
@@ -133,7 +124,7 @@ func (t *structTransformer) structTypeTransformer(typ reflect.Type, visited tran
 			continue
 		}
 
-		fields = append(fields, arrow.Field{Name: name, Type: dt})
+		fields = append(fields, arrow.Field{Name: field.Name, Type: dt})
 	}
 
 	if len(fields) == 0 {
