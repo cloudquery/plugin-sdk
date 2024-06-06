@@ -13,7 +13,7 @@ type structTransformer struct {
 	table                         *schema.Table
 	skipFields                    []string
 	nameTransformer               NameTransformer
-	typeTransformer               TypeTransformer
+	customTypeTransformer         TypeTransformer
 	resolverTransformer           ResolverTransformer
 	ignoreInTestsTransformer      IgnoreInTestsTransformer
 	unwrapAllEmbeddedStructFields bool
@@ -119,16 +119,9 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		return nil
 	}
 
-	columnType, err := t.typeTransformer(field)
+	columnType, err := t.transformType(field.Type)
 	if err != nil {
 		return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
-	}
-
-	if columnType == nil {
-		columnType, err = DefaultTypeTransformer(field)
-		if err != nil {
-			return fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
-		}
 	}
 	if columnType == nil {
 		return nil // ignored
@@ -195,7 +188,6 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
 		nameTransformer:          DefaultNameTransformer,
-		typeTransformer:          DefaultTypeTransformer,
 		resolverTransformer:      DefaultResolverTransformer,
 		ignoreInTestsTransformer: DefaultIgnoreInTestsTransformer,
 	}

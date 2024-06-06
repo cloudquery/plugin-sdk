@@ -106,7 +106,10 @@ var (
 		},
 		{
 			Name: "json_col",
-			Type: types.ExtensionTypes.JSON,
+			Type: arrow.StructOf(
+				arrow.Field{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
+				arrow.Field{Name: "string_col", Type: arrow.BinaryTypes.String},
+			),
 		},
 		{
 			Name: "int_array_col",
@@ -188,7 +191,18 @@ var (
 		Columns: schema.ColumnList{
 			schema.Column{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
 			// Should not be unwrapped
-			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
+			schema.Column{
+				Name: "test_struct",
+				Type: arrow.StructOf(
+					func() []arrow.Field {
+						fields := make([]arrow.Field, len(expectedColumns))
+						for i, col := range expectedColumns {
+							fields[i] = arrow.Field{Name: col.Name, Type: col.Type}
+						}
+						return fields
+					}()...,
+				),
+			},
 			// Should be unwrapped
 			schema.Column{Name: "non_embedded_embedded_string", Type: arrow.BinaryTypes.String},
 			schema.Column{Name: "non_embedded_int_col", Type: arrow.PrimitiveTypes.Int64},
@@ -203,7 +217,18 @@ var (
 				PrimaryKey: true,
 			},
 			// Should not be unwrapped
-			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
+			schema.Column{
+				Name: "test_struct",
+				Type: arrow.StructOf(
+					func() []arrow.Field {
+						fields := make([]arrow.Field, len(expectedColumns))
+						for i, col := range expectedColumns {
+							fields[i] = arrow.Field{Name: col.Name, Type: col.Type}
+						}
+						return fields
+					}()...,
+				),
+			},
 			// Should be unwrapped
 			schema.Column{
 				Name: "non_embedded_embedded_string",
@@ -218,7 +243,18 @@ var (
 			// shouldn't be PK
 			schema.Column{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
 			// Should not be unwrapped
-			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
+			schema.Column{
+				Name: "test_struct",
+				Type: arrow.StructOf(
+					func() []arrow.Field {
+						fields := make([]arrow.Field, len(expectedColumns))
+						for i, col := range expectedColumns {
+							fields[i] = arrow.Field{Name: col.Name, Type: col.Type}
+						}
+						return fields
+					}()...,
+				),
+			},
 			// Should be unwrapped
 			schema.Column{
 				Name: "non_embedded_embedded_string",
@@ -282,6 +318,10 @@ var (
 			{
 				Name: "int_col",
 				Type: arrow.PrimitiveTypes.Int64,
+			},
+			{
+				Name: "properties",
+				Type: types.ExtensionTypes.JSON,
 			},
 		},
 	}

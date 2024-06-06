@@ -35,7 +35,7 @@ func WithNameTransformer(transformer NameTransformer) StructTransformerOption {
 // DefaultTypeTransformer is used as the default.
 func WithTypeTransformer(transformer TypeTransformer) StructTransformerOption {
 	return func(t *structTransformer) {
-		t.typeTransformer = transformer
+		t.customTypeTransformer = transformer
 	}
 }
 
