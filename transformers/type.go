@@ -10,9 +10,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/types"
 )
 
-func DefaultTypeTransformer(v reflect.StructField) (arrow.DataType, error) {
-	return defaultGoTypeToSchemaType(v.Type)
-}
+type TypeTransformer func(reflect.StructField) (arrow.DataType, error)
 
 func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 	// Non-primitive types
@@ -65,3 +63,9 @@ func defaultGoTypeToSchemaType(v reflect.Type) (arrow.DataType, error) {
 		return nil, fmt.Errorf("unsupported type: %s", k)
 	}
 }
+
+func DefaultTypeTransformer(v reflect.StructField) (arrow.DataType, error) {
+	return defaultGoTypeToSchemaType(v.Type)
+}
+
+var _ TypeTransformer = DefaultTypeTransformer
