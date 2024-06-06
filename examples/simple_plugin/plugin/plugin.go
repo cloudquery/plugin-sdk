@@ -20,5 +20,6 @@ func Plugin() *plugin.Plugin {
 		Configure,
 		plugin.WithKind(Kind),
 		plugin.WithTeam(Team),
+		plugin.WithConnectionTester(TestConnection),
 	)
 }

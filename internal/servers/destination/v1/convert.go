@@ -3,8 +3,8 @@ package destination
 import (
 	"bytes"
 
-	"github.com/apache/arrow/go/v15/arrow"
-	"github.com/apache/arrow/go/v15/arrow/ipc"
+	"github.com/apache/arrow/go/v16/arrow"
+	"github.com/apache/arrow/go/v16/arrow/ipc"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 

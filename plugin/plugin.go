@@ -2,11 +2,10 @@ package plugin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/apache/arrow/go/v16/arrow"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -85,6 +84,8 @@ type Plugin struct {
 	skipTableValidation bool
 	// the invocation ID for the current execution
 	invocationID string
+	// Method to test connection given a spec
+	testConnFn ConnectionTester
 }
 
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
@@ -96,6 +97,7 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 		internalColumns: true,
 		newClient:       newClient,
 		targets:         DefaultBuildTargets,
+		testConnFn:      UnimplementedTestConnectionFn,
 	}
 	for _, opt := range options {
 		opt(&p)
@@ -215,16 +217,6 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 	}
 	defer p.mu.Unlock()
 	var err error
-
-	if !options.NoConnection && p.schemaValidator != nil {
-		var v any
-		if err := json.Unmarshal(spec, &v); err != nil {
-			return fmt.Errorf("failed to unmarshal plugin spec: %w", err)
-		}
-		if err := p.schemaValidator.Validate(v); err != nil {
-			p.logger.Err(err).Msg("failed JSON schema validation for spec")
-		}
-	}
 
 	options.PluginMeta = p.Meta()
 

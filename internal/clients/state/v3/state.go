@@ -6,49 +6,58 @@ import (
 	"io"
 	"sync"
 
-	"github.com/apache/arrow/go/v15/arrow"
-	"github.com/apache/arrow/go/v15/arrow/array"
-	"github.com/apache/arrow/go/v15/arrow/ipc"
-	"github.com/apache/arrow/go/v15/arrow/memory"
+	"github.com/apache/arrow/go/v16/arrow"
+	"github.com/apache/arrow/go/v16/arrow/array"
+	"github.com/apache/arrow/go/v16/arrow/ipc"
+	"github.com/apache/arrow/go/v16/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"google.golang.org/grpc"
 )
 
-const keyColumn = "key"
-const valueColumn = "value"
+const (
+	keyColumn     = "key"
+	valueColumn   = "value"
+	versionColumn = "version"
+)
 
 type Client struct {
-	client    pb.PluginClient
-	tableName string
-	mem       map[string]string
-	mutex     *sync.RWMutex
-	keys      []string
-	values    []string
-	schema    *arrow.Schema
+	client        pb.PluginClient
+	mem           map[string]versionedValue
+	changes       map[string]struct{} // changed keys
+	mutex         *sync.RWMutex
+	schema        *arrow.Schema
+	versionedMode bool
+	conn          *grpc.ClientConn
 }
 
-func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) (*Client, error) {
+type versionedValue struct {
+	value   string
+	version uint64
+}
+
+func VersionedTable(name string) *schema.Table {
+	t := table(name)
+	t.Columns = append(t.Columns, schema.Column{
+		// Not defined as PrimaryKey to enable single keys if the destination supports PKs
+		Name: versionColumn,
+		Type: arrow.PrimitiveTypes.Uint64,
+	})
+	return t
+}
+
+func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (*Client, error) {
+	return NewClientWithTable(ctx, conn, table(tableName))
+}
+
+func NewClientWithTable(ctx context.Context, conn *grpc.ClientConn, table *schema.Table) (*Client, error) {
 	c := &Client{
-		client:    pbClient,
-		tableName: tableName,
-		mem:       make(map[string]string),
-		mutex:     &sync.RWMutex{},
-		keys:      make([]string, 0),
-		values:    make([]string, 0),
-	}
-	table := &schema.Table{
-		Name: tableName,
-		Columns: []schema.Column{
-			{
-				Name:       keyColumn,
-				Type:       arrow.BinaryTypes.String,
-				PrimaryKey: true,
-			},
-			{
-				Name: valueColumn,
-				Type: arrow.BinaryTypes.String,
-			},
-		},
+		conn:          conn,
+		client:        pb.NewPluginClient(conn),
+		mem:           make(map[string]versionedValue),
+		changes:       make(map[string]struct{}),
+		mutex:         &sync.RWMutex{},
+		versionedMode: table.Column(versionColumn) != nil,
 	}
 	sc := table.ToArrowSchema()
 	c.schema = sc
@@ -107,28 +116,60 @@ func NewClient(ctx context.Context, pbClient pb.PluginClient, tableName string) 
 			}
 			keys := record.Columns()[0].(*array.String)
 			values := record.Columns()[1].(*array.String)
+
+			var versions *array.Uint64
+			if c.versionedMode {
+				versions = record.Columns()[2].(*array.Uint64)
+			}
 			for i := 0; i < keys.Len(); i++ {
-				c.mem[keys.Value(i)] = values.Value(i)
+				k, val := keys.Value(i), values.Value(i)
+
+				var ver uint64
+				if versions != nil && versions.IsValid(i) {
+					ver = versions.Value(i)
+				}
+				if cur, ok := c.mem[k]; ok {
+					if cur.version > ver {
+						continue
+					}
+				}
+				c.mem[k] = versionedValue{
+					value:   val,
+					version: ver,
+				}
 			}
 		}
 	}
+
 	return c, nil
 }
 
 func (c *Client) SetKey(_ context.Context, key string, value string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.mem[key] = value
+
+	if c.mem[key].value == value {
+		return nil // don't update if the value is the same
+	}
+	c.mem[key] = versionedValue{
+		value:   value,
+		version: c.mem[key].version + 1,
+	}
+	c.changes[key] = struct{}{}
 	return nil
 }
 
 func (c *Client) Flush(ctx context.Context) error {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, c.schema)
-	for k, v := range c.mem {
+	for k := range c.changes {
+		val := c.mem[k]
 		bldr.Field(0).(*array.StringBuilder).Append(k)
-		bldr.Field(1).(*array.StringBuilder).Append(v)
+		bldr.Field(1).(*array.StringBuilder).Append(val.value)
+		if c.versionedMode {
+			bldr.Field(2).(*array.Uint64Builder).Append(val.version)
+		}
 	}
 	rec := bldr.NewRecord()
 	recordBytes, err := pb.RecordToBytes(rec)
@@ -151,14 +192,37 @@ func (c *Client) Flush(ctx context.Context) error {
 	if _, err := writeClient.CloseAndRecv(); err != nil {
 		return err
 	}
+
+	c.changes = make(map[string]struct{})
 	return nil
 }
 
 func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	if val, ok := c.mem[key]; ok {
-		return val, nil
+	return c.mem[key].value, nil
+}
+
+func (c *Client) Close() error {
+	if c.conn != nil {
+		return c.conn.Close()
 	}
-	return "", nil
+	return nil
+}
+
+func table(name string) *schema.Table {
+	return &schema.Table{
+		Name: name,
+		Columns: []schema.Column{
+			{
+				Name:       keyColumn,
+				Type:       arrow.BinaryTypes.String,
+				PrimaryKey: true,
+			},
+			{
+				Name: valueColumn,
+				Type: arrow.BinaryTypes.String,
+			},
+		},
+	}
 }

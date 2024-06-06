@@ -2,10 +2,11 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/apache/arrow/go/v16/arrow"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -70,6 +71,39 @@ func (s *Server) GetSpecSchema(context.Context, *pb.GetSpecSchema_Request) (*pb.
 	return &pb.GetSpecSchema_Response{JsonSchema: &sc}, nil
 }
 
+func (s *Server) TestConnection(ctx context.Context, req *pb.TestConnection_Request) (*pb.TestConnection_Response, error) {
+	err := s.Plugin.TestConnection(ctx, s.Logger, req.Spec)
+	if err == nil {
+		return &pb.TestConnection_Response{Success: true}, nil
+	}
+
+	const unknown = "UNKNOWN"
+	var testConnErr *plugin.TestConnError
+	if !errors.As(err, &testConnErr) {
+		if errors.Is(err, plugin.ErrNotImplemented) {
+			return nil, status.Errorf(codes.Unimplemented, "TestConnection feature is not implemented in this plugin")
+		}
+
+		return &pb.TestConnection_Response{
+			Success:            false,
+			FailureCode:        unknown,
+			FailureDescription: err.Error(),
+		}, nil
+	}
+
+	resp := &pb.TestConnection_Response{
+		Success:     false,
+		FailureCode: testConnErr.Code,
+	}
+	if resp.FailureCode == "" {
+		resp.FailureCode = unknown
+	}
+	if testConnErr.Message != nil {
+		resp.FailureDescription = testConnErr.Message.Error()
+	}
+	return resp, nil
+}
+
 func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Response, error) {
 	if err := s.Plugin.Init(ctx, req.Spec, plugin.NewClientOptions{NoConnection: req.NoConnection, InvocationID: req.InvocationId}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
@@ -79,7 +113,7 @@ func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Respo
 
 func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
 	records := make(chan arrow.Record)
-	var syncErr error
+	var readErr error
 	ctx := stream.Context()
 
 	sc, err := pb.NewSchemaFromBytes(req.Table)
@@ -94,7 +128,7 @@ func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
 		defer close(records)
 		err := s.Plugin.Read(ctx, table, records)
 		if err != nil {
-			syncErr = fmt.Errorf("failed to sync records: %w", err)
+			readErr = fmt.Errorf("failed to read records: %w", err)
 		}
 	}()
 
@@ -111,7 +145,7 @@ func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
 		}
 	}
 
-	return syncErr
+	return readErr
 }
 
 func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {

@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apache/arrow/go/v15/arrow/util"
+	"github.com/apache/arrow/go/v16/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
@@ -388,6 +388,9 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 
 	ticker := s.tickerFn(s.batchTimeout)
 	defer ticker.Stop()
+
+	tickerCh, ctxDone := ticker.Chan(), ctx.Done()
+
 	for {
 		select {
 		case r, ok := <-s.ch:
@@ -395,21 +398,39 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				return
 			}
 
-			var recSize int64
+			recordRows := int64(1) // at least 1 row for messages without records
+			var recordBytes int64
 			if ins, ok := any(r).(*message.WriteInsert); ok {
-				recSize = util.TotalRecordSize(ins.Record)
+				recordBytes = util.TotalRecordSize(ins.Record)
+				recordRows = ins.Record.NumRows()
 			}
 
-			if (s.batchSizeRows > 0 && sizeRows >= s.batchSizeRows) || (s.batchSizeBytes > 0 && sizeBytes+recSize >= s.batchSizeBytes) {
+			if (s.batchSizeRows > 0 && sizeRows+recordRows > s.batchSizeRows) ||
+				(s.batchSizeBytes > 0 && sizeBytes+recordBytes > s.batchSizeBytes) {
+				if sizeRows == 0 {
+					// New record overflows batch by itself.
+					// Flush right away.
+					// TODO: slice
+					ensureOpened()
+					clientCh <- r
+					closeFlush()
+					ticker.Reset(s.batchTimeout)
+					continue
+				}
+				// sizeRows > 0
 				closeFlush()
 				ticker.Reset(s.batchTimeout)
 			}
 
-			ensureOpened()
-			clientCh <- r
-			sizeRows++
-			sizeBytes += recSize
-		case <-ticker.Chan():
+			if recordRows > 0 {
+				// only save records with rows
+				ensureOpened()
+				clientCh <- r
+				sizeRows += recordRows
+				sizeBytes += recordBytes
+			}
+
+		case <-tickerCh:
 			if sizeRows > 0 {
 				closeFlush()
 			}
@@ -419,6 +440,9 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				ticker.Reset(s.batchTimeout)
 			}
 			done <- true
+		case <-ctxDone:
+			// this means the request was cancelled
+			return // after this NO other call will succeed
 		}
 	}
 }

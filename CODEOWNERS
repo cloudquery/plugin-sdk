@@ -1,5 +1,6 @@
 *       @yevgenypats @hermanschaaf @erezrokah
 CHANGELOG.md
+.release-please-manifest.json
 go.mod
 go.sum
 .github/

@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 )
 
@@ -46,6 +46,13 @@ func TestListSet(t *testing.T) {
 			&Int{Valid: false},
 			&Int{Value: 2, Valid: true},
 		}, Valid: true, Type: arrow.ListOf(arrow.PrimitiveTypes.Int64)}},
+		{source: &[]net.IPNet{ipNet}, result: List{Value: []Scalar{
+			&Inet{Value: &ipNet, Valid: true},
+		}, Valid: true, Type: arrow.ListOf(types.ExtensionTypes.Inet)}},
+		{source: &[]*net.IPNet{&ipNet, nil}, result: List{Value: []Scalar{
+			&Inet{Value: &ipNet, Valid: true},
+			&Inet{Valid: false},
+		}, Valid: true, Type: arrow.ListOf(types.ExtensionTypes.Inet)}},
 	}
 
 	for i, tt := range successfulTests {

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/apache/arrow/go/v16/arrow"
 )
 
 type List struct {
@@ -82,6 +82,10 @@ func (s *List) Set(val any) error {
 	}
 
 	reflectedValue := reflect.ValueOf(val)
+	for reflectedValue.Kind() == reflect.Pointer && !reflectedValue.IsNil() {
+		reflectedValue = reflectedValue.Elem()
+	}
+
 	if !reflectedValue.IsValid() || reflectedValue.IsZero() {
 		return nil
 	}
@@ -130,9 +134,7 @@ func (s *List) Set(val any) error {
 	}
 
 	switch reflectedValue.Kind() {
-	case reflect.Array:
-		fallthrough
-	case reflect.Slice:
+	case reflect.Array, reflect.Slice:
 		length := reflectedValue.Len()
 		s.Value = make(Vector, length)
 		for i := 0; i < length; i++ {

@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v15/arrow"
-	"github.com/apache/arrow/go/v15/arrow/array"
-	"github.com/apache/arrow/go/v15/arrow/ipc"
-	"github.com/apache/arrow/go/v15/arrow/memory"
+	"github.com/apache/arrow/go/v16/arrow"
+	"github.com/apache/arrow/go/v16/arrow/array"
+	"github.com/apache/arrow/go/v16/arrow/ipc"
+	"github.com/apache/arrow/go/v16/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	pbSource "github.com/cloudquery/plugin-pb-go/pb/source/v2"
 	"github.com/cloudquery/plugin-pb-go/specs"
@@ -42,6 +42,8 @@ func TestDestinationV1(t *testing.T) {
 	}()
 
 	// https://stackoverflow.com/questions/42102496/testing-a-grpc-service
+	// TODO: Remove once there's a documented migration path per https://github.com/grpc/grpc-go/issues/7244
+	// nolint:staticcheck
 	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)

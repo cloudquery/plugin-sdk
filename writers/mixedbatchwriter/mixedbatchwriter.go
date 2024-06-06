@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/apache/arrow/go/v15/arrow/util"
+	"github.com/apache/arrow/go/v16/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
 	"github.com/rs/zerolog"
@@ -21,8 +21,8 @@ type Client interface {
 type MixedBatchWriter struct {
 	client         Client
 	logger         zerolog.Logger
-	batchSize      int
-	batchSizeBytes int
+	batchSize      int64
+	batchSizeBytes int64
 	batchTimeout   time.Duration
 	tickerFn       writers.TickerFunc
 }
@@ -40,13 +40,13 @@ func WithLogger(logger zerolog.Logger) Option {
 
 func WithBatchSize(size int) Option {
 	return func(p *MixedBatchWriter) {
-		p.batchSize = size
+		p.batchSize = int64(size)
 	}
 }
 
 func WithBatchSizeBytes(size int) Option {
 	return func(p *MixedBatchWriter) {
-		p.batchSizeBytes = size
+		p.batchSizeBytes = int64(size)
 	}
 }
 
@@ -90,10 +90,11 @@ func (w *MixedBatchWriter) Write(ctx context.Context, msgChan <-chan message.Wri
 		writeFunc: w.client.MigrateTableBatch,
 	}
 	insert := &insertBatchManager{
-		batch:             make([]*message.WriteInsert, 0, w.batchSize),
-		writeFunc:         w.client.InsertBatch,
-		maxBatchSizeBytes: int64(w.batchSizeBytes),
-		logger:            w.logger,
+		batch:     make([]*message.WriteInsert, 0, w.batchSize),
+		writeFunc: w.client.InsertBatch,
+		maxRows:   w.batchSize,
+		maxBytes:  w.batchSizeBytes,
+		logger:    w.logger,
 	}
 	deleteStale := &batchManager[message.WriteDeleteStales, *message.WriteDeleteStale]{
 		batch:     make([]*message.WriteDeleteStale, 0, w.batchSize),
@@ -160,7 +161,6 @@ loop:
 			if err := flush(prevMsgType); err != nil {
 				return err
 			}
-			ticker.Reset(w.batchTimeout)
 			prevMsgType = writers.MsgTypeUnset
 		}
 	}
@@ -192,44 +192,54 @@ func (m *batchManager[A, T]) flush(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	m.batch = nil
+	clear(m.batch) // GC can work
+	m.batch = m.batch[:0]
 	return nil
 }
 
 // special batch manager for insert messages that also keeps track of the total size of the batch
 type insertBatchManager struct {
-	batch             []*message.WriteInsert
-	writeFunc         func(ctx context.Context, messages message.WriteInserts) error
-	curBatchSizeBytes int64
-	maxBatchSizeBytes int64
-	logger            zerolog.Logger
+	batch              []*message.WriteInsert
+	writeFunc          func(ctx context.Context, messages message.WriteInserts) error
+	curRows, maxRows   int64
+	curBytes, maxBytes int64
+	logger             zerolog.Logger
 }
 
 func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInsert) error {
-	if len(m.batch) == cap(m.batch) || m.curBatchSizeBytes+util.TotalRecordSize(msg.Record) > m.maxBatchSizeBytes {
+	recordRows, recordBytes := msg.Record.NumRows(), util.TotalRecordSize(msg.Record)
+	if (m.maxRows > 0 && m.curRows+recordRows > m.maxRows) ||
+		(m.maxBytes > 0 && m.curBytes+recordBytes > m.maxBytes) {
 		if err := m.flush(ctx); err != nil {
 			return err
 		}
 	}
-	m.batch = append(m.batch, msg)
-	m.curBatchSizeBytes += util.TotalRecordSize(msg.Record)
+
+	if recordRows > 0 {
+		// only save records with rows
+		m.batch = append(m.batch, msg)
+		m.curRows += recordRows
+		m.curBytes += recordBytes
+	}
+
 	return nil
 }
 
 func (m *insertBatchManager) flush(ctx context.Context) error {
-	if len(m.batch) == 0 {
+	if m.curRows == 0 {
+		// no rows to insert
 		return nil
 	}
 	start := time.Now()
-	batchSize := len(m.batch)
 	err := m.writeFunc(ctx, m.batch)
 	if err != nil {
-		m.logger.Err(err).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
+		m.logger.Err(err).Int64("len", m.curRows).Dur("duration", time.Since(start)).Msg("failed to write batch")
 		return err
 	}
-	m.logger.Debug().Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+	m.logger.Debug().Int64("len", m.curRows).Dur("duration", time.Since(start)).Msg("batch written successfully")
 
-	m.batch = nil
-	m.curBatchSizeBytes = 0
+	clear(m.batch) // GC can work
+	m.batch = m.batch[:0]
+	m.curRows, m.curBytes = 0, 0
 	return nil
 }

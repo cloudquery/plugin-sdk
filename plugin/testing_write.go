@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
@@ -54,6 +54,11 @@ type Migrations struct {
 	MovePKToCQOnly         bool
 }
 
+// WriteTests defines which tests should be skipped in the write test suite
+type WriteTests struct {
+	DuplicatePK bool
+}
+
 type WriterTestSuiteTests struct {
 	// SkipUpsert skips testing with message.Insert and Upsert=true.
 	// Usually when a destination is not supporting primary keys
@@ -76,6 +81,8 @@ type WriterTestSuiteTests struct {
 	SafeMigrations SafeMigrations
 
 	SkipSpecificMigrations Migrations
+
+	SkipSpecificWriteTests WriteTests
 }
 
 type NewPluginFunc func() *Plugin
@@ -135,6 +142,15 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 		})
 		t.Run("All", func(t *testing.T) {
 			if err := suite.testUpsertAll(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		t.Run("Duplicate PKs", func(t *testing.T) {
+			if tests.SkipSpecificWriteTests.DuplicatePK {
+				t.Skip("skipping " + t.Name())
+			}
+			if err := suite.testInsertDuplicatePK(ctx); err != nil {
 				t.Fatal(err)
 			}
 		})
