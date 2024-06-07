@@ -2,6 +2,8 @@ module github.com/cloudquery/plugin-sdk/v4
 
 go 1.21.5
 
+replace github.com/cloudquery/plugin-sdk/v4 => ../../../../plugin-sdk
+
 require (
 	github.com/apache/arrow/go/v16 v16.1.0
 	github.com/aws/aws-sdk-go-v2 v1.27.1
