@@ -429,12 +429,12 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 		queryStartTime := time.Now()
 		if u.awsMarketPlaceClient != nil {
 			_, err := u.awsMarketPlaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
-				ProductCode:    aws.String("cloudquery"),
+				ProductCode:    aws.String("3r9d4ty0j8bloz3r1p4o0r9q3"),
 				Timestamp:      aws.Time(time.Now()),
 				UsageDimension: aws.String("rows"),
 				UsageAllocations: []types.UsageAllocation{
 					{
-						AllocatedUsageQuantity: aws.Int32(int32(numberToUpdate)),
+						AllocatedUsageQuantity: aws.Int32(int32(rows)),
 						Tags: []types.Tag{
 							{
 								Key:   aws.String("plugin"),
@@ -443,14 +443,13 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 						},
 					},
 				},
-				UsageQuantity: aws.Int32(int32(numberToUpdate)),
+				UsageQuantity: aws.Int32(int32(rows)),
 			})
 			if err != nil {
 				return fmt.Errorf("failed to update usage with : %w", err)
 			}
+			return nil
 		}
-		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, cqapi.IncreaseTeamPluginUsageJSONRequestBody{
-
 		payload := cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
 			PluginTeam: u.pluginMeta.Team,
