@@ -2,6 +2,7 @@ package scalar
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/apache/arrow/go/v16/arrow/array"
@@ -227,6 +228,24 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		}
 		if len(names) > 0 {
 			panic(fmt.Errorf("struct has extra fields: %+v", maps.Keys(names)))
+		}
+
+	case arrow.MAP:
+		sb := bldr.(*array.MapBuilder)
+		sb.Append(true)
+		kb, ib := sb.KeyBuilder(), sb.ItemBuilder()
+		key, item := NewScalar(kb.Type()), NewScalar(ib.Type())
+
+		it := reflect.ValueOf(s.(*Map).Value).MapRange()
+		for it.Next() {
+			if err := key.Set(it.Key().Interface()); err != nil {
+				panic(err)
+			}
+			AppendToBuilder(kb, key)
+			if err := item.Set(it.Value().Interface()); err != nil {
+				panic(err)
+			}
+			AppendToBuilder(ib, item)
 		}
 
 	case arrow.LIST:
