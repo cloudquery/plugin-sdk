@@ -136,9 +136,8 @@ func TestStructSet(t *testing.T) {
 		},
 	}
 
-	for idx, tc := range tl {
-		tc := tc
-		t.Run(strconv.Itoa(idx), func(t *testing.T) {
+	for _, tc := range tl {
+		t.Run(tc.schema.String(), func(t *testing.T) {
 			s := NewScalar(tc.schema)
 			require.NoError(t, s.Set(tc.input))
 		})

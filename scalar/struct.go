@@ -119,23 +119,42 @@ func (s *Struct) Set(val any) error {
 		s.Value = value
 
 	default:
-		if rv.Kind() != reflect.Struct {
+		switch rv.Kind() {
+		case reflect.Map:
+			// map[string]??? is OK
+			t := rv.Type()
+			if t.Key().Kind() != reflect.String {
+				s.Valid = false
+				return fmt.Errorf("failed to set Struct to the value of type %T", val)
+			}
+			m := make(map[string]any, s.Type.NumFields())
+			for _, sF := range s.Type.Fields() {
+				v := rv.MapIndex(reflect.ValueOf(sF.Name))
+				if v.IsValid() && v.CanInterface() {
+					m[sF.Name] = v.Interface()
+				} else {
+					m[sF.Name] = nil
+				}
+			}
+
+		case reflect.Struct:
+			t := rv.Type()
+			m := make(map[string]any, s.Type.NumFields())
+			for _, sF := range s.Type.Fields() {
+				tF, ok := t.FieldByName(sF.Name)
+				if !ok {
+					return fmt.Errorf("failed to set Struct to the value of type %T: missing field %q", val, sF.Name)
+				}
+				v := rv.FieldByIndex(tF.Index)
+				if v.IsValid() && v.CanInterface() {
+					m[sF.Name] = v.Interface()
+				} else {
+					m[sF.Name] = nil
+				}
+			}
+		default:
 			s.Valid = false
 			return fmt.Errorf("failed to set Struct to the value of type %T", val)
-		}
-		t := rv.Type()
-		m := make(map[string]any, t.NumField())
-		for _, sF := range s.Type.Fields() {
-			tF, ok := t.FieldByName(sF.Name)
-			if !ok {
-				return fmt.Errorf("failed to set Struct to the value of type %T: missing field %q", val, sF.Name)
-			}
-			v := rv.FieldByIndex(tF.Index)
-			if v.IsValid() && v.CanInterface() {
-				m[sF.Name] = v.Interface()
-			} else {
-				m[sF.Name] = nil
-			}
 		}
 	}
 
