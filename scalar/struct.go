@@ -1,6 +1,7 @@
 package scalar
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -72,6 +73,28 @@ func (s *Struct) Set(val any) error {
 		var x map[string]any
 		if err := json.Unmarshal([]byte(value), &x); err != nil {
 			return err
+		}
+		for name := range x {
+			if f, ok := s.Type.FieldByName(name); ok {
+				xs, ok := x[name].(string)
+				if !ok {
+					continue
+				}
+				switch {
+				case arrow.TypeEqual(f.Type, arrow.BinaryTypes.Binary):
+					v, err := base64.StdEncoding.DecodeString(xs)
+					if err != nil {
+						return err
+					}
+					x[name] = v
+				case arrow.TypeEqual(f.Type, arrow.BinaryTypes.LargeBinary):
+					v, err := base64.StdEncoding.DecodeString(xs)
+					if err != nil {
+						return err
+					}
+					x[name] = v
+				}
+			}
 		}
 		s.Value = x
 
