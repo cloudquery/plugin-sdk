@@ -108,6 +108,7 @@ func (s *PluginServe) Serve(ctx context.Context) error {
 func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	var address string
 	var network string
+	var noSentry bool
 	var otelEndpoint string
 	var otelEndpointHeaders []string
 	var otelEndpointInsecure bool
@@ -268,7 +269,10 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	cmd.Flags().StringVar(&otelEndpointURLPath, "otel-endpoint-urlpath", "", "Open Telemetry HTTP collector endpoint URL path")
 	cmd.Flags().StringArrayVar(&otelEndpointHeaders, "otel-endpoint-headers", []string{}, "Open Telemetry HTTP collector endpoint headers")
 	cmd.Flags().BoolVar(&otelEndpointInsecure, "otel-endpoint-insecure", false, "use Open Telemetry HTTP endpoint (for development only)")
+	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
 	cmd.Flags().StringVar(&licenseFile, "license", "", "Path to offline license file or directory")
+
+	_ = cmd.Flags().MarkDeprecated("no-sentry", "no-sentry option is deprecated and unused")
 
 	return cmd
 }
