@@ -8,7 +8,6 @@ require (
 	github.com/cloudquery/cloudquery-api-go v1.11.3
 	github.com/cloudquery/plugin-pb-go v1.19.19
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
-	github.com/getsentry/sentry-go v0.28.0
 	github.com/goccy/go-json v0.10.3
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0

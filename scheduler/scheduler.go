@@ -10,11 +10,9 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v16/arrow"
-
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
 	"go.opentelemetry.io/otel"
@@ -235,7 +233,6 @@ func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
 }
 
 func (s *syncClient) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item any) *schema.Resource {
-	var validationErr *schema.ValidationError
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	resource := schema.NewResourceData(table, parent, item)
@@ -248,22 +245,12 @@ func (s *syncClient) resolveResource(ctx context.Context, table *schema.Table, c
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 			logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("resource resolver finished with panic")
 			atomic.AddUint64(&tableMetrics.Panics, 1)
-			sentry.WithScope(func(scope *sentry.Scope) {
-				scope.SetTag("table", table.Name)
-				sentry.CurrentHub().CaptureMessage(stack)
-			})
 		}
 	}()
 	if table.PreResourceResolver != nil {
 		if err := table.PreResourceResolver(ctx, client, resource); err != nil {
 			logger.Error().Err(err).Msg("pre resource resolver failed")
 			atomic.AddUint64(&tableMetrics.Errors, 1)
-			if errors.As(err, &validationErr) {
-				sentry.WithScope(func(scope *sentry.Scope) {
-					scope.SetTag("table", table.Name)
-					sentry.CurrentHub().CaptureMessage(validationErr.MaskedError())
-				})
-			}
 			return nil
 		}
 	}
@@ -276,12 +263,6 @@ func (s *syncClient) resolveResource(ctx context.Context, table *schema.Table, c
 		if err := table.PostResourceResolver(ctx, client, resource); err != nil {
 			logger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
 			atomic.AddUint64(&tableMetrics.Errors, 1)
-			if errors.As(err, &validationErr) {
-				sentry.WithScope(func(scope *sentry.Scope) {
-					scope.SetTag("table", table.Name)
-					sentry.CurrentHub().CaptureMessage(validationErr.MaskedError())
-				})
-			}
 		}
 	}
 	atomic.AddUint64(&tableMetrics.Resources, 1)
@@ -289,18 +270,12 @@ func (s *syncClient) resolveResource(ctx context.Context, table *schema.Table, c
 }
 
 func (s *syncClient) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
-	var validationErr *schema.ValidationError
 	columnStartTime := time.Now()
 	defer func() {
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 			logger.Error().Str("column", c.Name).Interface("error", err).TimeDiff("duration", time.Now(), columnStartTime).Str("stack", stack).Msg("column resolver finished with panic")
 			atomic.AddUint64(&tableMetrics.Panics, 1)
-			sentry.WithScope(func(scope *sentry.Scope) {
-				scope.SetTag("table", resource.Table.Name)
-				scope.SetTag("column", c.Name)
-				sentry.CurrentHub().CaptureMessage(stack)
-			})
 		}
 	}()
 
@@ -308,13 +283,6 @@ func (s *syncClient) resolveColumn(ctx context.Context, logger zerolog.Logger, t
 		if err := c.Resolver(ctx, client, resource, c); err != nil {
 			logger.Error().Err(err).Msg("column resolver finished with error")
 			atomic.AddUint64(&tableMetrics.Errors, 1)
-			if errors.As(err, &validationErr) {
-				sentry.WithScope(func(scope *sentry.Scope) {
-					scope.SetTag("table", resource.Table.Name)
-					scope.SetTag("column", c.Name)
-					sentry.CurrentHub().CaptureMessage(validationErr.MaskedError())
-				})
-			}
 		}
 	} else {
 		// base use case: try to get column with CamelCase name
@@ -324,13 +292,6 @@ func (s *syncClient) resolveColumn(ctx context.Context, logger zerolog.Logger, t
 			if err != nil {
 				logger.Error().Err(err).Msg("column resolver finished with error")
 				atomic.AddUint64(&tableMetrics.Errors, 1)
-				if errors.As(err, &validationErr) {
-					sentry.WithScope(func(scope *sentry.Scope) {
-						scope.SetTag("table", resource.Table.Name)
-						scope.SetTag("column", c.Name)
-						sentry.CurrentHub().CaptureMessage(validationErr.MaskedError())
-					})
-				}
 			}
 		}
 	}

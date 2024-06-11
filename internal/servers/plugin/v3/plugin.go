@@ -25,7 +25,6 @@ type Server struct {
 	Plugin    *plugin.Plugin
 	Logger    zerolog.Logger
 	Directory string
-	NoSentry  bool
 }
 
 func (s *Server) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
