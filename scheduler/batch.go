@@ -62,7 +62,7 @@ func (w *worker) work(done <-chan struct{}, timeout time.Duration) {
 			}
 
 			// append to builder
-			scalar.AppendToRecordBuilder(w.builder, v)
+			scalar.AppendToRecordBuilder(w.builder, r.GetValues())
 			w.curRows++
 			// check if we need to flush
 			if w.maxRows > 0 && w.curRows == w.maxRows {
