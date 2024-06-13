@@ -44,7 +44,6 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 	for i, table := range s.tables {
 		table := table
 		clients := preInitialisedClients[i]
-		tWG := new(sync.WaitGroup)
 		for _, client := range clients {
 			client := client
 			if err := s.scheduler.tableSems[0].Acquire(ctx, 1); err != nil {
@@ -53,20 +52,14 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 				return
 			}
 			wg.Add(1)
-			tWG.Add(1)
 			go func() {
 				defer wg.Done()
-				defer tWG.Done()
 				defer s.scheduler.tableSems[0].Release(1)
 				// not checking for error here as nothing much todo.
 				// the error is logged and this happens when context is cancelled
 				s.resolveTableDfs(ctx, table, client, nil, resolvedResources, 1)
 			}()
 		}
-		go func() {
-			tWG.Wait()
-			resolvedResources <- schema.NewResourceDone(table)
-		}()
 	}
 
 	// Wait for all the worker goroutines to finish
@@ -207,4 +200,6 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 		}
 	}
 	wg.Wait()
+	// indicate we're done
+	resolvedResources <- schema.NewResourceDone(table)
 }

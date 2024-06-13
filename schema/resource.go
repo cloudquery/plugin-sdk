@@ -42,15 +42,11 @@ func NewResourceData(t *Table, parent *Resource, item any) *Resource {
 	return &r
 }
 
-// NewResourceDone should be the very last message after all resources for the table are resolved.
 func NewResourceDone(t *Table) *Resource {
 	return &Resource{Table: t, done: true}
 }
 
 func (r *Resource) TableDone() bool {
-	if r == nil {
-		return false
-	}
 	return r.done
 }
 

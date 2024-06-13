@@ -54,11 +54,19 @@ func (w *worker) work(done <-chan struct{}, timeout time.Duration) {
 	for {
 		select {
 		case r, ok := <-w.ch:
-			if !ok || r.TableDone() {
+			if !ok {
 				if w.curRows > 0 {
 					w.send()
 				}
 				return
+			}
+
+			if r.TableDone() {
+				if w.curRows > 0 {
+					w.send()
+					ticker.Reset(timeout)
+				}
+				continue // this is just a flush after table resolver is done
 			}
 
 			// append to builder
