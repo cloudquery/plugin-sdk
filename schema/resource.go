@@ -24,6 +24,9 @@ type Resource struct {
 	// This is sorted result data by column name
 	data scalar.Vector
 	// bldr array.RecordBuilder
+
+	// used as the last message
+	done bool
 }
 
 func NewResourceData(t *Table, parent *Resource, item any) *Resource {
@@ -37,6 +40,14 @@ func NewResourceData(t *Table, parent *Resource, item any) *Resource {
 		r.data[i] = scalar.NewScalar(t.Columns[i].Type)
 	}
 	return &r
+}
+
+func NewResourceDone(t *Table) *Resource {
+	return &Resource{Table: t, done: true}
+}
+
+func (r *Resource) TableDone() bool {
+	return r.done
 }
 
 func (r *Resource) Get(columnName string) scalar.Scalar {
