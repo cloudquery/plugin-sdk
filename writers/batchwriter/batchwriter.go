@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apache/arrow/go/v16/arrow/util"
+	"github.com/cloudquery/plugin-sdk/v4/internal/batch"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
@@ -122,7 +122,7 @@ func (w *BatchWriter) Close(context.Context) error {
 }
 
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
-	var bytes, rows int64
+	limit := batch.CappedAt(w.batchSizeBytes, w.batchSize)
 	resources := make([]*message.WriteInsert, 0, w.batchSize) // at least we have 1 row per record
 
 	ticker := writers.NewTicker(w.batchTimeout)
@@ -134,47 +134,50 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 		w.flushTable(ctx, tableName, resources)
 		clear(resources)
 		resources = resources[:0]
-		bytes, rows = 0, 0
+		limit.Reset()
 	}
+
 	for {
 		select {
 		case r, ok := <-ch:
 			if !ok {
-				if rows > 0 {
+				if limit.Rows() > 0 {
 					w.flushTable(ctx, tableName, resources)
 				}
 				return
 			}
 
-			recordRows, recordBytes := r.Record.NumRows(), util.TotalRecordSize(r.Record)
-			if (w.batchSize > 0 && rows+recordRows > w.batchSize) ||
-				(w.batchSizeBytes > 0 && bytes+recordBytes > w.batchSizeBytes) {
-				if rows == 0 {
-					// New record overflows batch by itself.
-					// Flush right away.
-					// TODO: slice
-					resources = append(resources, r)
-					send()
-					ticker.Reset(w.batchTimeout)
-					continue
-				}
-				// rows > 0
+			if r.Record.NumRows() == 0 {
+				// skip empty ones
+				continue
+			}
+
+			add, toFlush, rest := batch.SliceRecord(r.Record, limit)
+			if add != nil {
+				resources = append(resources, &message.WriteInsert{Record: add.Record})
+			}
+			if len(toFlush) > 0 || rest != nil || limit.ReachedLimit() {
+				// flush current batch
 				send()
 				ticker.Reset(w.batchTimeout)
 			}
-			if recordRows > 0 {
-				// only save records with rows
-				resources = append(resources, r)
-				rows += recordRows
-				bytes += recordBytes
+			for _, sliceToFlush := range toFlush {
+				resources = append(resources, &message.WriteInsert{Record: sliceToFlush})
+				send()
+				ticker.Reset(w.batchTimeout)
+			}
+
+			// set the remainder
+			if rest != nil {
+				resources = append(resources, &message.WriteInsert{Record: rest.Record})
 			}
 
 		case <-tickerCh:
-			if rows > 0 {
+			if limit.Rows() > 0 {
 				send()
 			}
 		case done := <-flush:
-			if rows > 0 {
+			if limit.Rows() > 0 {
 				send()
 				ticker.Reset(w.batchTimeout)
 			}
