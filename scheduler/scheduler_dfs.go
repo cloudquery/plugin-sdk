@@ -200,6 +200,4 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 		}
 	}
 	wg.Wait()
-	// indicate we're done
-	resolvedResources <- schema.NewResourceDone(table)
 }
