@@ -69,8 +69,6 @@ func TestMapEncodeDecode(t *testing.T) {
 }
 
 func TestMap_Set(t *testing.T) {
-	type testType any
-
 	tl := []struct {
 		schema *arrow.MapType
 		input  any
