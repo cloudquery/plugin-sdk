@@ -175,8 +175,6 @@ func (s *Decimal256) Set(val any) error {
 	return nil
 }
 
-func (*Decimal256) ByteSize() int64 { return int64(arrow.Decimal256SizeBytes) }
-
 type Decimal128 struct {
 	Valid bool
 	Value decimal128.Num
@@ -337,10 +335,3 @@ func (s *Decimal128) Set(val any) error {
 	s.Valid = true
 	return nil
 }
-
-func (*Decimal128) ByteSize() int64 { return int64(arrow.Decimal128SizeBytes) }
-
-var (
-	_ Scalar = (*Decimal256)(nil)
-	_ Scalar = (*Decimal128)(nil)
-)

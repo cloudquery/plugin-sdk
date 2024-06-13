@@ -60,9 +60,3 @@ func (s *Duration) Set(value any) error {
 	}
 	return s.Int.Set(value)
 }
-
-func (*Duration) ByteSize() int64 { return int64(arrow.DurationSizeBytes) }
-
-var (
-	_ Scalar = (*Duration)(nil)
-)

@@ -100,12 +100,6 @@ func (s *UUID) Set(src any) error {
 	return nil
 }
 
-func (s *UUID) ByteSize() int64 { return int64(len(s.Value)) }
-
-var (
-	_ Scalar = (*UUID)(nil)
-)
-
 // parseUUID converts a string UUID in standard form to a byte array.
 func parseUUID(src string) (dst [16]byte, err error) {
 	switch len(src) {
