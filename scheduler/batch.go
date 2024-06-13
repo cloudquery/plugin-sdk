@@ -72,7 +72,7 @@ func (w *worker) work(done <-chan struct{}, timeout time.Duration) {
 			}
 
 			// append to builder
-			scalar.AppendToRecordBuilder(w.builder, r.GetValues())
+			scalar.AppendToRecordBuilder(w.builder, v)
 			w.curRows++
 			w.curBytes += vBytes
 			// check if we need to flush
