@@ -77,8 +77,6 @@ func (s *MonthInterval) Set(value any) error {
 	}
 }
 
-func (*MonthInterval) ByteSize() int64 { return int64(arrow.MonthIntervalSizeBytes) }
-
 type DayTimeInterval struct {
 	Value arrow.DayTimeInterval
 	Valid bool
@@ -172,8 +170,6 @@ func (s *DayTimeInterval) Get() any {
 	return s.Value
 }
 
-func (*DayTimeInterval) ByteSize() int64 { return int64(arrow.DayTimeIntervalSizeBytes) }
-
 type MonthDayNanoInterval struct {
 	Value arrow.MonthDayNanoInterval
 	Valid bool
@@ -266,11 +262,3 @@ func (s *MonthDayNanoInterval) Get() any {
 
 	return s.Value
 }
-
-func (*MonthDayNanoInterval) ByteSize() int64 { return int64(arrow.MonthDayNanoIntervalSizeBytes) }
-
-var (
-	_ Scalar = (*MonthInterval)(nil)
-	_ Scalar = (*DayTimeInterval)(nil)
-	_ Scalar = (*MonthDayNanoInterval)(nil)
-)

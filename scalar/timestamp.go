@@ -149,9 +149,3 @@ func (s *Timestamp) DecodeText(src []byte) error {
 		return &ValidationError{Type: s.DataType(), Msg: "cannot parse timestamp", Value: sbuf, Err: err}
 	}
 }
-
-func (*Timestamp) ByteSize() int64 { return int64(arrow.TimestampSizeBytes) }
-
-var (
-	_ Scalar = (*Timestamp)(nil)
-)

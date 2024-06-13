@@ -153,12 +153,6 @@ func (s *List) Set(val any) error {
 	return nil
 }
 
-func (s *List) ByteSize() int64 { return s.Value.ByteSize() }
-
-var (
-	_ Scalar = (*List)(nil)
-)
-
 func isReflectValueNil(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Pointer,

@@ -246,9 +246,3 @@ func (s *Uint) getBitWidth() uint8 {
 	}
 	return s.BitWidth
 }
-
-func (s *Uint) ByteSize() int64 { return int64(s.getBitWidth() / 8) }
-
-var (
-	_ Scalar = (*Uint)(nil)
-)

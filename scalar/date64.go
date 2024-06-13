@@ -105,9 +105,3 @@ func (s *Date64) Set(val any) error {
 	s.Valid = true
 	return nil
 }
-
-func (*Date64) ByteSize() int64 { return int64(arrow.Date64SizeBytes) }
-
-var (
-	_ Scalar = (*Date64)(nil)
-)

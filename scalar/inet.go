@@ -129,12 +129,6 @@ func (s *Inet) Set(val any) error {
 	return nil
 }
 
-func (s *Inet) ByteSize() int64 { return int64(len(s.Value.IP) + len(s.Value.Mask)) }
-
-var (
-	_ Scalar = (*Inet)(nil)
-)
-
 // Convert the net.IP to IPv4, if appropriate.
 //
 // When parsing a string to a net.IP using net.ParseIP() and the like, we get a

@@ -31,8 +31,6 @@ type Scalar interface {
 
 	Get() any
 	Equal(other Scalar) bool
-
-	ByteSize() int64
 }
 
 type Vector []Scalar
@@ -54,14 +52,6 @@ func (v Vector) Equal(r Vector) bool {
 		}
 	}
 	return true
-}
-
-func (v Vector) ByteSize() int64 {
-	var size int64
-	for _, s := range v {
-		size += s.ByteSize()
-	}
-	return size
 }
 
 func NewScalar(dt arrow.DataType) Scalar {

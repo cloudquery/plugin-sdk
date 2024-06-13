@@ -229,9 +229,3 @@ func (s *Float) getBitWidth() uint8 {
 	}
 	return s.BitWidth
 }
-
-func (s *Float) ByteSize() int64 { return int64(s.getBitWidth() / 8) }
-
-var (
-	_ Scalar = (*Float)(nil)
-)

@@ -131,12 +131,6 @@ func (s *JSON) Set(val any) error {
 	return nil
 }
 
-func (s *JSON) ByteSize() int64 { return int64(len(s.Value)) }
-
-var (
-	_ Scalar = (*JSON)(nil)
-)
-
 // isEmptyStringMap returns true if the value is a map from string to any (i.e. map[string]any).
 // We need to use reflection for this, because it impossible to type-assert a map[string]string into a
 // map[string]any. See https://go.dev/doc/faq#convert_slice_of_interface.

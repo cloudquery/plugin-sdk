@@ -207,7 +207,11 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		}
 	}()
 
-	b := newDefaultBatcher(ctx, res)
+	const (
+		rows    = 50
+		timeout = 5 * time.Second
+	)
+	b := newBatcher(ctx, res, rows, timeout)
 	defer b.close()    // wait for all resources to be processed
 	done := ctx.Done() // no need to do the lookups in loop
 	for resource := range resources {
