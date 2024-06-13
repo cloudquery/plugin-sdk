@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudquery/plugin-sdk/v4/internal/batch"
+	"github.com/apache/arrow/go/v16/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
@@ -233,9 +233,9 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			flush: make(chan chan bool),
 			errCh: errCh,
 
-			limit:        batch.CappedAt(0, w.batchSizeRows),
-			batchTimeout: w.batchTimeout,
-			tickerFn:     w.tickerFn,
+			batchSizeRows: w.batchSizeRows,
+			batchTimeout:  w.batchTimeout,
+			tickerFn:      w.tickerFn,
 		}
 
 		w.workersWaitGroup.Add(1)
@@ -257,9 +257,9 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			flush: make(chan chan bool),
 			errCh: errCh,
 
-			limit:        batch.CappedAt(0, w.batchSizeRows),
-			batchTimeout: w.batchTimeout,
-			tickerFn:     w.tickerFn,
+			batchSizeRows: w.batchSizeRows,
+			batchTimeout:  w.batchTimeout,
+			tickerFn:      w.tickerFn,
 		}
 
 		w.workersWaitGroup.Add(1)
@@ -283,9 +283,10 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			flush: make(chan chan bool),
 			errCh: errCh,
 
-			limit:        batch.CappedAt(w.batchSizeBytes, w.batchSizeRows),
-			batchTimeout: w.batchTimeout,
-			tickerFn:     w.tickerFn,
+			batchSizeRows:  w.batchSizeRows,
+			batchSizeBytes: w.batchSizeBytes,
+			batchTimeout:   w.batchTimeout,
+			tickerFn:       w.tickerFn,
 		}
 		w.workersLock.Lock()
 		wrOld, ok := w.insertWorkers[tableName]
@@ -319,9 +320,9 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			flush: make(chan chan bool),
 			errCh: errCh,
 
-			limit:        batch.CappedAt(w.batchSizeBytes, w.batchSizeRows),
-			batchTimeout: w.batchTimeout,
-			tickerFn:     w.tickerFn,
+			batchSizeRows: w.batchSizeRows,
+			batchTimeout:  w.batchTimeout,
+			tickerFn:      w.tickerFn,
 		}
 
 		w.workersWaitGroup.Add(1)
@@ -340,17 +341,19 @@ type streamingWorkerManager[T message.WriteMessage] struct {
 	flush chan chan bool
 	errCh chan<- error
 
-	limit        *batch.Cap
-	batchTimeout time.Duration
-	tickerFn     writers.TickerFunc
+	batchSizeRows  int64
+	batchSizeBytes int64
+	batchTimeout   time.Duration
+	tickerFn       writers.TickerFunc
 }
 
 func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup, tableName string) {
 	defer wg.Done()
 	var (
-		clientCh    chan T
-		clientErrCh chan error
-		open        bool
+		clientCh            chan T
+		clientErrCh         chan error
+		open                bool
+		sizeBytes, sizeRows int64
 	)
 
 	ensureOpened := func() {
@@ -379,7 +382,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			}
 		}
 		open = false
-		s.limit.Reset()
+		sizeBytes, sizeRows = 0, 0
 	}
 	defer closeFlush()
 
@@ -395,45 +398,44 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				return
 			}
 
+			recordRows := int64(1) // at least 1 row for messages without records
+			var recordBytes int64
 			if ins, ok := any(r).(*message.WriteInsert); ok {
-				add, toFlush, rest := batch.SliceRecord(ins.Record, s.limit)
-				if add != nil {
-					ensureOpened()
-					clientCh <- any(&message.WriteInsert{Record: add.Record}).(T)
-				}
-				if len(toFlush) > 0 || rest != nil || s.limit.ReachedLimit() {
-					// flush current batch
-					closeFlush()
-					ticker.Reset(s.batchTimeout)
-				}
-				for _, sliceToFlush := range toFlush {
-					ensureOpened()
-					clientCh <- any(&message.WriteInsert{Record: sliceToFlush}).(T)
-					closeFlush()
-					ticker.Reset(s.batchTimeout)
-				}
+				recordBytes = util.TotalRecordSize(ins.Record)
+				recordRows = ins.Record.NumRows()
+			}
 
-				// set the remainder
-				if rest != nil {
+			if (s.batchSizeRows > 0 && sizeRows+recordRows > s.batchSizeRows) ||
+				(s.batchSizeBytes > 0 && sizeBytes+recordBytes > s.batchSizeBytes) {
+				if sizeRows == 0 {
+					// New record overflows batch by itself.
+					// Flush right away.
+					// TODO: slice
 					ensureOpened()
-					clientCh <- any(&message.WriteInsert{Record: rest.Record}).(T)
+					clientCh <- r
+					closeFlush()
+					ticker.Reset(s.batchTimeout)
+					continue
 				}
-			} else {
+				// sizeRows > 0
+				closeFlush()
+				ticker.Reset(s.batchTimeout)
+			}
+
+			if recordRows > 0 {
+				// only save records with rows
 				ensureOpened()
 				clientCh <- r
-				s.limit.AddRows(1)
-				if s.limit.ReachedLimit() {
-					closeFlush()
-					ticker.Reset(s.batchTimeout)
-				}
+				sizeRows += recordRows
+				sizeBytes += recordBytes
 			}
 
 		case <-tickerCh:
-			if s.limit.Rows() > 0 {
+			if sizeRows > 0 {
 				closeFlush()
 			}
 		case done := <-s.flush:
-			if s.limit.Rows() > 0 {
+			if sizeRows > 0 {
 				closeFlush()
 				ticker.Reset(s.batchTimeout)
 			}
