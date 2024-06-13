@@ -86,12 +86,16 @@ type LargeString struct {
 	s String
 }
 
-func (s *LargeString) String() string    { return s.s.Value }
-func (s *LargeString) IsValid() bool     { return s.s.IsValid() }
-func (s *LargeString) Set(val any) error { return s.s.Set(val) }
-func (s *LargeString) Get() any          { return s.s.Get() }
+func (s *LargeString) IsValid() bool {
+	return s.s.Valid
+}
+
 func (*LargeString) DataType() arrow.DataType {
 	return arrow.BinaryTypes.LargeString
+}
+
+func (s *LargeString) String() string {
+	return s.s.String()
 }
 
 func (s *LargeString) Equal(rhs Scalar) bool {
@@ -103,4 +107,12 @@ func (s *LargeString) Equal(rhs Scalar) bool {
 		return false
 	}
 	return s.s.Valid == r.s.Valid && s.s.Value == r.s.Value
+}
+
+func (s *LargeString) Get() any {
+	return s.s.Get()
+}
+
+func (s *LargeString) Set(val any) error {
+	return s.s.Set(val)
 }

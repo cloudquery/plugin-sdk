@@ -104,8 +104,12 @@ func (s *Struct) Set(val any) error {
 		s.Value = val
 	}
 
-	rv := reflect.ValueOf(val)
-	s.Valid = rv.Kind() != reflect.Pointer || rv.Elem().IsValid() // !typed nil
+	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Pointer && !rv.Elem().IsValid() { // typed nil
+		s.Valid = false
+		return nil
+	}
+
+	s.Valid = true
 	return nil
 }
 
