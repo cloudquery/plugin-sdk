@@ -10,6 +10,15 @@ import (
 )
 
 func TestNewScalar(t *testing.T) {
+	type nested struct {
+		Level1 struct {
+			Level2 struct {
+				A int64
+			}
+			B int64
+		}
+		A int64
+	}
 	tl := []struct {
 		dt    arrow.DataType
 		input any
@@ -56,6 +65,23 @@ func TestNewScalar(t *testing.T) {
 		{dt: arrow.FixedWidthTypes.MonthInterval, input: map[string]any{"months": 1}},
 
 		{dt: arrow.StructOf(arrow.Field{Name: "i64", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "s", Type: arrow.BinaryTypes.String}), input: `{"i64": 1, "s": "foo"}`},
+		{dt: arrow.StructOf(
+			arrow.Field{
+				Name: "Level1",
+				Type: arrow.StructOf(
+					arrow.Field{
+						Name: "Level2",
+						Type: arrow.StructOf(
+							arrow.Field{Name: "A", Type: arrow.PrimitiveTypes.Int64},
+						),
+					},
+					arrow.Field{Name: "B", Type: arrow.PrimitiveTypes.Int64},
+				),
+			},
+			arrow.Field{Name: "A", Type: arrow.PrimitiveTypes.Int64},
+		),
+			input: nested{}},
+
 		{dt: &arrow.Decimal128Type{Precision: 10, Scale: 5}},
 		{dt: &arrow.Decimal256Type{Precision: 10, Scale: 5}},
 	}
