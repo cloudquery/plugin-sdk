@@ -82,6 +82,8 @@ func (s *String) Set(val any) error {
 	return nil
 }
 
+func (s *String) ByteSize() int64 { return int64(len(s.Value)) }
+
 type LargeString struct {
 	s String
 }
@@ -89,6 +91,7 @@ type LargeString struct {
 func (s *LargeString) IsValid() bool {
 	return s.s.Valid
 }
+func (s *LargeString) ByteSize() int64 { return s.s.ByteSize() }
 
 func (*LargeString) DataType() arrow.DataType {
 	return arrow.BinaryTypes.LargeString
@@ -116,3 +119,8 @@ func (s *LargeString) Get() any {
 func (s *LargeString) Set(val any) error {
 	return s.s.Set(val)
 }
+
+var (
+	_ Scalar = (*String)(nil)
+	_ Scalar = (*LargeString)(nil)
+)

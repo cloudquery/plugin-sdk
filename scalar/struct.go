@@ -116,3 +116,21 @@ func (s *Struct) Set(val any) error {
 func (s *Struct) DataType() arrow.DataType {
 	return s.Type
 }
+
+func (s *Struct) ByteSize() int64 {
+	if !s.Valid {
+		return 1 // for nil bitmap
+	}
+	v := reflect.ValueOf(s.Value)
+	for v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return 1 // for nil bitmap
+		}
+		v = v.Elem()
+	}
+	return int64(v.Type().Size())
+}
+
+var (
+	_ Scalar = (*Struct)(nil)
+)
