@@ -133,6 +133,8 @@ func NewScalar(dt arrow.DataType) Scalar {
 
 	case arrow.STRUCT:
 		return &Struct{Type: dt.(*arrow.StructType)}
+	case arrow.MAP:
+		return &Map{Type: dt.(*arrow.MapType)}
 
 	case arrow.DECIMAL128:
 		return &Decimal128{Type: dt.(*arrow.Decimal128Type)}
@@ -245,6 +247,24 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		}
 		if len(names) > 0 {
 			panic(fmt.Errorf("struct has extra fields: %+v", maps.Keys(names)))
+		}
+
+	case arrow.MAP:
+		sb := bldr.(*array.MapBuilder)
+		sb.Append(true)
+		kb, ib := sb.KeyBuilder(), sb.ItemBuilder()
+		key, item := NewScalar(kb.Type()), NewScalar(ib.Type())
+
+		it := reflect.ValueOf(s.(*Map).Value).MapRange()
+		for it.Next() {
+			if err := key.Set(it.Key().Interface()); err != nil {
+				panic(err)
+			}
+			AppendToBuilder(kb, key)
+			if err := item.Set(it.Value().Interface()); err != nil {
+				panic(err)
+			}
+			AppendToBuilder(ib, item)
 		}
 
 	case arrow.LIST:

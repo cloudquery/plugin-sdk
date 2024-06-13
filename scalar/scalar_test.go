@@ -56,6 +56,8 @@ func TestNewScalar(t *testing.T) {
 		{dt: arrow.FixedWidthTypes.MonthInterval, input: map[string]any{"months": 1}},
 
 		{dt: arrow.StructOf(arrow.Field{Name: "i64", Type: arrow.PrimitiveTypes.Int64}, arrow.Field{Name: "s", Type: arrow.BinaryTypes.String}), input: `{"i64": 1, "s": "foo"}`},
+		{dt: arrow.MapOf(arrow.BinaryTypes.String, arrow.PrimitiveTypes.Int64), input: `{"i64": 1, "s": 123}`},
+
 		{dt: &arrow.Decimal128Type{Precision: 10, Scale: 5}},
 		{dt: &arrow.Decimal256Type{Precision: 10, Scale: 5}},
 	}
