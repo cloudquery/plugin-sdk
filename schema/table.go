@@ -425,15 +425,16 @@ func (t *Table) filterDfs(parentMatched bool, include, exclude func(*Table) bool
 		matched = true
 	}
 	filteredRelations := make([]*Table, 0, len(t.Relations))
+	childMatched := false
 	for _, r := range t.Relations {
 		filteredChild := r.filterDfs(matched, include, exclude, skipDependentTables)
 		if filteredChild != nil {
-			matched = true
+			childMatched = true
 			filteredRelations = append(filteredRelations, r)
 		}
 	}
 	t.Relations = filteredRelations
-	if matched {
+	if matched || childMatched {
 		return t
 	}
 	return nil
