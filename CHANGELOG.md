@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.45.1](https://github.com/cloudquery/plugin-sdk/compare/v4.45.0...v4.45.1) (2024-06-14)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.20.0 ([#1734](https://github.com/cloudquery/plugin-sdk/issues/1734)) ([a308b19](https://github.com/cloudquery/plugin-sdk/commit/a308b19a460ecd0dc96bb3d2cda80542ab502292))
+
+## [4.45.0](https://github.com/cloudquery/plugin-sdk/compare/v4.44.2...v4.45.0) (2024-06-14)
+
+
+### Features
+
+* Remove plugin option for logging error events to Sentry ([#1724](https://github.com/cloudquery/plugin-sdk/issues/1724)) ([7732fe8](https://github.com/cloudquery/plugin-sdk/commit/7732fe898d2ce2d6579ff9fc8165551e042c3d33))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.19 ([#1726](https://github.com/cloudquery/plugin-sdk/issues/1726)) ([a1dd044](https://github.com/cloudquery/plugin-sdk/commit/a1dd04437f51a0167b430482aa1d152118672320))
+* Don't include other relation siblings if not specified in config ([#1720](https://github.com/cloudquery/plugin-sdk/issues/1720)) ([f730ec5](https://github.com/cloudquery/plugin-sdk/commit/f730ec52f565a89736364dff78b9d78f6ed02507))
+
 ## [4.44.2](https://github.com/cloudquery/plugin-sdk/compare/v4.44.1...v4.44.2) (2024-06-03)
 
 
