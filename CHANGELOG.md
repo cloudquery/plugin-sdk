@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.45.2](https://github.com/cloudquery/plugin-sdk/compare/v4.45.1...v4.45.2) (2024-06-17)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.20.1 ([#1739](https://github.com/cloudquery/plugin-sdk/issues/1739)) ([cdb1b6b](https://github.com/cloudquery/plugin-sdk/commit/cdb1b6b9688c10822a184787a107bb02a4e2ebaf))
+* **deps:** Update module google.golang.org/protobuf to v1.34.2 ([#1737](https://github.com/cloudquery/plugin-sdk/issues/1737)) ([ced9333](https://github.com/cloudquery/plugin-sdk/commit/ced933389a2ce661a85bf7d73b4fffd215fd2a74))
+* Remove no sentry deprecation warning ([#1740](https://github.com/cloudquery/plugin-sdk/issues/1740)) ([1fb06bc](https://github.com/cloudquery/plugin-sdk/commit/1fb06bc46db3de657682f474a5a00e3d160b9823))
+
 ## [4.45.1](https://github.com/cloudquery/plugin-sdk/compare/v4.45.0...v4.45.1) (2024-06-14)
 
 
