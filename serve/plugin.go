@@ -272,8 +272,6 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
 	cmd.Flags().StringVar(&licenseFile, "license", "", "Path to offline license file or directory")
 
-	_ = cmd.Flags().MarkDeprecated("no-sentry", "no-sentry option is deprecated and unused")
-
 	return cmd
 }
 
