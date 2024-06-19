@@ -28,7 +28,10 @@ func TestSliceRecord(t *testing.T) {
 			recordRows, recordBytes := record.NumRows(), util.TotalRecordSize(record)
 
 			t.Run("only add", func(t *testing.T) {
-				add, toFlush, rest := SliceRecord(record, CappedAt(0, 0))
+				limit := CappedAt(0, 0)
+				add, toFlush, rest := SliceRecord(record, limit)
+				assert.Equal(t, limit.bytes, capped{})
+				assert.Equal(t, limit.rows, capped{})
 				assert.NotNil(t, add)
 				assert.Equal(t, recordRows, add.NumRows())
 				assert.Equal(t, recordBytes, add.Bytes)
@@ -42,6 +45,8 @@ func TestSliceRecord(t *testing.T) {
 					rows:  capped{current: recordRows, limit: recordRows},
 				}
 				add, toFlush, rest := SliceRecord(record, limit)
+				assert.Equal(t, limit.bytes, capped{current: recordBytes, limit: recordBytes})
+				assert.Equal(t, limit.rows, capped{current: recordRows, limit: recordRows})
 				assert.Nil(t, add)
 				assert.NotEmpty(t, toFlush)
 				assert.Len(t, toFlush, 1)
@@ -55,6 +60,9 @@ func TestSliceRecord(t *testing.T) {
 				remaining := recordRows
 
 				add, toFlush, rest := SliceRecord(record, limit)
+				assert.Equal(t, limit.bytes, capped{})
+				assert.Equal(t, limit.rows, capped{current: recordRows / 10, limit: recordRows / 5})
+
 				// if we could add some rows
 				if (recordRows/5)-(recordRows/10) > 0 {
 					assert.NotNil(t, add)
@@ -89,6 +97,9 @@ func TestSliceRecord(t *testing.T) {
 				remaining := recordRows
 
 				add, toFlush, rest := SliceRecord(record, limit)
+				assert.Equal(t, limit.bytes, capped{current: recordBytes / 10, limit: recordBytes / 5})
+				assert.Equal(t, limit.rows, capped{})
+
 				// if we could add some rows
 				if (recordBytes/5)-(recordBytes/10) >= util.TotalRecordSize(record)/record.NumRows() {
 					assert.NotNil(t, add)

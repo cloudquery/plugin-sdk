@@ -138,6 +138,8 @@ func newSlicedRecord(r arrow.Record) *SlicedRecord {
 // - `add` is good to be added to the current batch that the caller is assembling
 // - `flush` represents sliced arrow.Record that needs own batch to be flushed
 // - `remaining` represents the overflow of the batch after `add` & `flush` are processed
+// Note that the `limit` provided will not be updated.
 func SliceRecord(r arrow.Record, limit *Cap) (add *SlicedRecord, flush []arrow.Record, remaining *SlicedRecord) {
-	return newSlicedRecord(r).split(limit)
+	l := *limit // copy value
+	return newSlicedRecord(r).split(&l)
 }

@@ -198,7 +198,7 @@ func (m *batchManager[A, T]) flush(ctx context.Context) error {
 
 // special batch manager for insert messages that also keeps track of the total size of the batch
 type insertBatchManager struct {
-	batch     []*message.WriteInsert
+	batch     message.WriteInserts
 	writeFunc func(ctx context.Context, messages message.WriteInserts) error
 	limit     *batch.Cap
 	logger    zerolog.Logger
@@ -208,6 +208,7 @@ func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInser
 	add, toFlush, rest := batch.SliceRecord(msg.Record, m.limit)
 	if add != nil {
 		m.batch = append(m.batch, &message.WriteInsert{Record: add.Record})
+		m.limit.AddSlice(add)
 	}
 	if len(toFlush) > 0 || rest != nil || m.limit.ReachedLimit() {
 		// flush current batch
@@ -217,6 +218,7 @@ func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInser
 	}
 	for _, sliceToFlush := range toFlush {
 		m.batch = append(m.batch, &message.WriteInsert{Record: sliceToFlush})
+		m.limit.AddRows(sliceToFlush.NumRows())
 		if err := m.flush(ctx); err != nil {
 			return err
 		}
@@ -225,23 +227,26 @@ func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInser
 	// set the remainder
 	if rest != nil {
 		m.batch = append(m.batch, &message.WriteInsert{Record: rest.Record})
+		m.limit.AddSlice(rest)
 	}
 
 	return nil
 }
 
 func (m *insertBatchManager) flush(ctx context.Context) error {
-	if m.limit.Rows() == 0 {
+	rows := m.limit.Rows()
+	if rows == 0 {
 		// no rows to insert
 		return nil
 	}
 	start := time.Now()
 	err := m.writeFunc(ctx, m.batch)
+	duration := time.Since(start)
 	if err != nil {
-		m.logger.Err(err).Int64("len", m.limit.Rows()).Dur("duration", time.Since(start)).Msg("failed to write batch")
+		m.logger.Err(err).Int64("len", rows).Dur("duration", duration).Msg("failed to write batch")
 		return err
 	}
-	m.logger.Debug().Int64("len", m.limit.Rows()).Dur("duration", time.Since(start)).Msg("batch written successfully")
+	m.logger.Debug().Int64("len", rows).Dur("duration", duration).Msg("batch written successfully")
 
 	clear(m.batch) // GC can work
 	m.batch = m.batch[:0]

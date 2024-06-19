@@ -40,6 +40,11 @@ func (c *Cap) ReachedLimit() bool { return c.bytes.reachedLimit() || c.rows.reac
 func (c *Cap) Rows() int64        { return c.rows.current }
 func (c *Cap) AddRows(rows int64) { c.rows.current += rows }
 
+func (c *Cap) AddSlice(record *SlicedRecord) {
+	c.rows.current += record.NumRows()
+	c.bytes.current += record.Bytes
+}
+
 func (c *Cap) Reset() {
 	c.bytes.current = 0
 	c.rows.current = 0
