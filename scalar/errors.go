@@ -24,7 +24,7 @@ func (e *ValidationError) Error() string {
 	return fmt.Sprintf("cannot set `%s` with value `%v`: %s (%s)", e.Type, e.Value, e.Msg, e.Err)
 }
 
-// MaskedError prints the error without the value
+// this prints the error without the value
 func (e *ValidationError) MaskedError() string {
 	if e.Err == nil {
 		return fmt.Sprintf("cannot set `%s`: %s", e.Type, e.Msg)
