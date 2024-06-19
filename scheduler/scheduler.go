@@ -167,7 +167,7 @@ func (s *Scheduler) SyncAll(ctx context.Context, client schema.ClientMeta, table
 }
 
 func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables schema.Tables, res chan<- message.SyncMessage, opts ...SyncOption) error {
-	ctx, span := otel.Tracer(otelName).Start(ctx, "Sync")
+	ctx, span := otel.Tracer(otelName).Start(ctx, "sync")
 	defer span.End()
 	if len(tables) == 0 {
 		return ErrNoTables

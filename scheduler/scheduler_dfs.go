@@ -12,12 +12,11 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/semaphore"
 )
 
 func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *schema.Resource) {
-	ctx, span := otel.Tracer(otelName).Start(ctx, "syncDfs")
-	defer span.End()
 	// we have this because plugins can return sometimes clients in a random way which will cause
 	// differences between this run and the next one.
 	preInitialisedClients := make([][]schema.ClientMeta, len(s.tables))
@@ -68,10 +67,12 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 }
 
 func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
-	ctx, span := otel.Tracer(otelName).Start(ctx, "resolveTableDfs_"+table.Name)
-	span.SetAttributes(attribute.Key("client-id").String(client.ID()))
-	defer span.End()
 	clientName := client.ID()
+	ctx, span := otel.Tracer(otelName).Start(ctx,
+		"sync.table."+table.Name,
+		trace.WithAttributes(attribute.Key("sync.client.id").String(clientName)),
+	)
+	defer span.End()
 	logger := s.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
 	startTime := time.Now()
