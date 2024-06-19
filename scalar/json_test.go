@@ -1,6 +1,12 @@
 package scalar
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
 
 type Foo struct {
 	Num int
@@ -15,6 +21,7 @@ func TestJSONSet(t *testing.T) {
 		{source: "{}", result: JSON{Value: []byte("{}"), Valid: true}},
 		{source: `"test"`, result: JSON{Value: []byte(`"test"`), Valid: true}},
 		{source: "1", result: JSON{Value: []byte("1"), Valid: true}},
+		{source: `json some data`, result: JSON{Value: []byte(`"json some data"`), Valid: true}},
 		{source: "[1, 2, 3]", result: JSON{Value: []byte("[1, 2, 3]"), Valid: true}},
 		{source: []byte("{}"), result: JSON{Value: []byte("{}"), Valid: true}},
 		{source: []byte(`"test"`), result: JSON{Value: []byte(`"test"`), Valid: true}},
@@ -47,14 +54,13 @@ func TestJSONSet(t *testing.T) {
 	}
 
 	for i, tt := range successfulTests {
-		var d JSON
-		err := d.Set(tt.source)
-		if err != nil {
-			t.Errorf("%d: %v", i, err)
-		}
-
-		if !d.Equal(&tt.result) {
-			t.Errorf("%d: %v != %v", i, d, tt.result)
-		}
+		t.Run(fmt.Sprint(tt.source), func(t *testing.T) {
+			var d JSON
+			require.NoError(t, d.Set(tt.source))
+			assert.Truef(t, d.Equal(&tt.result), "%q != %q", d.String(), tt.result.String())
+			if !d.Equal(&tt.result) {
+				t.Errorf("%d: %v != %v", i, d, tt.result)
+			}
+		})
 	}
 }
