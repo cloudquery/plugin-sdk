@@ -74,15 +74,29 @@ func (s *JSON) Set(val any) error {
 		if value == "" {
 			return nil
 		}
-		if !json.Valid([]byte(value)) {
-			return &ValidationError{Type: types.ExtensionTypes.JSON, Msg: "invalid json string", Value: value}
+		if json.Valid([]byte(value)) {
+			s.Value = []byte(value)
+			break
 		}
-		s.Value = []byte(value)
+
+		// we have a string value only
+		data, err := json.Marshal(value)
+		if err != nil {
+			return &ValidationError{
+				Type:  types.ExtensionTypes.JSON,
+				Msg:   "invalid json string",
+				Value: value,
+				Err:   err,
+			}
+		}
+		s.Value = data
+
 	case *string:
 		if value == nil {
 			return nil
 		}
 		return s.Set(*value)
+
 	case []byte:
 		if value == nil {
 			return nil
@@ -92,7 +106,7 @@ func (s *JSON) Set(val any) error {
 		}
 
 		if !json.Valid(value) {
-			return &ValidationError{Type: types.ExtensionTypes.UUID, Msg: "invalid json byte array", Value: value}
+			return &ValidationError{Type: types.ExtensionTypes.JSON, Msg: "invalid json byte array", Value: value}
 		}
 		s.Value = value
 	// Encode* methods are defined on *JSON. If JSON is passed directly then the
