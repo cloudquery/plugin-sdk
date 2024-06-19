@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.45.4](https://github.com/cloudquery/plugin-sdk/compare/v4.45.3...v4.45.4) (2024-06-19)
+
+
+### Bug Fixes
+
+* Revert "fix: Allow marshaling plain string values into JSON scalars" ([#1746](https://github.com/cloudquery/plugin-sdk/issues/1746)) ([096bd88](https://github.com/cloudquery/plugin-sdk/commit/096bd88863f1356e8bb01e873cb08b82ae4d4363))
+
 ## [4.45.3](https://github.com/cloudquery/plugin-sdk/compare/v4.45.2...v4.45.3) (2024-06-19)
 
 
