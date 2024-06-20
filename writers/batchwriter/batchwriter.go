@@ -200,7 +200,7 @@ func (w *BatchWriter) flushTable(ctx context.Context, tableName string, resource
 	if err != nil {
 		w.logger.Err(err).Str("table", tableName).Int64("len", batchSize).Dur("duration", duration).Msg("failed to write batch")
 	} else {
-		w.logger.Info().Str("table", tableName).Int64("len", batchSize).Dur("duration", duration).Msg("batch written successfully")
+		w.logger.Debug().Str("table", tableName).Int64("len", batchSize).Dur("duration", duration).Msg("batch written successfully")
 	}
 }
 
