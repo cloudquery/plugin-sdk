@@ -127,7 +127,7 @@ func TestBatchSize(t *testing.T) {
 		t.Run(strconv.Itoa(batchSize), func(t *testing.T) {
 			t.Parallel()
 			testClient := &testBatchClient{}
-			wr, err := New(testClient, WithBatchSize(batchSize*2))
+			wr, err := New(testClient, WithBatchSize(int64(batchSize*2)))
 			if err != nil {
 				t.Fatal(err)
 			}
