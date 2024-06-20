@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -105,6 +104,9 @@ type Scheduler struct {
 
 	// The maximum number of go routines that can be spawned for a specific resource
 	singleResourceMaxConcurrency int64
+
+	// Controls how records are constructed on the source side.
+	batchSettings *BatchSettings
 }
 
 type syncClient struct {
@@ -124,6 +126,7 @@ func NewScheduler(opts ...Option) *Scheduler {
 		maxDepth:                        DefaultMaxDepth,
 		singleResourceMaxConcurrency:    DefaultSingleResourceMaxConcurrency,
 		singleNestedTableMaxConcurrency: DefaultSingleNestedTableMaxConcurrency,
+		batchSettings:                   new(BatchSettings),
 	}
 	for _, opt := range opts {
 		opt(&s)
@@ -207,20 +210,20 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 			panic(fmt.Errorf("unknown scheduler %s", s.strategy.String()))
 		}
 	}()
+
+	b := s.batchSettings.getBatcher(ctx, res, s.logger)
+	defer b.close()    // wait for all resources to be processed
+	done := ctx.Done() // no need to do the lookups in loop
 	for resource := range resources {
 		select {
-		case res <- &message.SyncInsert{Record: resourceToRecord(resource)}:
-		case <-ctx.Done():
+		case <-done:
 			s.logger.Debug().Msg("sync context cancelled")
 			return context.Cause(ctx)
+		default:
+			b.process(resource)
 		}
 	}
 	return context.Cause(ctx)
-}
-
-func resourceToRecord(resource *schema.Resource) arrow.Record {
-	vector := resource.GetValues()
-	return vector.ToArrowRecord(resource.Table.ToArrowSchema())
 }
 
 func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
@@ -309,13 +312,4 @@ func maxDepth(tables schema.Tables) uint64 {
 		}
 	}
 	return depth
-}
-
-// unparam's suggestion to remove the second parameter is not good advice here.
-// nolint:unparam
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
