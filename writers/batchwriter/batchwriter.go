@@ -56,15 +56,15 @@ func WithBatchTimeout(timeout time.Duration) Option {
 	}
 }
 
-func WithBatchSize(size int) Option {
+func WithBatchSize(size int64) Option {
 	return func(p *BatchWriter) {
-		p.batchSize = int64(size)
+		p.batchSize = size
 	}
 }
 
-func WithBatchSizeBytes(size int) Option {
+func WithBatchSizeBytes(size int64) Option {
 	return func(p *BatchWriter) {
-		p.batchSizeBytes = int64(size)
+		p.batchSizeBytes = size
 	}
 }
 

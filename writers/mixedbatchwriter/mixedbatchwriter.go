@@ -38,15 +38,15 @@ func WithLogger(logger zerolog.Logger) Option {
 	}
 }
 
-func WithBatchSize(size int) Option {
+func WithBatchSize(size int64) Option {
 	return func(p *MixedBatchWriter) {
-		p.batchSize = int64(size)
+		p.batchSize = size
 	}
 }
 
-func WithBatchSizeBytes(size int) Option {
+func WithBatchSizeBytes(size int64) Option {
 	return func(p *MixedBatchWriter) {
-		p.batchSizeBytes = int64(size)
+		p.batchSizeBytes = size
 	}
 }
 
