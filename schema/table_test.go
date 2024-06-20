@@ -226,6 +226,175 @@ func TestTablesFilterDFS(t *testing.T) {
 			want:                    []string{"main_table", "sub_table_1"},
 		},
 		{
+			name: "when specifying a single child table, return only the parent and the specified child",
+			tables: []*Table{
+				{Name: "main_table", Relations: []*Table{
+					{Name: "sub_table_1", Parent: &Table{Name: "main_table"}},
+					{Name: "sub_table_2", Parent: &Table{Name: "main_table"}}}}},
+			configurationTables: []string{"sub_table_1"},
+			want:                []string{"main_table", "sub_table_1"},
+		},
+		{
+			name: "when specifying a leaf table, return only the parents and the leaf",
+			tables: []*Table{
+				{Name: "0", Relations: []*Table{
+					{Name: "0_1", Parent: &Table{Name: "0"}, Relations: []*Table{
+						{Name: "0_1_1", Parent: &Table{Name: "0_1"}, Relations: []*Table{
+							{Name: "0_1_1_1", Parent: &Table{Name: "0_1_1"}},
+							{Name: "0_1_1_2", Parent: &Table{Name: "0_1_1"}, Relations: []*Table{
+								{Name: "0_1_1_2_1", Parent: &Table{Name: "0_1_1_2"}},
+								{Name: "0_1_1_2_2", Parent: &Table{Name: "0_1_1_2"}},
+							}},
+							{Name: "0_1_1_3", Parent: &Table{Name: "0_1_1"}},
+						}},
+						{Name: "0_1_2", Parent: &Table{Name: "0_1"}, Relations: []*Table{
+							{Name: "0_1_2_1", Parent: &Table{Name: "0_1_2"}},
+							{Name: "0_1_2_2", Parent: &Table{Name: "0_1_2"}},
+							{Name: "0_1_2_3", Parent: &Table{Name: "0_1_2"}},
+						}},
+						{Name: "0_1_3", Parent: &Table{Name: "0_1"}},
+					}},
+					{Name: "0_2", Parent: &Table{Name: "0"}, Relations: []*Table{
+						{Name: "0_2_1", Parent: &Table{Name: "0_2"}},
+						{Name: "0_2_2", Parent: &Table{Name: "0_2"}},
+					}},
+					{Name: "0_3", Parent: &Table{Name: "0"}},
+				}},
+				{Name: "1", Relations: []*Table{
+					{Name: "1_1", Parent: &Table{Name: "1"}, Relations: []*Table{
+						{Name: "1_1_1", Parent: &Table{Name: "1_1"}, Relations: []*Table{
+							{Name: "1_1_1_1", Parent: &Table{Name: "1_1_1"}},
+							{Name: "1_1_1_2", Parent: &Table{Name: "1_1_1"}, Relations: []*Table{
+								{Name: "1_1_1_2_1", Parent: &Table{Name: "1_1_1_2"}},
+								{Name: "1_1_1_2_2", Parent: &Table{Name: "1_1_1_2"}},
+							}},
+							{Name: "1_1_1_3", Parent: &Table{Name: "1_1_1"}},
+						}},
+						{Name: "1_1_2", Parent: &Table{Name: "1_1"}, Relations: []*Table{
+							{Name: "1_1_2_1", Parent: &Table{Name: "1_1_2"}},
+							{Name: "1_1_2_2", Parent: &Table{Name: "1_1_2"}},
+							{Name: "1_1_2_3", Parent: &Table{Name: "1_1_2"}},
+						}},
+						{Name: "1_1_3", Parent: &Table{Name: "1_1"}},
+					}},
+					{Name: "1_2", Parent: &Table{Name: "1"}, Relations: []*Table{
+						{Name: "1_2_1", Parent: &Table{Name: "1_2"}},
+						{Name: "1_2_2", Parent: &Table{Name: "1_2"}},
+					}},
+					{Name: "1_3", Parent: &Table{Name: "1"}},
+				}},
+			},
+			configurationTables: []string{"0_1_1_2_2", "0_1_2_3", "1_1_2_3"},
+			want:                []string{"0", "0_1", "0_1_1", "0_1_1_2", "0_1_1_2_2", "0_1_2", "0_1_2_3", "1", "1_1", "1_1_2", "1_1_2_3"},
+		},
+		{
+			name: "when specifying a descendant table, return the parents, the specified descendant and all its descendant if skip_dependent_tables is false",
+			tables: []*Table{
+				{Name: "0", Relations: []*Table{
+					{Name: "0_1", Parent: &Table{Name: "0"}, Relations: []*Table{
+						{Name: "0_1_1", Parent: &Table{Name: "0_1"}, Relations: []*Table{
+							{Name: "0_1_1_1", Parent: &Table{Name: "0_1_1"}},
+							{Name: "0_1_1_2", Parent: &Table{Name: "0_1_1"}, Relations: []*Table{
+								{Name: "0_1_1_2_1", Parent: &Table{Name: "0_1_1_2"}},
+								{Name: "0_1_1_2_2", Parent: &Table{Name: "0_1_1_2"}},
+							}},
+							{Name: "0_1_1_3", Parent: &Table{Name: "0_1_1"}},
+						}},
+						{Name: "0_1_2", Parent: &Table{Name: "0_1"}, Relations: []*Table{
+							{Name: "0_1_2_1", Parent: &Table{Name: "0_1_2"}},
+							{Name: "0_1_2_2", Parent: &Table{Name: "0_1_2"}},
+							{Name: "0_1_2_3", Parent: &Table{Name: "0_1_2"}},
+						}},
+						{Name: "0_1_3", Parent: &Table{Name: "0_1"}},
+					}},
+					{Name: "0_2", Parent: &Table{Name: "0"}, Relations: []*Table{
+						{Name: "0_2_1", Parent: &Table{Name: "0_2"}},
+						{Name: "0_2_2", Parent: &Table{Name: "0_2"}},
+					}},
+					{Name: "0_3", Parent: &Table{Name: "0"}},
+				}},
+				{Name: "1", Relations: []*Table{
+					{Name: "1_1", Parent: &Table{Name: "1"}, Relations: []*Table{
+						{Name: "1_1_1", Parent: &Table{Name: "1_1"}, Relations: []*Table{
+							{Name: "1_1_1_1", Parent: &Table{Name: "1_1_1"}},
+							{Name: "1_1_1_2", Parent: &Table{Name: "1_1_1"}, Relations: []*Table{
+								{Name: "1_1_1_2_1", Parent: &Table{Name: "1_1_1_2"}},
+								{Name: "1_1_1_2_2", Parent: &Table{Name: "1_1_1_2"}},
+							}},
+							{Name: "1_1_1_3", Parent: &Table{Name: "1_1_1"}},
+						}},
+						{Name: "1_1_2", Parent: &Table{Name: "1_1"}, Relations: []*Table{
+							{Name: "1_1_2_1", Parent: &Table{Name: "1_1_2"}},
+							{Name: "1_1_2_2", Parent: &Table{Name: "1_1_2"}},
+							{Name: "1_1_2_3", Parent: &Table{Name: "1_1_2"}},
+						}},
+						{Name: "1_1_3", Parent: &Table{Name: "1_1"}},
+					}},
+					{Name: "1_2", Parent: &Table{Name: "1"}, Relations: []*Table{
+						{Name: "1_2_1", Parent: &Table{Name: "1_2"}},
+						{Name: "1_2_2", Parent: &Table{Name: "1_2"}},
+					}},
+					{Name: "1_3", Parent: &Table{Name: "1"}},
+				}},
+			},
+			configurationTables: []string{"1_1_1_2"},
+			want:                []string{"1", "1_1", "1_1_1", "1_1_1_2", "1_1_1_2_1", "1_1_1_2_2"},
+		},
+		{
+			name: "when specifying a descendant table, return the parents and only the specified descendant if skip_dependent_tables is true",
+			tables: []*Table{
+				{Name: "0", Relations: []*Table{
+					{Name: "0_1", Parent: &Table{Name: "0"}, Relations: []*Table{
+						{Name: "0_1_1", Parent: &Table{Name: "0_1"}, Relations: []*Table{
+							{Name: "0_1_1_1", Parent: &Table{Name: "0_1_1"}},
+							{Name: "0_1_1_2", Parent: &Table{Name: "0_1_1"}, Relations: []*Table{
+								{Name: "0_1_1_2_1", Parent: &Table{Name: "0_1_1_2"}},
+								{Name: "0_1_1_2_2", Parent: &Table{Name: "0_1_1_2"}},
+							}},
+							{Name: "0_1_1_3", Parent: &Table{Name: "0_1_1"}},
+						}},
+						{Name: "0_1_2", Parent: &Table{Name: "0_1"}, Relations: []*Table{
+							{Name: "0_1_2_1", Parent: &Table{Name: "0_1_2"}},
+							{Name: "0_1_2_2", Parent: &Table{Name: "0_1_2"}},
+							{Name: "0_1_2_3", Parent: &Table{Name: "0_1_2"}},
+						}},
+						{Name: "0_1_3", Parent: &Table{Name: "0_1"}},
+					}},
+					{Name: "0_2", Parent: &Table{Name: "0"}, Relations: []*Table{
+						{Name: "0_2_1", Parent: &Table{Name: "0_2"}},
+						{Name: "0_2_2", Parent: &Table{Name: "0_2"}},
+					}},
+					{Name: "0_3", Parent: &Table{Name: "0"}},
+				}},
+				{Name: "1", Relations: []*Table{
+					{Name: "1_1", Parent: &Table{Name: "1"}, Relations: []*Table{
+						{Name: "1_1_1", Parent: &Table{Name: "1_1"}, Relations: []*Table{
+							{Name: "1_1_1_1", Parent: &Table{Name: "1_1_1"}},
+							{Name: "1_1_1_2", Parent: &Table{Name: "1_1_1"}, Relations: []*Table{
+								{Name: "1_1_1_2_1", Parent: &Table{Name: "1_1_1_2"}},
+								{Name: "1_1_1_2_2", Parent: &Table{Name: "1_1_1_2"}},
+							}},
+							{Name: "1_1_1_3", Parent: &Table{Name: "1_1_1"}},
+						}},
+						{Name: "1_1_2", Parent: &Table{Name: "1_1"}, Relations: []*Table{
+							{Name: "1_1_2_1", Parent: &Table{Name: "1_1_2"}},
+							{Name: "1_1_2_2", Parent: &Table{Name: "1_1_2"}},
+							{Name: "1_1_2_3", Parent: &Table{Name: "1_1_2"}},
+						}},
+						{Name: "1_1_3", Parent: &Table{Name: "1_1"}},
+					}},
+					{Name: "1_2", Parent: &Table{Name: "1"}, Relations: []*Table{
+						{Name: "1_2_1", Parent: &Table{Name: "1_2"}},
+						{Name: "1_2_2", Parent: &Table{Name: "1_2"}},
+					}},
+					{Name: "1_3", Parent: &Table{Name: "1"}},
+				}},
+			},
+			configurationTables: []string{"1_1_1_2"},
+			skipDependentTables: true,
+			want:                []string{"1", "1_1", "1_1_1", "1_1_1_2"},
+		},
+		{
 			name: "skip child tables if skip_dependent_tables is true",
 			tables: []*Table{
 				{Name: "main_table", Relations: []*Table{

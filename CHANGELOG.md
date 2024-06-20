@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.45.5](https://github.com/cloudquery/plugin-sdk/compare/v4.45.4...v4.45.5) (2024-06-19)
+
+
+### Bug Fixes
+
+* Send parent in migrate message ([#1742](https://github.com/cloudquery/plugin-sdk/issues/1742)) ([a862f4a](https://github.com/cloudquery/plugin-sdk/commit/a862f4a2488b794cf5346977716262fa2da6ca9e))
+
+## [4.45.4](https://github.com/cloudquery/plugin-sdk/compare/v4.45.3...v4.45.4) (2024-06-19)
+
+
+### Bug Fixes
+
+* Revert "fix: Allow marshaling plain string values into JSON scalars" ([#1746](https://github.com/cloudquery/plugin-sdk/issues/1746)) ([096bd88](https://github.com/cloudquery/plugin-sdk/commit/096bd88863f1356e8bb01e873cb08b82ae4d4363))
+
+## [4.45.3](https://github.com/cloudquery/plugin-sdk/compare/v4.45.2...v4.45.3) (2024-06-19)
+
+
+### Bug Fixes
+
+* Allow marshaling plain string values into JSON scalars ([#1743](https://github.com/cloudquery/plugin-sdk/issues/1743)) ([87e90b8](https://github.com/cloudquery/plugin-sdk/commit/87e90b843bab5bfa281c568b2dd94513d195d11b))
+
+## [4.45.2](https://github.com/cloudquery/plugin-sdk/compare/v4.45.1...v4.45.2) (2024-06-17)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.20.1 ([#1739](https://github.com/cloudquery/plugin-sdk/issues/1739)) ([cdb1b6b](https://github.com/cloudquery/plugin-sdk/commit/cdb1b6b9688c10822a184787a107bb02a4e2ebaf))
+* **deps:** Update module google.golang.org/protobuf to v1.34.2 ([#1737](https://github.com/cloudquery/plugin-sdk/issues/1737)) ([ced9333](https://github.com/cloudquery/plugin-sdk/commit/ced933389a2ce661a85bf7d73b4fffd215fd2a74))
+* Remove no sentry deprecation warning ([#1740](https://github.com/cloudquery/plugin-sdk/issues/1740)) ([1fb06bc](https://github.com/cloudquery/plugin-sdk/commit/1fb06bc46db3de657682f474a5a00e3d160b9823))
+
+## [4.45.1](https://github.com/cloudquery/plugin-sdk/compare/v4.45.0...v4.45.1) (2024-06-14)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.20.0 ([#1734](https://github.com/cloudquery/plugin-sdk/issues/1734)) ([a308b19](https://github.com/cloudquery/plugin-sdk/commit/a308b19a460ecd0dc96bb3d2cda80542ab502292))
+
+## [4.45.0](https://github.com/cloudquery/plugin-sdk/compare/v4.44.2...v4.45.0) (2024-06-14)
+
+
+### Features
+
+* Remove plugin option for logging error events to Sentry ([#1724](https://github.com/cloudquery/plugin-sdk/issues/1724)) ([7732fe8](https://github.com/cloudquery/plugin-sdk/commit/7732fe898d2ce2d6579ff9fc8165551e042c3d33))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.19.19 ([#1726](https://github.com/cloudquery/plugin-sdk/issues/1726)) ([a1dd044](https://github.com/cloudquery/plugin-sdk/commit/a1dd04437f51a0167b430482aa1d152118672320))
+* Don't include other relation siblings if not specified in config ([#1720](https://github.com/cloudquery/plugin-sdk/issues/1720)) ([f730ec5](https://github.com/cloudquery/plugin-sdk/commit/f730ec52f565a89736364dff78b9d78f6ed02507))
+
 ## [4.44.2](https://github.com/cloudquery/plugin-sdk/compare/v4.44.1...v4.44.2) (2024-06-03)
 
 
