@@ -13,9 +13,70 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/writers"
 )
 
+type (
+	BatchSettings struct {
+		MaxRows int
+		Timeout time.Duration
+	}
+
+	BatchOption func(settings *BatchSettings)
+)
+
+func WithBatchOptions(options ...BatchOption) Option {
+	return func(s *Scheduler) {
+		if s.batchSettings == nil {
+			s.batchSettings = new(BatchSettings)
+		}
+		for _, o := range options {
+			o(s.batchSettings)
+		}
+	}
+}
+
+func WithBatchMaxRows(rows int) BatchOption {
+	return func(s *BatchSettings) {
+		s.MaxRows = rows
+	}
+}
+
+func WithBatchTimeout(timeout time.Duration) BatchOption {
+	return func(s *BatchSettings) {
+		s.Timeout = timeout
+	}
+}
+
+func (s *BatchSettings) getBatcher(ctx context.Context, res chan<- message.SyncMessage) batcherInterface {
+	if s.Timeout > 0 && s.MaxRows > 1 {
+		return &batcher{
+			done:    ctx.Done(),
+			res:     res,
+			maxRows: s.MaxRows,
+			timeout: s.Timeout,
+		}
+	}
+
+	return &nopBatcher{res: res}
+}
+
+type batcherInterface interface {
+	process(res *schema.Resource)
+	close()
+}
+
+type nopBatcher struct {
+	res chan<- message.SyncMessage
+}
+
+func (n *nopBatcher) process(resource *schema.Resource) {
+	n.res <- &message.SyncInsert{Record: resource.GetValues().ToArrowRecord(resource.Table.ToArrowSchema())}
+}
+
+func (*nopBatcher) close() {}
+
+var _ batcherInterface = (*nopBatcher)(nil)
+
 type batcher struct {
-	ctx     context.Context
-	ctxDone <-chan struct{}
+	done <-chan struct{}
 
 	res chan<- message.SyncMessage
 
@@ -123,7 +184,7 @@ func (b *batcher) process(res *schema.Resource) {
 		wr.builder.Reserve(b.maxRows)
 
 		// start processing
-		wr.work(b.ctxDone, b.timeout)
+		wr.work(b.done, b.timeout)
 	}()
 
 	wr.ch <- res
@@ -135,14 +196,4 @@ func (b *batcher) close() {
 		return true
 	})
 	b.wg.Wait()
-}
-
-func newBatcher(ctx context.Context, res chan<- message.SyncMessage, maxRows int, timeout time.Duration) *batcher {
-	return &batcher{
-		ctx:     ctx,
-		ctxDone: ctx.Done(),
-		res:     res,
-		maxRows: maxRows,
-		timeout: timeout,
-	}
 }

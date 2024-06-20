@@ -104,6 +104,9 @@ type Scheduler struct {
 
 	// The maximum number of go routines that can be spawned for a specific resource
 	singleResourceMaxConcurrency int64
+
+	// Controls how records are constructed on the source side.
+	batchSettings *BatchSettings
 }
 
 type syncClient struct {
@@ -123,6 +126,7 @@ func NewScheduler(opts ...Option) *Scheduler {
 		maxDepth:                        DefaultMaxDepth,
 		singleResourceMaxConcurrency:    DefaultSingleResourceMaxConcurrency,
 		singleNestedTableMaxConcurrency: DefaultSingleNestedTableMaxConcurrency,
+		batchSettings:                   new(BatchSettings),
 	}
 	for _, opt := range opts {
 		opt(&s)
@@ -207,11 +211,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		}
 	}()
 
-	const (
-		rows    = 50
-		timeout = 5 * time.Second
-	)
-	b := newBatcher(ctx, res, rows, timeout)
+	b := s.batchSettings.getBatcher(ctx, res)
 	defer b.close()    // wait for all resources to be processed
 	done := ctx.Done() // no need to do the lookups in loop
 	for resource := range resources {
@@ -312,13 +312,4 @@ func maxDepth(tables schema.Tables) uint64 {
 		}
 	}
 	return depth
-}
-
-// unparam's suggestion to remove the second parameter is not good advice here.
-// nolint:unparam
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
