@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/apache/arrow/go/v16/arrow/array"
@@ -300,40 +301,39 @@ var syncTestCases = []syncTestCase{
 }
 
 func TestScheduler(t *testing.T) {
-	// uuid.SetRand(testRand{})
-	for _, strategy := range AllStrategies {
-		for _, tc := range syncTestCases {
-			tc := tc
-			testName := "No table_" + strategy.String()
-			if tc.table != nil {
-				tc.table = tc.table.Copy(nil)
-				testName = tc.table.Name + "_" + strategy.String()
+	for _, extra := range [][]Option{nil, {WithBatchOptions(WithBatchTimeout(5*time.Second), WithBatchMaxRows(50))}} {
+		for _, strategy := range AllStrategies {
+			for _, tc := range syncTestCases {
+				tc := tc
+				testName := "No table_" + strategy.String()
+				if tc.table != nil {
+					tc.table = tc.table.Copy(nil)
+					testName = tc.table.Name + "_" + strategy.String()
+				}
+				t.Run(testName, func(t *testing.T) {
+					testSyncTable(t, tc, strategy, tc.deterministicCQID, extra...)
+				})
 			}
-			t.Run(testName, func(t *testing.T) {
-				testSyncTable(t, tc, strategy, tc.deterministicCQID)
-			})
 		}
 	}
 }
 
 // nolint:revive
-func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, deterministicCQID bool) {
+func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, deterministicCQID bool, extra ...Option) {
 	ctx := context.Background()
 	var tables schema.Tables
 	if tc.table != nil {
 		tables = append(tables, tc.table)
 	}
 	c := testExecutionClient{}
-	opts := []Option{
+	opts := append([]Option{
 		WithLogger(zerolog.New(zerolog.NewTestWriter(t))),
 		WithStrategy(strategy),
-	}
+	}, extra...)
 	sc := NewScheduler(opts...)
 	msgs := make(chan message.SyncMessage, 10)
 	err := sc.Sync(ctx, &c, tables, msgs, WithSyncDeterministicCQID(deterministicCQID))
-	if err != tc.err {
-		t.Fatal(err)
-	}
+	require.ErrorIs(t, err, tc.err)
 	close(msgs)
 
 	var i int
