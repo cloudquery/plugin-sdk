@@ -211,7 +211,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		}
 	}()
 
-	b := s.batchSettings.getBatcher(ctx, res)
+	b := s.batchSettings.getBatcher(ctx, res, s.logger)
 	defer b.close()    // wait for all resources to be processed
 	done := ctx.Done() // no need to do the lookups in loop
 	for resource := range resources {

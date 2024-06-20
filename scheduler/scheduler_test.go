@@ -300,21 +300,37 @@ var syncTestCases = []syncTestCase{
 	},
 }
 
+type batchTestCase struct {
+	name    string
+	options []BatchOption
+}
+
+var allBatchTestCases = []batchTestCase{
+	{name: "no_batching"},
+	{
+		name:    "50 rows, 5s",
+		options: []BatchOption{WithBatchTimeout(5 * time.Second), WithBatchMaxRows(50)},
+	},
+}
+
 func TestScheduler(t *testing.T) {
-	for _, extra := range [][]Option{nil, {WithBatchOptions(WithBatchTimeout(5*time.Second), WithBatchMaxRows(50))}} {
-		for _, strategy := range AllStrategies {
-			for _, tc := range syncTestCases {
-				tc := tc
-				testName := "No table_" + strategy.String()
-				if tc.table != nil {
-					tc.table = tc.table.Copy(nil)
-					testName = tc.table.Name + "_" + strategy.String()
-				}
-				t.Run(testName, func(t *testing.T) {
-					testSyncTable(t, tc, strategy, tc.deterministicCQID, extra...)
+	for _, strategy := range AllStrategies {
+		t.Run(strategy.String(), func(t *testing.T) {
+			for _, batching := range allBatchTestCases {
+				t.Run(batching.name, func(t *testing.T) {
+					for _, tc := range syncTestCases {
+						testName := "No table_" + strategy.String()
+						if tc.table != nil {
+							tc.table = tc.table.Copy(nil)
+							testName = tc.table.Name + "_" + strategy.String()
+						}
+						t.Run(testName, func(t *testing.T) {
+							testSyncTable(t, tc, strategy, tc.deterministicCQID, WithBatchOptions(batching.options...))
+						})
+					}
 				})
 			}
-		}
+		})
 	}
 }
 
@@ -327,7 +343,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 	}
 	c := testExecutionClient{}
 	opts := append([]Option{
-		WithLogger(zerolog.New(zerolog.NewTestWriter(t))),
+		WithLogger(zerolog.New(zerolog.NewTestWriter(t)).Level(zerolog.DebugLevel)),
 		WithStrategy(strategy),
 	}, extra...)
 	sc := NewScheduler(opts...)

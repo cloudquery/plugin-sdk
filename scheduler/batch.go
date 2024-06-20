@@ -11,6 +11,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
+	"github.com/rs/zerolog"
 )
 
 type (
@@ -45,13 +46,14 @@ func WithBatchTimeout(timeout time.Duration) BatchOption {
 	}
 }
 
-func (s *BatchSettings) getBatcher(ctx context.Context, res chan<- message.SyncMessage) batcherInterface {
+func (s *BatchSettings) getBatcher(ctx context.Context, res chan<- message.SyncMessage, logger zerolog.Logger) batcherInterface {
 	if s.Timeout > 0 && s.MaxRows > 1 {
 		return &batcher{
 			done:    ctx.Done(),
 			res:     res,
 			maxRows: s.MaxRows,
 			timeout: s.Timeout,
+			logger:  logger.With().Int("max_rows", s.MaxRows).Logger(),
 		}
 	}
 
@@ -89,6 +91,8 @@ type batcher struct {
 	// namely, ever-growing cache (write once, read many times).
 	workers sync.Map // k = table name, v = *worker
 	wg      sync.WaitGroup
+
+	logger zerolog.Logger
 }
 
 type worker struct {
@@ -97,10 +101,12 @@ type worker struct {
 	curRows, maxRows int
 	builder          *array.RecordBuilder // we can reuse that
 	res              chan<- message.SyncMessage
+	logger           zerolog.Logger
 }
 
 // send must be called on len(rows) > 0
 func (w *worker) send() {
+	w.logger.Debug().Int("current_rows", w.curRows).Msg("send")
 	w.res <- &message.SyncInsert{Record: w.builder.NewRecord()}
 	// we need to reserve here as NewRecord (& underlying NewArray calls) reset the memory
 	w.builder.Reserve(w.maxRows)
@@ -182,6 +188,7 @@ func (b *batcher) process(res *schema.Resource) {
 		wr.builder = array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 		wr.res = b.res
 		wr.builder.Reserve(b.maxRows)
+		wr.logger = b.logger.With().Str("table", table.Name).Logger()
 
 		// start processing
 		wr.work(b.done, b.timeout)
