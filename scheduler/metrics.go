@@ -18,6 +18,7 @@ type TableClientMetrics struct {
 	Panics    uint64
 	StartTime time.Time
 	EndTime   time.Time
+	Duration  time.Duration
 }
 
 func (s *TableClientMetrics) Equal(other *TableClientMetrics) bool {
