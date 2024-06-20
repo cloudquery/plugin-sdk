@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.45.6](https://github.com/cloudquery/plugin-sdk/compare/v4.45.5...v4.45.6) (2024-06-20)
+
+
+### Bug Fixes
+
+* Account for bytes limit properly when batching records for writing ([#1719](https://github.com/cloudquery/plugin-sdk/issues/1719)) ([25e554e](https://github.com/cloudquery/plugin-sdk/commit/25e554e622e001b7c4c81e4111d70c9143ab29f1))
+* **deps:** Update dependency go to v1.21.11 ([#1752](https://github.com/cloudquery/plugin-sdk/issues/1752)) ([abcb2d4](https://github.com/cloudquery/plugin-sdk/commit/abcb2d40cdd6191c900dc9bc50074694471356e7))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.20.2 ([#1754](https://github.com/cloudquery/plugin-sdk/issues/1754)) ([6288710](https://github.com/cloudquery/plugin-sdk/commit/6288710b43da942854766a3e58b492f2f26e5d72))
+
 ## [4.45.5](https://github.com/cloudquery/plugin-sdk/compare/v4.45.4...v4.45.5) (2024-06-19)
 
 
