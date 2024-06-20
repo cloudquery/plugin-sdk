@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.46.0](https://github.com/cloudquery/plugin-sdk/compare/v4.45.6...v4.46.0) (2024-06-20)
+
+
+### Features
+
+* Batch resources into a single record on source side ([#1642](https://github.com/cloudquery/plugin-sdk/issues/1642)) ([f86dcb5](https://github.com/cloudquery/plugin-sdk/commit/f86dcb5513c9ece6a79c24025a07570cddbd5247))
+
 ## [4.45.6](https://github.com/cloudquery/plugin-sdk/compare/v4.45.5...v4.45.6) (2024-06-20)
 
 
