@@ -53,7 +53,7 @@ func (s *BatchSettings) getBatcher(ctx context.Context, res chan<- message.SyncM
 			res:     res,
 			maxRows: s.MaxRows,
 			timeout: s.Timeout,
-			logger:  logger.With().Int("max_rows", s.MaxRows).Str("timeout", s.Timeout.String()).Logger(),
+			logger:  logger.With().Int("max_rows", s.MaxRows).Dur("timeout_ms", s.Timeout).Logger(),
 		}
 	}
 
