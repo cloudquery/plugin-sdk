@@ -102,9 +102,10 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
-	tableMetrics.Duration = time.Since(startTime)
+	duration := time.Since(startTime)
+	tableMetrics.Duration.Store(duration)
 	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
-		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", tableMetrics.Duration).Msg("table sync finished")
+		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", duration).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)
 	}
 }

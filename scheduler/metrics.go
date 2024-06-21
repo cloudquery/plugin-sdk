@@ -16,11 +16,14 @@ type TableClientMetrics struct {
 	Resources uint64
 	Errors    uint64
 	Panics    uint64
-	Duration  time.Duration
+	Duration  atomic.Value
 }
 
 func (s *TableClientMetrics) Equal(other *TableClientMetrics) bool {
-	return s.Resources == other.Resources && s.Errors == other.Errors && s.Panics == other.Panics && s.Duration == other.Duration
+	return s.Resources == other.Resources &&
+		s.Errors == other.Errors &&
+		s.Panics == other.Panics &&
+		s.Duration.Load().(time.Duration) == other.Duration.Load().(time.Duration)
 }
 
 // Equal compares to stats. Mostly useful in testing
