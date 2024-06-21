@@ -230,7 +230,12 @@ func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
 	clientName := client.ID()
 	for _, table := range tables {
 		metrics := s.metrics.TableClient[table.Name][clientName]
-		s.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Dur("duration_ms", metrics.Duration).Uint64("errors", metrics.Errors).Msg("table sync finished")
+		duration := metrics.Duration.Load()
+		if duration == nil {
+			// This can happen for a relation when there are no resources to resolve from the parent
+			duration = new(time.Duration)
+		}
+		s.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Dur("duration_ms", *duration).Uint64("errors", metrics.Errors).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)
 	}
 }
