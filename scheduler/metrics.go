@@ -20,16 +20,10 @@ type TableClientMetrics struct {
 }
 
 func durationPointerEqual(a, b *time.Duration) bool {
-	if a == nil && b != nil {
-		return false
+	if a == nil {
+		return b == nil
 	}
-	if a != nil && b == nil {
-		return false
-	}
-	if a == nil && b == nil {
-		return true
-	}
-	return *a == *b
+	return b != nil && *a == *b
 }
 
 func (s *TableClientMetrics) Equal(other *TableClientMetrics) bool {
