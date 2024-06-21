@@ -19,8 +19,21 @@ type TableClientMetrics struct {
 	Duration  atomic.Pointer[time.Duration]
 }
 
+func durationPointerEqual(a, b *time.Duration) bool {
+	if a == nil && b != nil {
+		return false
+	}
+	if a != nil && b == nil {
+		return false
+	}
+	if a == nil && b == nil {
+		return true
+	}
+	return *a == *b
+}
+
 func (s *TableClientMetrics) Equal(other *TableClientMetrics) bool {
-	return s.Resources == other.Resources && s.Errors == other.Errors && s.Panics == other.Panics && s.Duration == other.Duration
+	return s.Resources == other.Resources && s.Errors == other.Errors && s.Panics == other.Panics && durationPointerEqual(s.Duration.Load(), other.Duration.Load())
 }
 
 // Equal compares to stats. Mostly useful in testing
