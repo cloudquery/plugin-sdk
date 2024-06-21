@@ -29,12 +29,10 @@ import (
 	serverDestinationV0 "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v0"
 	serverDestinationV1 "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v1"
 	serversv3 "github.com/cloudquery/plugin-sdk/v4/internal/servers/plugin/v3"
-	"github.com/getsentry/sentry-go"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/thoas/go-funk"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -43,19 +41,12 @@ type PluginServe struct {
 	plugin                *plugin.Plugin
 	args                  []string
 	destinationV0V1Server bool
-	sentryDSN             string
 	testListener          bool
 	testListenerConn      *bufconn.Listener
 	versions              []int
 }
 
 type PluginOption func(*PluginServe)
-
-func WithPluginSentryDSN(dsn string) PluginOption {
-	return func(s *PluginServe) {
-		s.sentryDSN = dsn
-	}
-}
 
 // WithDestinationV0V1Server is used to include destination v0 and v1 server to work
 // with older sources
@@ -225,9 +216,8 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			)
 			s.plugin.SetLogger(logger)
 			pbv3.RegisterPluginServer(grpcServer, &serversv3.Server{
-				Plugin:   s.plugin,
-				Logger:   logger,
-				NoSentry: noSentry,
+				Plugin: s.plugin,
+				Logger: logger,
 			})
 			if s.destinationV0V1Server {
 				pbDestinationV1.RegisterDestinationServer(grpcServer, &serverDestinationV1.Server{
@@ -245,33 +235,6 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			pbdiscoveryv1.RegisterDiscoveryServer(grpcServer, &discoveryServerV1.Server{
 				Versions: []int32{0, 1, 2, 3},
 			})
-
-			version := s.plugin.Version()
-
-			if s.sentryDSN != "" && !strings.EqualFold(version, "development") && !noSentry {
-				err = sentry.Init(sentry.ClientOptions{
-					Dsn:              s.sentryDSN,
-					Debug:            false,
-					AttachStacktrace: false,
-					Release:          version,
-					Transport:        sentry.NewHTTPSyncTransport(),
-					ServerName:       "oss", // set to "oss" on purpose to avoid sending any identifying information
-					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations
-					Integrations: func(integrations []sentry.Integration) []sentry.Integration {
-						var filteredIntegrations []sentry.Integration
-						for _, integration := range integrations {
-							if integration.Name() == "Modules" {
-								continue
-							}
-							filteredIntegrations = append(filteredIntegrations, integration)
-						}
-						return filteredIntegrations
-					},
-				})
-				if err != nil {
-					log.Error().Err(err).Msg("Error initializing sentry")
-				}
-			}
 
 			ctx := cmd.Context()
 			c := make(chan os.Signal, 1)
@@ -308,10 +271,6 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	cmd.Flags().BoolVar(&otelEndpointInsecure, "otel-endpoint-insecure", false, "use Open Telemetry HTTP endpoint (for development only)")
 	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
 	cmd.Flags().StringVar(&licenseFile, "license", "", "Path to offline license file or directory")
-	sendErrors := funk.ContainsString([]string{"all", "errors"}, telemetryLevel.String())
-	if !sendErrors {
-		noSentry = true
-	}
 
 	return cmd
 }

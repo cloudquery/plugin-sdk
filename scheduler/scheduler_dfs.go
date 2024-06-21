@@ -2,15 +2,14 @@ package scheduler
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/getsentry/sentry-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/semaphore"
@@ -33,10 +32,6 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 			if _, ok := seenClients[c.ID()]; !ok {
 				seenClients[c.ID()] = true
 			} else {
-				sentry.WithScope(func(scope *sentry.Scope) {
-					scope.SetTag("table", table.Name)
-					sentry.CurrentHub().CaptureMessage("duplicate client ID in " + table.Name)
-				})
 				s.logger.Warn().Str("client", c.ID()).Str("table", table.Name).Msg("multiplex returned duplicate client")
 			}
 		}
@@ -76,10 +71,10 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	ctx, span := otel.Tracer(otelName).Start(ctx, "resolveTableDfs_"+table.Name)
 	span.SetAttributes(attribute.Key("client-id").String(client.ID()))
 	defer span.End()
-	var validationErr *schema.ValidationError
 	clientName := client.ID()
 	logger := s.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
+	startTime := time.Now()
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
 		logger.Info().Msg("top level table resolver started")
 	}
@@ -90,10 +85,6 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 		defer func() {
 			if err := recover(); err != nil {
 				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
-				sentry.WithScope(func(scope *sentry.Scope) {
-					scope.SetTag("table", table.Name)
-					sentry.CurrentHub().CaptureMessage(stack)
-				})
 				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
 				atomic.AddUint64(&tableMetrics.Panics, 1)
 			}
@@ -102,12 +93,6 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
 			atomic.AddUint64(&tableMetrics.Errors, 1)
-			if errors.As(err, &validationErr) {
-				sentry.WithScope(func(scope *sentry.Scope) {
-					scope.SetTag("table", table.Name)
-					sentry.CurrentHub().CaptureMessage(validationErr.MaskedError())
-				})
-			}
 			return
 		}
 	}()
@@ -117,8 +102,10 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
+	duration := time.Since(startTime)
+	tableMetrics.Duration.Store(&duration)
 	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
-		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("table sync finished")
+		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", duration).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)
 	}
 }
@@ -132,7 +119,6 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 	go func() {
 		defer close(resourcesChan)
 		var wg sync.WaitGroup
-		sentValidationErrors := sync.Map{}
 		for i := range resourcesSlice {
 			i := i
 			resourceConcurrencyKey := table.Name + "-" + client.ID() + "-" + "resource"
@@ -168,28 +154,12 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 				if err := resolvedResource.CalculateCQID(s.deterministicCQID); err != nil {
 					tableMetrics := s.metrics.TableClient[table.Name][client.ID()]
 					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
-					if _, found := sentValidationErrors.LoadOrStore(table.Name, struct{}{}); !found {
-						// send resource validation errors to Sentry only once per table,
-						// to avoid sending too many duplicate messages
-						sentry.WithScope(func(scope *sentry.Scope) {
-							scope.SetTag("table", table.Name)
-							sentry.CurrentHub().CaptureMessage(err.Error())
-						})
-					}
 					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
 				}
 				if err := resolvedResource.Validate(); err != nil {
 					tableMetrics := s.metrics.TableClient[table.Name][client.ID()]
 					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
-					if _, found := sentValidationErrors.LoadOrStore(table.Name, struct{}{}); !found {
-						// send resource validation errors to Sentry only once per table,
-						// to avoid sending too many duplicate messages
-						sentry.WithScope(func(scope *sentry.Scope) {
-							scope.SetTag("table", table.Name)
-							sentry.CurrentHub().CaptureMessage(err.Error())
-						})
-					}
 					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
 				}

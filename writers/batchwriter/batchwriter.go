@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apache/arrow/go/v16/arrow/util"
+	"github.com/cloudquery/plugin-sdk/v4/internal/batch"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
@@ -56,15 +56,15 @@ func WithBatchTimeout(timeout time.Duration) Option {
 	}
 }
 
-func WithBatchSize(size int) Option {
+func WithBatchSize(size int64) Option {
 	return func(p *BatchWriter) {
-		p.batchSize = int64(size)
+		p.batchSize = size
 	}
 }
 
-func WithBatchSizeBytes(size int) Option {
+func WithBatchSizeBytes(size int64) Option {
 	return func(p *BatchWriter) {
-		p.batchSizeBytes = int64(size)
+		p.batchSizeBytes = size
 	}
 }
 
@@ -122,8 +122,8 @@ func (w *BatchWriter) Close(context.Context) error {
 }
 
 func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *message.WriteInsert, flush <-chan chan bool) {
-	var bytes, rows int64
-	resources := make([]*message.WriteInsert, 0, w.batchSize) // at least we have 1 row per record
+	limit := batch.CappedAt(w.batchSizeBytes, w.batchSize)
+	resources := make(message.WriteInserts, 0, w.batchSize) // at least we have 1 row per record
 
 	ticker := writers.NewTicker(w.batchTimeout)
 	defer ticker.Stop()
@@ -131,50 +131,56 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 	tickerCh, ctxDone := ticker.Chan(), ctx.Done()
 
 	send := func() {
-		w.flushTable(ctx, tableName, resources)
+		w.flushTable(ctx, tableName, resources, limit)
 		clear(resources)
 		resources = resources[:0]
-		bytes, rows = 0, 0
+		limit.Reset()
 	}
+
 	for {
 		select {
 		case r, ok := <-ch:
 			if !ok {
-				if rows > 0 {
-					w.flushTable(ctx, tableName, resources)
+				if limit.Rows() > 0 {
+					w.flushTable(ctx, tableName, resources, limit)
 				}
 				return
 			}
 
-			recordRows, recordBytes := r.Record.NumRows(), util.TotalRecordSize(r.Record)
-			if (w.batchSize > 0 && rows+recordRows > w.batchSize) ||
-				(w.batchSizeBytes > 0 && bytes+recordBytes > w.batchSizeBytes) {
-				if rows == 0 {
-					// New record overflows batch by itself.
-					// Flush right away.
-					// TODO: slice
-					resources = append(resources, r)
-					send()
-					ticker.Reset(w.batchTimeout)
-					continue
-				}
-				// rows > 0
+			if r.Record.NumRows() == 0 {
+				// skip empty ones
+				continue
+			}
+
+			add, toFlush, rest := batch.SliceRecord(r.Record, limit)
+			if add != nil {
+				resources = append(resources, &message.WriteInsert{Record: add.Record})
+				limit.AddSlice(add)
+			}
+			if len(toFlush) > 0 || rest != nil || limit.ReachedLimit() {
+				// flush current batch
 				send()
 				ticker.Reset(w.batchTimeout)
 			}
-			if recordRows > 0 {
-				// only save records with rows
-				resources = append(resources, r)
-				rows += recordRows
-				bytes += recordBytes
+			for _, sliceToFlush := range toFlush {
+				resources = append(resources, &message.WriteInsert{Record: sliceToFlush})
+				limit.AddRows(sliceToFlush.NumRows())
+				send()
+				ticker.Reset(w.batchTimeout)
+			}
+
+			// set the remainder
+			if rest != nil {
+				resources = append(resources, &message.WriteInsert{Record: rest.Record})
+				limit.AddSlice(rest)
 			}
 
 		case <-tickerCh:
-			if rows > 0 {
+			if limit.Rows() > 0 {
 				send()
 			}
 		case done := <-flush:
-			if rows > 0 {
+			if limit.Rows() > 0 {
 				send()
 				ticker.Reset(w.batchTimeout)
 			}
@@ -186,14 +192,15 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 	}
 }
 
-func (w *BatchWriter) flushTable(ctx context.Context, tableName string, resources []*message.WriteInsert) {
-	// resources = w.removeDuplicatesByPK(table, resources)
+func (w *BatchWriter) flushTable(ctx context.Context, tableName string, resources message.WriteInserts, limit *batch.Cap) {
+	batchSize := limit.Rows()
 	start := time.Now()
-	batchSize := len(resources)
-	if err := w.client.WriteTableBatch(ctx, tableName, resources); err != nil {
-		w.logger.Err(err).Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("failed to write batch")
+	err := w.client.WriteTableBatch(ctx, tableName, resources)
+	duration := time.Since(start)
+	if err != nil {
+		w.logger.Err(err).Str("table", tableName).Int64("len", batchSize).Dur("duration", duration).Msg("failed to write batch")
 	} else {
-		w.logger.Info().Str("table", tableName).Int("len", batchSize).Dur("duration", time.Since(start)).Msg("batch written successfully")
+		w.logger.Debug().Str("table", tableName).Int64("len", batchSize).Dur("duration", duration).Msg("batch written successfully")
 	}
 }
 
