@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
@@ -206,7 +207,15 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		}, nil
 	}
 	if os.Getenv("CQ_AWS_MARKETPLACE") == "true" {
-		u.awsMarketPlaceClient = marketplacemetering.New(marketplacemetering.Options{})
+		cfg, err := awsConfig.LoadDefaultConfig(context.TODO())
+		if err != nil {
+			return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		}
+
+		u.awsMarketPlaceClient = marketplacemetering.NewFromConfig(cfg)
+		u.teamName = "AWS_MARKETPLACE"
+		u.backgroundUpdater()
+		return u, nil
 	}
 
 	if u.tokenClient == nil {
@@ -315,6 +324,9 @@ func (u *BatchUpdater) TeamName() string {
 }
 
 func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
+	if u.awsMarketPlaceClient != nil {
+		return true, nil
+	}
 	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginMeta.Team).Str("pluginKind", string(u.pluginMeta.Kind)).Str("pluginName", u.pluginMeta.Name).Msg("checking quota")
 	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginMeta.Team, u.pluginMeta.Kind, u.pluginMeta.Name)
 	if err != nil {
