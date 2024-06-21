@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/apache/arrow/go/v16/arrow/array"
@@ -299,41 +300,56 @@ var syncTestCases = []syncTestCase{
 	},
 }
 
+type batchTestCase struct {
+	name    string
+	options []BatchOption
+}
+
+var allBatchTestCases = []batchTestCase{
+	{name: "no_batching"},
+	{
+		name:    "50 rows, 5s",
+		options: []BatchOption{WithBatchTimeout(5 * time.Second), WithBatchMaxRows(50)},
+	},
+}
+
 func TestScheduler(t *testing.T) {
-	// uuid.SetRand(testRand{})
 	for _, strategy := range AllStrategies {
-		for _, tc := range syncTestCases {
-			tc := tc
-			testName := "No table_" + strategy.String()
-			if tc.table != nil {
-				tc.table = tc.table.Copy(nil)
-				testName = tc.table.Name + "_" + strategy.String()
+		t.Run(strategy.String(), func(t *testing.T) {
+			for _, batching := range allBatchTestCases {
+				t.Run(batching.name, func(t *testing.T) {
+					for _, tc := range syncTestCases {
+						testName := "No table_" + strategy.String()
+						if tc.table != nil {
+							tc.table = tc.table.Copy(nil)
+							testName = tc.table.Name + "_" + strategy.String()
+						}
+						t.Run(testName, func(t *testing.T) {
+							testSyncTable(t, tc, strategy, tc.deterministicCQID, WithBatchOptions(batching.options...))
+						})
+					}
+				})
 			}
-			t.Run(testName, func(t *testing.T) {
-				testSyncTable(t, tc, strategy, tc.deterministicCQID)
-			})
-		}
+		})
 	}
 }
 
 // nolint:revive
-func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, deterministicCQID bool) {
+func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, deterministicCQID bool, extra ...Option) {
 	ctx := context.Background()
 	var tables schema.Tables
 	if tc.table != nil {
 		tables = append(tables, tc.table)
 	}
 	c := testExecutionClient{}
-	opts := []Option{
-		WithLogger(zerolog.New(zerolog.NewTestWriter(t))),
+	opts := append([]Option{
+		WithLogger(zerolog.New(zerolog.NewTestWriter(t)).Level(zerolog.DebugLevel)),
 		WithStrategy(strategy),
-	}
+	}, extra...)
 	sc := NewScheduler(opts...)
 	msgs := make(chan message.SyncMessage, 10)
 	err := sc.Sync(ctx, &c, tables, msgs, WithSyncDeterministicCQID(deterministicCQID))
-	if err != tc.err {
-		t.Fatal(err)
-	}
+	require.ErrorIs(t, err, tc.err)
 	close(msgs)
 
 	var i int
@@ -394,22 +410,22 @@ func TestScheduler_Cancellation(t *testing.T) {
 	data := make([]any, 100)
 
 	tests := []struct {
-		name         string
-		data         []any
-		cancel       bool
-		messageCount int
+		name           string
+		data           []any
+		cancel         bool
+		messagesOrRows int
 	}{
 		{
-			name:         "should consume all message",
-			data:         data,
-			cancel:       false,
-			messageCount: len(data) + 1, // 9 data + 1 migration message
+			name:           "should consume all message",
+			data:           data,
+			cancel:         false,
+			messagesOrRows: len(data) + 1, // 9 data + 1 migration message
 		},
 		{
-			name:         "should not consume all message on cancel",
-			data:         data,
-			cancel:       true,
-			messageCount: len(data) + 1, // 9 data + 1 migration message
+			name:           "should not consume all message on cancel",
+			data:           data,
+			cancel:         true,
+			messagesOrRows: len(data) + 1, // 9 data + 1 migration message
 		},
 	}
 
@@ -443,18 +459,22 @@ func TestScheduler_Cancellation(t *testing.T) {
 					close(messages)
 				}()
 
-				messageConsumed := 0
-				for range messages {
+				messagesOrRows := 0
+				for msg := range messages {
 					if tc.cancel {
 						cancel()
 					}
-					messageConsumed++
+					if r, ok := msg.(*message.SyncInsert); ok {
+						messagesOrRows += int(r.Record.NumRows())
+					} else {
+						messagesOrRows++
+					}
 				}
 
 				if tc.cancel {
-					assert.NotEqual(t, tc.messageCount, messageConsumed)
+					assert.NotEqual(t, tc.messagesOrRows, messagesOrRows)
 				} else {
-					assert.Equal(t, tc.messageCount, messageConsumed)
+					assert.Equal(t, tc.messagesOrRows, messagesOrRows)
 				}
 			})
 		}
