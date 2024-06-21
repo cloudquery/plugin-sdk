@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -73,6 +74,7 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	clientName := client.ID()
 	logger := s.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
+	startTime := time.Now()
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
 		logger.Info().Msg("top level table resolver started")
 	}
@@ -100,8 +102,9 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
+	tableMetrics.Duration = time.Since(startTime)
 	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
-		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Msg("table sync finished")
+		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", tableMetrics.Duration).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)
 	}
 }
