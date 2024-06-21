@@ -232,8 +232,9 @@ func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
 		metrics := s.metrics.TableClient[table.Name][clientName]
 		duration := metrics.Duration.Load()
 		if duration == nil {
-			// This can happen for a relation when there are no resources to resolve from the parent
-			duration = new(time.Duration)
+			// The resolver for this table+client pair didn't run.
+			// Consequentially, this means that the relations are also missing.
+			continue
 		}
 		s.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Dur("duration_ms", *duration).Uint64("errors", metrics.Errors).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)
