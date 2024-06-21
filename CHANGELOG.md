@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.47.1](https://github.com/cloudquery/plugin-sdk/compare/v4.47.0...v4.47.1) (2024-06-21)
+
+
+### Bug Fixes
+
+* Use Atomic Pointer for updating duration metric ([#1766](https://github.com/cloudquery/plugin-sdk/issues/1766)) ([61e698e](https://github.com/cloudquery/plugin-sdk/commit/61e698ed0c094d97411cc14a83ec6b7544c3e83f))
+
 ## [4.47.0](https://github.com/cloudquery/plugin-sdk/compare/v4.46.1...v4.47.0) (2024-06-21)
 
 
