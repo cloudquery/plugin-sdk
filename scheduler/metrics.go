@@ -16,7 +16,7 @@ type TableClientMetrics struct {
 	Resources uint64
 	Errors    uint64
 	Panics    uint64
-	Duration  time.Duration
+	Duration  atomic.Pointer[time.Duration]
 }
 
 func (s *TableClientMetrics) Equal(other *TableClientMetrics) bool {
