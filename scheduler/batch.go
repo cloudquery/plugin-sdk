@@ -53,7 +53,7 @@ func (s *BatchSettings) getBatcher(ctx context.Context, res chan<- message.SyncM
 			res:     res,
 			maxRows: s.MaxRows,
 			timeout: s.Timeout,
-			logger:  logger.With().Int("max_rows", s.MaxRows).Dur("timeout", s.Timeout).Logger(),
+			logger:  logger.With().Int("max_rows", s.MaxRows).Dur("timeout_ms", s.Timeout).Logger(),
 		}
 	}
 
@@ -101,12 +101,15 @@ type worker struct {
 	curRows, maxRows int
 	builder          *array.RecordBuilder // we can reuse that
 	res              chan<- message.SyncMessage
-	logger           zerolog.Logger
+
+	// debug logging
+	tableName string
+	logger    *zerolog.Logger
 }
 
 // send must be called on len(rows) > 0
 func (w *worker) send() {
-	w.logger.Debug().Int("current_rows", w.curRows).Msg("send")
+	w.logger.Debug().Str("table", w.tableName).Int("rows", w.curRows).Msg("send")
 	w.res <- &message.SyncInsert{Record: w.builder.NewRecord()}
 	// we need to reserve here as NewRecord (& underlying NewArray calls) reset the memory
 	w.builder.Reserve(w.maxRows)
@@ -188,7 +191,8 @@ func (b *batcher) process(res *schema.Resource) {
 		wr.builder = array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 		wr.res = b.res
 		wr.builder.Reserve(b.maxRows)
-		wr.logger = b.logger.With().Str("table", table.Name).Logger()
+		wr.logger = &b.logger
+		wr.tableName = table.Name
 
 		// start processing
 		wr.work(b.done, b.timeout)
