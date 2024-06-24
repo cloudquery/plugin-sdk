@@ -214,6 +214,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 
 		u.awsMarketPlaceClient = marketplacemetering.NewFromConfig(cfg)
 		u.teamName = "AWS_MARKETPLACE"
+		u.batchLimit = 1000000000
 		u.backgroundUpdater()
 		return u, nil
 	}
