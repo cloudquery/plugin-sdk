@@ -206,6 +206,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 			TeamNameValue: u.teamName,
 		}, nil
 	}
+	// If user wants to use the AWS Marketplace for billing, don't even try to communicate with CQ API
 	if os.Getenv("CQ_AWS_MARKETPLACE") == "true" {
 		cfg, err := awsConfig.LoadDefaultConfig(context.TODO())
 		if err != nil {
@@ -214,6 +215,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 
 		u.awsMarketPlaceClient = marketplacemetering.NewFromConfig(cfg)
 		u.teamName = "AWS_MARKETPLACE"
+		// This needs to be larger than normal, because we can only send a single usage record per second (from each compute node)
 		u.batchLimit = 1000000000
 		u.backgroundUpdater()
 		return u, nil
@@ -440,8 +442,15 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 	for retry := 0; retry < u.maxRetries; retry++ {
 		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
 		queryStartTime := time.Now()
+
+		// If the AWS Marketplace client is set, use it to track usage
 		if u.awsMarketPlaceClient != nil {
+			// Timestamp + UsageDimension + UsageQuantity are required fields and must be unique
+			// since Timestamp only maintains a granularity of seconds, we need to ensure our batch size is large enough
 			_, err := u.awsMarketPlaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
+				// Product code is a unique identifier for a product in AWS Marketplace
+				// Each product is given a unique product code when it is listed in AWS Marketplace
+				// in the future we can have multiple product codes for container or AMI based listings
 				ProductCode:    aws.String("3r9d4ty0j8bloz3r1p4o0r9q3"),
 				Timestamp:      aws.Time(time.Now()),
 				UsageDimension: aws.String("rows"),
