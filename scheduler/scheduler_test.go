@@ -300,24 +300,25 @@ var syncTestCases = []syncTestCase{
 	},
 }
 
-type batchTestCase struct {
+type optionsTestCase struct {
 	name    string
-	options []BatchOption
+	options []Option
 }
 
-var allBatchTestCases = []batchTestCase{
-	{name: "no_batching"},
+var allOptionsTestCases = []optionsTestCase{
+	{name: "default_batching"},
+	{name: "without_batching", options: []Option{WithoutBatching()}},
 	{
-		name:    "50 rows, 5s",
-		options: []BatchOption{WithBatchTimeout(5 * time.Second), WithBatchMaxRows(50)},
+		name:    "10 rows, 2s",
+		options: []Option{WithBatchOptions(WithBatchTimeout(2*time.Second), WithBatchMaxRows(10))},
 	},
 }
 
 func TestScheduler(t *testing.T) {
 	for _, strategy := range AllStrategies {
 		t.Run(strategy.String(), func(t *testing.T) {
-			for _, batching := range allBatchTestCases {
-				t.Run(batching.name, func(t *testing.T) {
+			for _, opts := range allOptionsTestCases {
+				t.Run(opts.name, func(t *testing.T) {
 					for _, tc := range syncTestCases {
 						testName := "No table_" + strategy.String()
 						if tc.table != nil {
@@ -325,7 +326,7 @@ func TestScheduler(t *testing.T) {
 							testName = tc.table.Name + "_" + strategy.String()
 						}
 						t.Run(testName, func(t *testing.T) {
-							testSyncTable(t, tc, strategy, tc.deterministicCQID, WithBatchOptions(batching.options...))
+							testSyncTable(t, tc, strategy, tc.deterministicCQID, opts.options...)
 						})
 					}
 				})

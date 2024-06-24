@@ -126,7 +126,10 @@ func NewScheduler(opts ...Option) *Scheduler {
 		maxDepth:                        DefaultMaxDepth,
 		singleResourceMaxConcurrency:    DefaultSingleResourceMaxConcurrency,
 		singleNestedTableMaxConcurrency: DefaultSingleNestedTableMaxConcurrency,
-		batchSettings:                   new(BatchSettings),
+		batchSettings: &BatchSettings{
+			MaxRows: DefaultBatchMaxRows,
+			Timeout: DefaultBatchTimeout,
+		},
 	}
 	for _, opt := range opts {
 		opt(&s)

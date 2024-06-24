@@ -14,6 +14,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	DefaultBatchMaxRows = 50
+	DefaultBatchTimeout = 5 * time.Second
+)
+
 type (
 	BatchSettings struct {
 		MaxRows int
@@ -22,6 +27,12 @@ type (
 
 	BatchOption func(settings *BatchSettings)
 )
+
+func WithoutBatching() Option {
+	return func(s *Scheduler) {
+		s.batchSettings = nil
+	}
+}
 
 func WithBatchOptions(options ...BatchOption) Option {
 	return func(s *Scheduler) {
@@ -47,17 +58,17 @@ func WithBatchTimeout(timeout time.Duration) BatchOption {
 }
 
 func (s *BatchSettings) getBatcher(ctx context.Context, res chan<- message.SyncMessage, logger zerolog.Logger) batcherInterface {
-	if s.Timeout > 0 && s.MaxRows > 1 {
-		return &batcher{
-			done:    ctx.Done(),
-			res:     res,
-			maxRows: s.MaxRows,
-			timeout: s.Timeout,
-			logger:  logger.With().Int("max_rows", s.MaxRows).Dur("timeout_ms", s.Timeout).Logger(),
-		}
+	if s == nil || s.Timeout <= 0 || s.MaxRows <= 0 {
+		return &nopBatcher{res: res}
 	}
 
-	return &nopBatcher{res: res}
+	return &batcher{
+		done:    ctx.Done(),
+		res:     res,
+		maxRows: s.MaxRows,
+		timeout: s.Timeout,
+		logger:  logger.With().Int("max_rows", s.MaxRows).Dur("timeout_ms", s.Timeout).Logger(),
+	}
 }
 
 type batcherInterface interface {
