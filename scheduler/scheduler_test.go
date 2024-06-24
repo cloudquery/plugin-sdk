@@ -310,7 +310,7 @@ var allOptionsTestCases = []optionsTestCase{
 	{name: "without_batching", options: []Option{WithoutBatching()}},
 	{
 		name:    "10 rows, 2s",
-		options: []Option{WithBatchOptions(WithBatchTimeout(5*time.Second), WithBatchMaxRows(50))},
+		options: []Option{WithBatchOptions(WithBatchTimeout(2*time.Second), WithBatchMaxRows(10))},
 	},
 }
 
