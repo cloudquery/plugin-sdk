@@ -200,6 +200,9 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 						logger.Error().Err(err).Msg("failed to shutdown OTLP metric exporter")
 					}
 				}()
+				otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+					logger.Debug().Err(err).Msg("otel error")
+				}))
 				otel.SetTracerProvider(tp)
 				otel.SetMeterProvider(mt)
 			}

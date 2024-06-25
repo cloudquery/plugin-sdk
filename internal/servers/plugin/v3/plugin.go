@@ -12,6 +12,9 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -147,6 +150,17 @@ func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
 	return readErr
 }
 
+func flushMetrics() {
+	trace, ok := otel.GetTracerProvider().(*trace.TracerProvider)
+	if ok && trace != nil {
+		trace.ForceFlush(context.Background())
+	}
+	meter, ok := otel.GetMeterProvider().(*metric.MeterProvider)
+	if ok && meter != nil {
+		meter.ForceFlush(context.Background())
+	}
+}
+
 func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	msgs := make(chan message.SyncMessage)
 	var syncErr error
@@ -166,6 +180,7 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	}
 
 	go func() {
+		defer flushMetrics()
 		defer close(msgs)
 		err := s.Plugin.Sync(ctx, syncOptions, msgs)
 		if err != nil {
