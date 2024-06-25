@@ -151,13 +151,13 @@ func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
 }
 
 func flushMetrics() {
-	trace, ok := otel.GetTracerProvider().(*trace.TracerProvider)
-	if ok && trace != nil {
-		trace.ForceFlush(context.Background())
+	traceProvider, ok := otel.GetTracerProvider().(*trace.TracerProvider)
+	if ok && traceProvider != nil {
+		traceProvider.ForceFlush(context.Background())
 	}
-	meter, ok := otel.GetMeterProvider().(*metric.MeterProvider)
-	if ok && meter != nil {
-		meter.ForceFlush(context.Background())
+	meterProvider, ok := otel.GetMeterProvider().(*metric.MeterProvider)
+	if ok && meterProvider != nil {
+		meterProvider.ForceFlush(context.Background())
 	}
 }
 

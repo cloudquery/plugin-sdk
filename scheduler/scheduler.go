@@ -84,9 +84,9 @@ func WithSyncDeterministicCQID(deterministicCQID bool) SyncOption {
 	}
 }
 
-func WithInvocationID(invocationId string) Option {
+func WithInvocationID(invocationID string) Option {
 	return func(s *Scheduler) {
-		s.invocationId = invocationId
+		s.invocationID = invocationID
 	}
 }
 
@@ -116,7 +116,7 @@ type Scheduler struct {
 	// Controls how records are constructed on the source side.
 	batchSettings *BatchSettings
 
-	invocationId string
+	invocationID string
 }
 
 type syncClient struct {
@@ -127,7 +127,7 @@ type syncClient struct {
 	// status sync metrics
 	metrics      *Metrics
 	logger       zerolog.Logger
-	invocationId string
+	invocationID string
 }
 
 func NewScheduler(opts ...Option) *Scheduler {
@@ -180,7 +180,7 @@ func (s *Scheduler) SyncAll(ctx context.Context, client schema.ClientMeta, table
 func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables schema.Tables, res chan<- message.SyncMessage, opts ...SyncOption) error {
 	ctx, span := otel.Tracer(otelName).Start(ctx,
 		"sync",
-		trace.WithAttributes(attribute.Key("sync.invocation.id").String(s.invocationId)),
+		trace.WithAttributes(attribute.Key("sync.invocation.id").String(s.invocationID)),
 	)
 	defer span.End()
 	if len(tables) == 0 {
@@ -188,11 +188,12 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}
 
 	syncClient := &syncClient{
-		metrics:   &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
-		tables:    tables,
-		client:    client,
-		scheduler: s,
-		logger:    s.logger,
+		metrics:      &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
+		tables:       tables,
+		client:       client,
+		scheduler:    s,
+		logger:       s.logger,
+		invocationID: s.invocationID,
 	}
 	for _, opt := range opts {
 		opt(syncClient)

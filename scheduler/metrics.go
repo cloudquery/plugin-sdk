@@ -40,8 +40,8 @@ func durationPointerEqual(a, b *time.Duration) bool {
 	return b != nil && *a == *b
 }
 
-func (s *TableClientMetrics) Equal(other *TableClientMetrics) bool {
-	return s.Resources == other.Resources && s.Errors == other.Errors && s.Panics == other.Panics && durationPointerEqual(s.Duration.Load(), other.Duration.Load())
+func (m *TableClientMetrics) Equal(other *TableClientMetrics) bool {
+	return m.Resources == other.Resources && m.Errors == other.Errors && m.Panics == other.Panics && durationPointerEqual(m.Duration.Load(), other.Duration.Load())
 }
 
 // Equal compares to stats. Mostly useful in testing
