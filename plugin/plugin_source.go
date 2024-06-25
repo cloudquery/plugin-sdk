@@ -88,12 +88,10 @@ func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- messa
 	if p.client == nil {
 		return fmt.Errorf("plugin not initialized. call Init() first")
 	}
-	// startTime := time.Now()
 
 	if err := p.client.Sync(ctx, options, res); err != nil {
 		return fmt.Errorf("failed to sync unmanaged client: %w", err)
 	}
 
-	// p.logger.Info().Uint64("resources", p.metrics.TotalResources()).Uint64("errors", p.metrics.TotalErrors()).Uint64("panics", p.metrics.TotalPanics()).TimeDiff("duration", time.Now(), startTime).Msg("sync finished")
 	return nil
 }

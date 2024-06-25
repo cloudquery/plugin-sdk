@@ -37,7 +37,7 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 		preInitialisedClients[i] = clients
 		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
 		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
-		s.metrics.initWithClients(table, clients)
+		s.metrics.initWithClients(table, clients, s.invocationId)
 	}
 
 	var wg sync.WaitGroup
@@ -70,7 +70,10 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	clientName := client.ID()
 	ctx, span := otel.Tracer(otelName).Start(ctx,
 		"sync.table."+table.Name,
-		trace.WithAttributes(attribute.Key("sync.client.id").String(clientName)),
+		trace.WithAttributes(
+			attribute.Key("sync.client.id").String(clientName),
+			attribute.Key("sync.invocation.id").String(s.invocationId),
+		),
 	)
 	defer span.End()
 	logger := s.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
@@ -105,6 +108,10 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	// we don't need any waitgroups here because we are waiting for the channel to close
 	duration := time.Since(startTime)
 	tableMetrics.Duration.Store(&duration)
+	tableMetrics.OtelResourcesAdd(ctx, int64(tableMetrics.Resources))
+	tableMetrics.OtelErrorsAdd(ctx, int64(tableMetrics.Errors))
+	tableMetrics.OtelPanicsAdd(ctx, int64(tableMetrics.Panics))
+	tableMetrics.OtelDurationRecord(ctx, duration)
 	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
 		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", duration).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)

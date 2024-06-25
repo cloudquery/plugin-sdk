@@ -1,10 +1,14 @@
 package scheduler
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // Metrics is deprecated as we move toward open telemetry for tracing and metrics
@@ -12,11 +16,21 @@ type Metrics struct {
 	TableClient map[string]map[string]*TableClientMetrics
 }
 
+type OtelMeters struct {
+	resources  metric.Int64Counter
+	errors     metric.Int64Counter
+	panics     metric.Int64Counter
+	duration   metric.Int64Counter
+	attributes []attribute.KeyValue
+}
+
 type TableClientMetrics struct {
 	Resources uint64
 	Errors    uint64
 	Panics    uint64
 	Duration  atomic.Pointer[time.Duration]
+
+	otelMeters *OtelMeters
 }
 
 func durationPointerEqual(a, b *time.Duration) bool {
@@ -61,13 +75,62 @@ func (s *Metrics) Equal(other *Metrics) bool {
 	return true
 }
 
-func (s *Metrics) initWithClients(table *schema.Table, clients []schema.ClientMeta) {
+func getOtelMeters(tableName string, clientID string, invocationID string) *OtelMeters {
+	resources, err := otel.Meter(otelName).Int64Counter("sync.table.resources."+tableName,
+		metric.WithDescription("Number of resources synced for the "+tableName+" table"),
+		metric.WithUnit("/{tot}"),
+	)
+	if err != nil {
+		return nil
+	}
+
+	errors, err := otel.Meter(otelName).Int64Counter("sync.table.errors."+tableName,
+		metric.WithDescription("Number of errors encountered while syncing the "+tableName+" table"),
+		metric.WithUnit("/{tot}"),
+	)
+	if err != nil {
+		return nil
+	}
+
+	panics, err := otel.Meter(otelName).Int64Counter("sync.table.panics."+tableName,
+		metric.WithDescription("Number of panics encountered while syncing the "+tableName+" table"),
+		metric.WithUnit("/{tot}"),
+	)
+	if err != nil {
+		return nil
+	}
+
+	duration, err := otel.Meter(otelName).Int64Counter("sync.table.duration."+tableName,
+		metric.WithDescription("Duration of syncing the "+tableName+" table"),
+		metric.WithUnit("ms"),
+	)
+	if err != nil {
+		return nil
+	}
+
+	return &OtelMeters{
+		resources: resources,
+		errors:    errors,
+		panics:    panics,
+		duration:  duration,
+		attributes: []attribute.KeyValue{
+			attribute.Key("sync.client.id").String(clientID),
+			attribute.Key("sync.invocation.id").String(invocationID),
+		},
+	}
+}
+
+func (s *Metrics) initWithClients(table *schema.Table, clients []schema.ClientMeta, invocationID string) {
 	s.TableClient[table.Name] = make(map[string]*TableClientMetrics, len(clients))
 	for _, client := range clients {
-		s.TableClient[table.Name][client.ID()] = &TableClientMetrics{}
+		tableName := table.Name
+		clientID := client.ID()
+		s.TableClient[tableName][clientID] = &TableClientMetrics{
+			otelMeters: getOtelMeters(tableName, clientID, invocationID),
+		}
 	}
 	for _, relation := range table.Relations {
-		s.initWithClients(relation, clients)
+		s.initWithClients(relation, clients, invocationID)
 	}
 }
 
@@ -129,4 +192,36 @@ func (s *Metrics) TotalResourcesAtomic() uint64 {
 		}
 	}
 	return total
+}
+
+func (m *TableClientMetrics) OtelResourcesAdd(ctx context.Context, count int64) {
+	if m.otelMeters == nil {
+		return
+	}
+
+	m.otelMeters.resources.Add(ctx, count, metric.WithAttributes(m.otelMeters.attributes...))
+}
+
+func (m *TableClientMetrics) OtelErrorsAdd(ctx context.Context, count int64) {
+	if m.otelMeters == nil {
+		return
+	}
+
+	m.otelMeters.errors.Add(ctx, count, metric.WithAttributes(m.otelMeters.attributes...))
+}
+
+func (m *TableClientMetrics) OtelPanicsAdd(ctx context.Context, count int64) {
+	if m.otelMeters == nil {
+		return
+	}
+
+	m.otelMeters.panics.Add(ctx, count, metric.WithAttributes(m.otelMeters.attributes...))
+}
+
+func (m *TableClientMetrics) OtelDurationRecord(ctx context.Context, duration time.Duration) {
+	if m.otelMeters == nil {
+		return
+	}
+
+	m.otelMeters.duration.Add(ctx, duration.Milliseconds(), metric.WithAttributes(m.otelMeters.attributes...))
 }
