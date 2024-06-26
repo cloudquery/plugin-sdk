@@ -47,26 +47,33 @@ func parseOtelHeaders(headers []string) map[string]string {
 	return headerMap
 }
 
-func getTraceExporter(ctx context.Context, endpoint string, insecure bool, headers []string, urlPath string) (*otlptrace.Exporter, error) {
-	if endpoint == "" {
+type otelConfig struct {
+	endpoint string
+	insecure bool
+	headers  []string
+	urlPath  string
+}
+
+func getTraceExporter(ctx context.Context, opts otelConfig) (*otlptrace.Exporter, error) {
+	if opts.endpoint == "" {
 		return nil, nil
 	}
 
 	traceOptions := []otlptracehttp.Option{
-		otlptracehttp.WithEndpoint(endpoint),
+		otlptracehttp.WithEndpoint(opts.endpoint),
 	}
 
-	if insecure {
+	if opts.insecure {
 		traceOptions = append(traceOptions, otlptracehttp.WithInsecure())
 	}
 
-	if len(headers) > 0 {
-		headers := parseOtelHeaders(headers)
+	if len(opts.headers) > 0 {
+		headers := parseOtelHeaders(opts.headers)
 		traceOptions = append(traceOptions, otlptracehttp.WithHeaders(headers))
 	}
 
-	if urlPath != "" {
-		traceOptions = append(traceOptions, otlptracehttp.WithURLPath(urlPath))
+	if opts.urlPath != "" {
+		traceOptions = append(traceOptions, otlptracehttp.WithURLPath(opts.urlPath))
 	}
 
 	traceClient := otlptracehttp.NewClient(traceOptions...)
@@ -78,26 +85,26 @@ func getTraceExporter(ctx context.Context, endpoint string, insecure bool, heade
 	return traceExporter, nil
 }
 
-func getMetricReader(ctx context.Context, endpoint string, insecure bool, headers []string, urlPath string) (*metric.PeriodicReader, error) {
-	if endpoint == "" {
+func getMetricReader(ctx context.Context, opts otelConfig) (*metric.PeriodicReader, error) {
+	if opts.endpoint == "" {
 		return nil, nil
 	}
 
 	metricOptions := []otlpmetrichttp.Option{
-		otlpmetrichttp.WithEndpoint(endpoint),
+		otlpmetrichttp.WithEndpoint(opts.endpoint),
 	}
 
-	if insecure {
+	if opts.insecure {
 		metricOptions = append(metricOptions, otlpmetrichttp.WithInsecure())
 	}
 
-	if len(headers) > 0 {
-		headers := parseOtelHeaders(headers)
+	if len(opts.headers) > 0 {
+		headers := parseOtelHeaders(opts.headers)
 		metricOptions = append(metricOptions, otlpmetrichttp.WithHeaders(headers))
 	}
 
-	if urlPath != "" {
-		metricOptions = append(metricOptions, otlpmetrichttp.WithURLPath(urlPath))
+	if opts.urlPath != "" {
+		metricOptions = append(metricOptions, otlpmetrichttp.WithURLPath(opts.urlPath))
 	}
 
 	metricExporter, err := otlpmetrichttp.New(ctx, metricOptions...)
@@ -113,25 +120,31 @@ func setupOtel(ctx context.Context, logger zerolog.Logger, p *plugin.Plugin, ote
 	if otelEndpoint == "" {
 		return func() {}, nil
 	}
-	traceExporter, err := getTraceExporter(ctx, otelEndpoint, otelEndpointInsecure, otelEndpointHeaders, otelEndpointURLPath)
+	opts := otelConfig{
+		endpoint: otelEndpoint,
+		insecure: otelEndpointInsecure,
+		headers:  otelEndpointHeaders,
+		urlPath:  otelEndpointURLPath,
+	}
+	traceExporter, err := getTraceExporter(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	metricReader, err := getMetricReader(ctx, otelEndpoint, otelEndpointInsecure, otelEndpointHeaders, otelEndpointURLPath)
+	metricReader, err := getMetricReader(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	resource := newResource(p)
+	pluginResource := newResource(p)
 	tp := trace.NewTracerProvider(
 		trace.WithBatcher(traceExporter),
-		trace.WithResource(resource),
+		trace.WithResource(pluginResource),
 	)
 
 	mt := metric.NewMeterProvider(
 		metric.WithReader(metricReader),
-		metric.WithResource(resource),
+		metric.WithResource(pluginResource),
 	)
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
 		logger.Debug().Err(err).Msg("otel error")
