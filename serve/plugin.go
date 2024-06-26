@@ -8,18 +8,11 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers/grpczerolog"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/premium"
 	"github.com/cloudquery/plugin-sdk/v4/types"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/trace"
 
 	pbDestinationV0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	pbDestinationV1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
@@ -143,69 +136,12 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
 
-			if otelEndpoint != "" {
-				resource := newResource(s.plugin)
-				traceOptions := []otlptracehttp.Option{
-					otlptracehttp.WithEndpoint(otelEndpoint),
-				}
-				metricOptions := []otlpmetrichttp.Option{
-					otlpmetrichttp.WithEndpoint(otelEndpoint),
-				}
-				if otelEndpointInsecure {
-					traceOptions = append(traceOptions, otlptracehttp.WithInsecure())
-					metricOptions = append(metricOptions, otlpmetrichttp.WithInsecure())
-				}
-				if len(otelEndpointHeaders) > 0 {
-					headers := make(map[string]string, len(otelEndpointHeaders))
-					for _, h := range otelEndpointHeaders {
-						parts := strings.SplitN(h, ":", 2)
-						if len(parts) != 2 {
-							return fmt.Errorf("invalid header %q", h)
-						}
-						headers[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
-					}
-					traceOptions = append(traceOptions, otlptracehttp.WithHeaders(headers))
-					metricOptions = append(metricOptions, otlpmetrichttp.WithHeaders(headers))
-				}
-				if otelEndpointURLPath != "" {
-					traceOptions = append(traceOptions, otlptracehttp.WithURLPath(otelEndpointURLPath))
-					metricOptions = append(metricOptions, otlpmetrichttp.WithURLPath(otelEndpointURLPath))
-				}
-
-				traceClient := otlptracehttp.NewClient(traceOptions...)
-				traceExporter, err := otlptrace.New(cmd.Context(), traceClient)
-				if err != nil {
-					return fmt.Errorf("creating OTLP trace exporter: %w", err)
-				}
-				tp := trace.NewTracerProvider(
-					trace.WithBatcher(traceExporter),
-					trace.WithResource(resource),
-				)
-
-				metricExporter, err := otlpmetrichttp.New(cmd.Context(), metricOptions...)
-				if err != nil {
-					return fmt.Errorf("creating OTLP metric exporter: %w", err)
-				}
-				mt := metric.NewMeterProvider(
-					metric.WithReader(metric.NewPeriodicReader(
-						metricExporter, metric.WithInterval(30*time.Second)),
-					),
-					metric.WithResource(resource),
-				)
-				defer func() {
-					if err := tp.Shutdown(context.Background()); err != nil {
-						logger.Error().Err(err).Msg("failed to shutdown OTLP trace exporter")
-					}
-					if err := mt.Shutdown(context.Background()); err != nil {
-						logger.Error().Err(err).Msg("failed to shutdown OTLP metric exporter")
-					}
-				}()
-				otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
-					logger.Debug().Err(err).Msg("otel error")
-				}))
-				otel.SetTracerProvider(tp)
-				otel.SetMeterProvider(mt)
+			shutdown, err := setupOtel(cmd.Context(), logger, s.plugin, otelEndpoint, otelEndpointInsecure, otelEndpointHeaders, otelEndpointURLPath)
+			if err != nil {
+				return fmt.Errorf("failed to setup OpenTelemetry: %w", err)
 			}
+			defer shutdown()
+
 			if licenseFile != "" {
 				switch err := premium.ValidateLicense(logger, s.plugin.Meta(), licenseFile); err {
 				case nil:
