@@ -112,7 +112,7 @@ func getMetricReader(ctx context.Context, opts otelConfig) (*metric.PeriodicRead
 		return nil, fmt.Errorf("creating OTLP metric exporter: %w", err)
 	}
 
-	reader := metric.NewPeriodicReader(metricExporter, metric.WithInterval(30*time.Second))
+	reader := metric.NewPeriodicReader(metricExporter, metric.WithInterval(15*time.Second))
 	return reader, nil
 }
 
