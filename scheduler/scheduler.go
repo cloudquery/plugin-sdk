@@ -292,6 +292,7 @@ func (s *syncClient) resolveResource(ctx context.Context, table *schema.Table, c
 		}
 	}
 
+	tableMetrics.OtelResourcesAdd(ctx, 1)
 	atomic.AddUint64(&tableMetrics.Resources, 1)
 	return resource
 }

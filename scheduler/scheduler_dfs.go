@@ -83,6 +83,7 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 		logger.Info().Msg("top level table resolver started")
 	}
 	tableMetrics := s.metrics.TableClient[table.Name][clientName]
+	tableMetrics.OtelStartTime(ctx, startTime)
 
 	res := make(chan any)
 	go func() {
@@ -90,12 +91,14 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 			if err := recover(); err != nil {
 				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
+				tableMetrics.OtelPanicsAdd(ctx, 1)
 				atomic.AddUint64(&tableMetrics.Panics, 1)
 			}
 			close(res)
 		}()
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
+			tableMetrics.OtelErrorsAdd(ctx, 1)
 			atomic.AddUint64(&tableMetrics.Errors, 1)
 			return
 		}
@@ -106,12 +109,10 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
-	duration := time.Since(startTime)
+	endTime := time.Now()
+	duration := endTime.Sub(startTime)
 	tableMetrics.Duration.Store(&duration)
-	tableMetrics.OtelResourcesAdd(ctx, int64(tableMetrics.Resources))
-	tableMetrics.OtelErrorsAdd(ctx, int64(tableMetrics.Errors))
-	tableMetrics.OtelPanicsAdd(ctx, int64(tableMetrics.Panics))
-	tableMetrics.OtelDurationRecord(ctx, duration)
+	tableMetrics.OtelEndTime(ctx, endTime)
 	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
 		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", duration).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)

@@ -20,7 +20,8 @@ type OtelMeters struct {
 	resources  metric.Int64Counter
 	errors     metric.Int64Counter
 	panics     metric.Int64Counter
-	duration   metric.Int64Counter
+	startTime  metric.Int64Counter
+	endTime    metric.Int64Counter
 	attributes []attribute.KeyValue
 }
 
@@ -76,34 +77,43 @@ func (s *Metrics) Equal(other *Metrics) bool {
 }
 
 func getOtelMeters(tableName string, clientID string, invocationID string) *OtelMeters {
-	resources, err := otel.Meter(otelName).Int64Counter("sync.table.resources."+tableName,
-		metric.WithDescription("Number of resources synced for the "+tableName+" table"),
+	resources, err := otel.Meter(otelName).Int64Counter("sync.table.resources",
+		metric.WithDescription("Number of resources synced for a table"),
 		metric.WithUnit("/{tot}"),
 	)
 	if err != nil {
 		return nil
 	}
 
-	errors, err := otel.Meter(otelName).Int64Counter("sync.table.errors."+tableName,
-		metric.WithDescription("Number of errors encountered while syncing the "+tableName+" table"),
+	errors, err := otel.Meter(otelName).Int64Counter("sync.table.errors",
+		metric.WithDescription("Number of errors encountered while syncing a table"),
 		metric.WithUnit("/{tot}"),
 	)
 	if err != nil {
 		return nil
 	}
 
-	panics, err := otel.Meter(otelName).Int64Counter("sync.table.panics."+tableName,
-		metric.WithDescription("Number of panics encountered while syncing the "+tableName+" table"),
+	panics, err := otel.Meter(otelName).Int64Counter("sync.table.panics",
+		metric.WithDescription("Number of panics encountered while syncing a table"),
 		metric.WithUnit("/{tot}"),
 	)
 	if err != nil {
 		return nil
 	}
 
-	duration, err := otel.Meter(otelName).Int64Counter("sync.table.duration."+tableName,
-		metric.WithDescription("Duration of syncing the "+tableName+" table"),
-		metric.WithUnit("ms"),
+	startTime, err := otel.Meter(otelName).Int64Counter("sync.table.start_time",
+		metric.WithDescription("Start time of syncing a table"),
+		metric.WithUnit("ns"),
 	)
+	if err != nil {
+		return nil
+	}
+
+	endTime, err := otel.Meter(otelName).Int64Counter("sync.table.end_time",
+		metric.WithDescription("End time of syncing a table"),
+		metric.WithUnit("ns"),
+	)
+
 	if err != nil {
 		return nil
 	}
@@ -112,10 +122,12 @@ func getOtelMeters(tableName string, clientID string, invocationID string) *Otel
 		resources: resources,
 		errors:    errors,
 		panics:    panics,
-		duration:  duration,
+		startTime: startTime,
+		endTime:   endTime,
 		attributes: []attribute.KeyValue{
 			attribute.Key("sync.client.id").String(clientID),
 			attribute.Key("sync.invocation.id").String(invocationID),
+			attribute.Key("sync.table.name").String(tableName),
 		},
 	}
 }
@@ -218,10 +230,18 @@ func (m *TableClientMetrics) OtelPanicsAdd(ctx context.Context, count int64) {
 	m.otelMeters.panics.Add(ctx, count, metric.WithAttributes(m.otelMeters.attributes...))
 }
 
-func (m *TableClientMetrics) OtelDurationRecord(ctx context.Context, duration time.Duration) {
+func (m *TableClientMetrics) OtelStartTime(ctx context.Context, start time.Time) {
 	if m.otelMeters == nil {
 		return
 	}
 
-	m.otelMeters.duration.Add(ctx, duration.Milliseconds(), metric.WithAttributes(m.otelMeters.attributes...))
+	m.otelMeters.startTime.Add(ctx, start.UnixNano(), metric.WithAttributes(m.otelMeters.attributes...))
+}
+
+func (m *TableClientMetrics) OtelEndTime(ctx context.Context, end time.Time) {
+	if m.otelMeters == nil {
+		return
+	}
+
+	m.otelMeters.endTime.Add(ctx, end.UnixNano(), metric.WithAttributes(m.otelMeters.attributes...))
 }
