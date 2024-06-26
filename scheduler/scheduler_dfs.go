@@ -37,7 +37,7 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 		preInitialisedClients[i] = clients
 		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
 		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
-		s.metrics.initWithClients(table, clients, s.invocationID)
+		s.metrics.initWithClients(table, clients)
 	}
 
 	var wg sync.WaitGroup
