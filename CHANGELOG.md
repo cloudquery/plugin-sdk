@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.49.0](https://github.com/cloudquery/plugin-sdk/compare/v4.48.0...v4.49.0) (2024-06-27)
+
+
+### Features
+
+* Better OTEL traces, add metrics ([#1751](https://github.com/cloudquery/plugin-sdk/issues/1751)) ([874c33a](https://github.com/cloudquery/plugin-sdk/commit/874c33a9ddc1fcc7aefb86cf1a0076f701f07735))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/hashicorp/go-retryablehttp to v0.7.7 [SECURITY] ([#1774](https://github.com/cloudquery/plugin-sdk/issues/1774)) ([e5e8e7e](https://github.com/cloudquery/plugin-sdk/commit/e5e8e7ea650862e53214f381db6c22173fb04edb))
+
 ## [4.48.0](https://github.com/cloudquery/plugin-sdk/compare/v4.47.1...v4.48.0) (2024-06-24)
 
 
