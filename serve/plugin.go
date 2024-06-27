@@ -13,10 +13,6 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/premium"
 	"github.com/cloudquery/plugin-sdk/v4/types"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/sdk/trace"
 
 	pbDestinationV0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	pbDestinationV1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
@@ -140,45 +136,12 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
 
-			if otelEndpoint != "" {
-				resource := newResource(s.plugin)
-				opts := []otlptracehttp.Option{
-					otlptracehttp.WithEndpoint(otelEndpoint),
-				}
-				if otelEndpointInsecure {
-					opts = append(opts, otlptracehttp.WithInsecure())
-				}
-				if len(otelEndpointHeaders) > 0 {
-					headers := make(map[string]string, len(otelEndpointHeaders))
-					for _, h := range otelEndpointHeaders {
-						parts := strings.SplitN(h, ":", 2)
-						if len(parts) != 2 {
-							return fmt.Errorf("invalid header %q", h)
-						}
-						headers[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
-					}
-					opts = append(opts, otlptracehttp.WithHeaders(headers))
-				}
-				if otelEndpointURLPath != "" {
-					opts = append(opts, otlptracehttp.WithURLPath(otelEndpointURLPath))
-				}
-
-				client := otlptracehttp.NewClient(opts...)
-				exp, err := otlptrace.New(cmd.Context(), client)
-				if err != nil {
-					return fmt.Errorf("creating OTLP trace exporter: %w", err)
-				}
-				tp := trace.NewTracerProvider(
-					trace.WithBatcher(exp),
-					trace.WithResource(resource),
-				)
-				defer func() {
-					if err := tp.Shutdown(context.Background()); err != nil {
-						logger.Error().Err(err).Msg("failed to shutdown OTLP trace exporter")
-					}
-				}()
-				otel.SetTracerProvider(tp)
+			shutdown, err := setupOtel(cmd.Context(), logger, s.plugin, otelEndpoint, otelEndpointInsecure, otelEndpointHeaders, otelEndpointURLPath)
+			if err != nil {
+				return fmt.Errorf("failed to setup OpenTelemetry: %w", err)
 			}
+			defer shutdown()
+
 			if licenseFile != "" {
 				switch err := premium.ValidateLicense(logger, s.plugin.Meta(), licenseFile); err {
 				case nil:

@@ -12,12 +12,11 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/semaphore"
 )
 
 func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *schema.Resource) {
-	ctx, span := otel.Tracer(otelName).Start(ctx, "syncDfs")
-	defer span.End()
 	// we have this because plugins can return sometimes clients in a random way which will cause
 	// differences between this run and the next one.
 	preInitialisedClients := make([][]schema.ClientMeta, len(s.tables))
@@ -68,10 +67,15 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 }
 
 func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
-	ctx, span := otel.Tracer(otelName).Start(ctx, "resolveTableDfs_"+table.Name)
-	span.SetAttributes(attribute.Key("client-id").String(client.ID()))
-	defer span.End()
 	clientName := client.ID()
+	ctx, span := otel.Tracer(otelName).Start(ctx,
+		"sync.table."+table.Name,
+		trace.WithAttributes(
+			attribute.Key("sync.client.id").String(clientName),
+			attribute.Key("sync.invocation.id").String(s.invocationID),
+		),
+	)
+	defer span.End()
 	logger := s.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 
 	startTime := time.Now()
@@ -79,6 +83,7 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 		logger.Info().Msg("top level table resolver started")
 	}
 	tableMetrics := s.metrics.TableClient[table.Name][clientName]
+	tableMetrics.OtelStartTime(ctx, startTime)
 
 	res := make(chan any)
 	go func() {
@@ -86,12 +91,14 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 			if err := recover(); err != nil {
 				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
+				tableMetrics.OtelPanicsAdd(ctx, 1)
 				atomic.AddUint64(&tableMetrics.Panics, 1)
 			}
 			close(res)
 		}()
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
+			tableMetrics.OtelErrorsAdd(ctx, 1)
 			atomic.AddUint64(&tableMetrics.Errors, 1)
 			return
 		}
@@ -102,8 +109,10 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	}
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
-	duration := time.Since(startTime)
+	endTime := time.Now()
+	duration := endTime.Sub(startTime)
 	tableMetrics.Duration.Store(&duration)
+	tableMetrics.OtelEndTime(ctx, endTime)
 	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
 		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", duration).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)

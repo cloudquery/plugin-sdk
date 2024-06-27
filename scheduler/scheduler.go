@@ -15,6 +15,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -25,7 +27,7 @@ const (
 	DefaultMaxDepth                        = 4
 	minTableConcurrency                    = 1
 	minResourceConcurrency                 = 100
-	otelName                               = "schedule"
+	otelName                               = "io.cloudquery"
 )
 
 var ErrNoTables = errors.New("no tables specified for syncing, review `tables` and `skip_tables` in your config and specify at least one table to sync")
@@ -82,6 +84,12 @@ func WithSyncDeterministicCQID(deterministicCQID bool) SyncOption {
 	}
 }
 
+func WithInvocationID(invocationID string) Option {
+	return func(s *Scheduler) {
+		s.invocationID = invocationID
+	}
+}
+
 type Client interface {
 	ID() string
 }
@@ -107,6 +115,8 @@ type Scheduler struct {
 
 	// Controls how records are constructed on the source side.
 	batchSettings *BatchSettings
+
+	invocationID string
 }
 
 type syncClient struct {
@@ -115,8 +125,9 @@ type syncClient struct {
 	scheduler         *Scheduler
 	deterministicCQID bool
 	// status sync metrics
-	metrics *Metrics
-	logger  zerolog.Logger
+	metrics      *Metrics
+	logger       zerolog.Logger
+	invocationID string
 }
 
 func NewScheduler(opts ...Option) *Scheduler {
@@ -167,18 +178,22 @@ func (s *Scheduler) SyncAll(ctx context.Context, client schema.ClientMeta, table
 }
 
 func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables schema.Tables, res chan<- message.SyncMessage, opts ...SyncOption) error {
-	ctx, span := otel.Tracer(otelName).Start(ctx, "Sync")
+	ctx, span := otel.Tracer(otelName).Start(ctx,
+		"sync",
+		trace.WithAttributes(attribute.Key("sync.invocation.id").String(s.invocationID)),
+	)
 	defer span.End()
 	if len(tables) == 0 {
 		return ErrNoTables
 	}
 
 	syncClient := &syncClient{
-		metrics:   &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
-		tables:    tables,
-		client:    client,
-		scheduler: s,
-		logger:    s.logger,
+		metrics:      &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
+		tables:       tables,
+		client:       client,
+		scheduler:    s,
+		logger:       s.logger,
+		invocationID: s.invocationID,
 	}
 	for _, opt := range opts {
 		opt(syncClient)
@@ -276,6 +291,8 @@ func (s *syncClient) resolveResource(ctx context.Context, table *schema.Table, c
 			atomic.AddUint64(&tableMetrics.Errors, 1)
 		}
 	}
+
+	tableMetrics.OtelResourcesAdd(ctx, 1)
 	atomic.AddUint64(&tableMetrics.Resources, 1)
 	return resource
 }
