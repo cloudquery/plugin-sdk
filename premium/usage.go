@@ -11,6 +11,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
+	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
@@ -147,6 +151,8 @@ type BatchUpdater struct {
 	apiClient   *cqapi.ClientWithResponses
 	tokenClient TokenClient
 
+	awsMarketPlaceClient *marketplacemetering.Client
+
 	// Plugin details
 	teamName   cqapi.TeamName
 	pluginMeta plugin.Meta
@@ -199,6 +205,20 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		return &NoOpUsageClient{
 			TeamNameValue: u.teamName,
 		}, nil
+	}
+	// If user wants to use the AWS Marketplace for billing, don't even try to communicate with CQ API
+	if os.Getenv("CQ_AWS_MARKETPLACE") == "true" {
+		cfg, err := awsConfig.LoadDefaultConfig(context.TODO())
+		if err != nil {
+			return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		}
+
+		u.awsMarketPlaceClient = marketplacemetering.NewFromConfig(cfg)
+		u.teamName = "AWS_MARKETPLACE"
+		// This needs to be larger than normal, because we can only send a single usage record per second (from each compute node)
+		u.batchLimit = 1000000000
+		u.backgroundUpdater()
+		return u, nil
 	}
 
 	if u.tokenClient == nil {
@@ -307,6 +327,9 @@ func (u *BatchUpdater) TeamName() string {
 }
 
 func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
+	if u.awsMarketPlaceClient != nil {
+		return true, nil
+	}
 	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginMeta.Team).Str("pluginKind", string(u.pluginMeta.Kind)).Str("pluginName", u.pluginMeta.Name).Msg("checking quota")
 	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginMeta.Team, u.pluginMeta.Kind, u.pluginMeta.Name)
 	if err != nil {
@@ -420,6 +443,35 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
 		queryStartTime := time.Now()
 
+		// If the AWS Marketplace client is set, use it to track usage
+		if u.awsMarketPlaceClient != nil {
+			// Timestamp + UsageDimension + UsageQuantity are required fields and must be unique
+			// since Timestamp only maintains a granularity of seconds, we need to ensure our batch size is large enough
+			_, err := u.awsMarketPlaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
+				// Product code is a unique identifier for a product in AWS Marketplace
+				// Each product is given a unique product code when it is listed in AWS Marketplace
+				// in the future we can have multiple product codes for container or AMI based listings
+				ProductCode:    aws.String("3r9d4ty0j8bloz3r1p4o0r9q3"),
+				Timestamp:      aws.Time(time.Now()),
+				UsageDimension: aws.String("rows"),
+				UsageAllocations: []types.UsageAllocation{
+					{
+						AllocatedUsageQuantity: aws.Int32(int32(rows)),
+						Tags: []types.Tag{
+							{
+								Key:   aws.String("plugin"),
+								Value: aws.String(fmt.Sprintf("%s/%s/%s", u.pluginMeta.Team, u.pluginMeta.Kind, u.pluginMeta.Name)),
+							},
+						},
+					},
+				},
+				UsageQuantity: aws.Int32(int32(rows)),
+			})
+			if err != nil {
+				return fmt.Errorf("failed to update usage with : %w", err)
+			}
+			return nil
+		}
 		payload := cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
 			PluginTeam: u.pluginMeta.Team,
