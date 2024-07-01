@@ -163,12 +163,17 @@ func (c *Client) Flush(ctx context.Context) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, c.schema)
+	keys, values := bldr.Field(0).(*array.StringBuilder), bldr.Field(1).(*array.StringBuilder)
+	var version *array.Uint64Builder
+	if c.versionedMode {
+		version = bldr.Field(2).(*array.Uint64Builder)
+	}
 	for k := range c.changes {
 		val := c.mem[k]
-		bldr.Field(0).(*array.StringBuilder).Append(k)
-		bldr.Field(1).(*array.StringBuilder).Append(val.value)
-		if c.versionedMode {
-			bldr.Field(2).(*array.Uint64Builder).Append(val.version)
+		keys.Append(k)
+		values.Append(val.value)
+		if version != nil {
+			version.Append(val.version)
 		}
 	}
 	rec := bldr.NewRecord()
