@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.49.1](https://github.com/cloudquery/plugin-sdk/compare/v4.49.0...v4.49.1) (2024-07-01)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 7f521ea ([#1778](https://github.com/cloudquery/plugin-sdk/issues/1778)) ([2a1f2d6](https://github.com/cloudquery/plugin-sdk/commit/2a1f2d6b5559403e178038520eea16dd45b9849e))
+* **deps:** Update module github.com/spf13/cobra to v1.8.1 ([#1779](https://github.com/cloudquery/plugin-sdk/issues/1779)) ([e3566a3](https://github.com/cloudquery/plugin-sdk/commit/e3566a3ed202e4d613eb71c2f948aba34dda735b))
+* Reuse builders on state client flush ([#1777](https://github.com/cloudquery/plugin-sdk/issues/1777)) ([49d43b6](https://github.com/cloudquery/plugin-sdk/commit/49d43b6b5f478697dd88ad83bcf736e7ab8ae7c1))
+
 ## [4.49.0](https://github.com/cloudquery/plugin-sdk/compare/v4.48.0...v4.49.0) (2024-06-27)
 
 
