@@ -15,7 +15,7 @@ require (
 	github.com/invopop/jsonschema v0.12.0
 	github.com/rs/zerolog v1.33.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	github.com/thoas/go-funk v0.9.3
 	go.opentelemetry.io/otel v1.27.0
