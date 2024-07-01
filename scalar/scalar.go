@@ -2,7 +2,6 @@ package scalar
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/apache/arrow/go/v16/arrow/array"
@@ -54,7 +53,12 @@ func (v Vector) Equal(r Vector) bool {
 	return true
 }
 
-func NewScalar(dt arrow.DataType) Scalar {
+func NewScalar(dt arrow.DataType, opts ...Option) (scalar Scalar) {
+	defer func() {
+		for _, o := range opts {
+			o(scalar)
+		}
+	}()
 	switch dt.ID() {
 	case arrow.TIMESTAMP:
 		return &Timestamp{Type: dt.(*arrow.TimestampType)}
@@ -208,24 +212,7 @@ func AppendToBuilder(bldr array.Builder, s Scalar) {
 		sb := bldr.(*array.StructBuilder)
 		sb.Append(true)
 
-		v := s.(*Struct).Value
-		m, ok := v.(map[string]any)
-		if !ok {
-			reflectedMap := reflect.ValueOf(v)
-			if reflectedMap.Kind() != reflect.Map {
-				panic(fmt.Sprintf("expected map[string]any, got %T", v))
-			}
-
-			m = make(map[string]any, reflectedMap.Len())
-			for _, key := range reflectedMap.MapKeys() {
-				if key.Kind() != reflect.String {
-					panic(fmt.Sprintf("expected map[string]any, got %T", v))
-				}
-				value := reflectedMap.MapIndex(key)
-				m[key.String()] = value.Interface()
-			}
-		}
-
+		m := s.(*Struct).Value
 		names := make(map[string]struct{}, len(m))
 		for k := range m {
 			names[k] = struct{}{}

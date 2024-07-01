@@ -3,16 +3,38 @@ package scalar
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/apache/arrow/go/v16/arrow"
 )
 
+// NameTransformer is used to alter the names of the struct fields.
+// string    | bool  | action
+// ""        | true  | skip field
+// non-empty | true  | use new value
+// any       | false | use field name
+type NameTransformer func(field reflect.StructField) (string, bool)
+
+// jsonTagTransformer is the default NameTransformer to be used
+func jsonTagTransformer(field reflect.StructField) (string, bool) {
+	tag, ok := field.Tag.Lookup("json")
+	if !ok {
+		return "", false
+	}
+
+	return strings.SplitN(tag, ",", 2)[0], true
+}
+
 type Struct struct {
 	Valid bool
-	Value any
+	Value map[string]any
 
 	Type *arrow.StructType
+
+	// This is used when traversing structs
+	nameTransformer NameTransformer
 }
 
 func (s *Struct) IsValid() bool {
@@ -56,7 +78,18 @@ func (s *Struct) Set(val any) error {
 		return s.Set(sc.Get())
 	}
 
-	switch value := val.(type) {
+	rv := reflect.ValueOf(val)
+	for rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			s.Value = nil
+			s.Valid = false
+			return nil
+		}
+		rv = rv.Elem()
+	}
+
+	value := rv.Interface()
+	switch value := value.(type) {
 	case string:
 		var x map[string]any
 		if err := json.Unmarshal([]byte(value), &x); err != nil {
@@ -100,13 +133,65 @@ func (s *Struct) Set(val any) error {
 		}
 		return s.Set(*value)
 
-	default:
-		s.Value = val
-	}
+	case map[string]any:
+		if value == nil {
+			s.Valid = false
+			return nil
+		}
+		s.Value = value
 
-	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Pointer && !rv.Elem().IsValid() { // typed nil
-		s.Valid = false
-		return nil
+	default:
+		switch rv.Kind() {
+		case reflect.Map:
+			// map[string]??? is OK
+			t := rv.Type()
+			if t.Key().Kind() != reflect.String {
+				s.Valid = false
+				return fmt.Errorf("failed to set Struct to the value of type %T", val)
+			}
+			m := make(map[string]any, s.Type.NumFields())
+			for _, sF := range s.Type.Fields() {
+				v := rv.MapIndex(reflect.ValueOf(sF.Name))
+				if v.IsValid() && v.CanInterface() {
+					m[sF.Name] = v.Interface()
+				} else {
+					m[sF.Name] = nil
+				}
+			}
+		case reflect.Struct:
+			transformer := s.nameTransformer
+			if transformer == nil {
+				transformer = jsonTagTransformer
+			}
+			t := rv.Type()
+			m := make(map[string]any, s.Type.NumFields())
+			// prefill
+			for _, f := range s.Type.Fields() {
+				m[f.Name] = nil
+			}
+			// fill
+			for i := 0; i < t.NumField(); i++ {
+				tF := t.Field(i)
+				name, ok := transformer(tF)
+				if !ok {
+					name = tF.Name
+				}
+				if name == "" {
+					continue
+				}
+				if _, ok := s.Type.FieldByName(name); !ok {
+					continue
+				}
+				v := rv.FieldByIndex(tF.Index)
+				if v.IsValid() && v.CanInterface() {
+					m[name] = v.Interface()
+				}
+			}
+			s.Value = m
+		default:
+			s.Valid = false
+			return fmt.Errorf("failed to set Struct to the value of type %T", val)
+		}
 	}
 
 	s.Valid = true
