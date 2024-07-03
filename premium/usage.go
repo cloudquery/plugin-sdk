@@ -207,7 +207,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		}, nil
 	}
 	// If user wants to use the AWS Marketplace for billing, don't even try to communicate with CQ API
-	if os.Getenv("CQ_AWS_MARKETPLACE") == "true" {
+	if isAWSMarketplace() {
 		cfg, err := awsConfig.LoadDefaultConfig(context.TODO())
 		if err != nil {
 			return nil, fmt.Errorf("failed to load AWS config: %w", err)
@@ -258,6 +258,21 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 	u.backgroundUpdater()
 
 	return u, nil
+}
+
+func isAWSMarketplace() bool {
+	return os.Getenv("CQ_AWS_MARKETPLACE_CONTAINER") == "true" || os.Getenv("CQ_AWS_MARKETPLACE_AMI") == "true"
+}
+
+func awsMarketplaceProductCode() string {
+	if os.Getenv("CQ_AWS_MARKETPLACE_CONTAINER") == "true" {
+		return "PLACEHOLDER"
+	}
+	if os.Getenv("CQ_AWS_MARKETPLACE_AMI") == "true" {
+		// TODO: This is a placeholder product code, we need to get the real one from AWS Marketplace
+		return "PLACEHOLDER"
+	}
+	return ""
 }
 
 func (u *BatchUpdater) Increase(rows uint32) error {
@@ -451,7 +466,7 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 				// Product code is a unique identifier for a product in AWS Marketplace
 				// Each product is given a unique product code when it is listed in AWS Marketplace
 				// in the future we can have multiple product codes for container or AMI based listings
-				ProductCode:    aws.String("3r9d4ty0j8bloz3r1p4o0r9q3"),
+				ProductCode:    aws.String(awsMarketplaceProductCode()),
 				Timestamp:      aws.Time(time.Now()),
 				UsageDimension: aws.String("rows"),
 				UsageAllocations: []types.UsageAllocation{
