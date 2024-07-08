@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 func validateTables(tables schema.Tables) error {
