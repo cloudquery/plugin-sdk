@@ -147,7 +147,7 @@ func setupOtel(ctx context.Context, logger zerolog.Logger, p *plugin.Plugin, ote
 		metric.WithResource(pluginResource),
 	)
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
-		logger.Debug().Err(err).Msg("otel error")
+		logger.Warn().Err(err).Msg("otel error")
 	}))
 	otel.SetTracerProvider(tp)
 	otel.SetMeterProvider(mt)
