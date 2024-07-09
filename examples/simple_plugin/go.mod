@@ -4,7 +4,7 @@ go 1.21.11
 
 require (
 	github.com/apache/arrow/go/v16 v16.1.0
-	github.com/cloudquery/plugin-sdk/v4 v4.49.0
+	github.com/cloudquery/plugin-sdk/v4 v4.49.1
 	github.com/rs/zerolog v1.33.0
 )
 
@@ -16,7 +16,7 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cloudquery/cloudquery-api-go v1.12.1 // indirect
-	github.com/cloudquery/plugin-pb-go v1.20.2 // indirect
+	github.com/cloudquery/plugin-pb-go v1.20.3 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
