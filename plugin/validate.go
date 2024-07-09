@@ -37,9 +37,14 @@ func (p *Plugin) validate(ctx context.Context) error {
 
 func JSONSchemaValidator(jsonSchema string) (*jsonschema.Schema, error) {
 	c := jsonschema.NewCompiler()
-	c.Draft = jsonschema.Draft2020
-	c.AssertFormat = true
-	if err := c.AddResource("schema.json", strings.NewReader(jsonSchema)); err != nil {
+	c.DefaultDraft(jsonschema.Draft2020)
+	c.AssertFormat()
+
+	schema, err := jsonschema.UnmarshalJSON(strings.NewReader(jsonSchema))
+	if err != nil {
+		return nil, err
+	}
+	if err := c.AddResource("schema.json", schema); err != nil {
 		return nil, err
 	}
 	return c.Compile("schema.json")
