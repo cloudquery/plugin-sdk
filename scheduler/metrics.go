@@ -264,5 +264,4 @@ func (m *TableClientMetrics) OtelEndTime(ctx context.Context, end time.Time) {
 		m.otelMeters.endTime.Add(ctx, val, metric.WithAttributes(m.otelMeters.attributes...))
 	}
 	m.otelMeters.previousEndTime = val
-
 }
