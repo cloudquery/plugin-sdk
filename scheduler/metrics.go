@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,12 +18,16 @@ type Metrics struct {
 }
 
 type OtelMeters struct {
-	resources  metric.Int64Counter
-	errors     metric.Int64Counter
-	panics     metric.Int64Counter
-	startTime  metric.Int64Counter
-	endTime    metric.Int64Counter
-	attributes []attribute.KeyValue
+	resources           metric.Int64Counter
+	errors              metric.Int64Counter
+	panics              metric.Int64Counter
+	startTime           metric.Int64Counter
+	started             bool
+	startedLock         sync.Mutex
+	endTime             metric.Int64Counter
+	previousEndTime     int64
+	previousEndTimeLock sync.Mutex
+	attributes          []attribute.KeyValue
 }
 
 type TableClientMetrics struct {
@@ -234,6 +239,13 @@ func (m *TableClientMetrics) OtelStartTime(ctx context.Context, start time.Time)
 		return
 	}
 
+	// If we have already started, don't start again. This can happen for relational tables that are resolved multiple times (per parent resource)
+	m.otelMeters.startedLock.Lock()
+	defer m.otelMeters.startedLock.Unlock()
+	if m.otelMeters.started {
+		return
+	}
+	m.otelMeters.started = true
 	m.otelMeters.startTime.Add(ctx, start.UnixNano(), metric.WithAttributes(m.otelMeters.attributes...))
 }
 
@@ -242,5 +254,14 @@ func (m *TableClientMetrics) OtelEndTime(ctx context.Context, end time.Time) {
 		return
 	}
 
-	m.otelMeters.endTime.Add(ctx, end.UnixNano(), metric.WithAttributes(m.otelMeters.attributes...))
+	m.otelMeters.previousEndTimeLock.Lock()
+	defer m.otelMeters.previousEndTimeLock.Unlock()
+	val := end.UnixNano()
+	// If we got another end time to report, use the latest value. This can happen for relational tables that are resolved multiple times (per parent resource)
+	if m.otelMeters.previousEndTime != 0 {
+		m.otelMeters.endTime.Add(ctx, val-m.otelMeters.previousEndTime, metric.WithAttributes(m.otelMeters.attributes...))
+	} else {
+		m.otelMeters.endTime.Add(ctx, val, metric.WithAttributes(m.otelMeters.attributes...))
+	}
+	m.otelMeters.previousEndTime = val
 }
