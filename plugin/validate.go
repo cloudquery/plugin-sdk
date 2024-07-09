@@ -40,11 +40,11 @@ func JSONSchemaValidator(jsonSchema string) (*jsonschema.Schema, error) {
 	c.DefaultDraft(jsonschema.Draft2020)
 	c.AssertFormat()
 
-	schema, err := jsonschema.UnmarshalJSON(strings.NewReader(jsonSchema))
+	s, err := jsonschema.UnmarshalJSON(strings.NewReader(jsonSchema))
 	if err != nil {
 		return nil, err
 	}
-	if err := c.AddResource("schema.json", schema); err != nil {
+	if err := c.AddResource("schema.json", s); err != nil {
 		return nil, err
 	}
 	return c.Compile("schema.json")
