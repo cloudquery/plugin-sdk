@@ -68,3 +68,9 @@ func WithPrimaryKeyComponents(fields ...string) StructTransformerOption {
 		t.pkComponentFields = fields
 	}
 }
+
+func withJSONTypeSchemaDepth(depth int) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.jsonTypeSchemaDepth = depth
+	}
+}

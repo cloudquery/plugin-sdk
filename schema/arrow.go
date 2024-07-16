@@ -10,6 +10,7 @@ const (
 	MetadataPrimaryKeyComponent = "cq:extension:primary_key_component"
 	MetadataConstraintName      = "cq:extension:constraint_name"
 	MetadataIncremental         = "cq:extension:incremental"
+	MetadataTypeSchema          = "cq:extension:type_schema"
 
 	MetadataTrue             = "true"
 	MetadataFalse            = "false"

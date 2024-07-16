@@ -480,3 +480,96 @@ func TestTableFromGoStruct(t *testing.T) {
 		})
 	}
 }
+
+func TestJSONTypeSchema(t *testing.T) {
+	tests := []struct {
+		name       string
+		testStruct any
+		want       map[string]string
+	}{
+		{
+			name: "simple map",
+			testStruct: struct {
+				Tags map[string]string `json:"tags"`
+			}{},
+			want: map[string]string{
+				"tags": "map<utf8, utf8, items_nullable>",
+			},
+		},
+		{
+			name: "simple array",
+			testStruct: struct {
+				Items []struct {
+					Name string `json:"name"`
+				} `json:"items"`
+			}{},
+			want: map[string]string{
+				"items": `list<{"name":"utf8"}, items_nullable>`,
+			},
+		},
+		{
+			name: "simple struct",
+			testStruct: struct {
+				Item struct {
+					Name string `json:"name"`
+				} `json:"item"`
+			}{},
+			want: map[string]string{
+				"item": `{"name":"utf8"}`,
+			},
+		},
+		{
+			name: "complex struct",
+			testStruct: struct {
+				Item struct {
+					Name         string            `json:"name"`
+					Tags         map[string]string `json:"tags"`
+					FlatItems    []string          `json:"flat_items"`
+					ComplexItems []struct {
+						Name string `json:"name"`
+					} `json:"complex_items"`
+				} `json:"item"`
+			}{},
+			want: map[string]string{
+				"item": `{"complex_items":"list<{\"name\":\"utf8\"}, items_nullable>","flat_items":"list<item: utf8, nullable>","name":"utf8","tags":"map<utf8, utf8, items_nullable>"}`,
+			},
+		},
+		{
+			name: "multiple json columns",
+			testStruct: struct {
+				Tags map[string]string `json:"tags"`
+				Item struct {
+					Name         string            `json:"name"`
+					Tags         map[string]string `json:"tags"`
+					FlatItems    []string          `json:"flat_items"`
+					ComplexItems []struct {
+						Name string `json:"name"`
+					} `json:"complex_items"`
+				} `json:"item"`
+			}{},
+			want: map[string]string{
+				"item": `{"complex_items":"list<{\"name\":\"utf8\"}, items_nullable>","flat_items":"list<item: utf8, nullable>","name":"utf8","tags":"map<utf8, utf8, items_nullable>"}`,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			table := schema.Table{
+				Name: "test",
+			}
+			transformer := TransformWithStruct(tt.testStruct)
+			err := transformer(&table)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for col, schema := range tt.want {
+				column := table.Column(col)
+				if diff := cmp.Diff(column.TypeSchema, schema); diff != "" {
+					t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
+				}
+			}
+		})
+	}
+}
