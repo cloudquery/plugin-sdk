@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.49.3](https://github.com/cloudquery/plugin-sdk/compare/v4.49.2...v4.49.3) (2024-07-09)
+
+
+### Bug Fixes
+
+* Log OTEL errors as warning level instead of debug ([#1791](https://github.com/cloudquery/plugin-sdk/issues/1791)) ([c7a6179](https://github.com/cloudquery/plugin-sdk/commit/c7a6179fd07cda66fade13f83ee9d9f04094e74b))
+
+## [4.49.2](https://github.com/cloudquery/plugin-sdk/compare/v4.49.1...v4.49.2) (2024-07-09)
+
+
+### Bug Fixes
+
+* Properly handle relational tables metrics ([#1788](https://github.com/cloudquery/plugin-sdk/issues/1788)) ([ee16898](https://github.com/cloudquery/plugin-sdk/commit/ee168981e13ea8479d95cc0257cf582d0c275183))
+
+## [4.49.1](https://github.com/cloudquery/plugin-sdk/compare/v4.49.0...v4.49.1) (2024-07-08)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 7f521ea ([#1778](https://github.com/cloudquery/plugin-sdk/issues/1778)) ([2a1f2d6](https://github.com/cloudquery/plugin-sdk/commit/2a1f2d6b5559403e178038520eea16dd45b9849e))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.12.0 ([#1783](https://github.com/cloudquery/plugin-sdk/issues/1783)) ([812115d](https://github.com/cloudquery/plugin-sdk/commit/812115d04ce38c03b68274a3f53453b3132442e6))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.12.1 ([#1784](https://github.com/cloudquery/plugin-sdk/issues/1784)) ([9cf0394](https://github.com/cloudquery/plugin-sdk/commit/9cf0394018088e382429473d7b4e312770c339c7))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.20.3 ([#1786](https://github.com/cloudquery/plugin-sdk/issues/1786)) ([7b1fc58](https://github.com/cloudquery/plugin-sdk/commit/7b1fc584bd19b1c639bbc32a600b7e21bf438fd1))
+* **deps:** Update module github.com/spf13/cobra to v1.8.1 ([#1779](https://github.com/cloudquery/plugin-sdk/issues/1779)) ([e3566a3](https://github.com/cloudquery/plugin-sdk/commit/e3566a3ed202e4d613eb71c2f948aba34dda735b))
+* **deps:** Update module google.golang.org/grpc to v1.65.0 ([#1785](https://github.com/cloudquery/plugin-sdk/issues/1785)) ([fcad58f](https://github.com/cloudquery/plugin-sdk/commit/fcad58f3f55c70a735aa3272cb315d2a232ece58))
+* Reuse builders on state client flush ([#1777](https://github.com/cloudquery/plugin-sdk/issues/1777)) ([49d43b6](https://github.com/cloudquery/plugin-sdk/commit/49d43b6b5f478697dd88ad83bcf736e7ab8ae7c1))
+
+## [4.49.0](https://github.com/cloudquery/plugin-sdk/compare/v4.48.0...v4.49.0) (2024-06-27)
+
+
+### Features
+
+* Better OTEL traces, add metrics ([#1751](https://github.com/cloudquery/plugin-sdk/issues/1751)) ([874c33a](https://github.com/cloudquery/plugin-sdk/commit/874c33a9ddc1fcc7aefb86cf1a0076f701f07735))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/hashicorp/go-retryablehttp to v0.7.7 [SECURITY] ([#1774](https://github.com/cloudquery/plugin-sdk/issues/1774)) ([e5e8e7e](https://github.com/cloudquery/plugin-sdk/commit/e5e8e7ea650862e53214f381db6c22173fb04edb))
+
 ## [4.48.0](https://github.com/cloudquery/plugin-sdk/compare/v4.47.1...v4.48.0) (2024-06-24)
 
 
