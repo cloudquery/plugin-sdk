@@ -208,17 +208,8 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 	}
 	// If user wants to use the AWS Marketplace for billing, don't even try to communicate with CQ API
 	if isAWSMarketplace() {
-		cfg, err := awsConfig.LoadDefaultConfig(context.TODO())
-		if err != nil {
-			return nil, fmt.Errorf("failed to load AWS config: %w", err)
-		}
-
-		u.awsMarketplaceClient = marketplacemetering.NewFromConfig(cfg)
-		u.teamName = "AWS_MARKETPLACE"
-		// This needs to be larger than normal, because we can only send a single usage record per second (from each compute node)
-		u.batchLimit = 1000000000
-		u.backgroundUpdater()
-		return u, nil
+		err := u.setupAWSMarketplace()
+		return u, err
 	}
 
 	if u.tokenClient == nil {
@@ -258,6 +249,20 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 	u.backgroundUpdater()
 
 	return u, nil
+}
+
+func (u *BatchUpdater) setupAWSMarketplace() error {
+	cfg, err := awsConfig.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	u.awsMarketplaceClient = marketplacemetering.NewFromConfig(cfg)
+	u.teamName = "AWS_MARKETPLACE"
+	// This needs to be larger than normal, because we can only send a single usage record per second (from each compute node)
+	u.batchLimit = 1000000000
+	u.backgroundUpdater()
+	return nil
 }
 
 func isAWSMarketplace() bool {
