@@ -551,6 +551,18 @@ func TestJSONTypeSchema(t *testing.T) {
 				"item": `{"complex_items":"list<{\"name\":\"utf8\"}, items_nullable>","flat_items":"list<item: utf8, nullable>","name":"utf8","tags":"map<utf8, utf8, items_nullable>"}`,
 			},
 		},
+		{
+			name: "handles any type in struct",
+			testStruct: struct {
+				Item struct {
+					Name   string `json:"name"`
+					Object any    `json:"object"`
+				} `json:"item"`
+			}{},
+			want: map[string]string{
+				"item": `{"name":"utf8","object":"any"}`,
+			},
+		},
 	}
 
 	for _, tt := range tests {

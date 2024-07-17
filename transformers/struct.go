@@ -30,7 +30,8 @@ type structTransformer struct {
 	pkComponentFields             []string
 	pkComponentFieldsFound        []string
 
-	jsonTypeSchemaDepth int
+	jsonTypeSchemaDepth          int
+	useArrowNullForNilColumnType bool
 }
 
 func isFieldStruct(reflectType reflect.Type) bool {
@@ -131,6 +132,9 @@ func (t *structTransformer) getColumnType(field reflect.StructField) (arrow.Data
 }
 
 func fieldTypeSchema(field arrow.Field) string {
+	if field.Type == arrow.Null {
+		return "any"
+	}
 	typeSchema, ok := field.Metadata.GetValue(schema.MetadataTypeSchema)
 	if !ok || typeSchema == "" {
 		typeSchema = field.Type.String()
@@ -170,6 +174,7 @@ func (t *structTransformer) transformFieldToSchema(field reflect.StructField) st
 			WithTypeTransformer(t.typeTransformer),
 			WithUnwrapAllEmbeddedStructs(),
 			withJSONTypeSchemaDepth(t.jsonTypeSchemaDepth+1),
+			useArrowNullForNilColumnType(),
 		)(table)
 		if err != nil {
 			return ""
@@ -220,7 +225,12 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	}
 
 	if columnType == nil {
-		return nil // ignored
+		// We usually ignore interfaces/any types but if we're trying to figure a JSON field schema
+		// we still need them to show up in the docs as `any`
+		if !t.useArrowNullForNilColumnType {
+			return nil
+		}
+		columnType = arrow.Null
 	}
 
 	path := field.Name

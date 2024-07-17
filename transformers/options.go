@@ -74,3 +74,9 @@ func withJSONTypeSchemaDepth(depth int) StructTransformerOption {
 		t.jsonTypeSchemaDepth = depth
 	}
 }
+
+func useArrowNullForNilColumnType() StructTransformerOption {
+	return func(t *structTransformer) {
+		t.useArrowNullForNilColumnType = true
+	}
+}
