@@ -394,63 +394,85 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 	}
 }
 
-func (s *Server) Transform(stream pb.Plugin_TransformServer) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("error writing transformed records: %v", r)
-		}
-	}()
+func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
+	var (
+		recvRecords       = make(chan arrow.Record)
+		sendRecords       = make(chan arrow.Record)
+		pluginStopsWriter = make(chan struct{})
+		doneReading       = false
+		ctx               = stream.Context()
+		eg, gctx          = errgroup.WithContext(ctx)
+	)
 
-	recvMsgs := make(chan arrow.Record)
-	sendMsgs := make(chan arrow.Record)
-	doneWriting := make(chan struct{})
-	ctx := stream.Context()
-	eg, gctx := errgroup.WithContext(ctx)
+	// Run the plugin's transform with both channels.
+	//
+	// When the plugin is done, it must return with either an error or nil.
+	// The plugin must not close either channel.
 	eg.Go(func() error {
-		return s.Plugin.Transform(gctx, recvMsgs, sendMsgs)
+		err := s.Plugin.Transform(gctx, recvRecords, sendRecords)
+		close(pluginStopsWriter)
+		doneReading = true
+		return err
 	})
 
-	// Writing transformed records from transformer to destination
-	go func() {
+	// Write transformed records from transformer to destination.
+	//
+	// Currently the `sendRecords` channel is never closed. Instead, the plugin finishes this goroutine
+	// when it returns, either with an error or null.
+	//
+	// The reading never closes the writer, because it's up to the Plugin to decide when to finish
+	// writing, regardless of if the reading finished.
+	eg.Go(func() error {
 		for {
 			select {
-			case record := <-sendMsgs:
-
+			case record := <-sendRecords:
 				recordBytes, err := pb.RecordToBytes(record)
 				if err != nil {
-					panic(status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err))
+					return status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err)
 				}
 
 				if err := stream.Send(&pb.Transform_Response{Record: recordBytes}); err != nil {
-					panic(fmt.Errorf("error sending response: %w", err))
+					return fmt.Errorf("error sending response: %w", err)
 				}
-			case <-doneWriting:
-				return
+			case <-pluginStopsWriter:
+				return nil
 			}
 		}
-	}()
+	})
 
-	// Reading records from source to transformer
-	for {
-		req, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			close(doneWriting)
-			return fmt.Errorf("Error receiving request: %v", err)
-		}
-		record, err := pb.NewRecordFromBytes(req.Record)
-		if err != nil {
-			close(doneWriting)
-			return status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
-		}
+	// Read records from source to transformer
+	//
+	// If there's an error receiving or deserialising records, or if there are no more records,
+	// the `recvRecords` channel will be closed. This will tell the plugin's transformer that
+	// no more transforming can be done.
+	//
+	// The writer cannot stop the reader even on error, but the plugin will when it returns,
+	// by setting `doneReading` to true.
+	eg.Go(func() error {
+		for {
+			req, err := stream.Recv()
+			if err == io.EOF {
+				close(recvRecords)
+				return nil
+			}
+			if err != nil {
+				close(recvRecords)
+				return fmt.Errorf("Error receiving request: %v", err)
+			}
+			if doneReading {
+				return nil
+			}
+			record, err := pb.NewRecordFromBytes(req.Record)
+			if err != nil {
+				close(recvRecords)
+				return status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+			}
 
-		recvMsgs <- record
-	}
-	close(doneWriting)
-	close(recvMsgs)
-	return nil
+			recvRecords <- record
+		}
+	})
+
+	return eg.Wait()
 }
 
 func (s *Server) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {
