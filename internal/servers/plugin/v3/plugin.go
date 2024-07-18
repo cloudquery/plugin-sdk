@@ -394,6 +394,65 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 	}
 }
 
+func (s *Server) Transform(stream pb.Plugin_TransformServer) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("error writing transformed records: %v", r)
+		}
+	}()
+
+	recvMsgs := make(chan arrow.Record)
+	sendMsgs := make(chan arrow.Record)
+	doneWriting := make(chan struct{})
+	ctx := stream.Context()
+	eg, gctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return s.Plugin.Transform(gctx, recvMsgs, sendMsgs)
+	})
+
+	// Writing transformed records from transformer to destination
+	go func() {
+		for {
+			select {
+			case record := <-sendMsgs:
+
+				recordBytes, err := pb.RecordToBytes(record)
+				if err != nil {
+					panic(status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err))
+				}
+
+				if err := stream.Send(&pb.Transform_Response{Record: recordBytes}); err != nil {
+					panic(fmt.Errorf("error sending response: %w", err))
+				}
+			case <-doneWriting:
+				return
+			}
+		}
+	}()
+
+	// Reading records from source to transformer
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			close(doneWriting)
+			return fmt.Errorf("Error receiving request: %v", err)
+		}
+		record, err := pb.NewRecordFromBytes(req.Record)
+		if err != nil {
+			close(doneWriting)
+			return status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+		}
+
+		recvMsgs <- record
+	}
+	close(doneWriting)
+	close(recvMsgs)
+	return nil
+}
+
 func (s *Server) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {
 	return &pb.Close_Response{}, s.Plugin.Close(ctx)
 }
