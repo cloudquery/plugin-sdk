@@ -64,6 +64,11 @@ func (*Client) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
 	return nil
 }
 
+func (*Client) Transform(_ context.Context, _ <-chan arrow.Record, _ chan<- arrow.Record) error {
+	// Not implemented, just used for testing destination packaging
+	return nil
+}
+
 func Configure(_ context.Context, logger zerolog.Logger, spec []byte, opts plugin.NewClientOptions) (plugin.Client, error) {
 	if opts.NoConnection {
 		return &Client{
