@@ -7,16 +7,14 @@ import (
 	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/apache/arrow/go/v16/arrow/array"
 	"github.com/apache/arrow/go/v16/arrow/memory"
-	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
-	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
 
-var ErrNotImplemented = fmt.Errorf("not implemented")
-
 // client is mostly used for testing the destination plugin.
 type client struct {
+	plugin.UnimplementedDestination
+	plugin.UnimplementedSource
 }
 
 type Option func(*client)
@@ -36,22 +34,6 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 
 func (*client) GetSpec() any {
 	return &Spec{}
-}
-
-func (*client) Tables(context.Context, plugin.TableOptions) (schema.Tables, error) {
-	return schema.Tables{}, ErrNotImplemented
-}
-
-func (*client) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
-	return ErrNotImplemented
-}
-
-func (*client) Sync(context.Context, plugin.SyncOptions, chan<- message.SyncMessage) error {
-	return ErrNotImplemented
-}
-
-func (*client) Write(context.Context, <-chan message.WriteMessage) error {
-	return ErrNotImplemented
 }
 
 func (*client) Close(context.Context) error {

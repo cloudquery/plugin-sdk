@@ -20,7 +20,6 @@ var mem = memory.NewGoAllocator()
 
 func TestReverserTransformer(t *testing.T) {
 	p := plugin.NewPlugin("test", "development", GetNewClient())
-	p.SetSkipTableValidation(true)
 	s := internalPlugin.Server{
 		Plugin: p,
 	}
