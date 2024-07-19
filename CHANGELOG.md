@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.50.0](https://github.com/cloudquery/plugin-sdk/compare/v4.49.4...v4.50.0) (2024-07-19)
+
+
+### Features
+
+* Implement transformations logic. ([#1800](https://github.com/cloudquery/plugin-sdk/issues/1800)) ([377194e](https://github.com/cloudquery/plugin-sdk/commit/377194e65da224dc11e7e540e4b4e12519de1a95))
+
+
+### Bug Fixes
+
+* Use trace level for source batcher log message ([#1803](https://github.com/cloudquery/plugin-sdk/issues/1803)) ([6ccf7e6](https://github.com/cloudquery/plugin-sdk/commit/6ccf7e67ae075035f4d2c3b201001a866e6c7624))
+
 ## [4.49.4](https://github.com/cloudquery/plugin-sdk/compare/v4.49.3...v4.49.4) (2024-07-19)
 
 
