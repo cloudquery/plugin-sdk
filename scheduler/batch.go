@@ -120,7 +120,7 @@ type worker struct {
 
 // send must be called on len(rows) > 0
 func (w *worker) send() {
-	w.logger.Debug().Str("table", w.tableName).Int("rows", w.curRows).Msg("send")
+	w.logger.Trace().Str("table", w.tableName).Int("rows", w.curRows).Msg("sending sync insert for rows batch")
 	w.res <- &message.SyncInsert{Record: w.builder.NewRecord()}
 	// we need to reserve here as NewRecord (& underlying NewArray calls) reset the memory
 	w.builder.Reserve(w.maxRows)
