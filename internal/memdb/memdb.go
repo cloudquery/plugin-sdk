@@ -306,6 +306,10 @@ func (c *client) deleteRecord(_ context.Context, msg *message.WriteDeleteRecord)
 	c.memoryDB[tableName] = filteredTable
 }
 
+func (*client) Transform(_ context.Context, _ <-chan arrow.Record, _ chan<- arrow.Record) error {
+	return nil
+}
+
 func evaluatePredicate(pred message.Predicate, record arrow.Record) bool {
 	sc := record.Schema()
 	indices := sc.FieldIndices(pred.Column)
