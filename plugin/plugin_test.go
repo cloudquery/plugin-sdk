@@ -56,6 +56,9 @@ func (c *testPluginClient) Write(_ context.Context, res <-chan message.WriteMess
 func (*testPluginClient) Close(context.Context) error {
 	return nil
 }
+func (*testPluginClient) Transform(context.Context, <-chan arrow.Record, chan<- arrow.Record) error {
+	return nil
+}
 
 func TestPluginSuccess(t *testing.T) {
 	ctx := context.Background()

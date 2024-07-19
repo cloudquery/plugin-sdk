@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.49.4](https://github.com/cloudquery/plugin-sdk/compare/v4.49.3...v4.49.4) (2024-07-19)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.12.2 ([#1797](https://github.com/cloudquery/plugin-sdk/issues/1797)) ([98d187b](https://github.com/cloudquery/plugin-sdk/commit/98d187b10c0bda4e54b3f4d09393f35a13df15ce))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.12.3 ([#1801](https://github.com/cloudquery/plugin-sdk/issues/1801)) ([470fbcf](https://github.com/cloudquery/plugin-sdk/commit/470fbcf03991334fe94d20a2e97fe0795f580b94))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.20.5 ([#1798](https://github.com/cloudquery/plugin-sdk/issues/1798)) ([bd584ce](https://github.com/cloudquery/plugin-sdk/commit/bd584ce3998ffb5cb87d66f05886abebee45d7e8))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.20.6 ([#1799](https://github.com/cloudquery/plugin-sdk/issues/1799)) ([d647712](https://github.com/cloudquery/plugin-sdk/commit/d647712917f94020fc5c4b73600b01367baf6d9c))
+* **deps:** Update module github.com/santhosh-tekuri/jsonschema/v5 to v6 ([#1782](https://github.com/cloudquery/plugin-sdk/issues/1782)) ([413453c](https://github.com/cloudquery/plugin-sdk/commit/413453c5db66ed27a86acb1340a068e2c4231c78))
+
 ## [4.49.3](https://github.com/cloudquery/plugin-sdk/compare/v4.49.2...v4.49.3) (2024-07-09)
 
 
