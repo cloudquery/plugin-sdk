@@ -3,7 +3,7 @@ package scalar
 import (
 	"encoding/json"
 
-	"github.com/apache/arrow/go/v16/arrow"
+	"github.com/apache/arrow/go/v17/arrow"
 )
 
 type MonthInterval struct {

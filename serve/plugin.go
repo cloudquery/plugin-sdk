@@ -140,7 +140,10 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to setup OpenTelemetry: %w", err)
 			}
-			defer shutdown()
+			if shutdown != nil {
+				logger = logger.Hook(newOTELLoggerHook())
+				defer shutdown()
+			}
 
 			if licenseFile != "" {
 				switch err := premium.ValidateLicense(logger, s.plugin.Meta(), licenseFile); err {

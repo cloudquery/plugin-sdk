@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/apache/arrow/go/v16/arrow"
+	"github.com/apache/arrow/go/v17/arrow"
 	"github.com/cloudquery/plugin-sdk/examples/simple_plugin/client"
 	"github.com/cloudquery/plugin-sdk/examples/simple_plugin/services"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -60,6 +60,11 @@ func (*Client) Write(context.Context, <-chan message.WriteMessage) error {
 }
 
 func (*Client) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
+	// Not implemented, just used for testing destination packaging
+	return nil
+}
+
+func (*Client) Transform(_ context.Context, _ <-chan arrow.Record, _ chan<- arrow.Record) error {
 	// Not implemented, just used for testing destination packaging
 	return nil
 }

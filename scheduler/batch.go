@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apache/arrow/go/v16/arrow/array"
-	"github.com/apache/arrow/go/v16/arrow/memory"
+	"github.com/apache/arrow/go/v17/arrow/array"
+	"github.com/apache/arrow/go/v17/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -120,7 +120,7 @@ type worker struct {
 
 // send must be called on len(rows) > 0
 func (w *worker) send() {
-	w.logger.Debug().Str("table", w.tableName).Int("rows", w.curRows).Msg("send")
+	w.logger.Trace().Str("table", w.tableName).Int("rows", w.curRows).Msg("sending sync insert for rows batch")
 	w.res <- &message.SyncInsert{Record: w.builder.NewRecord()}
 	// we need to reserve here as NewRecord (& underlying NewArray calls) reset the memory
 	w.builder.Reserve(w.maxRows)

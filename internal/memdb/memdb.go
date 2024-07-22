@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/apache/arrow/go/v16/arrow"
-	"github.com/apache/arrow/go/v16/arrow/array"
+	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow/go/v17/arrow/array"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -304,6 +304,10 @@ func (c *client) deleteRecord(_ context.Context, msg *message.WriteDeleteRecord)
 		}
 	}
 	c.memoryDB[tableName] = filteredTable
+}
+
+func (*client) Transform(_ context.Context, _ <-chan arrow.Record, _ chan<- arrow.Record) error {
+	return nil
 }
 
 func evaluatePredicate(pred message.Predicate, record arrow.Record) bool {

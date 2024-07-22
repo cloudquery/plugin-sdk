@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/apache/arrow/go/v16/arrow"
+	"github.com/apache/arrow/go/v17/arrow"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -26,9 +26,12 @@ type NewClientFunc func(context.Context, zerolog.Logger, []byte, NewClientOption
 type Client interface {
 	SourceClient
 	DestinationClient
+	TransformerClient
 }
 
-type UnimplementedDestination struct{}
+type UnimplementedDestination struct {
+	UnimplementedTransformer
+}
 
 func (UnimplementedDestination) Write(context.Context, <-chan message.WriteMessage) error {
 	return ErrNotImplemented
@@ -38,7 +41,9 @@ func (UnimplementedDestination) Read(context.Context, *schema.Table, chan<- arro
 	return ErrNotImplemented
 }
 
-type UnimplementedSource struct{}
+type UnimplementedSource struct {
+	UnimplementedTransformer
+}
 
 func (UnimplementedSource) Sync(context.Context, SyncOptions, chan<- message.SyncMessage) error {
 	return ErrNotImplemented
@@ -46,6 +51,12 @@ func (UnimplementedSource) Sync(context.Context, SyncOptions, chan<- message.Syn
 
 func (UnimplementedSource) Tables(context.Context, TableOptions) (schema.Tables, error) {
 	return nil, ErrNotImplemented
+}
+
+type UnimplementedTransformer struct{}
+
+func (UnimplementedTransformer) Transform(context.Context, <-chan arrow.Record, chan<- arrow.Record) error {
+	return ErrNotImplemented
 }
 
 // Plugin is the base structure required to pass to sdk.serve
