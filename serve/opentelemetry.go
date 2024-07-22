@@ -231,7 +231,7 @@ func (h *otelLoggerHook) Run(e *zerolog.Event, level zerolog.Level, message stri
 	record.SetBody(otellog.StringValue(message))
 	// See https://github.com/rs/zerolog/issues/493, this is ugly but it works
 	// At the moment there's no way to get the log fields from the event, so we use reflection to get the buffer and parse it
-	// TODO: Remove this if https://github.com/cloudquery/plugin-sdk/pull/1807 is merged
+	// TODO: Remove this if https://github.com/rs/zerolog/pull/682 is merged
 	logData := make(map[string]any)
 	eventBuffer := fmt.Sprintf("%s}", reflect.ValueOf(e).Elem().FieldByName("buf"))
 	err := json.Unmarshal([]byte(eventBuffer), &logData)
