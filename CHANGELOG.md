@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.51.0](https://github.com/cloudquery/plugin-sdk/compare/v4.50.1...v4.51.0) (2024-07-22)
+
+
+### Features
+
+* Send plugin logs via OTEL ([#1807](https://github.com/cloudquery/plugin-sdk/issues/1807)) ([9897b83](https://github.com/cloudquery/plugin-sdk/commit/9897b837f25e8d0338ce19fb795a8c96d4bc6223))
+
 ## [4.50.1](https://github.com/cloudquery/plugin-sdk/compare/v4.50.0...v4.50.1) (2024-07-22)
 
 
