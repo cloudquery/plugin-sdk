@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apache/arrow/go/v16/arrow"
+	"github.com/apache/arrow/go/v17/arrow"
 )
 
 type Date64 struct {

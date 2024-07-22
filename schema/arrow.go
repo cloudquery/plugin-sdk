@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"github.com/apache/arrow/go/v16/arrow"
+	"github.com/apache/arrow/go/v17/arrow"
 )
 
 const (

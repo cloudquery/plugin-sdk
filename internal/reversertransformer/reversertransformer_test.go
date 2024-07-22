@@ -5,9 +5,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/apache/arrow/go/v16/arrow"
-	"github.com/apache/arrow/go/v16/arrow/array"
-	"github.com/apache/arrow/go/v16/arrow/memory"
+	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow/go/v17/arrow/array"
+	"github.com/apache/arrow/go/v17/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	internalPlugin "github.com/cloudquery/plugin-sdk/v4/internal/servers/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
