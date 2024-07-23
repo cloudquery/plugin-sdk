@@ -68,15 +68,3 @@ func WithPrimaryKeyComponents(fields ...string) StructTransformerOption {
 		t.pkComponentFields = fields
 	}
 }
-
-func withCurrentJSONTypeSchemaDepth(depth int) StructTransformerOption {
-	return func(t *structTransformer) {
-		t.currentJSONTypeSchemaDepth = depth
-	}
-}
-
-func useArrowNullForNilColumnType() StructTransformerOption {
-	return func(t *structTransformer) {
-		t.useArrowNullForNilColumnType = true
-	}
-}

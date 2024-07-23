@@ -493,7 +493,7 @@ func TestJSONTypeSchema(t *testing.T) {
 				Tags map[string]string `json:"tags"`
 			}{},
 			want: map[string]string{
-				"tags": "map<utf8, utf8, items_nullable>",
+				"tags": `{"utf8":"utf8"}`,
 			},
 		},
 		{
@@ -504,7 +504,7 @@ func TestJSONTypeSchema(t *testing.T) {
 				} `json:"items"`
 			}{},
 			want: map[string]string{
-				"items": `list<{"name":"utf8"}, items_nullable>`,
+				"items": `[{"name":"utf8"}]`,
 			},
 		},
 		{
@@ -531,7 +531,7 @@ func TestJSONTypeSchema(t *testing.T) {
 				} `json:"item"`
 			}{},
 			want: map[string]string{
-				"item": `{"complex_items":"list<{\"name\":\"utf8\"}, items_nullable>","flat_items":"list<item: utf8, nullable>","name":"utf8","tags":"map<utf8, utf8, items_nullable>"}`,
+				"item": `{"complex_items":[{"name":"utf8"}],"flat_items":["utf8"],"name":"utf8","tags":{"utf8":"utf8"}}`,
 			},
 		},
 		{
@@ -548,7 +548,7 @@ func TestJSONTypeSchema(t *testing.T) {
 				} `json:"item"`
 			}{},
 			want: map[string]string{
-				"item": `{"complex_items":"list<{\"name\":\"utf8\"}, items_nullable>","flat_items":"list<item: utf8, nullable>","name":"utf8","tags":"map<utf8, utf8, items_nullable>"}`,
+				"item": `{"complex_items":[{"name":"utf8"}],"flat_items":["utf8"],"name":"utf8","tags":{"utf8":"utf8"}}`,
 			},
 		},
 		{
@@ -569,7 +569,7 @@ func TestJSONTypeSchema(t *testing.T) {
 				Tags map[string]any `json:"tags"`
 			}{},
 			want: map[string]string{
-				"tags": "map<utf8, any, items_nullable>",
+				"tags": `{"utf8":"any"}`,
 			},
 		},
 		{
@@ -578,7 +578,7 @@ func TestJSONTypeSchema(t *testing.T) {
 				Items []any `json:"items"`
 			}{},
 			want: map[string]string{
-				"items": `list<any, items_nullable>`,
+				"items": `["any"]`,
 			},
 		},
 		{
@@ -601,7 +601,7 @@ func TestJSONTypeSchema(t *testing.T) {
 				} `json:"level0"`
 			}{},
 			want: map[string]string{
-				"level0": "{\"level1\":\"{\\\"level2\\\":\\\"{\\\\\\\"level3\\\\\\\":\\\\\\\"{\\\\\\\\\\\\\\\"level4\\\\\\\\\\\\\\\":\\\\\\\\\\\\\\\"{\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"level5\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\":\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"json\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"}\\\\\\\\\\\\\\\"}\\\\\\\"}\\\"}\"}",
+				"level0": `{"level1":{"level2":{"level3":{"level4":{"level5":{"level6":"json"}}}}}}`,
 			},
 		},
 	}
@@ -619,10 +619,6 @@ func TestJSONTypeSchema(t *testing.T) {
 			}
 			for col, schema := range tt.want {
 				column := table.Column(col)
-				if column == nil {
-					t.Fatalf("column %q not found", col)
-				}
-
 				if diff := cmp.Diff(column.TypeSchema, schema); diff != "" {
 					t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
 				}
