@@ -69,9 +69,9 @@ func WithPrimaryKeyComponents(fields ...string) StructTransformerOption {
 	}
 }
 
-func withJSONTypeSchemaDepth(depth int) StructTransformerOption {
+func withCurrentJSONTypeSchemaDepth(depth int) StructTransformerOption {
 	return func(t *structTransformer) {
-		t.jsonTypeSchemaDepth = depth
+		t.currentJSONTypeSchemaDepth = depth
 	}
 }
 

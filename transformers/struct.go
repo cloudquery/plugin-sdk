@@ -30,7 +30,7 @@ type structTransformer struct {
 	pkComponentFields             []string
 	pkComponentFieldsFound        []string
 
-	jsonTypeSchemaDepth          int
+	currentJSONTypeSchemaDepth   int
 	useArrowNullForNilColumnType bool
 }
 
@@ -173,7 +173,7 @@ func (t *structTransformer) transformFieldToSchema(field reflect.StructField) st
 			WithNameTransformer(t.nameTransformer),
 			WithTypeTransformer(t.typeTransformer),
 			WithUnwrapAllEmbeddedStructs(),
-			withJSONTypeSchemaDepth(t.jsonTypeSchemaDepth+1),
+			withCurrentJSONTypeSchemaDepth(t.currentJSONTypeSchemaDepth+1),
 			useArrowNullForNilColumnType(),
 		)(table)
 		if err != nil {
@@ -267,7 +267,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	}
 
 	// Avoid infinite recursion
-	if columnType == types.ExtensionTypes.JSON && t.jsonTypeSchemaDepth < maxJSONTypeSchemaDepth {
+	if columnType == types.ExtensionTypes.JSON && t.currentJSONTypeSchemaDepth < maxJSONTypeSchemaDepth {
 		column.TypeSchema = t.transformFieldToSchema(field)
 	}
 

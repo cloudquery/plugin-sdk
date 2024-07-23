@@ -84,6 +84,7 @@ func (c Column) ToArrowField() arrow.Field {
 		MetadataUnique:              MetadataFalse,
 		MetadataIncremental:         MetadataFalse,
 		MetadataPrimaryKeyComponent: MetadataFalse,
+		MetadataTypeSchema:          c.TypeSchema,
 	}
 	if c.PrimaryKey {
 		mdKV[MetadataPrimaryKey] = MetadataTrue
@@ -97,7 +98,6 @@ func (c Column) ToArrowField() arrow.Field {
 	if c.PrimaryKeyComponent {
 		mdKV[MetadataPrimaryKeyComponent] = MetadataTrue
 	}
-	mdKV[MetadataTypeSchema] = c.TypeSchema
 
 	return arrow.Field{
 		Name:     c.Name,

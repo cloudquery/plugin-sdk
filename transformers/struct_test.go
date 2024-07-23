@@ -563,6 +563,47 @@ func TestJSONTypeSchema(t *testing.T) {
 				"item": `{"name":"utf8","object":"any"}`,
 			},
 		},
+		{
+			name: "handles map from string to any",
+			testStruct: struct {
+				Tags map[string]any `json:"tags"`
+			}{},
+			want: map[string]string{
+				"tags": "map<utf8, any, items_nullable>",
+			},
+		},
+		{
+			name: "handles array of any",
+			testStruct: struct {
+				Items []any `json:"items"`
+			}{},
+			want: map[string]string{
+				"items": `list<any, items_nullable>`,
+			},
+		},
+		{
+			name: "stops at the default depth of 5",
+			testStruct: struct {
+				Level0 struct {
+					Level1 struct {
+						Level2 struct {
+							Level3 struct {
+								Level4 struct {
+									Level5 struct {
+										Level6 struct {
+											Name string `json:"name"`
+										} `json:"level6"`
+									} `json:"level5"`
+								} `json:"level4"`
+							} `json:"level3"`
+						} `json:"level2"`
+					} `json:"level1"`
+				} `json:"level0"`
+			}{},
+			want: map[string]string{
+				"level0": "{\"level1\":\"{\\\"level2\\\":\\\"{\\\\\\\"level3\\\\\\\":\\\\\\\"{\\\\\\\\\\\\\\\"level4\\\\\\\\\\\\\\\":\\\\\\\\\\\\\\\"{\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"level5\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\":\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"json\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"}\\\\\\\\\\\\\\\"}\\\\\\\"}\\\"}\"}",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -578,6 +619,10 @@ func TestJSONTypeSchema(t *testing.T) {
 			}
 			for col, schema := range tt.want {
 				column := table.Column(col)
+				if column == nil {
+					t.Fatalf("column %q not found", col)
+				}
+
 				if diff := cmp.Diff(column.TypeSchema, schema); diff != "" {
 					t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
 				}
