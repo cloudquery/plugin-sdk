@@ -113,102 +113,6 @@ func (t *structTransformer) ignoreField(field reflect.StructField) bool {
 	}
 }
 
-func (t *structTransformer) getColumnType(field reflect.StructField) (arrow.DataType, error) {
-	columnType, err := t.typeTransformer(field)
-	if err != nil {
-		return nil, fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
-	}
-
-	if columnType == nil {
-		columnType, err = DefaultTypeTransformer(field)
-		if err != nil {
-			return nil, fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
-		}
-	}
-	return columnType, nil
-}
-
-func structSchemaToJSON(s any) string {
-	b := new(bytes.Buffer)
-	encoder := json.NewEncoder(b)
-	encoder.SetEscapeHTML(false)
-	_ = encoder.Encode(s)
-	return strings.TrimSpace(b.String())
-}
-
-func normalizePointer(field reflect.StructField) reflect.Value {
-	if field.Type.Kind() == reflect.Ptr {
-		return reflect.New(field.Type.Elem())
-	}
-	return reflect.New(field.Type)
-}
-
-func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth int) any {
-	transformInput := normalizePointer(field)
-	switch transformInput.Elem().Kind() {
-	case reflect.Struct:
-		fieldsMap := make(map[string]any)
-		fieldType := transformInput.Elem().Type()
-		for i := 0; i < fieldType.NumField(); i++ {
-			name, err := t.nameTransformer(fieldType.Field(i))
-			if err != nil {
-				continue
-			}
-			columnType, err := t.getColumnType(fieldType.Field(i))
-			if err != nil {
-				continue
-			}
-			if columnType == nil {
-				fieldsMap[name] = "any"
-				continue
-			}
-			if columnType == types.ExtensionTypes.JSON && depth < maxJSONTypeSchemaDepth {
-				fieldsMap[name] = t.fieldToJSONSchema(fieldType.Field(i), depth+1)
-				continue
-			}
-			if arrow.IsListLike(columnType.ID()) {
-				fieldsMap[name] = []any{columnType.(*arrow.ListType).Elem().String()}
-				continue
-			}
-			fieldsMap[name] = columnType.String()
-		}
-		return fieldsMap
-	case reflect.Map:
-		keySchema, ok := t.fieldToJSONSchema(reflect.StructField{
-			Type: field.Type.Key(),
-		}, depth+1).(string)
-		if keySchema == "" || !ok {
-			return ""
-		}
-		valueSchema := t.fieldToJSONSchema(reflect.StructField{
-			Type: field.Type.Elem(),
-		}, depth+1)
-		if valueSchema == "" {
-			return ""
-		}
-		return map[string]any{
-			keySchema: valueSchema,
-		}
-	case reflect.Slice:
-		valueSchema := t.fieldToJSONSchema(reflect.StructField{
-			Type: field.Type.Elem(),
-		}, depth+1)
-		if valueSchema == "" {
-			return ""
-		}
-		return []any{valueSchema}
-	}
-
-	columnType, err := t.getColumnType(field)
-	if err != nil {
-		return ""
-	}
-	if columnType == nil {
-		return "any"
-	}
-	return columnType.String()
-}
-
 func (t *structTransformer) addColumnFromField(field reflect.StructField, parent *reflect.StructField) error {
 	if t.ignoreField(field) {
 		return nil
@@ -220,7 +124,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 	}
 
 	if columnType == nil {
-		return nil
+		return nil // ignored
 	}
 
 	path := field.Name
@@ -334,4 +238,100 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 		}
 		return nil
 	}
+}
+
+func (t *structTransformer) getColumnType(field reflect.StructField) (arrow.DataType, error) {
+	columnType, err := t.typeTransformer(field)
+	if err != nil {
+		return nil, fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
+	}
+
+	if columnType == nil {
+		columnType, err = DefaultTypeTransformer(field)
+		if err != nil {
+			return nil, fmt.Errorf("failed to transform type for field %s: %w", field.Name, err)
+		}
+	}
+	return columnType, nil
+}
+
+func structSchemaToJSON(s any) string {
+	b := new(bytes.Buffer)
+	encoder := json.NewEncoder(b)
+	encoder.SetEscapeHTML(false)
+	_ = encoder.Encode(s)
+	return strings.TrimSpace(b.String())
+}
+
+func normalizePointer(field reflect.StructField) reflect.Value {
+	if field.Type.Kind() == reflect.Ptr {
+		return reflect.New(field.Type.Elem())
+	}
+	return reflect.New(field.Type)
+}
+
+func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth int) any {
+	transformInput := normalizePointer(field)
+	switch transformInput.Elem().Kind() {
+	case reflect.Struct:
+		fieldsMap := make(map[string]any)
+		fieldType := transformInput.Elem().Type()
+		for i := 0; i < fieldType.NumField(); i++ {
+			name, err := t.nameTransformer(fieldType.Field(i))
+			if err != nil {
+				continue
+			}
+			columnType, err := t.getColumnType(fieldType.Field(i))
+			if err != nil {
+				continue
+			}
+			if columnType == nil {
+				fieldsMap[name] = "any"
+				continue
+			}
+			if columnType == types.ExtensionTypes.JSON && depth < maxJSONTypeSchemaDepth {
+				fieldsMap[name] = t.fieldToJSONSchema(fieldType.Field(i), depth+1)
+				continue
+			}
+			if arrow.IsListLike(columnType.ID()) {
+				fieldsMap[name] = []any{columnType.(*arrow.ListType).Elem().String()}
+				continue
+			}
+			fieldsMap[name] = columnType.String()
+		}
+		return fieldsMap
+	case reflect.Map:
+		keySchema, ok := t.fieldToJSONSchema(reflect.StructField{
+			Type: field.Type.Key(),
+		}, depth+1).(string)
+		if keySchema == "" || !ok {
+			return ""
+		}
+		valueSchema := t.fieldToJSONSchema(reflect.StructField{
+			Type: field.Type.Elem(),
+		}, depth+1)
+		if valueSchema == "" {
+			return ""
+		}
+		return map[string]any{
+			keySchema: valueSchema,
+		}
+	case reflect.Slice:
+		valueSchema := t.fieldToJSONSchema(reflect.StructField{
+			Type: field.Type.Elem(),
+		}, depth+1)
+		if valueSchema == "" {
+			return ""
+		}
+		return []any{valueSchema}
+	}
+
+	columnType, err := t.getColumnType(field)
+	if err != nil {
+		return ""
+	}
+	if columnType == nil {
+		return "any"
+	}
+	return columnType.String()
 }
