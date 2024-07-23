@@ -160,7 +160,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		IgnoreInTests: t.ignoreInTestsTransformer(field),
 	}
 
-	// Avoid infinite recursion
+	// Enrich JSON column with detailed schema
 	if columnType == types.ExtensionTypes.JSON {
 		column.TypeSchema = structSchemaToJSON(t.fieldToJSONSchema(field, 0))
 	}
