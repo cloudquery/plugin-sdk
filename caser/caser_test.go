@@ -42,6 +42,8 @@ func Test_ToSnake(t *testing.T) {
 		{Camel: " H e l l o", Snake: "h_e_l_l_o"},
 		{Camel: " H e l l o ", Snake: "h_e_l_l_o"},
 		{Camel: "Hello     World", Snake: "hello_world"},
+		{Camel: "s", Snake: "s"},
+		{Camel: "S", Snake: "s"},
 	}
 	t.Parallel()
 	c := New()
@@ -67,6 +69,7 @@ func Test_ToCamel(t *testing.T) {
 		{Camel: "testCamelCaseLongString", Snake: "test_camel_case_long_string"},
 		{Camel: "testCamelCaseLongString", Snake: "test_camel_case_long_string"},
 		{Camel: "testIPv4", Snake: "test_ipv4"},
+		{Camel: "s", Snake: "s"},
 	}
 	t.Parallel()
 	c := New()
@@ -94,6 +97,7 @@ func Test_ToTitle(t *testing.T) {
 		{Title: "Test IPv4", Snake: "test_ipv4"},
 		{Title: "AWS Test Table", Snake: "aws_test_table"},
 		{Title: "Gcp Test Table", Snake: "gcp_test_table"}, // no exception specified
+		{Title: "S", Snake: "s"},
 	}
 	t.Parallel()
 	c := New(WithCustomExceptions(map[string]string{
@@ -125,6 +129,7 @@ func Test_ToPascal(t *testing.T) {
 		{Pascal: "TestIPv4", Snake: "test_ipv4"},
 		{Pascal: "Ec2", Snake: "ec2"},
 		{Pascal: "S3", Snake: "s3"},
+		{Pascal: "S", Snake: "s"},
 	}
 	t.Parallel()
 	c := New()
