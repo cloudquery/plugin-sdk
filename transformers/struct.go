@@ -271,11 +271,11 @@ func normalizePointer(field reflect.StructField) reflect.Value {
 }
 
 func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth int) any {
-	transformInput := normalizePointer(field)
-	switch transformInput.Elem().Kind() {
+	normalizedField := normalizePointer(field)
+	switch normalizedField.Elem().Kind() {
 	case reflect.Struct:
 		fieldsMap := make(map[string]any)
-		fieldType := transformInput.Elem().Type()
+		fieldType := normalizedField.Elem().Type()
 		for i := 0; i < fieldType.NumField(); i++ {
 			name, err := t.nameTransformer(fieldType.Field(i))
 			if err != nil {
@@ -304,13 +304,13 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 		return fieldsMap
 	case reflect.Map:
 		keySchema, ok := t.fieldToJSONSchema(reflect.StructField{
-			Type: field.Type.Key(),
+			Type: normalizedField.Elem().Type().Key(),
 		}, depth+1).(string)
 		if keySchema == "" || !ok {
 			return ""
 		}
 		valueSchema := t.fieldToJSONSchema(reflect.StructField{
-			Type: field.Type.Elem(),
+			Type: normalizedField.Elem().Type().Elem(),
 		}, depth+1)
 		if valueSchema == "" {
 			return ""
@@ -320,7 +320,7 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 		}
 	case reflect.Slice:
 		valueSchema := t.fieldToJSONSchema(reflect.StructField{
-			Type: field.Type.Elem(),
+			Type: normalizedField.Elem().Type().Elem(),
 		}, depth+1)
 		if valueSchema == "" {
 			return ""

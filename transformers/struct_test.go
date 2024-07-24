@@ -497,9 +497,29 @@ func TestJSONTypeSchema(t *testing.T) {
 			},
 		},
 		{
+			name: "simple map pointer",
+			testStruct: struct {
+				Tags *map[string]string `json:"tags"`
+			}{},
+			want: map[string]string{
+				"tags": `{"utf8":"utf8"}`,
+			},
+		},
+		{
 			name: "simple array",
 			testStruct: struct {
 				Items []struct {
+					Name string `json:"name"`
+				} `json:"items"`
+			}{},
+			want: map[string]string{
+				"items": `[{"name":"utf8"}]`,
+			},
+		},
+		{
+			name: "simple array pointer",
+			testStruct: struct {
+				Items *[]struct {
 					Name string `json:"name"`
 				} `json:"items"`
 			}{},
