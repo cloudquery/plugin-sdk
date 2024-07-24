@@ -47,6 +47,7 @@ type Column struct {
 	// PrimaryKeyComponent is a flag that indicates if the column is used as part of the input to calculate the value of `_cq_id`.
 	PrimaryKeyComponent bool `json:"primary_key_component"`
 
+	// If the column type is JSON, this field will have a JSON string that represents the schema of the JSON object.
 	TypeSchema string `json:"type_schema,omitempty"`
 }
 

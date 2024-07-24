@@ -289,12 +289,14 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 				fieldsMap[name] = "any"
 				continue
 			}
+			// Avoid infinite recursion
 			if columnType == types.ExtensionTypes.JSON && depth < maxJSONTypeSchemaDepth {
 				fieldsMap[name] = t.fieldToJSONSchema(fieldType.Field(i), depth+1)
 				continue
 			}
-			if arrow.IsListLike(columnType.ID()) {
-				fieldsMap[name] = []any{columnType.(*arrow.ListType).Elem().String()}
+			asList, ok := columnType.(*arrow.ListType)
+			if ok {
+				fieldsMap[name] = []any{asList.Elem().String()}
 				continue
 			}
 			fieldsMap[name] = columnType.String()
