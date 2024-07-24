@@ -601,7 +601,7 @@ func TestJSONTypeSchema(t *testing.T) {
 				} `json:"level0"`
 			}{},
 			want: map[string]string{
-				"level0": `{"level1":{"level2":{"level3":{"level4":{"level5":{"level6":"json"}}}}}}`,
+				"level0": `{"level1":{"level2":{"level3":{"level4":{"level5":"json"}}}}}`,
 			},
 		},
 	}

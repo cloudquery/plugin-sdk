@@ -14,7 +14,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-const maxJSONTypeSchemaDepth = 5
+const maxJSONTypeSchemaDepth = 4
 
 type structTransformer struct {
 	table                         *schema.Table
