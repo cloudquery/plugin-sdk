@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.52.1](https://github.com/cloudquery/plugin-sdk/compare/v4.52.0...v4.52.1) (2024-07-24)
+
+
+### Bug Fixes
+
+* Don't panic when trying `ToSnake` on `s` character ([#1816](https://github.com/cloudquery/plugin-sdk/issues/1816)) ([30e02da](https://github.com/cloudquery/plugin-sdk/commit/30e02da227bac041cf4ea0c918ad81d360c05084))
+* Properly handle map and slice pointers ([#1817](https://github.com/cloudquery/plugin-sdk/issues/1817)) ([8fe9081](https://github.com/cloudquery/plugin-sdk/commit/8fe9081b133892c95fc6dd23223e2a64572a164e))
+* Reduce JSON column schema nesting ([#1819](https://github.com/cloudquery/plugin-sdk/issues/1819)) ([2e1112f](https://github.com/cloudquery/plugin-sdk/commit/2e1112fd9fc8d7442f1de21c883287e5d314bb32))
+
 ## [4.52.0](https://github.com/cloudquery/plugin-sdk/compare/v4.51.0...v4.52.0) (2024-07-24)
 
 
