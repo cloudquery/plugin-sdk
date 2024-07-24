@@ -75,7 +75,7 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 		}
 		columns := make([]cloudquery_api.PluginTableColumn, 0, len(table.Columns))
 		for _, column := range table.Columns {
-			columns = append(columns, cloudquery_api.PluginTableColumn{
+			c := cloudquery_api.PluginTableColumn{
 				Name:           column.Name,
 				Description:    column.Description,
 				Type:           column.Type.String(),
@@ -86,7 +86,12 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 				// 2. If the column is a `PrimaryKey` and both of the following are true column name is NOT `_cq_id`  and there are other columns that are a PrimaryKeyComponent
 				PrimaryKey: (column.PrimaryKey && !(column.Name == schema.CqIDColumn.Name && len(table.PrimaryKeyComponents()) > 0)) || column.PrimaryKeyComponent,
 				Unique:     column.Unique,
-			})
+			}
+			if column.TypeSchema != "" {
+				typeSchema := column.TypeSchema
+				c.TypeSchema = &typeSchema
+			}
+			columns = append(columns, c)
 		}
 		tablesToEncode = append(tablesToEncode, cloudquery_api.PluginTableCreate{
 			Description:   &table.Description,

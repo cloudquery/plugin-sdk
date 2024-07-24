@@ -480,3 +480,149 @@ func TestTableFromGoStruct(t *testing.T) {
 		})
 	}
 }
+
+func TestJSONTypeSchema(t *testing.T) {
+	tests := []struct {
+		name       string
+		testStruct any
+		want       map[string]string
+	}{
+		{
+			name: "simple map",
+			testStruct: struct {
+				Tags map[string]string `json:"tags"`
+			}{},
+			want: map[string]string{
+				"tags": `{"utf8":"utf8"}`,
+			},
+		},
+		{
+			name: "simple array",
+			testStruct: struct {
+				Items []struct {
+					Name string `json:"name"`
+				} `json:"items"`
+			}{},
+			want: map[string]string{
+				"items": `[{"name":"utf8"}]`,
+			},
+		},
+		{
+			name: "simple struct",
+			testStruct: struct {
+				Item struct {
+					Name string `json:"name"`
+				} `json:"item"`
+			}{},
+			want: map[string]string{
+				"item": `{"name":"utf8"}`,
+			},
+		},
+		{
+			name: "complex struct",
+			testStruct: struct {
+				Item struct {
+					Name         string            `json:"name"`
+					Tags         map[string]string `json:"tags"`
+					FlatItems    []string          `json:"flat_items"`
+					ComplexItems []struct {
+						Name string `json:"name"`
+					} `json:"complex_items"`
+				} `json:"item"`
+			}{},
+			want: map[string]string{
+				"item": `{"complex_items":[{"name":"utf8"}],"flat_items":["utf8"],"name":"utf8","tags":{"utf8":"utf8"}}`,
+			},
+		},
+		{
+			name: "multiple json columns",
+			testStruct: struct {
+				Tags map[string]string `json:"tags"`
+				Item struct {
+					Name         string            `json:"name"`
+					Tags         map[string]string `json:"tags"`
+					FlatItems    []string          `json:"flat_items"`
+					ComplexItems []struct {
+						Name string `json:"name"`
+					} `json:"complex_items"`
+				} `json:"item"`
+			}{},
+			want: map[string]string{
+				"item": `{"complex_items":[{"name":"utf8"}],"flat_items":["utf8"],"name":"utf8","tags":{"utf8":"utf8"}}`,
+			},
+		},
+		{
+			name: "handles any type in struct",
+			testStruct: struct {
+				Item struct {
+					Name   string `json:"name"`
+					Object any    `json:"object"`
+				} `json:"item"`
+			}{},
+			want: map[string]string{
+				"item": `{"name":"utf8","object":"any"}`,
+			},
+		},
+		{
+			name: "handles map from string to any",
+			testStruct: struct {
+				Tags map[string]any `json:"tags"`
+			}{},
+			want: map[string]string{
+				"tags": `{"utf8":"any"}`,
+			},
+		},
+		{
+			name: "handles array of any",
+			testStruct: struct {
+				Items []any `json:"items"`
+			}{},
+			want: map[string]string{
+				"items": `["any"]`,
+			},
+		},
+		{
+			name: "stops at the default depth of 5",
+			testStruct: struct {
+				Level0 struct {
+					Level1 struct {
+						Level2 struct {
+							Level3 struct {
+								Level4 struct {
+									Level5 struct {
+										Level6 struct {
+											Name string `json:"name"`
+										} `json:"level6"`
+									} `json:"level5"`
+								} `json:"level4"`
+							} `json:"level3"`
+						} `json:"level2"`
+					} `json:"level1"`
+				} `json:"level0"`
+			}{},
+			want: map[string]string{
+				"level0": `{"level1":{"level2":{"level3":{"level4":{"level5":{"level6":"json"}}}}}}`,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			table := schema.Table{
+				Name: "test",
+			}
+			transformer := TransformWithStruct(tt.testStruct)
+			err := transformer(&table)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for col, schema := range tt.want {
+				column := table.Column(col)
+				if diff := cmp.Diff(column.TypeSchema, schema); diff != "" {
+					t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
+				}
+			}
+		})
+	}
+}
