@@ -113,7 +113,7 @@ func (c *Caser) ToSnake(s string) string {
 	// append the last word
 	if s[lastPos:] != "" {
 		// handle plurals of initialisms like CDNs, ARNs, IDs
-		if w := s[lastPos:]; w == "s" {
+		if w := s[lastPos:]; w == "s" && words != nil {
 			words[len(words)-1] = words[len(words)-1] + w
 		} else {
 			words = append(words, s[lastPos:])
