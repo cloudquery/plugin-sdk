@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/apache/arrow/go/v17/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -622,6 +623,21 @@ func TestJSONTypeSchema(t *testing.T) {
 			}{},
 			want: map[string]string{
 				"level0": `{"level1":{"level2":{"level3":{"level4":{"level5":"json"}}}}}`,
+			},
+		},
+		{
+			name: "ignores non exported and ignored types",
+			testStruct: struct {
+				Item struct {
+					nonExported   string
+					f             func()
+					c             chan int
+					unsafePointer unsafe.Pointer
+					Exported      string `json:"exported"`
+				} `json:"item"`
+			}{},
+			want: map[string]string{
+				"item": `{"exported":"utf8"}`,
 			},
 		},
 	}
