@@ -16,7 +16,8 @@
     "name": "table1",
     "relations": ["table2"],
     "title": "",
-    "is_paid": false
+    "is_paid": false,
+    "permissions_needed": ["permission1"]
   },
   {
     "columns": [
@@ -36,7 +37,8 @@
     "is_incremental": false,
     "name": "table2",
     "title": "",
-    "is_paid": false
+    "is_paid": false,
+    "permissions_needed": null
   },
   {
     "columns": [
@@ -56,6 +58,7 @@
     "is_incremental": false,
     "name": "table3",
     "title": "",
-    "is_paid": true
+    "is_paid": true,
+    "permissions_needed": null
   }
 ]
