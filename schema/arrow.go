@@ -12,13 +12,14 @@ const (
 	MetadataIncremental         = "cq:extension:incremental"
 	MetadataTypeSchema          = "cq:extension:type_schema"
 
-	MetadataTrue             = "true"
-	MetadataFalse            = "false"
-	MetadataTableName        = "cq:table_name"
-	MetadataTableDescription = "cq:table_description"
-	MetadataTableTitle       = "cq:table_title"
-	MetadataTableDependsOn   = "cq:table_depends_on"
-	MetadataTableIsPaid      = "cq:table_paid"
+	MetadataTrue                   = "true"
+	MetadataFalse                  = "false"
+	MetadataTableName              = "cq:table_name"
+	MetadataTableDescription       = "cq:table_description"
+	MetadataTableTitle             = "cq:table_title"
+	MetadataTableDependsOn         = "cq:table_depends_on"
+	MetadataTableIsPaid            = "cq:table_paid"
+	MetadataTablePermissionsNeeded = "cq:table_permissions_needed"
 )
 
 type Schemas []*arrow.Schema

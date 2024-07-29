@@ -94,14 +94,15 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 			columns = append(columns, c)
 		}
 		tablesToEncode = append(tablesToEncode, cloudquery_api.PluginTableCreate{
-			Description:   &table.Description,
-			IsIncremental: &table.IsIncremental,
-			IsPaid:        &table.IsPaid,
-			Name:          table.Name,
-			Parent:        parent,
-			Relations:     &relations,
-			Title:         &table.Title,
-			Columns:       &columns,
+			Description:       &table.Description,
+			IsIncremental:     &table.IsIncremental,
+			IsPaid:            &table.IsPaid,
+			Name:              table.Name,
+			Parent:            parent,
+			Relations:         &relations,
+			Title:             &table.Title,
+			Columns:           &columns,
+			PermissionsNeeded: &table.PermissionsNeeded,
 		})
 	}
 	buffer := &bytes.Buffer{}
