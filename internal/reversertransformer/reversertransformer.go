@@ -58,6 +58,10 @@ func (c *client) Transform(ctx context.Context, recvRecords <-chan arrow.Record,
 	}
 }
 
+func (*client) TransformSchema(_ context.Context, old *arrow.Schema) (*arrow.Schema, error) {
+	return old, nil
+}
+
 func (*client) reverseStrings(record arrow.Record) (arrow.Record, error) {
 	for i, column := range record.Columns() {
 		if column.DataType().ID() != arrow.STRING {

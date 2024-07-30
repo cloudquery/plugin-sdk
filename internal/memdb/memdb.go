@@ -311,6 +311,10 @@ func (*client) Transform(_ context.Context, _ <-chan arrow.Record, _ chan<- arro
 	return nil
 }
 
+func (*client) TransformSchema(_ context.Context, _ *arrow.Schema) (*arrow.Schema, error) {
+	return nil, nil
+}
+
 func evaluatePredicate(pred message.Predicate, record arrow.Record) bool {
 	sc := record.Schema()
 	indices := sc.FieldIndices(pred.Column)

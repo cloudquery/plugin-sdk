@@ -69,6 +69,11 @@ func (*Client) Transform(_ context.Context, _ <-chan arrow.Record, _ chan<- arro
 	return nil
 }
 
+func (*Client) TransformSchema(_ context.Context, _ *arrow.Schema) (*arrow.Schema, error) {
+	// Not implemented, just used for testing destination packaging
+	return nil, nil
+}
+
 func Configure(_ context.Context, logger zerolog.Logger, spec []byte, opts plugin.NewClientOptions) (plugin.Client, error) {
 	if opts.NoConnection {
 		return &Client{
