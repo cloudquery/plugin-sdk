@@ -702,37 +702,47 @@ func TestTableGetChanges(t *testing.T) {
 	}
 }
 
-func TestTableToAndFromArrow(t *testing.T) {
+func TestTablesToAndFromArrow(t *testing.T) {
 	// The attributes in this table should all be preserved when converting to and from Arrow.
-	table := &Table{
-		Name:        "test_table",
-		Description: "Test table description",
-		Title:       "Test Table",
-		Parent: &Table{
-			Name: "parent_table",
+	tablesToTest := Tables{
+		// Test empty table
+		&Table{
+			Columns: []Column{},
 		},
-		IsIncremental: true,
-		Columns: []Column{
-			{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
-			{Name: "int", Type: arrow.PrimitiveTypes.Int64},
-			{Name: "float", Type: arrow.PrimitiveTypes.Float64},
-			{Name: "string", Type: arrow.BinaryTypes.String},
-			{Name: "json", Type: types.ExtensionTypes.JSON},
-			{Name: "unique", Type: arrow.BinaryTypes.String, Unique: true},
-			{Name: "primary_key", Type: arrow.BinaryTypes.String, PrimaryKey: true},
-			{Name: "not_null", Type: arrow.BinaryTypes.String, NotNull: true},
-			{Name: "incremental_key", Type: arrow.BinaryTypes.String, IncrementalKey: true},
-			{Name: "multiple_attributes", Type: arrow.BinaryTypes.String, PrimaryKey: true, IncrementalKey: true, NotNull: true, Unique: true},
+		// Test table with attributes
+		&Table{
+			Name:        "test_table",
+			Description: "Test table description",
+			Title:       "Test Table",
+			Parent: &Table{
+				Name: "parent_table",
+			},
+			IsIncremental: true,
+			Columns: []Column{
+				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+				{Name: "int", Type: arrow.PrimitiveTypes.Int64},
+				{Name: "float", Type: arrow.PrimitiveTypes.Float64},
+				{Name: "string", Type: arrow.BinaryTypes.String},
+				{Name: "json", Type: types.ExtensionTypes.JSON},
+				{Name: "unique", Type: arrow.BinaryTypes.String, Unique: true},
+				{Name: "primary_key", Type: arrow.BinaryTypes.String, PrimaryKey: true},
+				{Name: "not_null", Type: arrow.BinaryTypes.String, NotNull: true},
+				{Name: "incremental_key", Type: arrow.BinaryTypes.String, IncrementalKey: true},
+				{Name: "multiple_attributes", Type: arrow.BinaryTypes.String, PrimaryKey: true, IncrementalKey: true, NotNull: true, Unique: true},
+			},
+			PermissionsNeeded: []string{"storage.buckets.list", "compute.acceleratorTypes.list", "test,test"},
 		},
-		PermissionsNeeded: []string{"storage.buckets.list", "compute.acceleratorTypes.list", "test,test"},
 	}
-	arrowSchema := table.ToArrowSchema()
-	tableFromArrow, err := NewTableFromArrowSchema(arrowSchema)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(table, tableFromArrow); diff != "" {
-		t.Errorf("diff (+got, -want): %v", diff)
+
+	for _, table := range tablesToTest {
+		arrowSchema := table.ToArrowSchema()
+		tableFromArrow, err := NewTableFromArrowSchema(arrowSchema)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(table, tableFromArrow); diff != "" {
+			t.Errorf("diff (+got, -want): %v", diff)
+		}
 	}
 }
 
