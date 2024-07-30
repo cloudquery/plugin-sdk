@@ -476,8 +476,8 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	if t.IsPaid {
 		md[MetadataTableIsPaid] = MetadataTrue
 	}
-	asJson, _ := json.Marshal(t.PermissionsNeeded)
-	md[MetadataTablePermissionsNeeded] = string(asJson)
+	asJSON, _ := json.Marshal(t.PermissionsNeeded)
+	md[MetadataTablePermissionsNeeded] = string(asJSON)
 
 	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {
