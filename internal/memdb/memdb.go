@@ -58,6 +58,7 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 						Unique:         true,
 					},
 				},
+				PermissionsNeeded: []string{"permission1"},
 				Relations: schema.Tables{
 					{
 						Name: "table2",

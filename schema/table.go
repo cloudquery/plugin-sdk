@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/apache/arrow/go/v17/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
@@ -62,6 +63,8 @@ type Table struct {
 	Title string `json:"title"`
 	// table description
 	Description string `json:"description"`
+	// List of permissions needed to access this table, if any. For example ["Microsoft.Network/dnsZones/read"] or ["storage.buckets.list"]
+	PermissionsNeeded []string `json:"permissions_needed"`
 	// Columns are the set of fields that are part of this table
 	Columns ColumnList `json:"columns"`
 	// Relations are a set of related tables defines
@@ -169,6 +172,7 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	constraintName, _ := tableMD.GetValue(MetadataConstraintName)
 	title, _ := tableMD.GetValue(MetadataTableTitle)
 	dependsOn, _ := tableMD.GetValue(MetadataTableDependsOn)
+	permissionsNeeded, _ := tableMD.GetValue(MetadataTablePermissionsNeeded)
 	var parent *Table
 	if dependsOn != "" {
 		parent = &Table{Name: dependsOn}
@@ -179,12 +183,13 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		columns[i] = NewColumnFromArrowField(field)
 	}
 	table := &Table{
-		Name:             name,
-		Description:      description,
-		PkConstraintName: constraintName,
-		Columns:          columns,
-		Title:            title,
-		Parent:           parent,
+		Name:              name,
+		Description:       description,
+		PkConstraintName:  constraintName,
+		Columns:           columns,
+		Title:             title,
+		Parent:            parent,
+		PermissionsNeeded: strings.Split(permissionsNeeded, ","),
 	}
 	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
 		table.IsIncremental = isIncremental == MetadataTrue
@@ -454,10 +459,11 @@ func (t *Table) PrimaryKeysIndexes() []int {
 func (t *Table) ToArrowSchema() *arrow.Schema {
 	fields := make([]arrow.Field, len(t.Columns))
 	md := map[string]string{
-		MetadataTableName:        t.Name,
-		MetadataTableDescription: t.Description,
-		MetadataTableTitle:       t.Title,
-		MetadataConstraintName:   t.PkConstraintName,
+		MetadataTableName:              t.Name,
+		MetadataTableDescription:       t.Description,
+		MetadataTableTitle:             t.Title,
+		MetadataConstraintName:         t.PkConstraintName,
+		MetadataTablePermissionsNeeded: strings.Join(t.PermissionsNeeded, ","),
 	}
 	if t.IsIncremental {
 		md[MetadataIncremental] = MetadataTrue
