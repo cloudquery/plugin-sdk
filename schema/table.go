@@ -2,10 +2,10 @@ package schema
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"slices"
-	"strings"
 
 	"github.com/apache/arrow/go/v17/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
@@ -182,6 +182,9 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	for i, field := range fields {
 		columns[i] = NewColumnFromArrowField(field)
 	}
+
+	var permissionsNeededArr []string
+	_ = json.Unmarshal([]byte(permissionsNeeded), &permissionsNeededArr)
 	table := &Table{
 		Name:              name,
 		Description:       description,
@@ -189,7 +192,7 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		Columns:           columns,
 		Title:             title,
 		Parent:            parent,
-		PermissionsNeeded: strings.Split(permissionsNeeded, ","),
+		PermissionsNeeded: permissionsNeededArr,
 	}
 	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
 		table.IsIncremental = isIncremental == MetadataTrue
@@ -459,11 +462,10 @@ func (t *Table) PrimaryKeysIndexes() []int {
 func (t *Table) ToArrowSchema() *arrow.Schema {
 	fields := make([]arrow.Field, len(t.Columns))
 	md := map[string]string{
-		MetadataTableName:              t.Name,
-		MetadataTableDescription:       t.Description,
-		MetadataTableTitle:             t.Title,
-		MetadataConstraintName:         t.PkConstraintName,
-		MetadataTablePermissionsNeeded: strings.Join(t.PermissionsNeeded, ","),
+		MetadataTableName:        t.Name,
+		MetadataTableDescription: t.Description,
+		MetadataTableTitle:       t.Title,
+		MetadataConstraintName:   t.PkConstraintName,
 	}
 	if t.IsIncremental {
 		md[MetadataIncremental] = MetadataTrue
@@ -474,10 +476,14 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	if t.IsPaid {
 		md[MetadataTableIsPaid] = MetadataTrue
 	}
+	asJSON, _ := json.Marshal(t.PermissionsNeeded)
+	md[MetadataTablePermissionsNeeded] = string(asJSON)
+
 	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {
 		fields[i] = c.ToArrowField()
 	}
+
 	return arrow.NewSchema(fields, &schemaMd)
 }
 
