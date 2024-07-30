@@ -277,11 +277,15 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 		fieldsMap := make(map[string]any)
 		fieldType := normalizedField.Elem().Type()
 		for i := 0; i < fieldType.NumField(); i++ {
-			name, err := t.nameTransformer(fieldType.Field(i))
+			structField := fieldType.Field(i)
+			if !structField.IsExported() || isTypeIgnored(structField.Type) {
+				continue
+			}
+			name, err := t.nameTransformer(structField)
 			if err != nil {
 				continue
 			}
-			columnType, err := t.getColumnType(fieldType.Field(i))
+			columnType, err := t.getColumnType(structField)
 			if err != nil {
 				continue
 			}
@@ -291,7 +295,7 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 			}
 			// Avoid infinite recursion
 			if columnType == types.ExtensionTypes.JSON && depth < maxJSONTypeSchemaDepth {
-				fieldsMap[name] = t.fieldToJSONSchema(fieldType.Field(i), depth+1)
+				fieldsMap[name] = t.fieldToJSONSchema(structField, depth+1)
 				continue
 			}
 			asList, ok := columnType.(*arrow.ListType)
