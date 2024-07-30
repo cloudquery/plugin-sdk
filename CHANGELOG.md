@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.55.0](https://github.com/cloudquery/plugin-sdk/compare/v4.54.0...v4.55.0) (2024-07-30)
+
+
+### Features
+
+* Add `PermissionsNeeded` to tables schema ([#1827](https://github.com/cloudquery/plugin-sdk/issues/1827)) ([863b906](https://github.com/cloudquery/plugin-sdk/commit/863b9068bd296dac7c879ae3980a2f2f3ec4c359))
+
+
+### Bug Fixes
+
+* Handle commas in permissions array ([#1835](https://github.com/cloudquery/plugin-sdk/issues/1835)) ([b633aed](https://github.com/cloudquery/plugin-sdk/commit/b633aed0dc0e6fa8f8af58c8f84e5309375f4608))
+
 ## [4.54.0](https://github.com/cloudquery/plugin-sdk/compare/v4.53.1...v4.54.0) (2024-07-30)
 
 
