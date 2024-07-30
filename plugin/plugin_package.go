@@ -18,11 +18,12 @@ type Kind string
 const (
 	KindSource      Kind = "source"
 	KindDestination Kind = "destination"
+	KindTransformer Kind = "transformer"
 )
 
 func (k Kind) Validate() error {
 	switch k {
-	case KindSource, KindDestination:
+	case KindSource, KindDestination, KindTransformer:
 		return nil
 	default:
 		return errors.New("invalid plugin kind: must be one of source, destination")
