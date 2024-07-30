@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.54.0](https://github.com/cloudquery/plugin-sdk/compare/v4.53.1...v4.54.0) (2024-07-30)
+
+
+### Features
+
+* Add PluginKind "transformer". ([#1828](https://github.com/cloudquery/plugin-sdk/issues/1828)) ([2c78878](https://github.com/cloudquery/plugin-sdk/commit/2c788784e0cb7d2d70ce4389113cd9e758b8e146))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.12.4 ([#1830](https://github.com/cloudquery/plugin-sdk/issues/1830)) ([57a606f](https://github.com/cloudquery/plugin-sdk/commit/57a606f774210314f5f19e096be6a18caa5f343a))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.21.0 ([#1829](https://github.com/cloudquery/plugin-sdk/issues/1829)) ([1a614cb](https://github.com/cloudquery/plugin-sdk/commit/1a614cb0dc469bd1c2620c22a91d0c2c4f7779b0))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.21.1 ([#1832](https://github.com/cloudquery/plugin-sdk/issues/1832)) ([33bd55f](https://github.com/cloudquery/plugin-sdk/commit/33bd55f19de89cd877018e7d10ff19c8f5e2a2e2))
+
 ## [4.53.1](https://github.com/cloudquery/plugin-sdk/compare/v4.53.0...v4.53.1) (2024-07-26)
 
 
