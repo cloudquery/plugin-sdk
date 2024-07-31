@@ -16,8 +16,8 @@ github.com/buger/jsonparser v1.1.1 h1:2PnMjfWD7wBILjqQbt530v576A/cAbQvEW9gGIpYMU
 github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx27UK13J/0=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
 github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyYozVcomhLiZE=
-github.com/cloudquery/cloudquery-api-go v1.12.4 h1:48zJRUONRb0AJD/l4u5QZtGsVBq1QUU3M9+/+sCU3xo=
-github.com/cloudquery/cloudquery-api-go v1.12.4/go.mod h1:5oo8HHnv2Y7NgcVvZn59xFlYKJUyeP0tcN8JH3IP2Aw=
+github.com/cloudquery/cloudquery-api-go v1.12.5 h1:kN/xUofYCefKRqnF5hSfGVPjHcY0soFF1+VjPvqwFQ8=
+github.com/cloudquery/cloudquery-api-go v1.12.5/go.mod h1:5oo8HHnv2Y7NgcVvZn59xFlYKJUyeP0tcN8JH3IP2Aw=
 github.com/cloudquery/plugin-pb-go v1.21.3 h1:IlhLN6LbZeAzOjIm0VMELmj7PpFkDroJ41QCrAEcWwg=
 github.com/cloudquery/plugin-pb-go v1.21.3/go.mod h1:Gv336j2QCqGlUABUA6gBcrqWNjLpzv9NOmAJAHC3xg0=
 github.com/cloudquery/plugin-sdk/v2 v2.7.0 h1:hRXsdEiaOxJtsn/wZMFQC9/jPfU1MeMK3KF+gPGqm7U=
