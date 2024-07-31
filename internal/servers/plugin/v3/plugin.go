@@ -475,6 +475,22 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	return eg.Wait()
 }
 
+func (s *Server) TransformSchema(ctx context.Context, req *pb.TransformSchema_Request) (*pb.TransformSchema_Response, error) {
+	sc, err := pb.NewSchemaFromBytes(req.Schema)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
+	}
+	newSchema, err := s.Plugin.TransformSchema(ctx, sc)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to transform schema: %v", err)
+	}
+	encoded, err := pb.SchemaToBytes(newSchema)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to encode schema: %v", err)
+	}
+	return &pb.TransformSchema_Response{Schema: encoded}, nil
+}
+
 func (s *Server) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {
 	return &pb.Close_Response{}, s.Plugin.Close(ctx)
 }
