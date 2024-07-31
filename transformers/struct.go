@@ -14,7 +14,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-const maxJSONTypeSchemaDepth = 4
+const defaultMaxJSONTypeSchemaDepth = 4
 
 type structTransformer struct {
 	table                         *schema.Table
@@ -29,6 +29,8 @@ type structTransformer struct {
 	pkFieldsFound                 []string
 	pkComponentFields             []string
 	pkComponentFieldsFound        []string
+
+	maxJSONTypeSchemaDepth int
 }
 
 func isFieldStruct(reflectType reflect.Type) bool {
@@ -196,6 +198,7 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 		typeTransformer:          DefaultTypeTransformer,
 		resolverTransformer:      DefaultResolverTransformer,
 		ignoreInTestsTransformer: DefaultIgnoreInTestsTransformer,
+		maxJSONTypeSchemaDepth:   defaultMaxJSONTypeSchemaDepth,
 	}
 	for _, opt := range opts {
 		opt(t)
@@ -294,7 +297,7 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 				continue
 			}
 			// Avoid infinite recursion
-			if columnType == types.ExtensionTypes.JSON && depth < maxJSONTypeSchemaDepth {
+			if columnType == types.ExtensionTypes.JSON && depth < t.maxJSONTypeSchemaDepth {
 				fieldsMap[name] = t.fieldToJSONSchema(structField, depth+1)
 				continue
 			}
