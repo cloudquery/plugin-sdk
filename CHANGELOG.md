@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.56.0](https://github.com/cloudquery/plugin-sdk/compare/v4.55.0...v4.56.0) (2024-07-31)
+
+
+### Features
+
+* Implement TransformSchema support. ([#1838](https://github.com/cloudquery/plugin-sdk/issues/1838)) ([30875d6](https://github.com/cloudquery/plugin-sdk/commit/30875d6f134f399f5c2ea16dad49b0b5aa4dd3e9))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.21.2 ([#1837](https://github.com/cloudquery/plugin-sdk/issues/1837)) ([47bb424](https://github.com/cloudquery/plugin-sdk/commit/47bb424c2151363cc312d155ac5823abfc7d23c5))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.21.3 ([#1840](https://github.com/cloudquery/plugin-sdk/issues/1840)) ([d2c5c7b](https://github.com/cloudquery/plugin-sdk/commit/d2c5c7b54a933a268fe5090a0ca83f1995be9082))
+
 ## [4.55.0](https://github.com/cloudquery/plugin-sdk/compare/v4.54.0...v4.55.0) (2024-07-30)
 
 
