@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.57.0](https://github.com/cloudquery/plugin-sdk/compare/v4.56.0...v4.57.0) (2024-08-01)
+
+
+### Features
+
+* Allow setting JSON type schema max depth ([#1844](https://github.com/cloudquery/plugin-sdk/issues/1844)) ([0b28389](https://github.com/cloudquery/plugin-sdk/commit/0b28389bb53cd2c076cca3ddaa93ca4d24e40b7b))
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 8a7402a ([#1845](https://github.com/cloudquery/plugin-sdk/issues/1845)) ([5f7eb25](https://github.com/cloudquery/plugin-sdk/commit/5f7eb25df3208ed738c1f0e6f17c5366b89fcc30))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.12.5 ([#1841](https://github.com/cloudquery/plugin-sdk/issues/1841)) ([4361e84](https://github.com/cloudquery/plugin-sdk/commit/4361e8442c05b77a0be772cab52e1d217810bf47))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.21.4 ([#1847](https://github.com/cloudquery/plugin-sdk/issues/1847)) ([281b945](https://github.com/cloudquery/plugin-sdk/commit/281b94510552962af13d5c3c2e735669d4fa4bd4))
+* **deps:** Update opentelemetry-go monorepo to v1.28.0 ([#1846](https://github.com/cloudquery/plugin-sdk/issues/1846)) ([3a5c90c](https://github.com/cloudquery/plugin-sdk/commit/3a5c90c0045aa6f2df57c02ed2afc7e5596c4bb7))
+
 ## [4.56.0](https://github.com/cloudquery/plugin-sdk/compare/v4.55.0...v4.56.0) (2024-07-31)
 
 
