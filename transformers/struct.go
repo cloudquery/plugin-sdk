@@ -14,7 +14,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-const defaultMaxJSONTypeSchemaDepth = 4
+const DefaultMaxJSONTypeSchemaDepth = 4
 
 type structTransformer struct {
 	table                         *schema.Table
@@ -198,7 +198,7 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 		typeTransformer:          DefaultTypeTransformer,
 		resolverTransformer:      DefaultResolverTransformer,
 		ignoreInTestsTransformer: DefaultIgnoreInTestsTransformer,
-		maxJSONTypeSchemaDepth:   defaultMaxJSONTypeSchemaDepth,
+		maxJSONTypeSchemaDepth:   DefaultMaxJSONTypeSchemaDepth,
 	}
 	for _, opt := range opts {
 		opt(t)
