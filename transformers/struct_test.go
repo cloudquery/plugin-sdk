@@ -486,6 +486,7 @@ func TestJSONTypeSchema(t *testing.T) {
 	tests := []struct {
 		name       string
 		testStruct any
+		maxDepth   int
 		want       map[string]string
 	}{
 		{
@@ -626,6 +627,30 @@ func TestJSONTypeSchema(t *testing.T) {
 			},
 		},
 		{
+			name:     "stops at the configured depth",
+			maxDepth: 2,
+			testStruct: struct {
+				Level0 struct {
+					Level1 struct {
+						Level2 struct {
+							Level3 struct {
+								Level4 struct {
+									Level5 struct {
+										Level6 struct {
+											Name string `json:"name"`
+										} `json:"level6"`
+									} `json:"level5"`
+								} `json:"level4"`
+							} `json:"level3"`
+						} `json:"level2"`
+					} `json:"level1"`
+				} `json:"level0"`
+			}{},
+			want: map[string]string{
+				"level0": `{"level1":{"level2":{"level3":"json"}}}`,
+			},
+		},
+		{
 			name: "ignores non exported and ignored types",
 			testStruct: struct {
 				Item struct {
@@ -648,7 +673,11 @@ func TestJSONTypeSchema(t *testing.T) {
 			table := schema.Table{
 				Name: "test",
 			}
-			transformer := TransformWithStruct(tt.testStruct)
+			opts := []StructTransformerOption{}
+			if tt.maxDepth > 0 {
+				opts = append(opts, WithMaxJSONTypeSchemaDepth(tt.maxDepth))
+			}
+			transformer := TransformWithStruct(tt.testStruct, opts...)
 			err := transformer(&table)
 			if err != nil {
 				t.Fatal(err)
