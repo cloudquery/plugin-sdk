@@ -907,3 +907,50 @@ func (mi meteringInput) Matches(x any) bool {
 func (mi meteringInput) String() string {
 	return fmt.Sprintf("{ProductCode:%s UsageDimension:%s UsageQuantity:%d}", aws.ToString(mi.ProductCode), aws.ToString(mi.UsageDimension), aws.ToInt32(mi.UsageQuantity))
 }
+
+
+func TestRoundDown(t *testing.T) {
+	cases := []struct {
+		x    uint32
+		unit uint32
+		want uint32
+	}{
+		{1000, 1000, 1000},
+		{2000, 1000, 2000},
+		{2001, 1000, 2000},
+		{2999, 1000, 2000},
+		{0, 1000, 0},
+		{123, 1000, 0},
+		{2500, 1000, 2000},
+	}
+
+	for _, c := range cases {
+		got := roundDown(c.x, c.unit)
+		if got != c.want {
+			t.Errorf("roundDown(%d, %d) == %d, want %d", c.x, c.unit, got, c.want)
+		}
+	}
+}
+
+func TestRoundUp(t *testing.T) {
+	cases := []struct {
+		x    uint32
+		unit uint32
+		want uint32
+	}{
+		{1000, 1000, 1000},
+		{2000, 1000, 2000},
+		{2001, 1000, 3000},
+		{2999, 1000, 3000},
+		{0, 1000, 0},
+		{123, 1000, 1000},
+		{2500, 1000, 3000},
+	}
+
+	for _, c := range cases {
+		got := roundUp(c.x, c.unit)
+		if got != c.want {
+			t.Errorf("roundUp(%d, %d) == %d, want %d", c.x, c.unit, got, c.want)
+		}
+	}
+}

@@ -403,7 +403,7 @@ func (u *BatchUpdater) subtractTableUsageForAWSMarketplace(total uint32) {
 		if tableTotal < 1 {
 			continue
 		}
-		if tableTotal > total {
+		if tableTotal >= total {
 			u.tables[table] -= total
 			total = 0
 		} else {
@@ -705,23 +705,16 @@ func (NoOpUsageClient) IncreaseForTable(_ string, _ uint32) error {
 func (NoOpUsageClient) Close() error {
 	return nil
 }
+
 func roundDown(x, unit uint32) uint32 {
-	a := (x / unit) * unit
-	b := a + unit
-	if a < b {
-		return a
-	}
-	return b
+	return x - (x % unit)
 }
 
 func roundUp(x, unit uint32) uint32 {
-	a := (x / unit) * unit
-	b := a + unit
-
-	if (x - a) < (b - x) {
-		return a
+	if x%unit == 0 {
+		return x
 	}
-	return b
+	return x + (unit - x%unit)
 }
 
 
