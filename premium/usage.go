@@ -405,11 +405,11 @@ func (u *BatchUpdater) subtractTableUsageForAWSMarketplace(total uint32) {
 		}
 		if tableTotal >= total {
 			u.tables[table] -= total
-			total = 0
-		} else {
-			u.tables[table] = 0
-			total -= tableTotal
+			// we can return early because we have subtracted enough rows
+			return
 		}
+		u.tables[table] = 0
+		total -= tableTotal
 	}
 }
 func (u *BatchUpdater) subtractTableUsage(usage []cqapi.UsageIncreaseTablesInner, total uint32) {
@@ -471,7 +471,12 @@ func (u *BatchUpdater) backgroundUpdater() {
 				if totals == 0 {
 					continue
 				}
-
+				// If we are using AWS Marketplace, we need to round down to the nearest 1000
+				// Only on the last update, will we round up to the nearest 1000
+				// This will allow us to not over charge the customer by rounding on each batch
+				if u.awsMarketplaceClient != nil {
+					totals = roundDown(totals, 1000)
+				}
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					log.Warn().Err(err).Msg("failed to update usage")
 					continue
@@ -716,5 +721,3 @@ func roundUp(x, unit uint32) uint32 {
 	}
 	return x + (unit - x%unit)
 }
-
-
