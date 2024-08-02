@@ -19,6 +19,11 @@ linters-settings:
       - var
       - func
     disable-dec-order-check: false
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+      - shadow
 
   revive:
     enable-all-rules: true
