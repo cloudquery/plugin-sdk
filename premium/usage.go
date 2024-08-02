@@ -11,6 +11,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
+	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
@@ -40,6 +44,11 @@ const (
 	MinimumUpdateIntervalHeader = "x-cq-minimum-update-interval"
 	MaximumUpdateIntervalHeader = "x-cq-maximum-update-interval"
 )
+
+//go:generate mockgen -package=mocks -destination=../premium/mocks/marketplacemetering.go -source=usage.go AWSMarketplaceClientInterface
+type AWSMarketplaceClientInterface interface {
+	MeterUsage(ctx context.Context, params *marketplacemetering.MeterUsageInput, optFns ...func(*marketplacemetering.Options)) (*marketplacemetering.MeterUsageOutput, error)
+}
 
 type TokenClient interface {
 	GetToken() (auth.Token, error)
@@ -129,6 +138,13 @@ func WithAPIClient(apiClient *cqapi.ClientWithResponses) UsageClientOptions {
 	}
 }
 
+// WithAWSMarketplaceClient sets the AWS Marketplace client to use - defaults to marketplacemetering.NewFromConfig()
+func WithAWSMarketplaceClient(awsMarketplaceClient AWSMarketplaceClientInterface) UsageClientOptions {
+	return func(updater *BatchUpdater) {
+		updater.awsMarketplaceClient = awsMarketplaceClient
+	}
+}
+
 // withTokenClient sets the token client to use - defaults to auth.NewTokenClient(). Used in tests to mock the token client
 func withTokenClient(tokenClient TokenClient) UsageClientOptions {
 	return func(updater *BatchUpdater) {
@@ -146,6 +162,8 @@ type BatchUpdater struct {
 	url         string
 	apiClient   *cqapi.ClientWithResponses
 	tokenClient TokenClient
+
+	awsMarketplaceClient AWSMarketplaceClientInterface
 
 	// Plugin details
 	teamName   cqapi.TeamName
@@ -200,6 +218,11 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 			TeamNameValue: u.teamName,
 		}, nil
 	}
+	// If user wants to use the AWS Marketplace for billing, don't even try to communicate with CQ API
+	if isAWSMarketplace() {
+		err := u.setupAWSMarketplace()
+		return u, err
+	}
 
 	if u.tokenClient == nil {
 		u.tokenClient = auth.NewTokenClient()
@@ -238,6 +261,35 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 	u.backgroundUpdater()
 
 	return u, nil
+}
+
+func (u *BatchUpdater) setupAWSMarketplace() error {
+	cfg, err := awsConfig.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return fmt.Errorf("failed to load AWS config: %w", err)
+	}
+	// This allows us to be able to inject a mock client for testing
+	if u.awsMarketplaceClient == nil {
+		u.awsMarketplaceClient = marketplacemetering.NewFromConfig(cfg)
+	}
+	u.teamName = "AWS_MARKETPLACE"
+	// This needs to be larger than normal, because we can only send a single usage record per second (from each compute node)
+	u.batchLimit = 1000000000
+
+	u.minTimeBetweenFlushes = 1 * time.Minute
+	u.backgroundUpdater()
+	return nil
+}
+
+func isAWSMarketplace() bool {
+	return os.Getenv("CQ_AWS_MARKETPLACE_CONTAINER") == "true"
+}
+
+func awsMarketplaceProductCode() string {
+	if os.Getenv("CQ_AWS_MARKETPLACE_CONTAINER") == "true" {
+		return "2a8bdkarwqrp0tmo4errl65s7"
+	}
+	return ""
 }
 
 func (u *BatchUpdater) Increase(rows uint32) error {
@@ -307,6 +359,9 @@ func (u *BatchUpdater) TeamName() string {
 }
 
 func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
+	if u.awsMarketplaceClient != nil {
+		return true, nil
+	}
 	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginMeta.Team).Str("pluginKind", string(u.pluginMeta.Kind)).Str("pluginName", u.pluginMeta.Name).Msg("checking quota")
 	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginMeta.Team, u.pluginMeta.Kind, u.pluginMeta.Name)
 	if err != nil {
@@ -342,9 +397,28 @@ func (u *BatchUpdater) getTableUsage() (usage []cqapi.UsageIncreaseTablesInner, 
 	return usage, u.rows
 }
 
+func (u *BatchUpdater) subtractTableUsageForAWSMarketplace(total uint32) {
+	for table := range u.tables {
+		tableTotal := u.tables[table]
+		if tableTotal < 1 {
+			continue
+		}
+		if tableTotal >= total {
+			u.tables[table] -= total
+			// we can return early because we have subtracted enough rows
+			return
+		}
+		u.tables[table] = 0
+		total -= tableTotal
+	}
+}
 func (u *BatchUpdater) subtractTableUsage(usage []cqapi.UsageIncreaseTablesInner, total uint32) {
 	u.Lock()
 	defer u.Unlock()
+	if u.awsMarketplaceClient != nil {
+		u.subtractTableUsageForAWSMarketplace(total)
+		return
+	}
 
 	for _, table := range usage {
 		u.tables[table.Name] -= uint32(table.Rows)
@@ -373,6 +447,12 @@ func (u *BatchUpdater) backgroundUpdater() {
 					// Not enough rows to update
 					continue
 				}
+				// If we are using AWS Marketplace, we need to round down to the nearest 1000
+				// Only on the last update, will we round up to the nearest 1000
+				// This will allow us to not over charge the customer by rounding on each batch
+				if u.awsMarketplaceClient != nil {
+					totals = roundDown(totals, 1000)
+				}
 
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					log.Warn().Err(err).Msg("failed to update usage")
@@ -391,7 +471,12 @@ func (u *BatchUpdater) backgroundUpdater() {
 				if totals == 0 {
 					continue
 				}
-
+				// If we are using AWS Marketplace, we need to round down to the nearest 1000
+				// Only on the last update, will we round up to the nearest 1000
+				// This will allow us to not over charge the customer by rounding on each batch
+				if u.awsMarketplaceClient != nil {
+					totals = roundDown(totals, 1000)
+				}
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					log.Warn().Err(err).Msg("failed to update usage")
 					continue
@@ -401,11 +486,19 @@ func (u *BatchUpdater) backgroundUpdater() {
 			case <-u.done:
 				tables, totals := u.getTableUsage()
 				if totals != 0 {
+					// To allow us to round up the total in the last batch we need to save the original total
+					// to use in the last subtractTableUsage
+					originalTotals := totals
+
+					// If we are using AWS Marketplace, we need to round up to the nearest 1000
+					if u.awsMarketplaceClient != nil {
+						totals = roundUp(totals, 1000)
+					}
 					if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 						u.closeError <- err
 						return
 					}
-					u.subtractTableUsage(tables, totals)
+					u.subtractTableUsage(tables, originalTotals)
 				}
 				u.closeError <- nil
 				return
@@ -415,11 +508,53 @@ func (u *BatchUpdater) backgroundUpdater() {
 	<-started
 }
 
+func (u *BatchUpdater) reportUsageToAWSMarketplace(ctx context.Context, rows uint32) error {
+	// AWS marketplace requires usage to be reported as groups of 1000
+	rows /= 1000
+	usage := []types.UsageAllocation{{
+		AllocatedUsageQuantity: aws.Int32(int32(rows)),
+		Tags: []types.Tag{
+			{
+				Key:   aws.String("plugin_name"),
+				Value: aws.String(u.pluginMeta.Name),
+			},
+			{
+				Key:   aws.String("plugin_team"),
+				Value: aws.String(u.pluginMeta.Team),
+			},
+			{
+				Key:   aws.String("plugin_kind"),
+				Value: aws.String(string(u.pluginMeta.Kind)),
+			},
+		},
+	}}
+	// Timestamp + UsageDimension + UsageQuantity are required fields and must be unique
+	// since Timestamp only maintains a granularity of seconds, we need to ensure our batch size is large enough
+	_, err := u.awsMarketplaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
+		// Product code is a unique identifier for a product in AWS Marketplace
+		// Each product is given a unique product code when it is listed in AWS Marketplace
+		// in the future we can have multiple product codes for container or AMI based listings
+		ProductCode:      aws.String(awsMarketplaceProductCode()),
+		Timestamp:        aws.Time(time.Now()),
+		UsageDimension:   aws.String("rows"),
+		UsageAllocations: usage,
+		UsageQuantity:    aws.Int32(int32(rows)),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update usage with : %w", err)
+	}
+	return nil
+}
+
 func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows uint32, tables []cqapi.UsageIncreaseTablesInner) error {
 	for retry := 0; retry < u.maxRetries; retry++ {
 		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
 		queryStartTime := time.Now()
 
+		// If the AWS Marketplace client is set, use it to track usage
+		if u.awsMarketplaceClient != nil {
+			return u.reportUsageToAWSMarketplace(ctx, rows)
+		}
 		payload := cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
 			PluginTeam: u.pluginMeta.Team,
@@ -574,4 +709,15 @@ func (NoOpUsageClient) IncreaseForTable(_ string, _ uint32) error {
 
 func (NoOpUsageClient) Close() error {
 	return nil
+}
+
+func roundDown(x, unit uint32) uint32 {
+	return x - (x % unit)
+}
+
+func roundUp(x, unit uint32) uint32 {
+	if x%unit == 0 {
+		return x
+	}
+	return x + (unit - x%unit)
 }
