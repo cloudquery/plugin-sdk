@@ -59,6 +59,9 @@ func (*testPluginClient) Close(context.Context) error {
 func (*testPluginClient) Transform(context.Context, <-chan arrow.Record, chan<- arrow.Record) error {
 	return nil
 }
+func (*testPluginClient) TransformSchema(context.Context, *arrow.Schema) (*arrow.Schema, error) {
+	return nil, nil
+}
 
 func TestPluginSuccess(t *testing.T) {
 	ctx := context.Background()

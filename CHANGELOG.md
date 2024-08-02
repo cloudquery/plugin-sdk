@@ -5,6 +5,90 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.57.0](https://github.com/cloudquery/plugin-sdk/compare/v4.56.0...v4.57.0) (2024-08-01)
+
+
+### Features
+
+* Allow setting JSON type schema max depth ([#1844](https://github.com/cloudquery/plugin-sdk/issues/1844)) ([0b28389](https://github.com/cloudquery/plugin-sdk/commit/0b28389bb53cd2c076cca3ddaa93ca4d24e40b7b))
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 8a7402a ([#1845](https://github.com/cloudquery/plugin-sdk/issues/1845)) ([5f7eb25](https://github.com/cloudquery/plugin-sdk/commit/5f7eb25df3208ed738c1f0e6f17c5366b89fcc30))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.12.5 ([#1841](https://github.com/cloudquery/plugin-sdk/issues/1841)) ([4361e84](https://github.com/cloudquery/plugin-sdk/commit/4361e8442c05b77a0be772cab52e1d217810bf47))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.21.4 ([#1847](https://github.com/cloudquery/plugin-sdk/issues/1847)) ([281b945](https://github.com/cloudquery/plugin-sdk/commit/281b94510552962af13d5c3c2e735669d4fa4bd4))
+* **deps:** Update opentelemetry-go monorepo to v1.28.0 ([#1846](https://github.com/cloudquery/plugin-sdk/issues/1846)) ([3a5c90c](https://github.com/cloudquery/plugin-sdk/commit/3a5c90c0045aa6f2df57c02ed2afc7e5596c4bb7))
+
+## [4.56.0](https://github.com/cloudquery/plugin-sdk/compare/v4.55.0...v4.56.0) (2024-07-31)
+
+
+### Features
+
+* Implement TransformSchema support. ([#1838](https://github.com/cloudquery/plugin-sdk/issues/1838)) ([30875d6](https://github.com/cloudquery/plugin-sdk/commit/30875d6f134f399f5c2ea16dad49b0b5aa4dd3e9))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.21.2 ([#1837](https://github.com/cloudquery/plugin-sdk/issues/1837)) ([47bb424](https://github.com/cloudquery/plugin-sdk/commit/47bb424c2151363cc312d155ac5823abfc7d23c5))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.21.3 ([#1840](https://github.com/cloudquery/plugin-sdk/issues/1840)) ([d2c5c7b](https://github.com/cloudquery/plugin-sdk/commit/d2c5c7b54a933a268fe5090a0ca83f1995be9082))
+
+## [4.55.0](https://github.com/cloudquery/plugin-sdk/compare/v4.54.0...v4.55.0) (2024-07-30)
+
+
+### Features
+
+* Add `PermissionsNeeded` to tables schema ([#1827](https://github.com/cloudquery/plugin-sdk/issues/1827)) ([863b906](https://github.com/cloudquery/plugin-sdk/commit/863b9068bd296dac7c879ae3980a2f2f3ec4c359))
+
+
+### Bug Fixes
+
+* Handle commas in permissions array ([#1835](https://github.com/cloudquery/plugin-sdk/issues/1835)) ([b633aed](https://github.com/cloudquery/plugin-sdk/commit/b633aed0dc0e6fa8f8af58c8f84e5309375f4608))
+
+## [4.54.0](https://github.com/cloudquery/plugin-sdk/compare/v4.53.1...v4.54.0) (2024-07-30)
+
+
+### Features
+
+* Add PluginKind "transformer". ([#1828](https://github.com/cloudquery/plugin-sdk/issues/1828)) ([2c78878](https://github.com/cloudquery/plugin-sdk/commit/2c788784e0cb7d2d70ce4389113cd9e758b8e146))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.12.4 ([#1830](https://github.com/cloudquery/plugin-sdk/issues/1830)) ([57a606f](https://github.com/cloudquery/plugin-sdk/commit/57a606f774210314f5f19e096be6a18caa5f343a))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.21.0 ([#1829](https://github.com/cloudquery/plugin-sdk/issues/1829)) ([1a614cb](https://github.com/cloudquery/plugin-sdk/commit/1a614cb0dc469bd1c2620c22a91d0c2c4f7779b0))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.21.1 ([#1832](https://github.com/cloudquery/plugin-sdk/issues/1832)) ([33bd55f](https://github.com/cloudquery/plugin-sdk/commit/33bd55f19de89cd877018e7d10ff19c8f5e2a2e2))
+
+## [4.53.1](https://github.com/cloudquery/plugin-sdk/compare/v4.53.0...v4.53.1) (2024-07-26)
+
+
+### Bug Fixes
+
+* Don't include non exported fields or ignored types in JSON schema ([#1824](https://github.com/cloudquery/plugin-sdk/issues/1824)) ([e97f243](https://github.com/cloudquery/plugin-sdk/commit/e97f2439145961bbae86b09d1e2f1c4ba28af5c4))
+
+## [4.53.0](https://github.com/cloudquery/plugin-sdk/compare/v4.52.1...v4.53.0) (2024-07-25)
+
+
+### Features
+
+* Add `zerolog.Logger` to `retryablehttp.LeveledLogger` adapter struct ([#1821](https://github.com/cloudquery/plugin-sdk/issues/1821)) ([5c77cee](https://github.com/cloudquery/plugin-sdk/commit/5c77cee87d9fca292e9e81663c9ce3775962a623))
+
+## [4.52.1](https://github.com/cloudquery/plugin-sdk/compare/v4.52.0...v4.52.1) (2024-07-24)
+
+
+### Bug Fixes
+
+* Don't panic when trying `ToSnake` on `s` character ([#1816](https://github.com/cloudquery/plugin-sdk/issues/1816)) ([30e02da](https://github.com/cloudquery/plugin-sdk/commit/30e02da227bac041cf4ea0c918ad81d360c05084))
+* Properly handle map and slice pointers ([#1817](https://github.com/cloudquery/plugin-sdk/issues/1817)) ([8fe9081](https://github.com/cloudquery/plugin-sdk/commit/8fe9081b133892c95fc6dd23223e2a64572a164e))
+* Reduce JSON column schema nesting ([#1819](https://github.com/cloudquery/plugin-sdk/issues/1819)) ([2e1112f](https://github.com/cloudquery/plugin-sdk/commit/2e1112fd9fc8d7442f1de21c883287e5d314bb32))
+
+## [4.52.0](https://github.com/cloudquery/plugin-sdk/compare/v4.51.0...v4.52.0) (2024-07-24)
+
+
+### Features
+
+* Add JSON type schema ([#1796](https://github.com/cloudquery/plugin-sdk/issues/1796)) ([dbc534b](https://github.com/cloudquery/plugin-sdk/commit/dbc534bc54a3f9f02fd3468bfe256b6c46971614))
+
 ## [4.51.0](https://github.com/cloudquery/plugin-sdk/compare/v4.50.1...v4.51.0) (2024-07-22)
 
 

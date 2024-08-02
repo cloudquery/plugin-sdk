@@ -68,3 +68,10 @@ func WithPrimaryKeyComponents(fields ...string) StructTransformerOption {
 		t.pkComponentFields = fields
 	}
 }
+
+// WithMaxJSONTypeSchemaDepth allows to specify the maximum depth of JSON type schema
+func WithMaxJSONTypeSchemaDepth(maxDepth int) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.maxJSONTypeSchemaDepth = maxDepth
+	}
+}

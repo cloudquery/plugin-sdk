@@ -12,6 +12,8 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -183,3 +185,66 @@ func TestPluginSync(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestTransformSchema(t *testing.T) {
+	ctx := context.Background()
+	s := Server{
+		Plugin: plugin.NewPlugin("test", "development", getColumnAdderPlugin()),
+	}
+
+	_, err := s.Init(ctx, &pb.Init_Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	table := &schema.Table{
+		Name: "test",
+		Columns: []schema.Column{
+			{
+				Name: "test",
+				Type: arrow.BinaryTypes.String,
+			},
+		},
+	}
+	sc := table.ToArrowSchema()
+
+	schemaBytes, err := pb.SchemaToBytes(sc)
+	require.NoError(t, err)
+
+	resp, err := s.TransformSchema(ctx, &pb.TransformSchema_Request{Schema: schemaBytes})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newSchema, err := pb.NewSchemaFromBytes(resp.Schema)
+	require.NoError(t, err)
+
+	require.Len(t, newSchema.Fields(), 2)
+	require.Equal(t, "test", newSchema.Fields()[0].Name)
+	require.Equal(t, "source", newSchema.Fields()[1].Name)
+	require.Equal(t, "utf8", newSchema.Fields()[1].Type.(*arrow.StringType).Name())
+
+	if _, err := s.Close(ctx, &pb.Close_Request{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type mockSourceColumnAdderPluginClient struct {
+	plugin.UnimplementedDestination
+	plugin.UnimplementedSource
+}
+
+func getColumnAdderPlugin(...plugin.Option) plugin.NewClientFunc {
+	c := &mockSourceColumnAdderPluginClient{}
+	return func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
+		return c, nil
+	}
+}
+
+func (*mockSourceColumnAdderPluginClient) Transform(context.Context, <-chan arrow.Record, chan<- arrow.Record) error {
+	return nil
+}
+func (*mockSourceColumnAdderPluginClient) TransformSchema(_ context.Context, old *arrow.Schema) (*arrow.Schema, error) {
+	return old.AddField(1, arrow.Field{Name: "source", Type: arrow.BinaryTypes.String})
+}
+func (*mockSourceColumnAdderPluginClient) Close(context.Context) error { return nil }

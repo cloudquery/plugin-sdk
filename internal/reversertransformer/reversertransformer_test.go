@@ -16,8 +16,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-var mem = memory.NewGoAllocator()
-
 func TestReverserTransformer(t *testing.T) {
 	p := plugin.NewPlugin("test", "development", GetNewClient())
 	s := internalPlugin.Server{
@@ -58,7 +56,7 @@ func makeRequestFromString(s string) *pb.Transform_Request {
 }
 
 func makeRecordFromString(s string) arrow.Record {
-	str := array.NewStringBuilder(mem)
+	str := array.NewStringBuilder(memory.DefaultAllocator)
 	str.AppendString(s)
 	arr := str.NewStringArray()
 	schema := arrow.NewSchema([]arrow.Field{{Name: "col1", Type: arrow.BinaryTypes.String}}, nil)

@@ -46,6 +46,9 @@ type Column struct {
 
 	// PrimaryKeyComponent is a flag that indicates if the column is used as part of the input to calculate the value of `_cq_id`.
 	PrimaryKeyComponent bool `json:"primary_key_component"`
+
+	// If the column type is JSON, this field will have a JSON string that represents the schema of the JSON object.
+	TypeSchema string `json:"type_schema,omitempty"`
 }
 
 // NewColumnFromArrowField creates a new Column from an arrow.Field
@@ -70,6 +73,9 @@ func NewColumnFromArrowField(f arrow.Field) Column {
 	v, ok = f.Metadata.GetValue(MetadataPrimaryKeyComponent)
 	column.PrimaryKeyComponent = ok && v == MetadataTrue
 
+	v, _ = f.Metadata.GetValue(MetadataTypeSchema)
+	column.TypeSchema = v
+
 	return column
 }
 
@@ -79,6 +85,7 @@ func (c Column) ToArrowField() arrow.Field {
 		MetadataUnique:              MetadataFalse,
 		MetadataIncremental:         MetadataFalse,
 		MetadataPrimaryKeyComponent: MetadataFalse,
+		MetadataTypeSchema:          c.TypeSchema,
 	}
 	if c.PrimaryKey {
 		mdKV[MetadataPrimaryKey] = MetadataTrue
@@ -111,6 +118,7 @@ func (c Column) MarshalJSON() ([]byte, error) {
 		Unique              bool   `json:"unique"`
 		IncrementalKey      bool   `json:"incremental_key"`
 		PrimaryKeyComponent bool   `json:"primary_key_component"`
+		TypeSchema          string `json:"type_schema,omitempty"`
 	}
 	var alias Alias
 	alias.Name = c.Name
@@ -121,6 +129,7 @@ func (c Column) MarshalJSON() ([]byte, error) {
 	alias.Unique = c.Unique
 	alias.IncrementalKey = c.IncrementalKey
 	alias.PrimaryKeyComponent = c.PrimaryKeyComponent
+	alias.TypeSchema = c.TypeSchema
 
 	return json.Marshal(alias)
 }

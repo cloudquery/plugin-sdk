@@ -2,6 +2,7 @@ package schema
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"slices"
@@ -62,6 +63,8 @@ type Table struct {
 	Title string `json:"title"`
 	// table description
 	Description string `json:"description"`
+	// List of permissions needed to access this table, if any. For example ["Microsoft.Network/dnsZones/read"] or ["storage.buckets.list"]
+	PermissionsNeeded []string `json:"permissions_needed"`
 	// Columns are the set of fields that are part of this table
 	Columns ColumnList `json:"columns"`
 	// Relations are a set of related tables defines
@@ -169,6 +172,7 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	constraintName, _ := tableMD.GetValue(MetadataConstraintName)
 	title, _ := tableMD.GetValue(MetadataTableTitle)
 	dependsOn, _ := tableMD.GetValue(MetadataTableDependsOn)
+	permissionsNeeded, _ := tableMD.GetValue(MetadataTablePermissionsNeeded)
 	var parent *Table
 	if dependsOn != "" {
 		parent = &Table{Name: dependsOn}
@@ -178,13 +182,17 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	for i, field := range fields {
 		columns[i] = NewColumnFromArrowField(field)
 	}
+
+	var permissionsNeededArr []string
+	_ = json.Unmarshal([]byte(permissionsNeeded), &permissionsNeededArr)
 	table := &Table{
-		Name:             name,
-		Description:      description,
-		PkConstraintName: constraintName,
-		Columns:          columns,
-		Title:            title,
-		Parent:           parent,
+		Name:              name,
+		Description:       description,
+		PkConstraintName:  constraintName,
+		Columns:           columns,
+		Title:             title,
+		Parent:            parent,
+		PermissionsNeeded: permissionsNeededArr,
 	}
 	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
 		table.IsIncremental = isIncremental == MetadataTrue
@@ -468,10 +476,14 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	if t.IsPaid {
 		md[MetadataTableIsPaid] = MetadataTrue
 	}
+	asJSON, _ := json.Marshal(t.PermissionsNeeded)
+	md[MetadataTablePermissionsNeeded] = string(asJSON)
+
 	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {
 		fields[i] = c.ToArrowField()
 	}
+
 	return arrow.NewSchema(fields, &schemaMd)
 }
 

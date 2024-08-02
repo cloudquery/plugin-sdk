@@ -58,6 +58,9 @@ type UnimplementedTransformer struct{}
 func (UnimplementedTransformer) Transform(context.Context, <-chan arrow.Record, chan<- arrow.Record) error {
 	return ErrNotImplemented
 }
+func (UnimplementedTransformer) TransformSchema(context.Context, *arrow.Schema) (*arrow.Schema, error) {
+	return nil, ErrNotImplemented
+}
 
 // Plugin is the base structure required to pass to sdk.serve
 // We take a declarative approach to API here similar to Cobra

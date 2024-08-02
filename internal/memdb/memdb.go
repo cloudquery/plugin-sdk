@@ -58,6 +58,7 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 						Unique:         true,
 					},
 				},
+				PermissionsNeeded: []string{"permission1"},
 				Relations: schema.Tables{
 					{
 						Name: "table2",
@@ -308,6 +309,10 @@ func (c *client) deleteRecord(_ context.Context, msg *message.WriteDeleteRecord)
 
 func (*client) Transform(_ context.Context, _ <-chan arrow.Record, _ chan<- arrow.Record) error {
 	return nil
+}
+
+func (*client) TransformSchema(_ context.Context, _ *arrow.Schema) (*arrow.Schema, error) {
+	return nil, nil
 }
 
 func evaluatePredicate(pred message.Predicate, record arrow.Record) bool {
