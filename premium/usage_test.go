@@ -924,10 +924,7 @@ func TestRoundDown(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := roundDown(c.x, c.unit)
-		if got != c.want {
-			t.Errorf("roundDown(%d, %d) == %d, want %d", c.x, c.unit, got, c.want)
-		}
+		assert.Equal(t, c.want, roundDown(c.x, c.unit))
 	}
 }
 
@@ -947,9 +944,6 @@ func TestRoundUp(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := roundUp(c.x, c.unit)
-		if got != c.want {
-			t.Errorf("roundUp(%d, %d) == %d, want %d", c.x, c.unit, got, c.want)
-		}
+		assert.Equal(t, c.want, roundUp(c.x, c.unit))
 	}
 }
