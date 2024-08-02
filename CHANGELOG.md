@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.58.0](https://github.com/cloudquery/plugin-sdk/compare/v4.57.1...v4.58.0) (2024-08-02)
+
+
+### Features
+
+* Support AWS usage marketplace ([#1770](https://github.com/cloudquery/plugin-sdk/issues/1770)) ([1eb6d1a](https://github.com/cloudquery/plugin-sdk/commit/1eb6d1aabab7db02458f56ea448af750ffb082ae))
+
 ## [4.57.1](https://github.com/cloudquery/plugin-sdk/compare/v4.57.0...v4.57.1) (2024-08-02)
 
 
