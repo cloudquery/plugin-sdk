@@ -12,10 +12,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
+	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
+	"github.com/cloudquery/plugin-sdk/v4/faker"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/premium/mocks"
+	"github.com/golang/mock/gomock"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -342,6 +348,54 @@ func TestUsageService_IncreaseForTable_CorrectByTable(t *testing.T) {
 	for i := 0; i < tables; i++ {
 		assert.Equal(t, 1111, s.tables["table:"+strconv.Itoa(i)].Rows, "table should have correct number of rows")
 	}
+}
+
+func TestUsageService_AWSMarketplaceDone(t *testing.T) {
+	var err error
+	ctrl := gomock.NewController(t)
+
+	m := mocks.NewMockAWSMarketplaceClientInterface(ctrl)
+
+	out := marketplacemetering.MeterUsageOutput{}
+	in := meteringInput{
+		MeterUsageInput: marketplacemetering.MeterUsageInput{
+			ProductCode:    aws.String("2a8bdkarwqrp0tmo4errl65s7"),
+			UsageDimension: aws.String("rows"),
+			UsageQuantity:  aws.Int32(20),
+			UsageAllocations: []types.UsageAllocation{{
+				AllocatedUsageQuantity: aws.Int32(int32(20)),
+				Tags: []types.Tag{
+					{
+						Key:   aws.String("plugin_name"),
+						Value: aws.String("vault"),
+					},
+					{
+						Key:   aws.String("plugin_team"),
+						Value: aws.String("plugin-team"),
+					},
+					{
+						Key:   aws.String("plugin_kind"),
+						Value: aws.String("source"),
+					},
+				},
+			}},
+		},
+	}
+	assert.NoError(t, faker.FakeObject(&out))
+	m.EXPECT().MeterUsage(gomock.Any(), in).Return(&out, nil)
+	t.Setenv("CQ_AWS_MARKETPLACE_CONTAINER", "true")
+	usageClient := newClient(t, nil, WithBatchLimit(50), WithAWSMarketplaceClient(m))
+
+	// This will generate 19,998 rows
+	// We expect that there will be 20 rows reported to AWS Marketplace
+	rows := 9999
+	for i := 0; i < rows; i++ {
+		err = usageClient.IncreaseForTable("table", 2)
+		require.NoError(t, err)
+	}
+
+	err = usageClient.Close()
+	require.NoError(t, err)
 }
 
 func TestUsageService_Increase_ErrorOnMixingMethods(t *testing.T) {
@@ -825,4 +879,31 @@ func Test_UsageClientInit_UnknownTokenType(t *testing.T) {
 			}
 		})
 	}
+}
+
+type meteringInput struct {
+	marketplacemetering.MeterUsageInput
+}
+
+func (mi meteringInput) Matches(x any) bool {
+	testInput, ok := x.(*marketplacemetering.MeterUsageInput)
+	if !ok {
+		return false
+	}
+
+	if aws.ToString(testInput.ProductCode) != aws.ToString(mi.ProductCode) {
+		return false
+	}
+	if aws.ToString(testInput.UsageDimension) != aws.ToString(mi.UsageDimension) {
+		return false
+	}
+	if aws.ToInt32(testInput.UsageQuantity) != aws.ToInt32(mi.UsageQuantity) {
+		return false
+	}
+
+	return true
+}
+
+func (mi meteringInput) String() string {
+	return fmt.Sprintf("{ProductCode:%s UsageDimension:%s UsageQuantity:%d}", aws.ToString(mi.ProductCode), aws.ToString(mi.UsageDimension), aws.ToInt32(mi.UsageQuantity))
 }
