@@ -908,7 +908,6 @@ func (mi meteringInput) String() string {
 	return fmt.Sprintf("{ProductCode:%s UsageDimension:%s UsageQuantity:%d}", aws.ToString(mi.ProductCode), aws.ToString(mi.UsageDimension), aws.ToInt32(mi.UsageQuantity))
 }
 
-
 func TestRoundDown(t *testing.T) {
 	cases := []struct {
 		x    uint32
