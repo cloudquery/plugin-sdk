@@ -217,6 +217,14 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	resources := make(chan *schema.Resource)
 	go func() {
 		defer close(resources)
+		fuzzMultiplier, err := getFuzzMultiplier()
+		if err != nil {
+			panic(err)
+		}
+		if fuzzMultiplier > 0 {
+			syncClient.syncFuzz(ctx, fuzzMultiplier, resources)
+			return
+		}
 		switch s.strategy {
 		case StrategyDFS:
 			syncClient.syncDfs(ctx, resources)
