@@ -48,7 +48,7 @@ func (s *syncClient) syncTest(ctx context.Context, syncMultiplier int, resolvedR
 			}
 		}
 		preInitialisedClients[i] = clients
-		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
+		// we do this here to avoid locks so we initialize the metrics structure once in the main goroutine
 		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
 		s.metrics.initWithClients(table, clients)
 	}
