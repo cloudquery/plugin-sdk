@@ -12,22 +12,22 @@ import (
 
 const (
 	// This is an environment variable and not a spec option in each plugin to make it easier to enable it
-	cqDebugFuzzMultiplier = "CQ_DEBUG_FUZZ_MULTIPLIER"
+	cqDebugSyncMultiplier = "CQ_DEBUG_SYNC_MULTIPLIER"
 )
 
-func getFuzzMultiplier() (int, error) {
-	strValue, ok := os.LookupEnv(cqDebugFuzzMultiplier)
+func getTestMultiplier() (int, error) {
+	strValue, ok := os.LookupEnv(cqDebugSyncMultiplier)
 	if ok {
 		intValue, err := strconv.Atoi(strValue)
 		if err != nil {
-			return 0, fmt.Errorf("failed to parse %s=%s as integer: %w", cqDebugFuzzMultiplier, strValue, err)
+			return 0, fmt.Errorf("failed to parse %s=%s as integer: %w", cqDebugSyncMultiplier, strValue, err)
 		}
 		return intValue, nil
 	}
 	return 0, nil
 }
 
-func (s *syncClient) syncFuzz(ctx context.Context, fuzzMultiplier int, resolvedResources chan<- *schema.Resource) {
+func (s *syncClient) syncTest(ctx context.Context, syncMultiplier int, resolvedResources chan<- *schema.Resource) {
 	// we have this because plugins can return sometimes clients in a random way which will cause
 	// differences between this run and the next one.
 	preInitialisedClients := make([][]schema.ClientMeta, len(s.tables))
@@ -60,9 +60,9 @@ func (s *syncClient) syncFuzz(ctx context.Context, fuzzMultiplier int, resolvedR
 	// however, if the table order changes, the seed will change and the shuffle order will be different,
 	// so users have a little bit of control over the randomization.
 	seed := hashTableNames(tableNames)
-	allClients := make([]tableClient, 0, len(tableClients)*fuzzMultiplier)
+	allClients := make([]tableClient, 0, len(tableClients)*syncMultiplier)
 	for _, tc := range tableClients {
-		for i := 0; i < fuzzMultiplier; i++ {
+		for i := 0; i < syncMultiplier; i++ {
 			allClients = append(allClients, tc)
 		}
 	}
