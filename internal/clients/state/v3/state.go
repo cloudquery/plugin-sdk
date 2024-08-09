@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"sort"
 	"sync"
 
 	"github.com/apache/arrow/go/v17/arrow"
@@ -168,7 +169,14 @@ func (c *Client) Flush(ctx context.Context) error {
 	if c.versionedMode {
 		version = bldr.Field(2).(*array.Uint64Builder)
 	}
+
+	changes := make([]string, 0, len(c.changes))
 	for k := range c.changes {
+		changes = append(changes, k)
+	}
+	sort.Strings(changes)
+
+	for _, k := range changes {
 		val := c.mem[k]
 		keys.Append(k)
 		values.Append(val.value)
