@@ -17,6 +17,7 @@ type RemoteOAuthToken struct {
 	AccessToken string
 	TokenType   string
 	Expiry      time.Time
+	remoteToken bool // was the current token retrieved from a remote source
 
 	apiClient *cloudquery_api.ClientWithResponses
 	mu        sync.Mutex
@@ -74,7 +75,13 @@ func (t *RemoteOAuthToken) Token() (*oauth2.Token, error) {
 // TokenWithContext returns the cached token if not expired, or a new token from the remote source
 // using the given context.
 func (t *RemoteOAuthToken) TokenWithContext(ctx context.Context) (*oauth2.Token, error) {
-	if !t.Valid() {
+	if t.cloudEnabled && !t.remoteToken {
+		// Always retrieve token from remote source if cloud env is set
+		// and the current token is not acquired from a remote source.
+		if err := t.retrieveToken(ctx); err != nil {
+			return nil, err
+		}
+	} else if !t.Valid() {
 		if !t.cloudEnabled {
 			return nil, ErrTokenExpired
 		}
@@ -147,6 +154,7 @@ func (t *RemoteOAuthToken) retrieveToken(ctx context.Context) error {
 	if oauthResp == nil {
 		return fmt.Errorf("missing oauth credentials in response")
 	}
+	t.remoteToken = true
 	t.AccessToken = oauthResp.AccessToken
 	if oauthResp.Expires == nil {
 		t.Expiry = time.Time{}
