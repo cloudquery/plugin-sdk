@@ -119,7 +119,7 @@ func (t *Token) retrieveToken(ctx context.Context) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	if t.Valid() {
+	if t.remoteToken && t.Valid() {
 		// if another goroutine has updated the token, return
 		return nil
 	}
