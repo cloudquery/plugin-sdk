@@ -19,67 +19,62 @@ func WithAccessToken(token, tokenType string, expiry time.Time) RemoteOAuthToken
 	}
 }
 
-func WithCloudEnv() RemoteOAuthTokenOption {
-	return func(t *RemoteOAuthToken) {
-		_, t.cloudEnabled = os.LookupEnv("CQ_CLOUD")
-		if !t.cloudEnabled {
-			return
-		}
-
-		t.teamName = os.Getenv("_CQ_TEAM_NAME")
-		t.syncName = os.Getenv("_CQ_SYNC_NAME")
-		t.syncRunID = os.Getenv("_CQ_SYNC_RUN_ID")
-		t.testConnID = os.Getenv("_CQ_SYNC_TEST_CONNECTION_ID")
-		t.connectorID = os.Getenv("_CQ_CONNECTOR_ID")
-		t.apiToken = os.Getenv("CLOUDQUERY_API_KEY")
-		t.apiURL = os.Getenv("CLOUDQUERY_API_URL")
-		if t.apiURL == "" {
-			t.apiURL = "https://api.cloudquery.io"
-		}
+func (t *RemoteOAuthToken) initCloudOpts() error {
+	_, t.cloudEnabled = os.LookupEnv("CQ_CLOUD")
+	if !t.cloudEnabled {
+		return nil
 	}
-}
 
-func (t *RemoteOAuthToken) validateCloudOpts() error {
-	var err error
-	if t.apiURL == "" {
-		return errors.New("CLOUDQUERY_API_URL is empty")
-	}
+	t.apiToken = os.Getenv("CLOUDQUERY_API_KEY")
 	if t.apiToken == "" {
 		return errors.New("CLOUDQUERY_API_KEY missing")
 	}
+	t.apiURL = os.Getenv("CLOUDQUERY_API_URL")
+	if t.apiURL == "" {
+		t.apiURL = "https://api.cloudquery.io"
+	}
+
+	t.teamName = os.Getenv("_CQ_TEAM_NAME")
 	if t.teamName == "" {
 		return errors.New("_CQ_TEAM_NAME missing")
 	}
-	if t.testConnID == "" && t.syncRunID == "" {
-		return errors.New("_CQ_SYNC_TEST_CONNECTION_ID or CQ_SYNC_RUN_ID missing")
-	} else if t.testConnID != "" && t.syncRunID != "" {
-		return errors.New("_CQ_SYNC_TEST_CONNECTION_ID and CQ_SYNC_RUN_ID are mutually exclusive")
+	t.syncName = os.Getenv("_CQ_SYNC_NAME")
+	syncRunID := os.Getenv("_CQ_SYNC_RUN_ID")
+	testConnID := os.Getenv("_CQ_SYNC_TEST_CONNECTION_ID")
+	if testConnID == "" && syncRunID == "" {
+		return errors.New("_CQ_SYNC_TEST_CONNECTION_ID or _CQ_SYNC_RUN_ID missing")
+	} else if testConnID != "" && syncRunID != "" {
+		return errors.New("_CQ_SYNC_TEST_CONNECTION_ID and _CQ_SYNC_RUN_ID are mutually exclusive")
 	}
-	if t.syncRunID != "" {
+
+	var err error
+	if syncRunID != "" {
 		if t.syncName == "" {
 			return errors.New("_CQ_SYNC_NAME missing")
 		}
 
-		t.syncRunUUID, err = uuid.Parse(t.syncRunID)
+		t.syncRunUUID, err = uuid.Parse(syncRunID)
 		if err != nil {
 			return fmt.Errorf("_CQ_SYNC_RUN_ID is not a valid UUID: %w", err)
 		}
 	}
-	if t.testConnID != "" {
+	if testConnID != "" {
 		if t.syncName != "" {
 			return errors.New("_CQ_SYNC_NAME should be empty")
 		}
 
-		t.testConnUUID, err = uuid.Parse(t.testConnID)
+		t.testConnUUID, err = uuid.Parse(testConnID)
 		if err != nil {
 			return fmt.Errorf("_CQ_SYNC_TEST_CONNECTION_ID is not a valid UUID: %w", err)
 		}
+		t.isTestConnection = true
 	}
 
-	if t.connectorID == "" {
+	connectorID := os.Getenv("_CQ_CONNECTOR_ID")
+	if connectorID == "" {
 		return errors.New("_CQ_CONNECTOR_ID missing")
 	}
-	t.connectorUUID, err = uuid.Parse(t.connectorID)
+	t.connectorUUID, err = uuid.Parse(connectorID)
 	if err != nil {
 		return fmt.Errorf("_CQ_CONNECTOR_ID is not a valid UUID: %w", err)
 	}

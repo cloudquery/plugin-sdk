@@ -21,18 +21,15 @@ type RemoteOAuthToken struct {
 	apiClient *cloudquery_api.ClientWithResponses
 	mu        sync.Mutex
 
-	cloudEnabled bool
-	apiURL       string
-	apiToken     string
-	teamName     string
-	syncName     string
-	testConnID   string
-	syncRunID    string
-	connectorID  string
-
-	testConnUUID  uuid.UUID
-	syncRunUUID   uuid.UUID
-	connectorUUID uuid.UUID
+	cloudEnabled     bool
+	apiURL           string
+	apiToken         string
+	teamName         string
+	syncName         string
+	testConnUUID     uuid.UUID
+	syncRunUUID      uuid.UUID
+	connectorUUID    uuid.UUID
+	isTestConnection bool
 }
 
 var (
@@ -51,11 +48,11 @@ func NewRemoteOAuthToken(opts ...RemoteOAuthTokenOption) (*RemoteOAuthToken, err
 	for _, opt := range opts {
 		opt(t)
 	}
+	err := t.initCloudOpts()
+	if err != nil {
+		return nil, err
+	}
 	if t.cloudEnabled {
-		err := t.validateCloudOpts()
-		if err != nil {
-			return nil, err
-		}
 		t.apiClient, err = cloudquery_api.NewClientWithResponses(t.apiURL,
 			cloudquery_api.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
 				req.Header.Set("Authorization", "Bearer "+t.apiToken)
@@ -121,7 +118,7 @@ func (t *RemoteOAuthToken) retrieveToken(ctx context.Context) error {
 	}
 
 	var oauthResp *cloudquery_api.ConnectorCredentialsResponseOAuth
-	if t.syncRunID != "" {
+	if !t.isTestConnection {
 		resp, err := t.apiClient.GetSyncRunConnectorCredentialsWithResponse(ctx, t.teamName, t.syncName, t.syncRunUUID, t.connectorUUID)
 		if err != nil {
 			return fmt.Errorf("failed to get sync run connector credentials: %w", err)
