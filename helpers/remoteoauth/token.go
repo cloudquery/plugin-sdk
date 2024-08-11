@@ -1,4 +1,4 @@
-package auth
+package remoteoauth
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type RemoteOAuthToken struct {
+type Token struct {
 	AccessToken string
 	TokenType   string
 	Expiry      time.Time
@@ -36,7 +36,7 @@ type RemoteOAuthToken struct {
 var (
 	ErrTokenExpired = errors.New("token expired and cloud env is not set")
 
-	_ oauth2.TokenSource = (*RemoteOAuthToken)(nil)
+	_ oauth2.TokenSource = (*Token)(nil)
 )
 
 // defaultExpiryDelta determines how earlier a token should be considered
@@ -44,8 +44,8 @@ var (
 // expirations due to client-server time mismatches.
 const defaultExpiryDelta = 10 * time.Second
 
-func NewRemoteOAuthToken(opts ...RemoteOAuthTokenOption) (*RemoteOAuthToken, error) {
-	t := &RemoteOAuthToken{}
+func NewToken(opts ...TokenOption) (*Token, error) {
+	t := &Token{}
 	for _, opt := range opts {
 		opt(t)
 	}
@@ -68,13 +68,13 @@ func NewRemoteOAuthToken(opts ...RemoteOAuthTokenOption) (*RemoteOAuthToken, err
 }
 
 // Token returns the cached token if not expired, or a new token from the remote source.
-func (t *RemoteOAuthToken) Token() (*oauth2.Token, error) {
+func (t *Token) Token() (*oauth2.Token, error) {
 	return t.TokenWithContext(context.TODO())
 }
 
 // TokenWithContext returns the cached token if not expired, or a new token from the remote source
 // using the given context.
-func (t *RemoteOAuthToken) TokenWithContext(ctx context.Context) (*oauth2.Token, error) {
+func (t *Token) TokenWithContext(ctx context.Context) (*oauth2.Token, error) {
 	if t.cloudEnabled && !t.remoteToken {
 		// Always retrieve token from remote source if cloud env is set
 		// and the current token is not acquired from a remote source.
@@ -98,7 +98,7 @@ func (t *RemoteOAuthToken) TokenWithContext(ctx context.Context) (*oauth2.Token,
 }
 
 // Valid reports whether t is non-nil, has an AccessToken, and is not expired.
-func (t *RemoteOAuthToken) Valid() bool {
+func (t *Token) Valid() bool {
 	return t != nil && t.AccessToken != "" && !t.expired()
 }
 
@@ -107,7 +107,7 @@ var timeNow = time.Now
 
 // expired reports whether the token is expired.
 // t must be non-nil.
-func (t *RemoteOAuthToken) expired() bool {
+func (t *Token) expired() bool {
 	if t.Expiry.IsZero() {
 		return false
 	}
@@ -115,7 +115,7 @@ func (t *RemoteOAuthToken) expired() bool {
 	return t.Expiry.Round(0).Add(-defaultExpiryDelta).Before(timeNow())
 }
 
-func (t *RemoteOAuthToken) retrieveToken(ctx context.Context) error {
+func (t *Token) retrieveToken(ctx context.Context) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 

@@ -1,4 +1,4 @@
-package auth
+package remoteoauth
 
 import (
 	"errors"
@@ -9,17 +9,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type RemoteOAuthTokenOption func(*RemoteOAuthToken)
+type TokenOption func(*Token)
 
-func WithAccessToken(token, tokenType string, expiry time.Time) RemoteOAuthTokenOption {
-	return func(t *RemoteOAuthToken) {
+func WithAccessToken(token, tokenType string, expiry time.Time) TokenOption {
+	return func(t *Token) {
 		t.AccessToken = token
 		t.TokenType = tokenType
 		t.Expiry = expiry
 	}
 }
 
-func (t *RemoteOAuthToken) initCloudOpts() error {
+func (t *Token) initCloudOpts() error {
 	_, t.cloudEnabled = os.LookupEnv("CQ_CLOUD")
 	if !t.cloudEnabled {
 		return nil
