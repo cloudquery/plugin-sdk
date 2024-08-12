@@ -80,12 +80,11 @@ func newCloudTokenSource(defaultContext context.Context) (oauth2.TokenSource, er
 	return t, nil
 }
 
-// Token returns the cached token if not expired, or a new token from the remote source.
+// Token returns a new token from the remote source using the default context.
 func (t *cloudTokenSource) Token() (*oauth2.Token, error) {
 	return t.retrieveToken(t.defaultContext)
 }
 
-// retrieveToken returns a new token from the remote source using the given context.
 func (t *cloudTokenSource) retrieveToken(ctx context.Context) (*oauth2.Token, error) {
 	var oauthResp *cloudquery_api.ConnectorCredentialsResponseOAuth
 	if !t.isTestConnection {
