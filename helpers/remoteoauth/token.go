@@ -13,7 +13,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func NewTokenSource(opts ...tokenSourceOption) (oauth2.TokenSource, error) {
+func NewTokenSource(opts ...TokenSourceOption) (oauth2.TokenSource, error) {
 	t := &tokenSource{}
 	for _, opt := range opts {
 		opt(t)

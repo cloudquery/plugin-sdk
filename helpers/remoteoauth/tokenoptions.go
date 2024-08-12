@@ -6,9 +6,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type tokenSourceOption func(source *tokenSource)
+type TokenSourceOption func(source *tokenSource)
 
-func WithAccessToken(token, tokenType string, expiry time.Time) tokenSourceOption {
+func WithAccessToken(token, tokenType string, expiry time.Time) TokenSourceOption {
 	return func(t *tokenSource) {
 		t.currentToken = oauth2.Token{
 			AccessToken: token,
@@ -18,7 +18,7 @@ func WithAccessToken(token, tokenType string, expiry time.Time) tokenSourceOptio
 	}
 }
 
-func withNoWrap() tokenSourceOption {
+func withNoWrap() TokenSourceOption {
 	return func(t *tokenSource) {
 		t.noWrap = true
 	}
