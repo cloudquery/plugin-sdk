@@ -77,11 +77,11 @@ func newCloudTokenSource() (oauth2.TokenSource, error) {
 
 // Token returns the cached token if not expired, or a new token from the remote source.
 func (t *cloudTokenSource) Token() (*oauth2.Token, error) {
-	return t.TokenWithContext(context.TODO())
+	return t.TokenContext(context.TODO())
 }
 
-// TokenWithContext returns a new token from the remote source using the given context.
-func (t *cloudTokenSource) TokenWithContext(ctx context.Context) (*oauth2.Token, error) {
+// TokenContext returns a new token from the remote source using the given context.
+func (t *cloudTokenSource) TokenContext(ctx context.Context) (*oauth2.Token, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
