@@ -1,6 +1,7 @@
 package remoteoauth
 
 import (
+	"context"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -15,6 +16,12 @@ func WithAccessToken(token, tokenType string, expiry time.Time) TokenSourceOptio
 			TokenType:   tokenType,
 			Expiry:      expiry,
 		}
+	}
+}
+
+func WithDefaultContext(ctx context.Context) TokenSourceOption {
+	return func(t *tokenSource) {
+		t.defaultContext = ctx
 	}
 }
 

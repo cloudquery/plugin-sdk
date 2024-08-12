@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"sync"
 
 	cloudquery_api "github.com/cloudquery/cloudquery-api-go"
 	"github.com/google/uuid"
@@ -23,7 +22,7 @@ func NewTokenSource(opts ...TokenSourceOption) (oauth2.TokenSource, error) {
 		return oauth2.StaticTokenSource(&t.currentToken), nil
 	}
 
-	cloudToken, err := newCloudTokenSource()
+	cloudToken, err := newCloudTokenSource(t.defaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -35,13 +34,14 @@ func NewTokenSource(opts ...TokenSourceOption) (oauth2.TokenSource, error) {
 }
 
 type tokenSource struct {
-	currentToken oauth2.Token
-	noWrap       bool
+	defaultContext context.Context
+	currentToken   oauth2.Token
+	noWrap         bool
 }
 
 type cloudTokenSource struct {
-	apiClient *cloudquery_api.ClientWithResponses
-	mu        sync.Mutex // protects against multiple refresh calls
+	defaultContext context.Context
+	apiClient      *cloudquery_api.ClientWithResponses
 
 	apiURL           string
 	apiToken         string
@@ -55,8 +55,13 @@ type cloudTokenSource struct {
 
 var _ oauth2.TokenSource = (*cloudTokenSource)(nil)
 
-func newCloudTokenSource() (oauth2.TokenSource, error) {
-	t := &cloudTokenSource{}
+func newCloudTokenSource(defaultContext context.Context) (oauth2.TokenSource, error) {
+	t := &cloudTokenSource{
+		defaultContext: defaultContext,
+	}
+	if t.defaultContext == nil {
+		t.defaultContext = context.Background()
+	}
 
 	err := t.initCloudOpts()
 	if err != nil {
@@ -77,14 +82,11 @@ func newCloudTokenSource() (oauth2.TokenSource, error) {
 
 // Token returns the cached token if not expired, or a new token from the remote source.
 func (t *cloudTokenSource) Token() (*oauth2.Token, error) {
-	return t.TokenContext(context.TODO())
+	return t.retrieveToken(t.defaultContext)
 }
 
-// TokenContext returns a new token from the remote source using the given context.
-func (t *cloudTokenSource) TokenContext(ctx context.Context) (*oauth2.Token, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
+// retrieveToken returns a new token from the remote source using the given context.
+func (t *cloudTokenSource) retrieveToken(ctx context.Context) (*oauth2.Token, error) {
 	var oauthResp *cloudquery_api.ConnectorCredentialsResponseOAuth
 	if !t.isTestConnection {
 		resp, err := t.apiClient.GetSyncRunConnectorCredentialsWithResponse(ctx, t.teamName, t.syncName, t.syncRunUUID, t.connectorUUID)
