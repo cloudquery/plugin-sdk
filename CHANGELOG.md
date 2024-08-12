@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.60.0](https://github.com/cloudquery/plugin-sdk/compare/v4.59.0...v4.60.0) (2024-08-12)
+
+
+### Features
+
+* Add RemoteOAuth Token helper to refresh `access_token` from cloud environment ([#1866](https://github.com/cloudquery/plugin-sdk/issues/1866)) ([bcd9081](https://github.com/cloudquery/plugin-sdk/commit/bcd9081baf6b1e7311237a8b46e0a13c109ac4ba))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.22.0 ([#1864](https://github.com/cloudquery/plugin-sdk/issues/1864)) ([382f980](https://github.com/cloudquery/plugin-sdk/commit/382f98014ae8b72a5493bd06e72d4e1de8398e88))
+
 ## [4.59.0](https://github.com/cloudquery/plugin-sdk/compare/v4.58.1...v4.59.0) (2024-08-08)
 
 
