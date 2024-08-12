@@ -17,23 +17,12 @@ func TestLocalTokenAccess(t *testing.T) {
 	r := require.New(t)
 	_, cloud := os.LookupEnv("CQ_CLOUD")
 	r.False(cloud, "CQ_CLOUD should not be set")
-	tok, err := NewToken(WithAccessToken("token", "bearer", time.Now().Add(time.Minute)))
+	tok, err := NewTokenSource(WithAccessToken("token", "bearer", time.Time{}))
 	r.NoError(err)
-	for i := 0; i < 3; i++ {
-		r.True(tok.Valid())
-		tk, err := tok.Token()
-		r.NoError(err)
-		r.Equal("token", tk.AccessToken)
-	}
-	timeNow = func() time.Time {
-		return time.Now().Add(time.Hour)
-	}
-	t.Cleanup(func() { timeNow = time.Now })
-
-	r.False(tok.Valid())
 	tk, err := tok.Token()
-	r.Equal(ErrTokenExpired, err)
-	r.Nil(tk)
+	r.NoError(err)
+	r.True(tk.Valid())
+	r.Equal("token", tk.AccessToken)
 }
 
 func TestFirstLocalTokenAccess(t *testing.T) {
@@ -52,11 +41,11 @@ func TestFirstLocalTokenAccess(t *testing.T) {
 		"_CQ_CONNECTOR_ID":   connID,
 	})
 	r := require.New(t)
-	tok, err := NewToken(WithAccessToken("token", "bearer", time.Time{}))
+	tok, err := NewTokenSource(WithAccessToken("token", "bearer", time.Time{}))
 	r.NoError(err)
-	r.False(tok.Valid())
 	tk, err := tok.Token()
 	r.NoError(err)
+	r.True(tk.Valid())
 	r.Equal("new-token", tk.AccessToken)
 }
 
@@ -74,11 +63,11 @@ func TestInvalidAPIKeyTokenAccess(t *testing.T) {
 		"_CQ_CONNECTOR_ID":   connID,
 	})
 	r := require.New(t)
-	tok, err := NewToken(WithAccessToken("token", "bearer", time.Time{}))
+	tok, err := NewTokenSource(WithAccessToken("token", "bearer", time.Time{}))
 	r.NoError(err)
-	r.False(tok.Valid())
 	tk, err := tok.Token()
 	r.Nil(tk)
+	r.False(tk.Valid())
 	r.ErrorContains(err, "failed to get sync run connector credentials")
 }
 
@@ -98,11 +87,11 @@ func TestSyncRunTokenAccess(t *testing.T) {
 		"_CQ_CONNECTOR_ID":   connID,
 	})
 	r := require.New(t)
-	tok, err := NewToken()
+	tok, err := NewTokenSource()
 	r.NoError(err)
-	r.False(tok.Valid())
 	tk, err := tok.Token()
 	r.NoError(err)
+	r.True(tk.Valid())
 	r.Equal("new-token", tk.AccessToken)
 }
 
@@ -121,11 +110,11 @@ func TestTestConnectionTokenAccess(t *testing.T) {
 		"_CQ_CONNECTOR_ID":            connID,
 	})
 	r := require.New(t)
-	tok, err := NewToken(WithAccessToken("token", "bearer", time.Time{}))
+	tok, err := NewTokenSource(WithAccessToken("token", "bearer", time.Time{}))
 	r.NoError(err)
-	r.False(tok.Valid())
 	tk, err := tok.Token()
 	r.NoError(err)
+	r.True(tk.Valid())
 	r.Equal("new-token", tk.AccessToken)
 }
 

@@ -1,6 +1,7 @@
 package remoteoauth
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/google/uuid"
@@ -102,18 +103,22 @@ func TestInitCloudOpts(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			r := require.New(t)
-			tok := &Token{}
 			for k, v := range tc.envs {
 				t.Setenv(k, v)
 			}
-			err := tok.initCloudOpts()
+			tok, err := NewTokenSource(withNoWrap())
 			if tc.expectError {
 				r.Error(err)
 				return
 			}
 			r.NoError(err)
-			r.Equal(tc.expectCloud, tok.cloudEnabled)
-			r.Equal(tc.expectTestConn, tok.isTestConnection)
+			if tc.expectCloud {
+				ts := tok.(*cloudTokenSource)
+				r.Equal(tc.expectTestConn, ts.isTestConnection)
+				return
+			}
+			rt := reflect.TypeOf(tok)
+			r.Equal("oauth2.staticTokenSource", rt.String())
 		})
 	}
 }
