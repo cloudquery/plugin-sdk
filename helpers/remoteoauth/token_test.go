@@ -28,6 +28,8 @@ func TestLocalTokenAccess(t *testing.T) {
 	timeNow = func() time.Time {
 		return time.Now().Add(time.Hour)
 	}
+	t.Cleanup(func() { timeNow = time.Now })
+
 	r.False(tok.Valid())
 	tk, err := tok.Token()
 	r.Equal(ErrTokenExpired, err)
