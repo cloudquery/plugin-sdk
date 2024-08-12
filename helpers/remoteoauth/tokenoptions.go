@@ -7,15 +7,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/oauth2"
 )
 
 type TokenOption func(*Token)
 
 func WithAccessToken(token, tokenType string, expiry time.Time) TokenOption {
 	return func(t *Token) {
-		t.currentToken.AccessToken = token
-		t.currentToken.TokenType = tokenType
-		t.currentToken.Expiry = expiry
+		t.currentToken = oauth2.Token{
+			AccessToken: token,
+			TokenType:   tokenType,
+			Expiry:      expiry,
+		}
 	}
 }
 
