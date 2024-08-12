@@ -13,9 +13,9 @@ type TokenOption func(*Token)
 
 func WithAccessToken(token, tokenType string, expiry time.Time) TokenOption {
 	return func(t *Token) {
-		t.AccessToken = token
-		t.TokenType = tokenType
-		t.Expiry = expiry
+		t.accessToken = token
+		t.tokenType = tokenType
+		t.expiry = expiry
 	}
 }
 

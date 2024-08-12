@@ -14,10 +14,10 @@ import (
 )
 
 type Token struct {
-	AccessToken string
-	TokenType   string
-	Expiry      time.Time
-	remoteToken bool // was the current token retrieved from a remote source
+	accessToken string
+	tokenType   string
+	expiry      time.Time
+	remoteToken bool // flag to indicate if the current token was retrieved from a remote source
 
 	apiClient *cloudquery_api.ClientWithResponses
 	mu        sync.Mutex
@@ -75,13 +75,7 @@ func (t *Token) Token() (*oauth2.Token, error) {
 // TokenWithContext returns the cached token if not expired, or a new token from the remote source
 // using the given context.
 func (t *Token) TokenWithContext(ctx context.Context) (*oauth2.Token, error) {
-	if t.cloudEnabled && !t.remoteToken {
-		// Always retrieve token from remote source if cloud env is set
-		// and the current token is not acquired from a remote source.
-		if err := t.retrieveToken(ctx); err != nil {
-			return nil, err
-		}
-	} else if !t.Valid() {
+	if !t.Valid() {
 		if !t.cloudEnabled {
 			return nil, ErrTokenExpired
 		}
@@ -91,15 +85,22 @@ func (t *Token) TokenWithContext(ctx context.Context) (*oauth2.Token, error) {
 	}
 
 	return &oauth2.Token{
-		AccessToken: t.AccessToken,
-		TokenType:   t.TokenType,
-		Expiry:      t.Expiry,
+		AccessToken: t.accessToken,
+		TokenType:   t.tokenType,
+		Expiry:      t.expiry,
 	}, nil
 }
 
 // Valid reports whether t is non-nil, has an AccessToken, and is not expired.
+// If cloud env is set, it also checks if the token was retrieved from a remote source.
+// This way we always retrieve token from remote source if cloud env is set
+// provided the current token is not acquired from a remote source.
 func (t *Token) Valid() bool {
-	return t != nil && t.AccessToken != "" && !t.expired()
+	if t.cloudEnabled && !t.remoteToken {
+		return false
+	}
+
+	return t != nil && t.accessToken != "" && !t.expired()
 }
 
 // timeNow is time.Now but pulled out as a variable for tests.
@@ -108,18 +109,18 @@ var timeNow = time.Now
 // expired reports whether the token is expired.
 // t must be non-nil.
 func (t *Token) expired() bool {
-	if t.Expiry.IsZero() {
+	if t.expiry.IsZero() {
 		return false
 	}
 
-	return t.Expiry.Round(0).Add(-defaultExpiryDelta).Before(timeNow())
+	return t.expiry.Round(0).Add(-defaultExpiryDelta).Before(timeNow())
 }
 
 func (t *Token) retrieveToken(ctx context.Context) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	if t.remoteToken && t.Valid() {
+	if t.Valid() {
 		// if another goroutine has updated the token, return
 		return nil
 	}
@@ -155,11 +156,11 @@ func (t *Token) retrieveToken(ctx context.Context) error {
 		return fmt.Errorf("missing oauth credentials in response")
 	}
 	t.remoteToken = true
-	t.AccessToken = oauthResp.AccessToken
+	t.accessToken = oauthResp.AccessToken
 	if oauthResp.Expires == nil {
-		t.Expiry = time.Time{}
+		t.expiry = time.Time{}
 	} else {
-		t.Expiry = *oauthResp.Expires
+		t.expiry = *oauthResp.Expires
 	}
 	return nil
 }
