@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -37,7 +39,7 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 		preInitialisedClients[i] = clients
 		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
 		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
-		s.metrics.initWithClients(table, clients)
+		s.metrics.InitWithClients(table, clients)
 	}
 
 	var wg sync.WaitGroup
@@ -68,7 +70,7 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 
 func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
 	clientName := client.ID()
-	ctx, span := otel.Tracer(otelName).Start(ctx,
+	ctx, span := otel.Tracer(metrics.OtelName).Start(ctx,
 		"sync.table."+table.Name,
 		trace.WithAttributes(
 			attribute.Key("sync.client.id").String(clientName),
@@ -155,7 +157,7 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 				defer s.scheduler.resourceSem.Release(1)
 				defer wg.Done()
 				//nolint:all
-				resolvedResource := s.resolveResource(ctx, table, client, parent, resourcesSlice[i])
+				resolvedResource := resolvers.ResolveSingleResource(ctx, s.logger, s.metrics, table, client, parent, resourcesSlice[i], s.scheduler.caser)
 				if resolvedResource == nil {
 					return
 				}
