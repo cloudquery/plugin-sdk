@@ -69,7 +69,6 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	tableMetrics.OtelEndTime(ctx, endTime)
 	if parent == nil {
 		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", duration).Msg("table sync finished")
-		metrics.LogTablesMetrics(w.logger, w.metrics, table.Relations, client)
 	}
 }
 
@@ -281,6 +280,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, tableClients []TableClientPai
 			item := queue.Pop()
 			if item == nil {
 				if !workStarted.Load() || activeWorkers.Load() != 0 {
+					time.Sleep(10 * time.Millisecond)
 					continue
 				}
 				break
