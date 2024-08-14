@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -269,18 +268,4 @@ func (m *TableClientMetrics) OtelEndTime(ctx context.Context, end time.Time) {
 		m.otelMeters.endTime.Add(ctx, val, metric.WithAttributes(m.otelMeters.attributes...))
 	}
 	m.otelMeters.previousEndTime = val
-}
-
-func LogTablesMetrics(logger zerolog.Logger, m *Metrics, tables schema.Tables, client schema.ClientMeta) {
-	clientName := client.ID()
-	for _, table := range tables {
-		tableMetrics := m.TableClient[table.Name][clientName]
-		duration := tableMetrics.Duration.Load()
-		if duration == nil {
-			// This can happen for a relation when there are no resources to resolve from the parent
-			duration = new(time.Duration)
-		}
-		logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", tableMetrics.Resources).Dur("duration_ms", *duration).Uint64("errors", tableMetrics.Errors).Msg("table sync finished")
-		LogTablesMetrics(logger, m, table.Relations, client)
-	}
 }
