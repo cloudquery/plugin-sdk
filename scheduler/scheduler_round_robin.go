@@ -21,6 +21,15 @@ func (s *syncClient) syncRoundRobin(ctx context.Context, resolvedResources chan<
 		if table.Multiplex != nil {
 			clients = table.Multiplex(s.client)
 		}
+		// Detect duplicate clients while multiplexing
+		seenClients := make(map[string]bool)
+		for _, c := range clients {
+			if _, ok := seenClients[c.ID()]; !ok {
+				seenClients[c.ID()] = true
+			} else {
+				s.logger.Warn().Str("client", c.ID()).Str("table", table.Name).Msg("multiplex returned duplicate client")
+			}
+		}
 		preInitialisedClients[i] = clients
 		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
 		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
