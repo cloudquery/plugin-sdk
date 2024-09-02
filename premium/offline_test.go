@@ -1,13 +1,22 @@
 package premium
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/licensemanager"
+	"github.com/aws/aws-sdk-go-v2/service/licensemanager/types"
+	"github.com/cloudquery/plugin-sdk/v4/faker"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/premium/mocks"
+	"github.com/golang/mock/gomock"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -153,12 +162,76 @@ func licenseTest(inputPath string, meta plugin.Meta, timeIs time.Time, expectErr
 		timeFunc = func() time.Time {
 			return timeIs
 		}
-
-		err := ValidateLicense(zerolog.Nop(), meta, inputPath)
+		licenseClient, err := NewLicenseClient(context.TODO(), zerolog.Nop(), WithMeta(meta), WithLicenseFileOrDirectory(inputPath))
+		require.NoError(t, err)
+		err = licenseClient.ValidateLicense(context.TODO())
 		if expectError == nil {
 			require.NoError(t, err)
 		} else {
 			require.ErrorIs(t, err, expectError)
 		}
 	}
+}
+
+func TestValidateMarketplaceLicense(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockAWSLicenseManagerInterface(ctrl)
+	out := licensemanager.CheckoutLicenseOutput{}
+	in := licenseInput{
+		CheckoutLicenseInput: licensemanager.CheckoutLicenseInput{
+			CheckoutType: types.CheckoutTypeProvisional,
+			ProductSKU:   aws.String("55ukc0d5qv3gebks148tjr62j"),
+			Entitlements: []types.EntitlementData{
+				{
+					Name: aws.String("Unlimited"),
+					Unit: types.EntitlementDataUnitNone,
+				},
+			},
+			KeyFingerprint: aws.String("aws:294406891311:AWS/Marketplace:issuer-fingerprint"),
+		},
+	}
+
+	assert.NoError(t, faker.FakeObject(&out))
+	m.EXPECT().CheckoutLicense(gomock.Any(), in).Return(&out, nil)
+	t.Setenv("CQ_AWS_MARKETPLACE_LICENSE", "true")
+
+	licenseClient, err := NewLicenseClient(context.TODO(), zerolog.Nop(), WithAWSLicenseManagerClient(m))
+	require.NoError(t, err)
+	require.NoError(t, licenseClient.ValidateLicense(context.TODO()))
+}
+
+type licenseInput struct {
+	licensemanager.CheckoutLicenseInput
+}
+
+func (li licenseInput) Matches(x any) bool {
+	testInput, ok := x.(*licensemanager.CheckoutLicenseInput)
+	if !ok {
+		return false
+	}
+
+	if testInput.CheckoutType != li.CheckoutType {
+		return false
+	}
+
+	for i, ent := range testInput.Entitlements {
+		if aws.ToString(ent.Name) != aws.ToString(li.Entitlements[i].Name) {
+			return false
+		}
+		if aws.ToString(ent.Value) != aws.ToString(li.Entitlements[i].Value) {
+			return false
+		}
+	}
+
+	if aws.ToString(testInput.KeyFingerprint) != aws.ToString(li.KeyFingerprint) {
+		return false
+	}
+	if aws.ToString(testInput.ProductSKU) != aws.ToString(li.ProductSKU) {
+		return false
+	}
+	return true
+}
+
+func (li licenseInput) String() string {
+	return fmt.Sprintf("{CheckoutType:%s Entitlements:%v KeyFingerprint:%s ProductSKU:%s}", li.CheckoutType, li.Entitlements, *li.KeyFingerprint, *li.ProductSKU)
 }
