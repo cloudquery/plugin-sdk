@@ -81,23 +81,23 @@ func WithAWSLicenseManagerClient(awsLicenseManagerClient AWSLicenseManagerInterf
 }
 
 func NewLicenseClient(ctx context.Context, logger zerolog.Logger, ops ...LicenseClientOptions) (CQLicenseClient, error) {
-	cl := &CQLicenseClient{
+	cl := CQLicenseClient{
 		logger: logger,
 	}
 
 	for _, op := range ops {
-		op(cl)
+		op(&cl)
 	}
 
 	if cl.awsLicenseManagerClient == nil {
 		cfg, err := awsConfig.LoadDefaultConfig(ctx)
 		if err != nil {
-			return *cl, fmt.Errorf("failed to load AWS config: %w", err)
+			return cl, fmt.Errorf("failed to load AWS config: %w", err)
 		}
 		cl.awsLicenseManagerClient = licensemanager.NewFromConfig(cfg)
 	}
 
-	return *cl, nil
+	return cl, nil
 }
 
 func (lc CQLicenseClient) ValidateLicense(ctx context.Context) error {
