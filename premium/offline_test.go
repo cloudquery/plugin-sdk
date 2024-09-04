@@ -180,7 +180,7 @@ func TestValidateMarketplaceLicense(t *testing.T) {
 	in := licenseInput{
 		CheckoutLicenseInput: licensemanager.CheckoutLicenseInput{
 			CheckoutType: types.CheckoutTypeProvisional,
-			ProductSKU:   aws.String("55ukc0d5qv3gebks148tjr62j"),
+			ProductSKU:   aws.String(awsProductSKU),
 			Entitlements: []types.EntitlementData{
 				{
 					Name: aws.String("Unlimited"),
