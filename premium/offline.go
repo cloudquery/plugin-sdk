@@ -108,7 +108,7 @@ func (lc CQLicenseClient) ValidateLicense(ctx context.Context) error {
 	case lc.isMarketplaceLicense:
 		return lc.validateMarketplaceLicense(ctx)
 	case lc.licenseFileOrDirectory != "":
-		lc.validateCQLicense()
+		return lc.validateCQLicense()
 	default:
 		return ErrLicenseNotApplicable
 	}
