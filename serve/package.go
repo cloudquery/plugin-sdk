@@ -175,7 +175,7 @@ func (s *PluginServe) build(pluginDirectory string, target plugin.BuildTarget, d
 		return nil, fmt.Errorf("failed to remove plugin file: %w", err)
 	}
 
-	targetZip := fmt.Sprintf(pluginFileName + ".zip")
+	targetZip := pluginFileName + ".zip"
 	checksum, err := calcChecksum(path.Join(distPath, targetZip))
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate checksum: %w", err)
