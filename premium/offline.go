@@ -240,7 +240,7 @@ func (lc CQLicenseClient) validateMarketplaceLicense(ctx context.Context) error 
 	resp, err := lc.awsLicenseManagerClient.CheckoutLicense(ctx, &licensemanager.CheckoutLicenseInput{
 		CheckoutType: types.CheckoutTypeProvisional,
 		ClientToken:  aws.String(clientToken.String()),
-		ProductSKU:   aws.String(AWSProductSKU),
+		ProductSKU:   aws.String(awsProductSKU),
 		Entitlements: []types.EntitlementData{
 			{
 				Name: aws.String("Unlimited"),
