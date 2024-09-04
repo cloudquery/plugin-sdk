@@ -112,7 +112,6 @@ func (lc CQLicenseClient) ValidateLicense(ctx context.Context) error {
 	default:
 		return ErrLicenseNotApplicable
 	}
-
 }
 
 func (lc CQLicenseClient) validateCQLicense() error {
