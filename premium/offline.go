@@ -58,6 +58,7 @@ type CQLicenseClient struct {
 	meta                    plugin.Meta
 	licenseFileOrDirectory  string
 	awsLicenseManagerClient AWSLicenseManagerInterface
+	isMarketplaceLicense    bool
 }
 
 type LicenseClientOptions func(updater *CQLicenseClient)
@@ -80,20 +81,17 @@ func WithAWSLicenseManagerClient(awsLicenseManagerClient AWSLicenseManagerInterf
 	}
 }
 
-func isMarketplaceLicense() bool {
-	return os.Getenv("CQ_AWS_MARKETPLACE_LICENSE") == "true"
-}
-
 func NewLicenseClient(ctx context.Context, logger zerolog.Logger, ops ...LicenseClientOptions) (CQLicenseClient, error) {
 	cl := CQLicenseClient{
-		logger: logger,
+		logger:               logger,
+		isMarketplaceLicense: os.Getenv("CQ_AWS_MARKETPLACE_LICENSE") == "true",
 	}
 
 	for _, op := range ops {
 		op(&cl)
 	}
 
-	if isMarketplaceLicense() && cl.awsLicenseManagerClient == nil {
+	if cl.isMarketplaceLicense && cl.awsLicenseManagerClient == nil {
 		cfg, err := awsConfig.LoadDefaultConfig(ctx)
 		if err != nil {
 			return cl, fmt.Errorf("failed to load AWS config: %w", err)
@@ -106,10 +104,10 @@ func NewLicenseClient(ctx context.Context, logger zerolog.Logger, ops ...License
 
 func (lc CQLicenseClient) ValidateLicense(ctx context.Context) error {
 	// License can be provided via environment variable for AWS Marketplace or CLI flag
-	if lc.licenseFileOrDirectory == "" && !isMarketplaceLicense() {
+	if lc.licenseFileOrDirectory == "" && !lc.isMarketplaceLicense {
 		return ErrLicenseNotApplicable
 	}
-	if isMarketplaceLicense() {
+	if lc.isMarketplaceLicense {
 		return lc.validateMarketplaceLicense(ctx)
 	}
 	return lc.validateCQLicense()
