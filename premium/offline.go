@@ -48,7 +48,7 @@ var publicKey string
 
 var timeFunc = time.Now
 
-const awsProductSKU = "55ukc0d5qv3gebks148tjr62j"
+const awsProductSKU = "prod-7lvadaavrjurk"
 
 //go:generate mockgen -package=mocks -destination=../premium/mocks/licensemanager.go -source=offline.go AWSLicenseManagerInterface
 type AWSLicenseManagerInterface interface {
