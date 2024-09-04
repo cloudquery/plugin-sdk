@@ -104,13 +104,16 @@ func NewLicenseClient(ctx context.Context, logger zerolog.Logger, ops ...License
 
 func (lc CQLicenseClient) ValidateLicense(ctx context.Context) error {
 	// License can be provided via environment variable for AWS Marketplace or CLI flag
-	if lc.licenseFileOrDirectory == "" && !lc.isMarketplaceLicense {
+
+	switch {
+	case lc.isMarketplaceLicense:
+		return lc.validateMarketplaceLicense(ctx)
+	case lc.licenseFileOrDirectory != "":
+		lc.validateCQLicense()
+	default:
 		return ErrLicenseNotApplicable
 	}
-	if lc.isMarketplaceLicense {
-		return lc.validateMarketplaceLicense(ctx)
-	}
-	return lc.validateCQLicense()
+
 }
 
 func (lc CQLicenseClient) validateCQLicense() error {
