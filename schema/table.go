@@ -231,7 +231,7 @@ func (t TableColumnChange) String() string {
 	case TableColumnChangeTypeRemoveUniqueConstraint:
 		return fmt.Sprintf("column: %s, previous: %s", t.ColumnName, t.Previous)
 	case TableColumnChangeTypeMoveToCQOnly:
-		return fmt.Sprintf("multi-column: %s, type: %s, previous: %s", t.ColumnName, t.Type, t.Previous)
+		return fmt.Sprintf("multi-column: %s, type: %s", t.ColumnName, t.Type)
 	default:
 		return fmt.Sprintf("column: %s, type: %s, current: %s, previous: %s", t.ColumnName, t.Type, t.Current, t.Previous)
 	}
