@@ -48,6 +48,8 @@ var publicKey string
 
 var timeFunc = time.Now
 
+const awsProductSKU = "55ukc0d5qv3gebks148tjr62j"
+
 //go:generate mockgen -package=mocks -destination=../premium/mocks/licensemanager.go -source=offline.go AWSLicenseManagerInterface
 type AWSLicenseManagerInterface interface {
 	CheckoutLicense(ctx context.Context, params *licensemanager.CheckoutLicenseInput, optFns ...func(*licensemanager.Options)) (*licensemanager.CheckoutLicenseOutput, error)
@@ -238,7 +240,7 @@ func (lc CQLicenseClient) validateMarketplaceLicense(ctx context.Context) error 
 	resp, err := lc.awsLicenseManagerClient.CheckoutLicense(ctx, &licensemanager.CheckoutLicenseInput{
 		CheckoutType: types.CheckoutTypeProvisional,
 		ClientToken:  aws.String(clientToken.String()),
-		ProductSKU:   aws.String("55ukc0d5qv3gebks148tjr62j"),
+		ProductSKU:   aws.String(AWSProductSKU),
 		Entitlements: []types.EntitlementData{
 			{
 				Name: aws.String("Unlimited"),
