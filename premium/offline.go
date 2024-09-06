@@ -1,18 +1,25 @@
 package premium
 
 import (
+	"context"
 	"crypto/ed25519"
 	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/licensemanager"
+	"github.com/aws/aws-sdk-go-v2/service/licensemanager/types"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -41,20 +48,88 @@ var publicKey string
 
 var timeFunc = time.Now
 
-func ValidateLicense(logger zerolog.Logger, meta plugin.Meta, licenseFileOrDirectory string) error {
-	fi, err := os.Stat(licenseFileOrDirectory)
+const awsProductSKU = "prod-2trmtbe74klkg"
+
+//go:generate mockgen -package=mocks -destination=../premium/mocks/licensemanager.go -source=offline.go AWSLicenseManagerInterface
+type AWSLicenseManagerInterface interface {
+	CheckoutLicense(ctx context.Context, params *licensemanager.CheckoutLicenseInput, optFns ...func(*licensemanager.Options)) (*licensemanager.CheckoutLicenseOutput, error)
+}
+
+type CQLicenseClient struct {
+	logger                  zerolog.Logger
+	meta                    plugin.Meta
+	licenseFileOrDirectory  string
+	awsLicenseManagerClient AWSLicenseManagerInterface
+	isMarketplaceLicense    bool
+}
+
+type LicenseClientOptions func(updater *CQLicenseClient)
+
+func WithMeta(meta plugin.Meta) LicenseClientOptions {
+	return func(cl *CQLicenseClient) {
+		cl.meta = meta
+	}
+}
+
+func WithLicenseFileOrDirectory(licenseFileOrDirectory string) LicenseClientOptions {
+	return func(cl *CQLicenseClient) {
+		cl.licenseFileOrDirectory = licenseFileOrDirectory
+	}
+}
+
+func WithAWSLicenseManagerClient(awsLicenseManagerClient AWSLicenseManagerInterface) LicenseClientOptions {
+	return func(cl *CQLicenseClient) {
+		cl.awsLicenseManagerClient = awsLicenseManagerClient
+	}
+}
+
+func NewLicenseClient(ctx context.Context, logger zerolog.Logger, ops ...LicenseClientOptions) (CQLicenseClient, error) {
+	cl := CQLicenseClient{
+		logger:               logger,
+		isMarketplaceLicense: os.Getenv("CQ_AWS_MARKETPLACE_LICENSE") == "true",
+	}
+
+	for _, op := range ops {
+		op(&cl)
+	}
+
+	if cl.isMarketplaceLicense && cl.awsLicenseManagerClient == nil {
+		cfg, err := awsConfig.LoadDefaultConfig(ctx)
+		if err != nil {
+			return cl, fmt.Errorf("failed to load AWS config: %w", err)
+		}
+		cl.awsLicenseManagerClient = licensemanager.NewFromConfig(cfg)
+	}
+
+	return cl, nil
+}
+
+func (lc CQLicenseClient) ValidateLicense(ctx context.Context) error {
+	// License can be provided via environment variable for AWS Marketplace or CLI flag
+	switch {
+	case lc.isMarketplaceLicense:
+		return lc.validateMarketplaceLicense(ctx)
+	case lc.licenseFileOrDirectory != "":
+		return lc.validateCQLicense()
+	default:
+		return ErrLicenseNotApplicable
+	}
+}
+
+func (lc CQLicenseClient) validateCQLicense() error {
+	fi, err := os.Stat(lc.licenseFileOrDirectory)
 	if err != nil {
 		return err
 	}
 	if !fi.IsDir() {
-		return validateLicenseFile(logger, meta, licenseFileOrDirectory)
+		return lc.validateLicenseFile(lc.licenseFileOrDirectory)
 	}
 
 	found := false
 	var lastError error
-	err = filepath.WalkDir(licenseFileOrDirectory, func(path string, d os.DirEntry, err error) error {
+	err = filepath.WalkDir(lc.licenseFileOrDirectory, func(path string, d os.DirEntry, err error) error {
 		if d.IsDir() {
-			if path == licenseFileOrDirectory {
+			if path == lc.licenseFileOrDirectory {
 				return nil
 			}
 			return filepath.SkipDir
@@ -67,8 +142,8 @@ func ValidateLicense(logger zerolog.Logger, meta plugin.Meta, licenseFileOrDirec
 			return nil
 		}
 
-		logger.Debug().Str("path", path).Msg("considering license file")
-		lastError = validateLicenseFile(logger, meta, path)
+		lc.logger.Debug().Str("path", path).Msg("considering license file")
+		lastError = lc.validateLicenseFile(path)
 		switch lastError {
 		case nil:
 			found = true
@@ -91,7 +166,7 @@ func ValidateLicense(logger zerolog.Logger, meta plugin.Meta, licenseFileOrDirec
 	return errors.New("failed to validate license directory")
 }
 
-func validateLicenseFile(logger zerolog.Logger, meta plugin.Meta, licenseFile string) error {
+func (lc CQLicenseClient) validateLicenseFile(licenseFile string) error {
 	licenseContents, err := os.ReadFile(licenseFile)
 	if err != nil {
 		return err
@@ -103,14 +178,14 @@ func validateLicenseFile(logger zerolog.Logger, meta plugin.Meta, licenseFile st
 	}
 
 	if len(l.Plugins) > 0 {
-		ref := strings.Join([]string{meta.Team, string(meta.Kind), meta.Name}, "/")
-		teamRef := meta.Team + "/*"
+		ref := strings.Join([]string{lc.meta.Team, string(lc.meta.Kind), lc.meta.Name}, "/")
+		teamRef := lc.meta.Team + "/*"
 		if !slices.Contains(l.Plugins, ref) && !slices.Contains(l.Plugins, teamRef) {
 			return ErrLicenseNotApplicable
 		}
 	}
 
-	return l.IsValid(logger)
+	return l.IsValid(lc.logger)
 }
 
 func UnpackLicense(lic []byte) (*License, error) {
@@ -156,5 +231,30 @@ func (l *License) IsValid(logger zerolog.Logger) error {
 	}
 
 	msg.Time("expires_at", l.ExpiresAt).Msgf("Offline license for %s loaded.", l.LicensedTo)
+	return nil
+}
+
+func (lc CQLicenseClient) validateMarketplaceLicense(ctx context.Context) error {
+	clientToken := uuid.New()
+
+	resp, err := lc.awsLicenseManagerClient.CheckoutLicense(ctx, &licensemanager.CheckoutLicenseInput{
+		CheckoutType: types.CheckoutTypeProvisional,
+		ClientToken:  aws.String(clientToken.String()),
+		ProductSKU:   aws.String(awsProductSKU),
+		Entitlements: []types.EntitlementData{
+			{
+				Name: aws.String("Unlimited"),
+				Unit: types.EntitlementDataUnitNone,
+			},
+		},
+		// This is hardcoded for AWS Marketplace, because this is the only supported value for marketplace licenses
+		KeyFingerprint: aws.String("aws:294406891311:AWS/Marketplace:issuer-fingerprint"),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to checkout license: %w", err)
+	}
+	if len(resp.EntitlementsAllowed) == 0 {
+		return errors.New("no entitlements provisioned")
+	}
 	return nil
 }

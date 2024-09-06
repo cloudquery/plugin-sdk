@@ -145,15 +145,17 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				defer shutdown()
 			}
 
-			if licenseFile != "" {
-				switch err := premium.ValidateLicense(logger, s.plugin.Meta(), licenseFile); err {
-				case nil:
-					s.plugin.SetSkipUsageClient(true)
-				case premium.ErrLicenseNotApplicable:
-					// no-op: Treat as if no license was provided
-				default:
-					return fmt.Errorf("failed to validate license: %w", err)
-				}
+			licenseClient, err := premium.NewLicenseClient(cmd.Context(), logger, premium.WithMeta(s.plugin.Meta()), premium.WithLicenseFileOrDirectory(licenseFile))
+			if err != nil {
+				return fmt.Errorf("failed to create license client: %w", err)
+			}
+			switch err := licenseClient.ValidateLicense(cmd.Context()); err {
+			case nil:
+				s.plugin.SetSkipUsageClient(true)
+			case premium.ErrLicenseNotApplicable:
+				// no-op: Treat as if no license was provided
+			default:
+				return fmt.Errorf("failed to validate license: %w", err)
 			}
 
 			var listener net.Listener
