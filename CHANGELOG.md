@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.62.0](https://github.com/cloudquery/plugin-sdk/compare/v4.61.0...v4.62.0) (2024-09-07)
+
+
+### Features
+
+* Support Contract Listing For AWS Marketplace ([#1889](https://github.com/cloudquery/plugin-sdk/issues/1889)) ([4654866](https://github.com/cloudquery/plugin-sdk/commit/4654866cb423d237cddb696384e910f59539e1d9))
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#1890](https://github.com/cloudquery/plugin-sdk/issues/1890)) ([b185e11](https://github.com/cloudquery/plugin-sdk/commit/b185e11bad937fbbeb9178f88f0ede749088efc7))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.22.2 ([#1887](https://github.com/cloudquery/plugin-sdk/issues/1887)) ([a881fac](https://github.com/cloudquery/plugin-sdk/commit/a881fac8976ecfb83101c6268d114e28e19bd2f2))
+
 ## [4.61.0](https://github.com/cloudquery/plugin-sdk/compare/v4.60.0...v4.61.0) (2024-09-02)
 
 
