@@ -44,8 +44,8 @@ func (s *syncClient) syncShuffle(ctx context.Context, resolvedResources chan<- *
 	// however, if the table order changes, the seed will change and the shuffle order will be different,
 	// so users have a little bit of control over the randomization.
 	seed := hashTableNames(tableNames)
-	shuffle(tableClients, seed)
 	tableClients = shardTableClients(tableClients, s.shard)
+	shuffle(tableClients, seed)
 
 	var wg sync.WaitGroup
 	for _, tc := range tableClients {
