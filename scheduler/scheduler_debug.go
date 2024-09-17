@@ -67,6 +67,7 @@ func (s *syncClient) syncTest(ctx context.Context, syncMultiplier int, resolvedR
 		}
 	}
 	shuffle(allClients, seed)
+	allClients = shardTableClients(allClients, s.shard)
 
 	var wg sync.WaitGroup
 	for _, tc := range allClients {

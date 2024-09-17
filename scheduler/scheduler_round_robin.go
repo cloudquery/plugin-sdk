@@ -37,6 +37,7 @@ func (s *syncClient) syncRoundRobin(ctx context.Context, resolvedResources chan<
 	}
 
 	tableClients := roundRobinInterleave(s.tables, preInitialisedClients)
+	tableClients = shardTableClients(tableClients, s.shard)
 
 	var wg sync.WaitGroup
 	for _, tc := range tableClients {

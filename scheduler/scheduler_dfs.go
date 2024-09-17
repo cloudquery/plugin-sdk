@@ -40,26 +40,33 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 		s.metrics.initWithClients(table, clients)
 	}
 
-	var wg sync.WaitGroup
+	tableClients := make([]tableClient, 0)
 	for i, table := range s.tables {
-		table := table
-		clients := preInitialisedClients[i]
-		for _, client := range clients {
-			client := client
-			if err := s.scheduler.tableSems[0].Acquire(ctx, 1); err != nil {
-				// This means context was cancelled
-				wg.Wait()
-				return
-			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				defer s.scheduler.tableSems[0].Release(1)
-				// not checking for error here as nothing much todo.
-				// the error is logged and this happens when context is cancelled
-				s.resolveTableDfs(ctx, table, client, nil, resolvedResources, 1)
-			}()
+		for _, client := range preInitialisedClients[i] {
+			tableClients = append(tableClients, tableClient{table: table, client: client})
 		}
+	}
+	tableClients = shardTableClients(tableClients, s.shard)
+
+	var wg sync.WaitGroup
+	for _, tc := range tableClients {
+		table := tc.table
+		cl := tc.client
+		if err := s.scheduler.tableSems[0].Acquire(ctx, 1); err != nil {
+			// This means context was cancelled
+			wg.Wait()
+			return
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer s.scheduler.tableSems[0].Release(1)
+			// not checking for error here as nothing much to do.
+			// the error is logged and this happens when context is cancelled
+			// Round Robin currently uses the DFS algorithm to resolve the tables, but this
+			// may change in the future.
+			s.resolveTableDfs(ctx, table, cl, nil, resolvedResources, 1)
+		}()
 	}
 
 	// Wait for all the worker goroutines to finish
