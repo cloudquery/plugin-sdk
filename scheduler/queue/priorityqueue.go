@@ -75,7 +75,6 @@ func newQueue(tableClients []TableClientPair) *priorityQueue {
 }
 
 type ConcurrentQueue struct {
-	maxSize                   int
 	queue                     *priorityQueue
 	lock                      sync.Mutex
 	itemCountByTableAndClient map[string]int
@@ -88,7 +87,6 @@ func tableClientID(tableClient TableClientPair) string {
 func NewConcurrentQueue(tableClients []TableClientPair) *ConcurrentQueue {
 	cq := ConcurrentQueue{
 		queue:                     newQueue(tableClients),
-		maxSize:                   defaultMaxSize,
 		itemCountByTableAndClient: make(map[string]int),
 	}
 	for _, tc := range tableClients {
