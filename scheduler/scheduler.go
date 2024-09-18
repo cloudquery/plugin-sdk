@@ -362,6 +362,7 @@ func maxDepth(tables schema.Tables) uint64 {
 }
 
 func shardTableClients(tableClients []tableClient, shard *shard) []tableClient {
+	// For sharding to work as expected, tableClients must be deterministic between different shards.
 	if shard == nil || len(tableClients) == 0 {
 		return tableClients
 	}
