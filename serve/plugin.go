@@ -106,9 +106,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	var network string
 	var noSentry bool
 	var otelEndpoint string
-	var otelEndpointHeaders []string
 	var otelEndpointInsecure bool
-	var otelEndpointURLPath string
 	var licenseFile string
 	logLevel := newEnum([]string{"trace", "debug", "info", "warn", "error"}, "info")
 	logFormat := newEnum([]string{"text", "json"}, "text")
@@ -136,7 +134,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
 
-			shutdown, err := setupOtel(cmd.Context(), logger, s.plugin, otelEndpoint, otelEndpointInsecure, otelEndpointHeaders, otelEndpointURLPath)
+			shutdown, err := setupOtel(cmd.Context(), logger, s.plugin, otelEndpoint, otelEndpointInsecure)
 			if err != nil {
 				return fmt.Errorf("failed to setup OpenTelemetry: %w", err)
 			}
@@ -234,8 +232,6 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	cmd.Flags().Var(logLevel, "log-level", fmt.Sprintf("log level. one of: %s", strings.Join(logLevel.Allowed, ",")))
 	cmd.Flags().Var(logFormat, "log-format", fmt.Sprintf("log format. one of: %s", strings.Join(logFormat.Allowed, ",")))
 	cmd.Flags().StringVar(&otelEndpoint, "otel-endpoint", "", "Open Telemetry HTTP collector endpoint")
-	cmd.Flags().StringVar(&otelEndpointURLPath, "otel-endpoint-urlpath", "", "Open Telemetry HTTP collector endpoint URL path")
-	cmd.Flags().StringArrayVar(&otelEndpointHeaders, "otel-endpoint-headers", []string{}, "Open Telemetry HTTP collector endpoint headers")
 	cmd.Flags().BoolVar(&otelEndpointInsecure, "otel-endpoint-insecure", false, "use Open Telemetry HTTP endpoint (for development only)")
 	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
 	cmd.Flags().StringVar(&licenseFile, "license", "", "Path to offline license file or directory")
