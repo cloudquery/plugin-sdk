@@ -178,6 +178,12 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			Connection: req.Backend.Connection,
 		}
 	}
+	if req.Shard != nil {
+		syncOptions.Shard = &plugin.Shard{
+			Num:   req.Shard.Num,
+			Total: req.Shard.Total,
+		}
+	}
 
 	go func() {
 		defer flushMetrics()
