@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -41,23 +40,9 @@ func newResource(p *plugin.Plugin) *resource.Resource {
 	return r
 }
 
-func parseOtelHeaders(headers []string) map[string]string {
-	headerMap := make(map[string]string, len(headers))
-	for _, h := range headers {
-		parts := strings.SplitN(h, ":", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		headerMap[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
-	}
-	return headerMap
-}
-
 type otelConfig struct {
 	endpoint string
 	insecure bool
-	headers  []string
-	urlPath  string
 }
 
 func getTraceExporter(ctx context.Context, opts otelConfig) (*otlptrace.Exporter, error) {
@@ -71,15 +56,6 @@ func getTraceExporter(ctx context.Context, opts otelConfig) (*otlptrace.Exporter
 
 	if opts.insecure {
 		traceOptions = append(traceOptions, otlptracehttp.WithInsecure())
-	}
-
-	if len(opts.headers) > 0 {
-		headers := parseOtelHeaders(opts.headers)
-		traceOptions = append(traceOptions, otlptracehttp.WithHeaders(headers))
-	}
-
-	if opts.urlPath != "" {
-		traceOptions = append(traceOptions, otlptracehttp.WithURLPath(opts.urlPath))
 	}
 
 	traceClient := otlptracehttp.NewClient(traceOptions...)
@@ -102,15 +78,6 @@ func getMetricReader(ctx context.Context, opts otelConfig) (*metric.PeriodicRead
 
 	if opts.insecure {
 		metricOptions = append(metricOptions, otlpmetrichttp.WithInsecure())
-	}
-
-	if len(opts.headers) > 0 {
-		headers := parseOtelHeaders(opts.headers)
-		metricOptions = append(metricOptions, otlpmetrichttp.WithHeaders(headers))
-	}
-
-	if opts.urlPath != "" {
-		metricOptions = append(metricOptions, otlpmetrichttp.WithURLPath(opts.urlPath))
 	}
 
 	metricExporter, err := otlpmetrichttp.New(ctx, metricOptions...)
@@ -136,15 +103,6 @@ func getLogsProcessor(ctx context.Context, opts otelConfig) (*log.BatchProcessor
 		logOptions = append(logOptions, otlploghttp.WithInsecure())
 	}
 
-	if len(opts.headers) > 0 {
-		headers := parseOtelHeaders(opts.headers)
-		logOptions = append(logOptions, otlploghttp.WithHeaders(headers))
-	}
-
-	if opts.urlPath != "" {
-		logOptions = append(logOptions, otlploghttp.WithURLPath(opts.urlPath))
-	}
-
 	exporter, err := otlploghttp.New(ctx, logOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("creating OTLP log exporter: %w", err)
@@ -154,15 +112,13 @@ func getLogsProcessor(ctx context.Context, opts otelConfig) (*log.BatchProcessor
 	return processor, nil
 }
 
-func setupOtel(ctx context.Context, logger zerolog.Logger, p *plugin.Plugin, otelEndpoint string, otelEndpointInsecure bool, otelEndpointHeaders []string, otelEndpointURLPath string) (shutdown func(), err error) {
+func setupOtel(ctx context.Context, logger zerolog.Logger, p *plugin.Plugin, otelEndpoint string, otelEndpointInsecure bool) (shutdown func(), err error) {
 	if otelEndpoint == "" {
 		return nil, nil
 	}
 	opts := otelConfig{
 		endpoint: otelEndpoint,
 		insecure: otelEndpointInsecure,
-		headers:  otelEndpointHeaders,
-		urlPath:  otelEndpointURLPath,
 	}
 	traceExporter, err := getTraceExporter(ctx, opts)
 	if err != nil {
