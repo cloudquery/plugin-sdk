@@ -22,6 +22,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/invopop/jsonschema v0.12.0
 	github.com/rs/zerolog v1.33.0
+	github.com/samber/lo v1.47.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.1
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0

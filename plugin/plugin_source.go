@@ -15,12 +15,18 @@ type BackendOptions struct {
 	Connection string
 }
 
+type Shard struct {
+	Num   int32
+	Total int32
+}
+
 type SyncOptions struct {
 	Tables              []string
 	SkipTables          []string
 	SkipDependentTables bool
 	DeterministicCQID   bool
 	BackendOptions      *BackendOptions
+	Shard               *Shard
 }
 
 type SourceClient interface {

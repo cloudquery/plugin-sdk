@@ -13,6 +13,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/thoas/go-funk"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -90,6 +91,12 @@ func WithInvocationID(invocationID string) Option {
 	}
 }
 
+func WithShard(num int32, total int32) SyncOption {
+	return func(s *syncClient) {
+		s.shard = &shard{num: num, total: total}
+	}
+}
+
 type Client interface {
 	ID() string
 }
@@ -119,6 +126,11 @@ type Scheduler struct {
 	invocationID string
 }
 
+type shard struct {
+	num   int32
+	total int32
+}
+
 type syncClient struct {
 	tables            schema.Tables
 	client            schema.ClientMeta
@@ -128,6 +140,8 @@ type syncClient struct {
 	metrics      *Metrics
 	logger       zerolog.Logger
 	invocationID string
+
+	shard *shard
 }
 
 func NewScheduler(opts ...Option) *Scheduler {
@@ -345,4 +359,25 @@ func maxDepth(tables schema.Tables) uint64 {
 		}
 	}
 	return depth
+}
+
+func shardTableClients(tableClients []tableClient, shard *shard) []tableClient {
+	// For sharding to work as expected, tableClients must be deterministic between different shards.
+	if shard == nil || len(tableClients) == 0 {
+		return tableClients
+	}
+	num := int(shard.num)
+	total := int(shard.total)
+	chunkSize := len(tableClients) / total
+	if chunkSize == 0 {
+		chunkSize = 1
+	}
+	chunks := lo.Chunk(tableClients, chunkSize)
+	if num > len(chunks) {
+		return nil
+	}
+	if len(chunks) > total && num == total {
+		return append(chunks[num-1], chunks[num]...)
+	}
+	return chunks[num-1]
 }

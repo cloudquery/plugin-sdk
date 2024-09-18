@@ -481,3 +481,120 @@ func TestScheduler_Cancellation(t *testing.T) {
 		}
 	}
 }
+
+func Test_shardTableClients(t *testing.T) {
+	type testCase struct {
+		name         string
+		tableClients []tableClient
+		shard        *shard
+		expected     []tableClient
+	}
+
+	tests := []testCase{
+		{
+			name: "nil shard returns all table clients",
+			tableClients: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+			},
+			expected: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+			},
+		},
+		{
+			name:         "nil table clients",
+			tableClients: nil,
+			shard:        &shard{num: 1, total: 2},
+			expected:     nil,
+		},
+		{
+			name:         "empty table clients",
+			tableClients: []tableClient{},
+			shard:        &shard{num: 1, total: 2},
+			expected:     []tableClient{},
+		},
+		{
+			name: "even shard 1 of 2",
+			tableClients: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+			},
+			shard: &shard{num: 1, total: 2},
+			expected: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+			},
+		},
+		{
+			name: "even shard 2 of 2",
+			tableClients: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+			},
+			shard: &shard{num: 2, total: 2},
+			expected: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+			},
+		},
+		{
+			name: "uneven split 1 of 2",
+			tableClients: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_5"}},
+			},
+			shard: &shard{num: 1, total: 2},
+			expected: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+			},
+		},
+		{
+			name: "uneven split 2 of 2",
+			tableClients: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_5"}},
+			},
+			shard: &shard{num: 2, total: 2},
+			expected: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_5"}},
+			},
+		},
+		{
+			name: "more shards than table clients",
+			tableClients: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+			},
+			shard:    &shard{num: 5, total: 100},
+			expected: nil,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			actual := shardTableClients(tc.tableClients, tc.shard)
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
