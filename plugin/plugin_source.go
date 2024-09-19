@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/v4/glob"
 	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 )
@@ -27,6 +28,16 @@ type SyncOptions struct {
 	DeterministicCQID   bool
 	BackendOptions      *BackendOptions
 	Shard               *Shard
+}
+
+func (o SyncOptions) SchedulerOptions(additionalOpts ...scheduler.SyncOption) []scheduler.SyncOption {
+	opts := []scheduler.SyncOption{
+		scheduler.WithSyncDeterministicCQID(o.DeterministicCQID),
+	}
+	if o.Shard != nil {
+		opts = append(opts, scheduler.WithShard(o.Shard.Num, o.Shard.Total))
+	}
+	return append(opts, additionalOpts...)
 }
 
 type SourceClient interface {
