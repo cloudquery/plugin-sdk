@@ -19,6 +19,12 @@ func WithAccessToken(token, tokenType string, expiry time.Time) TokenSourceOptio
 	}
 }
 
+func WithToken(token oauth2.Token) TokenSourceOption {
+	return func(t *tokenSource) {
+		t.currentToken = token
+	}
+}
+
 func WithDefaultContext(ctx context.Context) TokenSourceOption {
 	return func(t *tokenSource) {
 		t.defaultContext = ctx
