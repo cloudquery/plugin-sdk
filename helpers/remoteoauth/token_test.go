@@ -9,11 +9,24 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 )
 
 const testAPIKey = "test-key"
 
 func TestLocalTokenAccess(t *testing.T) {
+	r := require.New(t)
+	_, cloud := os.LookupEnv("CQ_CLOUD")
+	r.False(cloud, "CQ_CLOUD should not be set")
+	tok, err := NewTokenSource(WithToken(oauth2.Token{AccessToken: "token", TokenType: "bearer"}))
+	r.NoError(err)
+	tk, err := tok.Token()
+	r.NoError(err)
+	r.True(tk.Valid())
+	r.Equal("token", tk.AccessToken)
+}
+
+func TestLocalTokenAccessWithDeprecatedTokenOpt(t *testing.T) {
 	r := require.New(t)
 	_, cloud := os.LookupEnv("CQ_CLOUD")
 	r.False(cloud, "CQ_CLOUD should not be set")
@@ -41,7 +54,7 @@ func TestFirstLocalTokenAccess(t *testing.T) {
 		"_CQ_CONNECTOR_ID":   connID,
 	})
 	r := require.New(t)
-	tok, err := NewTokenSource(WithAccessToken("token", "bearer", time.Time{}))
+	tok, err := NewTokenSource(WithToken(oauth2.Token{AccessToken: "token"}))
 	r.NoError(err)
 	tk, err := tok.Token()
 	r.NoError(err)
@@ -63,7 +76,7 @@ func TestInvalidAPIKeyTokenAccess(t *testing.T) {
 		"_CQ_CONNECTOR_ID":   connID,
 	})
 	r := require.New(t)
-	tok, err := NewTokenSource(WithAccessToken("token", "bearer", time.Time{}))
+	tok, err := NewTokenSource(WithToken(oauth2.Token{AccessToken: "token"}))
 	r.NoError(err)
 	tk, err := tok.Token()
 	r.Nil(tk)
@@ -110,7 +123,7 @@ func TestTestConnectionTokenAccess(t *testing.T) {
 		"_CQ_CONNECTOR_ID":            connID,
 	})
 	r := require.New(t)
-	tok, err := NewTokenSource(WithAccessToken("token", "bearer", time.Time{}))
+	tok, err := NewTokenSource(WithToken(oauth2.Token{AccessToken: "token"}))
 	r.NoError(err)
 	tk, err := tok.Token()
 	r.NoError(err)
