@@ -3,6 +3,6 @@ contact_links:
   - name: CloudQuery Central Issues Tracker
     url: https://github.com/cloudquery/cloudquery/issues
     about: Please file any issue with regards to any of CloudQuery repo in the main repository with the right labels.
-  - name: CloudQuery Discord Support
-    url: https://cloudquery.io/discord
-    about: Join our discord to get live support from us and the community.
+  - name: CloudQuery Community
+    url: https://community.cloudquery.io
+    about: Join our community to get help from us as well as other users and experts.
