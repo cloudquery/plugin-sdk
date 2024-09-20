@@ -49,6 +49,9 @@ func (s *PluginServe) newCmdPluginDoc() *cobra.Command {
 			}
 			return g.Generate(args[0], f)
 		},
+		FParseErrWhitelist: cobra.FParseErrWhitelist{
+			UnknownFlags: true,
+		},
 	}
 	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
 	return cmd

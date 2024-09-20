@@ -447,6 +447,9 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			}
 			return nil
 		},
+		FParseErrWhitelist: cobra.FParseErrWhitelist{
+			UnknownFlags: true,
+		},
 	}
 	cmd.Flags().StringP("dist-dir", "D", "", "dist directory to output the built plugin. (default: <plugin_directory>/dist)")
 	cmd.Flags().StringP("docs-dir", "", "", "docs directory containing markdown files to copy to the dist directory. (default: <plugin_directory>/docs)")
