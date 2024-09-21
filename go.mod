@@ -6,10 +6,10 @@ toolchain go1.23.1
 
 require (
 	github.com/apache/arrow/go/v17 v17.0.0
-	github.com/aws/aws-sdk-go-v2 v1.30.5
-	github.com/aws/aws-sdk-go-v2/config v1.27.33
-	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.27.6
-	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.23.6
+	github.com/aws/aws-sdk-go-v2 v1.31.0
+	github.com/aws/aws-sdk-go-v2/config v1.27.36
+	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.28.0
+	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.24.0
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.13.0
 	github.com/cloudquery/plugin-pb-go v1.22.3
@@ -50,17 +50,17 @@ require (
 	github.com/adrg/xdg v0.4.0 // indirect
 	github.com/apache/arrow/go/v13 v13.0.0-20230731205701-112f94971882 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.32 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.13 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.17 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.17 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.34 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.14 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.18 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.18 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.19 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.22.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.26.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.30.7 // indirect
-	github.com/aws/smithy-go v1.20.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.20 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.23.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.27.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.31.0 // indirect
+	github.com/aws/smithy-go v1.21.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
