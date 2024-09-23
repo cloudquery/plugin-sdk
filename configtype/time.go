@@ -68,7 +68,7 @@ func (t *Time) UnmarshalJSON(b []byte) error {
 	switch {
 	case timeRFC3339Regexp.MatchString(s):
 		t.time, err = time.Parse(time.RFC3339, s)
-		if t.time == (time.Time{}) {
+		if t.time.IsZero() {
 			t.typ = timeTypeZero
 		} else {
 			t.typ = timeTypeFixed
