@@ -52,6 +52,8 @@ func TestTime_Comparability(t *testing.T) {
 	tim1 := time.Now()
 	tim2 := tim1.Add(1 * time.Second)
 
+	var zeroTime configtype.Time
+
 	cases := []struct {
 		give    configtype.Time
 		compare configtype.Time
@@ -59,10 +61,12 @@ func TestTime_Comparability(t *testing.T) {
 	}{
 		{configtype.NewRelativeTime(0), configtype.NewRelativeTime(0), true},
 		{configtype.NewRelativeTime(0), configtype.NewRelativeTime(1), false},
-		{configtype.NewTime(tim1), configtype.NewTime(tim1), false},
-		{configtype.NewTime(tim1), configtype.NewTime(tim2), true},
+		{configtype.NewTime(tim1), configtype.NewTime(tim1), true},
+		{configtype.NewTime(tim1), configtype.NewTime(tim2), false},
 		// relative and fixed times are never equal
 		{configtype.NewTime(tim1), configtype.NewRelativeTime(1), false},
+		{zeroTime, configtype.NewRelativeTime(0), false},
+		{zeroTime, zeroTime, true},
 	}
 	for _, tc := range cases {
 		if (tc.give == tc.compare) != tc.equal {
