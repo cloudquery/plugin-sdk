@@ -83,6 +83,10 @@ func (d *Time) MarshalJSON() ([]byte, error) {
 }
 
 func (t *Time) Time(nowFunc NowFunc) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+
 	if !t.time.IsZero() {
 		return t.time
 	}
