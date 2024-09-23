@@ -14,18 +14,15 @@ import (
 )
 
 func TestTime(t *testing.T) {
-	nowTime, _ := time.Parse(time.RFC3339Nano, time.RFC3339Nano)
-	now := func() time.Time {
-		return nowTime
-	}
+	now, _ := time.Parse(time.RFC3339Nano, time.RFC3339Nano)
 
 	cases := []struct {
 		give string
 		want time.Time
 	}{
-		{"1ns", nowTime.Add(1 * time.Nanosecond)},
-		{"20s", nowTime.Add(20 * time.Second)},
-		{"-50m30s", nowTime.Add(-50*time.Minute - 30*time.Second)},
+		{"1ns", now.Add(1 * time.Nanosecond)},
+		{"20s", now.Add(20 * time.Second)},
+		{"-50m30s", now.Add(-50*time.Minute - 30*time.Second)},
 		{"2021-09-01T00:00:00Z", time.Date(2021, 9, 1, 0, 0, 0, 0, time.UTC)},
 		{"2021-09-01T00:00:00.123Z", time.Date(2021, 9, 1, 0, 0, 0, 123000000, time.UTC)},
 		{"2021-09-01T00:00:00.123456Z", time.Date(2021, 9, 1, 0, 0, 0, 123456000, time.UTC)},
