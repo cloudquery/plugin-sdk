@@ -9,8 +9,6 @@ import (
 	"github.com/invopop/jsonschema"
 )
 
-type NowFunc func() time.Time
-
 type timeType int
 
 const (
@@ -103,7 +101,7 @@ func (t *Time) MarshalJSON() ([]byte, error) {
 	}
 }
 
-func (t Time) Time(nowFunc NowFunc) time.Time {
+func (t Time) Time(nowFunc func() time.Time) time.Time {
 	switch t.typ {
 	case timeTypeFixed:
 		return t.time
