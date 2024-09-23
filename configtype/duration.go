@@ -30,7 +30,7 @@ func NewDuration(d time.Duration) Duration {
 func (Duration) JSONSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
 		Type:    "string",
-		Pattern: durationPattern, // copied from time.ParseDuration
+		Pattern: durationPattern,
 		Title:   "CloudQuery configtype.Duration",
 	}
 }
