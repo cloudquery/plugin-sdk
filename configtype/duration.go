@@ -2,9 +2,15 @@ package configtype
 
 import (
 	"encoding/json"
+	"regexp"
 	"time"
 
 	"github.com/invopop/jsonschema"
+)
+
+var (
+	durationPattern = `^[-+]?([0-9]*(\.[0-9]*)?[a-z]+)+$` // copied from time.ParseDuration
+	durationRegexp  = regexp.MustCompile(durationPattern)
 )
 
 // Duration is a wrapper around time.Duration that should be used in config
@@ -24,7 +30,7 @@ func NewDuration(d time.Duration) Duration {
 func (Duration) JSONSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
 		Type:    "string",
-		Pattern: `^[-+]?([0-9]*(\.[0-9]*)?[a-z]+)+$`, // copied from time.ParseDuration
+		Pattern: durationPattern, // copied from time.ParseDuration
 		Title:   "CloudQuery configtype.Duration",
 	}
 }
