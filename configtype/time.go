@@ -40,6 +40,30 @@ func NewRelativeTime(d time.Duration) Time {
 	}
 }
 
+func ParseTime(s string) (Time, error) {
+	var t Time
+	var err error
+	switch {
+	case timeRFC3339Regexp.MatchString(s):
+		t.time, err = time.Parse(time.RFC3339, s)
+		if t.time.IsZero() {
+			t.typ = timeTypeZero
+		} else {
+			t.typ = timeTypeFixed
+		}
+	case dateRegexp.MatchString(s):
+		t.typ = timeTypeFixed
+		t.time, err = time.Parse(time.DateOnly, s)
+	case durationRegexp.MatchString(s):
+		t.typ = timeTypeRelative
+		t.duration, err = time.ParseDuration(s)
+	default:
+		return t, fmt.Errorf("invalid time format: %s", s)
+	}
+
+	return t, err
+}
+
 var (
 	timeRFC3339Pattern = `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(.(\d{1,9}))?(Z|((-|\+)\d{2}:\d{2}))$`
 	timeRFC3339Regexp  = regexp.MustCompile(timeRFC3339Pattern)
@@ -60,29 +84,12 @@ func (Time) JSONSchema() *jsonschema.Schema {
 
 func (t *Time) UnmarshalJSON(b []byte) error {
 	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
+	err := json.Unmarshal(b, &s)
+	if err != nil {
 		return err
 	}
 
-	var err error
-	switch {
-	case timeRFC3339Regexp.MatchString(s):
-		t.time, err = time.Parse(time.RFC3339, s)
-		if t.time.IsZero() {
-			t.typ = timeTypeZero
-		} else {
-			t.typ = timeTypeFixed
-		}
-	case dateRegexp.MatchString(s):
-		t.typ = timeTypeFixed
-		t.time, err = time.Parse(time.DateOnly, s)
-	case durationRegexp.MatchString(s):
-		t.typ = timeTypeRelative
-		t.duration, err = time.ParseDuration(s)
-	default:
-		return fmt.Errorf("invalid time format: %s", s)
-	}
-
+	*t, err = ParseTime(s)
 	if err != nil {
 		return err
 	}
