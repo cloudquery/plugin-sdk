@@ -19,7 +19,6 @@ var (
 	baseDurationRegexp         = regexp.MustCompile(baseDurationPattern)
 
 	humanDurationSignsPattern = `ago|from\s+now`
-	humanDurationSignsRegex   = regexp.MustCompile(fmt.Sprintf(`^%s$`, humanDurationSignsPattern))
 
 	humanDurationUnitsPattern = `nanoseconds?|ns|microseconds?|us|µs|μs|milliseconds?|ms|seconds?|s|minutes?|m|hours?|h|days?|d|months?|M|years?|Y`
 	humanDurationUnitsRegex   = regexp.MustCompile(fmt.Sprintf(`^%s$`, humanDurationUnitsPattern))
