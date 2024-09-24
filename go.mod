@@ -7,9 +7,10 @@ toolchain go1.23.1
 require (
 	github.com/apache/arrow/go/v17 v17.0.0
 	github.com/aws/aws-sdk-go-v2 v1.31.0
-	github.com/aws/aws-sdk-go-v2/config v1.27.36
-	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.28.0
-	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.24.0
+	github.com/aws/aws-sdk-go-v2/config v1.27.31
+	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.27.4
+	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.23.4
+	github.com/aws/smithy-go v1.21.0
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.13.0
 	github.com/cloudquery/plugin-pb-go v1.22.3
@@ -60,7 +61,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.23.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.27.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.31.0 // indirect
-	github.com/aws/smithy-go v1.21.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
