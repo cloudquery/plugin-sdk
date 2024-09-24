@@ -23,7 +23,7 @@ const (
 type Time struct {
 	typ      timeType
 	time     time.Time
-	duration time.Duration
+	duration Duration
 }
 
 func NewTime(t time.Time) Time {
@@ -36,7 +36,7 @@ func NewTime(t time.Time) Time {
 func NewRelativeTime(d time.Duration) Time {
 	return Time{
 		typ:      timeTypeRelative,
-		duration: d,
+		duration: Duration{duration: d},
 	}
 }
 
@@ -54,9 +54,9 @@ func ParseTime(s string) (Time, error) {
 	case dateRegexp.MatchString(s):
 		t.typ = timeTypeFixed
 		t.time, err = time.Parse(time.DateOnly, s)
-	case durationRegexp.MatchString(s):
+	case baseDurationRegexp.MatchString(s), humanRelativeDurationRegexp.MatchString(s):
 		t.typ = timeTypeRelative
-		t.duration, err = time.ParseDuration(s)
+		t.duration, err = ParseDuration(s)
 	default:
 		return t, fmt.Errorf("invalid time format: %s", s)
 	}
@@ -71,7 +71,7 @@ var (
 	datePattern = `^\d{4}-\d{2}-\d{2}$`
 	dateRegexp  = regexp.MustCompile(datePattern)
 
-	timePattern = patternCases(timeRFC3339Pattern, datePattern, durationPattern)
+	timePattern = patternCases(timeRFC3339Pattern, datePattern, baseDurationPattern)
 )
 
 func (Time) JSONSchema() *jsonschema.Schema {
@@ -84,25 +84,25 @@ func (Time) JSONSchema() *jsonschema.Schema {
 
 func (t *Time) UnmarshalJSON(b []byte) error {
 	var s string
-	err := json.Unmarshal(b, &s)
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+
+	tim, err := ParseTime(s)
 	if err != nil {
 		return err
 	}
 
-	*t, err = ParseTime(s)
-	if err != nil {
-		return err
-	}
-
+	*t = tim
 	return nil
 }
 
-func (t *Time) MarshalJSON() ([]byte, error) {
+func (t Time) MarshalJSON() ([]byte, error) {
 	switch t.typ {
 	case timeTypeFixed:
 		return json.Marshal(t.time)
 	case timeTypeRelative:
-		return json.Marshal(t.duration.String())
+		return json.Marshal(t.duration)
 	default:
 		return json.Marshal(time.Time{})
 	}
@@ -113,7 +113,7 @@ func (t Time) Time(now time.Time) time.Time {
 	case timeTypeFixed:
 		return t.time
 	case timeTypeRelative:
-		return now.Add(t.duration)
+		return now.Add(t.duration.duration).AddDate(t.duration.years, t.duration.months, t.duration.days)
 	default:
 		return time.Time{}
 	}
