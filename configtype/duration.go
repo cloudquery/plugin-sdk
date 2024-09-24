@@ -27,14 +27,11 @@ var (
 	humanDurationSegmentPattern = fmt.Sprintf(`(([0-9]+\s+(%[1]s)|%[2]s))`, humanDurationUnitsPattern, baseDurationSegmentPattern)
 
 	humanDurationPattern = fmt.Sprintf(`^%[1]s(\s+%[1]s)*$`, humanDurationSegmentPattern)
-	humanDurationRegexp  = regexp.MustCompile(humanDurationPattern)
 
 	humanRelativeDurationPattern = fmt.Sprintf(`^%[1]s(\s+%[1]s)*\s+(%[2]s)$`, humanDurationSegmentPattern, humanDurationSignsPattern)
 	humanRelativeDurationRegexp  = regexp.MustCompile(humanRelativeDurationPattern)
 
 	whitespaceRegexp = regexp.MustCompile(`\s+`)
-
-	fromNowRegexp = regexp.MustCompile(`from\s+now`)
 )
 
 // Duration is a wrapper around time.Duration that should be used in config
@@ -70,14 +67,15 @@ func ParseDuration(s string) (Duration, error) {
 	var err error
 
 	for _, part := range parts {
-		if inSign {
+		switch {
+		case inSign:
 			if part != "now" {
 				return Duration{}, fmt.Errorf("invalid duration format: invalid sign specifier: %q", part)
 			}
 
 			d.sign = 1
 			inSign = false
-		} else if inValue {
+		case inValue:
 			if !humanDurationUnitsRegex.MatchString(part) {
 				return Duration{}, fmt.Errorf("invalid duration format: invalid unit specifier: %q", part)
 			}
@@ -89,37 +87,34 @@ func ParseDuration(s string) (Duration, error) {
 
 			value = 0
 			inValue = false
-		} else {
-			switch {
-			case part == "ago":
-				if d.sign != 0 {
-					return Duration{}, fmt.Errorf("invalid duration format: more than one sign specifier")
-				}
-
-				d.sign = -1
-			case part == "from":
-				if d.sign != 0 {
-					return Duration{}, fmt.Errorf("invalid duration format: more than one sign specifier")
-				}
-
-				inSign = true
-			case numberRegexp.MatchString(part):
-				value, err = strconv.ParseInt(part, 10, 64)
-				if err != nil {
-					return Duration{}, fmt.Errorf("invalid duration format: invalid value specifier: %q", part)
-				}
-
-				inValue = true
-			case baseDurationRegexp.MatchString(part):
-				duration, err := time.ParseDuration(part)
-				if err != nil {
-					return Duration{}, fmt.Errorf("invalid duration format: invalid value specifier: %q", part)
-				}
-
-				d.duration += duration
-			default:
-				return Duration{}, fmt.Errorf("invalid duration format: invalid value: %q", part)
+		case part == "ago":
+			if d.sign != 0 {
+				return Duration{}, fmt.Errorf("invalid duration format: more than one sign specifier")
 			}
+
+			d.sign = -1
+		case part == "from":
+			if d.sign != 0 {
+				return Duration{}, fmt.Errorf("invalid duration format: more than one sign specifier")
+			}
+
+			inSign = true
+		case numberRegexp.MatchString(part):
+			value, err = strconv.ParseInt(part, 10, 64)
+			if err != nil {
+				return Duration{}, fmt.Errorf("invalid duration format: invalid value specifier: %q", part)
+			}
+
+			inValue = true
+		case baseDurationRegexp.MatchString(part):
+			duration, err := time.ParseDuration(part)
+			if err != nil {
+				return Duration{}, fmt.Errorf("invalid duration format: invalid value specifier: %q", part)
+			}
+
+			d.duration += duration
+		default:
+			return Duration{}, fmt.Errorf("invalid duration format: invalid value: %q", part)
 		}
 	}
 
@@ -199,7 +194,7 @@ func (d Duration) Equal(other Duration) bool {
 	return d == other
 }
 
-func (d Duration) humanString(value int, unit string) string {
+func (Duration) humanString(value int, unit string) string {
 	return fmt.Sprintf("%d %s%s", abs(value), unit, plural(value))
 }
 
