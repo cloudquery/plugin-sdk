@@ -5,22 +5,31 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/invopop/jsonschema"
 )
 
 var (
-	baseDurationPattern = `^[-+]?([0-9]*(\.[0-9]*)?[a-z]+)+$` // copied from time.ParseDuration
-	baseDurationRegexp  = regexp.MustCompile(baseDurationPattern)
+	numberRegexp = regexp.MustCompile(`^[0-9]+$`)
 
-	humanDurationSigns = `ago|from\s+now`
-	humanDurationUnits = `seconds?|minutes?|hours?|days?|months?|years?`
+	baseDurationSegmentPattern = `[-+]?([0-9]*(\.[0-9]*)?[a-z]+)+` // copied from time.ParseDuration
+	baseDurationPattern        = fmt.Sprintf(`^%s$`, baseDurationSegmentPattern)
+	baseDurationRegexp         = regexp.MustCompile(baseDurationPattern)
 
-	humanDurationPattern = fmt.Sprintf(`^[0-9]+\s+(%s)$`, humanDurationUnits)
+	humanDurationSignsPattern = `ago|from\s+now`
+	humanDurationSignsRegex   = regexp.MustCompile(fmt.Sprintf(`^%s$`, humanDurationSignsPattern))
+
+	humanDurationUnitsPattern = `nanoseconds?|ns|microseconds?|us|µs|μs|milliseconds?|ms|seconds?|s|minutes?|m|hours?|h|days?|d|months?|M|years?|Y`
+	humanDurationUnitsRegex   = regexp.MustCompile(fmt.Sprintf(`^%s$`, humanDurationUnitsPattern))
+
+	humanDurationSegmentPattern = fmt.Sprintf(`(([0-9]+\s+(%[1]s)|%[2]s))`, humanDurationUnitsPattern, baseDurationSegmentPattern)
+
+	humanDurationPattern = fmt.Sprintf(`^%[1]s(\s+%[1]s)*$`, humanDurationSegmentPattern)
 	humanDurationRegexp  = regexp.MustCompile(humanDurationPattern)
 
-	humanRelativeDurationPattern = fmt.Sprintf(`^[0-9]+\s+(%s)\s+(%s)$`, humanDurationUnits, humanDurationSigns)
+	humanRelativeDurationPattern = fmt.Sprintf(`^%[1]s(\s+%[1]s)*\s+(%[2]s)$`, humanDurationSegmentPattern, humanDurationSignsPattern)
 	humanRelativeDurationRegexp  = regexp.MustCompile(humanRelativeDurationPattern)
 
 	whitespaceRegexp = regexp.MustCompile(`\s+`)
@@ -33,6 +42,8 @@ var (
 // the spec can be extended in the future to support other types of durations
 // (e.g. a duration that is specified in days).
 type Duration struct {
+	relative bool
+	sign     int
 	duration time.Duration
 	days     int
 	months   int
@@ -41,101 +52,111 @@ type Duration struct {
 
 func NewDuration(d time.Duration) Duration {
 	return Duration{
+		sign:     1,
 		duration: d,
 	}
 }
 
 func ParseDuration(s string) (Duration, error) {
 	var d Duration
+
+	var inValue bool
+	var value int64
+
+	var inSign bool
+
+	parts := whitespaceRegexp.Split(s, -1)
+
 	var err error
-	switch {
-	case humanDurationRegexp.MatchString(s):
-		d, err = parseHumanDuration(s)
-	case humanRelativeDurationRegexp.MatchString(s):
-		d, err = parseHumanRelativeDuration(s)
-	case baseDurationRegexp.MatchString(s):
-		d.duration, err = time.ParseDuration(s)
-	default:
-		return d, fmt.Errorf("invalid duration format: %q", s)
+
+	for _, part := range parts {
+		if inSign {
+			if part != "now" {
+				return Duration{}, fmt.Errorf("invalid duration format: invalid sign specifier: %q", part)
+			}
+
+			d.sign = 1
+			inSign = false
+		} else if inValue {
+			if !humanDurationUnitsRegex.MatchString(part) {
+				return Duration{}, fmt.Errorf("invalid duration format: invalid unit specifier: %q", part)
+			}
+
+			err = d.addUnit(part, value)
+			if err != nil {
+				return Duration{}, fmt.Errorf("invalid duration format: %w", err)
+			}
+
+			value = 0
+			inValue = false
+		} else {
+			switch {
+			case part == "ago":
+				if d.sign != 0 {
+					return Duration{}, fmt.Errorf("invalid duration format: more than one sign specifier")
+				}
+
+				d.sign = -1
+			case part == "from":
+				if d.sign != 0 {
+					return Duration{}, fmt.Errorf("invalid duration format: more than one sign specifier")
+				}
+
+				inSign = true
+			case numberRegexp.MatchString(part):
+				value, err = strconv.ParseInt(part, 10, 64)
+				if err != nil {
+					return Duration{}, fmt.Errorf("invalid duration format: invalid value specifier: %q", part)
+				}
+
+				inValue = true
+			case baseDurationRegexp.MatchString(part):
+				duration, err := time.ParseDuration(part)
+				if err != nil {
+					return Duration{}, fmt.Errorf("invalid duration format: invalid value specifier: %q", part)
+				}
+
+				d.duration += duration
+			default:
+				return Duration{}, fmt.Errorf("invalid duration format: invalid value: %q", part)
+			}
+		}
 	}
 
-	return d, err
-}
+	d.relative = d.sign != 0
 
-func parseHumanDuration(s string) (Duration, error) {
-	parts := whitespaceRegexp.Split(s, 2)
-	if len(parts) != 2 {
-		return Duration{}, fmt.Errorf("invalid duration format: %q", s)
-	}
-
-	number, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return Duration{}, fmt.Errorf("invalid duration format: invalid number: %q", s)
-	}
-
-	d, err := parseHumanDurationUnit(parts[1], 1, number)
-	if err != nil {
-		return Duration{}, fmt.Errorf("invalid duration format: %w", err)
+	if !d.relative {
+		d.sign = 1
 	}
 
 	return d, nil
 }
 
-func parseHumanRelativeDuration(s string) (Duration, error) {
-	parts := whitespaceRegexp.Split(s, 3)
-	if len(parts) != 3 {
-		return Duration{}, fmt.Errorf("invalid duration format: %q", s)
-	}
-
-	number, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return Duration{}, fmt.Errorf("invalid duration format: invalid number: %q", s)
-	}
-
-	sign, err := parseHumanDurationSign(parts[2])
-	if err != nil {
-		return Duration{}, fmt.Errorf("invalid duration format: %w", err)
-	}
-
-	d, err := parseHumanDurationUnit(parts[1], sign, number)
-	if err != nil {
-		return Duration{}, fmt.Errorf("invalid duration format: %w", err)
-	}
-
-	return d, nil
-}
-
-func parseHumanDurationUnit(unit string, sign, number int) (Duration, error) {
-	var d Duration
+func (d *Duration) addUnit(unit string, number int64) error {
 	switch unit {
+	case "nanosecond", "nanoseconds", "ns":
+		d.duration += time.Nanosecond * time.Duration(number)
+	case "microsecond", "microseconds", "us", "μs", "µs":
+		d.duration += time.Microsecond * time.Duration(number)
+	case "millisecond", "milliseconds":
+		d.duration += time.Millisecond * time.Duration(number)
 	case "second", "seconds":
-		d.duration = time.Second * time.Duration(sign) * time.Duration(number)
+		d.duration += time.Second * time.Duration(number)
 	case "minute", "minutes":
-		d.duration = time.Minute * time.Duration(sign) * time.Duration(number)
+		d.duration += time.Minute * time.Duration(number)
 	case "hour", "hours":
-		d.duration = time.Hour * time.Duration(sign) * time.Duration(number)
+		d.duration += time.Hour * time.Duration(number)
 	case "day", "days":
-		d.days = sign * number
+		d.days += int(number)
 	case "month", "months":
-		d.months = sign * number
+		d.months += int(number)
 	case "year", "years":
-		d.years = sign * number
+		d.years += int(number)
 	default:
-		return Duration{}, fmt.Errorf("invalid unit: %q", unit)
+		return fmt.Errorf("invalid unit: %q", unit)
 	}
 
-	return d, nil
-}
-
-func parseHumanDurationSign(sign string) (int, error) {
-	switch {
-	case sign == "ago":
-		return -1, nil
-	case fromNowRegexp.MatchString(sign):
-		return 1, nil
-	default:
-		return 0, fmt.Errorf("invalid duration format: invalid sign specifier: %q", sign)
-	}
+	return nil
 }
 
 func (Duration) JSONSchema() *jsonschema.Schema {
@@ -162,14 +183,15 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 }
 
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.Duration().String())
+	return json.Marshal(d.String())
 }
 
-func (d *Duration) Duration() time.Duration {
+func (d Duration) Duration() time.Duration {
 	duration := d.duration
 	duration += time.Duration(d.days) * 24 * time.Hour
 	duration += time.Duration(d.months) * 30 * 24 * time.Hour
 	duration += time.Duration(d.years) * 365 * 24 * time.Hour
+	duration *= time.Duration(d.sign)
 	return duration
 }
 
@@ -177,6 +199,35 @@ func (d Duration) Equal(other Duration) bool {
 	return d == other
 }
 
+func (d Duration) humanString(value int, unit string) string {
+	return fmt.Sprintf("%d %s%s", abs(value), unit, plural(value))
+}
+
 func (d Duration) String() string {
-	return d.Duration().String()
+	var parts []string
+	if d.years != 0 {
+		parts = append(parts, d.humanString(d.years, "year"))
+	}
+	if d.months != 0 {
+		parts = append(parts, d.humanString(d.months, "month"))
+	}
+	if d.days != 0 {
+		parts = append(parts, d.humanString(d.days, "day"))
+	}
+
+	if len(parts) == 0 {
+		return (d.duration * time.Duration(d.sign)).String()
+	}
+
+	if d.duration != 0 {
+		parts = append(parts, d.duration.String())
+	}
+
+	if d.sign == -1 {
+		parts = append(parts, "ago")
+	} else if d.relative {
+		parts = append(parts, "from now")
+	}
+
+	return strings.Join(parts, " ")
 }

@@ -33,13 +33,6 @@ func NewTime(t time.Time) Time {
 	}
 }
 
-func NewRelativeTime(d Duration) Time {
-	return Time{
-		typ:      timeTypeRelative,
-		duration: d,
-	}
-}
-
 func ParseTime(s string) (Time, error) {
 	var t Time
 	var err error
@@ -125,7 +118,14 @@ func (t Time) Time(now time.Time) time.Time {
 	case timeTypeFixed:
 		return t.time
 	case timeTypeRelative:
-		return now.Add(t.duration.duration).AddDate(t.duration.years, t.duration.months, t.duration.days)
+		sign := t.duration.sign
+		return now.Add(
+			t.duration.duration*time.Duration(sign),
+		).AddDate(
+			t.duration.years*sign,
+			t.duration.months*sign,
+			t.duration.days*sign,
+		)
 	default:
 		return time.Time{}
 	}
@@ -153,6 +153,10 @@ func (t Time) String() string {
 	case timeTypeFixed:
 		return t.time.String()
 	case timeTypeRelative:
+		if t.duration.Duration() == 0 {
+			return "now"
+		}
+
 		return t.duration.String()
 	default:
 		return time.Time{}.String()

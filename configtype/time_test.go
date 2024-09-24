@@ -59,13 +59,13 @@ func TestTime_Comparability(t *testing.T) {
 		compare configtype.Time
 		equal   bool
 	}{
-		{configtype.NewRelativeTime(configtype.NewDuration(0)), configtype.NewRelativeTime(configtype.NewDuration(0)), true},
-		{configtype.NewRelativeTime(configtype.NewDuration(0)), configtype.NewRelativeTime(configtype.NewDuration(1)), false},
+		{must(configtype.ParseTime("now")), must(configtype.ParseTime("now")), true},
+		{must(configtype.ParseTime("now")), must(configtype.ParseTime("1 second from now")), false},
 		{configtype.NewTime(tim1), configtype.NewTime(tim1), true},
 		{configtype.NewTime(tim1), configtype.NewTime(tim2), false},
 		// relative and fixed times are never equal
-		{configtype.NewTime(tim1), configtype.NewRelativeTime(configtype.NewDuration(1)), false},
-		{zeroTime, configtype.NewRelativeTime(configtype.NewDuration(0)), false},
+		{configtype.NewTime(tim1), must(configtype.ParseTime("now")), false},
+		{zeroTime, must(configtype.ParseTime("now")), false},
 		{zeroTime, zeroTime, true},
 	}
 	for _, tc := range cases {
@@ -127,6 +127,11 @@ func TestTime_JSONSchema(t *testing.T) {
 			Err:  false,
 			Spec: `"10 months from now"`,
 		},
+		{
+			Name: "complex relative duration",
+			Err:  false,
+			Spec: `"10 months 3 days 4h20m from now"`,
+		},
 	},
 		func() []testCase {
 			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -139,7 +144,7 @@ func TestTime_JSONSchema(t *testing.T) {
 			var result []testCase
 			for i := 0; i < cases; i++ {
 				val := rnd.Int63n(maxDur) - maxDurHalf
-				dur := configtype.NewRelativeTime(configtype.NewDuration(time.Duration(val)))
+				dur := must(configtype.ParseTime(time.Duration(val).String()))
 
 				durationData, err := dur.MarshalJSON()
 				require.NoError(t, err)

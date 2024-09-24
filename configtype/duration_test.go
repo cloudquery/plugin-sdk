@@ -39,6 +39,32 @@ func TestDuration(t *testing.T) {
 	}
 }
 
+func TestDuration_JSONMarshal(t *testing.T) {
+	cases := []struct {
+		give string
+		want string
+	}{
+		{"1ns", "1ns"},
+		{"20s", "20s"},
+		{"-50m30s", "-50m30s"},
+		{"25 minute", "25m0s"},
+		{"50 minutes", "50m0s"},
+		{"10 years ago", "10 years ago"},
+		{"1 month from now", "1 month from now"},
+		{"1   month   from    now", "1 month from now"},
+	}
+	for _, tc := range cases {
+		var d configtype.Duration
+		err := json.Unmarshal([]byte(`"`+tc.give+`"`), &d)
+		if err != nil {
+			t.Fatalf("error calling Unmarshal(%q): %v", tc.give, err)
+		}
+		if d.String() != tc.want {
+			t.Errorf("String(%q) = %q, want %v", tc.give, d.String(), tc.want)
+		}
+	}
+}
+
 func TestComparability(t *testing.T) {
 	cases := []struct {
 		give    configtype.Duration
