@@ -24,6 +24,8 @@ func TestDuration(t *testing.T) {
 		{"25 minute", 25 * time.Minute},
 		{"50 minutes", 50 * time.Minute},
 		{"10 years ago", -10 * 365 * 24 * time.Hour},
+		{"1 month from now", 30 * 24 * time.Hour},
+		{"1   month   from    now", 30 * 24 * time.Hour},
 	}
 	for _, tc := range cases {
 		var d configtype.Duration

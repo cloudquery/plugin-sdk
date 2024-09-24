@@ -31,6 +31,9 @@ func TestTime(t *testing.T) {
 		{"2021-09-01T00:00:00.123456+02:00", time.Date(2021, 9, 1, 0, 0, 0, 123456000, time.FixedZone("CET", 2*60*60))},
 		{"2021-09-01T00:00:00.123456789+02:00", time.Date(2021, 9, 1, 0, 0, 0, 123456789, time.FixedZone("CET", 2*60*60))},
 		{"2021-09-01", time.Date(2021, 9, 1, 0, 0, 0, 0, time.UTC)},
+		{"now", now},
+		{"2 days from now", now.AddDate(0, 0, 2)},
+		{"5 months ago", now.AddDate(0, -5, 0)},
 	}
 	for _, tc := range cases {
 		var d configtype.Time
@@ -56,13 +59,13 @@ func TestTime_Comparability(t *testing.T) {
 		compare configtype.Time
 		equal   bool
 	}{
-		{configtype.NewRelativeTime(0), configtype.NewRelativeTime(0), true},
-		{configtype.NewRelativeTime(0), configtype.NewRelativeTime(1), false},
+		{configtype.NewRelativeTime(configtype.NewDuration(0)), configtype.NewRelativeTime(configtype.NewDuration(0)), true},
+		{configtype.NewRelativeTime(configtype.NewDuration(0)), configtype.NewRelativeTime(configtype.NewDuration(1)), false},
 		{configtype.NewTime(tim1), configtype.NewTime(tim1), true},
 		{configtype.NewTime(tim1), configtype.NewTime(tim2), false},
 		// relative and fixed times are never equal
-		{configtype.NewTime(tim1), configtype.NewRelativeTime(1), false},
-		{zeroTime, configtype.NewRelativeTime(0), false},
+		{configtype.NewTime(tim1), configtype.NewRelativeTime(configtype.NewDuration(1)), false},
+		{zeroTime, configtype.NewRelativeTime(configtype.NewDuration(0)), false},
 		{zeroTime, zeroTime, true},
 	}
 	for _, tc := range cases {
@@ -114,6 +117,16 @@ func TestTime_JSONSchema(t *testing.T) {
 			Err:  true,
 			Spec: `false`,
 		},
+		{
+			Name: "not relative duration",
+			Err:  true,
+			Spec: `"10 days"`,
+		},
+		{
+			Name: "relative duration",
+			Err:  false,
+			Spec: `"10 months from now"`,
+		},
 	},
 		func() []testCase {
 			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -126,7 +139,7 @@ func TestTime_JSONSchema(t *testing.T) {
 			var result []testCase
 			for i := 0; i < cases; i++ {
 				val := rnd.Int63n(maxDur) - maxDurHalf
-				dur := configtype.NewRelativeTime(time.Duration(val))
+				dur := configtype.NewRelativeTime(configtype.NewDuration(time.Duration(val)))
 
 				durationData, err := dur.MarshalJSON()
 				require.NoError(t, err)

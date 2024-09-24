@@ -33,10 +33,10 @@ func NewTime(t time.Time) Time {
 	}
 }
 
-func NewRelativeTime(d time.Duration) Time {
+func NewRelativeTime(d Duration) Time {
 	return Time{
 		typ:      timeTypeRelative,
-		duration: Duration{duration: d},
+		duration: d,
 	}
 }
 
@@ -44,6 +44,9 @@ func ParseTime(s string) (Time, error) {
 	var t Time
 	var err error
 	switch {
+	case timeNowRegexp.MatchString(s):
+		t.typ = timeTypeRelative
+		t.duration = NewDuration(0)
 	case timeRFC3339Regexp.MatchString(s):
 		t.time, err = time.Parse(time.RFC3339, s)
 		if t.time.IsZero() {
@@ -68,10 +71,19 @@ var (
 	timeRFC3339Pattern = `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(.(\d{1,9}))?(Z|((-|\+)\d{2}:\d{2}))$`
 	timeRFC3339Regexp  = regexp.MustCompile(timeRFC3339Pattern)
 
+	timeNowPattern = `^now$`
+	timeNowRegexp  = regexp.MustCompile(timeNowPattern)
+
 	datePattern = `^\d{4}-\d{2}-\d{2}$`
 	dateRegexp  = regexp.MustCompile(datePattern)
 
-	timePattern = patternCases(timeRFC3339Pattern, datePattern, baseDurationPattern)
+	timePattern = patternCases(
+		timeNowPattern,
+		timeRFC3339Pattern,
+		datePattern,
+		baseDurationPattern,
+		humanRelativeDurationPattern,
+	)
 )
 
 func (Time) JSONSchema() *jsonschema.Schema {

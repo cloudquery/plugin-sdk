@@ -14,12 +14,13 @@ var (
 	baseDurationPattern = `^[-+]?([0-9]*(\.[0-9]*)?[a-z]+)+$` // copied from time.ParseDuration
 	baseDurationRegexp  = regexp.MustCompile(baseDurationPattern)
 
-	humanDurationUnits = "seconds?|minutes?|hours?|days?|months?|years?"
+	humanDurationSigns = `ago|from\s+now`
+	humanDurationUnits = `seconds?|minutes?|hours?|days?|months?|years?`
 
 	humanDurationPattern = fmt.Sprintf(`^[0-9]+\s+(%s)$`, humanDurationUnits)
 	humanDurationRegexp  = regexp.MustCompile(humanDurationPattern)
 
-	humanRelativeDurationPattern = fmt.Sprintf(`^[0-9]+\s+(%s)\s+(ago|from\s+now)$`, humanDurationUnits)
+	humanRelativeDurationPattern = fmt.Sprintf(`^[0-9]+\s+(%s)\s+(%s)$`, humanDurationUnits, humanDurationSigns)
 	humanRelativeDurationRegexp  = regexp.MustCompile(humanRelativeDurationPattern)
 
 	whitespaceRegexp = regexp.MustCompile(`\s+`)
