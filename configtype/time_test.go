@@ -41,7 +41,7 @@ func TestTime(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error calling Unmarshal(%q): %v", tc.give, err)
 		}
-		computedTime := d.Time(now)
+		computedTime := d.AsTime(now)
 		if !computedTime.Equal(tc.want) {
 			t.Errorf("Unmarshal(%q) = %v, want %v", tc.give, computedTime, tc.want)
 		}
