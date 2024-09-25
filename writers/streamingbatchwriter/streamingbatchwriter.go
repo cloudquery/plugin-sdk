@@ -25,11 +25,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/cloudquery/plugin-sdk/v4/internal/batch"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
-	"github.com/rs/zerolog"
 )
 
 // Client is the interface that must be implemented by the client of StreamingBatchWriter.
@@ -182,26 +183,28 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 	errCh := make(chan error)
 	defer close(errCh)
 
-	go func() {
-		for err := range errCh {
-			w.logger.Err(err).Msg("error from StreamingBatchWriter")
-		}
-	}()
+	for {
+		select {
+		case msg := <-msgs:
+			if msg == nil {
+				return w.Close(ctx)
+			}
 
-	for msg := range msgs {
-		msgType := writers.MsgID(msg)
-		if w.lastMsgType != writers.MsgTypeUnset && w.lastMsgType != msgType {
-			if err := w.Flush(ctx); err != nil {
+			msgType := writers.MsgID(msg)
+			if w.lastMsgType != writers.MsgTypeUnset && w.lastMsgType != msgType {
+				if err := w.Flush(ctx); err != nil {
+					return err
+				}
+			}
+			w.lastMsgType = msgType
+			if err := w.startWorker(ctx, errCh, msg); err != nil {
 				return err
 			}
-		}
-		w.lastMsgType = msgType
-		if err := w.startWorker(ctx, errCh, msg); err != nil {
+
+		case err := <-errCh:
 			return err
 		}
 	}
-
-	return w.Close(ctx)
 }
 
 func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- error, msg message.WriteMessage) error {
@@ -221,13 +224,14 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 	case *message.WriteMigrateTable:
 		w.workersLock.Lock()
 		defer w.workersLock.Unlock()
+
 		if w.migrateWorker != nil {
 			w.migrateWorker.ch <- m
 			return nil
 		}
-		ch := make(chan *message.WriteMigrateTable)
+
 		w.migrateWorker = &streamingWorkerManager[*message.WriteMigrateTable]{
-			ch:        ch,
+			ch:        make(chan *message.WriteMigrateTable),
 			writeFunc: w.client.MigrateTable,
 
 			flush: make(chan chan bool),
@@ -241,17 +245,19 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		w.workersWaitGroup.Add(1)
 		go w.migrateWorker.run(ctx, &w.workersWaitGroup, tableName)
 		w.migrateWorker.ch <- m
+
 		return nil
 	case *message.WriteDeleteStale:
 		w.workersLock.Lock()
 		defer w.workersLock.Unlock()
+
 		if w.deleteStaleWorker != nil {
 			w.deleteStaleWorker.ch <- m
 			return nil
 		}
-		ch := make(chan *message.WriteDeleteStale)
+
 		w.deleteStaleWorker = &streamingWorkerManager[*message.WriteDeleteStale]{
-			ch:        ch,
+			ch:        make(chan *message.WriteDeleteStale),
 			writeFunc: w.client.DeleteStale,
 
 			flush: make(chan chan bool),
@@ -265,19 +271,29 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		w.workersWaitGroup.Add(1)
 		go w.deleteStaleWorker.run(ctx, &w.workersWaitGroup, tableName)
 		w.deleteStaleWorker.ch <- m
+
 		return nil
 	case *message.WriteInsert:
 		w.workersLock.RLock()
-		wr, ok := w.insertWorkers[tableName]
+		worker, ok := w.insertWorkers[tableName]
 		w.workersLock.RUnlock()
 		if ok {
-			wr.ch <- m
+			worker.ch <- m
 			return nil
 		}
 
-		ch := make(chan *message.WriteInsert)
-		wr = &streamingWorkerManager[*message.WriteInsert]{
-			ch:        ch,
+		w.workersLock.Lock()
+		activeWorker, ok := w.insertWorkers[tableName]
+		if ok {
+			w.workersLock.Unlock()
+			// some other goroutine could have already added the worker
+			// just send the message to it & discard our allocated worker
+			activeWorker.ch <- m
+			return nil
+		}
+
+		worker = &streamingWorkerManager[*message.WriteInsert]{
+			ch:        make(chan *message.WriteInsert),
 			writeFunc: w.client.WriteTable,
 
 			flush: make(chan chan bool),
@@ -287,33 +303,27 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			batchTimeout: w.batchTimeout,
 			tickerFn:     w.tickerFn,
 		}
-		w.workersLock.Lock()
-		wrOld, ok := w.insertWorkers[tableName]
-		if ok {
-			w.workersLock.Unlock()
-			// some other goroutine could have already added the worker
-			// just send the message to it & discard our allocated worker
-			wrOld.ch <- m
-			return nil
-		}
-		w.insertWorkers[tableName] = wr
+
+		w.insertWorkers[tableName] = worker
 		w.workersLock.Unlock()
 
 		w.workersWaitGroup.Add(1)
-		go wr.run(ctx, &w.workersWaitGroup, tableName)
-		ch <- m
+		go worker.run(ctx, &w.workersWaitGroup, tableName)
+		worker.ch <- m
+
 		return nil
 	case *message.WriteDeleteRecord:
 		w.workersLock.Lock()
 		defer w.workersLock.Unlock()
+
 		if w.deleteRecordWorker != nil {
 			w.deleteRecordWorker.ch <- m
 			return nil
 		}
-		ch := make(chan *message.WriteDeleteRecord)
+
 		// TODO: flush all workers for nested tables as well (See https://github.com/cloudquery/plugin-sdk/issues/1296)
 		w.deleteRecordWorker = &streamingWorkerManager[*message.WriteDeleteRecord]{
-			ch:        ch,
+			ch:        make(chan *message.WriteDeleteRecord),
 			writeFunc: w.client.DeleteRecords,
 
 			flush: make(chan chan bool),
@@ -327,6 +337,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		w.workersWaitGroup.Add(1)
 		go w.deleteRecordWorker.run(ctx, &w.workersWaitGroup, tableName)
 		w.deleteRecordWorker.ch <- m
+
 		return nil
 	default:
 		return fmt.Errorf("unhandled message type: %T", msg)
@@ -359,24 +370,23 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 		}
 
 		clientCh = make(chan T)
-		clientErrCh = make(chan error, 1)
+		clientErrCh = make(chan error)
 		go func() {
-			defer close(clientErrCh)
 			defer func() {
 				if err := recover(); err != nil {
 					clientErrCh <- fmt.Errorf("panic: %v", err)
 				}
 			}()
-			clientErrCh <- s.writeFunc(ctx, clientCh)
+			result := s.writeFunc(ctx, clientCh)
+			clientErrCh <- result
 		}()
+
 		open = true
 	}
+
 	closeFlush := func() {
 		if open {
 			close(clientCh)
-			if err := <-clientErrCh; err != nil {
-				s.errCh <- fmt.Errorf("handler failed on %s: %w", tableName, err)
-			}
 			s.limit.Reset()
 		}
 		open = false
@@ -441,6 +451,10 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				ticker.Reset(s.batchTimeout)
 			}
 			done <- true
+		case err := <-clientErrCh:
+			if err != nil {
+				s.errCh <- fmt.Errorf("handler failed on %s: %w", tableName, err)
+			}
 		case <-ctxDone:
 			// this means the request was cancelled
 			return // after this NO other call will succeed
