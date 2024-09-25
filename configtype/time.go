@@ -113,7 +113,7 @@ func (t Time) MarshalJSON() ([]byte, error) {
 	}
 }
 
-func (t Time) Time(now time.Time) time.Time {
+func (t Time) AsTime(now time.Time) time.Time {
 	switch t.typ {
 	case timeTypeFixed:
 		return t.time
