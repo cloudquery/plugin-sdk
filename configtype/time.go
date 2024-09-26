@@ -9,50 +9,31 @@ import (
 	"github.com/invopop/jsonschema"
 )
 
-type timeType int
-
-const (
-	timeTypeZero timeType = iota
-	timeTypeFixed
-	timeTypeRelative
-)
-
 // Time is a wrapper around time.Time that should be used in config
 // when a time type is required. We wrap the time.Time type so that
 // the spec can be extended in the future to support other types of times
 type Time struct {
-	typ      timeType
+	input    string
 	time     time.Time
-	duration Duration
-}
-
-func NewTime(t time.Time) Time {
-	return Time{
-		typ:  timeTypeFixed,
-		time: t,
-	}
+	duration *Duration
 }
 
 func ParseTime(s string) (Time, error) {
 	var t Time
+	t.input = s
+
 	var err error
 	switch {
 	case timeNowRegexp.MatchString(s):
-		t.typ = timeTypeRelative
-		t.duration = NewDuration(0)
+		t.duration = new(Duration)
+		*t.duration = NewDuration(0)
 	case timeRFC3339Regexp.MatchString(s):
 		t.time, err = time.Parse(time.RFC3339, s)
-		if t.time.IsZero() {
-			t.typ = timeTypeZero
-		} else {
-			t.typ = timeTypeFixed
-		}
 	case dateRegexp.MatchString(s):
-		t.typ = timeTypeFixed
 		t.time, err = time.Parse(time.DateOnly, s)
 	case baseDurationRegexp.MatchString(s), humanRelativeDurationRegexp.MatchString(s):
-		t.typ = timeTypeRelative
-		t.duration, err = ParseDuration(s)
+		t.duration = new(Duration)
+		*t.duration, err = ParseDuration(s)
 	default:
 		return t, fmt.Errorf("invalid time format: %s", s)
 	}
@@ -103,21 +84,11 @@ func (t *Time) UnmarshalJSON(b []byte) error {
 }
 
 func (t Time) MarshalJSON() ([]byte, error) {
-	switch t.typ {
-	case timeTypeFixed:
-		return json.Marshal(t.time)
-	case timeTypeRelative:
-		return json.Marshal(t.duration)
-	default:
-		return json.Marshal(time.Time{})
-	}
+	return json.Marshal(t.input)
 }
 
 func (t Time) AsTime(now time.Time) time.Time {
-	switch t.typ {
-	case timeTypeFixed:
-		return t.time
-	case timeTypeRelative:
+	if t.duration != nil {
 		sign := t.duration.sign
 		return now.Add(
 			t.duration.duration*time.Duration(sign),
@@ -126,39 +97,15 @@ func (t Time) AsTime(now time.Time) time.Time {
 			t.duration.months*sign,
 			t.duration.days*sign,
 		)
-	default:
-		return time.Time{}
 	}
-}
 
-func (t Time) IsRelative() bool {
-	return t.typ == timeTypeRelative
+	return t.time
 }
 
 func (t Time) IsZero() bool {
-	return t.typ == timeTypeZero
-}
-
-func (t Time) IsFixed() bool {
-	return t.typ == timeTypeFixed
-}
-
-// Equal compares two Time structs. Note that relative and fixed times are never equal
-func (t Time) Equal(other Time) bool {
-	return t.typ == other.typ && t.time.Equal(other.time) && t.duration == other.duration
+	return t.duration == nil && t.time.IsZero()
 }
 
 func (t Time) String() string {
-	switch t.typ {
-	case timeTypeFixed:
-		return t.time.String()
-	case timeTypeRelative:
-		if t.duration.Duration() == 0 {
-			return "now"
-		}
-
-		return t.duration.String()
-	default:
-		return time.Time{}.String()
-	}
+	return t.input
 }

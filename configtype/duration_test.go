@@ -48,11 +48,11 @@ func TestDuration_JSONMarshal(t *testing.T) {
 		{"1ns", "1ns"},
 		{"20s", "20s"},
 		{"-50m30s", "-50m30s"},
-		{"25 minute", "25m0s"},
-		{"50 minutes", "50m0s"},
+		{"25 minutes", "25 minutes"},
+		{"50 minutes", "50 minutes"},
 		{"10 years ago", "10 years ago"},
 		{"1 month from now", "1 month from now"},
-		{"1   month   from    now", "1 month from now"},
+		{"1   month   from    now", "1   month   from    now"},
 	}
 	for _, tc := range cases {
 		var d configtype.Duration

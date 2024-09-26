@@ -8,7 +8,6 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/v4/configtype"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
-	"github.com/google/go-cmp/cmp"
 	"github.com/invopop/jsonschema"
 	"github.com/stretchr/testify/require"
 )
@@ -30,6 +29,7 @@ func TestTime(t *testing.T) {
 		{"2021-09-01T00:00:00.123+02:00", time.Date(2021, 9, 1, 0, 0, 0, 123000000, time.FixedZone("CET", 2*60*60))},
 		{"2021-09-01T00:00:00.123456+02:00", time.Date(2021, 9, 1, 0, 0, 0, 123456000, time.FixedZone("CET", 2*60*60))},
 		{"2021-09-01T00:00:00.123456789+02:00", time.Date(2021, 9, 1, 0, 0, 0, 123456789, time.FixedZone("CET", 2*60*60))},
+		{"2024-09-26T10:18:07.37338-04:00", time.Date(2024, 9, 26, 10, 18, 7, 373380000, time.FixedZone("EDT", -4*60*60))},
 		{"2021-09-01", time.Date(2021, 9, 1, 0, 0, 0, 0, time.UTC)},
 		{"now", now},
 		{"2 days from now", now.AddDate(0, 0, 2)},
@@ -44,40 +44,6 @@ func TestTime(t *testing.T) {
 		computedTime := d.AsTime(now)
 		if !computedTime.Equal(tc.want) {
 			t.Errorf("Unmarshal(%q) = %v, want %v", tc.give, computedTime, tc.want)
-		}
-	}
-}
-
-func TestTime_Comparability(t *testing.T) {
-	tim1 := time.Now()
-	tim2 := tim1.Add(1 * time.Second)
-
-	var zeroTime configtype.Time
-
-	cases := []struct {
-		give    configtype.Time
-		compare configtype.Time
-		equal   bool
-	}{
-		{must(configtype.ParseTime("now")), must(configtype.ParseTime("now")), true},
-		{must(configtype.ParseTime("now")), must(configtype.ParseTime("1 second from now")), false},
-		{configtype.NewTime(tim1), configtype.NewTime(tim1), true},
-		{configtype.NewTime(tim1), configtype.NewTime(tim2), false},
-		// relative and fixed times are never equal
-		{configtype.NewTime(tim1), must(configtype.ParseTime("now")), false},
-		{zeroTime, must(configtype.ParseTime("now")), false},
-		{zeroTime, zeroTime, true},
-	}
-	for _, tc := range cases {
-		if (tc.give == tc.compare) != tc.equal {
-			t.Errorf("comparing %v and %v should be %v", tc.give, tc.compare, tc.equal)
-		}
-
-		diff := cmp.Diff(tc.give, tc.compare)
-		if tc.equal && diff != "" {
-			t.Errorf("comparing %v and %v should be equal, but diff is %s", tc.give, tc.compare, diff)
-		} else if !tc.equal && diff == "" {
-			t.Errorf("comparing %v and %v should not be equal, but diff is empty", tc.give, tc.compare)
 		}
 	}
 }
@@ -153,7 +119,7 @@ func TestTime_JSONSchema(t *testing.T) {
 					Spec: string(durationData),
 				})
 
-				tim := configtype.NewTime(now.Add(time.Duration(val)))
+				tim := must(configtype.ParseTime(must(marshalString(now.Add(time.Duration(val))))))
 
 				timeData, err := tim.MarshalJSON()
 				require.NoError(t, err)

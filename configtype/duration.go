@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/invopop/jsonschema"
@@ -38,6 +37,8 @@ var (
 // the spec can be extended in the future to support other types of durations
 // (e.g. a duration that is specified in days).
 type Duration struct {
+	input string
+
 	relative bool
 	sign     int
 	duration time.Duration
@@ -48,6 +49,7 @@ type Duration struct {
 
 func NewDuration(d time.Duration) Duration {
 	return Duration{
+		input:    d.String(),
 		sign:     1,
 		duration: d,
 	}
@@ -55,6 +57,7 @@ func NewDuration(d time.Duration) Duration {
 
 func ParseDuration(s string) (Duration, error) {
 	var d Duration
+	d.input = s
 
 	var inValue bool
 	var value int64
@@ -193,35 +196,6 @@ func (d Duration) Equal(other Duration) bool {
 	return d == other
 }
 
-func (Duration) humanString(value int, unit string) string {
-	return fmt.Sprintf("%d %s%s", abs(value), unit, plural(value))
-}
-
 func (d Duration) String() string {
-	var parts []string
-	if d.years != 0 {
-		parts = append(parts, d.humanString(d.years, "year"))
-	}
-	if d.months != 0 {
-		parts = append(parts, d.humanString(d.months, "month"))
-	}
-	if d.days != 0 {
-		parts = append(parts, d.humanString(d.days, "day"))
-	}
-
-	if len(parts) == 0 {
-		return (d.duration * time.Duration(d.sign)).String()
-	}
-
-	if d.duration != 0 {
-		parts = append(parts, d.duration.String())
-	}
-
-	if d.sign == -1 {
-		parts = append(parts, "ago")
-	} else if d.relative {
-		parts = append(parts, "from now")
-	}
-
-	return strings.Join(parts, " ")
+	return d.input
 }
