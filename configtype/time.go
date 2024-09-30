@@ -24,8 +24,6 @@ var (
 
 	humanDurationSegmentPattern = fmt.Sprintf(`(([0-9]+\s+(%[1]s)|%[2]s))`, humanDurationUnitsPattern, baseDurationSegmentPattern)
 
-	humanDurationPattern = fmt.Sprintf(`^%[1]s(\s+%[1]s)*$`, humanDurationSegmentPattern)
-
 	humanRelativeDurationPattern = fmt.Sprintf(`^%[1]s(\s+%[1]s)*\s+(%[2]s)$`, humanDurationSegmentPattern, humanDurationSignsPattern)
 	humanRelativeDurationRegexp  = regexp.MustCompile(humanRelativeDurationPattern)
 
