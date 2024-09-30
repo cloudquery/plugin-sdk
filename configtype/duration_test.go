@@ -21,12 +21,6 @@ func TestDuration(t *testing.T) {
 		{"1ns", 1 * time.Nanosecond},
 		{"20s", 20 * time.Second},
 		{"-50m30s", -50*time.Minute - 30*time.Second},
-		{"25 minute", 25 * time.Minute},
-		{"50 minutes", 50 * time.Minute},
-		{"10 years ago", -10 * 365 * 24 * time.Hour},
-		{"1 month from now", 30 * 24 * time.Hour},
-		{"1   month   from    now", 30 * 24 * time.Hour},
-		{"1 year 2 month 3 days 4 hours 5 minutes 6 seconds from now", (365+60+3)*24*time.Hour + 4*time.Hour + 5*time.Minute + 6*time.Second},
 	}
 	for _, tc := range cases {
 		var d configtype.Duration
@@ -36,32 +30,6 @@ func TestDuration(t *testing.T) {
 		}
 		if d.Duration() != tc.want {
 			t.Errorf("Unmarshal(%q) = %v, want %v", tc.give, d.Duration(), tc.want)
-		}
-	}
-}
-
-func TestDuration_JSONMarshal(t *testing.T) {
-	cases := []struct {
-		give string
-		want string
-	}{
-		{"1ns", "1ns"},
-		{"20s", "20s"},
-		{"-50m30s", "-50m30s"},
-		{"25 minutes", "25 minutes"},
-		{"50 minutes", "50 minutes"},
-		{"10 years ago", "10 years ago"},
-		{"1 month from now", "1 month from now"},
-		{"1   month   from    now", "1   month   from    now"},
-	}
-	for _, tc := range cases {
-		var d configtype.Duration
-		err := json.Unmarshal([]byte(`"`+tc.give+`"`), &d)
-		if err != nil {
-			t.Fatalf("error calling Unmarshal(%q): %v", tc.give, err)
-		}
-		if d.String() != tc.want {
-			t.Errorf("String(%q) = %q, want %v", tc.give, d.String(), tc.want)
 		}
 	}
 }
