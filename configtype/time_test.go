@@ -34,6 +34,8 @@ func TestTime(t *testing.T) {
 		{"now", now},
 		{"2 days from now", now.AddDate(0, 0, 2)},
 		{"5 months ago", now.AddDate(0, -5, 0)},
+		{"10 months 3 days 4h20m from now", now.AddDate(0, 10, 3).Add(4 * time.Hour).Add(20 * time.Minute)},
+		{"10 months 3 days 4 hours 20 minutes from now", now.AddDate(0, 10, 3).Add(4 * time.Hour).Add(20 * time.Minute)},
 	}
 	for _, tc := range cases {
 		var d configtype.Time
@@ -97,6 +99,11 @@ func TestTime_JSONSchema(t *testing.T) {
 			Name: "complex relative duration",
 			Err:  false,
 			Spec: `"10 months 3 days 4h20m from now"`,
+		},
+		{
+			Name: "complex relative duration human",
+			Err:  false,
+			Spec: `"10 months 3 days 4 hours 20 minutes from now"`,
 		},
 	},
 		func() []testCase {
