@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/caser"
+	"github.com/cloudquery/plugin-sdk/v4/loggedlimiter"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
@@ -18,7 +19,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -106,9 +106,9 @@ type Scheduler struct {
 	strategy Strategy
 	maxDepth uint64
 	// resourceSem is a semaphore that limits the number of concurrent resources being fetched
-	resourceSem *semaphore.Weighted
+	resourceSem *loggedlimiter.LoggedLimiter
 	// tableSem is a semaphore that limits the number of concurrent tables being fetched
-	tableSems []*semaphore.Weighted
+	tableSems []*loggedlimiter.LoggedLimiter
 	// Logger to call, this logger is passed to the serve.Serve Client, if not defined Serve will create one instead.
 	logger      zerolog.Logger
 	concurrency int
@@ -163,13 +163,13 @@ func NewScheduler(opts ...Option) *Scheduler {
 	// We are using DFS/Round-Robin to make sure memory usage is capped at O(h) where h is the height of the tree.
 	tableConcurrency := max(s.concurrency/minResourceConcurrency, minTableConcurrency)
 	resourceConcurrency := tableConcurrency * minResourceConcurrency
-	s.tableSems = make([]*semaphore.Weighted, s.maxDepth)
+	s.tableSems = make([]*loggedlimiter.LoggedLimiter, s.maxDepth)
 	for i := uint64(0); i < s.maxDepth; i++ {
-		s.tableSems[i] = semaphore.NewWeighted(int64(tableConcurrency))
+		s.tableSems[i] = loggedlimiter.New(tableConcurrency)
 		// reduce table concurrency logarithmically for every depth level
 		tableConcurrency = max(tableConcurrency/2, minTableConcurrency)
 	}
-	s.resourceSem = semaphore.NewWeighted(int64(resourceConcurrency))
+	s.resourceSem = loggedlimiter.New(resourceConcurrency)
 
 	return &s
 }

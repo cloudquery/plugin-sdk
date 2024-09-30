@@ -3,17 +3,18 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"os"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
+	"github.com/cloudquery/plugin-sdk/v4/loggedlimiter"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/sync/semaphore"
 )
 
 func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *schema.Resource) {
@@ -71,6 +72,49 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 
 	// Wait for all the worker goroutines to finish
 	wg.Wait()
+
+	// Create a temporary file to store logs
+	tempFile, err := os.CreateTemp("", "loggedlimiter_logs_*.txt")
+	if err != nil {
+		s.logger.Error().Err(err).Msg("Failed to create temporary file for loggedlimiter logs")
+		return
+	}
+	defer tempFile.Close()
+
+	// Write logs from all loggedlimiters
+	if _, err := tempFile.WriteString("Global resource semaphore logs:\n"); err != nil {
+		s.logger.Error().Err(err).Msg("Failed to write to temporary file")
+		return
+	}
+	for entry := range s.scheduler.resourceSem.Logs() {
+		if _, err := fmt.Fprintf(tempFile, "globalResourceSem\t%s\t%d\t%d\n", entry.Time.Format("15:04:05.000"), entry.UsedCapacity, s.scheduler.resourceSem.Capacity); err != nil {
+			s.logger.Error().Err(err).Msg("Failed to write resource semaphore log to temporary file")
+			return
+		}
+	}
+
+	for depth, tableSem := range s.scheduler.tableSems {
+		for entry := range tableSem.Logs() {
+			if _, err := fmt.Fprintf(tempFile, "globalTableDepth%d\t%s\t%d\t%d\n", depth, entry.Time.Format("15:04:05.000"), entry.UsedCapacity, tableSem.Capacity); err != nil {
+				s.logger.Error().Err(err).Msg("Failed to write table semaphore log to temporary file")
+				return
+			}
+		}
+	}
+
+	s.scheduler.singleTableConcurrency.Range(func(key, value any) bool {
+		tableName := key.(string)
+		tableSem := value.(*loggedlimiter.LoggedLimiter)
+		for entry := range tableSem.Logs() {
+			if _, err := fmt.Fprintf(tempFile, "%v\t%s\t%d\t%d\n", tableName, entry.Time.Format("15:04:05.000"), entry.UsedCapacity, tableSem.Capacity); err != nil {
+				s.logger.Error().Err(err).Msg("Failed to write single table concurrency log to temporary file")
+				return false
+			}
+		}
+		return true
+	})
+
+	s.logger.Info().Str("path", tempFile.Name()).Msg("LoggedLimiter logs written to temporary file")
 }
 
 func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resolvedResources chan<- *schema.Resource, depth int) {
@@ -138,8 +182,8 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 		for i := range resourcesSlice {
 			i := i
 			resourceConcurrencyKey := table.Name + "-" + client.ID() + "-" + "resource"
-			resourceSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(resourceConcurrencyKey, semaphore.NewWeighted(s.scheduler.singleResourceMaxConcurrency))
-			resourceSem := resourceSemVal.(*semaphore.Weighted)
+			resourceSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(resourceConcurrencyKey, loggedlimiter.New(int(s.scheduler.singleResourceMaxConcurrency)))
+			resourceSem := resourceSemVal.(*loggedlimiter.LoggedLimiter)
 			if err := resourceSem.Acquire(ctx, 1); err != nil {
 				s.logger.Warn().Err(err).Msg("failed to acquire semaphore. context cancelled")
 				// This means context was cancelled
@@ -196,8 +240,8 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 			relation := relation
 			tableConcurrencyKey := table.Name + "-" + client.ID()
 			// Acquire the semaphore for the table
-			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(tableConcurrencyKey, semaphore.NewWeighted(s.scheduler.singleNestedTableMaxConcurrency))
-			tableSem := tableSemVal.(*semaphore.Weighted)
+			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(tableConcurrencyKey, loggedlimiter.New(int(s.scheduler.singleNestedTableMaxConcurrency)))
+			tableSem := tableSemVal.(*loggedlimiter.LoggedLimiter)
 			if err := tableSem.Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
 				wg.Wait()
