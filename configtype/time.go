@@ -10,26 +10,6 @@ import (
 	"github.com/invopop/jsonschema"
 )
 
-var (
-	numberRegexp = regexp.MustCompile(`^[0-9]+$`)
-
-	baseDurationSegmentPattern = `[-+]?([0-9]*(\.[0-9]*)?[a-z]+)+` // copied from time.ParseDuration
-	baseDurationPattern        = fmt.Sprintf(`^%s$`, baseDurationSegmentPattern)
-	baseDurationRegexp         = regexp.MustCompile(baseDurationPattern)
-
-	humanDurationSignsPattern = `ago|from\s+now`
-
-	humanDurationUnitsPattern = `nanoseconds?|ns|microseconds?|us|µs|μs|milliseconds?|ms|seconds?|s|minutes?|m|hours?|h|days?|d|months?|M|years?|Y`
-	humanDurationUnitsRegex   = regexp.MustCompile(fmt.Sprintf(`^%s$`, humanDurationUnitsPattern))
-
-	humanDurationSegmentPattern = fmt.Sprintf(`(([0-9]+\s+(%[1]s)|%[2]s))`, humanDurationUnitsPattern, baseDurationSegmentPattern)
-
-	humanRelativeDurationPattern = fmt.Sprintf(`^%[1]s(\s+%[1]s)*\s+(%[2]s)$`, humanDurationSegmentPattern, humanDurationSignsPattern)
-	humanRelativeDurationRegexp  = regexp.MustCompile(humanRelativeDurationPattern)
-
-	whitespaceRegexp = regexp.MustCompile(`\s+`)
-)
-
 // Time is a wrapper around time.Time that should be used in config
 // when a time type is required. We wrap the time.Time type so that
 // the spec can be extended in the future to support other types of times
@@ -71,6 +51,24 @@ var (
 
 	datePattern = `^\d{4}-\d{2}-\d{2}$`
 	dateRegexp  = regexp.MustCompile(datePattern)
+
+	numberRegexp = regexp.MustCompile(`^[0-9]+$`)
+
+	baseDurationSegmentPattern = `[-+]?([0-9]*(\.[0-9]*)?[a-z]+)+` // copied from time.ParseDuration
+	baseDurationPattern        = fmt.Sprintf(`^%s$`, baseDurationSegmentPattern)
+	baseDurationRegexp         = regexp.MustCompile(baseDurationPattern)
+
+	humanDurationSignsPattern = `ago|from\s+now`
+
+	humanDurationUnitsPattern = `nanoseconds?|ns|microseconds?|us|µs|μs|milliseconds?|ms|seconds?|s|minutes?|m|hours?|h|days?|d|months?|M|years?|Y`
+	humanDurationUnitsRegex   = regexp.MustCompile(fmt.Sprintf(`^%s$`, humanDurationUnitsPattern))
+
+	humanDurationSegmentPattern = fmt.Sprintf(`(([0-9]+\s+(%[1]s)|%[2]s))`, humanDurationUnitsPattern, baseDurationSegmentPattern)
+
+	humanRelativeDurationPattern = fmt.Sprintf(`^%[1]s(\s+%[1]s)*\s+(%[2]s)$`, humanDurationSegmentPattern, humanDurationSignsPattern)
+	humanRelativeDurationRegexp  = regexp.MustCompile(humanRelativeDurationPattern)
+
+	whitespaceRegexp = regexp.MustCompile(`\s+`)
 
 	timePattern = patternCases(
 		timeNowPattern,
