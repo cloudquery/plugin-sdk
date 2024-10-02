@@ -19,6 +19,13 @@ const (
 type Data struct {
 	Name string `json:"name"`
 }
+type testClient struct {
+	id string
+}
+
+func (tc *testClient) ID() string {
+	return tc.id
+}
 
 func testResolver(_ context.Context, _ schema.ClientMeta, parent *schema.Resource, res chan<- any) error {
 	resources := make([]*Data, 0, resourceCount)
@@ -34,11 +41,11 @@ func testResolver(_ context.Context, _ schema.ClientMeta, parent *schema.Resourc
 	return nil
 }
 
-func TestDispatcher(t *testing.T) {
+func TestScheduler(t *testing.T) {
 	nopLogger := zerolog.Nop()
 	m := &metrics.Metrics{TableClient: make(map[string]map[string]*metrics.TableClientMetrics)}
-	dispatcher := NewDispatcher(nopLogger, m, WithWorkerCount(1000))
-	tableClients := []TableClientPair{
+	scheduler := NewRandomQueueScheduler(nopLogger, m, WithWorkerCount(1000))
+	tableClients := []WorkUnit{
 		{
 			Table: &schema.Table{
 				Name:      "table-1",
@@ -78,7 +85,7 @@ func TestDispatcher(t *testing.T) {
 	resolvedResources := make(chan *schema.Resource)
 	go func() {
 		defer close(resolvedResources)
-		dispatcher.Dispatch(context.Background(), tableClients, resolvedResources)
+		scheduler.Sync(context.Background(), tableClients, resolvedResources)
 	}()
 
 	gotResources := make([]*schema.Resource, 0)

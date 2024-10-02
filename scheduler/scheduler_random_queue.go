@@ -7,7 +7,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-func (s *syncClient) syncPriorityQueue(ctx context.Context, resolvedResources chan<- *schema.Resource) {
+func (s *syncClient) syncRandomQueue(ctx context.Context, resolvedResources chan<- *schema.Resource) {
 	// we have this because plugins can return sometimes clients in a random way which will cause
 	// differences between this run and the next one.
 	preInitialisedClients := make([][]schema.ClientMeta, len(s.tables))
@@ -28,7 +28,7 @@ func (s *syncClient) syncPriorityQueue(ctx context.Context, resolvedResources ch
 	seed := hashTableNames(tableNames)
 	shuffle(tableClients, seed)
 
-	dispatcher := queue.NewDispatcher(
+	scheduler := queue.NewRandomQueueScheduler(
 		s.logger,
 		s.metrics,
 		queue.WithWorkerCount(s.scheduler.concurrency),
@@ -36,12 +36,12 @@ func (s *syncClient) syncPriorityQueue(ctx context.Context, resolvedResources ch
 		queue.WithDeterministicCQID(s.deterministicCQID),
 		queue.WithInvocationID(s.invocationID),
 	)
-	queueClients := make([]queue.TableClientPair, 0, len(tableClients))
+	queueClients := make([]queue.WorkUnit, 0, len(tableClients))
 	for _, tc := range tableClients {
-		queueClients = append(queueClients, queue.TableClientPair{
+		queueClients = append(queueClients, queue.WorkUnit{
 			Table:  tc.table,
 			Client: tc.client,
 		})
 	}
-	dispatcher.Dispatch(ctx, queueClients, resolvedResources)
+	scheduler.Sync(ctx, queueClients, resolvedResources)
 }

@@ -34,7 +34,7 @@ const (
 	StrategyDFS Strategy = iota
 	StrategyRoundRobin
 	StrategyShuffle
-	StrategyPriorityQueue
+	StrategyRandomQueue
 )
 
 type Option func(*Scheduler)
@@ -250,8 +250,8 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 			syncClient.syncRoundRobin(ctx, resources)
 		case StrategyShuffle:
 			syncClient.syncShuffle(ctx, resources)
-		case StrategyPriorityQueue:
-			syncClient.syncPriorityQueue(ctx, resources)
+		case StrategyRandomQueue:
+			syncClient.syncRandomQueue(ctx, resources)
 		default:
 			panic(fmt.Errorf("unknown scheduler %s", s.strategy.String()))
 		}

@@ -13,14 +13,56 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
-const DefaultWorkerCount = 1000
+type worker struct {
+	jobs              <-chan *WorkUnit
+	queue             *ConcurrentRandomQueue[WorkUnit]
+	resolvedResources chan<- *schema.Resource
+
+	logger            zerolog.Logger
+	caser             *caser.Caser
+	invocationID      string
+	deterministicCQID bool
+	metrics           *metrics.Metrics
+}
+
+func (w *worker) work(ctx context.Context, activeWorkSignal *activeWorkSignal) {
+	for j := range w.jobs {
+		activeWorkSignal.Add()
+
+		w.resolveTable(ctx, j.Table, j.Client, j.Parent)
+
+		activeWorkSignal.Done()
+	}
+}
+
+func newWorker(
+	jobs <-chan *WorkUnit,
+	queue *ConcurrentRandomQueue[WorkUnit],
+	resolvedResources chan<- *schema.Resource,
+
+	logger zerolog.Logger,
+	c *caser.Caser,
+	invocationID string,
+	deterministicCQID bool,
+	m *metrics.Metrics,
+) *worker {
+	return &worker{
+		jobs:              jobs,
+		queue:             queue,
+		resolvedResources: resolvedResources,
+		logger:            logger,
+		caser:             c,
+		deterministicCQID: deterministicCQID,
+		invocationID:      invocationID,
+		metrics:           m,
+	}
+}
 
 func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource) {
 	clientName := client.ID()
@@ -118,188 +160,11 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 		w.resolvedResources <- resource
 		for _, r := range resource.Table.Relations {
 			relation := r
-			newJob := &TableClientPair{
+			w.queue.Push(WorkUnit{
 				Table:  relation,
 				Client: client,
 				Parent: resource,
-			}
-			w.newJobs <- newJob
+			})
 		}
 	}
-}
-
-type worker struct {
-	jobs              <-chan *TableClientPair
-	newJobs           chan<- *TableClientPair
-	resolvedResources chan<- *schema.Resource
-
-	logger            zerolog.Logger
-	caser             *caser.Caser
-	invocationID      string
-	deterministicCQID bool
-	metrics           *metrics.Metrics
-	onResolveStart    func()
-	onResolveDone     func()
-}
-
-func newWorker(
-	jobs <-chan *TableClientPair,
-	newJobs chan<- *TableClientPair,
-	resolvedResources chan<- *schema.Resource,
-
-	logger zerolog.Logger,
-	c *caser.Caser,
-	invocationID string,
-	deterministicCQID bool,
-	m *metrics.Metrics,
-	onResolveStart func(),
-	onResolveDone func(),
-) *worker {
-	return &worker{
-		jobs:              jobs,
-		newJobs:           newJobs,
-		resolvedResources: resolvedResources,
-		logger:            logger,
-		caser:             c,
-		deterministicCQID: deterministicCQID,
-		invocationID:      invocationID,
-		metrics:           m,
-		onResolveStart:    onResolveStart,
-		onResolveDone:     onResolveDone,
-	}
-}
-
-func (w *worker) work(ctx context.Context) {
-	for j := range w.jobs {
-		w.onResolveStart()
-		client := j.Client
-		table := j.Table
-		parent := j.Parent
-
-		w.resolveTable(ctx, table, client, parent)
-		w.onResolveDone()
-	}
-}
-
-type Dispatcher struct {
-	workerCount       int
-	logger            zerolog.Logger
-	caser             *caser.Caser
-	deterministicCQID bool
-	metrics           *metrics.Metrics
-	invocationID      string
-}
-
-type Option func(*Dispatcher)
-
-func WithWorkerCount(workerCount int) Option {
-	return func(d *Dispatcher) {
-		d.workerCount = workerCount
-	}
-}
-
-func WithCaser(c *caser.Caser) Option {
-	return func(d *Dispatcher) {
-		d.caser = c
-	}
-}
-
-func WithDeterministicCQID(deterministicCQID bool) Option {
-	return func(d *Dispatcher) {
-		d.deterministicCQID = deterministicCQID
-	}
-}
-
-func WithInvocationID(invocationID string) Option {
-	return func(d *Dispatcher) {
-		d.invocationID = invocationID
-	}
-}
-
-func NewDispatcher(logger zerolog.Logger, m *metrics.Metrics, opts ...Option) *Dispatcher {
-	dispatcher := &Dispatcher{
-		logger:       logger,
-		metrics:      m,
-		workerCount:  DefaultWorkerCount,
-		caser:        caser.New(),
-		invocationID: uuid.New().String(),
-	}
-
-	for _, opt := range opts {
-		opt(dispatcher)
-	}
-
-	return dispatcher
-}
-
-func (d *Dispatcher) Dispatch(ctx context.Context, tableClients []TableClientPair, resolvedResources chan<- *schema.Resource) {
-	if len(tableClients) == 0 {
-		return
-	}
-	queue := NewConcurrentQueue(tableClients)
-
-	jobs := make(chan *TableClientPair)
-	newJobs := make(chan *TableClientPair)
-	activeWorkers := &atomic.Uint32{}
-	workStarted := &atomic.Bool{}
-
-	onResolveStart := func() {
-		workStarted.Store(true)
-		activeWorkers.Add(1)
-	}
-	onResolveDone := func() {
-		activeWorkers.Add(^uint32(0))
-	}
-
-	wg := sync.WaitGroup{}
-	for w := 0; w < d.workerCount; w++ {
-		worker := newWorker(
-			jobs,
-			newJobs,
-			resolvedResources,
-			d.logger,
-			d.caser,
-			d.invocationID,
-			d.deterministicCQID,
-			d.metrics,
-			onResolveStart,
-			onResolveDone,
-		)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			worker.work(ctx)
-		}()
-	}
-
-	go func() {
-		for {
-			if ctx.Err() != nil {
-				break
-			}
-			item := queue.Pop()
-			if item == nil {
-				if !workStarted.Load() || activeWorkers.Load() != 0 {
-					time.Sleep(10 * time.Millisecond)
-					continue
-				}
-				break
-			}
-			jobs <- item
-		}
-		close(jobs)
-	}()
-
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case result := <-newJobs:
-				queue.Push(*result)
-			}
-		}
-	}()
-
-	wg.Wait()
 }
