@@ -184,8 +184,8 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 
 	for {
 		select {
-		case msg := <-msgs:
-			if msg == nil {
+		case msg, ok := <-msgs:
+			if !ok {
 				return w.Close(ctx)
 			}
 
