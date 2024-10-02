@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.64.1](https://github.com/cloudquery/plugin-sdk/compare/v4.64.0...v4.64.1) (2024-10-02)
+
+
+### Bug Fixes
+
+* Error handling in StreamingBatchWriter ([#1913](https://github.com/cloudquery/plugin-sdk/issues/1913)) ([d852119](https://github.com/cloudquery/plugin-sdk/commit/d8521194dee50d93d74a7156ed607d442ab1db45))
+
 ## [4.64.0](https://github.com/cloudquery/plugin-sdk/compare/v4.63.0...v4.64.0) (2024-10-01)
 
 
