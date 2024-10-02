@@ -359,9 +359,9 @@ type streamingWorkerManager[T message.WriteMessage] struct {
 func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup, tableName string) {
 	defer wg.Done()
 	var (
-		clientCh    chan T
-		clientErrCh chan error
-		open        bool
+		inputCh  chan T
+		outputCh chan error
+		open     bool
 	)
 
 	ensureOpened := func() {
@@ -369,16 +369,22 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			return
 		}
 
-		clientCh = make(chan T)
-		clientErrCh = make(chan error)
+		inputCh = make(chan T)
+		outputCh = make(chan error)
 		go func() {
+			defer close(outputCh)
 			defer func() {
-				if err := recover(); err != nil {
-					clientErrCh <- fmt.Errorf("panic: %v", err)
+				if msg := recover(); msg != nil {
+					switch v := msg.(type) {
+					case error:
+						outputCh <- fmt.Errorf("panic: %w [recovered]", v)
+					default:
+						outputCh <- fmt.Errorf("panic: %v [recovered]", msg)
+					}
 				}
 			}()
-			result := s.writeFunc(ctx, clientCh)
-			clientErrCh <- result
+			result := s.writeFunc(ctx, inputCh)
+			outputCh <- result
 		}()
 
 		open = true
@@ -386,7 +392,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 
 	closeFlush := func() {
 		if open {
-			close(clientCh)
+			close(inputCh)
 			s.limit.Reset()
 		}
 		open = false
@@ -410,7 +416,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				if add != nil {
 					ensureOpened()
 					s.limit.AddSlice(add)
-					clientCh <- any(&message.WriteInsert{Record: add.Record}).(T)
+					inputCh <- any(&message.WriteInsert{Record: add.Record}).(T)
 				}
 				if len(toFlush) > 0 || rest != nil || s.limit.ReachedLimit() {
 					// flush current batch
@@ -420,7 +426,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				for _, sliceToFlush := range toFlush {
 					ensureOpened()
 					s.limit.AddRows(sliceToFlush.NumRows())
-					clientCh <- any(&message.WriteInsert{Record: sliceToFlush}).(T)
+					inputCh <- any(&message.WriteInsert{Record: sliceToFlush}).(T)
 					closeFlush()
 					ticker.Reset(s.batchTimeout)
 				}
@@ -429,11 +435,11 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				if rest != nil {
 					ensureOpened()
 					s.limit.AddSlice(rest)
-					clientCh <- any(&message.WriteInsert{Record: rest.Record}).(T)
+					inputCh <- any(&message.WriteInsert{Record: rest.Record}).(T)
 				}
 			} else {
 				ensureOpened()
-				clientCh <- r
+				inputCh <- r
 				s.limit.AddRows(1)
 				if s.limit.ReachedLimit() {
 					closeFlush()
@@ -451,9 +457,10 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 				ticker.Reset(s.batchTimeout)
 			}
 			done <- true
-		case err := <-clientErrCh:
+		case err := <-outputCh:
 			if err != nil {
 				s.errCh <- fmt.Errorf("handler failed on %s: %w", tableName, err)
+				return
 			}
 		case <-ctxDone:
 			// this means the request was cancelled
