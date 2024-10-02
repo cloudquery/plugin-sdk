@@ -25,12 +25,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog"
-
 	"github.com/cloudquery/plugin-sdk/v4/internal/batch"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/writers"
+	"github.com/rs/zerolog"
 )
 
 // Client is the interface that must be implemented by the client of StreamingBatchWriter.
