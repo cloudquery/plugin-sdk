@@ -75,7 +75,7 @@ var AllStrategyNames = [...]string{
 	StrategyDFS:         "dfs",
 	StrategyRoundRobin:  "round-robin",
 	StrategyShuffle:     "shuffle",
-	StrategyRandomQueue: "priority-queue",
+	StrategyRandomQueue: "random-queue",
 }
 
 func StrategyForName(s string) (Strategy, error) {

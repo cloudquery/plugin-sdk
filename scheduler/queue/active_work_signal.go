@@ -48,9 +48,7 @@ func (s *activeWorkSignal) Add() {
 // If the count became zero, wake up the work queuing goroutine (might have finished).
 func (s *activeWorkSignal) Done() {
 	s.activeWorkUnitCount.Add(-1)
-	// if s.activeWorkUnitCount.Load() == 0 {
 	s.countChangeSignal.Signal()
-	// }
 }
 
 // IsIdle returns true if no workers are active. If queue is empty and workers idle, done!
