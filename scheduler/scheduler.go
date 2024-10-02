@@ -159,10 +159,16 @@ func NewScheduler(opts ...Option) *Scheduler {
 	for _, opt := range opts {
 		opt(&s)
 	}
+
+	actualMinResourceConcurrency := minResourceConcurrency
+	if s.concurrency <= minResourceConcurrency {
+		actualMinResourceConcurrency = max(s.concurrency/10, 1)
+	}
+
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS/Round-Robin to make sure memory usage is capped at O(h) where h is the height of the tree.
-	tableConcurrency := max(s.concurrency/minResourceConcurrency, minTableConcurrency)
-	resourceConcurrency := tableConcurrency * minResourceConcurrency
+	tableConcurrency := max(s.concurrency/actualMinResourceConcurrency, minTableConcurrency)
+	resourceConcurrency := tableConcurrency * actualMinResourceConcurrency
 	s.tableSems = make([]*semaphore.Weighted, s.maxDepth)
 	for i := uint64(0); i < s.maxDepth; i++ {
 		s.tableSems[i] = semaphore.NewWeighted(int64(tableConcurrency))
