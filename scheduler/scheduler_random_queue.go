@@ -25,12 +25,14 @@ func (s *syncClient) syncRandomQueue(ctx context.Context, resolvedResources chan
 	}
 
 	tableClients := roundRobinInterleave(s.tables, preInitialisedClients)
+	tableClients = shardTableClients(tableClients, s.shard)
 	seed := hashTableNames(tableNames)
 	shuffle(tableClients, seed)
 
 	scheduler := queue.NewRandomQueueScheduler(
 		s.logger,
 		s.metrics,
+		seed,
 		queue.WithWorkerCount(s.scheduler.concurrency),
 		queue.WithCaser(s.scheduler.caser),
 		queue.WithDeterministicCQID(s.deterministicCQID),

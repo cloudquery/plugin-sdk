@@ -8,12 +8,13 @@ import (
 // ConcurrentRandomQueue is a generic, thread-safe queue
 // that pops random elements in O(1) time.
 type ConcurrentRandomQueue[T any] struct {
-	mu    sync.Mutex
-	queue []T
+	mu     sync.Mutex
+	queue  []T
+	random *rand.Rand
 }
 
-func NewConcurrentRandomQueue[T any](capacityHint int) *ConcurrentRandomQueue[T] {
-	return &ConcurrentRandomQueue[T]{queue: make([]T, 0, capacityHint)}
+func NewConcurrentRandomQueue[T any](seed int64, capacityHint int) *ConcurrentRandomQueue[T] {
+	return &ConcurrentRandomQueue[T]{queue: make([]T, 0, capacityHint), random: rand.New(rand.NewSource(seed))}
 }
 
 func (q *ConcurrentRandomQueue[T]) Push(item T) {
@@ -30,7 +31,7 @@ func (q *ConcurrentRandomQueue[T]) Pop() *T {
 	if len(q.queue) == 0 {
 		return nil
 	}
-	idx := rand.Intn(len(q.queue))
+	idx := q.random.Intn(len(q.queue))
 	lastIdx := len(q.queue) - 1
 	q.queue[idx], q.queue[lastIdx] = q.queue[lastIdx], q.queue[idx]
 	item := q.queue[lastIdx]

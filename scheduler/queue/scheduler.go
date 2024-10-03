@@ -31,6 +31,7 @@ type Scheduler struct {
 	deterministicCQID bool
 	metrics           *metrics.Metrics
 	invocationID      string
+	seed              int64
 }
 
 type Option func(*Scheduler)
@@ -59,13 +60,14 @@ func WithInvocationID(invocationID string) Option {
 	}
 }
 
-func NewRandomQueueScheduler(logger zerolog.Logger, m *metrics.Metrics, opts ...Option) *Scheduler {
+func NewRandomQueueScheduler(logger zerolog.Logger, m *metrics.Metrics, seed int64, opts ...Option) *Scheduler {
 	scheduler := &Scheduler{
 		logger:       logger,
 		metrics:      m,
 		workerCount:  DefaultWorkerCount,
 		caser:        caser.New(),
 		invocationID: uuid.New().String(),
+		seed:         seed,
 	}
 
 	for _, opt := range opts {
@@ -79,7 +81,7 @@ func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedR
 	if len(tableClients) == 0 {
 		return
 	}
-	queue := NewConcurrentRandomQueue[WorkUnit](len(tableClients))
+	queue := NewConcurrentRandomQueue[WorkUnit](d.seed, len(tableClients))
 	for _, tc := range tableClients {
 		queue.Push(tc)
 	}

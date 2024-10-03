@@ -44,7 +44,7 @@ func testResolver(_ context.Context, _ schema.ClientMeta, parent *schema.Resourc
 func TestScheduler(t *testing.T) {
 	nopLogger := zerolog.Nop()
 	m := &metrics.Metrics{TableClient: make(map[string]map[string]*metrics.TableClientMetrics)}
-	scheduler := NewRandomQueueScheduler(nopLogger, m, WithWorkerCount(1000))
+	scheduler := NewRandomQueueScheduler(nopLogger, m, int64(0), WithWorkerCount(1000))
 	tableClients := []WorkUnit{
 		{
 			Table: &schema.Table{
