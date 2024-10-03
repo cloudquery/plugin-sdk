@@ -21,6 +21,7 @@ package streamingbatchwriter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -178,15 +179,19 @@ func (w *StreamingBatchWriter) Close(context.Context) error {
 	return nil
 }
 
-func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
+func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) (retErr error) {
 	errCh := make(chan error)
 	defer close(errCh)
+	defer func() {
+		err := w.Close(ctx)
+		retErr = errors.Join(retErr, err)
+	}()
 
 	for {
 		select {
 		case msg, ok := <-msgs:
 			if !ok {
-				return w.Close(ctx)
+				return nil
 			}
 
 			msgType := writers.MsgID(msg)
@@ -409,7 +414,6 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup,
 			if !ok {
 				return
 			}
-
 			if ins, ok := any(r).(*message.WriteInsert); ok {
 				add, toFlush, rest := batch.SliceRecord(ins.Record, s.limit)
 				if add != nil {
