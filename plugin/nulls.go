@@ -93,10 +93,11 @@ func (s *WriterTestSuite) replaceNullsByEmptyNestedArray(arr arrow.Array) arrow.
 
 func (s *WriterTestSuite) handleNulls(record arrow.Record) arrow.Record {
 	cols := record.Columns()
+	newCols := make([]arrow.Array, len(cols))
 	for c, col := range cols {
-		cols[c] = s.handleNullsArray(col)
+		newCols[c] = s.handleNullsArray(col)
 	}
-	return array.NewRecord(record.Schema(), cols, record.NumRows())
+	return array.NewRecord(record.Schema(), newCols, record.NumRows())
 }
 
 func (s *WriterTestSuite) handleNullsArray(arr arrow.Array) arrow.Array {
