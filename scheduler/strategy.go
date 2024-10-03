@@ -70,12 +70,12 @@ func (Strategy) JSONSchema() *jsonschema.Schema {
 	}
 }
 
-var AllStrategies = Strategies{StrategyDFS, StrategyRoundRobin, StrategyShuffle, StrategyRandomQueue}
+var AllStrategies = Strategies{StrategyDFS, StrategyRoundRobin, StrategyShuffle, StrategyShuffleQueue}
 var AllStrategyNames = [...]string{
-	StrategyDFS:         "dfs",
-	StrategyRoundRobin:  "round-robin",
-	StrategyShuffle:     "shuffle",
-	StrategyRandomQueue: "random-queue",
+	StrategyDFS:          "dfs",
+	StrategyRoundRobin:   "round-robin",
+	StrategyShuffle:      "shuffle",
+	StrategyShuffleQueue: "shuffle-queue",
 }
 
 func StrategyForName(s string) (Strategy, error) {

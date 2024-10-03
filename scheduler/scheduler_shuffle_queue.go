@@ -7,7 +7,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-func (s *syncClient) syncRandomQueue(ctx context.Context, resolvedResources chan<- *schema.Resource) {
+func (s *syncClient) syncShuffleQueue(ctx context.Context, resolvedResources chan<- *schema.Resource) {
 	// we have this because plugins can return sometimes clients in a random way which will cause
 	// differences between this run and the next one.
 	preInitialisedClients := make([][]schema.ClientMeta, len(s.tables))
@@ -29,7 +29,7 @@ func (s *syncClient) syncRandomQueue(ctx context.Context, resolvedResources chan
 	seed := hashTableNames(tableNames)
 	shuffle(tableClients, seed)
 
-	scheduler := queue.NewRandomQueueScheduler(
+	scheduler := queue.NewShuffleQueueScheduler(
 		s.logger,
 		s.metrics,
 		seed,

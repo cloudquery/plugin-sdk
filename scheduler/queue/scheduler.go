@@ -60,7 +60,7 @@ func WithInvocationID(invocationID string) Option {
 	}
 }
 
-func NewRandomQueueScheduler(logger zerolog.Logger, m *metrics.Metrics, seed int64, opts ...Option) *Scheduler {
+func NewShuffleQueueScheduler(logger zerolog.Logger, m *metrics.Metrics, seed int64, opts ...Option) *Scheduler {
 	scheduler := &Scheduler{
 		logger:       logger,
 		metrics:      m,
