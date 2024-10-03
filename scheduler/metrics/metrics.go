@@ -1,4 +1,4 @@
-package scheduler
+package metrics
 
 import (
 	"context"
@@ -10,6 +10,10 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+)
+
+const (
+	OtelName = "io.cloudquery"
 )
 
 // Metrics is deprecated as we move toward open telemetry for tracing and metrics
@@ -82,7 +86,7 @@ func (s *Metrics) Equal(other *Metrics) bool {
 }
 
 func getOtelMeters(tableName string, clientID string) *OtelMeters {
-	resources, err := otel.Meter(otelName).Int64Counter("sync.table.resources",
+	resources, err := otel.Meter(OtelName).Int64Counter("sync.table.resources",
 		metric.WithDescription("Number of resources synced for a table"),
 		metric.WithUnit("/{tot}"),
 	)
@@ -90,7 +94,7 @@ func getOtelMeters(tableName string, clientID string) *OtelMeters {
 		return nil
 	}
 
-	errors, err := otel.Meter(otelName).Int64Counter("sync.table.errors",
+	errors, err := otel.Meter(OtelName).Int64Counter("sync.table.errors",
 		metric.WithDescription("Number of errors encountered while syncing a table"),
 		metric.WithUnit("/{tot}"),
 	)
@@ -98,7 +102,7 @@ func getOtelMeters(tableName string, clientID string) *OtelMeters {
 		return nil
 	}
 
-	panics, err := otel.Meter(otelName).Int64Counter("sync.table.panics",
+	panics, err := otel.Meter(OtelName).Int64Counter("sync.table.panics",
 		metric.WithDescription("Number of panics encountered while syncing a table"),
 		metric.WithUnit("/{tot}"),
 	)
@@ -106,7 +110,7 @@ func getOtelMeters(tableName string, clientID string) *OtelMeters {
 		return nil
 	}
 
-	startTime, err := otel.Meter(otelName).Int64Counter("sync.table.start_time",
+	startTime, err := otel.Meter(OtelName).Int64Counter("sync.table.start_time",
 		metric.WithDescription("Start time of syncing a table"),
 		metric.WithUnit("ns"),
 	)
@@ -114,7 +118,7 @@ func getOtelMeters(tableName string, clientID string) *OtelMeters {
 		return nil
 	}
 
-	endTime, err := otel.Meter(otelName).Int64Counter("sync.table.end_time",
+	endTime, err := otel.Meter(OtelName).Int64Counter("sync.table.end_time",
 		metric.WithDescription("End time of syncing a table"),
 		metric.WithUnit("ns"),
 	)
@@ -136,7 +140,7 @@ func getOtelMeters(tableName string, clientID string) *OtelMeters {
 	}
 }
 
-func (s *Metrics) initWithClients(table *schema.Table, clients []schema.ClientMeta) {
+func (s *Metrics) InitWithClients(table *schema.Table, clients []schema.ClientMeta) {
 	s.TableClient[table.Name] = make(map[string]*TableClientMetrics, len(clients))
 	for _, client := range clients {
 		tableName := table.Name
@@ -146,7 +150,7 @@ func (s *Metrics) initWithClients(table *schema.Table, clients []schema.ClientMe
 		}
 	}
 	for _, relation := range table.Relations {
-		s.initWithClients(relation, clients)
+		s.InitWithClients(relation, clients)
 	}
 }
 
