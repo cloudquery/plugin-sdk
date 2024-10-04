@@ -3,6 +3,7 @@ package queue
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // activeWorkSignal is a thread-safe coordinator for awaiting a worker pool
@@ -58,6 +59,16 @@ func (s *activeWorkSignal) IsIdle() bool {
 
 // Wait blocks until the count of active workers changes.
 func (s *activeWorkSignal) Wait() {
+	// A race condition is possible when the last active table asynchronously
+	// queues a relation. The table finishes (calling `.Done()`) a moment
+	// before the queue receives the `.Push()`. At this point, the queue is
+	// empty and there are no active workers.
+	//
+	// A moment later, the queue receives the `.Push()` and queues a new task.
+	//
+	// This is a very infrequent case according to tests, but it happens.
+	time.Sleep(10 * time.Millisecond)
+
 	if s.activeWorkUnitCount.Load() <= 0 {
 		return
 	}
