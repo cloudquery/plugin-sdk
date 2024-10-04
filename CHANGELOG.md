@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.65.0](https://github.com/cloudquery/plugin-sdk/compare/v4.64.1...v4.65.0) (2024-10-04)
+
+
+### Features
+
+* Implement RandomQueue scheduler strategy ([#1914](https://github.com/cloudquery/plugin-sdk/issues/1914)) ([af8ac87](https://github.com/cloudquery/plugin-sdk/commit/af8ac87178cc318d2f31cd17efc7c921d6d52e6b))
+
+
+### Bug Fixes
+
+* Revert "fix: Error handling in StreamingBatchWriter" ([#1918](https://github.com/cloudquery/plugin-sdk/issues/1918)) ([38b4bfd](https://github.com/cloudquery/plugin-sdk/commit/38b4bfd20e17a00d5a2c83e1d48b8b16270592ba))
+* **tests:** WriterTestSuite.handleNulls should not overwrite columns ([#1920](https://github.com/cloudquery/plugin-sdk/issues/1920)) ([08e18e2](https://github.com/cloudquery/plugin-sdk/commit/08e18e265dfb7e6e77c32244f56acd0f63bf4ead))
+
 ## [4.64.1](https://github.com/cloudquery/plugin-sdk/compare/v4.64.0...v4.64.1) (2024-10-02)
 
 
