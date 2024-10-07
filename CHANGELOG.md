@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.66.0](https://github.com/cloudquery/plugin-sdk/compare/v4.65.0...v4.66.0) (2024-10-07)
+
+
+### Features
+
+* Add time.Sleep to mitigate race condition. ([#1923](https://github.com/cloudquery/plugin-sdk/issues/1923)) ([83dfcad](https://github.com/cloudquery/plugin-sdk/commit/83dfcad9fcfa802b38bc4e97587e25218822814b))
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#1926](https://github.com/cloudquery/plugin-sdk/issues/1926)) ([4fc8896](https://github.com/cloudquery/plugin-sdk/commit/4fc8896e6c72f3fc8fbea2bb569d31cf8b34c961))
+* **deps:** Update module google.golang.org/grpc to v1.67.1 ([#1925](https://github.com/cloudquery/plugin-sdk/issues/1925)) ([5e0305d](https://github.com/cloudquery/plugin-sdk/commit/5e0305dd47297e6d0499fbd2b70589b57e17c625))
+
 ## [4.65.0](https://github.com/cloudquery/plugin-sdk/compare/v4.64.1...v4.65.0) (2024-10-04)
 
 
