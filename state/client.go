@@ -31,7 +31,7 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Cl
 	return NewClientWithOptions(ctx, conn, tableName, ClientOptions{})
 }
 
-func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, opts ClientOptions) (Client, error) {
+func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, _ ClientOptions) (Client, error) {
 	discoveryClient := pbDiscovery.NewDiscoveryClient(conn)
 	versions, err := discoveryClient.GetVersions(ctx, &pbDiscovery.GetVersions_Request{})
 	if err != nil {
