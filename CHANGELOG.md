@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.67.0](https://github.com/cloudquery/plugin-sdk/compare/v4.66.1...v4.67.0) (2024-10-18)
+
+
+### Features
+
+* Make state client versioning the default, remove option ([#1938](https://github.com/cloudquery/plugin-sdk/issues/1938)) ([f105651](https://github.com/cloudquery/plugin-sdk/commit/f1056512e7ec6675808f1ed5ea398ba3c3da82ad))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.23.0 ([#1934](https://github.com/cloudquery/plugin-sdk/issues/1934)) ([ea8b17a](https://github.com/cloudquery/plugin-sdk/commit/ea8b17a368ddf4762e49397558d32844d96f53dd))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.23.1 ([#1936](https://github.com/cloudquery/plugin-sdk/issues/1936)) ([0b152ba](https://github.com/cloudquery/plugin-sdk/commit/0b152ba7d5d073933e47ecc0913a6a525a282a6a))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.24.0 ([#1937](https://github.com/cloudquery/plugin-sdk/issues/1937)) ([d9e6f47](https://github.com/cloudquery/plugin-sdk/commit/d9e6f478a8d9ebfdda9cc308f1c0facf0ca72c25))
+
 ## [4.66.1](https://github.com/cloudquery/plugin-sdk/compare/v4.66.0...v4.66.1) (2024-10-14)
 
 
