@@ -4,17 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"runtime/debug"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
-	"github.com/thoas/go-funk"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -28,7 +26,6 @@ const (
 	DefaultMaxDepth                        = 4
 	minTableConcurrency                    = 1
 	minResourceConcurrency                 = 100
-	otelName                               = "io.cloudquery"
 )
 
 var ErrNoTables = errors.New("no tables specified for syncing, review `tables` and `skip_tables` in your config and specify at least one table to sync")
@@ -37,6 +34,7 @@ const (
 	StrategyDFS Strategy = iota
 	StrategyRoundRobin
 	StrategyShuffle
+	StrategyShuffleQueue
 )
 
 type Option func(*Scheduler)
@@ -137,7 +135,7 @@ type syncClient struct {
 	scheduler         *Scheduler
 	deterministicCQID bool
 	// status sync metrics
-	metrics      *Metrics
+	metrics      *metrics.Metrics
 	logger       zerolog.Logger
 	invocationID string
 
@@ -159,10 +157,16 @@ func NewScheduler(opts ...Option) *Scheduler {
 	for _, opt := range opts {
 		opt(&s)
 	}
+
+	actualMinResourceConcurrency := minResourceConcurrency
+	if s.concurrency <= minResourceConcurrency {
+		actualMinResourceConcurrency = max(s.concurrency/10, 1)
+	}
+
 	// This is very similar to the concurrent web crawler problem with some minor changes.
 	// We are using DFS/Round-Robin to make sure memory usage is capped at O(h) where h is the height of the tree.
-	tableConcurrency := max(s.concurrency/minResourceConcurrency, minTableConcurrency)
-	resourceConcurrency := tableConcurrency * minResourceConcurrency
+	tableConcurrency := max(s.concurrency/actualMinResourceConcurrency, minTableConcurrency)
+	resourceConcurrency := tableConcurrency * actualMinResourceConcurrency
 	s.tableSems = make([]*semaphore.Weighted, s.maxDepth)
 	for i := uint64(0); i < s.maxDepth; i++ {
 		s.tableSems[i] = semaphore.NewWeighted(int64(tableConcurrency))
@@ -192,7 +196,7 @@ func (s *Scheduler) SyncAll(ctx context.Context, client schema.ClientMeta, table
 }
 
 func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables schema.Tables, res chan<- message.SyncMessage, opts ...SyncOption) error {
-	ctx, span := otel.Tracer(otelName).Start(ctx,
+	ctx, span := otel.Tracer(metrics.OtelName).Start(ctx,
 		"sync",
 		trace.WithAttributes(attribute.Key("sync.invocation.id").String(s.invocationID)),
 	)
@@ -202,7 +206,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}
 
 	syncClient := &syncClient{
-		metrics:      &Metrics{TableClient: make(map[string]map[string]*TableClientMetrics)},
+		metrics:      &metrics.Metrics{TableClient: make(map[string]map[string]*metrics.TableClientMetrics)},
 		tables:       tables,
 		client:       client,
 		scheduler:    s,
@@ -246,6 +250,8 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 			syncClient.syncRoundRobin(ctx, resources)
 		case StrategyShuffle:
 			syncClient.syncShuffle(ctx, resources)
+		case StrategyShuffleQueue:
+			syncClient.syncShuffleQueue(ctx, resources)
 		default:
 			panic(fmt.Errorf("unknown scheduler %s", s.strategy.String()))
 		}
@@ -269,81 +275,14 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
 	clientName := client.ID()
 	for _, table := range tables {
-		metrics := s.metrics.TableClient[table.Name][clientName]
-		duration := metrics.Duration.Load()
+		m := s.metrics.TableClient[table.Name][clientName]
+		duration := m.Duration.Load()
 		if duration == nil {
 			// This can happen for a relation when there are no resources to resolve from the parent
 			duration = new(time.Duration)
 		}
-		s.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", metrics.Resources).Dur("duration_ms", *duration).Uint64("errors", metrics.Errors).Msg("table sync finished")
+		s.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", m.Resources).Dur("duration_ms", *duration).Uint64("errors", m.Errors).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)
-	}
-}
-
-func (s *syncClient) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item any) *schema.Resource {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
-	defer cancel()
-	resource := schema.NewResourceData(table, parent, item)
-	objectStartTime := time.Now()
-	clientID := client.ID()
-	tableMetrics := s.metrics.TableClient[table.Name][clientID]
-	logger := s.logger.With().Str("table", table.Name).Str("client", clientID).Logger()
-	defer func() {
-		if err := recover(); err != nil {
-			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
-			logger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("resource resolver finished with panic")
-			atomic.AddUint64(&tableMetrics.Panics, 1)
-		}
-	}()
-	if table.PreResourceResolver != nil {
-		if err := table.PreResourceResolver(ctx, client, resource); err != nil {
-			logger.Error().Err(err).Msg("pre resource resolver failed")
-			atomic.AddUint64(&tableMetrics.Errors, 1)
-			return nil
-		}
-	}
-
-	for _, c := range table.Columns {
-		s.resolveColumn(ctx, logger, tableMetrics, client, resource, c)
-	}
-
-	if table.PostResourceResolver != nil {
-		if err := table.PostResourceResolver(ctx, client, resource); err != nil {
-			logger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
-			atomic.AddUint64(&tableMetrics.Errors, 1)
-		}
-	}
-
-	tableMetrics.OtelResourcesAdd(ctx, 1)
-	atomic.AddUint64(&tableMetrics.Resources, 1)
-	return resource
-}
-
-func (s *syncClient) resolveColumn(ctx context.Context, logger zerolog.Logger, tableMetrics *TableClientMetrics, client schema.ClientMeta, resource *schema.Resource, c schema.Column) {
-	columnStartTime := time.Now()
-	defer func() {
-		if err := recover(); err != nil {
-			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
-			logger.Error().Str("column", c.Name).Interface("error", err).TimeDiff("duration", time.Now(), columnStartTime).Str("stack", stack).Msg("column resolver finished with panic")
-			atomic.AddUint64(&tableMetrics.Panics, 1)
-		}
-	}()
-
-	if c.Resolver != nil {
-		if err := c.Resolver(ctx, client, resource, c); err != nil {
-			logger.Error().Err(err).Msg("column resolver finished with error")
-			atomic.AddUint64(&tableMetrics.Errors, 1)
-		}
-	} else {
-		// base use case: try to get column with CamelCase name
-		v := funk.Get(resource.GetItem(), s.scheduler.caser.ToPascal(c.Name), funk.WithAllowZero())
-		if v != nil {
-			err := resource.Set(c.Name, v)
-			if err != nil {
-				logger.Error().Err(err).Msg("column resolver finished with error")
-				atomic.AddUint64(&tableMetrics.Errors, 1)
-			}
-		}
 	}
 }
 

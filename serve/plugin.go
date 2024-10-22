@@ -134,6 +134,8 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).Level(zerologLevel)
 			}
 
+			logger = logger.With().Str("module", s.plugin.Name()+"-"+string(s.plugin.Kind())).Logger()
+
 			shutdown, err := setupOtel(cmd.Context(), logger, s.plugin, otelEndpoint, otelEndpointInsecure)
 			if err != nil {
 				return fmt.Errorf("failed to setup OpenTelemetry: %w", err)
