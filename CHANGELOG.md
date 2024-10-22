@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.67.1](https://github.com/cloudquery/plugin-sdk/compare/v4.67.0...v4.67.1) (2024-10-22)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/config to v1.28.0 ([#1940](https://github.com/cloudquery/plugin-sdk/issues/1940)) ([35cf587](https://github.com/cloudquery/plugin-sdk/commit/35cf587f2c96d8bbadbd0b4cdb0484039a77f089))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.24.1 ([#1943](https://github.com/cloudquery/plugin-sdk/issues/1943)) ([14f44ad](https://github.com/cloudquery/plugin-sdk/commit/14f44adf41ba797e156378a208ec1528070d4fcd))
+* Ensure module field exists in all log messages ([#1941](https://github.com/cloudquery/plugin-sdk/issues/1941)) ([b1ca41c](https://github.com/cloudquery/plugin-sdk/commit/b1ca41c632069900225b556339e74fb6d2136c6c))
+
 ## [4.67.0](https://github.com/cloudquery/plugin-sdk/compare/v4.66.1...v4.67.0) (2024-10-18)
 
 
