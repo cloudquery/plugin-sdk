@@ -7,7 +7,7 @@ toolchain go1.23.1
 require (
 	github.com/apache/arrow/go/v17 v17.0.0
 	github.com/aws/aws-sdk-go-v2 v1.32.2
-	github.com/aws/aws-sdk-go-v2/config v1.27.43
+	github.com/aws/aws-sdk-go-v2/config v1.28.0
 	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.29.2
 	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.25.2
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
