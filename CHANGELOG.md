@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.68.0](https://github.com/cloudquery/plugin-sdk/compare/v4.67.1...v4.68.0) (2024-10-24)
+
+
+### Features
+
+* Add Time configtype ([#1905](https://github.com/cloudquery/plugin-sdk/issues/1905)) ([f57c3eb](https://github.com/cloudquery/plugin-sdk/commit/f57c3ebecf99f0d7fe546c058d4086e2454075ba))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.25.0 ([#1946](https://github.com/cloudquery/plugin-sdk/issues/1946)) ([b8e3e10](https://github.com/cloudquery/plugin-sdk/commit/b8e3e104071fa3454d74762fc4c45d0cc98f31ab))
+
 ## [4.67.1](https://github.com/cloudquery/plugin-sdk/compare/v4.67.0...v4.67.1) (2024-10-22)
 
 
