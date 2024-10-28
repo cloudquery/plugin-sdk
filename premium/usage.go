@@ -186,6 +186,7 @@ type BatchUpdater struct {
 	done                chan struct{}
 	closeError          chan error
 	isClosed            bool
+	dataOnClose         bool
 	usageIncreaseMethod int
 }
 
@@ -486,6 +487,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 			case <-u.done:
 				tables, totals := u.getTableUsage()
 				if totals != 0 {
+					u.dataOnClose = true
 					// To allow us to round up the total in the last batch we need to save the original total
 					// to use in the last subtractTableUsage
 					originalTotals := totals
