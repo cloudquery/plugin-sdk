@@ -113,10 +113,10 @@ func TestUsageService_HasQuota_NoRowsRemaining(t *testing.T) {
 
 	usageClient := newClient(t, apiClient, WithBatchLimit(0))
 
-	hasQuota, err := usageClient.HasQuota(ctx)
+	result, err := usageClient.CheckQuota(ctx)
 	require.NoError(t, err)
 
-	assert.False(t, hasQuota.HasQuota, "should not have quota")
+	assert.False(t, result.HasQuota, "should not have quota")
 }
 
 func TestUsageService_HasQuota_WithRowsRemaining(t *testing.T) {
@@ -130,10 +130,10 @@ func TestUsageService_HasQuota_WithRowsRemaining(t *testing.T) {
 
 	usageClient := newClient(t, apiClient, WithBatchLimit(0))
 
-	hasQuota, err := usageClient.HasQuota(ctx)
+	result, err := usageClient.CheckQuota(ctx)
 	require.NoError(t, err)
 
-	assert.True(t, hasQuota.HasQuota, "should have quota")
+	assert.True(t, result.HasQuota, "should have quota")
 }
 
 func TestUsageService_Increase_ZeroBatchSize(t *testing.T) {

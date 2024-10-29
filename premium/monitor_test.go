@@ -10,7 +10,7 @@ import (
 )
 
 type quotaResponse struct {
-	hasQuota QuotaCheckResult
+	hasQuota CheckQuotaResult
 	err      error
 }
 
@@ -23,7 +23,7 @@ type fakeQuotaMonitor struct {
 	calls     int
 }
 
-func (f *fakeQuotaMonitor) HasQuota(_ context.Context) (QuotaCheckResult, error) {
+func (f *fakeQuotaMonitor) CheckQuota(_ context.Context) (CheckQuotaResult, error) {
 	resp := f.responses[f.calls]
 	if f.calls < len(f.responses)-1 {
 		f.calls++
@@ -39,7 +39,7 @@ func TestWithCancelOnQuotaExceeded_NoInitialQuota(t *testing.T) {
 	ctx := context.Background()
 
 	responses := []quotaResponse{
-		{QuotaCheckResult{HasQuota: false}, nil},
+		{CheckQuotaResult{HasQuota: false}, nil},
 	}
 	_, err := WithCancelOnQuotaExceeded(ctx, newFakeQuotaMonitor(responses...))
 
@@ -50,8 +50,8 @@ func TestWithCancelOnQuotaExceeded_NoQuota(t *testing.T) {
 	ctx := context.Background()
 
 	responses := []quotaResponse{
-		{QuotaCheckResult{HasQuota: true}, nil},
-		{QuotaCheckResult{HasQuota: false}, nil},
+		{CheckQuotaResult{HasQuota: true}, nil},
+		{CheckQuotaResult{HasQuota: false}, nil},
 	}
 	ctx, err := WithCancelOnQuotaExceeded(ctx, newFakeQuotaMonitor(responses...), WithQuotaCheckPeriod(1*time.Millisecond))
 	require.NoError(t, err)
@@ -65,9 +65,9 @@ func TestWithCancelOnQuotaCheckConsecutiveFailures(t *testing.T) {
 	ctx := context.Background()
 
 	responses := []quotaResponse{
-		{QuotaCheckResult{HasQuota: true}, nil},
-		{QuotaCheckResult{HasQuota: false}, errors.New("test2")},
-		{QuotaCheckResult{HasQuota: false}, errors.New("test3")},
+		{CheckQuotaResult{HasQuota: true}, nil},
+		{CheckQuotaResult{HasQuota: false}, errors.New("test2")},
+		{CheckQuotaResult{HasQuota: false}, errors.New("test3")},
 	}
 	ctx, err := WithCancelOnQuotaExceeded(ctx,
 		newFakeQuotaMonitor(responses...),

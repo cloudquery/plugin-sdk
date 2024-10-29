@@ -61,15 +61,15 @@ func WithCancelOnQuotaExceeded(ctx context.Context, qm QuotaMonitor, ops ...Quot
 }
 
 func (qc *quotaChecker) checkInitialQuota(ctx context.Context) error {
-	hasQuota, err := qc.qm.HasQuota(ctx)
+	result, err := qc.qm.CheckQuota(ctx)
 	if err != nil {
 		return err
 	}
-	if hasQuota.SuggestedQueryInterval > 0 {
-		qc.duration = hasQuota.SuggestedQueryInterval
+	if result.SuggestedQueryInterval > 0 {
+		qc.duration = result.SuggestedQueryInterval
 	}
 
-	if !hasQuota.HasQuota {
+	if !result.HasQuota {
 		return ErrNoQuota{team: qc.qm.TeamName()}
 	}
 
@@ -87,7 +87,7 @@ func (qc *quotaChecker) startQuotaMonitor(ctx context.Context) context.Context {
 			case <-newCtx.Done():
 				return
 			case <-ticker.C:
-				hasQuota, err := qc.qm.HasQuota(newCtx)
+				result, err := qc.qm.CheckQuota(newCtx)
 				if err != nil {
 					consecutiveFailures++
 					hasQuotaErrors = errors.Join(hasQuotaErrors, err)
@@ -97,14 +97,14 @@ func (qc *quotaChecker) startQuotaMonitor(ctx context.Context) context.Context {
 					}
 					continue
 				}
-				if hasQuota.SuggestedQueryInterval > 0 && qc.duration != hasQuota.SuggestedQueryInterval {
-					qc.duration = hasQuota.SuggestedQueryInterval
+				if result.SuggestedQueryInterval > 0 && qc.duration != result.SuggestedQueryInterval {
+					qc.duration = result.SuggestedQueryInterval
 					ticker.Stop()
 					ticker = time.NewTicker(qc.duration)
 				}
 				consecutiveFailures = 0
 				hasQuotaErrors = nil
-				if !hasQuota.HasQuota {
+				if !result.HasQuota {
 					cancelWithCause(ErrNoQuota{team: qc.qm.TeamName()})
 					return
 				}
