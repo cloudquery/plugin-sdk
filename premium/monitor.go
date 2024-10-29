@@ -60,7 +60,7 @@ func WithCancelOnQuotaExceeded(ctx context.Context, qm QuotaMonitor, ops ...Quot
 	return newCtx, nil
 }
 
-func (qc quotaChecker) checkInitialQuota(ctx context.Context) error {
+func (qc *quotaChecker) checkInitialQuota(ctx context.Context) error {
 	hasQuota, err := qc.qm.HasQuota(ctx)
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func (qc quotaChecker) checkInitialQuota(ctx context.Context) error {
 	return nil
 }
 
-func (qc quotaChecker) startQuotaMonitor(ctx context.Context) context.Context {
+func (qc *quotaChecker) startQuotaMonitor(ctx context.Context) context.Context {
 	newCtx, cancelWithCause := context.WithCancelCause(ctx)
 	go func() {
 		ticker := time.NewTicker(qc.duration)
