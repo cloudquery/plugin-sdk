@@ -388,10 +388,11 @@ func (u *BatchUpdater) CheckQuota(ctx context.Context) (CheckQuotaResult, error)
 		return res, nil
 	}
 	if headerValue := usage.HTTPResponse.Header.Get(QueryIntervalHeader); headerValue != "" {
-		if interval, err := strconv.ParseUint(headerValue, 10, 32); err != nil {
-			u.logger.Warn().Err(err).Str(QueryIntervalHeader, headerValue).Msg("failed to parse query interval")
-		} else if interval > 0 {
+		interval, err := strconv.ParseUint(headerValue, 10, 32)
+		if interval > 0 {
 			res.SuggestedQueryInterval = time.Duration(interval) * time.Second
+		} else {
+			u.logger.Warn().Err(err).Str(QueryIntervalHeader, headerValue).Msg("failed to parse query interval")
 		}
 	}
 	return res, nil
