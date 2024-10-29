@@ -10,8 +10,8 @@ import (
 )
 
 type quotaResponse struct {
-	hasQuota CheckQuotaResult
-	err      error
+	result CheckQuotaResult
+	err    error
 }
 
 func newFakeQuotaMonitor(hasQuota ...quotaResponse) *fakeQuotaMonitor {
@@ -28,7 +28,7 @@ func (f *fakeQuotaMonitor) CheckQuota(_ context.Context) (CheckQuotaResult, erro
 	if f.calls < len(f.responses)-1 {
 		f.calls++
 	}
-	return resp.hasQuota, resp.err
+	return resp.result, resp.err
 }
 
 func (*fakeQuotaMonitor) TeamName() string {
