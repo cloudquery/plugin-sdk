@@ -65,8 +65,11 @@ func (qc quotaChecker) checkInitialQuota(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if hasQuota.SuggestedQueryInterval > 0 {
+		qc.duration = hasQuota.SuggestedQueryInterval
+	}
 
-	if !hasQuota {
+	if !hasQuota.HasQuota {
 		return ErrNoQuota{team: qc.qm.TeamName()}
 	}
 
@@ -94,9 +97,14 @@ func (qc quotaChecker) startQuotaMonitor(ctx context.Context) context.Context {
 					}
 					continue
 				}
+				if hasQuota.SuggestedQueryInterval > 0 && qc.duration != hasQuota.SuggestedQueryInterval {
+					qc.duration = hasQuota.SuggestedQueryInterval
+					ticker.Stop()
+					ticker = time.NewTicker(qc.duration)
+				}
 				consecutiveFailures = 0
 				hasQuotaErrors = nil
-				if !hasQuota {
+				if !hasQuota.HasQuota {
 					cancelWithCause(ErrNoQuota{team: qc.qm.TeamName()})
 					return
 				}
