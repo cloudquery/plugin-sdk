@@ -600,7 +600,6 @@ func TestUsageService_CalculateRetryDuration_Exp(t *testing.T) {
 	tests := []struct {
 		name            string
 		statusCode      int
-		headers         http.Header
 		retry           int
 		expectedSeconds int
 		ops             func(client *BatchUpdater)
@@ -608,35 +607,30 @@ func TestUsageService_CalculateRetryDuration_Exp(t *testing.T) {
 		{
 			name:            "first retry",
 			statusCode:      http.StatusServiceUnavailable,
-			headers:         http.Header{},
 			retry:           0,
 			expectedSeconds: 1,
 		},
 		{
 			name:            "second retry",
 			statusCode:      http.StatusServiceUnavailable,
-			headers:         http.Header{},
 			retry:           1,
 			expectedSeconds: 2,
 		},
 		{
 			name:            "third retry",
 			statusCode:      http.StatusServiceUnavailable,
-			headers:         http.Header{},
 			retry:           2,
 			expectedSeconds: 4,
 		},
 		{
 			name:            "fourth retry",
 			statusCode:      http.StatusServiceUnavailable,
-			headers:         http.Header{},
 			retry:           3,
 			expectedSeconds: 8,
 		},
 		{
 			name:            "should max out at max wait time",
 			statusCode:      http.StatusServiceUnavailable,
-			headers:         http.Header{},
 			retry:           10,
 			expectedSeconds: 30,
 			ops: func(client *BatchUpdater) {
@@ -651,7 +645,7 @@ func TestUsageService_CalculateRetryDuration_Exp(t *testing.T) {
 			tt.ops(usageClient)
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			retryDuration, err := usageClient.calculateMarketplaceRetryDuration(tt.statusCode, tt.headers, time.Now(), tt.retry)
+			retryDuration, err := usageClient.calculateMarketplaceRetryDuration(tt.statusCode, time.Now(), tt.retry)
 			require.NoError(t, err)
 
 			assert.InDeltaf(t, tt.expectedSeconds, retryDuration.Seconds(), 1, "retry duration should be %d seconds", tt.expectedSeconds)
@@ -670,25 +664,16 @@ func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
 		wantErr         error
 	}{
 		{
-			name:            "should use exponential backoff on 503 and no header",
+			name:            "should use exponential backoff on 503",
 			statusCode:      http.StatusServiceUnavailable,
-			headers:         http.Header{},
 			retry:           0,
 			expectedSeconds: 1,
 		},
 		{
-			name:            "should use exponential backoff on 429 if no retry-after header",
+			name:            "should use exponential backoff on 429",
 			statusCode:      http.StatusTooManyRequests,
-			headers:         http.Header{},
 			retry:           1,
 			expectedSeconds: 2,
-		},
-		{
-			name:            "should use retry-after header if present on 429",
-			statusCode:      http.StatusTooManyRequests,
-			headers:         http.Header{"Retry-After": []string{"5"}},
-			retry:           0,
-			expectedSeconds: 5,
 		},
 	}
 
@@ -698,7 +683,7 @@ func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
 			tt.ops(usageClient)
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			retryDuration, err := usageClient.calculateMarketplaceRetryDuration(tt.statusCode, tt.headers, time.Now(), tt.retry)
+			retryDuration, err := usageClient.calculateMarketplaceRetryDuration(tt.statusCode, time.Now(), tt.retry)
 			if tt.wantErr == nil {
 				require.NoError(t, err)
 			} else {

@@ -592,7 +592,7 @@ func (u *BatchUpdater) updateMarketplaceUsageWithRetryAndBackoff(ctx context.Con
 			statusCode = rerr.HTTPStatusCode()
 		}
 
-		retryDuration, err := u.calculateMarketplaceRetryDuration(statusCode, http.Header{}, queryStartTime, retry)
+		retryDuration, err := u.calculateMarketplaceRetryDuration(statusCode, queryStartTime, retry)
 		if err != nil {
 			return fmt.Errorf("failed to calculate retry duration: %v: %w", err.Error(), lastErr)
 		}
@@ -670,19 +670,9 @@ func (u *BatchUpdater) updateConfigurationFromHeaders(header http.Header) {
 }
 
 // calculateMarketplaceRetryDuration calculates the duration to sleep relative to the query start time before retrying an update
-func (u *BatchUpdater) calculateMarketplaceRetryDuration(statusCode int, headers http.Header, queryStartTime time.Time, retry int) (time.Duration, error) {
+func (u *BatchUpdater) calculateMarketplaceRetryDuration(statusCode int, queryStartTime time.Time, retry int) (time.Duration, error) {
 	if statusCode > -1 && !retryableStatusCode(statusCode) {
 		return 0, fmt.Errorf("non-retryable status code: %d", statusCode)
-	}
-
-	// Check if we have a retry-after header
-	retryAfter := headers.Get("Retry-After")
-	if retryAfter != "" {
-		retryDelay, err := time.ParseDuration(retryAfter + "s")
-		if err != nil {
-			return 0, fmt.Errorf("failed to parse retry-after header: %w", err)
-		}
-		return retryDelay, nil
 	}
 
 	// Calculate exponential backoff
