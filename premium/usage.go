@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
@@ -31,6 +32,9 @@ const (
 	defaultMaxWaitTime           = 60 * time.Second
 	defaultMinTimeBetweenFlushes = 10 * time.Second
 	defaultMaxTimeBetweenFlushes = 30 * time.Second
+
+	marketplaceDuplicateWaitTime = 1 * time.Second
+	marketplaceMinRetries        = 20
 )
 
 const (
@@ -99,7 +103,9 @@ func WithMinTimeBetweenFlushes(minTimeBetweenFlushes time.Duration) UsageClientO
 // WithMaxRetries sets the maximum number of retries to update the usage in case of an API error
 func WithMaxRetries(maxRetries int) UsageClientOptions {
 	return func(updater *BatchUpdater) {
-		updater.maxRetries = maxRetries
+		if maxRetries > 0 {
+			updater.maxRetries = maxRetries
+		}
 	}
 }
 
@@ -278,6 +284,9 @@ func (u *BatchUpdater) setupAWSMarketplace() error {
 	u.batchLimit = 1000000000
 
 	u.minTimeBetweenFlushes = 1 * time.Minute
+	if u.maxRetries < marketplaceMinRetries {
+		u.maxRetries = marketplaceMinRetries
+	}
 	u.backgroundUpdater()
 	return nil
 }
@@ -543,20 +552,60 @@ func (u *BatchUpdater) reportUsageToAWSMarketplace(ctx context.Context, rows uin
 		UsageQuantity:    aws.Int32(int32(rows)),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update usage with : %w", err)
+		return fmt.Errorf("failed to update usage with: %w", err)
 	}
 	return nil
 }
 
+func (u *BatchUpdater) updateMarketplaceUsageWithRetryAndBackoff(ctx context.Context, rows uint32) error {
+	var lastErr error
+	for retry := 0; retry < u.maxRetries; retry++ {
+		u.logger.Debug().Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
+		queryStartTime := time.Now()
+
+		lastErr = u.reportUsageToAWSMarketplace(ctx, rows)
+		if lastErr == nil {
+			u.logger.Debug().Int("try", retry).Uint32("rows", rows).Msg("usage updated")
+			return nil
+		}
+
+		var de *types.DuplicateRequestException
+		if errors.As(lastErr, &de) {
+			jitter := time.Duration(rand.Intn(1000)) * time.Millisecond
+			time.Sleep(marketplaceDuplicateWaitTime + jitter)
+			continue
+		}
+
+		var (
+			statusCode = -1
+			rerr       *awshttp.ResponseError
+		)
+		if errors.As(lastErr, &rerr) {
+			statusCode = rerr.HTTPStatusCode()
+		}
+
+		retryDuration, err := u.calculateRetryDuration(statusCode, http.Header{}, queryStartTime, retry)
+		if err != nil {
+			return fmt.Errorf("failed to calculate retry duration: %v: %w", err.Error(), lastErr)
+		}
+		if retryDuration > 0 {
+			time.Sleep(retryDuration)
+		}
+	}
+	return fmt.Errorf("failed to update usage: max retries exceeded: %w", lastErr)
+}
+
 func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows uint32, tables []cqapi.UsageIncreaseTablesInner) error {
+	// If the AWS Marketplace client is set, use it to track usage
+	if u.awsMarketplaceClient != nil {
+		return u.updateMarketplaceUsageWithRetryAndBackoff(ctx, rows)
+	}
+
+	var lastErr error
 	for retry := 0; retry < u.maxRetries; retry++ {
 		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
 		queryStartTime := time.Now()
 
-		// If the AWS Marketplace client is set, use it to track usage
-		if u.awsMarketplaceClient != nil {
-			return u.reportUsageToAWSMarketplace(ctx, rows)
-		}
 		payload := cqapi.IncreaseTeamPluginUsageJSONRequestBody{
 			RequestId:  uuid.New(),
 			PluginTeam: u.pluginMeta.Team,
@@ -570,10 +619,7 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 		}
 
 		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, payload)
-		if err != nil {
-			return fmt.Errorf("failed to update usage: %w", err)
-		}
-		if resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
+		if err == nil && resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
 			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", rows).Msg("usage updated")
 			u.lastUpdateTime = time.Now().UTC()
 			if resp.HTTPResponse != nil {
@@ -582,15 +628,16 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 			return nil
 		}
 
+		lastErr = fmt.Errorf("failed to update usage: %w", err)
 		retryDuration, err := u.calculateRetryDuration(resp.StatusCode(), resp.HTTPResponse.Header, queryStartTime, retry)
 		if err != nil {
-			return fmt.Errorf("failed to calculate retry duration: %w", err)
+			return fmt.Errorf("failed to calculate retry duration: %v: %w", err.Error(), lastErr)
 		}
 		if retryDuration > 0 {
 			time.Sleep(retryDuration)
 		}
 	}
-	return fmt.Errorf("failed to update usage: max retries exceeded")
+	return fmt.Errorf("failed to update usage: max retries exceeded: %w", lastErr)
 }
 
 // updateConfigurationFromHeaders updates the configuration based on the headers returned by the API
@@ -651,7 +698,7 @@ func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Heade
 }
 
 func retryableStatusCode(statusCode int) bool {
-	return statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable
+	return statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable || statusCode == -1
 }
 
 func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string, error) {
