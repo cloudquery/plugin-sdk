@@ -99,8 +99,7 @@ func (qc *quotaChecker) startQuotaMonitor(ctx context.Context) context.Context {
 				}
 				if result.SuggestedQueryInterval > 0 && qc.duration != result.SuggestedQueryInterval {
 					qc.duration = result.SuggestedQueryInterval
-					ticker.Stop()
-					ticker = time.NewTicker(qc.duration)
+					ticker.Reset(qc.duration)
 				}
 				consecutiveFailures = 0
 				hasQuotaErrors = nil
