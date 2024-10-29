@@ -596,30 +596,33 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 // updateConfigurationFromHeaders updates the configuration based on the headers returned by the API
 func (u *BatchUpdater) updateConfigurationFromHeaders(header http.Header) {
 	if headerValue := header.Get(BatchLimitHeader); headerValue != "" {
-		if newBatchLimit, err := strconv.ParseUint(headerValue, 10, 32); err != nil {
-			u.logger.Warn().Err(err).Str(BatchLimitHeader, headerValue).Msg("failed to parse batch limit")
-		} else {
+		newBatchLimit, err := strconv.ParseUint(headerValue, 10, 32)
+		if newBatchLimit > 0 {
 			u.batchLimit = uint32(newBatchLimit)
+		} else {
+			u.logger.Warn().Err(err).Str(BatchLimitHeader, headerValue).Msg("failed to parse batch limit")
 		}
 	}
 
 	if headerValue := header.Get(MinimumUpdateIntervalHeader); headerValue != "" {
-		if newInterval, err := strconv.ParseInt(headerValue, 10, 32); err != nil {
-			u.logger.Warn().Err(err).Str(MinimumUpdateIntervalHeader, headerValue).Msg("failed to parse minimum update interval")
-		} else {
+		newInterval, err := strconv.ParseInt(headerValue, 10, 32)
+		if newInterval > 0 {
 			u.minTimeBetweenFlushes = time.Duration(newInterval) * time.Second
+		} else {
+			u.logger.Warn().Err(err).Str(MinimumUpdateIntervalHeader, headerValue).Msg("failed to parse minimum update interval")
 		}
 	}
 
 	if headerValue := header.Get(MaximumUpdateIntervalHeader); headerValue != "" {
-		if newInterval, err := strconv.ParseInt(headerValue, 10, 32); err != nil {
-			u.logger.Warn().Err(err).Str(MaximumUpdateIntervalHeader, headerValue).Msg("failed to parse maximum update interval")
-		} else {
+		newInterval, err := strconv.ParseInt(headerValue, 10, 32)
+		if newInterval > 0 {
 			newMaxTimeBetweenFlushes := time.Duration(newInterval) * time.Second
 			if u.maxTimeBetweenFlushes != newMaxTimeBetweenFlushes {
 				u.maxTimeBetweenFlushes = newMaxTimeBetweenFlushes
 				u.flushDuration.Reset(u.maxTimeBetweenFlushes)
 			}
+		} else {
+			u.logger.Warn().Err(err).Str(MaximumUpdateIntervalHeader, headerValue).Msg("failed to parse maximum update interval")
 		}
 	}
 }
