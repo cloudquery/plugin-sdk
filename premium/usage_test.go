@@ -105,7 +105,7 @@ func TestUsageService_NewUsageClient_Override(t *testing.T) {
 func TestUsageService_HasQuota_NoRowsRemaining(t *testing.T) {
 	ctx := context.Background()
 
-	s := createTestServerWithRemainingRows(t, 0)
+	s := createTestServerWithRemainingRows(t, 0, nil)
 	defer s.server.Close()
 
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
@@ -122,7 +122,7 @@ func TestUsageService_HasQuota_NoRowsRemaining(t *testing.T) {
 func TestUsageService_HasQuota_WithRowsRemaining(t *testing.T) {
 	ctx := context.Background()
 
-	s := createTestServerWithRemainingRows(t, 100)
+	s := createTestServerWithRemainingRows(t, 100, nil)
 	defer s.server.Close()
 
 	apiClient, err := cqapi.NewClientWithResponses(s.server.URL)
@@ -362,13 +362,13 @@ func TestUsageService_IncreaseForTable_CorrectByTable(t *testing.T) {
 func TestUsageService_AWSMarketplaceDone(t *testing.T) {
 	var err error
 	ctrl := gomock.NewController(t)
-
 	m := mocks.NewMockAWSMarketplaceClientInterface(ctrl)
+	t.Setenv("CQ_AWS_MARKETPLACE_CONTAINER", "true")
 
 	out := marketplacemetering.MeterUsageOutput{}
 	in := meteringInput{
 		MeterUsageInput: marketplacemetering.MeterUsageInput{
-			ProductCode:    aws.String("2a8bdkarwqrp0tmo4errl65s7"),
+			ProductCode:    aws.String(awsMarketplaceProductCode()),
 			UsageDimension: aws.String("rows"),
 			UsageQuantity:  aws.Int32(20),
 			UsageAllocations: []types.UsageAllocation{{
@@ -392,7 +392,6 @@ func TestUsageService_AWSMarketplaceDone(t *testing.T) {
 	}
 	assert.NoError(t, faker.FakeObject(&out))
 	m.EXPECT().MeterUsage(gomock.Any(), in).Return(&out, nil)
-	t.Setenv("CQ_AWS_MARKETPLACE_CONTAINER", "true")
 	usageClient := newClient(t, nil, WithBatchLimit(50), WithAWSMarketplaceClient(m))
 
 	// This will generate 19,998 rows
@@ -541,6 +540,62 @@ func TestUsageService_ShouldNotUpdateClosedService(t *testing.T) {
 	assert.Equal(t, 0, s.numberOfUpdates(), "total number of updates should be zero")
 }
 
+func TestUsageService_RetryOnRetryableError(t *testing.T) {
+	s := createTestServerWithRemainingRows(t, 0, []int{http.StatusServiceUnavailable, http.StatusTooManyRequests})
+	defer s.server.Close()
+
+	usageClient, err := NewUsageClient(
+		plugin.Meta{
+			Team: "plugin-team",
+			Kind: cqapi.PluginKindSource,
+			Name: "vault",
+		},
+		WithURL(s.server.URL),
+		WithMaxRetries(2),
+		WithMaxWaitTime(time.Millisecond),
+		WithBatchLimit(0),
+		WithLogger(zerolog.Nop()),
+		// WithLogger(zerolog.New(zerolog.NewTestWriter(t)).Level(zerolog.DebugLevel)),
+		withTeamName("team-name"),
+		withTokenClient(newMockTokenClient(auth.BearerToken)),
+	)
+	require.NoError(t, err)
+
+	err = usageClient.Increase(100)
+	require.NoError(t, err)
+
+	err = usageClient.Close()
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, s.numberOfUpdates(), "total number of updates should be one")
+}
+
+func TestUsageService_RetryOnRetryableErrorExhaustRetries(t *testing.T) {
+	s := createTestServerWithRemainingRows(t, 0, []int{http.StatusServiceUnavailable, http.StatusTooManyRequests, http.StatusServiceUnavailable, http.StatusServiceUnavailable})
+	defer s.server.Close()
+
+	usageClient, err := NewUsageClient(
+		plugin.Meta{
+			Team: "plugin-team",
+			Kind: cqapi.PluginKindSource,
+			Name: "vault",
+		},
+		WithURL(s.server.URL),
+		WithMaxRetries(1),
+		WithMaxWaitTime(time.Millisecond),
+		WithBatchLimit(0),
+		withTeamName("team-name"),
+		withTokenClient(newMockTokenClient(auth.BearerToken)),
+	)
+	require.NoError(t, err)
+
+	err = usageClient.Increase(100)
+	require.NoError(t, err)
+
+	err = usageClient.Close()
+	require.Error(t, err)
+}
+
 func TestUsageService_CalculateRetryDuration_Exp(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -596,7 +651,7 @@ func TestUsageService_CalculateRetryDuration_Exp(t *testing.T) {
 			tt.ops(usageClient)
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			retryDuration, err := usageClient.calculateRetryDuration(tt.statusCode, tt.headers, time.Now(), tt.retry)
+			retryDuration, err := usageClient.calculateMarketplaceRetryDuration(tt.statusCode, tt.headers, time.Now(), tt.retry)
 			require.NoError(t, err)
 
 			assert.InDeltaf(t, tt.expectedSeconds, retryDuration.Seconds(), 1, "retry duration should be %d seconds", tt.expectedSeconds)
@@ -643,7 +698,7 @@ func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
 			tt.ops(usageClient)
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			retryDuration, err := usageClient.calculateRetryDuration(tt.statusCode, tt.headers, time.Now(), tt.retry)
+			retryDuration, err := usageClient.calculateMarketplaceRetryDuration(tt.statusCode, tt.headers, time.Now(), tt.retry)
 			if tt.wantErr == nil {
 				require.NoError(t, err)
 			} else {
@@ -668,7 +723,7 @@ func newClient(t *testing.T, apiClient *cqapi.ClientWithResponses, ops ...UsageC
 	return client.(*BatchUpdater)
 }
 
-func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testStage {
+func createTestServerWithRemainingRows(t *testing.T, remainingRows int, responseCodes []int) *testStage {
 	stage := testStage{
 		remainingRows: remainingRows,
 		headers:       make(map[string]string),
@@ -689,6 +744,16 @@ func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testSta
 			return
 		}
 		if r.Method == "POST" {
+			if len(responseCodes) > 0 {
+				code := responseCodes[0]
+				responseCodes = responseCodes[1:]
+				w.WriteHeader(code)
+				for k, v := range stage.headers {
+					w.Header().Set(k, v)
+				}
+				return
+			}
+
 			dec := json.NewDecoder(r.Body)
 			var req cqapi.IncreaseTeamPluginUsageJSONRequestBody
 			err := dec.Decode(&req)
@@ -731,7 +796,7 @@ func createTestServerWithRemainingRows(t *testing.T, remainingRows int) *testSta
 }
 
 func createTestServer(t *testing.T) *testStage {
-	return createTestServerWithRemainingRows(t, 0)
+	return createTestServerWithRemainingRows(t, 0, nil)
 }
 
 type testStage struct {

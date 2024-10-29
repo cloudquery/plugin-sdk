@@ -21,8 +21,8 @@ import (
 	"github.com/cloudquery/cloudquery-api-go/config"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -242,18 +242,26 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 
 	// Create a default api client if none was provided
 	if u.apiClient == nil {
-		ac, err := cqapi.NewClientWithResponses(u.url, cqapi.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
-			token, err := u.tokenClient.GetToken()
-			if err != nil {
-				return fmt.Errorf("failed to get token: %w", err)
-			}
-			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-			return nil
-		}))
+		retryClient := retryablehttp.NewClient()
+		retryClient.Logger = nil
+		retryClient.RetryMax = u.maxRetries
+		retryClient.RetryWaitMax = u.maxWaitTime
+
+		var err error
+		u.apiClient, err = cqapi.NewClientWithResponses(u.url,
+			cqapi.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
+				token, err := u.tokenClient.GetToken()
+				if err != nil {
+					return fmt.Errorf("failed to get token: %w", err)
+				}
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+				return nil
+			}),
+			cqapi.WithHTTPClient(retryClient.StandardClient()),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create api client: %w", err)
 		}
-		u.apiClient = ac
 	}
 
 	// Set team name from configuration if not provided
@@ -465,7 +473,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 				}
 
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
-					log.Warn().Err(err).Msg("failed to update usage")
+					u.logger.Warn().Err(err).Msg("failed to update usage")
 					continue
 				}
 				u.subtractTableUsage(tables, totals)
@@ -488,7 +496,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 					totals = roundDown(totals, 1000)
 				}
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
-					log.Warn().Err(err).Msg("failed to update usage")
+					u.logger.Warn().Err(err).Msg("failed to update usage")
 					continue
 				}
 				u.subtractTableUsage(tables, totals)
@@ -552,7 +560,7 @@ func (u *BatchUpdater) reportUsageToAWSMarketplace(ctx context.Context, rows uin
 		UsageQuantity:    aws.Int32(int32(rows)),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update usage with: %w", err)
+		return fmt.Errorf("failed to update usage: %w", err)
 	}
 	return nil
 }
@@ -584,7 +592,7 @@ func (u *BatchUpdater) updateMarketplaceUsageWithRetryAndBackoff(ctx context.Con
 			statusCode = rerr.HTTPStatusCode()
 		}
 
-		retryDuration, err := u.calculateRetryDuration(statusCode, http.Header{}, queryStartTime, retry)
+		retryDuration, err := u.calculateMarketplaceRetryDuration(statusCode, http.Header{}, queryStartTime, retry)
 		if err != nil {
 			return fmt.Errorf("failed to calculate retry duration: %v: %w", err.Error(), lastErr)
 		}
@@ -601,43 +609,30 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 		return u.updateMarketplaceUsageWithRetryAndBackoff(ctx, rows)
 	}
 
-	var lastErr error
-	for retry := 0; retry < u.maxRetries; retry++ {
-		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
-		queryStartTime := time.Now()
-
-		payload := cqapi.IncreaseTeamPluginUsageJSONRequestBody{
-			RequestId:  uuid.New(),
-			PluginTeam: u.pluginMeta.Team,
-			PluginKind: u.pluginMeta.Kind,
-			PluginName: u.pluginMeta.Name,
-			Rows:       int(rows),
-		}
-
-		if len(tables) > 0 {
-			payload.Tables = &tables
-		}
-
-		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, payload)
-		if err == nil && resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
-			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", rows).Msg("usage updated")
-			u.lastUpdateTime = time.Now().UTC()
-			if resp.HTTPResponse != nil {
-				u.updateConfigurationFromHeaders(resp.HTTPResponse.Header)
-			}
-			return nil
-		}
-
-		lastErr = fmt.Errorf("failed to update usage: %w", err)
-		retryDuration, err := u.calculateRetryDuration(resp.StatusCode(), resp.HTTPResponse.Header, queryStartTime, retry)
-		if err != nil {
-			return fmt.Errorf("failed to calculate retry duration: %v: %w", err.Error(), lastErr)
-		}
-		if retryDuration > 0 {
-			time.Sleep(retryDuration)
-		}
+	u.logger.Debug().Str("url", u.url).Uint32("rows", rows).Msg("updating usage")
+	payload := cqapi.IncreaseTeamPluginUsageJSONRequestBody{
+		RequestId:  uuid.New(),
+		PluginTeam: u.pluginMeta.Team,
+		PluginKind: u.pluginMeta.Kind,
+		PluginName: u.pluginMeta.Name,
+		Rows:       int(rows),
 	}
-	return fmt.Errorf("failed to update usage: max retries exceeded: %w", lastErr)
+
+	if len(tables) > 0 {
+		payload.Tables = &tables
+	}
+
+	resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, payload)
+	if err == nil && resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
+		u.logger.Debug().Str("url", u.url).Int("status_code", resp.StatusCode()).Uint32("rows", rows).Msg("usage updated")
+		u.lastUpdateTime = time.Now().UTC()
+		if resp.HTTPResponse != nil {
+			u.updateConfigurationFromHeaders(resp.HTTPResponse.Header)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("failed to update usage: %w", err)
 }
 
 // updateConfigurationFromHeaders updates the configuration based on the headers returned by the API
@@ -674,9 +669,9 @@ func (u *BatchUpdater) updateConfigurationFromHeaders(header http.Header) {
 	}
 }
 
-// calculateRetryDuration calculates the duration to sleep relative to the query start time before retrying an update
-func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Header, queryStartTime time.Time, retry int) (time.Duration, error) {
-	if !retryableStatusCode(statusCode) {
+// calculateMarketplaceRetryDuration calculates the duration to sleep relative to the query start time before retrying an update
+func (u *BatchUpdater) calculateMarketplaceRetryDuration(statusCode int, headers http.Header, queryStartTime time.Time, retry int) (time.Duration, error) {
+	if statusCode > -1 && !retryableStatusCode(statusCode) {
 		return 0, fmt.Errorf("non-retryable status code: %d", statusCode)
 	}
 
@@ -698,7 +693,7 @@ func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Heade
 }
 
 func retryableStatusCode(statusCode int) bool {
-	return statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable || statusCode == -1
+	return statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable
 }
 
 func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string, error) {
