@@ -117,13 +117,13 @@ func TestStateOverwriteGetLatest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	table := state.VersionedTable("test_no_pk")
+	table := state.Table("test_no_pk")
 	// Remove PKs
 	for i := range table.Columns {
 		table.Columns[i].PrimaryKey = false
 	}
 
-	stateClient, err := state.NewClientWithTable(ctx, conn, table)
+	stateClient, err := state.NewClient(ctx, conn, table.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func TestStateOverwriteGetLatest(t *testing.T) {
 		}
 	}
 
-	stateClient, err = state.NewClientWithTable(ctx, conn, table)
+	stateClient, err = state.NewClient(ctx, conn, table.Name)
 	if err != nil {
 		t.Fatal(err)
 	}

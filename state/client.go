@@ -21,9 +21,7 @@ type Client interface {
 	Close() error
 }
 
-type ClientOptions struct {
-	Versioned bool
-}
+type ClientOptions struct{}
 
 type ConnectionOptions struct {
 	MaxMsgSizeInBytes int
@@ -33,7 +31,7 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Cl
 	return NewClientWithOptions(ctx, conn, tableName, ClientOptions{})
 }
 
-func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, opts ClientOptions) (Client, error) {
+func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, _ ClientOptions) (Client, error) {
 	discoveryClient := pbDiscovery.NewDiscoveryClient(conn)
 	versions, err := discoveryClient.GetVersions(ctx, &pbDiscovery.GetVersions_Request{})
 	if err != nil {
@@ -43,9 +41,6 @@ func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName 
 		return nil, fmt.Errorf("please upgrade your state backend plugin. state supporting version 3 plugin has %v", versions.Versions)
 	}
 
-	if opts.Versioned {
-		return stateV3.NewClientWithTable(ctx, conn, stateV3.VersionedTable(tableName))
-	}
 	return stateV3.NewClient(ctx, conn, tableName)
 }
 

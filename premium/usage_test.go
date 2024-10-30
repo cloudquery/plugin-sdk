@@ -114,10 +114,10 @@ func TestUsageService_HasQuota_NoRowsRemaining(t *testing.T) {
 
 	usageClient := newClient(t, apiClient, WithBatchLimit(0))
 
-	hasQuota, err := usageClient.HasQuota(ctx)
+	result, err := usageClient.CheckQuota(ctx)
 	require.NoError(t, err)
 
-	assert.False(t, hasQuota, "should not have quota")
+	assert.False(t, result.HasQuota, "should not have quota")
 }
 
 func TestUsageService_HasQuota_WithRowsRemaining(t *testing.T) {
@@ -131,10 +131,10 @@ func TestUsageService_HasQuota_WithRowsRemaining(t *testing.T) {
 
 	usageClient := newClient(t, apiClient, WithBatchLimit(0))
 
-	hasQuota, err := usageClient.HasQuota(ctx)
+	result, err := usageClient.CheckQuota(ctx)
 	require.NoError(t, err)
 
-	assert.True(t, hasQuota, "should have quota")
+	assert.True(t, result.HasQuota, "should have quota")
 }
 
 func TestUsageService_Increase_ZeroBatchSize(t *testing.T) {
@@ -288,15 +288,20 @@ func TestUsageService_Increase_WithMinimumUpdateDuration(t *testing.T) {
 
 	usageClient := newClient(t, apiClient, WithBatchLimit(0), WithMinTimeBetweenFlushes(30*time.Second))
 
-	for i := 0; i < 10000; i++ {
+	rows := 10000
+	for i := 0; i < rows; i++ {
 		err = usageClient.Increase(1)
 		require.NoError(t, err)
 	}
 	err = usageClient.Close()
 	require.NoError(t, err)
 
-	assert.Equal(t, 10000, s.sumOfUpdates(), "total should equal number of updated rows")
-	assert.Equal(t, 2, s.numberOfUpdates(), "should only update first time and on close if minimum update duration is set")
+	assert.Equal(t, rows, s.sumOfUpdates(), "total should equal number of updated rows")
+	if usageClient.dataOnClose {
+		assert.Equal(t, 2, s.numberOfUpdates(), "should only update first time and on close if minimum update duration is set")
+	} else {
+		assert.Equal(t, 1, s.numberOfUpdates(), "should only update first time if all data was processed before close")
+	}
 }
 
 func TestUsageService_IncreaseForTable_WithMinimumUpdateDuration(t *testing.T) {
@@ -320,7 +325,11 @@ func TestUsageService_IncreaseForTable_WithMinimumUpdateDuration(t *testing.T) {
 
 	assert.Equal(t, rows, s.sumOfUpdates(), "total should equal number of updated rows")
 	assert.Equal(t, rows, s.sumOfTableUpdates(), "breakdown over tables should equal number of updated rows")
-	assert.Equal(t, 2, s.numberOfUpdates(), "should only update first time and on close if minimum update duration is set")
+	if usageClient.dataOnClose {
+		assert.Equal(t, 2, s.numberOfUpdates(), "should only update first time and on close if minimum update duration is set")
+	} else {
+		assert.Equal(t, 1, s.numberOfUpdates(), "should only update first time if all data was processed before close")
+	}
 }
 
 func TestUsageService_IncreaseForTable_CorrectByTable(t *testing.T) {
