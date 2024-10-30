@@ -419,10 +419,7 @@ func TestUsageService_AWSMarketpgolanglace_DuplicateRowsRetry(t *testing.T) {
 	tn := time.Now()
 	timeList := []time.Time{
 		tn,
-		tn,
 		tn.Add(time.Second),
-		tn.Add(time.Second),
-		tn.Add(2 * time.Second),
 		tn.Add(2 * time.Second),
 	}
 
@@ -712,105 +709,6 @@ func TestUsageService_RetryOnRetryableErrorExhaustRetries(t *testing.T) {
 
 	err = usageClient.Close()
 	require.Error(t, err)
-}
-
-func TestUsageService_CalculateRetryDuration_Exp(t *testing.T) {
-	tests := []struct {
-		name            string
-		statusCode      int
-		retry           int
-		expectedSeconds int
-		ops             func(client *BatchUpdater)
-	}{
-		{
-			name:            "first retry",
-			statusCode:      http.StatusServiceUnavailable,
-			retry:           0,
-			expectedSeconds: 1,
-		},
-		{
-			name:            "second retry",
-			statusCode:      http.StatusServiceUnavailable,
-			retry:           1,
-			expectedSeconds: 2,
-		},
-		{
-			name:            "third retry",
-			statusCode:      http.StatusServiceUnavailable,
-			retry:           2,
-			expectedSeconds: 4,
-		},
-		{
-			name:            "fourth retry",
-			statusCode:      http.StatusServiceUnavailable,
-			retry:           3,
-			expectedSeconds: 8,
-		},
-		{
-			name:            "should max out at max wait time",
-			statusCode:      http.StatusServiceUnavailable,
-			retry:           10,
-			expectedSeconds: 30,
-			ops: func(client *BatchUpdater) {
-				client.maxWaitTime = 30 * time.Second
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		usageClient := newClient(t, nil)
-		if tt.ops != nil {
-			tt.ops(usageClient)
-		}
-		t.Run(tt.name, func(t *testing.T) {
-			retryDuration, err := usageClient.calculateMarketplaceRetryDuration(tt.statusCode, time.Now(), tt.retry)
-			require.NoError(t, err)
-
-			assert.InDeltaf(t, tt.expectedSeconds, retryDuration.Seconds(), 1, "retry duration should be %d seconds", tt.expectedSeconds)
-		})
-	}
-}
-
-func TestUsageService_CalculateRetryDuration_ServerBackPressure(t *testing.T) {
-	tests := []struct {
-		name            string
-		statusCode      int
-		headers         http.Header
-		retry           int
-		expectedSeconds int
-		ops             func(client *BatchUpdater)
-		wantErr         error
-	}{
-		{
-			name:            "should use exponential backoff on 503",
-			statusCode:      http.StatusServiceUnavailable,
-			retry:           0,
-			expectedSeconds: 1,
-		},
-		{
-			name:            "should use exponential backoff on 429",
-			statusCode:      http.StatusTooManyRequests,
-			retry:           1,
-			expectedSeconds: 2,
-		},
-	}
-
-	for _, tt := range tests {
-		usageClient := newClient(t, nil)
-		if tt.ops != nil {
-			tt.ops(usageClient)
-		}
-		t.Run(tt.name, func(t *testing.T) {
-			retryDuration, err := usageClient.calculateMarketplaceRetryDuration(tt.statusCode, time.Now(), tt.retry)
-			if tt.wantErr == nil {
-				require.NoError(t, err)
-			} else {
-				assert.Contains(t, err.Error(), tt.wantErr.Error())
-			}
-
-			assert.InDeltaf(t, tt.expectedSeconds, retryDuration.Seconds(), 1, "retry duration should be %d seconds", tt.expectedSeconds)
-		})
-	}
 }
 
 func newClient(t *testing.T, apiClient *cqapi.ClientWithResponses, ops ...UsageClientOptions) *BatchUpdater {
