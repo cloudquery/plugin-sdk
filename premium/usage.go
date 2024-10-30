@@ -31,7 +31,6 @@ const (
 	defaultMaxWaitTime           = 60 * time.Second
 	defaultMinTimeBetweenFlushes = 10 * time.Second
 	defaultMaxTimeBetweenFlushes = 30 * time.Second
-	marketplaceDuplicateWaitTime = 1 * time.Second
 )
 
 const (
@@ -533,7 +532,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 	<-started
 }
 
-func (u *BatchUpdater) createMarketplaceRequest(ctx context.Context, rows uint32) *marketplacemetering.MeterUsageInput {
+func (u *BatchUpdater) reportUsageToAWSMarketplace(ctx context.Context, rows uint32) error {
 	// AWS marketplace requires usage to be reported as groups of 1000
 	rows /= 1000
 	usage := []types.UsageAllocation{{
@@ -553,7 +552,9 @@ func (u *BatchUpdater) createMarketplaceRequest(ctx context.Context, rows uint32
 			},
 		},
 	}}
-	return &marketplacemetering.MeterUsageInput{
+	// Timestamp + UsageDimension + UsageQuantity are required fields and must be unique
+	// since Timestamp only maintains a granularity of seconds, we need to ensure our batch size is large enough
+	_, err := u.awsMarketplaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
 		// Product code is a unique identifier for a product in AWS Marketplace
 		// Each product is given a unique product code when it is listed in AWS Marketplace
 		// in the future we can have multiple product codes for container or AMI based listings
@@ -562,27 +563,11 @@ func (u *BatchUpdater) createMarketplaceRequest(ctx context.Context, rows uint32
 		UsageDimension:   aws.String("rows"),
 		UsageAllocations: usage,
 		UsageQuantity:    aws.Int32(int32(rows)),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update usage with : %w", err)
 	}
-}
-func (u *BatchUpdater) reportUsageToAWSMarketplace(ctx context.Context, rows uint32) error {
-	var err error
-	for retry := 0; retry < u.maxRetries; retry++ {
-		req := u.createMarketplaceRequest(ctx, rows)
-		// Timestamp + UsageDimension + UsageQuantity are required fields and must be unique
-		// since Timestamp only maintains a granularity of seconds, we need to ensure our batch size is large enough
-		_, err = u.awsMarketplaceClient.MeterUsage(ctx, req)
-
-		if err == nil {
-			return nil
-		}
-		var de *types.DuplicateRequestException
-		if !errors.As(err, &de) {
-			// If we get a duplicate request exception, we can safely retry it
-			return fmt.Errorf("failed to update usage with : %w", err)
-		}
-		time.Sleep(marketplaceDuplicateWaitTime)
-	}
-	return err
+	return nil
 }
 
 func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows uint32, tables []cqapi.UsageIncreaseTablesInner) error {
