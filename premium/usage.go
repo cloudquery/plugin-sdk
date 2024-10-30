@@ -581,6 +581,7 @@ func (u *BatchUpdater) updateMarketplaceUsage(ctx context.Context, rows uint32) 
 		if !errors.As(lastErr, &de) {
 			return fmt.Errorf("failed to update usage: %w", lastErr)
 		}
+		u.logger.Debug().Err(lastErr).Int("try", retry).Uint32("rows", rows).Msg("usage update failed due to duplicate request")
 
 		jitter := time.Duration(rand.Intn(1000)) * time.Millisecond
 		time.Sleep(marketplaceDuplicateWaitTime + jitter)
