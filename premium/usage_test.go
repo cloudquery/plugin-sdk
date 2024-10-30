@@ -360,7 +360,6 @@ func TestUsageService_IncreaseForTable_CorrectByTable(t *testing.T) {
 }
 
 func TestUsageService_AWSMarketplaceDone(t *testing.T) {
-	var err error
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockAWSMarketplaceClientInterface(ctrl)
 	t.Setenv("CQ_AWS_MARKETPLACE_CONTAINER", "true")
@@ -398,12 +397,131 @@ func TestUsageService_AWSMarketplaceDone(t *testing.T) {
 	// We expect that there will be 20 rows reported to AWS Marketplace
 	rows := 9999
 	for i := 0; i < rows; i++ {
+		err := usageClient.IncreaseForTable("table", 2)
+		require.NoError(t, err)
+	}
+
+	err := usageClient.Close()
+	require.NoError(t, err)
+}
+
+func TestUsageService_AWSMarketplace_DuplicateRowsRetry(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockAWSMarketplaceClientInterface(ctrl)
+	t.Setenv("CQ_AWS_MARKETPLACE_CONTAINER", "true")
+
+	pmeta := plugin.Meta{
+		Team: "plugin-team",
+		Kind: cqapi.PluginKindSource,
+		Name: "vault",
+	}
+
+	tn := time.Now()
+	timeList := []time.Time{
+		tn,
+		tn,
+		tn.Add(time.Second),
+		tn.Add(time.Second),
+		tn.Add(2 * time.Second),
+		tn.Add(2 * time.Second),
+	}
+	timeFunc = func() time.Time {
+		if len(timeList) == 0 {
+			panic("timeFunc called too many times")
+		}
+		t := timeList[0]
+		timeList = timeList[1:]
+		return t
+	}
+
+	out := marketplacemetering.MeterUsageOutput{}
+	in := meteringInput{
+		MeterUsageInput: marketplacemetering.MeterUsageInput{
+			ProductCode:    aws.String(awsMarketplaceProductCode()),
+			UsageDimension: aws.String("rows"),
+			UsageQuantity:  aws.Int32(20),
+			Timestamp:      aws.Time(tn.Round(time.Second)),
+			UsageAllocations: []types.UsageAllocation{{
+				AllocatedUsageQuantity: aws.Int32(int32(20)),
+				Tags: []types.Tag{
+					{
+						Key:   aws.String("plugin_name"),
+						Value: aws.String(pmeta.Name),
+					},
+					{
+						Key:   aws.String("plugin_team"),
+						Value: aws.String(pmeta.Team),
+					},
+					{
+						Key:   aws.String("plugin_kind"),
+						Value: aws.String(string(pmeta.Kind)),
+					},
+				},
+			}},
+		},
+	}
+	assert.NoError(t, faker.FakeObject(&out))
+
+	// logger := zerolog.New(zerolog.NewTestWriter(t)).Level(zerolog.DebugLevel)
+	logger := zerolog.Nop()
+
+	type meteringKey struct {
+		Dimension string
+		Quantity  int32
+		Timestamp time.Time
+	}
+	dupes := make(map[meteringKey]struct{})
+	// Add two duplicates
+	dupes[meteringKey{Dimension: *in.UsageDimension, Quantity: *in.UsageQuantity, Timestamp: in.Timestamp.Round(time.Second)}] = struct{}{}
+	dupes[meteringKey{Dimension: *in.UsageDimension, Quantity: *in.UsageQuantity, Timestamp: in.Timestamp.Add(time.Second).Round(time.Second)}] = struct{}{}
+	existingRows := int32(0)
+	for v := range dupes {
+		existingRows += v.Quantity
+	}
+
+	duplicateRequests, validRequests := 0, 0
+	m.EXPECT().MeterUsage(gomock.Any(), in).DoAndReturn(func(_ context.Context, in *marketplacemetering.MeterUsageInput, _ ...any) (*marketplacemetering.MeterUsageOutput, error) {
+		k := meteringKey{Dimension: *in.UsageDimension, Quantity: *in.UsageQuantity, Timestamp: in.Timestamp.Round(time.Second)}
+		if _, ok := dupes[k]; ok {
+			logger.Debug().Any("key", k).Msg("got duplicate request")
+			duplicateRequests++
+			return nil, &types.DuplicateRequestException{Message: aws.String("duplicate request")}
+		}
+		logger.Debug().Any("key", k).Msg("got valid request")
+		validRequests++
+		dupes[k] = struct{}{}
+		return &out, nil
+	}).MinTimes(1)
+
+	usageClient, err := NewUsageClient(
+		pmeta,
+		WithMaxWaitTime(time.Millisecond),
+		WithBatchLimit(50),
+		WithLogger(logger),
+		withTeamName("team-name"),
+		WithAWSMarketplaceClient(m),
+	)
+	require.NoError(t, err)
+
+	// This will generate 19,998 rows
+	// We expect that there will be 20 rows reported to AWS Marketplace
+	rows := 9999
+	for i := 0; i < rows; i++ {
 		err = usageClient.IncreaseForTable("table", 2)
 		require.NoError(t, err)
 	}
 
 	err = usageClient.Close()
 	require.NoError(t, err)
+
+	require.Equal(t, 2, duplicateRequests, "should have 2 duplicate requests")
+	require.Equal(t, 1, validRequests, "should have 1 valid request")
+
+	totalRows := int32(0)
+	for v := range dupes {
+		totalRows += v.Quantity
+	}
+	assert.Equal(t, int32(20), totalRows-existingRows, "should have 20 rows reported to AWS Marketplace")
 }
 
 func TestUsageService_Increase_ErrorOnMixingMethods(t *testing.T) {
