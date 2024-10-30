@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
@@ -274,7 +275,10 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 }
 
 func (u *BatchUpdater) setupAWSMarketplace() error {
-	cfg, err := awsConfig.LoadDefaultConfig(context.TODO())
+	cfg, err := awsConfig.LoadDefaultConfig(context.TODO(), awsConfig.WithRetryer(func() aws.Retryer {
+		return retry.AddWithErrorCodes(retry.NewStandard(), (*types.DuplicateRequestException)(nil).ErrorCode())
+	}))
+
 	if err != nil {
 		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
