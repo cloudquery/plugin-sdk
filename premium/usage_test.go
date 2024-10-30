@@ -405,7 +405,7 @@ func TestUsageService_AWSMarketplaceDone(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestUsageService_AWSMarketplace_DuplicateRowsRetry(t *testing.T) {
+func TestUsageService_AWSMarketpgolanglace_DuplicateRowsRetry(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockAWSMarketplaceClientInterface(ctrl)
 	t.Setenv("CQ_AWS_MARKETPLACE_CONTAINER", "true")
@@ -425,9 +425,22 @@ func TestUsageService_AWSMarketplace_DuplicateRowsRetry(t *testing.T) {
 		tn.Add(2 * time.Second),
 		tn.Add(2 * time.Second),
 	}
-	timeFunc = func() time.Time {
+
+	// logger := zerolog.New(zerolog.NewTestWriter(t)).Level(zerolog.DebugLevel)
+	logger := zerolog.Nop()
+
+	usageClient, err := NewUsageClient(
+		pmeta,
+		WithMaxWaitTime(time.Millisecond),
+		WithBatchLimit(50),
+		WithLogger(logger),
+		withTeamName("team-name"),
+		WithAWSMarketplaceClient(m),
+	)
+	require.NoError(t, err)
+	usageClient.(*BatchUpdater).timeFunc = func() time.Time {
 		if len(timeList) == 0 {
-			panic("timeFunc called too many times")
+			panic("BatchUpdater.timeFunc called too many times")
 		}
 		t := timeList[0]
 		timeList = timeList[1:]
@@ -462,9 +475,6 @@ func TestUsageService_AWSMarketplace_DuplicateRowsRetry(t *testing.T) {
 	}
 	assert.NoError(t, faker.FakeObject(&out))
 
-	// logger := zerolog.New(zerolog.NewTestWriter(t)).Level(zerolog.DebugLevel)
-	logger := zerolog.Nop()
-
 	type meteringKey struct {
 		Dimension string
 		Quantity  int32
@@ -492,16 +502,6 @@ func TestUsageService_AWSMarketplace_DuplicateRowsRetry(t *testing.T) {
 		dupes[k] = struct{}{}
 		return &out, nil
 	}).MinTimes(1)
-
-	usageClient, err := NewUsageClient(
-		pmeta,
-		WithMaxWaitTime(time.Millisecond),
-		WithBatchLimit(50),
-		WithLogger(logger),
-		withTeamName("team-name"),
-		WithAWSMarketplaceClient(m),
-	)
-	require.NoError(t, err)
 
 	// This will generate 19,998 rows
 	// We expect that there will be 20 rows reported to AWS Marketplace

@@ -194,6 +194,9 @@ type BatchUpdater struct {
 	isClosed            bool
 	dataOnClose         bool
 	usageIncreaseMethod int
+
+	// Testing
+	timeFunc func() time.Time
 }
 
 func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, error) {
@@ -212,6 +215,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		triggerUpdate:         make(chan struct{}),
 		done:                  make(chan struct{}),
 		closeError:            make(chan error),
+		timeFunc:              time.Now,
 
 		tables: map[string]uint32{},
 	}
@@ -552,7 +556,7 @@ func (u *BatchUpdater) reportUsageToAWSMarketplace(ctx context.Context, rows uin
 		// Each product is given a unique product code when it is listed in AWS Marketplace
 		// in the future we can have multiple product codes for container or AMI based listings
 		ProductCode:      aws.String(awsMarketplaceProductCode()),
-		Timestamp:        aws.Time(timeFunc()),
+		Timestamp:        aws.Time(u.timeFunc()),
 		UsageDimension:   aws.String("rows"),
 		UsageAllocations: usage,
 		UsageQuantity:    aws.Int32(int32(rows)),
@@ -567,7 +571,7 @@ func (u *BatchUpdater) updateMarketplaceUsageWithRetryAndBackoff(ctx context.Con
 	var lastErr error
 	for retry := 0; retry < u.maxRetries; retry++ {
 		u.logger.Debug().Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
-		queryStartTime := timeFunc()
+		queryStartTime := u.timeFunc()
 
 		lastErr = u.reportUsageToAWSMarketplace(ctx, rows)
 		if lastErr == nil {
@@ -623,7 +627,7 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 	resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, payload)
 	if err == nil && resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
 		u.logger.Debug().Str("url", u.url).Int("status_code", resp.StatusCode()).Uint32("rows", rows).Msg("usage updated")
-		u.lastUpdateTime = timeFunc().UTC()
+		u.lastUpdateTime = u.timeFunc().UTC()
 		if resp.HTTPResponse != nil {
 			u.updateConfigurationFromHeaders(resp.HTTPResponse.Header)
 		}
