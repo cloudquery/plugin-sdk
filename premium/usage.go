@@ -465,7 +465,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 				}
 				// If we are using AWS Marketplace, we need to round down to the nearest 1000
 				// Only on the last update, will we round up to the nearest 1000
-				// This will allow us to not over charge the customer by rounding on each batch
+				// This will allow us to not overcharge the customer by rounding on each batch
 				if u.awsMarketplaceClient != nil {
 					totals = roundDown(totals, 1000)
 				}
@@ -489,7 +489,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 				}
 				// If we are using AWS Marketplace, we need to round down to the nearest 1000
 				// Only on the last update, will we round up to the nearest 1000
-				// This will allow us to not over charge the customer by rounding on each batch
+				// This will allow us to not overcharge the customer by rounding on each batch
 				if u.awsMarketplaceClient != nil {
 					totals = roundDown(totals, 1000)
 				}
