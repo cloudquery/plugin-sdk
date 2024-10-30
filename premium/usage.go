@@ -292,9 +292,7 @@ func (u *BatchUpdater) setupAWSMarketplace() error {
 	u.batchLimit = 1000000000
 
 	u.minTimeBetweenFlushes = 1 * time.Minute
-	if u.maxRetries < marketplaceMinRetries {
-		u.maxRetries = marketplaceMinRetries
-	}
+	u.maxRetries = max(u.maxRetries, marketplaceMinRetries)
 	u.backgroundUpdater()
 	return nil
 }
