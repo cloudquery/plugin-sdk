@@ -43,6 +43,7 @@ const (
 	BatchLimitHeader            = "x-cq-batch-limit"
 	MinimumUpdateIntervalHeader = "x-cq-minimum-update-interval"
 	MaximumUpdateIntervalHeader = "x-cq-maximum-update-interval"
+	QueryIntervalHeader         = "x-cq-query-interval"
 )
 
 //go:generate mockgen -package=mocks -destination=../premium/mocks/marketplacemetering.go -source=usage.go AWSMarketplaceClientInterface
@@ -55,11 +56,19 @@ type TokenClient interface {
 	GetTokenType() auth.TokenType
 }
 
+type CheckQuotaResult struct {
+	// HasQuota is true if the quota has not been exceeded
+	HasQuota bool
+
+	// SuggestedQueryInterval is the suggested interval to wait before querying the API again
+	SuggestedQueryInterval time.Duration
+}
+
 type QuotaMonitor interface {
 	// TeamName returns the team name
 	TeamName() string
-	// HasQuota returns true if the quota has not been exceeded
-	HasQuota(context.Context) (bool, error)
+	// CheckQuota checks if the quota has been exceeded
+	CheckQuota(context.Context) (CheckQuotaResult, error)
 }
 
 type UsageClient interface {
@@ -359,21 +368,34 @@ func (u *BatchUpdater) TeamName() string {
 	return u.teamName
 }
 
-func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
+func (u *BatchUpdater) CheckQuota(ctx context.Context) (CheckQuotaResult, error) {
 	if u.awsMarketplaceClient != nil {
-		return true, nil
+		return CheckQuotaResult{HasQuota: true}, nil
 	}
 	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginMeta.Team).Str("pluginKind", string(u.pluginMeta.Kind)).Str("pluginName", u.pluginMeta.Name).Msg("checking quota")
 	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginMeta.Team, u.pluginMeta.Kind, u.pluginMeta.Name)
 	if err != nil {
-		return false, fmt.Errorf("failed to get usage: %w", err)
+		return CheckQuotaResult{HasQuota: false}, fmt.Errorf("failed to get usage: %w", err)
 	}
 	if usage.StatusCode() != http.StatusOK {
-		return false, fmt.Errorf("failed to get usage: %s", usage.Status())
+		return CheckQuotaResult{HasQuota: false}, fmt.Errorf("failed to get usage: %s", usage.Status())
 	}
 
-	hasQuota := usage.JSON200.RemainingRows == nil || *usage.JSON200.RemainingRows > 0
-	return hasQuota, nil
+	res := CheckQuotaResult{
+		HasQuota: usage.JSON200.RemainingRows == nil || *usage.JSON200.RemainingRows > 0,
+	}
+	if usage.HTTPResponse == nil {
+		return res, nil
+	}
+	if headerValue := usage.HTTPResponse.Header.Get(QueryIntervalHeader); headerValue != "" {
+		interval, err := strconv.ParseUint(headerValue, 10, 32)
+		if interval > 0 {
+			res.SuggestedQueryInterval = time.Duration(interval) * time.Second
+		} else {
+			u.logger.Warn().Err(err).Str(QueryIntervalHeader, headerValue).Msg("failed to parse query interval")
+		}
+	}
+	return res, nil
 }
 
 func (u *BatchUpdater) Close() error {
@@ -700,8 +722,8 @@ func (n *NoOpUsageClient) TeamName() string {
 	return n.TeamNameValue
 }
 
-func (NoOpUsageClient) HasQuota(_ context.Context) (bool, error) {
-	return true, nil
+func (NoOpUsageClient) CheckQuota(_ context.Context) (CheckQuotaResult, error) {
+	return CheckQuotaResult{HasQuota: true}, nil
 }
 
 func (NoOpUsageClient) Increase(_ uint32) error {
