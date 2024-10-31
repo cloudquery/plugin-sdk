@@ -360,20 +360,28 @@ func TestUsageService_IncreaseForTable_CorrectByTable(t *testing.T) {
 	}
 }
 
+func usageMarketplaceDryRunHelper(t *testing.T, m *mocks.MockAWSMarketplaceClientInterface) *gomock.Call {
+	t.Helper()
+
+	inTest := meteringInput{
+		marketplacemetering.MeterUsageInput{
+			ProductCode:    aws.String(awsMarketplaceProductCode()),
+			UsageDimension: aws.String("rows"),
+			UsageQuantity:  aws.Int32(int32(0)),
+			DryRun:         aws.Bool(true)},
+	}
+	errTest := smithy.GenericAPIError{Code: "DryRunOperation", Message: "No errors detected in dry run"}
+	out := marketplacemetering.MeterUsageOutput{}
+
+	return m.EXPECT().MeterUsage(gomock.Any(), inTest).Return(&out, &errTest)
+}
+
 func TestUsageService_AWSMarketplaceDone(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockAWSMarketplaceClientInterface(ctrl)
 	t.Setenv("CQ_AWS_MARKETPLACE_CONTAINER", "true")
 
 	out := marketplacemetering.MeterUsageOutput{}
-	inTest := meteringInput{
-		marketplacemetering.MeterUsageInput{
-			ProductCode:    aws.String("2a8bdkarwqrp0tmo4errl65s7"),
-			UsageDimension: aws.String("rows"),
-			UsageQuantity:  aws.Int32(int32(0)),
-			DryRun:         aws.Bool(true)},
-	}
-	errTest := smithy.GenericAPIError{Code: "DryRunOperation", Message: "No errors detected in dry run"}
 
 	in := meteringInput{
 		MeterUsageInput: marketplacemetering.MeterUsageInput{
@@ -402,7 +410,7 @@ func TestUsageService_AWSMarketplaceDone(t *testing.T) {
 	assert.NoError(t, faker.FakeObject(&out))
 
 	gomock.InOrder(
-		m.EXPECT().MeterUsage(gomock.Any(), inTest).Return(&out, &errTest),
+		usageMarketplaceDryRunHelper(t, m),
 		m.EXPECT().MeterUsage(gomock.Any(), in).Return(&out, nil),
 	)
 
@@ -441,6 +449,7 @@ func TestUsageService_AWSMarketpgolanglace_DuplicateRowsRetry(t *testing.T) {
 	// logger := zerolog.New(zerolog.NewTestWriter(t)).Level(zerolog.DebugLevel)
 	logger := zerolog.Nop()
 
+	usageMarketplaceDryRunHelper(t, m)
 	usageClient, err := NewUsageClient(
 		pmeta,
 		WithMaxWaitTime(time.Millisecond),
@@ -502,6 +511,7 @@ func TestUsageService_AWSMarketpgolanglace_DuplicateRowsRetry(t *testing.T) {
 	}
 
 	duplicateRequests, validRequests := 0, 0
+
 	m.EXPECT().MeterUsage(gomock.Any(), in).DoAndReturn(func(_ context.Context, in *marketplacemetering.MeterUsageInput, _ ...any) (*marketplacemetering.MeterUsageOutput, error) {
 		k := meteringKey{Dimension: *in.UsageDimension, Quantity: *in.UsageQuantity, Timestamp: in.Timestamp.Round(time.Second)}
 		if _, ok := dupes[k]; ok {
