@@ -15,6 +15,7 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
+	"github.com/aws/smithy-go"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
@@ -274,7 +275,8 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 }
 
 func (u *BatchUpdater) setupAWSMarketplace() error {
-	cfg, err := awsConfig.LoadDefaultConfig(context.TODO())
+	ctx := context.TODO()
+	cfg, err := awsConfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
@@ -288,7 +290,19 @@ func (u *BatchUpdater) setupAWSMarketplace() error {
 
 	u.minTimeBetweenFlushes = 1 * time.Minute
 	u.backgroundUpdater()
-	return nil
+
+	_, err = u.awsMarketplaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
+		ProductCode:    aws.String(awsMarketplaceProductCode()),
+		Timestamp:      aws.Time(time.Now()),
+		UsageDimension: aws.String("rows"),
+		UsageQuantity:  aws.Int32(int32(0)),
+		DryRun:         aws.Bool(true),
+	})
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) && apiErr.ErrorCode() == "DryRunOperation" {
+		return nil
+	}
+	return fmt.Errorf("failed dry run invocation with error: %w", err)
 }
 
 func isAWSMarketplace() bool {
