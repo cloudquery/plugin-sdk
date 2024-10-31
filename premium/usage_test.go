@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
+	"github.com/aws/smithy-go"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
@@ -365,6 +366,15 @@ func TestUsageService_AWSMarketplaceDone(t *testing.T) {
 	t.Setenv("CQ_AWS_MARKETPLACE_CONTAINER", "true")
 
 	out := marketplacemetering.MeterUsageOutput{}
+	inTest := meteringInput{
+		marketplacemetering.MeterUsageInput{
+			ProductCode:    aws.String("2a8bdkarwqrp0tmo4errl65s7"),
+			UsageDimension: aws.String("rows"),
+			UsageQuantity:  aws.Int32(int32(0)),
+			DryRun:         aws.Bool(true)},
+	}
+	errTest := smithy.GenericAPIError{Code: "DryRunOperation", Message: "No errors detected in dry run"}
+
 	in := meteringInput{
 		MeterUsageInput: marketplacemetering.MeterUsageInput{
 			ProductCode:    aws.String(awsMarketplaceProductCode()),
@@ -390,7 +400,12 @@ func TestUsageService_AWSMarketplaceDone(t *testing.T) {
 		},
 	}
 	assert.NoError(t, faker.FakeObject(&out))
-	m.EXPECT().MeterUsage(gomock.Any(), in).Return(&out, nil)
+
+	gomock.InOrder(
+		m.EXPECT().MeterUsage(gomock.Any(), inTest).Return(&out, &errTest),
+		m.EXPECT().MeterUsage(gomock.Any(), in).Return(&out, nil),
+	)
+
 	usageClient := newClient(t, nil, WithBatchLimit(50), WithAWSMarketplaceClient(m))
 
 	// This will generate 19,998 rows
@@ -975,7 +990,9 @@ func (mi meteringInput) Matches(x any) bool {
 	if aws.ToInt32(testInput.UsageQuantity) != aws.ToInt32(mi.UsageQuantity) {
 		return false
 	}
-
+	if aws.ToBool(testInput.DryRun) != aws.ToBool(mi.DryRun) {
+		return false
+	}
 	return true
 }
 
