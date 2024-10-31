@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.68.0](https://github.com/cloudquery/plugin-sdk/compare/v4.67.1...v4.68.0) (2024-10-31)
+
+
+### Features
+
+* Add Time configtype ([#1905](https://github.com/cloudquery/plugin-sdk/issues/1905)) ([f57c3eb](https://github.com/cloudquery/plugin-sdk/commit/f57c3ebecf99f0d7fe546c058d4086e2454075ba))
+* Support for quota query interval header ([#1948](https://github.com/cloudquery/plugin-sdk/issues/1948)) ([bfce6fe](https://github.com/cloudquery/plugin-sdk/commit/bfce6fee435085af67163f4fed6168d4459aa87b))
+* Test `MeterUsage` API call on initial setup of client ([#1906](https://github.com/cloudquery/plugin-sdk/issues/1906)) ([78df77d](https://github.com/cloudquery/plugin-sdk/commit/78df77d3c20a5f0a4ccc037fc82c6f626a6d5e1c))
+
+
+### Bug Fixes
+
+* Clean up usage retry logic ([#1950](https://github.com/cloudquery/plugin-sdk/issues/1950)) ([ca982f9](https://github.com/cloudquery/plugin-sdk/commit/ca982f92d65dbf55bd849fbe7688200f1d03c66a))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.25.0 ([#1946](https://github.com/cloudquery/plugin-sdk/issues/1946)) ([b8e3e10](https://github.com/cloudquery/plugin-sdk/commit/b8e3e104071fa3454d74762fc4c45d0cc98f31ab))
+
 ## [4.67.1](https://github.com/cloudquery/plugin-sdk/compare/v4.67.0...v4.67.1) (2024-10-22)
 
 
