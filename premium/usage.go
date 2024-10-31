@@ -311,7 +311,7 @@ func (u *BatchUpdater) setupAWSMarketplace() error {
 
 	_, err = u.awsMarketplaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
 		ProductCode:    aws.String(awsMarketplaceProductCode()),
-		Timestamp:      aws.Time(time.Now()),
+		Timestamp:      aws.Time(u.timeFunc()),
 		UsageDimension: aws.String("rows"),
 		UsageQuantity:  aws.Int32(int32(0)),
 		DryRun:         aws.Bool(true),
