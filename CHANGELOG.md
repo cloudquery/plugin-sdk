@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.68.1](https://github.com/cloudquery/plugin-sdk/compare/v4.68.0...v4.68.1) (2024-11-04)
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#1957](https://github.com/cloudquery/plugin-sdk/issues/1957)) ([360cc57](https://github.com/cloudquery/plugin-sdk/commit/360cc579c7d6dffb74872183b9d5308e73b41f15))
+* **deps:** Update golang.org/x/exp digest to f66d83c ([#1954](https://github.com/cloudquery/plugin-sdk/issues/1954)) ([18cb1b2](https://github.com/cloudquery/plugin-sdk/commit/18cb1b2428480aa3143d2d4a0bf40aaf3c4b803b))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.25.1 ([#1958](https://github.com/cloudquery/plugin-sdk/issues/1958)) ([f537b56](https://github.com/cloudquery/plugin-sdk/commit/f537b56c0527d40ec89e571c1510adf6669c113c))
+* **deps:** Update opentelemetry-go monorepo ([#1956](https://github.com/cloudquery/plugin-sdk/issues/1956)) ([ea171a4](https://github.com/cloudquery/plugin-sdk/commit/ea171a44fef368ea3e60a6ae5b5018d349c0b989))
+
 ## [4.68.0](https://github.com/cloudquery/plugin-sdk/compare/v4.67.1...v4.68.0) (2024-10-31)
 
 
