@@ -13,7 +13,7 @@ require (
 	github.com/aws/smithy-go v1.22.0
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.13.1
-	github.com/cloudquery/plugin-pb-go v1.25.1
+	github.com/cloudquery/plugin-pb-go v1.25.2
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/goccy/go-json v0.10.3
 	github.com/golang/mock v1.6.0
