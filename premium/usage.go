@@ -15,7 +15,6 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
-	"github.com/aws/smithy-go"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
@@ -316,11 +315,10 @@ func (u *BatchUpdater) setupAWSMarketplace() error {
 		UsageQuantity:  aws.Int32(int32(0)),
 		DryRun:         aws.Bool(true),
 	})
-	var apiErr smithy.APIError
-	if errors.As(err, &apiErr) && apiErr.ErrorCode() == "DryRunOperation" {
-		return nil
+	if err != nil {
+		return fmt.Errorf("failed dry run invocation with error: %w", err)
 	}
-	return fmt.Errorf("failed dry run invocation with error: %w", err)
+	return nil
 }
 
 func isAWSMarketplace() bool {
