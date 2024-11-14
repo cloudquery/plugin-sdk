@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.68.3](https://github.com/cloudquery/plugin-sdk/compare/v4.68.2...v4.68.3) (2024-11-14)
+
+
+### Bug Fixes
+
+* Correctly handle success in DryRun invocation ([#1966](https://github.com/cloudquery/plugin-sdk/issues/1966)) ([9b3f292](https://github.com/cloudquery/plugin-sdk/commit/9b3f2924703532b907255807abaac380a42c6aeb))
+* **deps:** Update aws-sdk-go-v2 monorepo ([#1963](https://github.com/cloudquery/plugin-sdk/issues/1963)) ([41f717e](https://github.com/cloudquery/plugin-sdk/commit/41f717eb97e1cb56dbd6636620e9b0f41567d942))
+* **deps:** Update module google.golang.org/grpc to v1.68.0 ([#1964](https://github.com/cloudquery/plugin-sdk/issues/1964)) ([763d55f](https://github.com/cloudquery/plugin-sdk/commit/763d55fa8d9ba4a7543f9debad52e312c5fab4c8))
+
 ## [4.68.2](https://github.com/cloudquery/plugin-sdk/compare/v4.68.1...v4.68.2) (2024-11-04)
 
 
