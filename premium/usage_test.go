@@ -15,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering"
 	"github.com/aws/aws-sdk-go-v2/service/marketplacemetering/types"
-	"github.com/aws/smithy-go"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/cloudquery-api-go/auth"
 	"github.com/cloudquery/cloudquery-api-go/config"
@@ -370,10 +369,12 @@ func usageMarketplaceDryRunHelper(t *testing.T, m *mocks.MockAWSMarketplaceClien
 			UsageQuantity:  aws.Int32(int32(0)),
 			DryRun:         aws.Bool(true)},
 	}
-	errTest := smithy.GenericAPIError{Code: "DryRunOperation", Message: "No errors detected in dry run"}
-	out := marketplacemetering.MeterUsageOutput{}
 
-	return m.EXPECT().MeterUsage(gomock.Any(), inTest).Return(&out, &errTest)
+	out := marketplacemetering.MeterUsageOutput{
+		MeteringRecordId: aws.String("DryRunOperation"),
+	}
+
+	return m.EXPECT().MeterUsage(gomock.Any(), inTest).Return(&out, nil)
 }
 
 func TestUsageService_AWSMarketplaceDone(t *testing.T) {
