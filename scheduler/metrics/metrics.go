@@ -85,7 +85,7 @@ func (s *Metrics) Equal(other *Metrics) bool {
 	return true
 }
 
-func getOtelMeters(tableName string, clientID string) *OtelMeters {
+func getOtelMeters(tableName, clientID, invocationID string) *OtelMeters {
 	resources, err := otel.Meter(OtelName).Int64Counter("sync.table.resources",
 		metric.WithDescription("Number of resources synced for a table"),
 		metric.WithUnit("/{tot}"),
@@ -136,21 +136,22 @@ func getOtelMeters(tableName string, clientID string) *OtelMeters {
 		attributes: []attribute.KeyValue{
 			attribute.Key("sync.client.id").String(clientID),
 			attribute.Key("sync.table.name").String(tableName),
+			attribute.Key("sync.invocation.id").String(invocationID),
 		},
 	}
 }
 
-func (s *Metrics) InitWithClients(table *schema.Table, clients []schema.ClientMeta) {
+func (s *Metrics) InitWithClients(table *schema.Table, clients []schema.ClientMeta, invocationID string) {
 	s.TableClient[table.Name] = make(map[string]*TableClientMetrics, len(clients))
 	for _, client := range clients {
 		tableName := table.Name
 		clientID := client.ID()
 		s.TableClient[tableName][clientID] = &TableClientMetrics{
-			otelMeters: getOtelMeters(tableName, clientID),
+			otelMeters: getOtelMeters(tableName, clientID, invocationID),
 		}
 	}
 	for _, relation := range table.Relations {
-		s.InitWithClients(relation, clients)
+		s.InitWithClients(relation, clients, invocationID)
 	}
 }
 
