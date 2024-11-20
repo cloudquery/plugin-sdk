@@ -80,6 +80,13 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 		logger.Info().Msg("top level table resolver started")
 	}
 	tableMetrics := w.metrics.TableClient[table.Name][clientName]
+	defer func() {
+		span.AddEvent("sync.finish.stats", trace.WithAttributes(
+			attribute.Key("sync.resources").Int64(int64(tableMetrics.Resources)),
+			attribute.Key("sync.errors").Int64(int64(tableMetrics.Errors)),
+			attribute.Key("sync.panics").Int64(int64(tableMetrics.Panics)),
+		))
+	}()
 	tableMetrics.OtelStartTime(ctx, startTime)
 
 	res := make(chan any)

@@ -91,7 +91,15 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
 		logger.Info().Msg("top level table resolver started")
 	}
+
 	tableMetrics := s.metrics.TableClient[table.Name][clientName]
+	defer func() {
+		span.AddEvent("sync.finish.stats", trace.WithAttributes(
+			attribute.Key("sync.resources").Int64(int64(tableMetrics.Resources)),
+			attribute.Key("sync.errors").Int64(int64(tableMetrics.Errors)),
+			attribute.Key("sync.panics").Int64(int64(tableMetrics.Panics)),
+		))
+	}()
 	tableMetrics.OtelStartTime(ctx, startTime)
 
 	res := make(chan any)
