@@ -95,9 +95,9 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	tableMetrics := s.metrics.TableClient[table.Name][clientName]
 	defer func() {
 		span.AddEvent("sync.finish.stats", trace.WithAttributes(
-			attribute.Key("sync.resources").Int64(int64(tableMetrics.Resources)),
-			attribute.Key("sync.errors").Int64(int64(tableMetrics.Errors)),
-			attribute.Key("sync.panics").Int64(int64(tableMetrics.Panics)),
+			attribute.Key("sync.resources").Int64(int64(atomic.LoadUint64(&tableMetrics.Resources))),
+			attribute.Key("sync.errors").Int64(int64(atomic.LoadUint64(&tableMetrics.Errors))),
+			attribute.Key("sync.panics").Int64(int64(atomic.LoadUint64(&tableMetrics.Panics))),
 		))
 	}()
 	tableMetrics.OtelStartTime(ctx, startTime)
