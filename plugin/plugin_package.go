@@ -37,10 +37,11 @@ const (
 )
 
 type BuildTarget struct {
-	OS   string   `json:"os"`
-	Arch string   `json:"arch"`
-	CGO  bool     `json:"cgo"`
-	Env  []string `json:"env"`
+	OS             string   `json:"os"`
+	Arch           string   `json:"arch"`
+	CGO            bool     `json:"cgo"`
+	Env            []string `json:"env"`
+	IncludeSymbols bool     `json:"include_symbols"`
 }
 
 func (t BuildTarget) EnvVariables() []string {
