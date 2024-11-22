@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.69.0](https://github.com/cloudquery/plugin-sdk/compare/v4.68.3...v4.69.0) (2024-11-22)
+
+
+### Features
+
+* Allow to include symbols in binaries during `package` ([#1974](https://github.com/cloudquery/plugin-sdk/issues/1974)) ([aa3b3e4](https://github.com/cloudquery/plugin-sdk/commit/aa3b3e45e206d57cf812f131020cfed7ad44e9f7))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/config to v1.28.4 ([#1968](https://github.com/cloudquery/plugin-sdk/issues/1968)) ([4e35df7](https://github.com/cloudquery/plugin-sdk/commit/4e35df709bb2190794b6aa9713c00188200b07f1))
+* **deps:** Update module google.golang.org/protobuf to v1.35.2 ([#1971](https://github.com/cloudquery/plugin-sdk/issues/1971)) ([7076899](https://github.com/cloudquery/plugin-sdk/commit/7076899d9933b53dbb03533bbf28b83dc1b37a27))
+
 ## [4.68.3](https://github.com/cloudquery/plugin-sdk/compare/v4.68.2...v4.68.3) (2024-11-14)
 
 
