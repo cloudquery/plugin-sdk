@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.70.0](https://github.com/cloudquery/plugin-sdk/compare/v4.69.0...v4.70.0) (2024-11-26)
+
+
+### Features
+
+* Expose resource stats in traces as separate event ([#1973](https://github.com/cloudquery/plugin-sdk/issues/1973)) ([e74bb27](https://github.com/cloudquery/plugin-sdk/commit/e74bb27ae66713f5734d8cd5fbe1905226c3e696))
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#1976](https://github.com/cloudquery/plugin-sdk/issues/1976)) ([566409d](https://github.com/cloudquery/plugin-sdk/commit/566409d09d422fb26453879e3e44a00f0608ab01))
+
 ## [4.69.0](https://github.com/cloudquery/plugin-sdk/compare/v4.68.3...v4.69.0) (2024-11-22)
 
 
