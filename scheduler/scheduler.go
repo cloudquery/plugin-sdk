@@ -14,6 +14,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -194,7 +196,10 @@ func (s *Scheduler) SyncAll(ctx context.Context, client schema.ClientMeta, table
 }
 
 func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables schema.Tables, res chan<- message.SyncMessage, opts ...SyncOption) error {
-	ctx, span := otel.Tracer(metrics.OtelName).Start(ctx, "sync")
+	ctx, span := otel.Tracer(metrics.OtelName).Start(ctx,
+		"sync",
+		trace.WithAttributes(attribute.Key("sync.invocation.id").String(s.invocationID)),
+	)
 	defer span.End()
 	if len(tables) == 0 {
 		return ErrNoTables

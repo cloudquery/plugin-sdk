@@ -39,7 +39,7 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 		preInitialisedClients[i] = clients
 		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
 		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
-		s.metrics.InitWithClients(table, clients)
+		s.metrics.InitWithClients(table, clients, s.invocationID)
 	}
 
 	tableClients := make([]tableClient, 0)
@@ -81,6 +81,7 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 		"sync.table."+table.Name,
 		trace.WithAttributes(
 			attribute.Key("sync.client.id").String(clientName),
+			attribute.Key("sync.invocation.id").String(s.invocationID),
 		),
 	)
 	defer span.End()

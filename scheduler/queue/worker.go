@@ -70,6 +70,7 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 		"sync.table."+table.Name,
 		trace.WithAttributes(
 			attribute.Key("sync.client.id").String(clientName),
+			attribute.Key("sync.invocation.id").String(w.invocationID),
 		),
 	)
 	defer span.End()
