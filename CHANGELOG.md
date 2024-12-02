@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.70.1](https://github.com/cloudquery/plugin-sdk/compare/v4.70.0...v4.70.1) (2024-12-02)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 2d47ceb ([#1979](https://github.com/cloudquery/plugin-sdk/issues/1979)) ([3785e86](https://github.com/cloudquery/plugin-sdk/commit/3785e8624e3a6248b136b8dabfbe40c550a1e4ee))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.13.3 ([#1985](https://github.com/cloudquery/plugin-sdk/issues/1985)) ([03944f2](https://github.com/cloudquery/plugin-sdk/commit/03944f20f8d1b9b0018ab466200a2b938c32a203))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.25.4 ([#1987](https://github.com/cloudquery/plugin-sdk/issues/1987)) ([1de3891](https://github.com/cloudquery/plugin-sdk/commit/1de3891a63df6e0cce1ad606a4292f8277831d44))
+* **deps:** Update module github.com/stretchr/testify to v1.10.0 ([#1982](https://github.com/cloudquery/plugin-sdk/issues/1982)) ([c3ac76c](https://github.com/cloudquery/plugin-sdk/commit/c3ac76cc0655e1222ec1478c2ca6b60f561a425c))
+* **deps:** Update module golang.org/x/oauth2 to v0.24.0 ([#1983](https://github.com/cloudquery/plugin-sdk/issues/1983)) ([90b9728](https://github.com/cloudquery/plugin-sdk/commit/90b972850bdc4994425992ea1ed595d9ab1d8ad0))
+* **deps:** Update opentelemetry-go monorepo ([#1984](https://github.com/cloudquery/plugin-sdk/issues/1984)) ([3894891](https://github.com/cloudquery/plugin-sdk/commit/38948915ed0fc7dbd59158b80755cf3b6f4497e6))
+
 ## [4.70.0](https://github.com/cloudquery/plugin-sdk/compare/v4.69.0...v4.70.0) (2024-11-26)
 
 
