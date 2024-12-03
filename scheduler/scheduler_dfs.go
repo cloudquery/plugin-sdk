@@ -128,6 +128,7 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	for r := range res {
 		batchSender.Send(r)
 	}
+	batchSender.Close()
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
 	endTime := time.Now()

@@ -69,6 +69,17 @@ func (bs *BatchSender) flush(items ...any) {
 
 	bs.items = append(bs.items, items...)
 
+	if len(bs.items) == 0 {
+		return
+	}
+
 	bs.sendFn(bs.items)
 	bs.items = nil
+}
+
+func (bs *BatchSender) Close() {
+	if bs.timer != nil {
+		bs.timer.Stop()
+	}
+	bs.flush()
 }
