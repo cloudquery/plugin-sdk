@@ -3,6 +3,7 @@ package configtype
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"time"
@@ -237,10 +238,19 @@ func (d *timeDuration) addUnit(unit string, number int64) error {
 	case "hour", "hours":
 		d.duration += time.Hour * time.Duration(number)
 	case "day", "days":
+		if number < math.MinInt || number > math.MaxInt {
+			return fmt.Errorf("invalid %s value: %d. Out of bounds", unit, number)
+		}
 		d.days += int(number)
 	case "month", "months":
+		if number < math.MinInt || number > math.MaxInt {
+			return fmt.Errorf("invalid %s value: %d. Out of bounds", unit, number)
+		}
 		d.months += int(number)
 	case "year", "years":
+		if number < math.MinInt || number > math.MaxInt {
+			return fmt.Errorf("invalid %s value: %d. Out of bounds", unit, number)
+		}
 		d.years += int(number)
 	default:
 		return fmt.Errorf("invalid unit: %q", unit)
