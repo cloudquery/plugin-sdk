@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/apache/arrow/go/v17/arrow/array"
-	"github.com/apache/arrow/go/v17/arrow/memory"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 )
