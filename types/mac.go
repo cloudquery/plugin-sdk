@@ -7,8 +7,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/apache/arrow/go/v17/arrow"
-	"github.com/apache/arrow/go/v17/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/goccy/go-json"
 )
 
@@ -16,8 +17,8 @@ type MACBuilder struct {
 	*array.ExtensionBuilder
 }
 
-func NewMACBuilder(builder *array.ExtensionBuilder) *MACBuilder {
-	return &MACBuilder{ExtensionBuilder: builder}
+func NewMACBuilder(mem memory.Allocator) *MACBuilder {
+	return &MACBuilder{ExtensionBuilder: array.NewExtensionBuilder(mem, NewMACType())}
 }
 
 func (b *MACBuilder) Append(v net.HardwareAddr) {
@@ -229,6 +230,6 @@ func (u *MACType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return u.ExtensionName() == other.ExtensionName()
 }
 
-func (*MACType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
-	return NewMACBuilder(bldr)
+func (*MACType) NewBuilder(mem memory.Allocator) array.Builder {
+	return NewMACBuilder(mem)
 }

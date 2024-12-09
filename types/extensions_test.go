@@ -3,9 +3,9 @@ package types
 import (
 	"testing"
 
-	"github.com/apache/arrow/go/v17/arrow"
-	"github.com/apache/arrow/go/v17/arrow/array"
-	"github.com/apache/arrow/go/v17/arrow/memory"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +21,7 @@ func TestValueStrRoundTrip(t *testing.T) {
 	}{
 		{
 			arr: func() arrow.Array {
-				b := NewInetBuilder(array.NewExtensionBuilder(mem, NewInetType()))
+				b := NewInetBuilder(mem)
 				defer b.Release()
 
 				b.AppendNull()
@@ -32,11 +32,11 @@ func TestValueStrRoundTrip(t *testing.T) {
 
 				return b.NewInetArray()
 			}(),
-			builder: NewInetBuilder(array.NewExtensionBuilder(mem, NewInetType())),
+			builder: NewInetBuilder(mem),
 		},
 		{
 			arr: func() arrow.Array {
-				b := NewJSONBuilder(array.NewExtensionBuilder(mem, NewJSONType()))
+				b := NewJSONBuilder(mem)
 				defer b.Release()
 
 				b.AppendNull()
@@ -49,11 +49,11 @@ func TestValueStrRoundTrip(t *testing.T) {
 
 				return b.NewJSONArray()
 			}(),
-			builder: NewJSONBuilder(array.NewExtensionBuilder(mem, NewJSONType())),
+			builder: NewJSONBuilder(mem),
 		},
 		{
 			arr: func() arrow.Array {
-				b := NewMACBuilder(array.NewExtensionBuilder(mem, NewMACType()))
+				b := NewMACBuilder(mem)
 				defer b.Release()
 
 				b.AppendNull()
@@ -64,11 +64,11 @@ func TestValueStrRoundTrip(t *testing.T) {
 
 				return b.NewMACArray()
 			}(),
-			builder: NewMACBuilder(array.NewExtensionBuilder(mem, NewMACType())),
+			builder: NewMACBuilder(mem),
 		},
 		{
 			arr: func() arrow.Array {
-				b := NewUUIDBuilder(array.NewExtensionBuilder(mem, NewUUIDType()))
+				b := NewUUIDBuilder(mem)
 				defer b.Release()
 
 				b.AppendNull()
@@ -79,7 +79,7 @@ func TestValueStrRoundTrip(t *testing.T) {
 
 				return b.NewUUIDArray()
 			}(),
-			builder: NewUUIDBuilder(array.NewExtensionBuilder(mem, NewUUIDType())),
+			builder: NewUUIDBuilder(mem),
 		},
 	}
 
