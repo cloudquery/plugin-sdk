@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.70.2](https://github.com/cloudquery/plugin-sdk/compare/v4.70.1...v4.70.2) (2024-12-05)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.13.4 ([#1992](https://github.com/cloudquery/plugin-sdk/issues/1992)) ([cd4dc4b](https://github.com/cloudquery/plugin-sdk/commit/cd4dc4bcfb9eb42227bce7cf77899a5a31635a20))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.25.5 ([#1991](https://github.com/cloudquery/plugin-sdk/issues/1991)) ([037a6d9](https://github.com/cloudquery/plugin-sdk/commit/037a6d97ccf8dbcf6f5a9a28fa6f945f8892af25))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.25.6 ([#1994](https://github.com/cloudquery/plugin-sdk/issues/1994)) ([32855ea](https://github.com/cloudquery/plugin-sdk/commit/32855ea19975675bba2ed4cfaf1a00013f49a7b5))
+* Handle integer overflow ([#1996](https://github.com/cloudquery/plugin-sdk/issues/1996)) ([6af9c22](https://github.com/cloudquery/plugin-sdk/commit/6af9c22a82b3872a3fbffdc7f70c61d63450be6e))
+
 ## [4.70.1](https://github.com/cloudquery/plugin-sdk/compare/v4.70.0...v4.70.1) (2024-12-02)
 
 
