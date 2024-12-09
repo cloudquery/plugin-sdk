@@ -3,7 +3,6 @@ package types
 import (
 	"testing"
 
-	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -13,7 +12,7 @@ func TestUUIDBuilder(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
 
-	b := NewUUIDBuilder(array.NewExtensionBuilder(mem, NewUUIDType()))
+	b := NewUUIDBuilder(mem)
 
 	b.Append(uuid.MustParse("00000000-0000-0000-0000-000000000001"))
 	b.AppendNull()
@@ -45,7 +44,7 @@ func TestUUIDBuilder(t *testing.T) {
 	b.Release()
 	a.Release()
 
-	b = NewUUIDBuilder(array.NewExtensionBuilder(mem, NewUUIDType()))
+	b = NewUUIDBuilder(mem)
 	err = b.UnmarshalJSON(st)
 	require.NoError(t, err)
 

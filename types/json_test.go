@@ -15,7 +15,7 @@ func TestJSONBuilder(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
 
-	b := NewJSONBuilder(array.NewExtensionBuilder(mem, NewJSONType()))
+	b := NewJSONBuilder(mem)
 	b.Append(map[string]any{"a": 1, "b": 2})
 	b.AppendNull()
 	b.Append(map[string]any{"c": 3, "d": 4})
@@ -45,7 +45,7 @@ func TestJSONBuilder(t *testing.T) {
 	b.Release()
 	a.Release()
 
-	b = NewJSONBuilder(array.NewExtensionBuilder(mem, NewJSONType()))
+	b = NewJSONBuilder(mem)
 	err = b.UnmarshalJSON(st)
 	require.NoError(t, err)
 
@@ -97,7 +97,7 @@ func TestJSONBuilder_UnmarshalOne(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 			defer mem.AssertSize(t, 0)
-			b := NewJSONBuilder(array.NewExtensionBuilder(mem, NewJSONType()))
+			b := NewJSONBuilder(mem)
 			defer b.Release()
 			dec := json.NewDecoder(bytes.NewReader([]byte(tc.data)))
 			err := b.UnmarshalOne(dec)
@@ -154,7 +154,7 @@ func TestJSONArray_GetOneForMarshal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 			defer mem.AssertSize(t, 0)
-			b := NewJSONBuilder(array.NewExtensionBuilder(mem, NewJSONType()))
+			b := NewJSONBuilder(mem)
 			defer b.Release()
 			dec := json.NewDecoder(bytes.NewReader([]byte(tc.data)))
 			err := b.UnmarshalOne(dec)
@@ -215,7 +215,7 @@ func TestJSONArray_ValueStrParse(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 			defer mem.AssertSize(t, 0)
-			b := NewJSONBuilder(array.NewExtensionBuilder(mem, NewJSONType()))
+			b := NewJSONBuilder(mem)
 			defer b.Release()
 			dec := json.NewDecoder(bytes.NewReader([]byte(tc.data)))
 			err := b.UnmarshalOne(dec)
@@ -270,7 +270,7 @@ func TestJSONArray_Value(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 			defer mem.AssertSize(t, 0)
-			b := NewJSONBuilder(array.NewExtensionBuilder(mem, NewJSONType()))
+			b := NewJSONBuilder(mem)
 			defer b.Release()
 			dec := json.NewDecoder(bytes.NewReader([]byte(tc.data)))
 			err := b.UnmarshalOne(dec)
@@ -327,7 +327,7 @@ func TestJSON_MarshalUnmarshal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 			defer mem.AssertSize(t, 0)
-			b := NewJSONBuilder(array.NewExtensionBuilder(mem, NewJSONType()))
+			b := NewJSONBuilder(mem)
 			defer b.Release()
 			require.NoError(t, b.UnmarshalJSON([]byte(tc.data)))
 			a := b.NewArray().(*JSONArray)
@@ -389,7 +389,7 @@ func TestJSON_FromToString(t *testing.T) {
 
 			mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 			defer mem.AssertSize(t, 0)
-			b := NewJSONBuilder(array.NewExtensionBuilder(mem, NewJSONType()))
+			b := NewJSONBuilder(mem)
 			defer b.Release()
 			for _, str := range tc.data {
 				require.NoError(t, b.AppendValueFromString(str))
