@@ -4,7 +4,7 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 )
 
 type Uint struct {
