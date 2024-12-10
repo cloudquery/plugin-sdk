@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/batchsender"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -121,9 +122,13 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 		}
 	}()
 
+	batchSender := batchsender.NewBatchSender(func(item any) {
+		s.resolveResourcesDfs(ctx, table, client, parent, item, resolvedResources, depth)
+	})
 	for r := range res {
-		s.resolveResourcesDfs(ctx, table, client, parent, r, resolvedResources, depth)
+		batchSender.Send(r)
 	}
+	batchSender.Close()
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
 	endTime := time.Now()

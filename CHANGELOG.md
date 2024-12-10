@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.71.0](https://github.com/cloudquery/plugin-sdk/compare/v4.70.2...v4.71.0) (2024-12-09)
+
+
+### Features
+
+* Implement batch sender. ([#1995](https://github.com/cloudquery/plugin-sdk/issues/1995)) ([371b20f](https://github.com/cloudquery/plugin-sdk/commit/371b20fd192e69681e07c79302e7a06fc89b4a71))
+
 ## [4.70.2](https://github.com/cloudquery/plugin-sdk/compare/v4.70.1...v4.70.2) (2024-12-05)
 
 
