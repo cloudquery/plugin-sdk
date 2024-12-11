@@ -480,16 +480,10 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 				return err
 			case <-gctx.Done():
 				close(recvRecords)
-				if err := eg.Wait(); err != nil {
-					return status.Errorf(codes.Canceled, "plugin returned error: %v", err)
-				}
-				return status.Errorf(codes.Internal, "transform failed for unknown reason")
+				return gctx.Err()
 			case <-ctx.Done():
 				close(recvRecords)
-				if err := eg.Wait(); err != nil {
-					return status.Errorf(codes.Internal, "context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
-				}
-				return status.Errorf(codes.Canceled, "context done: %v", ctx.Err())
+				return ctx.Err()
 			}
 		}
 	})
