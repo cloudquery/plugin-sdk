@@ -402,12 +402,11 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 
 func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	var (
-		recvRecords       = make(chan arrow.Record)
-		sendRecords       = make(chan arrow.Record)
-		pluginStopsWriter = make(chan struct{})
-		doneReading       = false
-		ctx               = stream.Context()
-		eg, gctx          = errgroup.WithContext(ctx)
+		recvRecords = make(chan arrow.Record)
+		sendRecords = make(chan arrow.Record)
+		pluginStops = make(chan error)
+		ctx         = stream.Context()
+		eg, gctx    = errgroup.WithContext(ctx)
 	)
 
 	// Run the plugin's transform with both channels.
@@ -416,10 +415,10 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	// The plugin must not close either channel.
 	eg.Go(func() error {
 		err := s.Plugin.Transform(gctx, recvRecords, sendRecords)
-		close(pluginStopsWriter)
-		doneReading = true
 		if err != nil {
-			return status.Error(codes.Internal, err.Error())
+			err = status.Error(codes.Internal, err.Error())
+			pluginStops <- err
+			return err
 		}
 		return nil
 	})
@@ -443,8 +442,8 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 				if err := stream.Send(&pb.Transform_Response{Record: recordBytes}); err != nil {
 					return status.Errorf(codes.Internal, "error sending response: %v", err)
 				}
-			case <-pluginStopsWriter:
-				return nil
+			case err := <-pluginStops:
+				return err
 			}
 		}
 	})
@@ -468,16 +467,30 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 				close(recvRecords)
 				return status.Errorf(codes.Internal, "Error receiving request: %v", err)
 			}
-			if doneReading {
-				return nil
-			}
 			record, err := pb.NewRecordFromBytes(req.Record)
 			if err != nil {
 				close(recvRecords)
 				return status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
 			}
 
-			recvRecords <- record
+			select {
+			case recvRecords <- record:
+			case err := <-pluginStops:
+				close(recvRecords)
+				return err
+			case <-gctx.Done():
+				close(recvRecords)
+				if err := eg.Wait(); err != nil {
+					return status.Errorf(codes.Canceled, "plugin returned error: %v", err)
+				}
+				return status.Errorf(codes.Internal, "transform failed for unknown reason")
+			case <-ctx.Done():
+				close(recvRecords)
+				if err := eg.Wait(); err != nil {
+					return status.Errorf(codes.Internal, "context done: %v and failed to wait for plugin: %v", ctx.Err(), err)
+				}
+				return status.Errorf(codes.Canceled, "context done: %v", ctx.Err())
+			}
 		}
 	})
 
