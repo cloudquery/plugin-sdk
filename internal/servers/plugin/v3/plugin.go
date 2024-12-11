@@ -418,7 +418,10 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 		err := s.Plugin.Transform(gctx, recvRecords, sendRecords)
 		close(pluginStopsWriter)
 		doneReading = true
-		return err
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+		return nil
 	})
 
 	// Write transformed records from transformer to destination.
@@ -438,7 +441,7 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 				}
 
 				if err := stream.Send(&pb.Transform_Response{Record: recordBytes}); err != nil {
-					return fmt.Errorf("error sending response: %w", err)
+					return status.Errorf(codes.Internal, "error sending response: %v", err)
 				}
 			case <-pluginStopsWriter:
 				return nil
@@ -463,7 +466,7 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 			}
 			if err != nil {
 				close(recvRecords)
-				return fmt.Errorf("Error receiving request: %v", err)
+				return status.Errorf(codes.Internal, "Error receiving request: %v", err)
 			}
 			if doneReading {
 				return nil
