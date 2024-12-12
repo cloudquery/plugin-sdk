@@ -404,7 +404,6 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	var (
 		recvRecords = make(chan arrow.Record)
 		sendRecords = make(chan arrow.Record)
-		pluginStops = make(chan error)
 		ctx         = stream.Context()
 		eg, gctx    = errgroup.WithContext(ctx)
 	)
@@ -414,11 +413,8 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	// When the plugin is done, it must return with either an error or nil.
 	// The plugin must not close either channel.
 	eg.Go(func() error {
-		err := s.Plugin.Transform(gctx, recvRecords, sendRecords)
-		if err != nil {
-			err = status.Error(codes.Internal, err.Error())
-			pluginStops <- err
-			return err
+		if err := s.Plugin.Transform(gctx, recvRecords, sendRecords); err != nil {
+			return status.Error(codes.Internal, err.Error())
 		}
 		return nil
 	})
@@ -431,21 +427,16 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	// The reading never closes the writer, because it's up to the Plugin to decide when to finish
 	// writing, regardless of if the reading finished.
 	eg.Go(func() error {
-		for {
-			select {
-			case record := <-sendRecords:
-				recordBytes, err := pb.RecordToBytes(record)
-				if err != nil {
-					return status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err)
-				}
-
-				if err := stream.Send(&pb.Transform_Response{Record: recordBytes}); err != nil {
-					return status.Errorf(codes.Internal, "error sending response: %v", err)
-				}
-			case err := <-pluginStops:
-				return err
+		for record := range sendRecords {
+			recordBytes, err := pb.RecordToBytes(record)
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err)
+			}
+			if err := stream.Send(&pb.Transform_Response{Record: recordBytes}); err != nil {
+				return status.Errorf(codes.Internal, "error sending response: %v", err)
 			}
 		}
+		return nil
 	})
 
 	// Read records from source to transformer
@@ -475,15 +466,12 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 
 			select {
 			case recvRecords <- record:
-			case err := <-pluginStops:
-				close(recvRecords)
-				return err
 			case <-gctx.Done():
 				close(recvRecords)
-				return gctx.Err()
+				return status.Errorf(codes.Canceled, "context done: %v", gctx.Err())
 			case <-ctx.Done():
 				close(recvRecords)
-				return ctx.Err()
+				return status.Errorf(codes.Canceled, "context done: %v", ctx.Err())
 			}
 		}
 	})
