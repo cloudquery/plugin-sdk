@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.71.1](https://github.com/cloudquery/plugin-sdk/compare/v4.71.0...v4.71.1) (2024-12-12)
+
+
+### Bug Fixes
+
+* Fix Transform hang in CLI sync ([#2001](https://github.com/cloudquery/plugin-sdk/issues/2001)) ([0474b9f](https://github.com/cloudquery/plugin-sdk/commit/0474b9fa43f4fd8a99e7fc55f6e651d1c7963213))
+
 ## [4.71.0](https://github.com/cloudquery/plugin-sdk/compare/v4.70.2...v4.71.0) (2024-12-09)
 
 
