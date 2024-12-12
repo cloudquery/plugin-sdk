@@ -201,20 +201,30 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 	ch <- &message.WriteInsert{
 		Record: record,
 	}
-	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
-		t.Fatalf("expected 0 insert messages, got %d", l)
-	}
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1)
 
 	ch <- &message.WriteInsert{
 		Record: record,
 	}
-	ch <- &message.WriteInsert{ // third message, because we flush before exceeding the limit and then save the third one
+
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 2)
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 0)
+
+	ch <- &message.WriteInsert{
 		Record: record,
 	}
 
 	waitForLength(t, testClient.MessageLen, messageTypeInsert, 2)
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1)
+
+	ch <- &message.WriteInsert{
+		Record: record,
+	}
+
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 4)
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 0)
 
 	close(ch)
 	if err := <-errCh; err != nil {
@@ -225,7 +235,7 @@ func TestStreamingBatchSizeRows(t *testing.T) {
 		t.Fatalf("expected 0 open tables, got %d", l)
 	}
 
-	if l := testClient.MessageLen(messageTypeInsert); l != 3 {
+	if l := testClient.MessageLen(messageTypeInsert); l != 4 {
 		t.Fatalf("expected 3 insert messages, got %d", l)
 	}
 }
@@ -253,18 +263,12 @@ func TestStreamingBatchTimeout(t *testing.T) {
 	ch <- &message.WriteInsert{
 		Record: record,
 	}
-	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
-		t.Fatalf("expected 0 insert messages, got %d", l)
-	}
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
 
-	// we need to wait for the batch to be flushed
-	time.Sleep(time.Millisecond * 50)
+	time.Sleep(time.Millisecond * 50) // we need to wait for the batch to be flushed
 
-	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
-		t.Fatalf("expected 0 insert messages, got %d", l)
-	}
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
 
 	// flush
 	tickFn()
@@ -301,31 +305,34 @@ func TestStreamingBatchNoTimeout(t *testing.T) {
 	ch <- &message.WriteInsert{
 		Record: record,
 	}
-	time.Sleep(50 * time.Millisecond)
 
-	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
-		t.Fatalf("expected 0 insert messages, got %d", l)
-	}
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1)
 
 	time.Sleep(2 * time.Second)
 
-	if l := testClient.MessageLen(messageTypeInsert); l != 0 {
-		t.Fatalf("expected 0 insert messages, got %d", l)
-	}
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1)
 
 	ch <- &message.WriteInsert{
 		Record: record,
 	}
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 2)
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 0)
+
 	ch <- &message.WriteInsert{
 		Record: record,
 	}
 
 	waitForLength(t, testClient.MessageLen, messageTypeInsert, 2)
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1)
 
 	close(ch)
 	if err := <-errCh; err != nil {
 		t.Fatal(err)
 	}
+
+	time.Sleep(50 * time.Millisecond)
 
 	if l := testClient.OpenLen(messageTypeInsert); l != 0 {
 		t.Fatalf("expected 0 open tables, got %d", l)
