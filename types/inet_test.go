@@ -4,8 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/apache/arrow/go/v17/arrow/array"
-	"github.com/apache/arrow/go/v17/arrow/memory"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +21,7 @@ func TestInetBuilder(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
 
-	b := NewInetBuilder(array.NewExtensionBuilder(mem, NewInetType()))
+	b := NewInetBuilder(mem)
 
 	b.Append(mustParseInet("192.168.0.0/24"))
 	b.AppendNull()
@@ -55,7 +54,7 @@ func TestInetBuilder(t *testing.T) {
 	b.Release()
 	a.Release()
 
-	b = NewInetBuilder(array.NewExtensionBuilder(mem, NewInetType()))
+	b = NewInetBuilder(mem)
 	err = b.UnmarshalJSON(st)
 	require.NoError(t, err)
 

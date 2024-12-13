@@ -3,7 +3,7 @@ package plugin
 import (
 	"context"
 
-	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 )
 
 type TransformerClient interface {
