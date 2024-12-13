@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.72.0](https://github.com/cloudquery/plugin-sdk/compare/v4.71.1...v4.72.0) (2024-12-13)
+
+
+### Features
+
+* Update to Arrow v18 ([#1997](https://github.com/cloudquery/plugin-sdk/issues/1997)) ([5b84d3d](https://github.com/cloudquery/plugin-sdk/commit/5b84d3deb1d9bad854fecd183871a58213ea4773))
+
 ## [4.71.1](https://github.com/cloudquery/plugin-sdk/compare/v4.71.0...v4.71.1) (2024-12-12)
 
 
