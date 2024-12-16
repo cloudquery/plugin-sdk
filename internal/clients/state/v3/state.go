@@ -6,10 +6,10 @@ import (
 	"io"
 	"sync"
 
-	"github.com/apache/arrow/go/v17/arrow"
-	"github.com/apache/arrow/go/v17/arrow/array"
-	"github.com/apache/arrow/go/v17/arrow/ipc"
-	"github.com/apache/arrow/go/v17/arrow/memory"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/ipc"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"google.golang.org/grpc"
@@ -36,21 +36,8 @@ type versionedValue struct {
 	version uint64
 }
 
-func VersionedTable(name string) *schema.Table {
-	t := table(name)
-	t.Columns = append(t.Columns, schema.Column{
-		// Not defined as PrimaryKey to enable single keys if the destination supports PKs
-		Name: versionColumn,
-		Type: arrow.PrimitiveTypes.Uint64,
-	})
-	return t
-}
-
 func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (*Client, error) {
-	return NewClientWithTable(ctx, conn, table(tableName))
-}
-
-func NewClientWithTable(ctx context.Context, conn *grpc.ClientConn, table *schema.Table) (*Client, error) {
+	table := Table(tableName)
 	c := &Client{
 		conn:          conn,
 		client:        pb.NewPluginClient(conn),
@@ -215,7 +202,7 @@ func (c *Client) Close() error {
 	return nil
 }
 
-func table(name string) *schema.Table {
+func Table(name string) *schema.Table {
 	return &schema.Table{
 		Name: name,
 		Columns: []schema.Column{
@@ -227,6 +214,11 @@ func table(name string) *schema.Table {
 			{
 				Name: valueColumn,
 				Type: arrow.BinaryTypes.String,
+			},
+			{
+				// Not defined as PrimaryKey to enable single keys if the destination supports PKs
+				Name: versionColumn,
+				Type: arrow.PrimitiveTypes.Uint64,
 			},
 		},
 	}

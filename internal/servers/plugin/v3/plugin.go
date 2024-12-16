@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -402,12 +402,10 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 
 func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	var (
-		recvRecords       = make(chan arrow.Record)
-		sendRecords       = make(chan arrow.Record)
-		pluginStopsWriter = make(chan struct{})
-		doneReading       = false
-		ctx               = stream.Context()
-		eg, gctx          = errgroup.WithContext(ctx)
+		recvRecords = make(chan arrow.Record)
+		sendRecords = make(chan arrow.Record)
+		ctx         = stream.Context()
+		eg, gctx    = errgroup.WithContext(ctx)
 	)
 
 	// Run the plugin's transform with both channels.
@@ -415,10 +413,10 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	// When the plugin is done, it must return with either an error or nil.
 	// The plugin must not close either channel.
 	eg.Go(func() error {
-		err := s.Plugin.Transform(gctx, recvRecords, sendRecords)
-		close(pluginStopsWriter)
-		doneReading = true
-		return err
+		if err := s.Plugin.Transform(gctx, recvRecords, sendRecords); err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+		return nil
 	})
 
 	// Write transformed records from transformer to destination.
@@ -429,21 +427,16 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	// The reading never closes the writer, because it's up to the Plugin to decide when to finish
 	// writing, regardless of if the reading finished.
 	eg.Go(func() error {
-		for {
-			select {
-			case record := <-sendRecords:
-				recordBytes, err := pb.RecordToBytes(record)
-				if err != nil {
-					return status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err)
-				}
-
-				if err := stream.Send(&pb.Transform_Response{Record: recordBytes}); err != nil {
-					return fmt.Errorf("error sending response: %w", err)
-				}
-			case <-pluginStopsWriter:
-				return nil
+		for record := range sendRecords {
+			recordBytes, err := pb.RecordToBytes(record)
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err)
+			}
+			if err := stream.Send(&pb.Transform_Response{Record: recordBytes}); err != nil {
+				return status.Errorf(codes.Internal, "error sending response: %v", err)
 			}
 		}
+		return nil
 	})
 
 	// Read records from source to transformer
@@ -463,10 +456,7 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 			}
 			if err != nil {
 				close(recvRecords)
-				return fmt.Errorf("Error receiving request: %v", err)
-			}
-			if doneReading {
-				return nil
+				return status.Errorf(codes.Internal, "Error receiving request: %v", err)
 			}
 			record, err := pb.NewRecordFromBytes(req.Record)
 			if err != nil {
@@ -474,7 +464,15 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 				return status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
 			}
 
-			recvRecords <- record
+			select {
+			case recvRecords <- record:
+			case <-gctx.Done():
+				close(recvRecords)
+				return status.Errorf(codes.Canceled, "context done: %v", gctx.Err())
+			case <-ctx.Done():
+				close(recvRecords)
+				return status.Errorf(codes.Canceled, "context done: %v", ctx.Err())
+			}
 		}
 	})
 

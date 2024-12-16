@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/batchsender"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -91,7 +92,15 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
 		logger.Info().Msg("top level table resolver started")
 	}
+
 	tableMetrics := s.metrics.TableClient[table.Name][clientName]
+	defer func() {
+		span.AddEvent("sync.finish.stats", trace.WithAttributes(
+			attribute.Key("sync.resources").Int64(int64(atomic.LoadUint64(&tableMetrics.Resources))),
+			attribute.Key("sync.errors").Int64(int64(atomic.LoadUint64(&tableMetrics.Errors))),
+			attribute.Key("sync.panics").Int64(int64(atomic.LoadUint64(&tableMetrics.Panics))),
+		))
+	}()
 	tableMetrics.OtelStartTime(ctx, startTime)
 
 	res := make(chan any)
@@ -113,9 +122,13 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 		}
 	}()
 
+	batchSender := batchsender.NewBatchSender(func(item any) {
+		s.resolveResourcesDfs(ctx, table, client, parent, item, resolvedResources, depth)
+	})
 	for r := range res {
-		s.resolveResourcesDfs(ctx, table, client, parent, r, resolvedResources, depth)
+		batchSender.Send(r)
 	}
+	batchSender.Close()
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
 	endTime := time.Now()

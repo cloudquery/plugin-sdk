@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -210,7 +210,7 @@ func (p *Plugin) Targets() []BuildTarget {
 }
 
 func (p *Plugin) SetLogger(logger zerolog.Logger) {
-	p.logger = logger.With().Str("module", p.name+"-"+string(p.Kind())).Logger()
+	p.logger = logger
 }
 
 func (p *Plugin) Tables(ctx context.Context, options TableOptions) (schema.Tables, error) {

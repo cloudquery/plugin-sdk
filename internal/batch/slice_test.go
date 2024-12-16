@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v17/arrow/util"
+	"github.com/apache/arrow-go/v18/arrow/util"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/stretchr/testify/assert"
 )

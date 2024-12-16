@@ -20,8 +20,8 @@ import (
 	"github.com/cloudquery/cloudquery-api-go/config"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -31,6 +31,9 @@ const (
 	defaultMaxWaitTime           = 60 * time.Second
 	defaultMinTimeBetweenFlushes = 10 * time.Second
 	defaultMaxTimeBetweenFlushes = 30 * time.Second
+
+	marketplaceDuplicateWaitTime = 1 * time.Second
+	marketplaceMinRetries        = 20
 )
 
 const (
@@ -43,6 +46,7 @@ const (
 	BatchLimitHeader            = "x-cq-batch-limit"
 	MinimumUpdateIntervalHeader = "x-cq-minimum-update-interval"
 	MaximumUpdateIntervalHeader = "x-cq-maximum-update-interval"
+	QueryIntervalHeader         = "x-cq-query-interval"
 )
 
 //go:generate mockgen -package=mocks -destination=../premium/mocks/marketplacemetering.go -source=usage.go AWSMarketplaceClientInterface
@@ -55,11 +59,19 @@ type TokenClient interface {
 	GetTokenType() auth.TokenType
 }
 
+type CheckQuotaResult struct {
+	// HasQuota is true if the quota has not been exceeded
+	HasQuota bool
+
+	// SuggestedQueryInterval is the suggested interval to wait before querying the API again
+	SuggestedQueryInterval time.Duration
+}
+
 type QuotaMonitor interface {
 	// TeamName returns the team name
 	TeamName() string
-	// HasQuota returns true if the quota has not been exceeded
-	HasQuota(context.Context) (bool, error)
+	// CheckQuota checks if the quota has been exceeded
+	CheckQuota(context.Context) (CheckQuotaResult, error)
 }
 
 type UsageClient interface {
@@ -99,7 +111,9 @@ func WithMinTimeBetweenFlushes(minTimeBetweenFlushes time.Duration) UsageClientO
 // WithMaxRetries sets the maximum number of retries to update the usage in case of an API error
 func WithMaxRetries(maxRetries int) UsageClientOptions {
 	return func(updater *BatchUpdater) {
-		updater.maxRetries = maxRetries
+		if maxRetries > 0 {
+			updater.maxRetries = maxRetries
+		}
 	}
 }
 
@@ -186,7 +200,11 @@ type BatchUpdater struct {
 	done                chan struct{}
 	closeError          chan error
 	isClosed            bool
+	dataOnClose         bool
 	usageIncreaseMethod int
+
+	// Testing
+	timeFunc func() time.Time
 }
 
 func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, error) {
@@ -205,6 +223,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		triggerUpdate:         make(chan struct{}),
 		done:                  make(chan struct{}),
 		closeError:            make(chan error),
+		timeFunc:              time.Now,
 
 		tables: map[string]uint32{},
 	}
@@ -235,18 +254,26 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 
 	// Create a default api client if none was provided
 	if u.apiClient == nil {
-		ac, err := cqapi.NewClientWithResponses(u.url, cqapi.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
-			token, err := u.tokenClient.GetToken()
-			if err != nil {
-				return fmt.Errorf("failed to get token: %w", err)
-			}
-			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-			return nil
-		}))
+		retryClient := retryablehttp.NewClient()
+		retryClient.Logger = nil
+		retryClient.RetryMax = u.maxRetries
+		retryClient.RetryWaitMax = u.maxWaitTime
+
+		var err error
+		u.apiClient, err = cqapi.NewClientWithResponses(u.url,
+			cqapi.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
+				token, err := u.tokenClient.GetToken()
+				if err != nil {
+					return fmt.Errorf("failed to get token: %w", err)
+				}
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+				return nil
+			}),
+			cqapi.WithHTTPClient(retryClient.StandardClient()),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create api client: %w", err)
 		}
-		u.apiClient = ac
 	}
 
 	// Set team name from configuration if not provided
@@ -264,7 +291,8 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 }
 
 func (u *BatchUpdater) setupAWSMarketplace() error {
-	cfg, err := awsConfig.LoadDefaultConfig(context.TODO())
+	ctx := context.TODO()
+	cfg, err := awsConfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
@@ -277,7 +305,19 @@ func (u *BatchUpdater) setupAWSMarketplace() error {
 	u.batchLimit = 1000000000
 
 	u.minTimeBetweenFlushes = 1 * time.Minute
+	u.maxRetries = max(u.maxRetries, marketplaceMinRetries)
 	u.backgroundUpdater()
+
+	_, err = u.awsMarketplaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
+		ProductCode:    aws.String(awsMarketplaceProductCode()),
+		Timestamp:      aws.Time(u.timeFunc()),
+		UsageDimension: aws.String("rows"),
+		UsageQuantity:  aws.Int32(int32(0)),
+		DryRun:         aws.Bool(true),
+	})
+	if err != nil {
+		return fmt.Errorf("failed dry run invocation with error: %w", err)
+	}
 	return nil
 }
 
@@ -358,21 +398,34 @@ func (u *BatchUpdater) TeamName() string {
 	return u.teamName
 }
 
-func (u *BatchUpdater) HasQuota(ctx context.Context) (bool, error) {
+func (u *BatchUpdater) CheckQuota(ctx context.Context) (CheckQuotaResult, error) {
 	if u.awsMarketplaceClient != nil {
-		return true, nil
+		return CheckQuotaResult{HasQuota: true}, nil
 	}
 	u.logger.Debug().Str("url", u.url).Str("team", u.teamName).Str("pluginTeam", u.pluginMeta.Team).Str("pluginKind", string(u.pluginMeta.Kind)).Str("pluginName", u.pluginMeta.Name).Msg("checking quota")
 	usage, err := u.apiClient.GetTeamPluginUsageWithResponse(ctx, u.teamName, u.pluginMeta.Team, u.pluginMeta.Kind, u.pluginMeta.Name)
 	if err != nil {
-		return false, fmt.Errorf("failed to get usage: %w", err)
+		return CheckQuotaResult{HasQuota: false}, fmt.Errorf("failed to get usage: %w", err)
 	}
 	if usage.StatusCode() != http.StatusOK {
-		return false, fmt.Errorf("failed to get usage: %s", usage.Status())
+		return CheckQuotaResult{HasQuota: false}, fmt.Errorf("failed to get usage: %s", usage.Status())
 	}
 
-	hasQuota := usage.JSON200.RemainingRows == nil || *usage.JSON200.RemainingRows > 0
-	return hasQuota, nil
+	res := CheckQuotaResult{
+		HasQuota: usage.JSON200.RemainingRows == nil || *usage.JSON200.RemainingRows > 0,
+	}
+	if usage.HTTPResponse == nil {
+		return res, nil
+	}
+	if headerValue := usage.HTTPResponse.Header.Get(QueryIntervalHeader); headerValue != "" {
+		interval, err := strconv.ParseUint(headerValue, 10, 32)
+		if interval > 0 {
+			res.SuggestedQueryInterval = time.Duration(interval) * time.Second
+		} else {
+			u.logger.Warn().Err(err).Str(QueryIntervalHeader, headerValue).Msg("failed to parse query interval")
+		}
+	}
+	return res, nil
 }
 
 func (u *BatchUpdater) Close() error {
@@ -449,13 +502,13 @@ func (u *BatchUpdater) backgroundUpdater() {
 				}
 				// If we are using AWS Marketplace, we need to round down to the nearest 1000
 				// Only on the last update, will we round up to the nearest 1000
-				// This will allow us to not over charge the customer by rounding on each batch
+				// This will allow us to not overcharge the customer by rounding on each batch
 				if u.awsMarketplaceClient != nil {
 					totals = roundDown(totals, 1000)
 				}
 
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
-					log.Warn().Err(err).Msg("failed to update usage")
+					u.logger.Warn().Err(err).Msg("failed to update usage")
 					continue
 				}
 				u.subtractTableUsage(tables, totals)
@@ -473,12 +526,12 @@ func (u *BatchUpdater) backgroundUpdater() {
 				}
 				// If we are using AWS Marketplace, we need to round down to the nearest 1000
 				// Only on the last update, will we round up to the nearest 1000
-				// This will allow us to not over charge the customer by rounding on each batch
+				// This will allow us to not overcharge the customer by rounding on each batch
 				if u.awsMarketplaceClient != nil {
 					totals = roundDown(totals, 1000)
 				}
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
-					log.Warn().Err(err).Msg("failed to update usage")
+					u.logger.Warn().Err(err).Msg("failed to update usage")
 					continue
 				}
 				u.subtractTableUsage(tables, totals)
@@ -486,6 +539,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 			case <-u.done:
 				tables, totals := u.getTableUsage()
 				if totals != 0 {
+					u.dataOnClose = true
 					// To allow us to round up the total in the last batch we need to save the original total
 					// to use in the last subtractTableUsage
 					originalTotals := totals
@@ -535,118 +589,104 @@ func (u *BatchUpdater) reportUsageToAWSMarketplace(ctx context.Context, rows uin
 		// Each product is given a unique product code when it is listed in AWS Marketplace
 		// in the future we can have multiple product codes for container or AMI based listings
 		ProductCode:      aws.String(awsMarketplaceProductCode()),
-		Timestamp:        aws.Time(time.Now()),
+		Timestamp:        aws.Time(u.timeFunc()),
 		UsageDimension:   aws.String("rows"),
 		UsageAllocations: usage,
 		UsageQuantity:    aws.Int32(int32(rows)),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update usage with : %w", err)
+		return fmt.Errorf("failed to update usage: %w", err)
 	}
 	return nil
 }
 
-func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows uint32, tables []cqapi.UsageIncreaseTablesInner) error {
+func (u *BatchUpdater) updateMarketplaceUsage(ctx context.Context, rows uint32) error {
+	var lastErr error
 	for retry := 0; retry < u.maxRetries; retry++ {
-		u.logger.Debug().Str("url", u.url).Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
-		queryStartTime := time.Now()
+		u.logger.Debug().Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
 
-		// If the AWS Marketplace client is set, use it to track usage
-		if u.awsMarketplaceClient != nil {
-			return u.reportUsageToAWSMarketplace(ctx, rows)
-		}
-		payload := cqapi.IncreaseTeamPluginUsageJSONRequestBody{
-			RequestId:  uuid.New(),
-			PluginTeam: u.pluginMeta.Team,
-			PluginKind: u.pluginMeta.Kind,
-			PluginName: u.pluginMeta.Name,
-			Rows:       int(rows),
-		}
-
-		if len(tables) > 0 {
-			payload.Tables = &tables
-		}
-
-		resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, payload)
-		if err != nil {
-			return fmt.Errorf("failed to update usage: %w", err)
-		}
-		if resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
-			u.logger.Debug().Str("url", u.url).Int("try", retry).Int("status_code", resp.StatusCode()).Uint32("rows", rows).Msg("usage updated")
-			u.lastUpdateTime = time.Now().UTC()
-			if resp.HTTPResponse != nil {
-				u.updateConfigurationFromHeaders(resp.HTTPResponse.Header)
-			}
+		lastErr = u.reportUsageToAWSMarketplace(ctx, rows)
+		if lastErr == nil {
+			u.logger.Debug().Int("try", retry).Uint32("rows", rows).Msg("usage updated")
 			return nil
 		}
 
-		retryDuration, err := u.calculateRetryDuration(resp.StatusCode(), resp.HTTPResponse.Header, queryStartTime, retry)
-		if err != nil {
-			return fmt.Errorf("failed to calculate retry duration: %w", err)
+		var de *types.DuplicateRequestException
+		if !errors.As(lastErr, &de) {
+			return fmt.Errorf("failed to update usage: %w", lastErr)
 		}
-		if retryDuration > 0 {
-			time.Sleep(retryDuration)
-		}
+		u.logger.Debug().Err(lastErr).Int("try", retry).Uint32("rows", rows).Msg("usage update failed due to duplicate request")
+
+		jitter := time.Duration(rand.Intn(1000)) * time.Millisecond
+		time.Sleep(marketplaceDuplicateWaitTime + jitter)
 	}
-	return fmt.Errorf("failed to update usage: max retries exceeded")
+	return fmt.Errorf("failed to update usage: max retries exceeded: %w", lastErr)
+}
+
+func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows uint32, tables []cqapi.UsageIncreaseTablesInner) error {
+	// If the AWS Marketplace client is set, use it to track usage
+	if u.awsMarketplaceClient != nil {
+		return u.updateMarketplaceUsage(ctx, rows)
+	}
+
+	u.logger.Debug().Str("url", u.url).Uint32("rows", rows).Msg("updating usage")
+	payload := cqapi.IncreaseTeamPluginUsageJSONRequestBody{
+		RequestId:  uuid.New(),
+		PluginTeam: u.pluginMeta.Team,
+		PluginKind: u.pluginMeta.Kind,
+		PluginName: u.pluginMeta.Name,
+		Rows:       int(rows),
+	}
+
+	if len(tables) > 0 {
+		payload.Tables = &tables
+	}
+
+	resp, err := u.apiClient.IncreaseTeamPluginUsageWithResponse(ctx, u.teamName, payload)
+	if err == nil && resp.StatusCode() >= 200 && resp.StatusCode() < 300 {
+		u.logger.Debug().Str("url", u.url).Int("status_code", resp.StatusCode()).Uint32("rows", rows).Msg("usage updated")
+		u.lastUpdateTime = u.timeFunc().UTC()
+		if resp.HTTPResponse != nil {
+			u.updateConfigurationFromHeaders(resp.HTTPResponse.Header)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("failed to update usage: %w", err)
 }
 
 // updateConfigurationFromHeaders updates the configuration based on the headers returned by the API
 func (u *BatchUpdater) updateConfigurationFromHeaders(header http.Header) {
 	if headerValue := header.Get(BatchLimitHeader); headerValue != "" {
-		if newBatchLimit, err := strconv.ParseUint(headerValue, 10, 32); err != nil {
-			u.logger.Warn().Err(err).Str(BatchLimitHeader, headerValue).Msg("failed to parse batch limit")
-		} else {
+		newBatchLimit, err := strconv.ParseUint(headerValue, 10, 32)
+		if newBatchLimit > 0 {
 			u.batchLimit = uint32(newBatchLimit)
+		} else {
+			u.logger.Warn().Err(err).Str(BatchLimitHeader, headerValue).Msg("failed to parse batch limit")
 		}
 	}
 
 	if headerValue := header.Get(MinimumUpdateIntervalHeader); headerValue != "" {
-		if newInterval, err := strconv.ParseInt(headerValue, 10, 32); err != nil {
-			u.logger.Warn().Err(err).Str(MinimumUpdateIntervalHeader, headerValue).Msg("failed to parse minimum update interval")
-		} else {
+		newInterval, err := strconv.ParseInt(headerValue, 10, 32)
+		if newInterval > 0 {
 			u.minTimeBetweenFlushes = time.Duration(newInterval) * time.Second
+		} else {
+			u.logger.Warn().Err(err).Str(MinimumUpdateIntervalHeader, headerValue).Msg("failed to parse minimum update interval")
 		}
 	}
 
 	if headerValue := header.Get(MaximumUpdateIntervalHeader); headerValue != "" {
-		if newInterval, err := strconv.ParseInt(headerValue, 10, 32); err != nil {
-			u.logger.Warn().Err(err).Str(MaximumUpdateIntervalHeader, headerValue).Msg("failed to parse maximum update interval")
-		} else {
+		newInterval, err := strconv.ParseInt(headerValue, 10, 32)
+		if newInterval > 0 {
 			newMaxTimeBetweenFlushes := time.Duration(newInterval) * time.Second
 			if u.maxTimeBetweenFlushes != newMaxTimeBetweenFlushes {
 				u.maxTimeBetweenFlushes = newMaxTimeBetweenFlushes
 				u.flushDuration.Reset(u.maxTimeBetweenFlushes)
 			}
+		} else {
+			u.logger.Warn().Err(err).Str(MaximumUpdateIntervalHeader, headerValue).Msg("failed to parse maximum update interval")
 		}
 	}
-}
-
-// calculateRetryDuration calculates the duration to sleep relative to the query start time before retrying an update
-func (u *BatchUpdater) calculateRetryDuration(statusCode int, headers http.Header, queryStartTime time.Time, retry int) (time.Duration, error) {
-	if !retryableStatusCode(statusCode) {
-		return 0, fmt.Errorf("non-retryable status code: %d", statusCode)
-	}
-
-	// Check if we have a retry-after header
-	retryAfter := headers.Get("Retry-After")
-	if retryAfter != "" {
-		retryDelay, err := time.ParseDuration(retryAfter + "s")
-		if err != nil {
-			return 0, fmt.Errorf("failed to parse retry-after header: %w", err)
-		}
-		return retryDelay, nil
-	}
-
-	// Calculate exponential backoff
-	baseRetry := min(time.Duration(1<<retry)*time.Second, u.maxWaitTime)
-	jitter := time.Duration(rand.Intn(1000)) * time.Millisecond
-	retryDelay := baseRetry + jitter
-	return retryDelay - time.Since(queryStartTime), nil
-}
-
-func retryableStatusCode(statusCode int) bool {
-	return statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable
 }
 
 func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string, error) {
@@ -695,8 +735,8 @@ func (n *NoOpUsageClient) TeamName() string {
 	return n.TeamNameValue
 }
 
-func (NoOpUsageClient) HasQuota(_ context.Context) (bool, error) {
-	return true, nil
+func (NoOpUsageClient) CheckQuota(_ context.Context) (CheckQuotaResult, error) {
+	return CheckQuotaResult{HasQuota: true}, nil
 }
 
 func (NoOpUsageClient) Increase(_ uint32) error {

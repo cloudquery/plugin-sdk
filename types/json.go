@@ -8,16 +8,17 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"github.com/apache/arrow/go/v17/arrow"
-	"github.com/apache/arrow/go/v17/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 )
 
 type JSONBuilder struct {
 	*array.ExtensionBuilder
 }
 
-func NewJSONBuilder(builder *array.ExtensionBuilder) *JSONBuilder {
-	return &JSONBuilder{ExtensionBuilder: builder}
+func NewJSONBuilder(mem memory.Allocator) *JSONBuilder {
+	return &JSONBuilder{ExtensionBuilder: array.NewExtensionBuilder(mem, NewJSONType())}
 }
 
 func (b *JSONBuilder) AppendBytes(v []byte) {
@@ -239,6 +240,6 @@ func (e *JSONType) ExtensionEquals(other arrow.ExtensionType) bool {
 	return e.ExtensionName() == other.ExtensionName()
 }
 
-func (*JSONType) NewBuilder(bldr *array.ExtensionBuilder) array.Builder {
-	return NewJSONBuilder(bldr)
+func (*JSONType) NewBuilder(mem memory.Allocator) array.Builder {
+	return NewJSONBuilder(mem)
 }

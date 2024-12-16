@@ -13,8 +13,12 @@ jobs:
     steps:
       - name: Git checkout
         uses: actions/checkout@v4
+      - run: |
+          venv="$HOME/.local/share/venv"
+          python3 -m venv "$venv"
+          echo "$venv/bin" >> $GITHUB_PATH
       - name: Vale
-        uses: errata-ai/vale-action@v2
+        uses: errata-ai/vale-action@2690bc95f0ed3cb5220492575af09c51b04fbea9
         with:
           vale_flags: "--glob=!{docs/testdata/*,CHANGELOG.md,.github/styles/proselint/README.md,examples/simple_plugin/docs/*.md}"
           filter_mode: nofilter
