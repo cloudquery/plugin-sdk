@@ -26,9 +26,15 @@ import (
 
 // newResource returns a resource describing this application.
 func newResource(p *plugin.Plugin) *resource.Resource {
+	def := resource.Default()
+	schemaURL := def.SchemaURL()
+	if schemaURL == "" {
+		schemaURL = semconv.SchemaURL
+	}
 	r, err := resource.Merge(
-		resource.Default(),
-		resource.NewSchemaless(
+		def,
+		resource.NewWithAttributes(
+			schemaURL,
 			semconv.ServiceName("cloudquery-"+p.Name()),
 			semconv.ServiceVersion(p.Version()),
 		),
