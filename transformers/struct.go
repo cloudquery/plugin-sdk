@@ -284,7 +284,7 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 			if !structField.IsExported() || isTypeIgnored(structField.Type) {
 				continue
 			}
-			name, err := JsonTagOrFieldName(structField)
+			name, err := JSONTagOrFieldName(structField)
 			if err != nil {
 				continue
 			}
