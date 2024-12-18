@@ -28,8 +28,7 @@ import (
 func newResource(p *plugin.Plugin) *resource.Resource {
 	r, err := resource.Merge(
 		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
+		resource.NewSchemaless(
 			semconv.ServiceName("cloudquery-"+p.Name()),
 			semconv.ServiceVersion(p.Version()),
 		),
