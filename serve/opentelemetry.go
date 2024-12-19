@@ -153,7 +153,7 @@ func setupOtel(ctx context.Context, logger zerolog.Logger, p *plugin.Plugin, ote
 
 	lp := log.NewLoggerProvider(
 		log.WithProcessor(logsProcessor),
-		log.WithResource(newResource(p)),
+		log.WithResource(pluginResource),
 	)
 
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
