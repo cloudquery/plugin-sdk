@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.25.7
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.13.5
-	github.com/cloudquery/plugin-pb-go v1.26.1
+	github.com/cloudquery/plugin-pb-go v1.26.0
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/goccy/go-json v0.10.3
 	github.com/golang/mock v1.6.0
@@ -42,7 +42,7 @@ require (
 	golang.org/x/oauth2 v0.24.0
 	golang.org/x/sync v0.10.0
 	golang.org/x/text v0.21.0
-	google.golang.org/grpc v1.69.0
+	google.golang.org/grpc v1.68.0
 	google.golang.org/protobuf v1.35.2
 )
 
