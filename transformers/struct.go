@@ -29,6 +29,7 @@ type structTransformer struct {
 	pkFieldsFound                 []string
 	pkComponentFields             []string
 	pkComponentFieldsFound        []string
+	jsonSchemaNameTransformer     NameTransformer
 
 	maxJSONTypeSchemaDepth int
 }
@@ -194,11 +195,12 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
-		nameTransformer:          DefaultNameTransformer,
-		typeTransformer:          DefaultTypeTransformer,
-		resolverTransformer:      DefaultResolverTransformer,
-		ignoreInTestsTransformer: DefaultIgnoreInTestsTransformer,
-		maxJSONTypeSchemaDepth:   DefaultMaxJSONTypeSchemaDepth,
+		nameTransformer:           DefaultNameTransformer,
+		typeTransformer:           DefaultTypeTransformer,
+		resolverTransformer:       DefaultResolverTransformer,
+		ignoreInTestsTransformer:  DefaultIgnoreInTestsTransformer,
+		jsonSchemaNameTransformer: DefaultJSONColumnSchemaNameTransformer,
+		maxJSONTypeSchemaDepth:    DefaultMaxJSONTypeSchemaDepth,
 	}
 	for _, opt := range opts {
 		opt(t)
@@ -284,7 +286,7 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 			if !structField.IsExported() || isTypeIgnored(structField.Type) {
 				continue
 			}
-			name, err := JSONTagOrFieldName(structField)
+			name, err := t.jsonSchemaNameTransformer(structField)
 			if err != nil {
 				continue
 			}

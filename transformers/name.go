@@ -26,7 +26,7 @@ func DefaultNameTransformer(field reflect.StructField) (string, error) {
 	return defaultCaser.ToSnake(name), nil
 }
 
-func JSONTagOrFieldName(field reflect.StructField) (string, error) {
+func DefaultJSONColumnSchemaNameTransformer(field reflect.StructField) (string, error) {
 	name := field.Name
 	if jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]; len(jsonTag) > 0 {
 		// return empty string if the field is not related api response
