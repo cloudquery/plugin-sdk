@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.72.1](https://github.com/cloudquery/plugin-sdk/compare/v4.72.0...v4.72.1) (2024-12-19)
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2007](https://github.com/cloudquery/plugin-sdk/issues/2007)) ([7f3818d](https://github.com/cloudquery/plugin-sdk/commit/7f3818d51a2d60bc7dc2a3846ef038a783d984bc))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.13.5 ([#2015](https://github.com/cloudquery/plugin-sdk/issues/2015)) ([9b6e9f2](https://github.com/cloudquery/plugin-sdk/commit/9b6e9f29ac3d165bf5470e933b8638a961b4bd64))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.1 ([#2010](https://github.com/cloudquery/plugin-sdk/issues/2010)) ([b12dc10](https://github.com/cloudquery/plugin-sdk/commit/b12dc1033a5130629c4ff3eb76c233704df81747))
+* **deps:** Update module golang.org/x/net to v0.33.0 [SECURITY] ([#2014](https://github.com/cloudquery/plugin-sdk/issues/2014)) ([7360bd2](https://github.com/cloudquery/plugin-sdk/commit/7360bd26d49e76f48182efdad8d75a07a95e0263))
+* **deps:** Update module google.golang.org/grpc to v1.69.0 ([#2008](https://github.com/cloudquery/plugin-sdk/issues/2008)) ([aae018f](https://github.com/cloudquery/plugin-sdk/commit/aae018f9838c80c3ff5f10ec6b47c41d809b4694))
+* OpenTelemetry schema URL panic ([#2012](https://github.com/cloudquery/plugin-sdk/issues/2012)) ([b616279](https://github.com/cloudquery/plugin-sdk/commit/b6162796a417cea0b8bb0efee8074917dce63415))
+
 ## [4.72.0](https://github.com/cloudquery/plugin-sdk/compare/v4.71.1...v4.72.0) (2024-12-13)
 
 
