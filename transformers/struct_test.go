@@ -12,6 +12,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
 
 type (
@@ -665,6 +666,23 @@ func TestJSONTypeSchema(t *testing.T) {
 				"item": `{"exported":"utf8"}`,
 			},
 		},
+		{
+			name: "no json tags",
+			testStruct: struct {
+				Tags map[string]string
+				Item struct {
+					Name         string
+					Tags         map[string]string
+					FlatItems    []string
+					ComplexItems []struct {
+						Name string
+					}
+				}
+			}{},
+			want: map[string]string{
+				"item": `{"ComplexItems":[{"Name":"utf8"}],"FlatItems":["utf8"],"Name":"utf8","Tags":{"utf8":"utf8"}}`,
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -684,6 +702,7 @@ func TestJSONTypeSchema(t *testing.T) {
 			}
 			for col, schema := range tt.want {
 				column := table.Column(col)
+				require.NotNil(t, column, "column %q not found", col)
 				if diff := cmp.Diff(column.TypeSchema, schema); diff != "" {
 					t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
 				}
