@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.72.5](https://github.com/cloudquery/plugin-sdk/compare/v4.72.4...v4.72.5) (2024-12-23)
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2032](https://github.com/cloudquery/plugin-sdk/issues/2032)) ([7f6fb0a](https://github.com/cloudquery/plugin-sdk/commit/7f6fb0a5fe726a94cad0c970c94234611efc1453))
+* **deps:** Update golang.org/x/exp digest to b2144cd ([#2029](https://github.com/cloudquery/plugin-sdk/issues/2029)) ([f955d43](https://github.com/cloudquery/plugin-sdk/commit/f955d4384eb6f89af3582315824061756a5b2251))
+* **deps:** Update Google Golang modules ([#2031](https://github.com/cloudquery/plugin-sdk/issues/2031)) ([1da77a5](https://github.com/cloudquery/plugin-sdk/commit/1da77a55cc74d433bed8d3e815b80e529d66a5b5))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.3 ([#2035](https://github.com/cloudquery/plugin-sdk/issues/2035)) ([310aea1](https://github.com/cloudquery/plugin-sdk/commit/310aea168cf7ce58cf1fa459381a32529f813458))
+* **deps:** Update module github.com/grpc-ecosystem/go-grpc-middleware/v2 to v2.2.0 ([#2033](https://github.com/cloudquery/plugin-sdk/issues/2033)) ([58d29b3](https://github.com/cloudquery/plugin-sdk/commit/58d29b3bc5a47cabd0add3ee72b44d92ee5223e6))
+* **deps:** Update module google.golang.org/grpc to v1.69.0 ([#2027](https://github.com/cloudquery/plugin-sdk/issues/2027)) ([8542575](https://github.com/cloudquery/plugin-sdk/commit/85425759ef318b73112d8e4951ce3efb4dd39831))
+
 ## [4.72.4](https://github.com/cloudquery/plugin-sdk/compare/v4.72.3...v4.72.4) (2024-12-20)
 
 
