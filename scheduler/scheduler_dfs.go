@@ -189,10 +189,15 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 					return
 				}
 				if err := resolvedResource.Validate(); err != nil {
-					tableMetrics := s.metrics.TableClient[table.Name][client.ID()]
-					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
-					atomic.AddUint64(&tableMetrics.Errors, 1)
-					return
+					switch err.(type) {
+					case *schema.PKError:
+						tableMetrics := s.metrics.TableClient[table.Name][client.ID()]
+						s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
+						atomic.AddUint64(&tableMetrics.Errors, 1)
+						return
+					case *schema.PKComponentError:
+						s.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")
+					}
 				}
 				select {
 				case resourcesChan <- resolvedResource:

@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -39,12 +38,12 @@ func TestResource_Validate(t *testing.T) {
 		{
 			name:     "invalid resource with primary keys",
 			resource: NewResourceData(&Table{Name: "test", Columns: ColumnList{{Name: "col1", Type: arrow.BinaryTypes.String, PrimaryKey: true}}}, nil, nil),
-			err:      errors.New(`missing primary key on columns: [col1]`),
+			err:      &PKError{MissingPKs: []string{"col1"}},
 		},
 		{
 			name:     "invalid resource with primary key components",
 			resource: NewResourceData(&Table{Name: "test", Columns: ColumnList{{Name: "col1", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true}}}, nil, nil),
-			err:      errors.New(`missing primary key component on columns: [col1]`),
+			err:      &PKComponentError{MissingPKComponents: []string{"col1"}},
 		},
 	}
 	for _, tt := range tests {
@@ -53,11 +52,7 @@ func TestResource_Validate(t *testing.T) {
 				require.NoError(t, tt.valueSetter(tt.resource))
 			}
 			validationError := tt.resource.Validate()
-			if tt.err == nil {
-				require.NoError(t, validationError)
-			} else {
-				require.ErrorContains(t, validationError, tt.err.Error())
-			}
+			require.Equal(t, tt.err, validationError)
 		})
 	}
 }
