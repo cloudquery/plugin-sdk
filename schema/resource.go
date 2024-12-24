@@ -126,15 +126,20 @@ func (r *Resource) storeCQID(value uuid.UUID) error {
 // Validates that all primary keys have values.
 func (r *Resource) Validate() error {
 	var missingPks []string
+	var missingPKComponents []string
 	for i, c := range r.Table.Columns {
-		if c.PrimaryKey {
-			if !r.data[i].IsValid() {
-				missingPks = append(missingPks, c.Name)
-			}
+		switch {
+		case c.PrimaryKey && !r.data[i].IsValid():
+			missingPks = append(missingPks, c.Name)
+		case c.PrimaryKeyComponent && !r.data[i].IsValid():
+			missingPKComponents = append(missingPKComponents, c.Name)
 		}
 	}
 	if len(missingPks) > 0 {
 		return fmt.Errorf("missing primary key on columns: %v", missingPks)
+	}
+	if len(missingPKComponents) > 0 {
+		return fmt.Errorf("missing primary key component on columns: %v", missingPKComponents)
 	}
 	return nil
 }
