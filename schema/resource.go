@@ -123,6 +123,22 @@ func (r *Resource) storeCQID(value uuid.UUID) error {
 	return r.Set(CqIDColumn.Name, b)
 }
 
+type PKError struct {
+	MissingPKs []string
+}
+
+func (e *PKError) Error() string {
+	return fmt.Sprintf("missing primary key on columns: %v", e.MissingPKs)
+}
+
+type PKComponentError struct {
+	MissingPKComponents []string
+}
+
+func (e *PKComponentError) Error() string {
+	return fmt.Sprintf("missing primary key component on columns: %v", e.MissingPKComponents)
+}
+
 // Validates that all primary keys have values.
 func (r *Resource) Validate() error {
 	var missingPks []string
@@ -136,10 +152,10 @@ func (r *Resource) Validate() error {
 		}
 	}
 	if len(missingPks) > 0 {
-		return fmt.Errorf("missing primary key on columns: %v", missingPks)
+		return &PKError{MissingPKs: missingPks}
 	}
 	if len(missingPKComponents) > 0 {
-		return fmt.Errorf("missing primary key component on columns: %v", missingPKComponents)
+		return &PKComponentError{MissingPKComponents: missingPKComponents}
 	}
 	return nil
 }
