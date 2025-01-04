@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.72.6](https://github.com/cloudquery/plugin-sdk/compare/v4.72.5...v4.72.6) (2025-01-04)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/goccy/go-json to v0.10.4 ([#2040](https://github.com/cloudquery/plugin-sdk/issues/2040)) ([f6e0201](https://github.com/cloudquery/plugin-sdk/commit/f6e0201f18745a8d96bb2fbae92b9cfcffdb646a))
+* **deps:** Update module google.golang.org/protobuf to v1.36.1 ([#2043](https://github.com/cloudquery/plugin-sdk/issues/2043)) ([13437c2](https://github.com/cloudquery/plugin-sdk/commit/13437c25d40dd7b2d0b32efa560d65b6f7a5af1d))
+* **deps:** Update opentelemetry-go monorepo ([#2042](https://github.com/cloudquery/plugin-sdk/issues/2042)) ([e6123c3](https://github.com/cloudquery/plugin-sdk/commit/e6123c3c14920bd60c723e37bf600e15821c87f1))
+* Validate missing PK components ([#2037](https://github.com/cloudquery/plugin-sdk/issues/2037)) ([d2cff6b](https://github.com/cloudquery/plugin-sdk/commit/d2cff6b5fb90ebdd7063384166115a50ce2132f4))
+
 ## [4.72.5](https://github.com/cloudquery/plugin-sdk/compare/v4.72.4...v4.72.5) (2024-12-23)
 
 
