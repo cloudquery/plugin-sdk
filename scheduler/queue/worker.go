@@ -147,6 +147,9 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
 				}
+				if err := resolvedResource.StoreCQClientID(client.ID()); err != nil {
+					w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("failed to store _cq_client_id")
+				}
 				if err := resolvedResource.Validate(); err != nil {
 					switch err.(type) {
 					case *schema.PKError:

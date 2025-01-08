@@ -29,6 +29,13 @@ var CqParentIDColumn = Column{
 	IgnoreInTests: true,
 }
 
+var CqClientIDColumn = Column{
+	Name:        "_cq_client_id",
+	Type:        arrow.BinaryTypes.String,
+	Description: "Internal CQ ID of the multiplexed client",
+	NotNull:     true,
+}
+
 // These columns are managed and populated by the destination plugin.
 var CqSyncTimeColumn = Column{
 	Name:        "_cq_sync_time",
