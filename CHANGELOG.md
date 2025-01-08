@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.73.0](https://github.com/cloudquery/plugin-sdk/compare/v4.72.6...v4.73.0) (2025-01-08)
+
+
+### Features
+
+* Enable storing _cq_client_id. ([#2046](https://github.com/cloudquery/plugin-sdk/issues/2046)) ([3b28991](https://github.com/cloudquery/plugin-sdk/commit/3b2899111934e3d4f925ec75f2ffec61fbc038eb))
+
 ## [4.72.6](https://github.com/cloudquery/plugin-sdk/compare/v4.72.5...v4.72.6) (2025-01-07)
 
 
