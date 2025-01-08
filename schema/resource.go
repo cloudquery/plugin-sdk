@@ -123,6 +123,14 @@ func (r *Resource) storeCQID(value uuid.UUID) error {
 	return r.Set(CqIDColumn.Name, b)
 }
 
+func (r *Resource) StoreCQClientID(clientID string) error {
+	// We skip if _cq_client_id is not present.
+	if r.Table.Columns.Get(CqClientIDColumn.Name) == nil {
+		return nil
+	}
+	return r.Set(CqClientIDColumn.Name, clientID)
+}
+
 type PKError struct {
 	MissingPKs []string
 }

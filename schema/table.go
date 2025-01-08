@@ -127,6 +127,12 @@ func AddCqIDs(table *Table) {
 	}
 }
 
+// AddCqClientID adds the cq_client_id column to the table,
+// which is used to identify the multiplexed client that fetched the resource
+func AddCqClientID(t *Table) {
+	t.Columns = append(ColumnList{CqClientIDColumn}, t.Columns...)
+}
+
 // CqIDAsPK sets the cq_id column as primary key if it exists
 // and removes the primary key from all other columns
 func CqIDAsPK(t *Table) {

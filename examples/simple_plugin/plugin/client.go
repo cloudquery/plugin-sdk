@@ -123,6 +123,7 @@ func getTables() schema.Tables {
 	}
 	for _, t := range tables {
 		schema.AddCqIDs(t)
+		schema.AddCqClientID(t)
 	}
 	return tables
 }

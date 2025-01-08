@@ -188,6 +188,9 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
 				}
+				if err := resolvedResource.StoreCQClientID(client.ID()); err != nil {
+					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("failed to store _cq_client_id")
+				}
 				if err := resolvedResource.Validate(); err != nil {
 					switch err.(type) {
 					case *schema.PKError:
