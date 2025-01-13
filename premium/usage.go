@@ -489,6 +489,10 @@ func (u *BatchUpdater) backgroundUpdater() {
 		for {
 			select {
 			case <-u.triggerUpdate:
+				// If we are using AWS Marketplace, we should only report the usage at the end of the sync
+				if u.awsMarketplaceClient != nil {
+					continue
+				}
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
@@ -500,13 +504,8 @@ func (u *BatchUpdater) backgroundUpdater() {
 					// Not enough rows to update
 					continue
 				}
-				// If we are using AWS Marketplace, we need to round down to the nearest 1000
-				// Only on the last update, will we round up to the nearest 1000
-				// This will allow us to not overcharge the customer by rounding on each batch
-				if u.awsMarketplaceClient != nil {
-					totals = roundDown(totals, 1000)
-				}
 
+				u.logger.Debug().Dur("since_last_update", time.Since(u.lastUpdateTime)).Dur("min_time_between_flushes", u.minTimeBetweenFlushes).Uint32("totals", totals).Uint32("Batch Limit", u.batchLimit).Msg("trigger update")
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					u.logger.Warn().Err(err).Msg("failed to update usage")
 					continue
@@ -514,6 +513,10 @@ func (u *BatchUpdater) backgroundUpdater() {
 				u.subtractTableUsage(tables, totals)
 
 			case <-u.flushDuration.C:
+				// If we are using AWS Marketplace, we should only report the usage at the end of the sync
+				if u.awsMarketplaceClient != nil {
+					continue
+				}
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
@@ -524,12 +527,8 @@ func (u *BatchUpdater) backgroundUpdater() {
 				if totals == 0 {
 					continue
 				}
-				// If we are using AWS Marketplace, we need to round down to the nearest 1000
-				// Only on the last update, will we round up to the nearest 1000
-				// This will allow us to not overcharge the customer by rounding on each batch
-				if u.awsMarketplaceClient != nil {
-					totals = roundDown(totals, 1000)
-				}
+				u.logger.Debug().Dur("since_last_update", time.Since(u.lastUpdateTime)).Dur("min_time_between_flushes", u.minTimeBetweenFlushes).Uint32("totals", totals).Uint32("Batch Limit", u.batchLimit).Msg("flush")
+
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					u.logger.Warn().Err(err).Msg("failed to update usage")
 					continue
@@ -601,10 +600,6 @@ func (u *BatchUpdater) reportUsageToAWSMarketplace(ctx context.Context, rows uin
 }
 
 func (u *BatchUpdater) updateMarketplaceUsage(ctx context.Context, rows uint32) error {
-	if u.lastUpdateTime.IsZero() {
-		u.lastUpdateTime = u.timeFunc().UTC()
-	}
-
 	var lastErr error
 	for retry := 0; retry < u.maxRetries; retry++ {
 		u.logger.Debug().Int("try", retry).Int("max_retries", u.maxRetries).Uint32("rows", rows).Msg("updating usage")
