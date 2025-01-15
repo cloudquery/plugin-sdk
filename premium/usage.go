@@ -489,6 +489,10 @@ func (u *BatchUpdater) backgroundUpdater() {
 		for {
 			select {
 			case <-u.triggerUpdate:
+				// If we are using AWS Marketplace, we should only report the usage at the end of the sync
+				if u.awsMarketplaceClient != nil {
+					continue
+				}
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
@@ -500,12 +504,6 @@ func (u *BatchUpdater) backgroundUpdater() {
 					// Not enough rows to update
 					continue
 				}
-				// If we are using AWS Marketplace, we need to round down to the nearest 1000
-				// Only on the last update, will we round up to the nearest 1000
-				// This will allow us to not overcharge the customer by rounding on each batch
-				if u.awsMarketplaceClient != nil {
-					totals = roundDown(totals, 1000)
-				}
 
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					u.logger.Warn().Err(err).Msg("failed to update usage")
@@ -514,6 +512,10 @@ func (u *BatchUpdater) backgroundUpdater() {
 				u.subtractTableUsage(tables, totals)
 
 			case <-u.flushDuration.C:
+				// If we are using AWS Marketplace, we should only report the usage at the end of the sync
+				if u.awsMarketplaceClient != nil {
+					continue
+				}
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
@@ -524,12 +526,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 				if totals == 0 {
 					continue
 				}
-				// If we are using AWS Marketplace, we need to round down to the nearest 1000
-				// Only on the last update, will we round up to the nearest 1000
-				// This will allow us to not overcharge the customer by rounding on each batch
-				if u.awsMarketplaceClient != nil {
-					totals = roundDown(totals, 1000)
-				}
+
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					u.logger.Warn().Err(err).Msg("failed to update usage")
 					continue
