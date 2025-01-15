@@ -302,9 +302,9 @@ func (u *BatchUpdater) setupAWSMarketplace() error {
 	}
 	u.teamName = "AWS_MARKETPLACE"
 	// This needs to be larger than normal, because we can only send a single usage record per second (from each compute node)
-	u.batchLimit = 3294967294
+	u.batchLimit = 1000000000
 
-	u.minTimeBetweenFlushes = 60 * time.Minute
+	u.minTimeBetweenFlushes = 1 * time.Minute
 	u.maxRetries = max(u.maxRetries, marketplaceMinRetries)
 	u.backgroundUpdater()
 
@@ -505,7 +505,6 @@ func (u *BatchUpdater) backgroundUpdater() {
 					continue
 				}
 
-				u.logger.Debug().Dur("since_last_update", time.Since(u.lastUpdateTime)).Dur("min_time_between_flushes", u.minTimeBetweenFlushes).Uint32("totals", totals).Uint32("Batch Limit", u.batchLimit).Msg("trigger update")
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					u.logger.Warn().Err(err).Msg("failed to update usage")
 					continue
@@ -527,7 +526,6 @@ func (u *BatchUpdater) backgroundUpdater() {
 				if totals == 0 {
 					continue
 				}
-				u.logger.Debug().Dur("since_last_update", time.Since(u.lastUpdateTime)).Dur("min_time_between_flushes", u.minTimeBetweenFlushes).Uint32("totals", totals).Uint32("Batch Limit", u.batchLimit).Msg("flush")
 
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					u.logger.Warn().Err(err).Msg("failed to update usage")
