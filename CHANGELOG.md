@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.73.4](https://github.com/cloudquery/plugin-sdk/compare/v4.73.3...v4.73.4) (2025-02-03)
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2061](https://github.com/cloudquery/plugin-sdk/issues/2061)) ([7346223](https://github.com/cloudquery/plugin-sdk/commit/7346223d04dd709ab5e89b35f3914971ba8677d9))
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2067](https://github.com/cloudquery/plugin-sdk/issues/2067)) ([21125d0](https://github.com/cloudquery/plugin-sdk/commit/21125d0c4f39553312fe0c82578d41bde6c707ca))
+* **deps:** Update Google Golang modules ([#2060](https://github.com/cloudquery/plugin-sdk/issues/2060)) ([d3a180d](https://github.com/cloudquery/plugin-sdk/commit/d3a180d8968b6fc30f645d7f34cf6a63d5632497))
+* **deps:** Update Google Golang modules ([#2066](https://github.com/cloudquery/plugin-sdk/issues/2066)) ([6c32c4a](https://github.com/cloudquery/plugin-sdk/commit/6c32c4a75a5fda58efc40b0da149bf339ccd54ff))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.6 ([#2072](https://github.com/cloudquery/plugin-sdk/issues/2072)) ([00ce2d7](https://github.com/cloudquery/plugin-sdk/commit/00ce2d772ee4e27629252c0b222843cc71036d2c))
+* **deps:** Update module github.com/invopop/jsonschema to v0.13.0 ([#2068](https://github.com/cloudquery/plugin-sdk/issues/2068)) ([c8122a2](https://github.com/cloudquery/plugin-sdk/commit/c8122a2685b057f1f522991d55a78859e7ed67e2))
+* **deps:** Update module golang.org/x/oauth2 to v0.25.0 ([#2069](https://github.com/cloudquery/plugin-sdk/issues/2069)) ([9448009](https://github.com/cloudquery/plugin-sdk/commit/944800907fa7b065a0bb2ee81cae12598fae07e6))
+* **deps:** Update opentelemetry-go monorepo ([#2070](https://github.com/cloudquery/plugin-sdk/issues/2070)) ([66793b9](https://github.com/cloudquery/plugin-sdk/commit/66793b9e2ec5694c5aa186ff951aee8aeee1530b))
+
 ## [4.73.3](https://github.com/cloudquery/plugin-sdk/compare/v4.73.2...v4.73.3) (2025-01-20)
 
 
