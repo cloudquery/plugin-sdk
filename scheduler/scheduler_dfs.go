@@ -55,6 +55,7 @@ func (s *syncClient) syncDfs(ctx context.Context, resolvedResources chan<- *sche
 	for _, tc := range tableClients {
 		table := tc.table
 		cl := tc.client
+		s.tableFinishLogger.TableStarted(table, nil)
 		if err := s.scheduler.tableSems[0].Acquire(ctx, 1); err != nil {
 			// This means context was cancelled
 			wg.Wait()
