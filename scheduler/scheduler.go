@@ -10,6 +10,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/tablefinishlogger"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -139,7 +140,8 @@ type syncClient struct {
 	logger       zerolog.Logger
 	invocationID string
 
-	shard *shard
+	shard             *shard
+	tableFinishLogger *tablefinishlogger.TableFinishLogger
 }
 
 func NewScheduler(opts ...Option) *Scheduler {
@@ -206,12 +208,13 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}
 
 	syncClient := &syncClient{
-		metrics:      &metrics.Metrics{TableClient: make(map[string]map[string]*metrics.TableClientMetrics)},
-		tables:       tables,
-		client:       client,
-		scheduler:    s,
-		logger:       s.logger,
-		invocationID: s.invocationID,
+		metrics:           &metrics.Metrics{TableClient: make(map[string]map[string]*metrics.TableClientMetrics)},
+		tables:            tables,
+		client:            client,
+		scheduler:         s,
+		logger:            s.logger,
+		invocationID:      s.invocationID,
+		tableFinishLogger: tablefinishlogger.New(s.logger),
 	}
 	for _, opt := range opts {
 		opt(syncClient)

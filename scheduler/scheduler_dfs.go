@@ -113,11 +113,13 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 				atomic.AddUint64(&tableMetrics.Panics, 1)
 			}
 			close(res)
+			s.tableFinishLogger.TableFinished(table, client, parent)
 		}()
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
 			tableMetrics.OtelErrorsAdd(ctx, 1)
 			atomic.AddUint64(&tableMetrics.Errors, 1)
+			s.tableFinishLogger.TableFinished(table, client, parent)
 			return
 		}
 	}()
@@ -139,6 +141,7 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", duration).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)
 	}
+	s.tableFinishLogger.TableFinished(table, client, parent)
 }
 
 func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) {
@@ -234,6 +237,7 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 				return
 			}
 			wg.Add(1)
+			s.tableFinishLogger.TableStarted(relation, resource)
 			go func() {
 				defer wg.Done()
 				defer tableSem.Release(1)
