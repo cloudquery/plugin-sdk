@@ -13,31 +13,32 @@ type TableFinishLogger struct {
 	logger zerolog.Logger
 
 	// Track which parent tables have finished
-	parentsDone map[string]struct{} // key: parent table name
+	parentsActiveCounts map[string]int // key: parent table name
 
 	// Track active count for child tables
-	childActiveCounts map[string]int // key: child table name
+	childrenActiveCounts map[string]int // key: child table name
 }
 
 // New creates a new TableFinishLogger
 func New(logger zerolog.Logger) *TableFinishLogger {
 	return &TableFinishLogger{
-		logger:            logger,
-		parentsDone:       make(map[string]struct{}),
-		childActiveCounts: make(map[string]int),
+		logger:               logger,
+		parentsActiveCounts:  make(map[string]int),
+		childrenActiveCounts: make(map[string]int),
 	}
 }
 
 // TableStarted signals that a table instance has started syncing
 func (t *TableFinishLogger) TableStarted(table *schema.Table, parent *schema.Resource) {
-	if parent == nil {
-		return // No need to track starts for parent tables
-	}
-
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.childActiveCounts[table.Name]++
+	if parent == nil {
+		t.parentsActiveCounts[table.Name]++
+		return
+	}
+
+	t.childrenActiveCounts[table.Name]++
 }
 
 // TableFinished signals that a table instance has finished syncing
@@ -47,19 +48,19 @@ func (t *TableFinishLogger) TableFinished(table *schema.Table, client schema.Cli
 
 	if parent == nil {
 		// This is a parent table finishing
-		t.parentsDone[table.Name] = struct{}{}
+		t.parentsActiveCounts[table.Name]--
 		t.logger.Info().Str("table", table.Name).Str("client", client.ID()).Msg("table fully finished syncing")
 		return
 	}
 
 	// Handle child table
-	t.childActiveCounts[table.Name]--
-	remaining := t.childActiveCounts[table.Name]
+	t.childrenActiveCounts[table.Name]--
+	remaining := t.childrenActiveCounts[table.Name]
 
 	// Log when a child table is completely done, which happens when:
 	// 1. The parent table is done
 	// 2. There are no more active instances of this child table
-	if _, parentDone := t.parentsDone[parent.Table.Name]; parentDone && remaining == 0 {
+	if t.parentsActiveCounts[parent.Table.Name] == 0 && remaining == 0 {
 		t.logger.Info().Str("table", table.Name).Str("client", client.ID()).Str("parent_table", parent.Table.Name).Msg("table fully finished syncing")
 	}
 }
