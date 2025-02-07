@@ -12,19 +12,14 @@ type TableFinishLogger struct {
 	mu     sync.Mutex
 	logger zerolog.Logger
 
-	// Track which parent tables have finished
-	parentsActiveCounts map[string]int // key: parent table name
-
-	// Track active count for child tables
-	childrenActiveCounts map[string]int // key: child table name
+	activeCounts map[string]int // key: table name}
 }
 
 // New creates a new TableFinishLogger
 func New(logger zerolog.Logger) *TableFinishLogger {
 	return &TableFinishLogger{
-		logger:               logger,
-		parentsActiveCounts:  make(map[string]int),
-		childrenActiveCounts: make(map[string]int),
+		logger:       logger,
+		activeCounts: make(map[string]int),
 	}
 }
 
@@ -33,12 +28,7 @@ func (t *TableFinishLogger) TableStarted(table *schema.Table, parent *schema.Res
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	if parent == nil {
-		t.parentsActiveCounts[table.Name]++
-		return
-	}
-
-	t.childrenActiveCounts[table.Name]++
+	t.activeCounts[table.Name]++
 }
 
 // TableFinished signals that a table instance has finished syncing
@@ -46,21 +36,7 @@ func (t *TableFinishLogger) TableFinished(table *schema.Table, client schema.Cli
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	if parent == nil {
-		// This is a parent table finishing
-		t.parentsActiveCounts[table.Name]--
+	if t.activeCounts[table.Name] == 0 && (parent == nil || t.activeCounts[parent.Table.Name] == 0) {
 		t.logger.Info().Str("table", table.Name).Str("client", client.ID()).Msg("table fully finished syncing")
-		return
-	}
-
-	// Handle child table
-	t.childrenActiveCounts[table.Name]--
-	remaining := t.childrenActiveCounts[table.Name]
-
-	// Log when a child table is completely done, which happens when:
-	// 1. The parent table is done
-	// 2. There are no more active instances of this child table
-	if t.parentsActiveCounts[parent.Table.Name] == 0 && remaining == 0 {
-		t.logger.Info().Str("table", table.Name).Str("client", client.ID()).Str("parent_table", parent.Table.Name).Msg("table fully finished syncing")
 	}
 }

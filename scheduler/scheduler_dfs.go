@@ -112,9 +112,9 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
 				tableMetrics.OtelPanicsAdd(ctx, 1)
 				atomic.AddUint64(&tableMetrics.Panics, 1)
+				s.tableFinishLogger.TableFinished(table, client, parent)
 			}
 			close(res)
-			s.tableFinishLogger.TableFinished(table, client, parent)
 		}()
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
