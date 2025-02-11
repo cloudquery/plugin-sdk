@@ -154,40 +154,54 @@ func TestTime_JSONSchema(t *testing.T) {
 }
 
 func TestTime_Hashing(t *testing.T) {
+	hnf := func() time.Time { return time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC) }
 	cases := []struct {
-		a     any
-		b     any
-		equal bool
+		a           configtype.Time
+		b           configtype.Time
+		hashNowFunc func() time.Time
+		equal       bool
 	}{
 		{
-			a:     func() any { ct, _ := configtype.ParseTime("10m"); return ct }(),
-			b:     func() any { ct, _ := configtype.ParseTime("10m"); return ct }(),
-			equal: true,
+			a:           func() configtype.Time { ct, _ := configtype.ParseTime("10m"); return ct }(),
+			b:           func() configtype.Time { ct, _ := configtype.ParseTime("10m"); return ct }(),
+			hashNowFunc: hnf,
+			equal:       true,
 		},
 		{
-			a:     func() any { ct, _ := configtype.ParseTime("10m"); return ct }(),
-			b:     func() any { ct, _ := configtype.ParseTime("1m"); return ct }(),
+			a:     func() configtype.Time { ct, _ := configtype.ParseTime("10m"); return ct }(),
+			b:     func() configtype.Time { ct, _ := configtype.ParseTime("10m"); return ct }(),
 			equal: false,
 		},
 		{
-			a:     func() any { ct, _ := configtype.ParseTime("2021-09-01T00:00:00Z"); return ct }(),
-			b:     func() any { ct, _ := configtype.ParseTime("2012-01-02T01:02:03Z"); return ct }(),
+			a:     func() configtype.Time { ct, _ := configtype.ParseTime("10m"); return ct }(),
+			b:     func() configtype.Time { ct, _ := configtype.ParseTime("1m"); return ct }(),
 			equal: false,
 		},
 		{
-			a:     func() any { ct, _ := configtype.ParseTime("-50m30s"); return ct }(),
-			b:     func() any { ct, _ := configtype.ParseTime("50 minutes 30 seconds ago"); return ct }(),
-			equal: true,
+			a:           func() configtype.Time { ct, _ := configtype.ParseTime("2021-09-01T00:00:00Z"); return ct }(),
+			b:           func() configtype.Time { ct, _ := configtype.ParseTime("2012-01-02T01:02:03Z"); return ct }(),
+			hashNowFunc: hnf,
+			equal:       false,
 		},
 		{
-			a:     func() any { ct, _ := configtype.ParseTime("50m30s"); return ct }(),
-			b:     func() any { ct, _ := configtype.ParseTime("50 minutes 30 seconds from now"); return ct }(),
-			equal: true,
+			a:           func() configtype.Time { ct, _ := configtype.ParseTime("-50m30s"); return ct }(),
+			b:           func() configtype.Time { ct, _ := configtype.ParseTime("50 minutes 30 seconds ago"); return ct }(),
+			hashNowFunc: hnf,
+			equal:       true,
+		},
+		{
+			a:           func() configtype.Time { ct, _ := configtype.ParseTime("50m30s"); return ct }(),
+			b:           func() configtype.Time { ct, _ := configtype.ParseTime("50 minutes 30 seconds from now"); return ct }(),
+			hashNowFunc: hnf,
+			equal:       true,
 		},
 	}
 	for _, tc := range cases {
+		tc.a.SetHashNowFunc(tc.hashNowFunc)
 		hashA, err := hashstructure.Hash(tc.a, hashstructure.FormatV2, nil)
 		require.NoError(t, err)
+		time.Sleep(1 * time.Second)
+		tc.b.SetHashNowFunc(tc.hashNowFunc)
 		hashB, err := hashstructure.Hash(tc.b, hashstructure.FormatV2, nil)
 		require.NoError(t, err)
 
