@@ -130,6 +130,11 @@ func (t Time) String() string {
 	return t.input
 }
 
+func (t Time) Hash() (uint64, error) {
+	at := t.AsTime(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC))
+	return uint64(at.UnixNano()), nil
+}
+
 type timeDuration struct {
 	input string
 

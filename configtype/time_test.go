@@ -9,6 +9,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/configtype"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/invopop/jsonschema"
+	"github.com/mitchellh/hashstructure/v2"
 	"github.com/stretchr/testify/require"
 )
 
@@ -149,5 +150,51 @@ func TestTime_JSONSchema(t *testing.T) {
 				require.NoError(t, validator.Validate(val))
 			}
 		})
+	}
+}
+
+func TestTime_Hashing(t *testing.T) {
+	cases := []struct {
+		a     any
+		b     any
+		equal bool
+	}{
+		{
+			a:     func() any { ct, _ := configtype.ParseTime("10m"); return ct }(),
+			b:     func() any { ct, _ := configtype.ParseTime("10m"); return ct }(),
+			equal: true,
+		},
+		{
+			a:     func() any { ct, _ := configtype.ParseTime("10m"); return ct }(),
+			b:     func() any { ct, _ := configtype.ParseTime("1m"); return ct }(),
+			equal: false,
+		},
+		{
+			a:     func() any { ct, _ := configtype.ParseTime("2021-09-01T00:00:00Z"); return ct }(),
+			b:     func() any { ct, _ := configtype.ParseTime("2012-01-02T01:02:03Z"); return ct }(),
+			equal: false,
+		},
+		{
+			a:     func() any { ct, _ := configtype.ParseTime("-50m30s"); return ct }(),
+			b:     func() any { ct, _ := configtype.ParseTime("50 minutes 30 seconds ago"); return ct }(),
+			equal: true,
+		},
+		{
+			a:     func() any { ct, _ := configtype.ParseTime("50m30s"); return ct }(),
+			b:     func() any { ct, _ := configtype.ParseTime("50 minutes 30 seconds from now"); return ct }(),
+			equal: true,
+		},
+	}
+	for _, tc := range cases {
+		hashA, err := hashstructure.Hash(tc.a, hashstructure.FormatV2, nil)
+		require.NoError(t, err)
+		hashB, err := hashstructure.Hash(tc.b, hashstructure.FormatV2, nil)
+		require.NoError(t, err)
+
+		if tc.equal {
+			require.Equal(t, hashA, hashB)
+			continue
+		}
+		require.NotEqual(t, hashA, hashB)
 	}
 }
