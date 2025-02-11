@@ -26,13 +26,13 @@ jobs:
       - name: Run tests
         run: make test
       - name: Run benchmark
-        if: matrix.os == 'large-ubuntu-plugin-sdk'
+        if: matrix.os == 'ubicloud-standard-8'
         run: make benchmark-ci
       - name: Save PR number
-        if: matrix.os == 'large-ubuntu-plugin-sdk' && github.event_name == 'pull_request'
+        if: matrix.os == 'ubicloud-standard-8' && github.event_name == 'pull_request'
         run: echo ${{ github.event.number }} > ./pr_number
       - name: Upload deltas
-        if: matrix.os == 'large-ubuntu-plugin-sdk'
+        if: matrix.os == 'ubicloud-standard-8'
         uses: actions/upload-artifact@v4
         with:
           name: delta-action-benchmarks
