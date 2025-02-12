@@ -15,9 +15,10 @@ import (
 // when a time type is required. We wrap the time.Time type so that
 // the spec can be extended in the future to support other types of times
 type Time struct {
-	input    string
-	time     time.Time
-	duration *timeDuration
+	input       string
+	time        time.Time
+	duration    *timeDuration
+	hashNowFunc func() time.Time
 }
 
 func ParseTime(s string) (Time, error) {
@@ -128,6 +129,19 @@ func (t Time) IsZero() bool {
 
 func (t Time) String() string {
 	return t.input
+}
+
+func (t Time) Hash() (uint64, error) {
+	nowFunc := t.hashNowFunc
+	if nowFunc == nil {
+		nowFunc = time.Now
+	}
+	at := t.AsTime(nowFunc())
+	return uint64(at.UnixNano()), nil
+}
+
+func (t *Time) SetHashNowFunc(f func() time.Time) {
+	t.hashNowFunc = f
 }
 
 type timeDuration struct {
