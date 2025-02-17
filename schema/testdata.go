@@ -385,7 +385,7 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 	for _, binaryType := range binaryTypes {
 		if arrow.TypeEqual(dataType, binaryType) {
 			bytes := make([]byte, 4)
-			rnd.Read(bytes)
+			_, _ = rnd.Read(bytes)
 			return `"` + base64.StdEncoding.EncodeToString(bytes) + `"`
 		}
 	}
