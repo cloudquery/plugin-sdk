@@ -39,7 +39,10 @@ func (g *Generator) renderTablesAsMarkdown(dir string) error {
 		return fmt.Errorf("failed to create file %v: %v", outputPath, err)
 	}
 	defer f.Close()
-	f.WriteString(content)
+	_, err = f.WriteString(content)
+	if err != nil {
+		return fmt.Errorf("failed to write content to file %v: %v", outputPath, err)
+	}
 	return nil
 }
 
@@ -76,8 +79,11 @@ func (g *Generator) renderTable(dir string, table *schema.Table) error {
 		return fmt.Errorf("failed to create file %v: %v", outputPath, err)
 	}
 	defer f.Close()
-	f.WriteString(content)
-	return f.Close()
+	_, err = f.WriteString(content)
+	if err != nil {
+		return fmt.Errorf("failed to write content to file %v: %v", outputPath, err)
+	}
+	return nil
 }
 
 func formatMarkdown(s string) string {
