@@ -86,6 +86,19 @@ func (Time) JSONSchema() *jsonschema.Schema {
 		Type:    "string",
 		Pattern: timePattern,
 		Title:   "CloudQuery configtype.Time",
+		Description: "Allows for defining timestamps in both absolute(RFC3339) and relative formats. " +
+			"Absolute timestamp example: `2024-01-01T12:00:00+00:00`.\n" +
+			"Relative timestamps can take this format:\n" +
+			"- `now`\n" +
+			"- `x seconds [ago|from now]`\n" +
+			"- `x minutes [ago|from now]`\n" +
+			"- `x hours [ago|from now]`\n" +
+			"- `x days [ago|from now]`\n" +
+			"`until` field usage:\n" +
+			"- `until: now`\n" +
+			"- `until: 2 days ago`\n" +
+			"- `until: 10 months 3 days 4h20m from now`\n" +
+			"- `until: 2024-01-01T12:00:00+00:00`",
 	}
 }
 
