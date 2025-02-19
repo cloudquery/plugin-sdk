@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.74.0](https://github.com/cloudquery/plugin-sdk/compare/v4.73.4...v4.74.0) (2025-02-19)
+
+
+### Features
+
+* Add description to time JSONschema ([#2083](https://github.com/cloudquery/plugin-sdk/issues/2083)) ([fc27b14](https://github.com/cloudquery/plugin-sdk/commit/fc27b14c801d44ffba458fc676a6e3f0d577dfec))
+* Add way to get Configtype time value for hashing ([#2077](https://github.com/cloudquery/plugin-sdk/issues/2077)) ([ed27292](https://github.com/cloudquery/plugin-sdk/commit/ed27292685e032027802410265e92e96fbfc375e))
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2074](https://github.com/cloudquery/plugin-sdk/issues/2074)) ([091e2c7](https://github.com/cloudquery/plugin-sdk/commit/091e2c7c028717a8dc91cf6440bd6307468f2fdc))
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2080](https://github.com/cloudquery/plugin-sdk/issues/2080)) ([14ad9db](https://github.com/cloudquery/plugin-sdk/commit/14ad9db4509fdf38516b7140b519af040ea8f218))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.7 ([#2076](https://github.com/cloudquery/plugin-sdk/issues/2076)) ([dbdae2f](https://github.com/cloudquery/plugin-sdk/commit/dbdae2f4829cfd440e395dfaa9047e12f87d1fb2))
+* **deps:** Update module google.golang.org/protobuf to v1.36.5 ([#2081](https://github.com/cloudquery/plugin-sdk/issues/2081)) ([833b19c](https://github.com/cloudquery/plugin-sdk/commit/833b19c406de76be59c19bb9c53695c675468325))
+
 ## [4.73.4](https://github.com/cloudquery/plugin-sdk/compare/v4.73.3...v4.73.4) (2025-02-03)
 
 
