@@ -63,6 +63,14 @@ func WithIgnoreInTestsTransformer(transformer IgnoreInTestsTransformer) StructTr
 	}
 }
 
+// WithNullableFieldTransformer overrides how column NotNull will be determined.
+// DefaultNullableFieldTransformer is used as the default.
+func WithNullableFieldTransformer(transformer NullableFieldTransformer) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.nullableFieldTransformer = transformer
+	}
+}
+
 // WithPrimaryKeys allows to specify what struct fields should be used as primary keys
 func WithPrimaryKeys(fields ...string) StructTransformerOption {
 	return func(t *structTransformer) {
