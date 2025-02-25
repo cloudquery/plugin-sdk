@@ -82,6 +82,11 @@ type (
 		IntCol     int `json:"int_col"`
 		Properties any
 	}
+
+	testNullableField struct {
+		RegularString  string  `json:"regular_string"`
+		NullableString *string `json:"nullable_string"`
+	}
 )
 
 var (
@@ -301,6 +306,22 @@ var (
 			},
 		},
 	}
+
+	expectedTestTableStructNonNullableFields = schema.Table{
+		Name: "test_struct_with_non_nullable_fields",
+		Columns: schema.ColumnList{
+			{
+				Name:    "regular_string",
+				Type:    arrow.BinaryTypes.String,
+				NotNull: true,
+			},
+			{
+				Name:    "nullable_string",
+				Type:    arrow.BinaryTypes.String,
+				NotNull: false,
+			},
+		},
+	}
 )
 
 func TestTableFromGoStruct(t *testing.T) {
@@ -442,6 +463,18 @@ func TestTableFromGoStruct(t *testing.T) {
 				},
 			},
 			want: expectedTestTableStructWithCustomAny,
+		},
+		{
+			name: "Should be able to override any nullability for a field",
+			args: args{
+				testStruct: testNullableField{},
+				options: []StructTransformerOption{
+					WithNullableFieldTransformer(func(f reflect.StructField) bool {
+						return f.Type.Kind() == reflect.Pointer
+					}),
+				},
+			},
+			want: expectedTestTableStructNonNullableFields,
 		},
 	}
 

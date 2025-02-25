@@ -23,6 +23,7 @@ type structTransformer struct {
 	typeTransformer               TypeTransformer
 	resolverTransformer           ResolverTransformer
 	ignoreInTestsTransformer      IgnoreInTestsTransformer
+	nullableFieldTransformer      NullableFieldTransformer
 	unwrapAllEmbeddedStructFields bool
 	structFieldsToUnwrap          []string
 	pkFields                      []string
@@ -161,6 +162,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		Type:          columnType,
 		Resolver:      resolver,
 		IgnoreInTests: t.ignoreInTestsTransformer(field),
+		NotNull:       !t.nullableFieldTransformer(field),
 	}
 
 	// Enrich JSON column with detailed schema
@@ -199,6 +201,7 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 		typeTransformer:           DefaultTypeTransformer,
 		resolverTransformer:       DefaultResolverTransformer,
 		ignoreInTestsTransformer:  DefaultIgnoreInTestsTransformer,
+		nullableFieldTransformer:  DefaultNullableFieldTransformer,
 		jsonSchemaNameTransformer: DefaultJSONColumnSchemaNameTransformer,
 		maxJSONTypeSchemaDepth:    DefaultMaxJSONTypeSchemaDepth,
 	}
