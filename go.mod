@@ -14,7 +14,7 @@ require (
 	github.com/cloudquery/cloudquery-api-go v1.13.5
 	github.com/cloudquery/plugin-pb-go v1.26.7
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
-	github.com/goccy/go-json v0.10.4
+	github.com/goccy/go-json v0.10.5
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
