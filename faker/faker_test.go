@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testFakerStruct struct {
@@ -96,4 +98,64 @@ func TestFakerCanFakeNetIP(t *testing.T) {
 
 	assert.NotEmpty(t, a.NestedComplex.IPAddress)
 	assert.Equal(t, "1.1.1.1", a.NestedComplex.IPAddress.String())
+}
+
+func TestMaxDepth(t *testing.T) {
+	// Struct with nested structs
+	a := struct {
+		A struct {
+			A struct {
+				A struct {
+					A struct {
+						A struct {
+							A struct {
+								A struct {
+									A struct {
+										A struct {
+											A struct {
+												A struct {
+													A struct {
+														A struct {
+															A struct {
+																A struct {
+																	A struct {
+																		A struct {
+																			A string
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}{}
+
+	sink := &testLogSink{}
+	testLogger := zerolog.New(sink)
+	require.NoError(t, FakeObject(&a, WithLogger(testLogger)), "max depth reached")
+	require.Equal(t, 1, len(sink.getLogs()))
+	require.Contains(t, sink.getLogs()[0], "max_depth reached")
+}
+
+type testLogSink struct {
+	logs []string
+}
+
+func (sink *testLogSink) Write(p []byte) (n int, err error) {
+	sink.logs = append(sink.logs, string(p))
+	return len(p), nil
+}
+
+func (sink *testLogSink) getLogs() []string {
+	return sink.logs
 }

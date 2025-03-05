@@ -2,7 +2,7 @@ package memdb
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -108,7 +108,7 @@ func NewMemDBClient(ctx context.Context, l zerolog.Logger, spec []byte, options 
 }
 
 func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
-	return nil, fmt.Errorf("newTestDestinationMemDBClientErrOnNew")
+	return nil, errors.New("newTestDestinationMemDBClientErrOnNew")
 }
 
 func (c *client) overwrite(table *schema.Table, record arrow.Record) {
@@ -211,12 +211,12 @@ func (c *client) migrate(_ context.Context, table *schema.Table) {
 
 func (c *client) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
 	if c.errOnWrite {
-		return fmt.Errorf("errOnWrite")
+		return errors.New("errOnWrite")
 	}
 	if c.blockingWrite {
 		<-ctx.Done()
 		if c.errOnWrite {
-			return fmt.Errorf("errOnWrite")
+			return errors.New("errOnWrite")
 		}
 		return nil
 	}
@@ -235,7 +235,7 @@ func (c *client) Write(ctx context.Context, msgs <-chan message.WriteMessage) er
 			sc := msg.Record.Schema()
 			tableName, ok := sc.Metadata().GetValue(schema.MetadataTableName)
 			if !ok {
-				return fmt.Errorf("table name not found in schema metadata")
+				return errors.New("table name not found in schema metadata")
 			}
 			table := c.tables[tableName]
 			c.overwrite(table, msg.Record)

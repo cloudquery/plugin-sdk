@@ -3,6 +3,7 @@ package schema
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -177,7 +178,7 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	tableMD := sc.Metadata()
 	name, found := tableMD.GetValue(MetadataTableName)
 	if !found {
-		return nil, fmt.Errorf("missing table name")
+		return nil, errors.New("missing table name")
 	}
 	description, _ := tableMD.GetValue(MetadataTableDescription)
 	constraintName, _ := tableMD.GetValue(MetadataConstraintName)
