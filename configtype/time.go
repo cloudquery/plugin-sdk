@@ -2,6 +2,7 @@ package configtype
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -212,13 +213,13 @@ func parseTimeDuration(s string) (timeDuration, error) {
 			inValue = false
 		case part == "ago":
 			if d.sign != 0 {
-				return timeDuration{}, fmt.Errorf("invalid duration format: more than one sign specifier")
+				return timeDuration{}, errors.New("invalid duration format: more than one sign specifier")
 			}
 
 			d.sign = -1
 		case part == "from":
 			if d.sign != 0 {
-				return timeDuration{}, fmt.Errorf("invalid duration format: more than one sign specifier")
+				return timeDuration{}, errors.New("invalid duration format: more than one sign specifier")
 			}
 
 			inSign = true

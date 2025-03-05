@@ -2,6 +2,7 @@ package faker
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -15,7 +16,7 @@ type faker struct {
 	logger   zerolog.Logger
 }
 
-var errEFaceNotAllowed = fmt.Errorf("any not allowed")
+var errEFaceNotAllowed = errors.New("any not allowed")
 
 func (f faker) getFakedValue(a any) (reflect.Value, error) {
 	t := reflect.TypeOf(a)
@@ -24,7 +25,7 @@ func (f faker) getFakedValue(a any) (reflect.Value, error) {
 	}
 	f.maxDepth--
 	if f.maxDepth < 0 {
-		return reflect.Value{}, fmt.Errorf("max_depth reached")
+		return reflect.Value{}, errors.New("max_depth reached")
 	}
 	k := t.Kind()
 	switch k {
@@ -176,7 +177,7 @@ func FakeObject(obj any, opts ...Option) error {
 	reflectType := reflect.TypeOf(obj)
 
 	if reflectType.Kind() != reflect.Ptr {
-		return fmt.Errorf("object is not a pointer")
+		return errors.New("object is not a pointer")
 	}
 
 	if reflect.ValueOf(obj).IsNil() {
