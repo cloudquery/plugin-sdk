@@ -334,7 +334,7 @@ func awsMarketplaceProductCode() string {
 
 func (u *BatchUpdater) Increase(rows uint32) error {
 	if u.usageIncreaseMethod == UsageIncreaseMethodBreakdown {
-		return fmt.Errorf("mixing usage increase methods is not allowed, use IncreaseForTable instead")
+		return errors.New("mixing usage increase methods is not allowed, use IncreaseForTable instead")
 	}
 
 	if rows <= 0 {
@@ -342,7 +342,7 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 	}
 
 	if u.isClosed {
-		return fmt.Errorf("usage updater is closed")
+		return errors.New("usage updater is closed")
 	}
 
 	u.Lock()
@@ -364,7 +364,7 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 
 func (u *BatchUpdater) IncreaseForTable(table string, rows uint32) error {
 	if u.usageIncreaseMethod == UsageIncreaseMethodTotal {
-		return fmt.Errorf("mixing usage increase methods is not allowed, use Increase instead")
+		return errors.New("mixing usage increase methods is not allowed, use Increase instead")
 	}
 
 	if rows <= 0 {
@@ -372,7 +372,7 @@ func (u *BatchUpdater) IncreaseForTable(table string, rows uint32) error {
 	}
 
 	if u.isClosed {
-		return fmt.Errorf("usage updater is closed")
+		return errors.New("usage updater is closed")
 	}
 
 	u.Lock()
@@ -696,7 +696,7 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 			return "", fmt.Errorf("failed to get team name from config: %w", err)
 		}
 		if teamName == "" {
-			return "", fmt.Errorf("team name not set. Hint: use `cloudquery switch <team>`")
+			return "", errors.New("team name not set. Hint: use `cloudquery switch <team>`")
 		}
 		return teamName, nil
 	case auth.APIKey:
@@ -716,7 +716,7 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 		if team == "" {
 			switch tokenType {
 			case auth.SyncRunAPIKey, auth.SyncTestConnectionAPIKey:
-				return "", fmt.Errorf("_CQ_TEAM_NAME environment variable not set")
+				return "", errors.New("_CQ_TEAM_NAME environment variable not set")
 			}
 			return "", fmt.Errorf("unsupported token type: %v", tokenType)
 		}

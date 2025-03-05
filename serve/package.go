@@ -215,7 +215,7 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 	reMod := regexp.MustCompile(`module\s+(.+)\n`)
 	importPathMatches := reMod.FindStringSubmatch(string(goMod))
 	if len(importPathMatches) != 2 {
-		return "", fmt.Errorf("failed to parse import path from go.mod")
+		return "", errors.New("failed to parse import path from go.mod")
 	}
 	importPath := importPathMatches[1]
 	return strings.TrimSpace(importPath), nil
@@ -336,7 +336,7 @@ func (s *PluginServe) validatePluginExports(pluginPath string) error {
 		}
 	}
 	if !foundVersion {
-		return fmt.Errorf("could not find `Version` global variable in package")
+		return errors.New("could not find `Version` global variable in package")
 	}
 
 	return nil
@@ -389,7 +389,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			}
 			message := ""
 			if !cmd.Flag("message").Changed {
-				return fmt.Errorf("message is required")
+				return errors.New("message is required")
 			}
 			message = cmd.Flag("message").Value.String()
 			if strings.HasPrefix(message, "@") {
@@ -407,13 +407,13 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			}
 
 			if s.plugin.Name() == "" {
-				return fmt.Errorf("plugin name is required for packaging")
+				return errors.New("plugin name is required for packaging")
 			}
 			if s.plugin.Team() == "" {
-				return fmt.Errorf("plugin team is required (hint: use the plugin.WithTeam() option)")
+				return errors.New("plugin team is required (hint: use the plugin.WithTeam() option)")
 			}
 			if s.plugin.Kind() == "" {
-				return fmt.Errorf("plugin kind is required (hint: use the plugin.WithKind() option)")
+				return errors.New("plugin kind is required (hint: use the plugin.WithKind() option)")
 			}
 
 			if err := s.validatePluginExports(pluginDirectory); err != nil {

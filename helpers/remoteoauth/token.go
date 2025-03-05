@@ -114,7 +114,7 @@ func (t *cloudTokenSource) retrieveToken(ctx context.Context) (*oauth2.Token, er
 	}
 
 	if oauthResp == nil {
-		return nil, fmt.Errorf("missing oauth credentials in response")
+		return nil, errors.New("missing oauth credentials in response")
 	}
 
 	tok := &oauth2.Token{

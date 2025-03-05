@@ -2,7 +2,7 @@ package batchwriter
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync"
 	"time"
 
@@ -338,7 +338,7 @@ func (w *BatchWriter) startWorker(_ context.Context, msg *message.WriteInsert) e
 	tableName, ok := md.GetValue(schema.MetadataTableName)
 	if !ok {
 		w.workersLock.RUnlock()
-		return fmt.Errorf("table name not found in metadata")
+		return errors.New("table name not found in metadata")
 	}
 	wr, ok := w.workers[tableName]
 	w.workersLock.RUnlock()
