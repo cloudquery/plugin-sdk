@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.29.18
 	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.25.16
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/cloudquery-api-go v1.13.5
+	github.com/cloudquery/cloudquery-api-go v1.13.6
 	github.com/cloudquery/plugin-pb-go v1.26.7
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/goccy/go-json v0.10.5
