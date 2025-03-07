@@ -456,6 +456,10 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 			}
 			if err != nil {
 				close(recvRecords)
+				if status.Code(err) == codes.Canceled {
+					// Ignore context cancellation errors
+					return nil
+				}
 				return status.Errorf(codes.Internal, "Error receiving request: %v", err)
 			}
 			record, err := pb.NewRecordFromBytes(req.Record)
