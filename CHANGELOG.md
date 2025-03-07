@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.74.1](https://github.com/cloudquery/plugin-sdk/compare/v4.74.0...v4.74.1) (2025-03-07)
+
+
+### Bug Fixes
+
+* Revert faker pointer change ([#2093](https://github.com/cloudquery/plugin-sdk/issues/2093)) ([4157755](https://github.com/cloudquery/plugin-sdk/commit/4157755d75399f3e831a7d6fed719cf456c15189))
+
 ## [4.74.0](https://github.com/cloudquery/plugin-sdk/compare/v4.73.4...v4.74.0) (2025-03-07)
 
 
