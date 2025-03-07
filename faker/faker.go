@@ -18,11 +18,12 @@ type faker struct {
 
 var errEFaceNotAllowed = errors.New("any not allowed")
 
-func (f *faker) getFakedValue(a any) (reflect.Value, error) {
+func (f faker) getFakedValue(a any) (reflect.Value, error) {
 	t := reflect.TypeOf(a)
 	if t == nil {
 		return reflect.Value{}, errEFaceNotAllowed
 	}
+	//nolint:revive
 	f.maxDepth--
 	if f.maxDepth < 0 {
 		return reflect.Value{}, errors.New("max_depth reached")
