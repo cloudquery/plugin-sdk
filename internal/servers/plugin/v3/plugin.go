@@ -456,7 +456,7 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 			}
 			if err != nil {
 				close(recvRecords)
-				if errors.Is(err, context.Canceled) {
+				if status.Code(err) == codes.Canceled {
 					// Ignore context cancellation errors
 					return nil
 				}
