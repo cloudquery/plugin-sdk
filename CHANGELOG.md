@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.74.2](https://github.com/cloudquery/plugin-sdk/compare/v4.74.1...v4.74.2) (2025-03-24)
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2096](https://github.com/cloudquery/plugin-sdk/issues/2096)) ([f49534a](https://github.com/cloudquery/plugin-sdk/commit/f49534ada5fe0f189d534deaa0fd5d2990122ddb))
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2100](https://github.com/cloudquery/plugin-sdk/issues/2100)) ([07a3ed8](https://github.com/cloudquery/plugin-sdk/commit/07a3ed85d1196818c743234d56a4e76490ac3213))
+* **deps:** Update module github.com/apache/arrow-go/v18 to v18.2.0 ([#2103](https://github.com/cloudquery/plugin-sdk/issues/2103)) ([f6b7143](https://github.com/cloudquery/plugin-sdk/commit/f6b7143c1168bfdc17410a10e98b6459e76b480d))
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/service/marketplacemetering to v1.26.2 ([#2102](https://github.com/cloudquery/plugin-sdk/issues/2102)) ([ddae6e0](https://github.com/cloudquery/plugin-sdk/commit/ddae6e070cc34b8e9ffdb2170e60bfcf6e38591f))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.13.7 ([#2099](https://github.com/cloudquery/plugin-sdk/issues/2099)) ([316ff40](https://github.com/cloudquery/plugin-sdk/commit/316ff406cda86f3376a6d464e77553d05c78db60))
+* **deps:** Update module golang.org/x/net to v0.36.0 [SECURITY] ([#2098](https://github.com/cloudquery/plugin-sdk/issues/2098)) ([b41044d](https://github.com/cloudquery/plugin-sdk/commit/b41044d3d9cd1de9c20012a38808e8498bd51f2e))
+* **deps:** Update module google.golang.org/grpc to v1.71.0 ([#2101](https://github.com/cloudquery/plugin-sdk/issues/2101)) ([7086507](https://github.com/cloudquery/plugin-sdk/commit/7086507c5536ec1930a9936799146a947ac10e95))
+
 ## [4.74.1](https://github.com/cloudquery/plugin-sdk/compare/v4.74.0...v4.74.1) (2025-03-07)
 
 
