@@ -180,8 +180,9 @@ type BatchUpdater struct {
 	awsMarketplaceClient AWSMarketplaceClientInterface
 
 	// Plugin details
-	teamName   cqapi.TeamName
-	pluginMeta plugin.Meta
+	teamName       cqapi.TeamName
+	pluginMeta     plugin.Meta
+	installationID string
 
 	// Configuration
 	batchLimit            uint32
@@ -284,6 +285,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		}
 		u.teamName = teamName
 	}
+	u.installationID = maybeGetInstallationID(u.tokenClient.GetTokenType())
 
 	u.backgroundUpdater()
 
@@ -634,7 +636,9 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 		PluginName: u.pluginMeta.Name,
 		Rows:       int(rows),
 	}
-
+	if len(u.installationID) > 0 {
+		payload.InstallationID = &u.installationID
+	}
 	if len(tables) > 0 {
 		payload.Tables = &tables
 	}
@@ -721,6 +725,15 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 			return "", fmt.Errorf("unsupported token type: %v", tokenType)
 		}
 		return team, nil
+	}
+}
+
+func maybeGetInstallationID(tokenType auth.TokenType) string {
+	switch tokenType {
+	case auth.SyncRunAPIKey, auth.SyncTestConnectionAPIKey:
+		return os.Getenv("_CQ_INSTALLATION_ID")
+	default:
+		return ""
 	}
 }
 
