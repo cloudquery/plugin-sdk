@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.76.0](https://github.com/cloudquery/plugin-sdk/compare/v4.75.0...v4.76.0) (2025-04-02)
+
+
+### Features
+
+* Pass installation ID from env to usage report ([#2106](https://github.com/cloudquery/plugin-sdk/issues/2106)) ([0bea6e7](https://github.com/cloudquery/plugin-sdk/commit/0bea6e792c2024231e6cf20804e0e493cf63f012))
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 054e65f ([#2110](https://github.com/cloudquery/plugin-sdk/issues/2110)) ([f9875f8](https://github.com/cloudquery/plugin-sdk/commit/f9875f8706268a9c0a3d3d95eb73da9d6d258f9f))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.9 ([#2112](https://github.com/cloudquery/plugin-sdk/issues/2112)) ([abd2117](https://github.com/cloudquery/plugin-sdk/commit/abd2117c47837393fb06eecf270bf4d25ce511a7))
+* Error if both PKs and PK components are set ([#2113](https://github.com/cloudquery/plugin-sdk/issues/2113)) ([4f0b312](https://github.com/cloudquery/plugin-sdk/commit/4f0b3129391339df8b53358433ad17555149399e))
+
 ## [4.75.0](https://github.com/cloudquery/plugin-sdk/compare/v4.74.2...v4.75.0) (2025-03-31)
 
 
