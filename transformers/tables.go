@@ -26,6 +26,9 @@ func TransformTables(tables schema.Tables) error {
 		if err := TransformTables(table.Relations); err != nil {
 			return err
 		}
+		if len(table.PrimaryKeys()) > 0 && len(table.PrimaryKeyComponents()) > 0 {
+			return fmt.Errorf("primary keys and primary key components cannot both be set for table %q", table.Name)
+		}
 	}
 	return nil
 }
