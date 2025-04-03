@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.77.0](https://github.com/cloudquery/plugin-sdk/compare/v4.76.0...v4.77.0) (2025-04-03)
+
+
+### Features
+
+* Allow skipping PK components mismatch validation ([#2115](https://github.com/cloudquery/plugin-sdk/issues/2115)) ([caf7f92](https://github.com/cloudquery/plugin-sdk/commit/caf7f92168d69d2cd95350162fa9ea8aef33cd5d))
+
 ## [4.76.0](https://github.com/cloudquery/plugin-sdk/compare/v4.75.0...v4.76.0) (2025-04-02)
 
 
