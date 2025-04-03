@@ -102,6 +102,9 @@ type Table struct {
 	// This relates to the CloudQuery plugin itself, and should not be confused
 	// with whether the table makes use of a paid API or not.
 	IsPaid bool `json:"is_paid"`
+
+	// IgnorePKComponentsMismatchValidation is a flag that indicates if the table should skip validating usage of both primary key components and primary keys
+	IgnorePKComponentsMismatchValidation bool `json:"ignore_pk_components_mismatch_validation"`
 }
 
 var (
