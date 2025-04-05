@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.77.1](https://github.com/cloudquery/plugin-sdk/compare/v4.77.0...v4.77.1) (2025-04-05)
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2119](https://github.com/cloudquery/plugin-sdk/issues/2119)) ([5554039](https://github.com/cloudquery/plugin-sdk/commit/5554039d4358a66f21e765b8dc7c3203b7437f04))
+* **deps:** Update Google Golang modules ([#2118](https://github.com/cloudquery/plugin-sdk/issues/2118)) ([93d9203](https://github.com/cloudquery/plugin-sdk/commit/93d9203936fb499ab516fe9e847e078e758afb36))
+
 ## [4.77.0](https://github.com/cloudquery/plugin-sdk/compare/v4.76.0...v4.77.0) (2025-04-03)
 
 
