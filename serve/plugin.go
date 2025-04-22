@@ -222,7 +222,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				}
 			}()
 
-			logger.Info().Str("address", listener.Addr().String()).Msg("Plugin server listening")
+			logger.Info().Str("address", listener.Addr().String()).Str("plugin", s.plugin.PackageAndVersion()).Msg("Plugin server listening")
 			if err := grpcServer.Serve(listener); err != nil {
 				return fmt.Errorf("failed to serve: %w", err)
 			}

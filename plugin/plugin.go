@@ -166,6 +166,10 @@ func (p *Plugin) Meta() Meta {
 	}
 }
 
+func (p *Plugin) PackageAndVersion() string {
+	return fmt.Sprintf("%s/%s/%s@%s", p.team, p.kind, p.name, p.version)
+}
+
 // SetSkipUsageClient sets whether the usage client should be skipped
 func (p *Plugin) SetSkipUsageClient(v bool) {
 	p.skipUsageClient = v
