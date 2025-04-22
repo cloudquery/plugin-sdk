@@ -75,6 +75,7 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	)
 	defer span.End()
 	logger := w.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
+	ctx = logger.WithContext(ctx)
 	startTime := time.Now()
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
 		logger.Info().Msg("top level table resolver started")

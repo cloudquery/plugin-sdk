@@ -87,6 +87,7 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	)
 	defer span.End()
 	logger := s.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
+	ctx = logger.WithContext(ctx)
 
 	startTime := time.Now()
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
