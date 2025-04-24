@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -43,11 +44,11 @@ func (s *PluginServe) newCmdPluginDoc() *cobra.Command {
 				return err
 			}
 			g := docs.NewGenerator(s.plugin.Name(), tables)
-			f := docs.FormatMarkdown
-			if format.Value == "json" {
-				f = docs.FormatJSON
+			if format.Value != "json" {
+				return errors.New("only json format is supported. If need to generate markdown, use the `cloudquery tables` command")
 			}
-			return g.Generate(args[0], f)
+
+			return g.GenerateJSON(args[0], docs.FormatJSON)
 		},
 	}
 	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
