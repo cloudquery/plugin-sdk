@@ -2,7 +2,6 @@ package docs
 
 import (
 	"embed"
-	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -120,7 +119,19 @@ func (g *Generator) Generate(dir string, format Format) error {
 
 	switch format {
 	case FormatMarkdown:
-		return errors.New("markdown format is not supported directly via the plugin, use the `cloudquery tables` command instead")
+		return g.renderTablesAsMarkdown(dir)
+	case FormatJSON:
+		return g.renderTablesAsJSON(dir)
+	default:
+		return fmt.Errorf("unsupported format: %v", format)
+	}
+}
+
+func (g *Generator) GenerateJSON(dir string, format Format) error {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
+	}
+	switch format {
 	case FormatJSON:
 		return g.renderTablesAsJSON(dir)
 	default:
