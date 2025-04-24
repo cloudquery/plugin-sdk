@@ -132,6 +132,7 @@ func (s *PluginServe) build(pluginDirectory string, target plugin.BuildTarget, d
 	args := []string{"build", "-o", pluginPath}
 	args = append(args, "-buildmode=exe")
 	args = append(args, "-ldflags", ldFlags)
+	args = append(args, "-tags", "grpcnotrace")
 	cmd := exec.Command("go", args...)
 	cmd.Dir = pluginDirectory
 	cmd.Stdout = os.Stdout
