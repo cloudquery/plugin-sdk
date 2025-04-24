@@ -3,7 +3,7 @@ package docs
 import (
 	_ "embed"
 	"testing"
-	
+
 	"github.com/cloudquery/plugin-sdk/v4/docs/testdata"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/stretchr/testify/require"
