@@ -1,6 +1,6 @@
 module github.com/cloudquery/plugin-sdk/examples/simple_plugin
 
-go 1.23.0
+go 1.23.4
 
 toolchain go1.24.1
 
@@ -33,6 +33,7 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cloudquery/cloudquery-api-go v1.13.8 // indirect
+	github.com/cloudquery/codegen v0.3.26 // indirect
 	github.com/cloudquery/plugin-pb-go v1.26.9 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
