@@ -427,16 +427,23 @@ func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	// The reading never closes the writer, because it's up to the Plugin to decide when to finish
 	// writing, regardless of if the reading finished.
 	eg.Go(func() error {
+		var sendErr error
 		for record := range sendRecords {
+			// We cannot terminate the stream here, because the plugin may still be sending records. So if error was returned channel has to be drained
+			if sendErr != nil {
+				continue
+			}
 			recordBytes, err := pb.RecordToBytes(record)
 			if err != nil {
-				return status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err)
+				sendErr = status.Errorf(codes.Internal, "failed to convert record to bytes: %v", err)
+				continue
 			}
 			if err := stream.Send(&pb.Transform_Response{Record: recordBytes}); err != nil {
-				return status.Errorf(codes.Internal, "error sending response: %v", err)
+				sendErr = status.Errorf(codes.Internal, "error sending response: %v", err)
+				continue
 			}
 		}
-		return nil
+		return sendErr
 	})
 
 	// Read records from source to transformer
