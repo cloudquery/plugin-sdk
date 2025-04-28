@@ -179,8 +179,8 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
-				grpc.MaxRecvMsgSize(MaxMsgSize),
-				grpc.MaxSendMsgSize(MaxMsgSize),
+				grpc.MaxRecvMsgSize(MaxGrpcMsgSize),
+				grpc.MaxSendMsgSize(MaxGrpcMsgSize),
 			)
 			s.plugin.SetLogger(logger)
 			pbv3.RegisterPluginServer(grpcServer, &serversv3.Server{
