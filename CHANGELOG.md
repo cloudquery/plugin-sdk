@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.79.0](https://github.com/cloudquery/plugin-sdk/compare/v4.78.0...v4.79.0) (2025-04-28)
+
+
+### Features
+
+* Add transformer to update table description with its table options ([#2128](https://github.com/cloudquery/plugin-sdk/issues/2128)) ([2387b57](https://github.com/cloudquery/plugin-sdk/commit/2387b5765133a03e202f332290bfd94c2ac50eab))
+* Show plugin version in plugin server logs ([#2124](https://github.com/cloudquery/plugin-sdk/issues/2124)) ([be08606](https://github.com/cloudquery/plugin-sdk/commit/be08606413a4392d04d3e388ccc1edbe64439c14))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.10 ([#2132](https://github.com/cloudquery/plugin-sdk/issues/2132)) ([775d537](https://github.com/cloudquery/plugin-sdk/commit/775d537cc9ee69ee548d69be67e7172baa03fcab))
+* Prevent deadlock in transformer ([#2130](https://github.com/cloudquery/plugin-sdk/issues/2130)) ([a65b101](https://github.com/cloudquery/plugin-sdk/commit/a65b101d05ee43bc1f1f0033736ede756ee55604))
+
 ## [4.78.0](https://github.com/cloudquery/plugin-sdk/compare/v4.77.0...v4.78.0) (2025-04-22)
 
 
