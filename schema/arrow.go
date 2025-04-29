@@ -27,6 +27,7 @@ const (
 	MetadataTableDependsOn         = "cq:table_depends_on"
 	MetadataTableIsPaid            = "cq:table_paid"
 	MetadataTablePermissionsNeeded = "cq:table_permissions_needed"
+	MetadataTableSensitiveColumns  = "cq:table_sensitive_columns"
 )
 
 type Schemas []*arrow.Schema

@@ -59,6 +59,7 @@ func GetNewClient(options ...Option) plugin.NewClientFunc {
 					},
 				},
 				PermissionsNeeded: []string{"permission1"},
+				SensitiveColumns:  []string{"col1"},
 				Relations: schema.Tables{
 					{
 						Name: "table2",
