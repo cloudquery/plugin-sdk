@@ -730,7 +730,7 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 
 func determineInstallationID(tokenType auth.TokenType) string {
 	switch tokenType {
-	case auth.SyncRunAPIKey, auth.SyncTestConnectionAPIKey:
+	case auth.APIKey:
 		return os.Getenv("_CQ_INSTALLATION_ID")
 	default:
 		return ""
