@@ -285,7 +285,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		}
 		u.teamName = teamName
 	}
-	u.installationID = determineInstallationID(u.tokenClient.GetTokenType())
+	u.installationID = determineInstallationID()
 
 	u.backgroundUpdater()
 
@@ -728,13 +728,8 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 	}
 }
 
-func determineInstallationID(tokenType auth.TokenType) string {
-	switch tokenType {
-	case auth.APIKey:
-		return os.Getenv("_CQ_INSTALLATION_ID")
-	default:
-		return ""
-	}
+func determineInstallationID() string {
+	return os.Getenv("_CQ_INSTALLATION_ID")
 }
 
 type NoOpUsageClient struct {
