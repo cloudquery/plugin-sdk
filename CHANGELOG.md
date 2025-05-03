@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.79.1](https://github.com/cloudquery/plugin-sdk/compare/v4.79.0...v4.79.1) (2025-05-03)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 7e4ce0a ([#2135](https://github.com/cloudquery/plugin-sdk/issues/2135)) ([efb8813](https://github.com/cloudquery/plugin-sdk/commit/efb8813182f813a25ec9bf0ba465f5a1419c937d))
+* **deps:** Update module github.com/grpc-ecosystem/go-grpc-middleware/v2 to v2.3.1 ([#2136](https://github.com/cloudquery/plugin-sdk/issues/2136)) ([5534187](https://github.com/cloudquery/plugin-sdk/commit/553418708ebc1fcbc1eb13ea29907346258aa36b))
+* **deps:** Update module github.com/rs/zerolog to v1.34.0 ([#2138](https://github.com/cloudquery/plugin-sdk/issues/2138)) ([e1bcb05](https://github.com/cloudquery/plugin-sdk/commit/e1bcb0532b7b1b42e38571254c655769296240e4))
+* **deps:** Update module google.golang.org/grpc to v1.72.0 ([#2141](https://github.com/cloudquery/plugin-sdk/issues/2141)) ([a0f27a3](https://github.com/cloudquery/plugin-sdk/commit/a0f27a3ca01a870912ad7afb9ec92fb8e52f78b7))
+* Pass installation ID from env for usage report ([#2140](https://github.com/cloudquery/plugin-sdk/issues/2140)) ([4d36bfb](https://github.com/cloudquery/plugin-sdk/commit/4d36bfba0a572995c11e10fc2e448e36beb67208))
+
 ## [4.79.0](https://github.com/cloudquery/plugin-sdk/compare/v4.78.0...v4.79.0) (2025-04-28)
 
 
