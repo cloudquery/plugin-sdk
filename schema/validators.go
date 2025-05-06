@@ -2,6 +2,8 @@ package schema
 
 import (
 	"encoding/json"
+	"slices"
+	"strings"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/types"
@@ -38,6 +40,36 @@ func FindEmptyColumns(table *Table, records []arrow.Record) []string {
 		}
 	}
 	return emptyColumns
+}
+
+func FindNotMatchingSensitiveColumns(table *Table, records []arrow.Record) ([]string, []string) {
+	if len(table.SensitiveColumns) == 0 {
+		return []string{}, []string{}
+	}
+
+	nonMatchingColumns := make([]string, 0)
+	nonMatchingJsonColumns := make([]string, 0)
+	tableColumns := table.Columns.Names()
+	for _, c := range table.SensitiveColumns {
+		isJsonPath := false
+		if strings.Contains(c, ".") {
+			c = strings.Split(c, ".")[0]
+			isJsonPath = true
+		}
+		if !slices.Contains(tableColumns, c) {
+			nonMatchingColumns = append(nonMatchingColumns, c)
+			continue
+		}
+		if !isJsonPath {
+			continue
+		}
+		col := table.Columns.Get(c)
+		if !arrow.TypeEqual(col.Type, types.ExtensionTypes.JSON) {
+			nonMatchingJsonColumns = append(nonMatchingJsonColumns, c)
+			continue
+		}
+	}
+	return nonMatchingColumns, nonMatchingJsonColumns
 }
 
 func isEmptyJSON(msg json.RawMessage) bool {
