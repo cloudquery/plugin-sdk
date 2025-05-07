@@ -42,34 +42,34 @@ func FindEmptyColumns(table *Table, records []arrow.Record) []string {
 	return emptyColumns
 }
 
-func FindNotMatchingSensitiveColumns(table *Table, records []arrow.Record) ([]string, []string) {
+func FindNotMatchingSensitiveColumns(table *Table) (nonMatchingColumns []string, nonMatchingJSONColumns []string) {
 	if len(table.SensitiveColumns) == 0 {
 		return []string{}, []string{}
 	}
 
-	nonMatchingColumns := make([]string, 0)
-	nonMatchingJsonColumns := make([]string, 0)
+	nonMatchingColumns = make([]string, 0)
+	nonMatchingJSONColumns = make([]string, 0)
 	tableColumns := table.Columns.Names()
 	for _, c := range table.SensitiveColumns {
-		isJsonPath := false
+		isJSONPath := false
 		if strings.Contains(c, ".") {
 			c = strings.Split(c, ".")[0]
-			isJsonPath = true
+			isJSONPath = true
 		}
 		if !slices.Contains(tableColumns, c) {
 			nonMatchingColumns = append(nonMatchingColumns, c)
 			continue
 		}
-		if !isJsonPath {
+		if !isJSONPath {
 			continue
 		}
 		col := table.Columns.Get(c)
 		if !arrow.TypeEqual(col.Type, types.ExtensionTypes.JSON) {
-			nonMatchingJsonColumns = append(nonMatchingJsonColumns, c)
+			nonMatchingJSONColumns = append(nonMatchingJSONColumns, c)
 			continue
 		}
 	}
-	return nonMatchingColumns, nonMatchingJsonColumns
+	return nonMatchingColumns, nonMatchingJSONColumns
 }
 
 func isEmptyJSON(msg json.RawMessage) bool {
