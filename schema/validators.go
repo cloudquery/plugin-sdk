@@ -46,7 +46,6 @@ func FindNotMatchingSensitiveColumns(table *Table) (nonMatchingColumns []string,
 	if len(table.SensitiveColumns) == 0 {
 		return []string{}, []string{}
 	}
-
 	nonMatchingColumns = make([]string, 0)
 	nonMatchingJSONColumns = make([]string, 0)
 	tableColumns := table.Columns.Names()

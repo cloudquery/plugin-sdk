@@ -14,6 +14,11 @@ func ValidateNoEmptyColumns(t *testing.T, tables schema.Tables, messages message
 		if len(emptyColumns) > 0 {
 			t.Fatalf("found empty column(s): %v in %s", emptyColumns, table.Name)
 		}
+	}
+}
+
+func ValidateSensitivColumns(t *testing.T, tables schema.Tables) {
+	for _, table := range tables.FlattenTables() {
 		nonMatchingColumns, nonMatchingJSONColumns := schema.FindNotMatchingSensitiveColumns(table)
 		if len(nonMatchingColumns) > 0 {
 			t.Fatalf("found non-matching sensitive column(s): %v in %s", nonMatchingColumns, table.Name)
