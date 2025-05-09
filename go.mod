@@ -24,7 +24,7 @@ require (
 	github.com/invopop/jsonschema v0.13.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/rs/zerolog v1.34.0
-	github.com/samber/lo v1.47.0
+	github.com/samber/lo v1.49.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.1
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
