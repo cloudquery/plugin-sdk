@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.80.0](https://github.com/cloudquery/plugin-sdk/compare/v4.79.1...v4.80.0) (2025-05-09)
+
+
+### Features
+
+* Add SensitiveColumns to tables schema ([#2134](https://github.com/cloudquery/plugin-sdk/issues/2134)) ([e95674f](https://github.com/cloudquery/plugin-sdk/commit/e95674f255c7225a9b5d593daf54c0a373c2ef50))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.13.9 ([#2143](https://github.com/cloudquery/plugin-sdk/issues/2143)) ([77d4b9b](https://github.com/cloudquery/plugin-sdk/commit/77d4b9b317dfa06ccbf4c0696adcdaa6de724173))
+
 ## [4.79.1](https://github.com/cloudquery/plugin-sdk/compare/v4.79.0...v4.79.1) (2025-05-03)
 
 
