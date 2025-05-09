@@ -17,7 +17,8 @@
     "relations": ["table2"],
     "title": "",
     "is_paid": false,
-    "permissions_needed": ["permission1"]
+    "permissions_needed": ["permission1"],
+    "sensitive_columns": ["col1"]
   },
   {
     "columns": [
@@ -38,7 +39,8 @@
     "name": "table2",
     "title": "",
     "is_paid": false,
-    "permissions_needed": null
+    "permissions_needed": null,
+    "sensitive_columns": null
   },
   {
     "columns": [
@@ -59,6 +61,7 @@
     "name": "table3",
     "title": "",
     "is_paid": true,
-    "permissions_needed": null
+    "permissions_needed": null,
+    "sensitive_columns": null
   }
 ]
