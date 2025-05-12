@@ -17,7 +17,7 @@ func ValidateNoEmptyColumns(t *testing.T, tables schema.Tables, messages message
 	}
 }
 
-func ValidateSensitivColumns(t *testing.T, tables schema.Tables) {
+func ValidateSensitiveColumns(t *testing.T, tables schema.Tables) {
 	for _, table := range tables.FlattenTables() {
 		nonMatchingColumns, nonMatchingJSONColumns := schema.FindNotMatchingSensitiveColumns(table)
 		if len(nonMatchingColumns) > 0 {
