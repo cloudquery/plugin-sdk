@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
@@ -37,6 +38,7 @@ func newResource(p *plugin.Plugin) *resource.Resource {
 			schemaURL,
 			semconv.ServiceName("cloudquery-"+p.Name()),
 			semconv.ServiceVersion(p.Version()),
+			attribute.Key("cloudquery.plugin.path").String(p.Team()+"/"+string(p.Kind())+"/"+p.Name()),
 		),
 	)
 	if err != nil {
