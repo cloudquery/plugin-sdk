@@ -132,9 +132,6 @@ func (s *PluginServe) build(pluginDirectory string, target plugin.BuildTarget, d
 	args := []string{"build", "-o", pluginPath}
 	args = append(args, "-buildmode=exe")
 	args = append(args, "-ldflags", ldFlags)
-	// // This disables gRPC tracing, which introduces a dependency that blocks dead code elimination\
-	// // https://github.com/grpc/grpc-go/blob/030938e543b4a721cd426d15611d50ecf097dcf3/trace_notrace.go#L23-L25
-	// args = append(args, "-tags", buildTags)
 	cmd := exec.Command("go", args...)
 	cmd.Dir = pluginDirectory
 	cmd.Stdout = os.Stdout
