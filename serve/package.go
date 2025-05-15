@@ -455,7 +455,6 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 	cmd.Flags().StringP("dist-dir", "D", "", "dist directory to output the built plugin. (default: <plugin_directory>/dist)")
 	cmd.Flags().StringP("docs-dir", "", "", "docs directory containing markdown files to copy to the dist directory. (default: <plugin_directory>/docs)")
 	cmd.Flags().StringP("message", "m", "", "message that summarizes what is new or changed in this version. Use @<file> to read from file. Supports markdown.")
-	cmd.Flags().StringP("build-tags", "", "", "build tags to use when building the plugin. (default: grpcnotrace)")
 	return cmd
 }
 
