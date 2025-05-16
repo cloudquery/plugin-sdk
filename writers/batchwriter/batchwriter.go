@@ -278,7 +278,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
 			l := int64(len(w.deleteStaleMessages))
 			w.deleteStaleLock.Unlock()
-			if w.batchSize > 0 && l > w.batchSize {
+			if w.batchSize > 0 && l >= w.batchSize {
 				if err := w.flushDeleteStaleTables(ctx); err != nil {
 					return err
 				}
@@ -298,7 +298,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.deleteRecordMessages = append(w.deleteRecordMessages, m)
 			l := int64(len(w.deleteRecordMessages))
 			w.deleteRecordLock.Unlock()
-			if w.batchSize > 0 && l > w.batchSize {
+			if w.batchSize > 0 && l >= w.batchSize {
 				if err := w.flushDeleteRecordTables(ctx); err != nil {
 					return err
 				}
@@ -322,7 +322,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.migrateTableMessages = append(w.migrateTableMessages, m)
 			l := int64(len(w.migrateTableMessages))
 			w.migrateTableLock.Unlock()
-			if w.batchSize > 0 && l > w.batchSize {
+			if w.batchSize > 0 && l >= w.batchSize {
 				if err := w.flushMigrateTables(ctx); err != nil {
 					return err
 				}
