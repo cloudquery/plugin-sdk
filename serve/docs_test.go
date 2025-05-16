@@ -15,7 +15,7 @@ func TestPluginDocs(t *testing.T) {
 		memdb.NewMemDBClient)
 	srv := Plugin(p)
 	cmd := srv.newCmdPluginRoot()
-	cmd.SetArgs([]string{"doc", tmpDir})
+	cmd.SetArgs([]string{"doc", tmpDir, "--format", "json"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}

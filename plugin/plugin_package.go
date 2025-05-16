@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"errors"
+	"strings"
 )
 
 const (
@@ -41,12 +42,21 @@ type BuildTarget struct {
 	Arch           string   `json:"arch"`
 	CGO            bool     `json:"cgo"`
 	Env            []string `json:"env"`
+	Tags           []string `json:"tags"`
 	IncludeSymbols bool     `json:"include_symbols"`
 }
 
 func (t BuildTarget) EnvVariables() []string {
-	variables := append(t.cgoEnvVariables(), "GOOS="+t.OS, "GOARCH="+t.Arch)
+	variables := append(t.cgoEnvVariables(), "GOOS="+t.OS, "GOARCH="+t.Arch, t.tags())
 	return append(variables, t.Env...)
+}
+
+func (t BuildTarget) tags() string {
+	if len(t.Tags) == 0 {
+		return ""
+	}
+	tagString := strings.Join(t.Tags, ",")
+	return "GOFLAGS=-tags=" + tagString
 }
 
 func (t BuildTarget) cgoEnvVariables() []string {
@@ -78,9 +88,9 @@ func (t BuildTarget) cgoEnvVariables() []string {
 }
 
 var DefaultBuildTargets = []BuildTarget{
-	{OS: GoOSLinux, Arch: GoArchAmd64},
-	{OS: GoOSLinux, Arch: GoArchArm64},
-	{OS: GoOSWindows, Arch: GoArchAmd64},
-	{OS: GoOSDarwin, Arch: GoArchAmd64},
-	{OS: GoOSDarwin, Arch: GoArchArm64},
+	{OS: GoOSLinux, Arch: GoArchAmd64, Tags: []string{"grpcnotrace"}},
+	{OS: GoOSLinux, Arch: GoArchArm64, Tags: []string{"grpcnotrace"}},
+	{OS: GoOSWindows, Arch: GoArchAmd64, Tags: []string{"grpcnotrace"}},
+	{OS: GoOSDarwin, Arch: GoArchAmd64, Tags: []string{"grpcnotrace"}},
+	{OS: GoOSDarwin, Arch: GoArchArm64, Tags: []string{"grpcnotrace"}},
 }
