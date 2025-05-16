@@ -66,6 +66,8 @@ type Table struct {
 	Description string `json:"description"`
 	// List of permissions needed to access this table, if any. For example ["Microsoft.Network/dnsZones/read"] or ["storage.buckets.list"]
 	PermissionsNeeded []string `json:"permissions_needed"`
+	// List of columns that may contain sensitive or secret data
+	SensitiveColumns []string `json:"sensitive_columns"`
 	// Columns are the set of fields that are part of this table
 	Columns ColumnList `json:"columns"`
 	// Relations are a set of related tables defines
@@ -188,6 +190,7 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	title, _ := tableMD.GetValue(MetadataTableTitle)
 	dependsOn, _ := tableMD.GetValue(MetadataTableDependsOn)
 	permissionsNeeded, _ := tableMD.GetValue(MetadataTablePermissionsNeeded)
+	sensitiveColumns, _ := tableMD.GetValue(MetadataTableSensitiveColumns)
 	var parent *Table
 	if dependsOn != "" {
 		parent = &Table{Name: dependsOn}
@@ -200,6 +203,8 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 
 	var permissionsNeededArr []string
 	_ = json.Unmarshal([]byte(permissionsNeeded), &permissionsNeededArr)
+	var sensitiveColumnsArr []string
+	_ = json.Unmarshal([]byte(sensitiveColumns), &sensitiveColumnsArr)
 	table := &Table{
 		Name:              name,
 		Description:       description,
@@ -208,6 +213,7 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		Title:             title,
 		Parent:            parent,
 		PermissionsNeeded: permissionsNeededArr,
+		SensitiveColumns:  sensitiveColumnsArr,
 	}
 	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
 		table.IsIncremental = isIncremental == MetadataTrue
@@ -493,6 +499,8 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	}
 	asJSON, _ := json.Marshal(t.PermissionsNeeded)
 	md[MetadataTablePermissionsNeeded] = string(asJSON)
+	asJSON, _ = json.Marshal(t.SensitiveColumns)
+	md[MetadataTableSensitiveColumns] = string(asJSON)
 
 	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {

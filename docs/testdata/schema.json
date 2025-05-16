@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "test/spec",
+  "$ref": "#/$defs/Spec",
+  "$defs": {
+    "Spec": {
+      "properties": {
+        "table_options": {
+          "$ref": "#/$defs/TableOptions",
+          "description": "TableOptions is a set of options to override the defaults for certain tables."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "TableOptions": {
+      "properties": {
+        "dummy": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/DummyTableOptions",
+              "description": "Options for the dummy table."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "DummyTableOptions": {
+      "properties": {
+        "filter": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "DummyTableOptions contains configuration for the dummy table"
+    }
+  }
+}

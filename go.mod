@@ -1,6 +1,6 @@
 module github.com/cloudquery/plugin-sdk/v4
 
-go 1.23.0
+go 1.23.4
 
 toolchain go1.24.1
 
@@ -11,19 +11,20 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.30.3
 	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.29.0
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/cloudquery-api-go v1.13.8
-	github.com/cloudquery/plugin-pb-go v1.26.9
+	github.com/cloudquery/cloudquery-api-go v1.13.9
+	github.com/cloudquery/codegen v0.3.28
+	github.com/cloudquery/plugin-pb-go v1.26.11
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/goccy/go-json v0.10.5
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.1
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/invopop/jsonschema v0.13.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
-	github.com/rs/zerolog v1.33.0
-	github.com/samber/lo v1.47.0
+	github.com/rs/zerolog v1.34.0
+	github.com/samber/lo v1.49.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.1
 	github.com/spf13/cobra v1.9.0
 	github.com/stretchr/testify v1.10.0
@@ -39,11 +40,11 @@ require (
 	go.opentelemetry.io/otel/sdk/log v0.10.0
 	go.opentelemetry.io/otel/sdk/metric v1.34.0
 	go.opentelemetry.io/otel/trace v1.34.0
-	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
-	golang.org/x/oauth2 v0.25.0
-	golang.org/x/sync v0.12.0
-	golang.org/x/text v0.23.0
-	google.golang.org/grpc v1.71.1
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
+	golang.org/x/oauth2 v0.26.0
+	golang.org/x/sync v0.13.0
+	golang.org/x/text v0.24.0
+	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
 )
 
@@ -88,12 +89,14 @@ require (
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/tools v0.31.0 // indirect
+	golang.org/x/net v0.39.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/tools v0.32.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250115164207-1a7da9e5054f // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/invopop/jsonschema => github.com/cloudquery/jsonschema v0.0.0-20240220124159-92878faa2a66
