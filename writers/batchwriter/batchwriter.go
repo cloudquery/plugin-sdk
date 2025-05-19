@@ -313,6 +313,9 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			if err := w.flushDeleteStaleTables(ctx); err != nil {
 				return err
 			}
+			if err := w.flushDeleteRecordTables(ctx); err != nil {
+				return err
+			}
 			if err := w.startWorker(ctx, m); err != nil {
 				return err
 			}
