@@ -316,7 +316,11 @@ func shardTableClients(tableClients []tableClient, shard *shard) []tableClient {
 		return nil
 	}
 	if len(chunks) > total && num == total {
-		return append(chunks[num-1], chunks[num]...)
+		chunkReturn := chunks[num-1]
+		for _, chunk := range chunks[total:] {
+			chunkReturn = append(chunkReturn, chunk...)
+		}
+		return chunkReturn
 	}
 	return chunks[num-1]
 }
