@@ -103,6 +103,7 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 			Title:             &table.Title,
 			Columns:           &columns,
 			PermissionsNeeded: &table.PermissionsNeeded,
+			SensitiveColumns:  &table.SensitiveColumns,
 		})
 	}
 	buffer := &bytes.Buffer{}
