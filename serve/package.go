@@ -128,7 +128,7 @@ func (s *PluginServe) build(pluginDirectory string, target plugin.BuildTarget, d
 	if target.IncludeSymbols {
 		stripSymbols = ""
 	}
-	ldFlags := fmt.Sprintf("%[1]s -w -X %[2]s/plugin.Version=%[3]s -X %[2]s/resources/plugin.Version=%[2]s", stripSymbols, importPath, pluginVersion)
+	ldFlags := fmt.Sprintf("%[1]s -w -X %[2]s/plugin.Version=%[3]s -X %[2]s/resources/plugin.Version=%[3]s", stripSymbols, importPath, pluginVersion)
 	args := []string{"build", "-o", pluginPath}
 	args = append(args, "-buildmode=exe")
 	args = append(args, "-ldflags", ldFlags)
