@@ -107,7 +107,10 @@ func (w *BatchWriter) Flush(ctx context.Context) error {
 	if err := w.flushMigrateTables(ctx); err != nil {
 		return err
 	}
-	return w.flushDeleteStaleTables(ctx)
+	if err := w.flushDeleteStaleTables(ctx); err != nil {
+		return err
+	}
+	return w.flushDeleteRecordTables(ctx)
 }
 
 func (w *BatchWriter) Close(context.Context) error {
