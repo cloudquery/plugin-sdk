@@ -180,8 +180,9 @@ type BatchUpdater struct {
 	awsMarketplaceClient AWSMarketplaceClientInterface
 
 	// Plugin details
-	teamName   cqapi.TeamName
-	pluginMeta plugin.Meta
+	teamName       cqapi.TeamName
+	pluginMeta     plugin.Meta
+	installationID string
 
 	// Configuration
 	batchLimit            uint32
@@ -284,6 +285,7 @@ func NewUsageClient(meta plugin.Meta, ops ...UsageClientOptions) (UsageClient, e
 		}
 		u.teamName = teamName
 	}
+	u.installationID = determineInstallationID()
 
 	u.backgroundUpdater()
 
@@ -334,7 +336,7 @@ func awsMarketplaceProductCode() string {
 
 func (u *BatchUpdater) Increase(rows uint32) error {
 	if u.usageIncreaseMethod == UsageIncreaseMethodBreakdown {
-		return fmt.Errorf("mixing usage increase methods is not allowed, use IncreaseForTable instead")
+		return errors.New("mixing usage increase methods is not allowed, use IncreaseForTable instead")
 	}
 
 	if rows <= 0 {
@@ -342,7 +344,7 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 	}
 
 	if u.isClosed {
-		return fmt.Errorf("usage updater is closed")
+		return errors.New("usage updater is closed")
 	}
 
 	u.Lock()
@@ -364,7 +366,7 @@ func (u *BatchUpdater) Increase(rows uint32) error {
 
 func (u *BatchUpdater) IncreaseForTable(table string, rows uint32) error {
 	if u.usageIncreaseMethod == UsageIncreaseMethodTotal {
-		return fmt.Errorf("mixing usage increase methods is not allowed, use Increase instead")
+		return errors.New("mixing usage increase methods is not allowed, use Increase instead")
 	}
 
 	if rows <= 0 {
@@ -372,7 +374,7 @@ func (u *BatchUpdater) IncreaseForTable(table string, rows uint32) error {
 	}
 
 	if u.isClosed {
-		return fmt.Errorf("usage updater is closed")
+		return errors.New("usage updater is closed")
 	}
 
 	u.Lock()
@@ -489,6 +491,10 @@ func (u *BatchUpdater) backgroundUpdater() {
 		for {
 			select {
 			case <-u.triggerUpdate:
+				// If we are using AWS Marketplace, we should only report the usage at the end of the sync
+				if u.awsMarketplaceClient != nil {
+					continue
+				}
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
@@ -500,12 +506,6 @@ func (u *BatchUpdater) backgroundUpdater() {
 					// Not enough rows to update
 					continue
 				}
-				// If we are using AWS Marketplace, we need to round down to the nearest 1000
-				// Only on the last update, will we round up to the nearest 1000
-				// This will allow us to not overcharge the customer by rounding on each batch
-				if u.awsMarketplaceClient != nil {
-					totals = roundDown(totals, 1000)
-				}
 
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					u.logger.Warn().Err(err).Msg("failed to update usage")
@@ -514,6 +514,10 @@ func (u *BatchUpdater) backgroundUpdater() {
 				u.subtractTableUsage(tables, totals)
 
 			case <-u.flushDuration.C:
+				// If we are using AWS Marketplace, we should only report the usage at the end of the sync
+				if u.awsMarketplaceClient != nil {
+					continue
+				}
 				if time.Since(u.lastUpdateTime) < u.minTimeBetweenFlushes {
 					// Not enough time since last update
 					continue
@@ -524,12 +528,7 @@ func (u *BatchUpdater) backgroundUpdater() {
 				if totals == 0 {
 					continue
 				}
-				// If we are using AWS Marketplace, we need to round down to the nearest 1000
-				// Only on the last update, will we round up to the nearest 1000
-				// This will allow us to not overcharge the customer by rounding on each batch
-				if u.awsMarketplaceClient != nil {
-					totals = roundDown(totals, 1000)
-				}
+
 				if err := u.updateUsageWithRetryAndBackoff(ctx, totals, tables); err != nil {
 					u.logger.Warn().Err(err).Msg("failed to update usage")
 					continue
@@ -637,7 +636,9 @@ func (u *BatchUpdater) updateUsageWithRetryAndBackoff(ctx context.Context, rows 
 		PluginName: u.pluginMeta.Name,
 		Rows:       int(rows),
 	}
-
+	if len(u.installationID) > 0 {
+		payload.InstallationID = &u.installationID
+	}
 	if len(tables) > 0 {
 		payload.Tables = &tables
 	}
@@ -699,7 +700,7 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 			return "", fmt.Errorf("failed to get team name from config: %w", err)
 		}
 		if teamName == "" {
-			return "", fmt.Errorf("team name not set. Hint: use `cloudquery switch <team>`")
+			return "", errors.New("team name not set. Hint: use `cloudquery switch <team>`")
 		}
 		return teamName, nil
 	case auth.APIKey:
@@ -719,12 +720,16 @@ func (u *BatchUpdater) getTeamNameByTokenType(tokenType auth.TokenType) (string,
 		if team == "" {
 			switch tokenType {
 			case auth.SyncRunAPIKey, auth.SyncTestConnectionAPIKey:
-				return "", fmt.Errorf("_CQ_TEAM_NAME environment variable not set")
+				return "", errors.New("_CQ_TEAM_NAME environment variable not set")
 			}
 			return "", fmt.Errorf("unsupported token type: %v", tokenType)
 		}
 		return team, nil
 	}
+}
+
+func determineInstallationID() string {
+	return os.Getenv("_CQ_INSTALLATION_ID")
 }
 
 type NoOpUsageClient struct {

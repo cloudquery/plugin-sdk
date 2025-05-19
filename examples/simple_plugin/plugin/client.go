@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/cloudquery/plugin-sdk/examples/simple_plugin/client"
 	"github.com/cloudquery/plugin-sdk/examples/simple_plugin/services"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -123,6 +123,7 @@ func getTables() schema.Tables {
 	}
 	for _, t := range tables {
 		schema.AddCqIDs(t)
+		schema.AddCqClientID(t)
 	}
 	return tables
 }

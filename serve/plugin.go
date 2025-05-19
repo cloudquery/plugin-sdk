@@ -179,8 +179,8 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				grpc.ChainStreamInterceptor(
 					logging.StreamServerInterceptor(grpczerolog.InterceptorLogger(logger)),
 				),
-				grpc.MaxRecvMsgSize(MaxMsgSize),
-				grpc.MaxSendMsgSize(MaxMsgSize),
+				grpc.MaxRecvMsgSize(MaxGrpcMsgSize),
+				grpc.MaxSendMsgSize(MaxGrpcMsgSize),
 			)
 			s.plugin.SetLogger(logger)
 			pbv3.RegisterPluginServer(grpcServer, &serversv3.Server{
@@ -222,7 +222,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				}
 			}()
 
-			logger.Info().Str("address", listener.Addr().String()).Msg("Plugin server listening")
+			logger.Info().Str("address", listener.Addr().String()).Str("plugin", s.plugin.PackageAndVersion()).Msg("Plugin server listening")
 			if err := grpcServer.Serve(listener); err != nil {
 				return fmt.Errorf("failed to serve: %w", err)
 			}

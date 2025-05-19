@@ -3,7 +3,7 @@ package schema
 import (
 	"testing"
 
-	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
@@ -731,6 +731,7 @@ func TestTablesToAndFromArrow(t *testing.T) {
 				{Name: "multiple_attributes", Type: arrow.BinaryTypes.String, PrimaryKey: true, IncrementalKey: true, NotNull: true, Unique: true},
 			},
 			PermissionsNeeded: []string{"storage.buckets.list", "compute.acceleratorTypes.list", "test,test"},
+			SensitiveColumns:  []string{"string", "json"},
 		},
 	}
 

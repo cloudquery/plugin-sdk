@@ -103,6 +103,7 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 			Title:             &table.Title,
 			Columns:           &columns,
 			PermissionsNeeded: &table.PermissionsNeeded,
+			SensitiveColumns:  &table.SensitiveColumns,
 		})
 	}
 	buffer := &bytes.Buffer{}
@@ -128,7 +129,7 @@ func (s *PluginServe) build(pluginDirectory string, target plugin.BuildTarget, d
 	if target.IncludeSymbols {
 		stripSymbols = ""
 	}
-	ldFlags := fmt.Sprintf("%[1]s -w -X %[2]s/plugin.Version=%[3]s -X %[2]s/resources/plugin.Version=%[2]s", stripSymbols, importPath, pluginVersion)
+	ldFlags := fmt.Sprintf("%[1]s -w -X %[2]s/plugin.Version=%[3]s -X %[2]s/resources/plugin.Version=%[3]s", stripSymbols, importPath, pluginVersion)
 	args := []string{"build", "-o", pluginPath}
 	args = append(args, "-buildmode=exe")
 	args = append(args, "-ldflags", ldFlags)
@@ -215,7 +216,7 @@ func (*PluginServe) getModuleName(pluginDirectory string) (string, error) {
 	reMod := regexp.MustCompile(`module\s+(.+)\n`)
 	importPathMatches := reMod.FindStringSubmatch(string(goMod))
 	if len(importPathMatches) != 2 {
-		return "", fmt.Errorf("failed to parse import path from go.mod")
+		return "", errors.New("failed to parse import path from go.mod")
 	}
 	importPath := importPathMatches[1]
 	return strings.TrimSpace(importPath), nil
@@ -336,7 +337,7 @@ func (s *PluginServe) validatePluginExports(pluginPath string) error {
 		}
 	}
 	if !foundVersion {
-		return fmt.Errorf("could not find `Version` global variable in package")
+		return errors.New("could not find `Version` global variable in package")
 	}
 
 	return nil
@@ -389,7 +390,7 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			}
 			message := ""
 			if !cmd.Flag("message").Changed {
-				return fmt.Errorf("message is required")
+				return errors.New("message is required")
 			}
 			message = cmd.Flag("message").Value.String()
 			if strings.HasPrefix(message, "@") {
@@ -407,13 +408,13 @@ func (s *PluginServe) newCmdPluginPackage() *cobra.Command {
 			}
 
 			if s.plugin.Name() == "" {
-				return fmt.Errorf("plugin name is required for packaging")
+				return errors.New("plugin name is required for packaging")
 			}
 			if s.plugin.Team() == "" {
-				return fmt.Errorf("plugin team is required (hint: use the plugin.WithTeam() option)")
+				return errors.New("plugin team is required (hint: use the plugin.WithTeam() option)")
 			}
 			if s.plugin.Kind() == "" {
-				return fmt.Errorf("plugin kind is required (hint: use the plugin.WithKind() option)")
+				return errors.New("plugin kind is required (hint: use the plugin.WithKind() option)")
 			}
 
 			if err := s.validatePluginExports(pluginDirectory); err != nil {

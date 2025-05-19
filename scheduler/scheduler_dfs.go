@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/batchsender"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -86,6 +87,7 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	)
 	defer span.End()
 	logger := s.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
+	ctx = logger.WithContext(ctx)
 
 	startTime := time.Now()
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
@@ -121,9 +123,13 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 		}
 	}()
 
+	batchSender := batchsender.NewBatchSender(func(item any) {
+		s.resolveResourcesDfs(ctx, table, client, parent, item, resolvedResources, depth)
+	})
 	for r := range res {
-		s.resolveResourcesDfs(ctx, table, client, parent, r, resolvedResources, depth)
+		batchSender.Send(r)
 	}
+	batchSender.Close()
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
 	endTime := time.Now()
@@ -183,11 +189,19 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
 				}
+				if err := resolvedResource.StoreCQClientID(client.ID()); err != nil {
+					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("failed to store _cq_client_id")
+				}
 				if err := resolvedResource.Validate(); err != nil {
-					tableMetrics := s.metrics.TableClient[table.Name][client.ID()]
-					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
-					atomic.AddUint64(&tableMetrics.Errors, 1)
-					return
+					switch err.(type) {
+					case *schema.PKError:
+						tableMetrics := s.metrics.TableClient[table.Name][client.ID()]
+						s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
+						atomic.AddUint64(&tableMetrics.Errors, 1)
+						return
+					case *schema.PKComponentError:
+						s.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")
+					}
 				}
 				select {
 				case resourcesChan <- resolvedResource:

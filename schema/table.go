@@ -3,11 +3,12 @@ package schema
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
 
-	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
 	"github.com/thoas/go-funk"
 )
@@ -65,6 +66,8 @@ type Table struct {
 	Description string `json:"description"`
 	// List of permissions needed to access this table, if any. For example ["Microsoft.Network/dnsZones/read"] or ["storage.buckets.list"]
 	PermissionsNeeded []string `json:"permissions_needed"`
+	// List of columns that may contain sensitive or secret data
+	SensitiveColumns []string `json:"sensitive_columns"`
 	// Columns are the set of fields that are part of this table
 	Columns ColumnList `json:"columns"`
 	// Relations are a set of related tables defines
@@ -101,6 +104,9 @@ type Table struct {
 	// This relates to the CloudQuery plugin itself, and should not be confused
 	// with whether the table makes use of a paid API or not.
 	IsPaid bool `json:"is_paid"`
+
+	// IgnorePKComponentsMismatchValidation is a flag that indicates if the table should skip validating usage of both primary key components and primary keys
+	IgnorePKComponentsMismatchValidation bool `json:"ignore_pk_components_mismatch_validation"`
 }
 
 var (
@@ -124,6 +130,17 @@ func AddCqIDs(table *Table) {
 	)
 	for _, rel := range table.Relations {
 		AddCqIDs(rel)
+	}
+}
+
+// AddCqClientID adds the cq_client_id column to the table,
+// which is used to identify the multiplexed client that fetched the resource
+func AddCqClientID(t *Table) {
+	if t.Columns.Get(CqClientIDColumn.Name) == nil {
+		t.Columns = append(ColumnList{CqClientIDColumn}, t.Columns...)
+	}
+	for _, rel := range t.Relations {
+		AddCqClientID(rel)
 	}
 }
 
@@ -166,13 +183,14 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	tableMD := sc.Metadata()
 	name, found := tableMD.GetValue(MetadataTableName)
 	if !found {
-		return nil, fmt.Errorf("missing table name")
+		return nil, errors.New("missing table name")
 	}
 	description, _ := tableMD.GetValue(MetadataTableDescription)
 	constraintName, _ := tableMD.GetValue(MetadataConstraintName)
 	title, _ := tableMD.GetValue(MetadataTableTitle)
 	dependsOn, _ := tableMD.GetValue(MetadataTableDependsOn)
 	permissionsNeeded, _ := tableMD.GetValue(MetadataTablePermissionsNeeded)
+	sensitiveColumns, _ := tableMD.GetValue(MetadataTableSensitiveColumns)
 	var parent *Table
 	if dependsOn != "" {
 		parent = &Table{Name: dependsOn}
@@ -185,6 +203,8 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 
 	var permissionsNeededArr []string
 	_ = json.Unmarshal([]byte(permissionsNeeded), &permissionsNeededArr)
+	var sensitiveColumnsArr []string
+	_ = json.Unmarshal([]byte(sensitiveColumns), &sensitiveColumnsArr)
 	table := &Table{
 		Name:              name,
 		Description:       description,
@@ -193,6 +213,7 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 		Title:             title,
 		Parent:            parent,
 		PermissionsNeeded: permissionsNeededArr,
+		SensitiveColumns:  sensitiveColumnsArr,
 	}
 	if isIncremental, found := tableMD.GetValue(MetadataIncremental); found {
 		table.IsIncremental = isIncremental == MetadataTrue
@@ -478,6 +499,8 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	}
 	asJSON, _ := json.Marshal(t.PermissionsNeeded)
 	md[MetadataTablePermissionsNeeded] = string(asJSON)
+	asJSON, _ = json.Marshal(t.SensitiveColumns)
+	md[MetadataTableSensitiveColumns] = string(asJSON)
 
 	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {

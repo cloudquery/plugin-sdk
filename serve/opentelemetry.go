@@ -27,10 +27,15 @@ import (
 
 // newResource returns a resource describing this application.
 func newResource(p *plugin.Plugin) *resource.Resource {
+	def := resource.Default()
+	schemaURL := def.SchemaURL()
+	if schemaURL == "" {
+		schemaURL = semconv.SchemaURL
+	}
 	r, err := resource.Merge(
-		resource.Default(),
+		def,
 		resource.NewWithAttributes(
-			semconv.SchemaURL,
+			schemaURL,
 			semconv.ServiceName("cloudquery-"+p.Name()),
 			semconv.ServiceVersion(p.Version()),
 			attribute.Key("cloudquery.plugin.path").String(p.Team()+"/"+string(p.Kind())+"/"+p.Name()),
@@ -150,7 +155,7 @@ func setupOtel(ctx context.Context, logger zerolog.Logger, p *plugin.Plugin, ote
 
 	lp := log.NewLoggerProvider(
 		log.WithProcessor(logsProcessor),
-		log.WithResource(newResource(p)),
+		log.WithResource(pluginResource),
 	)
 
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {

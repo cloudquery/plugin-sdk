@@ -2,7 +2,9 @@ package configtype
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"time"
@@ -14,9 +16,10 @@ import (
 // when a time type is required. We wrap the time.Time type so that
 // the spec can be extended in the future to support other types of times
 type Time struct {
-	input    string
-	time     time.Time
-	duration *timeDuration
+	input       string
+	time        time.Time
+	duration    *timeDuration
+	hashNowFunc func() time.Time
 }
 
 func ParseTime(s string) (Time, error) {
@@ -84,6 +87,19 @@ func (Time) JSONSchema() *jsonschema.Schema {
 		Type:    "string",
 		Pattern: timePattern,
 		Title:   "CloudQuery configtype.Time",
+		Description: "Allows for defining timestamps in both absolute(RFC3339) and relative formats. " +
+			"Absolute timestamp example: `2024-01-01T12:00:00+00:00`.\n" +
+			"Relative timestamps can take this format:\n" +
+			"- `now`\n" +
+			"- `x seconds [ago|from now]`\n" +
+			"- `x minutes [ago|from now]`\n" +
+			"- `x hours [ago|from now]`\n" +
+			"- `x days [ago|from now]`\n" +
+			"`until` field usage:\n" +
+			"- `until: now`\n" +
+			"- `until: 2 days ago`\n" +
+			"- `until: 10 months 3 days 4h20m from now`\n" +
+			"- `until: 2024-01-01T12:00:00+00:00`",
 	}
 }
 
@@ -127,6 +143,19 @@ func (t Time) IsZero() bool {
 
 func (t Time) String() string {
 	return t.input
+}
+
+func (t Time) Hash() (uint64, error) {
+	nowFunc := t.hashNowFunc
+	if nowFunc == nil {
+		nowFunc = time.Now
+	}
+	at := t.AsTime(nowFunc())
+	return uint64(at.UnixNano()), nil
+}
+
+func (t *Time) SetHashNowFunc(f func() time.Time) {
+	t.hashNowFunc = f
 }
 
 type timeDuration struct {
@@ -184,13 +213,13 @@ func parseTimeDuration(s string) (timeDuration, error) {
 			inValue = false
 		case part == "ago":
 			if d.sign != 0 {
-				return timeDuration{}, fmt.Errorf("invalid duration format: more than one sign specifier")
+				return timeDuration{}, errors.New("invalid duration format: more than one sign specifier")
 			}
 
 			d.sign = -1
 		case part == "from":
 			if d.sign != 0 {
-				return timeDuration{}, fmt.Errorf("invalid duration format: more than one sign specifier")
+				return timeDuration{}, errors.New("invalid duration format: more than one sign specifier")
 			}
 
 			inSign = true
@@ -237,10 +266,19 @@ func (d *timeDuration) addUnit(unit string, number int64) error {
 	case "hour", "hours":
 		d.duration += time.Hour * time.Duration(number)
 	case "day", "days":
+		if number < math.MinInt || number > math.MaxInt {
+			return fmt.Errorf("invalid %s value: %d. Out of bounds", unit, number)
+		}
 		d.days += int(number)
 	case "month", "months":
+		if number < math.MinInt || number > math.MaxInt {
+			return fmt.Errorf("invalid %s value: %d. Out of bounds", unit, number)
+		}
 		d.months += int(number)
 	case "year", "years":
+		if number < math.MinInt || number > math.MaxInt {
+			return fmt.Errorf("invalid %s value: %d. Out of bounds", unit, number)
+		}
 		d.years += int(number)
 	default:
 		return fmt.Errorf("invalid unit: %q", unit)

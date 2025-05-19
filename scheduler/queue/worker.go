@@ -75,6 +75,7 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	)
 	defer span.End()
 	logger := w.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
+	ctx = logger.WithContext(ctx)
 	startTime := time.Now()
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
 		logger.Info().Msg("top level table resolver started")
@@ -147,11 +148,19 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 					atomic.AddUint64(&tableMetrics.Errors, 1)
 					return
 				}
+				if err := resolvedResource.StoreCQClientID(client.ID()); err != nil {
+					w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("failed to store _cq_client_id")
+				}
 				if err := resolvedResource.Validate(); err != nil {
-					tableMetrics := w.metrics.TableClient[table.Name][client.ID()]
-					w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
-					atomic.AddUint64(&tableMetrics.Errors, 1)
-					return
+					switch err.(type) {
+					case *schema.PKError:
+						tableMetrics := w.metrics.TableClient[table.Name][client.ID()]
+						w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
+						atomic.AddUint64(&tableMetrics.Errors, 1)
+						return
+					case *schema.PKComponentError:
+						w.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")
+					}
 				}
 				select {
 				case resourcesChan <- resolvedResource:

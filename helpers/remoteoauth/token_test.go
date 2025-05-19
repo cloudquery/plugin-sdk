@@ -153,7 +153,7 @@ func setupMockTokenServer(t *testing.T, responses map[string]string) string {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(resp))
+		_, _ = w.Write([]byte(resp))
 	}))
 	t.Cleanup(func() {
 		ts.Close()

@@ -31,6 +31,14 @@ func WithNameTransformer(transformer NameTransformer) StructTransformerOption {
 	}
 }
 
+// WithJSONSchemaNameTransformer overrides how column name will be determined.
+// DefaultJSONColumnSchemaNameTransformer is used as the default.
+func WithJSONSchemaNameTransformer(transformer NameTransformer) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.jsonSchemaNameTransformer = transformer
+	}
+}
+
 // WithTypeTransformer overrides how column type will be determined.
 // DefaultTypeTransformer is used as the default.
 func WithTypeTransformer(transformer TypeTransformer) StructTransformerOption {
@@ -52,6 +60,14 @@ func WithResolverTransformer(transformer ResolverTransformer) StructTransformerO
 func WithIgnoreInTestsTransformer(transformer IgnoreInTestsTransformer) StructTransformerOption {
 	return func(t *structTransformer) {
 		t.ignoreInTestsTransformer = transformer
+	}
+}
+
+// WithNullableFieldTransformer overrides how column NotNull will be determined.
+// DefaultNullableFieldTransformer is used as the default.
+func WithNullableFieldTransformer(transformer NullableFieldTransformer) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.nullableFieldTransformer = transformer
 	}
 }
 

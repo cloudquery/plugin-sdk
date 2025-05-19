@@ -127,6 +127,18 @@ func (g *Generator) Generate(dir string, format Format) error {
 	}
 }
 
+func (g *Generator) GenerateJSON(dir string, format Format) error {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
+	}
+	switch format {
+	case FormatJSON:
+		return g.renderTablesAsJSON(dir)
+	default:
+		return fmt.Errorf("unsupported format: %v", format)
+	}
+}
+
 // setDestinationManagedCqColumns overwrites or adds the CQ columns that are managed by the destination plugins (_cq_sync_time, _cq_source_name).
 // func setDestinationManagedCqColumns(tables []*schema.Table) {
 // 	for _, table := range tables {

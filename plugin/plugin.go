@@ -2,10 +2,11 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 	cqapi "github.com/cloudquery/cloudquery-api-go"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -13,7 +14,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-var ErrNotImplemented = fmt.Errorf("not implemented")
+var ErrNotImplemented = errors.New("not implemented")
 
 type NewClientOptions struct {
 	NoConnection bool
@@ -165,6 +166,10 @@ func (p *Plugin) Meta() Meta {
 	}
 }
 
+func (p *Plugin) PackageAndVersion() string {
+	return fmt.Sprintf("%s/%s/%s@%s", p.team, p.kind, p.name, p.version)
+}
+
 // SetSkipUsageClient sets whether the usage client should be skipped
 func (p *Plugin) SetSkipUsageClient(v bool) {
 	p.skipUsageClient = v
@@ -215,7 +220,7 @@ func (p *Plugin) SetLogger(logger zerolog.Logger) {
 
 func (p *Plugin) Tables(ctx context.Context, options TableOptions) (schema.Tables, error) {
 	if p.client == nil {
-		return nil, fmt.Errorf("plugin not initialized")
+		return nil, errors.New("plugin not initialized")
 	}
 	tables, err := p.client.Tables(ctx, options)
 	if err != nil {
@@ -227,7 +232,7 @@ func (p *Plugin) Tables(ctx context.Context, options TableOptions) (schema.Table
 // Init initializes the plugin with the given spec.
 func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions) error {
 	if !p.mu.TryLock() {
-		return fmt.Errorf("plugin already in use")
+		return errors.New("plugin already in use")
 	}
 	defer p.mu.Unlock()
 	var err error
@@ -257,7 +262,7 @@ func (p *Plugin) Init(ctx context.Context, spec []byte, options NewClientOptions
 
 func (p *Plugin) Close(ctx context.Context) error {
 	if !p.mu.TryLock() {
-		return fmt.Errorf("plugin already in use")
+		return errors.New("plugin already in use")
 	}
 	defer p.mu.Unlock()
 	if p.client == nil {

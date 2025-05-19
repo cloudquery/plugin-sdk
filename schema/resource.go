@@ -123,18 +123,47 @@ func (r *Resource) storeCQID(value uuid.UUID) error {
 	return r.Set(CqIDColumn.Name, b)
 }
 
+func (r *Resource) StoreCQClientID(clientID string) error {
+	// We skip if _cq_client_id is not present.
+	if r.Table.Columns.Get(CqClientIDColumn.Name) == nil {
+		return nil
+	}
+	return r.Set(CqClientIDColumn.Name, clientID)
+}
+
+type PKError struct {
+	MissingPKs []string
+}
+
+func (e *PKError) Error() string {
+	return fmt.Sprintf("missing primary key on columns: %v", e.MissingPKs)
+}
+
+type PKComponentError struct {
+	MissingPKComponents []string
+}
+
+func (e *PKComponentError) Error() string {
+	return fmt.Sprintf("missing primary key component on columns: %v", e.MissingPKComponents)
+}
+
 // Validates that all primary keys have values.
 func (r *Resource) Validate() error {
 	var missingPks []string
+	var missingPKComponents []string
 	for i, c := range r.Table.Columns {
-		if c.PrimaryKey {
-			if !r.data[i].IsValid() {
-				missingPks = append(missingPks, c.Name)
-			}
+		switch {
+		case c.PrimaryKey && !r.data[i].IsValid():
+			missingPks = append(missingPks, c.Name)
+		case c.PrimaryKeyComponent && !r.data[i].IsValid():
+			missingPKComponents = append(missingPKComponents, c.Name)
 		}
 	}
 	if len(missingPks) > 0 {
-		return fmt.Errorf("missing primary key on columns: %v", missingPks)
+		return &PKError{MissingPKs: missingPks}
+	}
+	if len(missingPKComponents) > 0 {
+		return &PKComponentError{MissingPKComponents: missingPKComponents}
 	}
 	return nil
 }

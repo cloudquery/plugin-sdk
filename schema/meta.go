@@ -3,7 +3,7 @@ package schema
 import (
 	"context"
 
-	"github.com/apache/arrow/go/v17/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 )
@@ -27,6 +27,13 @@ var CqParentIDColumn = Column{
 	Description:   "Internal CQ ID of the parent row",
 	Resolver:      parentCqUUIDResolver(),
 	IgnoreInTests: true,
+}
+
+var CqClientIDColumn = Column{
+	Name:        "_cq_client_id",
+	Type:        arrow.BinaryTypes.String,
+	Description: "Internal CQ ID of the multiplexed client",
+	NotNull:     true,
 }
 
 // These columns are managed and populated by the destination plugin.
