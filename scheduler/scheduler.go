@@ -310,8 +310,7 @@ func shardTableClients(tableClients []tableClient, shard *shard) []tableClient {
 	num := int(shard.num)
 	total := int(shard.total)
 
-	var chunkSize int
-	chunkSize = int(math.Ceil(float64(len(tableClients)) / float64(total)))
+	chunkSize := int(math.Ceil(float64(len(tableClients)) / float64(total)))
 
 	chunks := lo.Chunk(tableClients, chunkSize)
 	if num > len(chunks) {
