@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -305,18 +306,17 @@ func shardTableClients(tableClients []tableClient, shard *shard) []tableClient {
 	if shard == nil || len(tableClients) == 0 {
 		return tableClients
 	}
+
 	num := int(shard.num)
 	total := int(shard.total)
-	chunkSize := len(tableClients) / total
-	if chunkSize == 0 {
-		chunkSize = 1
-	}
+
+	var chunkSize int
+	chunkSize = int(math.Ceil(float64(len(tableClients)) / float64(total)))
+
 	chunks := lo.Chunk(tableClients, chunkSize)
 	if num > len(chunks) {
 		return nil
 	}
-	if len(chunks) > total && num == total {
-		return append(chunks[num-1], chunks[num]...)
-	}
+
 	return chunks[num-1]
 }
