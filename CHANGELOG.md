@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.82.0](https://github.com/cloudquery/plugin-sdk/compare/v4.81.0...v4.82.0) (2025-05-20)
+
+
+### Features
+
+* Add `cloudquery.plugin.path` attribute to traces ([#1978](https://github.com/cloudquery/plugin-sdk/issues/1978)) ([889102e](https://github.com/cloudquery/plugin-sdk/commit/889102efe055db2f5bb9f8d4caa3dc772b4a358d))
+* Improve shard chunking ([#2163](https://github.com/cloudquery/plugin-sdk/issues/2163)) ([f1c0106](https://github.com/cloudquery/plugin-sdk/commit/f1c0106f03e17cee0a8da620c7fa4638488c57b6))
+
 ## [4.81.0](https://github.com/cloudquery/plugin-sdk/compare/v4.80.3...v4.81.0) (2025-05-19)
 
 
