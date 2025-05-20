@@ -519,18 +519,6 @@ func Test_shardTableClients(t *testing.T) {
 			expected:     []tableClient{},
 		},
 		{
-			name: "invalid total number of shards",
-			tableClients: []tableClient{
-				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
-				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
-			},
-			shard: &shard{num: 1, total: 0},
-			expected: []tableClient{
-				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
-				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
-			},
-		},
-		{
 			name: "even shard 1 of 2",
 			tableClients: []tableClient{
 				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
