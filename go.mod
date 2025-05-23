@@ -25,7 +25,7 @@ require (
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.49.1
-	github.com/santhosh-tekuri/jsonschema/v6 v6.0.1
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/spf13/cobra v1.9.0
 	github.com/stretchr/testify v1.10.0
 	github.com/thoas/go-funk v0.9.3
