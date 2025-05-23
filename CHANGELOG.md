@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.82.1](https://github.com/cloudquery/plugin-sdk/compare/v4.82.0...v4.82.1) (2025-05-23)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/santhosh-tekuri/jsonschema/v6 to v6.0.2 ([#2168](https://github.com/cloudquery/plugin-sdk/issues/2168)) ([e8b3ecd](https://github.com/cloudquery/plugin-sdk/commit/e8b3ecdcadea5dde7c9ee805967ed665f1954c56))
+* **deps:** Update opentelemetry-go monorepo ([#2166](https://github.com/cloudquery/plugin-sdk/issues/2166)) ([dfa09cd](https://github.com/cloudquery/plugin-sdk/commit/dfa09cd0dcf2126d0102e942c4f6b64eb2040a26))
+* **deps:** Update opentelemetry-go monorepo ([#2169](https://github.com/cloudquery/plugin-sdk/issues/2169)) ([76ddcf6](https://github.com/cloudquery/plugin-sdk/commit/76ddcf672373e7090db9b0bfffc3f71fdd1833ef))
+
 ## [4.82.0](https://github.com/cloudquery/plugin-sdk/compare/v4.81.0...v4.82.0) (2025-05-20)
 
 
