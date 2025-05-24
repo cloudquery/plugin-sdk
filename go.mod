@@ -8,7 +8,7 @@ require (
 	github.com/apache/arrow-go/v18 v18.2.0
 	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.14
-	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.30.3
+	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.31.0
 	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.29.0
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.13.9
