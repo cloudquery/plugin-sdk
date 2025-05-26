@@ -13,7 +13,7 @@ require (
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.13.9
 	github.com/cloudquery/codegen v0.3.28
-	github.com/cloudquery/plugin-pb-go v1.26.11
+	github.com/cloudquery/plugin-pb-go v1.26.12
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/goccy/go-json v0.10.5
 	github.com/golang/mock v1.6.0
