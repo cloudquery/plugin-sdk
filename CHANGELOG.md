@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.82.2](https://github.com/cloudquery/plugin-sdk/compare/v4.82.1...v4.82.2) (2025-05-26)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/apache/arrow-go/v18 to v18.3.0 ([#2173](https://github.com/cloudquery/plugin-sdk/issues/2173)) ([f9f136d](https://github.com/cloudquery/plugin-sdk/commit/f9f136d48c5687ecd288bdfcd722d1554990827f))
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/service/licensemanager to v1.31.0 ([#2171](https://github.com/cloudquery/plugin-sdk/issues/2171)) ([bf74fd2](https://github.com/cloudquery/plugin-sdk/commit/bf74fd20bf667f742a657239feb7ba4c563aaaf0))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.12 ([#2174](https://github.com/cloudquery/plugin-sdk/issues/2174)) ([34a2d67](https://github.com/cloudquery/plugin-sdk/commit/34a2d67bd7ff96b5565e96fb053dc5d6c360b11a))
+
 ## [4.82.1](https://github.com/cloudquery/plugin-sdk/compare/v4.82.0...v4.82.1) (2025-05-23)
 
 
