@@ -5,7 +5,7 @@ go 1.23.4
 toolchain go1.24.1
 
 require (
-	github.com/apache/arrow-go/v18 v18.2.0
+	github.com/apache/arrow-go/v18 v18.3.0
 	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.14
 	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.31.0

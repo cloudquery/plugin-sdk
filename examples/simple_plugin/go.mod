@@ -5,7 +5,7 @@ go 1.23.4
 toolchain go1.24.1
 
 require (
-	github.com/apache/arrow-go/v18 v18.2.0
+	github.com/apache/arrow-go/v18 v18.3.0
 	github.com/cloudquery/plugin-sdk/v4 v4.82.1
 	github.com/rs/zerolog v1.34.0
 )
