@@ -731,6 +731,7 @@ func TestTablesToAndFromArrow(t *testing.T) {
 				{Name: "multiple_attributes", Type: arrow.BinaryTypes.String, PrimaryKey: true, IncrementalKey: true, NotNull: true, Unique: true},
 			},
 			PermissionsNeeded: []string{"storage.buckets.list", "compute.acceleratorTypes.list", "test,test"},
+			SensitiveColumns:  []string{"string", "json"},
 		},
 	}
 

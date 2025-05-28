@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/cloudquery/plugin-sdk/v4/glob"
@@ -88,11 +89,11 @@ func (p *Plugin) SyncAll(ctx context.Context, options SyncOptions) (message.Sync
 // Sync is syncing data from the requested tables in spec to the given channel
 func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- message.SyncMessage) error {
 	if !p.mu.TryLock() {
-		return fmt.Errorf("plugin already in use")
+		return errors.New("plugin already in use")
 	}
 	defer p.mu.Unlock()
 	if p.client == nil {
-		return fmt.Errorf("plugin not initialized. call Init() first")
+		return errors.New("plugin not initialized. call Init() first")
 	}
 
 	if err := p.client.Sync(ctx, options, res); err != nil {

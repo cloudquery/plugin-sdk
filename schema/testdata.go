@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
-	"golang.org/x/exp/rand"
 )
 
 // TestSourceOptions controls which types are included by TestSourceColumns.
@@ -268,7 +268,7 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
 	var rnd, found = tg.colToRnd[colName]
 	if !found {
-		tg.colToRnd[colName] = rand.New(rand.NewSource(tg.seed))
+		tg.colToRnd[colName] = rand.New(rand.NewSource(int64(tg.seed)))
 		rnd = tg.colToRnd[colName]
 	}
 
@@ -334,11 +334,11 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 	if arrow.IsUnsignedInteger(dataType.ID()) {
 		switch dataType {
 		case arrow.PrimitiveTypes.Uint8:
-			return fmt.Sprintf("%d", rnd.Uint64n(uint64(^uint8(0))))
+			return fmt.Sprintf("%d", rnd.Uint64()%(uint64(^uint8(0))))
 		case arrow.PrimitiveTypes.Uint16:
-			return fmt.Sprintf("%d", rnd.Uint64n(uint64(^uint16(0))))
+			return fmt.Sprintf("%d", rnd.Uint64()%(uint64(^uint16(0))))
 		case arrow.PrimitiveTypes.Uint32:
-			return fmt.Sprintf("%d", rnd.Uint64n(uint64(^uint32(0))))
+			return fmt.Sprintf("%d", rnd.Uint64()%(uint64(^uint32(0))))
 		case arrow.PrimitiveTypes.Uint64:
 			return fmt.Sprintf("%d", rnd.Uint64())
 		}
@@ -385,7 +385,7 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 	for _, binaryType := range binaryTypes {
 		if arrow.TypeEqual(dataType, binaryType) {
 			bytes := make([]byte, 4)
-			rnd.Read(bytes)
+			_, _ = rnd.Read(bytes)
 			return `"` + base64.StdEncoding.EncodeToString(bytes) + `"`
 		}
 	}

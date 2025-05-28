@@ -2,7 +2,7 @@ package batchwriter
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync"
 	"time"
 
@@ -107,7 +107,10 @@ func (w *BatchWriter) Flush(ctx context.Context) error {
 	if err := w.flushMigrateTables(ctx); err != nil {
 		return err
 	}
-	return w.flushDeleteStaleTables(ctx)
+	if err := w.flushDeleteStaleTables(ctx); err != nil {
+		return err
+	}
+	return w.flushDeleteRecordTables(ctx)
 }
 
 func (w *BatchWriter) Close(context.Context) error {
@@ -278,7 +281,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.deleteStaleMessages = append(w.deleteStaleMessages, m)
 			l := int64(len(w.deleteStaleMessages))
 			w.deleteStaleLock.Unlock()
-			if w.batchSize > 0 && l > w.batchSize {
+			if w.isLimitReached(l) {
 				if err := w.flushDeleteStaleTables(ctx); err != nil {
 					return err
 				}
@@ -298,7 +301,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.deleteRecordMessages = append(w.deleteRecordMessages, m)
 			l := int64(len(w.deleteRecordMessages))
 			w.deleteRecordLock.Unlock()
-			if w.batchSize > 0 && l > w.batchSize {
+			if w.isLimitReached(l) {
 				if err := w.flushDeleteRecordTables(ctx); err != nil {
 					return err
 				}
@@ -308,6 +311,9 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 				return err
 			}
 			if err := w.flushDeleteStaleTables(ctx); err != nil {
+				return err
+			}
+			if err := w.flushDeleteRecordTables(ctx); err != nil {
 				return err
 			}
 			if err := w.startWorker(ctx, m); err != nil {
@@ -322,7 +328,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 			w.migrateTableMessages = append(w.migrateTableMessages, m)
 			l := int64(len(w.migrateTableMessages))
 			w.migrateTableLock.Unlock()
-			if w.batchSize > 0 && l > w.batchSize {
+			if w.isLimitReached(l) {
 				if err := w.flushMigrateTables(ctx); err != nil {
 					return err
 				}
@@ -332,13 +338,19 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 	return nil
 }
 
+func (w *BatchWriter) isLimitReached(rowCount int64) bool {
+	limit := batch.CappedAt(0, w.batchSize)
+	limit.AddRows(rowCount)
+	return limit.ReachedLimit()
+}
+
 func (w *BatchWriter) startWorker(_ context.Context, msg *message.WriteInsert) error {
 	w.workersLock.RLock()
 	md := msg.Record.Schema().Metadata()
 	tableName, ok := md.GetValue(schema.MetadataTableName)
 	if !ok {
 		w.workersLock.RUnlock()
-		return fmt.Errorf("table name not found in metadata")
+		return errors.New("table name not found in metadata")
 	}
 	wr, ok := w.workers[tableName]
 	w.workersLock.RUnlock()

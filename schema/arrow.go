@@ -1,7 +1,14 @@
 package schema
 
 import (
+	"crypto/sha1"
+	"time"
+
 	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/cloudquery/plugin-sdk/v4/types"
+	"github.com/google/uuid"
 )
 
 const (
@@ -20,6 +27,7 @@ const (
 	MetadataTableDependsOn         = "cq:table_depends_on"
 	MetadataTableIsPaid            = "cq:table_paid"
 	MetadataTablePermissionsNeeded = "cq:table_permissions_needed"
+	MetadataTableSensitiveColumns  = "cq:table_sensitive_columns"
 )
 
 type Schemas []*arrow.Schema
@@ -39,4 +47,99 @@ func (s Schemas) SchemaByName(name string) *arrow.Schema {
 		}
 	}
 	return nil
+}
+
+func hashRecord(record arrow.Record) arrow.Array {
+	numRows := int(record.NumRows())
+	fields := record.Schema().Fields()
+	hashArray := types.NewUUIDBuilder(memory.DefaultAllocator)
+	hashArray.Reserve(numRows)
+	for row := range numRows {
+		rowHash := sha1.New()
+		for col := 0; col < int(record.NumCols()); col++ {
+			fieldName := fields[col].Name
+			rowHash.Write([]byte(fieldName))
+			value := record.Column(col).ValueStr(row)
+			_, _ = rowHash.Write([]byte(value))
+		}
+		// This part ensures that we conform to the UUID spec
+		hashArray.Append(uuid.NewSHA1(uuid.NameSpaceURL, rowHash.Sum(nil)))
+	}
+	return hashArray.NewArray()
+}
+
+func nullUUIDsForRecord(numRows int) arrow.Array {
+	uuidArray := types.NewUUIDBuilder(memory.DefaultAllocator)
+	uuidArray.AppendNulls(numRows)
+	return uuidArray.NewArray()
+}
+
+func StringArrayFromValue(value string, nRows int) arrow.Array {
+	arrayBuilder := array.NewStringBuilder(memory.DefaultAllocator)
+	arrayBuilder.Reserve(nRows)
+	for range nRows {
+		arrayBuilder.AppendString(value)
+	}
+	return arrayBuilder.NewArray()
+}
+
+func TimestampArrayFromTime(t time.Time, unit arrow.TimeUnit, timeZone string, nRows int) (arrow.Array, error) {
+	ts, err := arrow.TimestampFromTime(t, unit)
+	if err != nil {
+		return nil, err
+	}
+	arrayBuilder := array.NewTimestampBuilder(memory.DefaultAllocator, &arrow.TimestampType{Unit: unit, TimeZone: timeZone})
+	arrayBuilder.Reserve(nRows)
+	for range nRows {
+		arrayBuilder.Append(ts)
+	}
+	return arrayBuilder.NewArray(), nil
+}
+
+func ReplaceFieldInRecord(src arrow.Record, fieldName string, field arrow.Array) (record arrow.Record, err error) {
+	fieldIndexes := src.Schema().FieldIndices(fieldName)
+	for i := range fieldIndexes {
+		record, err = src.SetColumn(fieldIndexes[i], field)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return record, nil
+}
+
+func AddInternalColumnsToRecord(record arrow.Record, cqClientIDValue string) (arrow.Record, error) {
+	schema := record.Schema()
+	nRows := int(record.NumRows())
+
+	newFields := []arrow.Field{}
+	newColumns := []arrow.Array{}
+
+	var err error
+	if !schema.HasField(CqIDColumn.Name) {
+		cqID := hashRecord(record)
+		newFields = append(newFields, CqIDColumn.ToArrowField())
+		newColumns = append(newColumns, cqID)
+	}
+	if !schema.HasField(CqParentIDColumn.Name) {
+		cqParentID := nullUUIDsForRecord(nRows)
+		newFields = append(newFields, CqParentIDColumn.ToArrowField())
+		newColumns = append(newColumns, cqParentID)
+	}
+
+	clientIDArray := StringArrayFromValue(cqClientIDValue, nRows)
+	if !schema.HasField(CqClientIDColumn.Name) {
+		newFields = append(newFields, CqClientIDColumn.ToArrowField())
+		newColumns = append(newColumns, clientIDArray)
+	} else {
+		record, err = ReplaceFieldInRecord(record, CqClientIDColumn.Name, clientIDArray)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	allFields := append(schema.Fields(), newFields...)
+	allColumns := append(record.Columns(), newColumns...)
+	metadata := schema.Metadata()
+	newSchema := arrow.NewSchema(allFields, &metadata)
+	return array.NewRecord(newSchema, allColumns, int64(nRows)), nil
 }

@@ -1,8 +1,6 @@
 package serve
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +16,7 @@ func (s *PluginServe) newCmdPluginInfo() *cobra.Command {
 		Long:  pluginInfoLong,
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			cmd.Println(fmt.Sprintf("Package and version: %s/%s/%s@%s", s.plugin.Team(), s.plugin.Kind(), s.plugin.Name(), s.plugin.Version()))
+			cmd.Println("Package and version:", s.plugin.PackageAndVersion())
 			return nil
 		},
 	}

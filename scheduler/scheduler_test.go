@@ -559,6 +559,7 @@ func Test_shardTableClients(t *testing.T) {
 			expected: []tableClient{
 				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
 				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
 			},
 		},
 		{
@@ -572,8 +573,51 @@ func Test_shardTableClients(t *testing.T) {
 			},
 			shard: &shard{num: 2, total: 2},
 			expected: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_5"}},
+			},
+		},
+		{
+			name: "uneven split 1 of 3",
+			tableClients: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
 				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
 				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_5"}},
+			},
+			shard: &shard{num: 1, total: 3},
+			expected: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+			},
+		},
+		{
+			name: "uneven split 2 of 3",
+			tableClients: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_5"}},
+			},
+			shard: &shard{num: 2, total: 3},
+			expected: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+			},
+		},
+		{
+			name: "uneven split 3 of 3",
+			tableClients: []tableClient{
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_1"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_2"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_3"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_4"}},
+				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_5"}},
+			},
+			shard: &shard{num: 3, total: 3},
+			expected: []tableClient{
 				{client: &testExecutionClient{}, table: &schema.Table{Name: "table_5"}},
 			},
 		},

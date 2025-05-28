@@ -23,12 +23,14 @@ type structTransformer struct {
 	typeTransformer               TypeTransformer
 	resolverTransformer           ResolverTransformer
 	ignoreInTestsTransformer      IgnoreInTestsTransformer
+	nullableFieldTransformer      NullableFieldTransformer
 	unwrapAllEmbeddedStructFields bool
 	structFieldsToUnwrap          []string
 	pkFields                      []string
 	pkFieldsFound                 []string
 	pkComponentFields             []string
 	pkComponentFieldsFound        []string
+	jsonSchemaNameTransformer     NameTransformer
 
 	maxJSONTypeSchemaDepth int
 }
@@ -160,6 +162,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		Type:          columnType,
 		Resolver:      resolver,
 		IgnoreInTests: t.ignoreInTestsTransformer(field),
+		NotNull:       !t.nullableFieldTransformer(field),
 	}
 
 	// Enrich JSON column with detailed schema
@@ -194,11 +197,13 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 
 func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transform {
 	t := &structTransformer{
-		nameTransformer:          DefaultNameTransformer,
-		typeTransformer:          DefaultTypeTransformer,
-		resolverTransformer:      DefaultResolverTransformer,
-		ignoreInTestsTransformer: DefaultIgnoreInTestsTransformer,
-		maxJSONTypeSchemaDepth:   DefaultMaxJSONTypeSchemaDepth,
+		nameTransformer:           DefaultNameTransformer,
+		typeTransformer:           DefaultTypeTransformer,
+		resolverTransformer:       DefaultResolverTransformer,
+		ignoreInTestsTransformer:  DefaultIgnoreInTestsTransformer,
+		nullableFieldTransformer:  DefaultNullableFieldTransformer,
+		jsonSchemaNameTransformer: DefaultJSONColumnSchemaNameTransformer,
+		maxJSONTypeSchemaDepth:    DefaultMaxJSONTypeSchemaDepth,
 	}
 	for _, opt := range opts {
 		opt(t)
@@ -284,7 +289,7 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 			if !structField.IsExported() || isTypeIgnored(structField.Type) {
 				continue
 			}
-			name, err := t.nameTransformer(structField)
+			name, err := t.jsonSchemaNameTransformer(structField)
 			if err != nil {
 				continue
 			}

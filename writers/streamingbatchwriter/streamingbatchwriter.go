@@ -218,7 +218,7 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 		md := mi.Record.Schema().Metadata()
 		tableName, ok = md.GetValue(schema.MetadataTableName)
 		if !ok {
-			return fmt.Errorf("table name not found in metadata")
+			return errors.New("table name not found in metadata")
 		}
 	} else {
 		tableName = msg.GetTable().Name

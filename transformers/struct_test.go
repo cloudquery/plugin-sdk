@@ -12,6 +12,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
 
 type (
@@ -80,6 +81,11 @@ type (
 	testStructWithAny struct {
 		IntCol     int `json:"int_col"`
 		Properties any
+	}
+
+	testNullableField struct {
+		RegularString  string  `json:"regular_string"`
+		NullableString *string `json:"nullable_string"`
 	}
 )
 
@@ -300,6 +306,22 @@ var (
 			},
 		},
 	}
+
+	expectedTestTableStructNonNullableFields = schema.Table{
+		Name: "test_struct_with_non_nullable_fields",
+		Columns: schema.ColumnList{
+			{
+				Name:    "regular_string",
+				Type:    arrow.BinaryTypes.String,
+				NotNull: true,
+			},
+			{
+				Name:    "nullable_string",
+				Type:    arrow.BinaryTypes.String,
+				NotNull: false,
+			},
+		},
+	}
 )
 
 func TestTableFromGoStruct(t *testing.T) {
@@ -441,6 +463,18 @@ func TestTableFromGoStruct(t *testing.T) {
 				},
 			},
 			want: expectedTestTableStructWithCustomAny,
+		},
+		{
+			name: "Should be able to override any nullability for a field",
+			args: args{
+				testStruct: testNullableField{},
+				options: []StructTransformerOption{
+					WithNullableFieldTransformer(func(f reflect.StructField) bool {
+						return f.Type.Kind() == reflect.Pointer
+					}),
+				},
+			},
+			want: expectedTestTableStructNonNullableFields,
 		},
 	}
 
@@ -665,6 +699,23 @@ func TestJSONTypeSchema(t *testing.T) {
 				"item": `{"exported":"utf8"}`,
 			},
 		},
+		{
+			name: "no json tags",
+			testStruct: struct {
+				Tags map[string]string
+				Item struct {
+					Name         string
+					Tags         map[string]string
+					FlatItems    []string
+					ComplexItems []struct {
+						Name string
+					}
+				}
+			}{},
+			want: map[string]string{
+				"item": `{"ComplexItems":[{"Name":"utf8"}],"FlatItems":["utf8"],"Name":"utf8","Tags":{"utf8":"utf8"}}`,
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -684,6 +735,7 @@ func TestJSONTypeSchema(t *testing.T) {
 			}
 			for col, schema := range tt.want {
 				column := table.Column(col)
+				require.NotNil(t, column, "column %q not found", col)
 				if diff := cmp.Diff(column.TypeSchema, schema); diff != "" {
 					t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
 				}
