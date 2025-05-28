@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.83.0](https://github.com/cloudquery/plugin-sdk/compare/v4.82.2...v4.83.0) (2025-05-28)
+
+
+### Features
+
+* Switch state grpc client to NewClient rather than DialContext ([#2176](https://github.com/cloudquery/plugin-sdk/issues/2176)) ([9356d9d](https://github.com/cloudquery/plugin-sdk/commit/9356d9d14f89d3c1ea58848ae3e53d671f5b4c8f))
+
+
+### Bug Fixes
+
+* **deps:** Update dependency go to v1.24.3 ([#2041](https://github.com/cloudquery/plugin-sdk/issues/2041)) ([c438d69](https://github.com/cloudquery/plugin-sdk/commit/c438d690057cb2b8fb4944a5108b0c9bd5bfe294))
+
 ## [4.82.2](https://github.com/cloudquery/plugin-sdk/compare/v4.82.1...v4.82.2) (2025-05-26)
 
 
