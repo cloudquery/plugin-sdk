@@ -59,9 +59,7 @@ func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.Back
 		return &NoOpClient{}, nil
 	}
 
-	// TODO: Remove once there's a documented migration path per https://github.com/grpc/grpc-go/issues/7244
-	// nolint:staticcheck
-	backendConn, err := grpc.DialContext(ctx, backendOpts.Connection,
+	backendConn, err := grpc.NewClient(backendOpts.Connection,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(connOpts.MaxMsgSizeInBytes),
