@@ -294,7 +294,7 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 		// This will make UUIDs deterministic like all other types
 		hash := sha256.New()
 		hash.Write([]byte(fmt.Sprintf(`"AString%d"`, rnd.Intn(100000))))
-		u := uuid.NewSHA1(uuid.UUID{}, hash.Sum(nil))
+		u := newUUID(uuid.UUID{}, hash.Sum(nil))
 		return `"` + u.String() + `"`
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.JSON) {

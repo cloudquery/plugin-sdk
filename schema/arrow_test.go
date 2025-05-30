@@ -11,6 +11,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -80,7 +81,7 @@ func buildTestRecord(withClientIDValue string) arrow.Record {
 			}
 		case *types.UUIDBuilder:
 			for i := range testValuesCount {
-				b.Append(uuid.NewSHA1(uuid.NameSpaceURL, []byte(fmt.Sprintf("test%d", i))))
+				b.Append(newUUID(uuid.NameSpaceURL, []byte(fmt.Sprintf("test%d", i))))
 			}
 		}
 	}
@@ -161,4 +162,13 @@ func TestAddInternalColumnsToRecord(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCQIDHashingConsistency(t *testing.T) {
+	record := buildTestRecord("")
+	got, err := AddInternalColumnsToRecord(record, "")
+	require.NoError(t, err)
+	cqIDFields := got.Schema().FieldIndices(CqIDColumn.Name)
+	require.Len(t, cqIDFields, 1)
+	assert.Equal(t, "d8f3b1de-8c63-5a0e-a1aa-19e9b5311c24", got.Column(cqIDFields[0]).ValueStr(0))
 }

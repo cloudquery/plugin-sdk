@@ -1,12 +1,12 @@
 package schema
 
 import (
-	"crypto/sha1"
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/cloudquery/plugin-sdk/v4/internal/sha1"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
 )
@@ -63,9 +63,13 @@ func hashRecord(record arrow.Record) arrow.Array {
 			_, _ = rowHash.Write([]byte(value))
 		}
 		// This part ensures that we conform to the UUID spec
-		hashArray.Append(uuid.NewSHA1(uuid.NameSpaceURL, rowHash.Sum(nil)))
+		hashArray.Append(newUUID(uuid.NameSpaceURL, rowHash.Sum(nil)))
 	}
 	return hashArray.NewArray()
+}
+
+func newUUID(space uuid.UUID, data []byte) uuid.UUID {
+	return uuid.NewHash(sha1.New(), space, data, 5)
 }
 
 func nullUUIDsForRecord(numRows int) arrow.Array {
