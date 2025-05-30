@@ -55,7 +55,7 @@ func NewConnectedClient(ctx context.Context, backendOpts *plugin.BackendOptions)
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
 // You must call Close() on the returned Client object.
 func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.BackendOptions, connOpts ConnectionOptions, clOpts ClientOptions) (Client, error) {
-	if backendOpts == nil {
+	if backendOpts == nil || backendOpts.Connection == "" || backendOpts.TableName == "" {
 		return &NoOpClient{}, nil
 	}
 
