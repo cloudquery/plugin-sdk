@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.84.0](https://github.com/cloudquery/plugin-sdk/compare/v4.83.0...v4.84.0) (2025-05-30)
+
+
+### Features
+
+* Make SDK FIPS-compliant by using internal SHA1 module ([#2179](https://github.com/cloudquery/plugin-sdk/issues/2179)) ([5a34e35](https://github.com/cloudquery/plugin-sdk/commit/5a34e3522179831f991dd8b4b59844bc1c918c1b))
+
 ## [4.83.0](https://github.com/cloudquery/plugin-sdk/compare/v4.82.2...v4.83.0) (2025-05-28)
 
 
