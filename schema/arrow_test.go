@@ -171,6 +171,7 @@ func TestCQIDHashingConsistency(t *testing.T) {
 	cqIDFields := got.Schema().FieldIndices(CqIDColumn.Name)
 	require.Len(t, cqIDFields, 1)
 	// we are now using an internal version of the official SHA1 module
-	// d8f3b1de-8c63-5a0e-a1aa-19e9b5311c24 is the expected hash value from the official SHA1 module that we expect in our implementation
+	// this test ensures that our implementation produces the same hash value as the official one
+	// d8f3b1de-8c63-5a0e-a1aa-19e9b5311c24 is the hash value from the official implementation
 	assert.Equal(t, "d8f3b1de-8c63-5a0e-a1aa-19e9b5311c24", got.Column(cqIDFields[0]).ValueStr(0))
 }
