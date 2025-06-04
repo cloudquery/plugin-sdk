@@ -76,7 +76,7 @@ func ResolveSingleResource(ctx context.Context, logger zerolog.Logger, m *metric
 		}
 	}
 
-	tableMetrics.OtelResourcesAdd(ctx, 1)
+	m.OtelResourcesAdd(ctx, 1, tableMetrics)
 	atomic.AddUint64(&tableMetrics.Resources, 1)
 	return resource
 }
