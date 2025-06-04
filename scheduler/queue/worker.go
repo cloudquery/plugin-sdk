@@ -93,7 +93,7 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 			attribute.Key("sync.panics").Int64(int64(atomic.LoadUint64(&tableMetrics.Panics))),
 		))
 	}()
-	tableMetrics.OtelStartTime(ctx, startTime)
+	w.metrics.OtelStartTime(ctx, startTime, tableMetrics)
 
 	res := make(chan any)
 	go func() {
@@ -101,14 +101,14 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 			if err := recover(); err != nil {
 				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
-				tableMetrics.OtelPanicsAdd(ctx, 1)
+				w.metrics.OtelPanicsAdd(ctx, 1, tableMetrics)
 				atomic.AddUint64(&tableMetrics.Panics, 1)
 			}
 			close(res)
 		}()
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
-			tableMetrics.OtelErrorsAdd(ctx, 1)
+			w.metrics.OtelErrorsAdd(ctx, 1, tableMetrics)
 			atomic.AddUint64(&tableMetrics.Errors, 1)
 			// Send SyncError message
 			syncErrorMsg := &message.SyncError{
@@ -127,7 +127,7 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	endTime := time.Now()
 	duration := endTime.Sub(startTime)
 	tableMetrics.Duration.Store(&duration)
-	tableMetrics.OtelEndTime(ctx, endTime)
+	w.metrics.OtelEndTime(ctx, endTime, tableMetrics)
 	if parent == nil {
 		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", duration).Msg("table sync finished")
 	}

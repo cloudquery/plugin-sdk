@@ -209,7 +209,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}
 
 	syncClient := &syncClient{
-		metrics:      &metrics.Metrics{TableClient: make(map[string]map[string]*metrics.TableClientMetrics)},
+		metrics:      metrics.NewMetrics(),
 		tables:       tables,
 		client:       client,
 		scheduler:    s,

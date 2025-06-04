@@ -16,76 +16,7 @@ const (
 	OtelName = "io.cloudquery"
 )
 
-// Metrics is deprecated as we move toward open telemetry for tracing and metrics
-type Metrics struct {
-	TableClient map[string]map[string]*TableClientMetrics
-}
-
-type OtelMeters struct {
-	resources           metric.Int64Counter
-	errors              metric.Int64Counter
-	panics              metric.Int64Counter
-	startTime           metric.Int64Counter
-	started             bool
-	startedLock         sync.Mutex
-	endTime             metric.Int64Counter
-	previousEndTime     int64
-	previousEndTimeLock sync.Mutex
-	attributes          []attribute.KeyValue
-}
-
-type TableClientMetrics struct {
-	Resources uint64
-	Errors    uint64
-	Panics    uint64
-	Duration  atomic.Pointer[time.Duration]
-
-	otelMeters *OtelMeters
-}
-
-func durationPointerEqual(a, b *time.Duration) bool {
-	if a == nil {
-		return b == nil
-	}
-	return b != nil && *a == *b
-}
-
-func (m *TableClientMetrics) Equal(other *TableClientMetrics) bool {
-	return m.Resources == other.Resources && m.Errors == other.Errors && m.Panics == other.Panics && durationPointerEqual(m.Duration.Load(), other.Duration.Load())
-}
-
-// Equal compares to stats. Mostly useful in testing
-func (s *Metrics) Equal(other *Metrics) bool {
-	for table, clientStats := range s.TableClient {
-		for client, stats := range clientStats {
-			if _, ok := other.TableClient[table]; !ok {
-				return false
-			}
-			if _, ok := other.TableClient[table][client]; !ok {
-				return false
-			}
-			if !stats.Equal(other.TableClient[table][client]) {
-				return false
-			}
-		}
-	}
-	for table, clientStats := range other.TableClient {
-		for client, stats := range clientStats {
-			if _, ok := s.TableClient[table]; !ok {
-				return false
-			}
-			if _, ok := s.TableClient[table][client]; !ok {
-				return false
-			}
-			if !stats.Equal(s.TableClient[table][client]) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func getOtelMeters(tableName string, clientID string) *OtelMeters {
+func NewMetrics() *Metrics {
 	resources, err := otel.Meter(OtelName).Int64Counter("sync.table.resources",
 		metric.WithDescription("Number of resources synced for a table"),
 		metric.WithUnit("/{tot}"),
@@ -127,36 +58,112 @@ func getOtelMeters(tableName string, clientID string) *OtelMeters {
 		return nil
 	}
 
-	return &OtelMeters{
-		resources: resources,
-		errors:    errors,
-		panics:    panics,
-		startTime: startTime,
-		endTime:   endTime,
-		attributes: []attribute.KeyValue{
-			attribute.Key("sync.client.id").String(clientID),
-			attribute.Key("sync.table.name").String(tableName),
-		},
+	return &Metrics{
+		TableClient: make(map[string]map[string]*TableClientMetrics),
+		resources:   resources,
+		errors:      errors,
+		panics:      panics,
+		startTime:   startTime,
+		endTime:     endTime,
 	}
 }
 
-func (s *Metrics) InitWithClients(table *schema.Table, clients []schema.ClientMeta) {
-	s.TableClient[table.Name] = make(map[string]*TableClientMetrics, len(clients))
+// Metrics is deprecated as we move toward open telemetry for tracing and metrics
+type Metrics struct {
+	resources metric.Int64Counter
+	errors    metric.Int64Counter
+	panics    metric.Int64Counter
+
+	startTime   metric.Int64Counter
+	started     bool
+	startedLock sync.Mutex
+
+	endTime             metric.Int64Counter
+	previousEndTime     int64
+	previousEndTimeLock sync.Mutex
+
+	TableClient map[string]map[string]*TableClientMetrics
+}
+
+type OtelMeters struct {
+	attributes []attribute.KeyValue
+}
+
+type TableClientMetrics struct {
+	Resources uint64
+	Errors    uint64
+	Panics    uint64
+	Duration  atomic.Pointer[time.Duration]
+
+	otelMeters *OtelMeters
+}
+
+func durationPointerEqual(a, b *time.Duration) bool {
+	if a == nil {
+		return b == nil
+	}
+	return b != nil && *a == *b
+}
+
+func (m *TableClientMetrics) Equal(other *TableClientMetrics) bool {
+	return m.Resources == other.Resources && m.Errors == other.Errors && m.Panics == other.Panics && durationPointerEqual(m.Duration.Load(), other.Duration.Load())
+}
+
+// Equal compares to stats. Mostly useful in testing
+func (m *Metrics) Equal(other *Metrics) bool {
+	for table, clientStats := range m.TableClient {
+		for client, stats := range clientStats {
+			if _, ok := other.TableClient[table]; !ok {
+				return false
+			}
+			if _, ok := other.TableClient[table][client]; !ok {
+				return false
+			}
+			if !stats.Equal(other.TableClient[table][client]) {
+				return false
+			}
+		}
+	}
+	for table, clientStats := range other.TableClient {
+		for client, stats := range clientStats {
+			if _, ok := m.TableClient[table]; !ok {
+				return false
+			}
+			if _, ok := m.TableClient[table][client]; !ok {
+				return false
+			}
+			if !stats.Equal(m.TableClient[table][client]) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func GetOtelAttributeSet(tableName string, clientID string) []attribute.KeyValue {
+	return []attribute.KeyValue{
+		attribute.Key("sync.client.id").String(clientID),
+		attribute.Key("sync.table.name").String(tableName),
+	}
+}
+
+func (m *Metrics) InitWithClients(table *schema.Table, clients []schema.ClientMeta) {
+	m.TableClient[table.Name] = make(map[string]*TableClientMetrics, len(clients))
 	for _, client := range clients {
 		tableName := table.Name
 		clientID := client.ID()
-		s.TableClient[tableName][clientID] = &TableClientMetrics{
-			otelMeters: getOtelMeters(tableName, clientID),
+		m.TableClient[tableName][clientID] = &TableClientMetrics{
+			otelMeters: &OtelMeters{attributes: GetOtelAttributeSet(tableName, clientID)},
 		}
 	}
 	for _, relation := range table.Relations {
-		s.InitWithClients(relation, clients)
+		m.InitWithClients(relation, clients)
 	}
 }
 
-func (s *Metrics) TotalErrors() uint64 {
+func (m *Metrics) TotalErrors() uint64 {
 	var total uint64
-	for _, clientMetrics := range s.TableClient {
+	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
 			total += metrics.Errors
 		}
@@ -164,9 +171,9 @@ func (s *Metrics) TotalErrors() uint64 {
 	return total
 }
 
-func (s *Metrics) TotalErrorsAtomic() uint64 {
+func (m *Metrics) TotalErrorsAtomic() uint64 {
 	var total uint64
-	for _, clientMetrics := range s.TableClient {
+	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
 			total += atomic.LoadUint64(&metrics.Errors)
 		}
@@ -174,9 +181,9 @@ func (s *Metrics) TotalErrorsAtomic() uint64 {
 	return total
 }
 
-func (s *Metrics) TotalPanics() uint64 {
+func (m *Metrics) TotalPanics() uint64 {
 	var total uint64
-	for _, clientMetrics := range s.TableClient {
+	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
 			total += metrics.Panics
 		}
@@ -184,9 +191,9 @@ func (s *Metrics) TotalPanics() uint64 {
 	return total
 }
 
-func (s *Metrics) TotalPanicsAtomic() uint64 {
+func (m *Metrics) TotalPanicsAtomic() uint64 {
 	var total uint64
-	for _, clientMetrics := range s.TableClient {
+	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
 			total += atomic.LoadUint64(&metrics.Panics)
 		}
@@ -194,9 +201,9 @@ func (s *Metrics) TotalPanicsAtomic() uint64 {
 	return total
 }
 
-func (s *Metrics) TotalResources() uint64 {
+func (m *Metrics) TotalResources() uint64 {
 	var total uint64
-	for _, clientMetrics := range s.TableClient {
+	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
 			total += metrics.Resources
 		}
@@ -204,9 +211,9 @@ func (s *Metrics) TotalResources() uint64 {
 	return total
 }
 
-func (s *Metrics) TotalResourcesAtomic() uint64 {
+func (m *Metrics) TotalResourcesAtomic() uint64 {
 	var total uint64
-	for _, clientMetrics := range s.TableClient {
+	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
 			total += atomic.LoadUint64(&metrics.Resources)
 		}
@@ -214,58 +221,51 @@ func (s *Metrics) TotalResourcesAtomic() uint64 {
 	return total
 }
 
-func (m *TableClientMetrics) OtelResourcesAdd(ctx context.Context, count int64) {
-	if m.otelMeters == nil {
-		return
-	}
-
-	m.otelMeters.resources.Add(ctx, count, metric.WithAttributes(m.otelMeters.attributes...))
+func (m *Metrics) OtelResourcesAdd(ctx context.Context, count int64, tc *TableClientMetrics) {
+	m.resources.Add(ctx, count, metric.WithAttributes(tc.otelMeters.attributes...))
+	atomic.AddUint64(&tc.Resources, uint64(count))
 }
 
-func (m *TableClientMetrics) OtelErrorsAdd(ctx context.Context, count int64) {
-	if m.otelMeters == nil {
-		return
-	}
-
-	m.otelMeters.errors.Add(ctx, count, metric.WithAttributes(m.otelMeters.attributes...))
+func (m *Metrics) OtelErrorsAdd(ctx context.Context, count int64, tc *TableClientMetrics) {
+	m.errors.Add(ctx, count, metric.WithAttributes(tc.otelMeters.attributes...))
+	atomic.AddUint64(&tc.Errors, uint64(count))
 }
 
-func (m *TableClientMetrics) OtelPanicsAdd(ctx context.Context, count int64) {
-	if m.otelMeters == nil {
-		return
-	}
-
-	m.otelMeters.panics.Add(ctx, count, metric.WithAttributes(m.otelMeters.attributes...))
+func (m *Metrics) OtelPanicsAdd(ctx context.Context, count int64, tc *TableClientMetrics) {
+	m.panics.Add(ctx, count, metric.WithAttributes(tc.otelMeters.attributes...))
+	atomic.AddUint64(&tc.Panics, uint64(count))
 }
 
-func (m *TableClientMetrics) OtelStartTime(ctx context.Context, start time.Time) {
-	if m.otelMeters == nil {
+func (m *Metrics) OtelStartTime(ctx context.Context, start time.Time, tc *TableClientMetrics) {
+	if m.startTime == nil {
 		return
 	}
 
 	// If we have already started, don't start again. This can happen for relational tables that are resolved multiple times (per parent resource)
-	m.otelMeters.startedLock.Lock()
-	defer m.otelMeters.startedLock.Unlock()
-	if m.otelMeters.started {
+	m.startedLock.Lock()
+	defer m.startedLock.Unlock()
+	if m.started {
 		return
 	}
-	m.otelMeters.started = true
-	m.otelMeters.startTime.Add(ctx, start.UnixNano(), metric.WithAttributes(m.otelMeters.attributes...))
+
+	m.started = true
+	m.startTime.Add(ctx, start.UnixNano(), metric.WithAttributes(tc.otelMeters.attributes...))
 }
 
-func (m *TableClientMetrics) OtelEndTime(ctx context.Context, end time.Time) {
-	if m.otelMeters == nil {
+func (m *Metrics) OtelEndTime(ctx context.Context, end time.Time, tc *TableClientMetrics) {
+	if m.endTime == nil {
 		return
 	}
 
-	m.otelMeters.previousEndTimeLock.Lock()
-	defer m.otelMeters.previousEndTimeLock.Unlock()
+	m.previousEndTimeLock.Lock()
+	defer m.previousEndTimeLock.Unlock()
 	val := end.UnixNano()
+
 	// If we got another end time to report, use the latest value. This can happen for relational tables that are resolved multiple times (per parent resource)
-	if m.otelMeters.previousEndTime != 0 {
-		m.otelMeters.endTime.Add(ctx, val-m.otelMeters.previousEndTime, metric.WithAttributes(m.otelMeters.attributes...))
+	if m.previousEndTime != 0 {
+		m.endTime.Add(ctx, val-m.previousEndTime, metric.WithAttributes(tc.otelMeters.attributes...))
 	} else {
-		m.otelMeters.endTime.Add(ctx, val, metric.WithAttributes(m.otelMeters.attributes...))
+		m.endTime.Add(ctx, val, metric.WithAttributes(tc.otelMeters.attributes...))
 	}
-	m.otelMeters.previousEndTime = val
+	m.previousEndTime = val
 }

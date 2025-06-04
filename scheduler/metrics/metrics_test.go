@@ -3,9 +3,7 @@ package metrics
 import "testing"
 
 func TestMetrics(t *testing.T) {
-	s := &Metrics{
-		TableClient: make(map[string]map[string]*TableClientMetrics),
-	}
+	s := NewMetrics()
 	s.TableClient["test_table"] = make(map[string]*TableClientMetrics)
 	s.TableClient["test_table"]["testExecutionClient"] = &TableClientMetrics{
 		Resources: 1,
@@ -22,9 +20,7 @@ func TestMetrics(t *testing.T) {
 		t.Fatal("expected 3 panics")
 	}
 
-	other := &Metrics{
-		TableClient: make(map[string]map[string]*TableClientMetrics),
-	}
+	other := NewMetrics()
 	other.TableClient["test_table"] = make(map[string]*TableClientMetrics)
 	other.TableClient["test_table"]["testExecutionClient"] = &TableClientMetrics{
 		Resources: 1,
