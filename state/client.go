@@ -55,8 +55,14 @@ func NewConnectedClient(ctx context.Context, backendOpts *plugin.BackendOptions)
 // The state client is guaranteed to be non-nil (it defaults to the NoOpClient).
 // You must call Close() on the returned Client object.
 func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.BackendOptions, connOpts ConnectionOptions, clOpts ClientOptions) (Client, error) {
-	if backendOpts == nil {
+	// backend_options missing or configured but empty
+	if backendOpts == nil || (backendOpts.Connection == "" && backendOpts.TableName == "") {
 		return &NoOpClient{}, nil
+	}
+
+	// backend_options configured incorrectly, e.g. missing connection or table_name
+	if backendOpts.Connection == "" || backendOpts.TableName == "" {
+		return nil, fmt.Errorf("backend_options must contain both connection and table_name: %v", backendOpts)
 	}
 
 	backendConn, err := grpc.NewClient(backendOpts.Connection,

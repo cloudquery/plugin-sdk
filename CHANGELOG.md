@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.84.1](https://github.com/cloudquery/plugin-sdk/compare/v4.84.0...v4.84.1) (2025-05-30)
+
+
+### Bug Fixes
+
+* Correctly validate backend_options configuration ([#2182](https://github.com/cloudquery/plugin-sdk/issues/2182)) ([50dd38f](https://github.com/cloudquery/plugin-sdk/commit/50dd38f74af0f33eec311b0d48e14b976a3ff131))
+
+## [4.84.0](https://github.com/cloudquery/plugin-sdk/compare/v4.83.0...v4.84.0) (2025-05-30)
+
+
+### Features
+
+* Make SDK FIPS-compliant by using internal SHA1 module ([#2179](https://github.com/cloudquery/plugin-sdk/issues/2179)) ([5a34e35](https://github.com/cloudquery/plugin-sdk/commit/5a34e3522179831f991dd8b4b59844bc1c918c1b))
+
+## [4.83.0](https://github.com/cloudquery/plugin-sdk/compare/v4.82.2...v4.83.0) (2025-05-28)
+
+
+### Features
+
+* Switch state grpc client to NewClient rather than DialContext ([#2176](https://github.com/cloudquery/plugin-sdk/issues/2176)) ([9356d9d](https://github.com/cloudquery/plugin-sdk/commit/9356d9d14f89d3c1ea58848ae3e53d671f5b4c8f))
+
+
+### Bug Fixes
+
+* **deps:** Update dependency go to v1.24.3 ([#2041](https://github.com/cloudquery/plugin-sdk/issues/2041)) ([c438d69](https://github.com/cloudquery/plugin-sdk/commit/c438d690057cb2b8fb4944a5108b0c9bd5bfe294))
+
 ## [4.82.2](https://github.com/cloudquery/plugin-sdk/compare/v4.82.1...v4.82.2) (2025-05-26)
 
 
