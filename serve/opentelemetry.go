@@ -11,14 +11,13 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
-	"go.opentelemetry.io/otel/exporters/prometheus"
-
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/prometheus"
 	otellog "go.opentelemetry.io/otel/log"
 	logglobal "go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/sdk/log"
@@ -123,7 +122,7 @@ func getLogsProcessor(ctx context.Context, opts otelConfig) (*log.BatchProcessor
 }
 
 func setupOtel(ctx context.Context, logger zerolog.Logger, p *plugin.Plugin, otelEndpoint string, otelEndpointInsecure bool) (shutdown func(), err error) {
-	exporter, err := prometheus.New()
+	prometheusReader, err := prometheus.New()
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +157,7 @@ func setupOtel(ctx context.Context, logger zerolog.Logger, p *plugin.Plugin, ote
 
 	mt := metric.NewMeterProvider(
 		metric.WithReader(metricReader),
-		metric.WithReader(exporter),
+		metric.WithReader(prometheusReader),
 		metric.WithResource(pluginResource),
 	)
 

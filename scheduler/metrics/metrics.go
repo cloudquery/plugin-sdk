@@ -13,11 +13,16 @@ import (
 )
 
 const (
-	OtelName = "io.cloudquery"
+	ResourceName = "io.cloudquery"
+
+	resourcesMetricName = "sync.table.resources"
+	errorsMetricName    = "sync.table.errors"
+	panicsMetricName    = "sync.table.panics"
+	durationMetricName  = "sync.table.duration"
 )
 
-func NewMetrics() *Metrics {
-	resources, err := otel.Meter(OtelName).Int64Counter("sync.table.resources",
+func NewMetrics(invocationID string) *Metrics {
+	resources, err := otel.Meter(ResourceName).Int64Counter(resourcesMetricName,
 		metric.WithDescription("Number of resources synced for a table"),
 		metric.WithUnit("/{tot}"),
 	)
@@ -25,7 +30,7 @@ func NewMetrics() *Metrics {
 		return nil
 	}
 
-	errors, err := otel.Meter(OtelName).Int64Counter("sync.table.errors",
+	errors, err := otel.Meter(ResourceName).Int64Counter(errorsMetricName,
 		metric.WithDescription("Number of errors encountered while syncing a table"),
 		metric.WithUnit("/{tot}"),
 	)
@@ -33,7 +38,7 @@ func NewMetrics() *Metrics {
 		return nil
 	}
 
-	panics, err := otel.Meter(OtelName).Int64Counter("sync.table.panics",
+	panics, err := otel.Meter(ResourceName).Int64Counter(panicsMetricName,
 		metric.WithDescription("Number of panics encountered while syncing a table"),
 		metric.WithUnit("/{tot}"),
 	)
@@ -41,61 +46,46 @@ func NewMetrics() *Metrics {
 		return nil
 	}
 
-	startTime, err := otel.Meter(OtelName).Int64Counter("sync.table.start_time",
-		metric.WithDescription("Start time of syncing a table"),
+	duration, err := otel.Meter(ResourceName).Int64Counter(durationMetricName,
+		metric.WithDescription("Duration of syncing a table"),
 		metric.WithUnit("ns"),
 	)
-	if err != nil {
-		return nil
-	}
-
-	endTime, err := otel.Meter(OtelName).Int64Counter("sync.table.end_time",
-		metric.WithDescription("End time of syncing a table"),
-		metric.WithUnit("ns"),
-	)
-
 	if err != nil {
 		return nil
 	}
 
 	return &Metrics{
-		TableClient: make(map[string]map[string]*TableClientMetrics),
-		resources:   resources,
-		errors:      errors,
-		panics:      panics,
-		startTime:   startTime,
-		endTime:     endTime,
+		invocationID: invocationID,
+
+		resources: resources,
+		errors:    errors,
+		panics:    panics,
+		duration:  duration,
+
+		TableClient: make(map[string]map[string]*tableClientMetrics),
 	}
 }
 
-// Metrics is deprecated as we move toward open telemetry for tracing and metrics
 type Metrics struct {
+	invocationID string
+
 	resources metric.Int64Counter
 	errors    metric.Int64Counter
 	panics    metric.Int64Counter
+	duration  metric.Int64Counter
 
-	startTime   metric.Int64Counter
+	TableClient map[string]map[string]*tableClientMetrics
+}
+
+type tableClientMetrics struct {
+	resources uint64
+	errors    uint64
+	panics    uint64
+	duration  atomic.Pointer[time.Duration]
+
+	startTime   time.Time
 	started     bool
 	startedLock sync.Mutex
-
-	endTime             metric.Int64Counter
-	previousEndTime     int64
-	previousEndTimeLock sync.Mutex
-
-	TableClient map[string]map[string]*TableClientMetrics
-}
-
-type OtelMeters struct {
-	attributes []attribute.KeyValue
-}
-
-type TableClientMetrics struct {
-	Resources uint64
-	Errors    uint64
-	Panics    uint64
-	Duration  atomic.Pointer[time.Duration]
-
-	otelMeters *OtelMeters
 }
 
 func durationPointerEqual(a, b *time.Duration) bool {
@@ -105,8 +95,8 @@ func durationPointerEqual(a, b *time.Duration) bool {
 	return b != nil && *a == *b
 }
 
-func (m *TableClientMetrics) Equal(other *TableClientMetrics) bool {
-	return m.Resources == other.Resources && m.Errors == other.Errors && m.Panics == other.Panics && durationPointerEqual(m.Duration.Load(), other.Duration.Load())
+func (m *tableClientMetrics) Equal(other *tableClientMetrics) bool {
+	return m.resources == other.resources && m.errors == other.errors && m.panics == other.panics && durationPointerEqual(m.duration.Load(), other.duration.Load())
 }
 
 // Equal compares to stats. Mostly useful in testing
@@ -140,24 +130,24 @@ func (m *Metrics) Equal(other *Metrics) bool {
 	return true
 }
 
-func GetOtelAttributeSet(tableName string, clientID string) []attribute.KeyValue {
-	return []attribute.KeyValue{
-		attribute.Key("sync.client.id").String(clientID),
-		attribute.Key("sync.table.name").String(tableName),
+func (m *Metrics) NewSelector(clientID, tableName string) Selector {
+	return Selector{
+		Set: attribute.NewSet(
+			attribute.Key("sync.invocation.id").String(m.invocationID),
+			attribute.Key("sync.table.name").String(tableName),
+		),
+		clientID:  clientID,
+		tableName: tableName,
 	}
 }
 
-func (m *Metrics) InitWithClients(table *schema.Table, clients []schema.ClientMeta) {
-	m.TableClient[table.Name] = make(map[string]*TableClientMetrics, len(clients))
+func (m *Metrics) InitWithClients(invocationID string, table *schema.Table, clients []schema.ClientMeta) {
+	m.TableClient[table.Name] = make(map[string]*tableClientMetrics, len(clients))
 	for _, client := range clients {
-		tableName := table.Name
-		clientID := client.ID()
-		m.TableClient[tableName][clientID] = &TableClientMetrics{
-			otelMeters: &OtelMeters{attributes: GetOtelAttributeSet(tableName, clientID)},
-		}
+		m.TableClient[table.Name][client.ID()] = &tableClientMetrics{}
 	}
 	for _, relation := range table.Relations {
-		m.InitWithClients(relation, clients)
+		m.InitWithClients(invocationID, relation, clients)
 	}
 }
 
@@ -165,7 +155,7 @@ func (m *Metrics) TotalErrors() uint64 {
 	var total uint64
 	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
-			total += metrics.Errors
+			total += metrics.errors
 		}
 	}
 	return total
@@ -175,7 +165,7 @@ func (m *Metrics) TotalErrorsAtomic() uint64 {
 	var total uint64
 	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
-			total += atomic.LoadUint64(&metrics.Errors)
+			total += atomic.LoadUint64(&metrics.errors)
 		}
 	}
 	return total
@@ -185,7 +175,7 @@ func (m *Metrics) TotalPanics() uint64 {
 	var total uint64
 	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
-			total += metrics.Panics
+			total += metrics.panics
 		}
 	}
 	return total
@@ -195,7 +185,7 @@ func (m *Metrics) TotalPanicsAtomic() uint64 {
 	var total uint64
 	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
-			total += atomic.LoadUint64(&metrics.Panics)
+			total += atomic.LoadUint64(&metrics.panics)
 		}
 	}
 	return total
@@ -205,7 +195,7 @@ func (m *Metrics) TotalResources() uint64 {
 	var total uint64
 	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
-			total += metrics.Resources
+			total += metrics.resources
 		}
 	}
 	return total
@@ -215,57 +205,64 @@ func (m *Metrics) TotalResourcesAtomic() uint64 {
 	var total uint64
 	for _, clientMetrics := range m.TableClient {
 		for _, metrics := range clientMetrics {
-			total += atomic.LoadUint64(&metrics.Resources)
+			total += atomic.LoadUint64(&metrics.resources)
 		}
 	}
 	return total
 }
 
-func (m *Metrics) OtelResourcesAdd(ctx context.Context, count int64, tc *TableClientMetrics) {
-	m.resources.Add(ctx, count, metric.WithAttributes(tc.otelMeters.attributes...))
-	atomic.AddUint64(&tc.Resources, uint64(count))
+func (m *Metrics) ResourcesAdd(ctx context.Context, count int64, selector Selector) {
+	m.resources.Add(ctx, count, metric.WithAttributeSet(selector.Set))
+	atomic.AddUint64(&m.TableClient[selector.tableName][selector.clientID].resources, uint64(count))
 }
 
-func (m *Metrics) OtelErrorsAdd(ctx context.Context, count int64, tc *TableClientMetrics) {
-	m.errors.Add(ctx, count, metric.WithAttributes(tc.otelMeters.attributes...))
-	atomic.AddUint64(&tc.Errors, uint64(count))
+func (m *Metrics) ResourcesGet(selector Selector) uint64 {
+	return atomic.LoadUint64(&m.TableClient[selector.tableName][selector.clientID].resources)
 }
 
-func (m *Metrics) OtelPanicsAdd(ctx context.Context, count int64, tc *TableClientMetrics) {
-	m.panics.Add(ctx, count, metric.WithAttributes(tc.otelMeters.attributes...))
-	atomic.AddUint64(&tc.Panics, uint64(count))
+func (m *Metrics) ErrorsAdd(ctx context.Context, count int64, selector Selector) {
+	m.errors.Add(ctx, count, metric.WithAttributeSet(selector.Set))
+	atomic.AddUint64(&m.TableClient[selector.tableName][selector.clientID].errors, uint64(count))
 }
 
-func (m *Metrics) OtelStartTime(ctx context.Context, start time.Time, tc *TableClientMetrics) {
-	if m.startTime == nil {
-		return
-	}
+func (m *Metrics) ErrorsGet(selector Selector) uint64 {
+	return atomic.LoadUint64(&m.TableClient[selector.tableName][selector.clientID].errors)
+}
+
+func (m *Metrics) PanicsAdd(ctx context.Context, count int64, selector Selector) {
+	m.panics.Add(ctx, count, metric.WithAttributeSet(selector.Set))
+	atomic.AddUint64(&m.TableClient[selector.tableName][selector.clientID].panics, uint64(count))
+}
+
+func (m *Metrics) PanicsGet(selector Selector) uint64 {
+	return atomic.LoadUint64(&m.TableClient[selector.tableName][selector.clientID].panics)
+}
+
+func (m *Metrics) StartTime(start time.Time, selector Selector) {
+	tc := m.TableClient[selector.tableName][selector.clientID]
 
 	// If we have already started, don't start again. This can happen for relational tables that are resolved multiple times (per parent resource)
-	m.startedLock.Lock()
-	defer m.startedLock.Unlock()
-	if m.started {
+	tc.startedLock.Lock()
+	defer tc.startedLock.Unlock()
+	if tc.started {
 		return
 	}
 
-	m.started = true
-	m.startTime.Add(ctx, start.UnixNano(), metric.WithAttributes(tc.otelMeters.attributes...))
+	tc.started = true
+	tc.startTime = start
 }
 
-func (m *Metrics) OtelEndTime(ctx context.Context, end time.Time, tc *TableClientMetrics) {
-	if m.endTime == nil {
-		return
-	}
+func (m *Metrics) EndTime(ctx context.Context, end time.Time, selector Selector) {
+	tc := m.TableClient[selector.tableName][selector.clientID]
+	duration := time.Duration(end.UnixNano() - tc.startTime.UnixNano())
+	tc.duration.Store(&duration)
+	m.duration.Add(ctx, duration.Nanoseconds(), metric.WithAttributeSet(selector.Set))
+}
 
-	m.previousEndTimeLock.Lock()
-	defer m.previousEndTimeLock.Unlock()
-	val := end.UnixNano()
-
-	// If we got another end time to report, use the latest value. This can happen for relational tables that are resolved multiple times (per parent resource)
-	if m.previousEndTime != 0 {
-		m.endTime.Add(ctx, val-m.previousEndTime, metric.WithAttributes(tc.otelMeters.attributes...))
-	} else {
-		m.endTime.Add(ctx, val, metric.WithAttributes(tc.otelMeters.attributes...))
+func (m *Metrics) DurationGet(selector Selector) *time.Duration {
+	tc := m.TableClient[selector.tableName][selector.clientID]
+	if tc == nil {
+		return nil
 	}
-	m.previousEndTime = val
+	return tc.duration.Load()
 }
