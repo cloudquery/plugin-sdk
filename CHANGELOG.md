@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.84.2](https://github.com/cloudquery/plugin-sdk/compare/v4.84.1...v4.84.2) (2025-06-07)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/service/licensemanager to v1.31.1 ([#2186](https://github.com/cloudquery/plugin-sdk/issues/2186)) ([7647d77](https://github.com/cloudquery/plugin-sdk/commit/7647d778e746ab2b016a5912b311f053746cd85a))
+* **deps:** Update module google.golang.org/grpc to v1.72.2 ([#2187](https://github.com/cloudquery/plugin-sdk/issues/2187)) ([a999c81](https://github.com/cloudquery/plugin-sdk/commit/a999c818c057c34468b0ad2c865c31dbf57fb7ad))
+
 ## [4.84.1](https://github.com/cloudquery/plugin-sdk/compare/v4.84.0...v4.84.1) (2025-05-30)
 
 
