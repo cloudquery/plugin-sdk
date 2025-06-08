@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -48,7 +47,7 @@ func NewMetrics(invocationID string) *Metrics {
 
 	duration, err := otel.Meter(ResourceName).Int64Counter(durationMetricName,
 		metric.WithDescription("Duration of syncing a table"),
-		metric.WithUnit("ns"),
+		metric.WithUnit("ms"),
 	)
 	if err != nil {
 		return nil
@@ -62,7 +61,7 @@ func NewMetrics(invocationID string) *Metrics {
 		panics:    panics,
 		duration:  duration,
 
-		TableClient: make(map[string]map[string]*tableClientMetrics),
+		measurements: make(map[string]tableMeasurements),
 	}
 }
 
@@ -74,55 +73,49 @@ type Metrics struct {
 	panics    metric.Int64Counter
 	duration  metric.Int64Counter
 
-	TableClient map[string]map[string]*tableClientMetrics
+	measurements map[string]tableMeasurements
 }
 
-type tableClientMetrics struct {
+type tableMeasurements struct {
+	duration *durationMeasurement
+	clients  map[string]*measurement
+}
+
+type measurement struct {
 	resources uint64
 	errors    uint64
 	panics    uint64
-	duration  atomic.Pointer[time.Duration]
-
-	startTime   time.Time
-	started     bool
-	startedLock sync.Mutex
+	duration  *durationMeasurement
 }
 
-func durationPointerEqual(a, b *time.Duration) bool {
-	if a == nil {
-		return b == nil
-	}
-	return b != nil && *a == *b
-}
-
-func (m *tableClientMetrics) Equal(other *tableClientMetrics) bool {
-	return m.resources == other.resources && m.errors == other.errors && m.panics == other.panics && durationPointerEqual(m.duration.Load(), other.duration.Load())
+func (m *measurement) Equal(other *measurement) bool {
+	return m.resources == other.resources && m.errors == other.errors && m.panics == other.panics && m.duration == other.duration
 }
 
 // Equal compares to stats. Mostly useful in testing
 func (m *Metrics) Equal(other *Metrics) bool {
-	for table, clientStats := range m.TableClient {
-		for client, stats := range clientStats {
-			if _, ok := other.TableClient[table]; !ok {
+	for table, clientStats := range m.measurements {
+		for client, stats := range clientStats.clients {
+			if _, ok := other.measurements[table]; !ok {
 				return false
 			}
-			if _, ok := other.TableClient[table][client]; !ok {
+			if _, ok := other.measurements[table].clients[client]; !ok {
 				return false
 			}
-			if !stats.Equal(other.TableClient[table][client]) {
+			if !stats.Equal(other.measurements[table].clients[client]) {
 				return false
 			}
 		}
 	}
-	for table, clientStats := range other.TableClient {
-		for client, stats := range clientStats {
-			if _, ok := m.TableClient[table]; !ok {
+	for table, clientStats := range other.measurements {
+		for client, stats := range clientStats.clients {
+			if _, ok := m.measurements[table]; !ok {
 				return false
 			}
-			if _, ok := m.TableClient[table][client]; !ok {
+			if _, ok := m.measurements[table].clients[client]; !ok {
 				return false
 			}
-			if !stats.Equal(m.TableClient[table][client]) {
+			if !stats.Equal(m.measurements[table].clients[client]) {
 				return false
 			}
 		}
@@ -142,9 +135,9 @@ func (m *Metrics) NewSelector(clientID, tableName string) Selector {
 }
 
 func (m *Metrics) InitWithClients(invocationID string, table *schema.Table, clients []schema.ClientMeta) {
-	m.TableClient[table.Name] = make(map[string]*tableClientMetrics, len(clients))
+	m.measurements[table.Name] = tableMeasurements{clients: make(map[string]*measurement), duration: &durationMeasurement{}}
 	for _, client := range clients {
-		m.TableClient[table.Name][client.ID()] = &tableClientMetrics{}
+		m.measurements[table.Name].clients[client.ID()] = &measurement{duration: &durationMeasurement{}}
 	}
 	for _, relation := range table.Relations {
 		m.InitWithClients(invocationID, relation, clients)
@@ -153,116 +146,101 @@ func (m *Metrics) InitWithClients(invocationID string, table *schema.Table, clie
 
 func (m *Metrics) TotalErrors() uint64 {
 	var total uint64
-	for _, clientMetrics := range m.TableClient {
-		for _, metrics := range clientMetrics {
-			total += metrics.errors
-		}
-	}
-	return total
-}
-
-func (m *Metrics) TotalErrorsAtomic() uint64 {
-	var total uint64
-	for _, clientMetrics := range m.TableClient {
-		for _, metrics := range clientMetrics {
+	for _, clientMetrics := range m.measurements {
+		for _, metrics := range clientMetrics.clients {
 			total += atomic.LoadUint64(&metrics.errors)
 		}
 	}
 	return total
 }
 
-func (m *Metrics) TotalPanics() uint64 {
-	var total uint64
-	for _, clientMetrics := range m.TableClient {
-		for _, metrics := range clientMetrics {
-			total += metrics.panics
-		}
-	}
-	return total
+// Deprecated: Use TotalErrors instead, it provides the same functionality but is more consistent with the naming of other metrics methods.
+func (m *Metrics) TotalErrorsAtomic() uint64 {
+	return m.TotalErrors()
 }
 
-func (m *Metrics) TotalPanicsAtomic() uint64 {
+func (m *Metrics) TotalPanics() uint64 {
 	var total uint64
-	for _, clientMetrics := range m.TableClient {
-		for _, metrics := range clientMetrics {
+	for _, clientMetrics := range m.measurements {
+		for _, metrics := range clientMetrics.clients {
 			total += atomic.LoadUint64(&metrics.panics)
 		}
 	}
 	return total
 }
 
-func (m *Metrics) TotalResources() uint64 {
-	var total uint64
-	for _, clientMetrics := range m.TableClient {
-		for _, metrics := range clientMetrics {
-			total += metrics.resources
-		}
-	}
-	return total
+// Deprecated: Use TotalPanics instead, it provides the same functionality but is more consistent with the naming of other metrics methods.
+func (m *Metrics) TotalPanicsAtomic() uint64 {
+	return m.TotalPanics()
 }
 
-func (m *Metrics) TotalResourcesAtomic() uint64 {
+func (m *Metrics) TotalResources() uint64 {
 	var total uint64
-	for _, clientMetrics := range m.TableClient {
-		for _, metrics := range clientMetrics {
+	for _, clientMetrics := range m.measurements {
+		for _, metrics := range clientMetrics.clients {
 			total += atomic.LoadUint64(&metrics.resources)
 		}
 	}
 	return total
 }
 
-func (m *Metrics) ResourcesAdd(ctx context.Context, count int64, selector Selector) {
+// Deprecated: Use TotalResources instead, it provides the same functionality but is more consistent with the naming of other metrics methods.
+func (m *Metrics) TotalResourcesAtomic() uint64 {
+	return m.TotalResources()
+}
+
+func (m *Metrics) TableDuration(tableName string) time.Duration {
+	tc := m.measurements[tableName]
+	return tc.duration.duration
+}
+
+func (m *Metrics) AddResources(ctx context.Context, count int64, selector Selector) {
 	m.resources.Add(ctx, count, metric.WithAttributeSet(selector.Set))
-	atomic.AddUint64(&m.TableClient[selector.tableName][selector.clientID].resources, uint64(count))
+	atomic.AddUint64(&m.measurements[selector.tableName].clients[selector.clientID].resources, uint64(count))
 }
 
-func (m *Metrics) ResourcesGet(selector Selector) uint64 {
-	return atomic.LoadUint64(&m.TableClient[selector.tableName][selector.clientID].resources)
+func (m *Metrics) GetResources(selector Selector) uint64 {
+	return atomic.LoadUint64(&m.measurements[selector.tableName].clients[selector.clientID].resources)
 }
 
-func (m *Metrics) ErrorsAdd(ctx context.Context, count int64, selector Selector) {
+func (m *Metrics) AddErrors(ctx context.Context, count int64, selector Selector) {
 	m.errors.Add(ctx, count, metric.WithAttributeSet(selector.Set))
-	atomic.AddUint64(&m.TableClient[selector.tableName][selector.clientID].errors, uint64(count))
+	atomic.AddUint64(&m.measurements[selector.tableName].clients[selector.clientID].errors, uint64(count))
 }
 
-func (m *Metrics) ErrorsGet(selector Selector) uint64 {
-	return atomic.LoadUint64(&m.TableClient[selector.tableName][selector.clientID].errors)
+func (m *Metrics) GetErrors(selector Selector) uint64 {
+	return atomic.LoadUint64(&m.measurements[selector.tableName].clients[selector.clientID].errors)
 }
 
-func (m *Metrics) PanicsAdd(ctx context.Context, count int64, selector Selector) {
+func (m *Metrics) AddPanics(ctx context.Context, count int64, selector Selector) {
 	m.panics.Add(ctx, count, metric.WithAttributeSet(selector.Set))
-	atomic.AddUint64(&m.TableClient[selector.tableName][selector.clientID].panics, uint64(count))
+	atomic.AddUint64(&m.measurements[selector.tableName].clients[selector.clientID].panics, uint64(count))
 }
 
-func (m *Metrics) PanicsGet(selector Selector) uint64 {
-	return atomic.LoadUint64(&m.TableClient[selector.tableName][selector.clientID].panics)
+func (m *Metrics) GetPanics(selector Selector) uint64 {
+	return atomic.LoadUint64(&m.measurements[selector.tableName].clients[selector.clientID].panics)
 }
 
 func (m *Metrics) StartTime(start time.Time, selector Selector) {
-	tc := m.TableClient[selector.tableName][selector.clientID]
+	t := m.measurements[selector.tableName]
+	tc := t.clients[selector.clientID]
 
-	// If we have already started, don't start again. This can happen for relational tables that are resolved multiple times (per parent resource)
-	tc.startedLock.Lock()
-	defer tc.startedLock.Unlock()
-	if tc.started {
-		return
-	}
-
-	tc.started = true
-	tc.startTime = start
+	tc.duration.Start(start)
+	t.duration.Start(start)
 }
 
 func (m *Metrics) EndTime(ctx context.Context, end time.Time, selector Selector) {
-	tc := m.TableClient[selector.tableName][selector.clientID]
-	duration := time.Duration(end.UnixNano() - tc.startTime.UnixNano())
-	tc.duration.Store(&duration)
-	m.duration.Add(ctx, duration.Nanoseconds(), metric.WithAttributeSet(selector.Set))
+	t := m.measurements[selector.tableName]
+	tc := t.clients[selector.clientID]
+
+	_ = tc.duration.End(end)
+	delta := t.duration.End(end)
+
+	// only compute and add the total duration for per-table measurements (and not per-client)
+	m.duration.Add(ctx, delta.Milliseconds(), metric.WithAttributeSet(selector.Set))
 }
 
-func (m *Metrics) DurationGet(selector Selector) *time.Duration {
-	tc := m.TableClient[selector.tableName][selector.clientID]
-	if tc == nil {
-		return nil
-	}
-	return tc.duration.Load()
+func (m *Metrics) GetDuration(selector Selector) time.Duration {
+	tc := m.measurements[selector.tableName].clients[selector.clientID]
+	return tc.duration.duration
 }
