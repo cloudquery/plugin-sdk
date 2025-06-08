@@ -88,9 +88,9 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	selector := w.metrics.NewSelector(clientName, table.Name)
 	defer func() {
 		span.AddEvent("sync.finish.stats", trace.WithAttributes(
-			attribute.Key("sync.resources").Int64(int64(w.metrics.ResourcesGet(selector))),
-			attribute.Key("sync.errors").Int64(int64(w.metrics.ErrorsGet(selector))),
-			attribute.Key("sync.panics").Int64(int64(w.metrics.PanicsGet(selector))),
+			attribute.Key("sync.resources").Int64(int64(w.metrics.GetResources(selector))),
+			attribute.Key("sync.errors").Int64(int64(w.metrics.GetErrors(selector))),
+			attribute.Key("sync.panics").Int64(int64(w.metrics.GetPanics(selector))),
 		))
 	}()
 	w.metrics.StartTime(startTime, selector)
@@ -101,13 +101,13 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 			if err := recover(); err != nil {
 				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
-				w.metrics.PanicsAdd(ctx, 1, selector)
+				w.metrics.AddPanics(ctx, 1, selector)
 			}
 			close(res)
 		}()
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
-			w.metrics.ErrorsAdd(ctx, 1, selector)
+			w.metrics.AddErrors(ctx, 1, selector)
 			// Send SyncError message
 			syncErrorMsg := &message.SyncError{
 				TableName: table.Name,
@@ -124,12 +124,8 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 
 	endTime := time.Now()
 	w.metrics.EndTime(ctx, endTime, selector)
-	duration := w.metrics.DurationGet(selector)
-	if duration == nil {
-		duration = new(time.Duration)
-	}
 	if parent == nil {
-		logger.Info().Uint64("resources", w.metrics.ResourcesGet(selector)).Uint64("errors", w.metrics.ErrorsGet(selector)).Dur("duration_ms", *duration).Msg("table sync finished")
+		logger.Info().Uint64("resources", w.metrics.GetResources(selector)).Uint64("errors", w.metrics.GetErrors(selector)).Dur("duration_ms", w.metrics.GetDuration(selector)).Msg("table sync finished")
 	}
 }
 
@@ -156,7 +152,7 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 
 				if err := resolvedResource.CalculateCQID(w.deterministicCQID); err != nil {
 					w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
-					w.metrics.ErrorsAdd(ctx, 1, selector)
+					w.metrics.AddErrors(ctx, 1, selector)
 					return
 				}
 				if err := resolvedResource.StoreCQClientID(client.ID()); err != nil {
@@ -166,7 +162,7 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 					switch err.(type) {
 					case *schema.PKError:
 						w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
-						w.metrics.ErrorsAdd(ctx, 1, selector)
+						w.metrics.AddErrors(ctx, 1, selector)
 						return
 					case *schema.PKComponentError:
 						w.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")

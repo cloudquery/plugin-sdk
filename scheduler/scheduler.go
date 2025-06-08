@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"sync"
-	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -280,13 +279,7 @@ func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
 	clientName := client.ID()
 	for _, table := range tables {
 		selector := s.metrics.NewSelector(clientName, table.Name)
-		duration := s.metrics.DurationGet(selector)
-		if duration == nil {
-			// This can happen for a relation when there are no resources to resolve from the parent
-			duration = new(time.Duration)
-		}
-
-		s.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", s.metrics.ResourcesGet(selector)).Dur("duration_ms", *duration).Uint64("errors", s.metrics.ErrorsGet(selector)).Msg("table sync finished")
+		s.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", s.metrics.GetResources(selector)).Dur("duration_ms", s.metrics.GetDuration(selector)).Uint64("errors", s.metrics.GetErrors(selector)).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)
 	}
 }

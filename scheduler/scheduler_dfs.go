@@ -93,16 +93,23 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
 		logger.Info().Msg("top level table resolver started")
 	}
-
 	selector := s.metrics.NewSelector(clientName, table.Name)
+	s.metrics.StartTime(startTime, selector)
+
 	defer func() {
 		span.AddEvent("sync.finish.stats", trace.WithAttributes(
-			attribute.Key("sync.resources").Int64(int64(s.metrics.ResourcesGet(selector))),
-			attribute.Key("sync.errors").Int64(int64(s.metrics.ErrorsGet(selector))),
-			attribute.Key("sync.panics").Int64(int64(s.metrics.PanicsGet(selector))),
+			attribute.Key("sync.resources").Int64(int64(s.metrics.GetResources(selector))),
+			attribute.Key("sync.errors").Int64(int64(s.metrics.GetErrors(selector))),
+			attribute.Key("sync.panics").Int64(int64(s.metrics.GetPanics(selector))),
 		))
+
+		endTime := time.Now()
+		s.metrics.EndTime(ctx, endTime, selector)
+		if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
+			logger.Info().Uint64("resources", s.metrics.GetResources(selector)).Uint64("errors", s.metrics.GetErrors(selector)).Dur("duration_ms", s.metrics.GetDuration(selector)).Msg("table sync finished")
+			s.logTablesMetrics(table.Relations, client)
+		}
 	}()
-	s.metrics.StartTime(startTime, selector)
 
 	res := make(chan any)
 	go func() {
@@ -110,13 +117,13 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 			if err := recover(); err != nil {
 				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
-				s.metrics.PanicsAdd(ctx, 1, selector)
+				s.metrics.AddPanics(ctx, 1, selector)
 			}
 			close(res)
 		}()
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
-			s.metrics.ErrorsAdd(ctx, 1, selector)
+			s.metrics.AddErrors(ctx, 1, selector)
 			// Send SyncError message
 			syncErrorMsg := &message.SyncError{
 				TableName: table.Name,
@@ -136,13 +143,6 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	batchSender.Close()
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
-	endTime := time.Now()
-	s.metrics.EndTime(ctx, endTime, selector)
-	duration := s.metrics.DurationGet(selector)
-	if parent == nil { // Log only for root tables and relations only after resolving is done, otherwise we spam per object instead of per table.
-		logger.Info().Uint64("resources", s.metrics.ResourcesGet(selector)).Uint64("errors", s.metrics.ErrorsGet(selector)).Dur("duration_ms", *duration).Msg("table sync finished")
-		s.logTablesMetrics(table.Relations, client)
-	}
 }
 
 func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) {
@@ -191,7 +191,7 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 
 				if err := resolvedResource.CalculateCQID(s.deterministicCQID); err != nil {
 					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
-					s.metrics.ErrorsAdd(ctx, 1, selector)
+					s.metrics.AddErrors(ctx, 1, selector)
 					return
 				}
 				if err := resolvedResource.StoreCQClientID(client.ID()); err != nil {
@@ -201,7 +201,7 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 					switch err.(type) {
 					case *schema.PKError:
 						s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
-						s.metrics.ErrorsAdd(ctx, 1, selector)
+						s.metrics.AddErrors(ctx, 1, selector)
 						return
 					case *schema.PKComponentError:
 						s.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")

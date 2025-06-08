@@ -19,14 +19,14 @@ func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metric
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 			logger.Error().Str("column", column.Name).Interface("error", err).TimeDiff("duration", time.Now(), columnStartTime).Str("stack", stack).Msg("column resolver finished with panic")
-			m.PanicsAdd(ctx, 1, selector)
+			m.AddPanics(ctx, 1, selector)
 		}
 	}()
 
 	if column.Resolver != nil {
 		if err := column.Resolver(ctx, client, resource, column); err != nil {
 			logger.Error().Err(err).Msg("column resolver finished with error")
-			m.ErrorsAdd(ctx, 1, selector)
+			m.AddErrors(ctx, 1, selector)
 		}
 	} else {
 		// base use case: try to get column with CamelCase name
@@ -35,7 +35,7 @@ func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metric
 			err := resource.Set(column.Name, v)
 			if err != nil {
 				logger.Error().Err(err).Msg("column resolver finished with error")
-				m.ErrorsAdd(ctx, 1, selector)
+				m.AddErrors(ctx, 1, selector)
 			}
 		}
 	}
@@ -57,13 +57,13 @@ func ResolveSingleResource(ctx context.Context, logger zerolog.Logger, m *metric
 		if err := recover(); err != nil {
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 			tableLogger.Error().Interface("error", err).TimeDiff("duration", time.Now(), objectStartTime).Str("stack", stack).Msg("resource resolver finished with panic")
-			m.PanicsAdd(ctx, 1, selector)
+			m.AddPanics(ctx, 1, selector)
 		}
 	}()
 	if table.PreResourceResolver != nil {
 		if err := table.PreResourceResolver(ctx, client, resource); err != nil {
 			tableLogger.Error().Err(err).Msg("pre resource resolver failed")
-			m.ErrorsAdd(ctx, 1, selector)
+			m.AddErrors(ctx, 1, selector)
 			return nil
 		}
 	}
@@ -75,10 +75,10 @@ func ResolveSingleResource(ctx context.Context, logger zerolog.Logger, m *metric
 	if table.PostResourceResolver != nil {
 		if err := table.PostResourceResolver(ctx, client, resource); err != nil {
 			tableLogger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
-			m.ErrorsAdd(ctx, 1, selector)
+			m.AddErrors(ctx, 1, selector)
 		}
 	}
 
-	m.ResourcesAdd(ctx, 1, selector)
+	m.AddResources(ctx, 1, selector)
 	return resource
 }
