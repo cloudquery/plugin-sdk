@@ -6,7 +6,7 @@ require (
 	github.com/apache/arrow-go/v18 v18.3.0
 	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.14
-	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.31.0
+	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.31.1
 	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.29.0
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.13.9
@@ -42,7 +42,7 @@ require (
 	golang.org/x/oauth2 v0.27.0
 	golang.org/x/sync v0.14.0
 	golang.org/x/text v0.25.0
-	google.golang.org/grpc v1.72.1
+	google.golang.org/grpc v1.72.2
 	google.golang.org/protobuf v1.36.6
 )
 
