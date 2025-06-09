@@ -544,6 +544,7 @@ func waitForLength(t *testing.T, checkLen func(messageType) int, msgType message
 	}
 }
 
+// nolint:unparam
 func getRecord(sc *arrow.Schema, rows int) arrow.Record {
 	builder := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 	defer builder.Release()
