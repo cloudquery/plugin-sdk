@@ -425,7 +425,6 @@ func (s *streamingWorkerManager[T]) send(ctx context.Context, data T) {
 			if s.inputCh == ch { // only close if we're still the active channel
 				close(s.inputCh)
 				s.inputCh = nil
-				s.limit.Reset()
 			}
 		}()
 
