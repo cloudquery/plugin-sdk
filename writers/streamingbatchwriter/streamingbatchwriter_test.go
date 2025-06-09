@@ -79,9 +79,13 @@ func (c *testStreamingBatchClient) WriteTable(ctx context.Context, msgs <-chan *
 	key := ""
 	for m := range msgs {
 		key = c.handleTypeMessage(ctx, messageTypeInsert, m, key)
-		c.writeCounter[key]++
 
-		if c.writeErr != nil && c.writeCounter[key] > c.writeErrAfter {
+		c.mutex.Lock()
+		c.writeCounter[key]++
+		currentCount := c.writeCounter[key]
+		c.mutex.Unlock()
+
+		if c.writeErr != nil && currentCount > c.writeErrAfter {
 			return c.writeErr // leave msgs open
 		}
 	}
