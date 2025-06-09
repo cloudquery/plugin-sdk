@@ -30,9 +30,10 @@ type testStreamingBatchClient struct {
 	committed map[messageType]int
 	open      map[messageType][]string
 
-	writeErr      error
-	writeErrAfter int64
-	writeCounter  map[string]int64 // table name to write counter
+	writeErr       error
+	writeErrAfter  int64
+	writeCounter   map[string]int64 // table name to write counter
+	writeCommitErr error
 }
 
 func newClient() *testStreamingBatchClient {
@@ -84,6 +85,11 @@ func (c *testStreamingBatchClient) WriteTable(ctx context.Context, msgs <-chan *
 			return c.writeErr // leave msgs open
 		}
 	}
+
+	if c.writeCommitErr != nil {
+		return c.writeCommitErr
+	}
+
 	return c.handleTypeCommit(ctx, messageTypeInsert, key)
 }
 
@@ -526,6 +532,41 @@ func TestErrorCleanUpSecondMessage(t *testing.T) {
 
 	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1) // testStreamingBatchClient doesn't commit the batch before erroring
 	waitForLength(t, testClient.MessageLen, messageTypeInsert, 1)  // batch size 1
+}
+
+func TestErrorCleanUpAfterClose(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ch := make(chan message.WriteMessage)
+
+	testClient := newClient()
+	testClient.writeCommitErr = errors.New("test error")
+
+	wr, err := New(testClient, WithBatchTimeout(0), WithBatchSizeRows(100))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		errCh <- wr.Write(ctx, ch)
+	}()
+
+	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	record := getRecord(table.ToArrowSchema(), 1)
+
+	for i := 0; i < 10; i++ {
+		ch <- &message.WriteInsert{
+			Record: record,
+		}
+	}
+
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 10)
+	close(ch)
+
+	requireErrorCount(t, 1, errCh)
+
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0) // batch size 1
 }
 
 func waitForLength(t *testing.T, checkLen func(messageType) int, msgType messageType, want int) {

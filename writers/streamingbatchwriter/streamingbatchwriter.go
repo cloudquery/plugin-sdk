@@ -180,14 +180,13 @@ func (w *StreamingBatchWriter) Close(context.Context) error {
 }
 
 func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
-	errCh := make(chan error)
-	defer w.Close(ctx)
-
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	errCh := make(chan error)
 	go func() {
 		defer close(errCh)
+		defer w.Close(ctx)
 		for msg := range msgs {
 			msgType := writers.MsgID(msg)
 			if w.lastMsgType != writers.MsgTypeUnset && w.lastMsgType != msgType {
@@ -370,6 +369,7 @@ type streamingWorkerManager[T message.WriteMessage] struct {
 	batchTimeout time.Duration
 	tickerFn     writers.TickerFunc
 	failed       *atomic.Bool
+	workerWg     sync.WaitGroup
 
 	inputCh chan T
 	mu      sync.Mutex // protects inputCh
@@ -404,9 +404,11 @@ func (s *streamingWorkerManager[T]) send(ctx context.Context, data T) {
 	}
 
 	s.inputCh = make(chan T)
+	s.workerWg.Add(1)
 
 	// start consuming our new channel
 	go func(ch chan T) {
+		defer s.workerWg.Done()
 		defer func() {
 			if msg := recover(); msg != nil {
 				switch v := msg.(type) {
@@ -453,6 +455,7 @@ func (s *streamingWorkerManager[T]) send(ctx context.Context, data T) {
 
 func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
+	defer s.workerWg.Wait()
 	defer s.closeFlush()
 
 	ticker := s.tickerFn(s.batchTimeout)
