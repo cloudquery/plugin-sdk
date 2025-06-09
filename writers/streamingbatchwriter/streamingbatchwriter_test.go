@@ -454,7 +454,7 @@ func TestErrorCleanUpBeforeFirstMessage(t *testing.T) {
 	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
 
 	close(ch)
-	requireErrorCount(t, 1, errCh)
+	requireErrorCount(t, errCh, 1, 1)
 }
 
 func TestErrorCleanUpFirstMessage(t *testing.T) {
@@ -494,7 +494,7 @@ func TestErrorCleanUpFirstMessage(t *testing.T) {
 	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1)
 
 	close(ch)
-	requireErrorCount(t, 1, errCh)
+	requireErrorCount(t, errCh, 1, 1)
 }
 
 func TestErrorCleanUpSecondMessage(t *testing.T) {
@@ -532,9 +532,9 @@ func TestErrorCleanUpSecondMessage(t *testing.T) {
 	<-done
 
 	close(ch)
-	requireErrorCount(t, 1, errCh)
+	numErrs := requireErrorCount(t, errCh, 1, 2) // can have 2 errors depending on processing order
 
-	waitForLength(t, testClient.InflightLen, messageTypeInsert, 2) // testStreamingBatchClient doesn't commit the batch before erroring
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1+numErrs) // testStreamingBatchClient doesn't commit the batch before erroring
 	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
 }
 
@@ -568,7 +568,7 @@ func TestErrorCleanUpAfterClose(t *testing.T) {
 	waitForLength(t, testClient.InflightLen, messageTypeInsert, 10)
 	close(ch)
 
-	requireErrorCount(t, 1, errCh)
+	requireErrorCount(t, errCh, 1, 1)
 
 	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0) // batch size 1
 }
@@ -602,7 +602,7 @@ func getRecord(sc *arrow.Schema, rows int) arrow.Record {
 }
 
 // nolint:unparam
-func requireErrorCount(t *testing.T, expected int, errCh chan error) {
+func requireErrorCount(t *testing.T, errCh chan error, expectedMin, expectedMax int) int {
 	t.Helper()
 	select {
 	case <-time.After(5 * time.Second):
@@ -614,8 +614,13 @@ func requireErrorCount(t *testing.T, expected int, errCh chan error) {
 		}
 
 		errs := jointErrs.Unwrap()
-		if l := len(errs); l != expected {
-			t.Fatalf("expected %d errors, got %d: %v", expected, l, errs)
+		l := len(errs)
+		if expectedMin == expectedMax && l != expectedMin {
+			t.Fatalf("expected %d errors, got %d: %v", expectedMin, l, errs)
+		} else if l < expectedMin || l > expectedMax {
+			t.Fatalf("expected between %d and %d errors, got %d: %v", expectedMin, expectedMax, l, errs)
 		}
+		return l
 	}
+	return -1
 }
