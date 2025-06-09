@@ -506,7 +506,7 @@ func TestErrorCleanUpSecondMessage(t *testing.T) {
 	testClient.writeErrAfter = 1
 	testClient.writeErr = errors.New("test error")
 
-	wr, err := New(testClient, WithBatchTimeout(0), WithBatchSizeRows(1))
+	wr, err := New(testClient, WithBatchTimeout(0), WithBatchSizeRows(2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,8 +534,8 @@ func TestErrorCleanUpSecondMessage(t *testing.T) {
 	close(ch)
 	requireErrorCount(t, 1, errCh)
 
-	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1) // testStreamingBatchClient doesn't commit the batch before erroring
-	waitForLength(t, testClient.MessageLen, messageTypeInsert, 1)  // batch size 1
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 2) // testStreamingBatchClient doesn't commit the batch before erroring
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
 }
 
 func TestErrorCleanUpAfterClose(t *testing.T) {
