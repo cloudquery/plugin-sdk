@@ -597,6 +597,7 @@ func getRecord(sc *arrow.Schema, rows int) arrow.Record {
 	return builder.NewRecord()
 }
 
+// nolint:unparam
 func requireErrorCount(t *testing.T, expected int, errCh chan error) {
 	t.Helper()
 	select {
