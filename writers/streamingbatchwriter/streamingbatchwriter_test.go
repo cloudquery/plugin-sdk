@@ -2,6 +2,7 @@ package streamingbatchwriter
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -28,13 +29,18 @@ type testStreamingBatchClient struct {
 	inflight  map[messageType]int
 	committed map[messageType]int
 	open      map[messageType][]string
+
+	writeErr      error
+	writeErrAfter int64
+	writeCounter  map[string]int64 // table name to write counter
 }
 
 func newClient() *testStreamingBatchClient {
 	return &testStreamingBatchClient{
-		inflight:  make(map[messageType]int),
-		committed: make(map[messageType]int),
-		open:      make(map[messageType][]string),
+		inflight:     make(map[messageType]int),
+		committed:    make(map[messageType]int),
+		open:         make(map[messageType][]string),
+		writeCounter: make(map[string]int64),
 	}
 }
 
@@ -65,9 +71,18 @@ func (c *testStreamingBatchClient) MigrateTable(ctx context.Context, msgs <-chan
 }
 
 func (c *testStreamingBatchClient) WriteTable(ctx context.Context, msgs <-chan *message.WriteInsert) error {
+	if c.writeErr != nil && c.writeErrAfter == -1 {
+		return c.writeErr
+	}
+
 	key := ""
 	for m := range msgs {
 		key = c.handleTypeMessage(ctx, messageTypeInsert, m, key)
+		c.writeCounter[key]++
+
+		if c.writeErr != nil && c.writeCounter[key] > c.writeErrAfter {
+			return c.writeErr // leave msgs open
+		}
 	}
 	return c.handleTypeCommit(ctx, messageTypeInsert, key)
 }
@@ -342,6 +357,7 @@ func TestStreamingBatchNoTimeout(t *testing.T) {
 		t.Fatalf("expected 3 insert messages, got %d", l)
 	}
 }
+
 func TestStreamingBatchUpserts(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -392,6 +408,126 @@ func TestStreamingBatchUpserts(t *testing.T) {
 	}
 }
 
+func TestErrorCleanUpBeforeFirstMessage(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ch := make(chan message.WriteMessage)
+
+	testClient := newClient()
+	testClient.writeErrAfter = -1
+	testClient.writeErr = errors.New("test error")
+
+	wr, err := New(testClient, WithBatchTimeout(0), WithBatchSizeRows(100))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		errCh <- wr.Write(ctx, ch)
+	}()
+
+	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	record := getRecord(table.ToArrowSchema(), 1)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < 100; i++ {
+			ch <- &message.WriteInsert{
+				Record: record,
+			}
+		}
+	}()
+
+	<-done
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
+
+	close(ch)
+	requireErrorCount(t, 1, errCh)
+}
+
+func TestErrorCleanUpFirstMessage(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ch := make(chan message.WriteMessage)
+
+	testClient := newClient()
+	testClient.writeErrAfter = 0
+	testClient.writeErr = errors.New("test error")
+
+	wr, err := New(testClient, WithBatchTimeout(0), WithBatchSizeRows(100))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		errCh <- wr.Write(ctx, ch)
+	}()
+
+	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	record := getRecord(table.ToArrowSchema(), 1)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < 100; i++ {
+			ch <- &message.WriteInsert{
+				Record: record,
+			}
+		}
+	}()
+
+	<-done
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 0)
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1)
+
+	close(ch)
+	requireErrorCount(t, 1, errCh)
+}
+
+func TestErrorCleanUpSecondMessage(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ch := make(chan message.WriteMessage)
+
+	testClient := newClient()
+	testClient.writeErrAfter = 1
+	testClient.writeErr = errors.New("test error")
+
+	wr, err := New(testClient, WithBatchTimeout(0), WithBatchSizeRows(1))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		errCh <- wr.Write(ctx, ch)
+	}()
+
+	table := schema.Table{Name: "table1", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	record := getRecord(table.ToArrowSchema(), 1)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < 100; i++ {
+			ch <- &message.WriteInsert{
+				Record: record,
+			}
+		}
+	}()
+
+	<-done
+
+	close(ch)
+	requireErrorCount(t, 1, errCh)
+
+	waitForLength(t, testClient.InflightLen, messageTypeInsert, 1) // testStreamingBatchClient doesn't commit the batch before erroring
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 1)  // batch size 1
+}
+
 func waitForLength(t *testing.T, checkLen func(messageType) int, msgType messageType, want int) {
 	t.Helper()
 	lastValue := -1
@@ -417,4 +553,22 @@ func getRecord(sc *arrow.Schema, rows int) arrow.Record {
 	}
 
 	return builder.NewRecord()
+}
+
+func requireErrorCount(t *testing.T, expected int, errCh chan error) {
+	t.Helper()
+	select {
+	case <-time.After(5 * time.Second):
+		t.Fatalf("timed out waiting for errCh")
+	case err := <-errCh:
+		jointErrs, ok := err.(interface{ Unwrap() []error })
+		if !ok {
+			t.Fatalf("errCh did not contain joint errors: %T", err)
+		}
+
+		errs := jointErrs.Unwrap()
+		if l := len(errs); l != expected {
+			t.Fatalf("expected %d errors, got %d: %v", expected, l, errs)
+		}
+	}
 }
