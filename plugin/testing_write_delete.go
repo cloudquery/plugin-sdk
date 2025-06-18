@@ -117,7 +117,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 	r.EqualValuesf(rowsPerRecord, TotalRows(readRecords), "unexpected amount of items after delete stale")
 
 	// https://github.com/golang/go/issues/41087
-	syncTime = time.Now().UTC().Truncate(time.Microsecond)
+	syncTime = time.Now().UTC().Truncate(time.Microsecond).Add(time.Second)
 	nullRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:            rowsPerRecord,
 		TimePrecision:      s.genDatOptions.TimePrecision,
@@ -144,6 +144,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 	readRecords, err = s.plugin.readAll(ctx, table)
 	r.NoErrorf(err, "failed to read after second delete stale")
 	sortRecords(table, readRecords, "id")
+
 	r.EqualValuesf(rowsPerRecord, TotalRows(readRecords), "unexpected amount of items after second delete stale")
 	r.Emptyf(RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{nullRecord}), "record differs")
 }
