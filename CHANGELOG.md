@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.84.2](https://github.com/cloudquery/plugin-sdk/compare/v4.84.1...v4.84.2) (2025-06-18)
+
+
+### Bug Fixes
+
+* Add time delay in DeleteStaleAll test for destinations ([#2191](https://github.com/cloudquery/plugin-sdk/issues/2191)) ([d98a293](https://github.com/cloudquery/plugin-sdk/commit/d98a29334ac8d34fb2e85cea5600bf326c7c90ea))
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/config to v1.29.15 ([#2189](https://github.com/cloudquery/plugin-sdk/issues/2189)) ([9860e20](https://github.com/cloudquery/plugin-sdk/commit/9860e20cb37ca3be41b1b7723cfe2e980469b88c))
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/service/licensemanager to v1.31.1 ([#2186](https://github.com/cloudquery/plugin-sdk/issues/2186)) ([7647d77](https://github.com/cloudquery/plugin-sdk/commit/7647d778e746ab2b016a5912b311f053746cd85a))
+* **deps:** Update module google.golang.org/grpc to v1.72.2 ([#2187](https://github.com/cloudquery/plugin-sdk/issues/2187)) ([a999c81](https://github.com/cloudquery/plugin-sdk/commit/a999c818c057c34468b0ad2c865c31dbf57fb7ad))
+* **deps:** Update module google.golang.org/grpc to v1.73.0 ([#2190](https://github.com/cloudquery/plugin-sdk/issues/2190)) ([2e3c192](https://github.com/cloudquery/plugin-sdk/commit/2e3c192ff2f2455de31f51f0b6d4c16577d15c41))
+* Error handling in StreamingBatchWriter ([#1921](https://github.com/cloudquery/plugin-sdk/issues/1921)) ([6d71fb1](https://github.com/cloudquery/plugin-sdk/commit/6d71fb1099792438f6527f5854a6dc37eaf298ec))
+
 ## [4.84.1](https://github.com/cloudquery/plugin-sdk/compare/v4.84.0...v4.84.1) (2025-05-30)
 
 
