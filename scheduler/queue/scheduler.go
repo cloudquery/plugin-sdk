@@ -33,8 +33,6 @@ type Scheduler struct {
 	metrics           *metrics.Metrics
 	invocationID      string
 	seed              int64
-	// message channel for sending SyncError messages
-	msgChan chan<- message.SyncMessage
 }
 
 type Option func(*Scheduler)
