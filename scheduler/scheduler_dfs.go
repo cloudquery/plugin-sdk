@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/batchsender"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
@@ -119,6 +120,12 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 			logger.Error().Err(err).Msg("table resolver finished with error")
 			tableMetrics.OtelErrorsAdd(ctx, 1)
 			atomic.AddUint64(&tableMetrics.Errors, 1)
+			// Send SyncError message
+			syncErrorMsg := &message.SyncError{
+				TableName: table.Name,
+				Error:     err.Error(),
+			}
+			s.msgChan <- syncErrorMsg
 			return
 		}
 	}()

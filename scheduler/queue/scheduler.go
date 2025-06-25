@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cloudquery/plugin-sdk/v4/caser"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/google/uuid"
@@ -32,6 +33,8 @@ type Scheduler struct {
 	metrics           *metrics.Metrics
 	invocationID      string
 	seed              int64
+	// message channel for sending SyncError messages
+	msgChan chan<- message.SyncMessage
 }
 
 type Option func(*Scheduler)
@@ -77,7 +80,7 @@ func NewShuffleQueueScheduler(logger zerolog.Logger, m *metrics.Metrics, seed in
 	return scheduler
 }
 
-func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedResources chan<- *schema.Resource) {
+func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedResources chan<- *schema.Resource, msgChan chan<- message.SyncMessage) {
 	if len(tableClients) == 0 {
 		return
 	}
@@ -102,6 +105,7 @@ func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedR
 				d.invocationID,
 				d.deterministicCQID,
 				d.metrics,
+				msgChan,
 			).work(ctx, activeWorkSignal)
 			return nil
 		})
