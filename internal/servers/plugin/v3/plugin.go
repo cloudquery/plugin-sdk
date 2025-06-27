@@ -259,6 +259,16 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 					WhereClause:    whereClause,
 				},
 			}
+		case *message.SyncError:
+			if !req.WithErrorMessages {
+				continue
+			}
+			pbMsg.Message = &pb.Sync_Response_Error{
+				Error: &pb.Sync_MessageError{
+					TableName: m.TableName,
+					Error:     m.Error,
+				},
+			}
 		default:
 			return status.Errorf(codes.Internal, "unknown message type: %T", msg)
 		}

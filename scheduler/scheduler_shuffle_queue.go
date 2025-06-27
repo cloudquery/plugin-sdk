@@ -45,5 +45,5 @@ func (s *syncClient) syncShuffleQueue(ctx context.Context, resolvedResources cha
 			Client: tc.client,
 		})
 	}
-	scheduler.Sync(ctx, queueClients, resolvedResources)
+	scheduler.Sync(ctx, queueClients, resolvedResources, s.msgChan)
 }

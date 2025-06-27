@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/transformers"
@@ -83,9 +84,10 @@ func TestScheduler(t *testing.T) {
 	}
 
 	resolvedResources := make(chan *schema.Resource)
+	msgs := make(chan message.SyncMessage, 10)
 	go func() {
 		defer close(resolvedResources)
-		scheduler.Sync(context.Background(), tableClients, resolvedResources)
+		scheduler.Sync(context.Background(), tableClients, resolvedResources, msgs)
 	}()
 
 	gotResources := make([]*schema.Resource, 0)

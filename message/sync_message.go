@@ -121,3 +121,13 @@ type SyncDeleteRecord struct {
 func (m SyncDeleteRecord) GetTable() *schema.Table {
 	return &schema.Table{Name: m.TableName}
 }
+
+type SyncError struct {
+	syncBaseMessage
+	TableName string
+	Error     string
+}
+
+func (e SyncError) GetTable() *schema.Table {
+	return &schema.Table{Name: e.TableName}
+}

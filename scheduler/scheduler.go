@@ -139,6 +139,8 @@ type syncClient struct {
 	metrics      *metrics.Metrics
 	logger       zerolog.Logger
 	invocationID string
+	// message channel for sending SyncError messages
+	msgChan chan<- message.SyncMessage
 
 	shard *shard
 }
@@ -213,6 +215,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		scheduler:    s,
 		logger:       s.logger,
 		invocationID: s.invocationID,
+		msgChan:      res,
 	}
 	for _, opt := range opts {
 		opt(syncClient)
