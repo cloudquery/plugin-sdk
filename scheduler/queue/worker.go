@@ -10,6 +10,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -29,6 +30,8 @@ type worker struct {
 	invocationID      string
 	deterministicCQID bool
 	metrics           *metrics.Metrics
+	// message channel for sending SyncError messages
+	msgChan chan<- message.SyncMessage
 }
 
 func (w *worker) work(ctx context.Context, activeWorkSignal *activeWorkSignal) {
@@ -51,6 +54,7 @@ func newWorker(
 	invocationID string,
 	deterministicCQID bool,
 	m *metrics.Metrics,
+	msgChan chan<- message.SyncMessage,
 ) *worker {
 	return &worker{
 		jobs:              jobs,
@@ -61,6 +65,7 @@ func newWorker(
 		deterministicCQID: deterministicCQID,
 		invocationID:      invocationID,
 		metrics:           m,
+		msgChan:           msgChan,
 	}
 }
 
@@ -105,6 +110,12 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 			logger.Error().Err(err).Msg("table resolver finished with error")
 			tableMetrics.OtelErrorsAdd(ctx, 1)
 			atomic.AddUint64(&tableMetrics.Errors, 1)
+			// Send SyncError message
+			syncErrorMsg := &message.SyncError{
+				TableName: table.Name,
+				Error:     err.Error(),
+			}
+			w.msgChan <- syncErrorMsg
 			return
 		}
 	}()

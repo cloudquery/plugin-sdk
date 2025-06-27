@@ -83,7 +83,7 @@ func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 	// if `PrimaryKeyComponent` is set, we calculate the CQID based on those components
 	pkComponents := r.Table.PrimaryKeyComponents()
 	if len(pkComponents) > 0 {
-		return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, calculateCqIDValue(r, pkComponents).Sum(nil)))
+		return r.storeCQID(newUUID(uuid.UUID{}, calculateCqIDValue(r, pkComponents).Sum(nil)))
 	}
 
 	// If deterministicCQID is false, we generate a random CQID
@@ -96,7 +96,7 @@ func (r *Resource) CalculateCQID(deterministicCQID bool) error {
 		return r.storeCQID(uuid.New())
 	}
 
-	return r.storeCQID(uuid.NewSHA1(uuid.UUID{}, calculateCqIDValue(r, names).Sum(nil)))
+	return r.storeCQID(newUUID(uuid.UUID{}, calculateCqIDValue(r, names).Sum(nil)))
 }
 
 func calculateCqIDValue(r *Resource, cols []string) hash.Hash {

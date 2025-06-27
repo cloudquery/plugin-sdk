@@ -53,9 +53,10 @@ func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context, t *testing.T
 	r.EqualValuesf(1, TotalRows(records), "unexpected amount of items after delete stale")
 	r.Emptyf(RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record1}), "record differs after delete stale")
 
+	syncTime = syncTime.Add(time.Second)
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	bldr.Field(1).(*array.StringBuilder).Append(sourceName)
-	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime.Add(time.Second))
+	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime)
 	record2 := bldr.NewRecord()
 
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteInsert{Record: record2}), "failed to insert second record")
@@ -70,7 +71,7 @@ func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context, t *testing.T
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteDeleteStale{
 		TableName:  table.Name,
 		SourceName: sourceName,
-		SyncTime:   syncTime.Add(time.Second),
+		SyncTime:   syncTime,
 	}), "failed to delete stale records second time")
 
 	records, err = s.plugin.readAll(ctx, table)
@@ -117,7 +118,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 	r.EqualValuesf(rowsPerRecord, TotalRows(readRecords), "unexpected amount of items after delete stale")
 
 	// https://github.com/golang/go/issues/41087
-	syncTime = time.Now().UTC().Truncate(time.Microsecond)
+	syncTime = syncTime.Add(time.Second)
 	nullRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:            rowsPerRecord,
 		TimePrecision:      s.genDatOptions.TimePrecision,
@@ -144,6 +145,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 	readRecords, err = s.plugin.readAll(ctx, table)
 	r.NoErrorf(err, "failed to read after second delete stale")
 	sortRecords(table, readRecords, "id")
+
 	r.EqualValuesf(rowsPerRecord, TotalRows(readRecords), "unexpected amount of items after second delete stale")
 	r.Emptyf(RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{nullRecord}), "record differs")
 }
