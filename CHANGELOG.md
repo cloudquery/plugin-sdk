@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.86.0](https://github.com/cloudquery/plugin-sdk/compare/v4.85.0...v4.86.0) (2025-06-30)
+
+
+### Features
+
+* Make more data dynamic ([#2197](https://github.com/cloudquery/plugin-sdk/issues/2197)) ([57d0285](https://github.com/cloudquery/plugin-sdk/commit/57d0285bac8b19e7568d6d42600bda0e1dcbf5be))
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2201](https://github.com/cloudquery/plugin-sdk/issues/2201)) ([aad5137](https://github.com/cloudquery/plugin-sdk/commit/aad513750f94d0839434d4c4ba965c9accf93628))
+* **deps:** Update module github.com/apache/arrow-go/v18 to v18.3.1 ([#2199](https://github.com/cloudquery/plugin-sdk/issues/2199)) ([7f27c56](https://github.com/cloudquery/plugin-sdk/commit/7f27c56ff8fc5a80dd0718fc906044318a6f3e2d))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.13.10 ([#2200](https://github.com/cloudquery/plugin-sdk/issues/2200)) ([a9f5dc1](https://github.com/cloudquery/plugin-sdk/commit/a9f5dc1655b25c401d39c7d810f4d9bf24095871))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.14 ([#2203](https://github.com/cloudquery/plugin-sdk/issues/2203)) ([29d53f3](https://github.com/cloudquery/plugin-sdk/commit/29d53f37071513c01b60801b9640e8a2b5c1a3b7))
+
 ## [4.85.0](https://github.com/cloudquery/plugin-sdk/compare/v4.84.2...v4.85.0) (2025-06-27)
 
 
