@@ -32,7 +32,7 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
 	github.com/cloudquery/cloudquery-api-go v1.13.10 // indirect
 	github.com/cloudquery/codegen v0.3.28 // indirect
-	github.com/cloudquery/plugin-pb-go v1.26.14 // indirect
+	github.com/cloudquery/plugin-pb-go v1.26.15 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
