@@ -18,7 +18,7 @@ jobs:
           python3 -m venv "$venv"
           echo "$venv/bin" >> $GITHUB_PATH
       - name: Vale
-        uses: errata-ai/vale-action@2690bc95f0ed3cb5220492575af09c51b04fbea9
+        uses: errata-ai/vale-action@dcded780f1ff68e2558e802a165a484a4a3e2fb8
         with:
           vale_flags: "--glob=!{docs/testdata/*,CHANGELOG.md,.github/styles/proselint/README.md,examples/simple_plugin/docs/*.md}"
           filter_mode: nofilter
@@ -32,7 +32,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@v4
       - name: markdownlint-cli
-        uses: nosborn/github-action-markdown-cli@v3.4.0
+        uses: nosborn/github-action-markdown-cli@v3.5.0
         with:
           files: .
           config_file: .markdownlint.yaml
