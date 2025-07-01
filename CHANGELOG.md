@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.86.1](https://github.com/cloudquery/plugin-sdk/compare/v4.86.0...v4.86.1) (2025-07-01)
+
+
+### Bug Fixes
+
+* **deps:** Update dependency go to v1.24.4 ([#2209](https://github.com/cloudquery/plugin-sdk/issues/2209)) ([6b91b19](https://github.com/cloudquery/plugin-sdk/commit/6b91b194f8a9280c026670332e40225311f535f2))
+* **deps:** Update golang.org/x/exp digest to b7579e2 ([#2207](https://github.com/cloudquery/plugin-sdk/issues/2207)) ([5970950](https://github.com/cloudquery/plugin-sdk/commit/5970950cd733d7031cfa1449eec91b8e51ad45ad))
+* Validate and normalize inet test values ([#2205](https://github.com/cloudquery/plugin-sdk/issues/2205)) ([c9f45a2](https://github.com/cloudquery/plugin-sdk/commit/c9f45a24ead0c9fa22f0530daeef5ad40d57cd56))
+
 ## [4.86.0](https://github.com/cloudquery/plugin-sdk/compare/v4.85.0...v4.86.0) (2025-06-30)
 
 
