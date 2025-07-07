@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.86.2](https://github.com/cloudquery/plugin-sdk/compare/v4.86.1...v4.86.2) (2025-07-07)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.13.11 ([#2211](https://github.com/cloudquery/plugin-sdk/issues/2211)) ([5d97720](https://github.com/cloudquery/plugin-sdk/commit/5d9772020c8e1e6c02ddebfb267ce2c888075ecf))
+* **deps:** Update module github.com/cloudquery/codegen to v0.3.29 ([#2214](https://github.com/cloudquery/plugin-sdk/issues/2214)) ([c7534ba](https://github.com/cloudquery/plugin-sdk/commit/c7534ba2ed9b30127a8a2ffade77e90f8663ec07))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.15 ([#2212](https://github.com/cloudquery/plugin-sdk/issues/2212)) ([afcdfd4](https://github.com/cloudquery/plugin-sdk/commit/afcdfd4b90fbdce8ac47779976a6be4c1615c61a))
+* Improve usage error wording ([#2215](https://github.com/cloudquery/plugin-sdk/issues/2215)) ([1e2c257](https://github.com/cloudquery/plugin-sdk/commit/1e2c257d343d7a2a1ac39ee06a6fc6d6659da010))
+
 ## [4.86.1](https://github.com/cloudquery/plugin-sdk/compare/v4.86.0...v4.86.1) (2025-07-01)
 
 
