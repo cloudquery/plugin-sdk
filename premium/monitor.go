@@ -12,7 +12,7 @@ type ErrNoQuota struct {
 }
 
 func (e ErrNoQuota) Error() string {
-	return fmt.Sprintf("You have reached this plugin's usage limit for the month, please visit https://cloud.cloudquery.io/teams/%s/billing to upgrade your plan or increase the limit.", e.team)
+	return fmt.Sprintf("You have reached this plugin's usage limit, please visit https://cloud.cloudquery.io/teams/%s/billing to upgrade your plan or increase the limit.", e.team)
 }
 
 const DefaultQuotaCheckInterval = 30 * time.Second
