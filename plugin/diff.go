@@ -13,6 +13,25 @@ func RecordsDiff(sc *arrow.Schema, have, want []arrow.Record) string {
 	return TableDiff(array.NewTableFromRecords(sc, have), array.NewTableFromRecords(sc, want))
 }
 
+func getUnifiedDiff(edits array.Edits, wantCol, haveCol arrow.Array) string {
+	defer func() {
+		if r := recover(); r != nil {
+			wantDataType := wantCol.DataType()
+			wantData := make([]string, wantCol.Len())
+			for i := 0; i < wantCol.Len(); i++ {
+				wantData[i] = wantCol.ValueStr(i)
+			}
+			haveDataType := haveCol.DataType()
+			haveData := make([]string, haveCol.Len())
+			for i := 0; i < haveCol.Len(); i++ {
+				haveData[i] = haveCol.ValueStr(i)
+			}
+			panic(fmt.Errorf("panic in getUnifiedDiff: %s, want: [%s], have: [%s], want type: %s, have type: %s", r, strings.Join(wantData, ", "), strings.Join(haveData, ", "), wantDataType, haveDataType))
+		}
+	}()
+	return edits.UnifiedDiff(wantCol, haveCol)
+}
+
 func TableDiff(have, want arrow.Table) string {
 	if array.TableApproxEqual(have, want, array.WithUnorderedMapKeys(true)) {
 		return ""
@@ -39,7 +58,7 @@ func TableDiff(have, want arrow.Table) string {
 		if err != nil {
 			panic(fmt.Errorf("want: %v, have: %v, error: %w", wantCol.DataType(), haveCol.DataType(), err))
 		}
-		diff := edits.UnifiedDiff(wantCol, haveCol)
+		diff := getUnifiedDiff(edits, wantCol, haveCol)
 		if diff != "" {
 			sb.WriteString(have.Schema().Field(i).Name)
 			sb.WriteString(": ")
