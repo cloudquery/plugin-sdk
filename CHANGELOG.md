@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.87.1](https://github.com/cloudquery/plugin-sdk/compare/v4.87.0...v4.87.1) (2025-07-09)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/codegen to v0.3.30 ([#2221](https://github.com/cloudquery/plugin-sdk/issues/2221)) ([0453cbe](https://github.com/cloudquery/plugin-sdk/commit/0453cbe3391d72d5ccd490dc7761cfec93c3ea2b))
+* Don't use `ValueStr`, get raw bytes instead ([#2220](https://github.com/cloudquery/plugin-sdk/issues/2220)) ([6d71d18](https://github.com/cloudquery/plugin-sdk/commit/6d71d1807b452c6d1a10decd443fb81f09501ae5))
+
 ## [4.87.0](https://github.com/cloudquery/plugin-sdk/compare/v4.86.2...v4.87.0) (2025-07-08)
 
 
