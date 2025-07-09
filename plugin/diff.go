@@ -20,12 +20,18 @@ func getUnifiedDiff(edits array.Edits, wantCol, haveCol arrow.Array) string {
 			wantDataType := wantCol.DataType()
 			wantData := make([]byte, wantCol.Len())
 			for _, buffer := range wantCol.Data().Buffers() {
-				wantData = append(wantData, buffer.Bytes()...)
+				buf := buffer.Buf()
+				if len(buf) > 0 {
+					wantData = append(wantData, buf...)
+				}
 			}
 			haveDataType := haveCol.DataType()
 			haveData := make([]byte, haveCol.Len())
 			for _, buffer := range haveCol.Data().Buffers() {
-				haveData = append(haveData, buffer.Bytes()...)
+				buf := buffer.Buf()
+				if len(buf) > 0 {
+					haveData = append(haveData, buf...)
+				}
 			}
 
 			wantBase64 := base64.StdEncoding.EncodeToString(wantData)
