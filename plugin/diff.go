@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -17,16 +18,20 @@ func getUnifiedDiff(edits array.Edits, wantCol, haveCol arrow.Array) string {
 	defer func() {
 		if r := recover(); r != nil {
 			wantDataType := wantCol.DataType()
-			wantData := make([]string, wantCol.Len())
-			for i := 0; i < wantCol.Len(); i++ {
-				wantData[i] = wantCol.ValueStr(i)
+			wantData := make([]byte, wantCol.Len())
+			for _, buffer := range wantCol.Data().Buffers() {
+				wantData = append(wantData, buffer.Bytes()...)
 			}
 			haveDataType := haveCol.DataType()
-			haveData := make([]string, haveCol.Len())
-			for i := 0; i < haveCol.Len(); i++ {
-				haveData[i] = haveCol.ValueStr(i)
+			haveData := make([]byte, haveCol.Len())
+			for _, buffer := range haveCol.Data().Buffers() {
+				haveData = append(haveData, buffer.Bytes()...)
 			}
-			panic(fmt.Errorf("panic in getUnifiedDiff: %s, want: [%s], have: [%s], want type: %s, have type: %s", r, strings.Join(wantData, ", "), strings.Join(haveData, ", "), wantDataType, haveDataType))
+
+			wantBase64 := base64.StdEncoding.EncodeToString(wantData)
+			haveBase64 := base64.StdEncoding.EncodeToString(haveData)
+
+			panic(fmt.Errorf("panic in getUnifiedDiff: %s, want: (%s), have: (%s), want type: %s, have type: %s", r, wantBase64, haveBase64, wantDataType, haveDataType))
 		}
 	}()
 	return edits.UnifiedDiff(wantCol, haveCol)
