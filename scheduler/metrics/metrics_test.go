@@ -112,8 +112,8 @@ func TestMetrics(t *testing.T) {
 	require.Equal(t, m.GetPanics(s3), uint64(1))
 	m.EndTime(t.Context(), time.Now(), s3)
 
-	require.Greater(t, m.GetDuration(s1), 0*time.Millisecond)
-	require.Greater(t, m.GetDuration(s2), 0*time.Millisecond)
+	require.Greater(t, m.GetDuration(s1), 0*time.Nanosecond)
+	require.Greater(t, m.GetDuration(s2), 0*time.Nanosecond)
 
 	// This should work because the 2 metrics are built sequentially; in practice though, this is probably not the case.
 	require.GreaterOrEqual(t, m.TableDuration(s1.tableName), m.GetDuration(s1)+m.GetDuration(s2))
