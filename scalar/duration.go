@@ -17,7 +17,7 @@ func (s *Duration) DataType() arrow.DataType {
 }
 
 func (s *Duration) String() string {
-	if !s.Int.IsValid() {
+	if !s.IsValid() {
 		return nullValueStr
 	}
 

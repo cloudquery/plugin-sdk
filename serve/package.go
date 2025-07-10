@@ -84,7 +84,7 @@ func (s *PluginServe) writeTablesJSON(ctx context.Context, dir string) error {
 				// PrimaryKey Will be set to true Under the following conditions:
 				// 1. If the column is a `PrimaryKeyComponent`
 				// 2. If the column is a `PrimaryKey` and both of the following are true column name is NOT `_cq_id`  and there are other columns that are a PrimaryKeyComponent
-				PrimaryKey: (column.PrimaryKey && !(column.Name == schema.CqIDColumn.Name && len(table.PrimaryKeyComponents()) > 0)) || column.PrimaryKeyComponent,
+				PrimaryKey: (column.PrimaryKey && !(column.Name == schema.CqIDColumn.Name && len(table.PrimaryKeyComponents()) > 0)) || column.PrimaryKeyComponent, //nolint:staticcheck
 				Unique:     column.Unique,
 			}
 			if column.TypeSchema != "" {
