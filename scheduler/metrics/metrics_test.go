@@ -52,6 +52,8 @@ func TestMetrics(t *testing.T) {
 	require.Equal(t, m.GetErrors(s1), uint64(1))
 	require.Equal(t, m.TotalPanics(), uint64(1))
 	require.Equal(t, m.GetPanics(s1), uint64(1))
+
+	time.Sleep(1 * time.Millisecond)
 	m.EndTime(t.Context(), time.Now(), s1)
 
 	// test single table, multiple clients
@@ -81,6 +83,8 @@ func TestMetrics(t *testing.T) {
 	require.Equal(t, m.GetErrors(s2), uint64(1))
 	require.Equal(t, m.TotalPanics(), uint64(2))
 	require.Equal(t, m.GetPanics(s2), uint64(1))
+
+	time.Sleep(1 * time.Millisecond)
 	m.EndTime(t.Context(), time.Now(), s2)
 
 	// test multiple tables, multiple clients
@@ -110,6 +114,8 @@ func TestMetrics(t *testing.T) {
 	require.Equal(t, m.GetErrors(s3), uint64(1))
 	require.Equal(t, m.TotalPanics(), uint64(3))
 	require.Equal(t, m.GetPanics(s3), uint64(1))
+
+	time.Sleep(1 * time.Millisecond)
 	m.EndTime(t.Context(), time.Now(), s3)
 
 	require.Greater(t, m.GetDuration(s1), 0*time.Nanosecond)
