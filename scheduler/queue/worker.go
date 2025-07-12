@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/caser"
@@ -71,7 +70,7 @@ func newWorker(
 
 func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource) {
 	clientName := client.ID()
-	ctx, span := otel.Tracer(metrics.OtelName).Start(ctx,
+	ctx, span := otel.Tracer(metrics.ResourceName).Start(ctx,
 		"sync.table."+table.Name,
 		trace.WithAttributes(
 			attribute.Key("sync.client.id").String(clientName),
@@ -85,15 +84,16 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
 		logger.Info().Msg("top level table resolver started")
 	}
-	tableMetrics := w.metrics.TableClient[table.Name][clientName]
+
+	selector := w.metrics.NewSelector(clientName, table.Name)
 	defer func() {
 		span.AddEvent("sync.finish.stats", trace.WithAttributes(
-			attribute.Key("sync.resources").Int64(int64(atomic.LoadUint64(&tableMetrics.Resources))),
-			attribute.Key("sync.errors").Int64(int64(atomic.LoadUint64(&tableMetrics.Errors))),
-			attribute.Key("sync.panics").Int64(int64(atomic.LoadUint64(&tableMetrics.Panics))),
+			attribute.Key("sync.resources").Int64(int64(w.metrics.GetResources(selector))),
+			attribute.Key("sync.errors").Int64(int64(w.metrics.GetErrors(selector))),
+			attribute.Key("sync.panics").Int64(int64(w.metrics.GetPanics(selector))),
 		))
 	}()
-	tableMetrics.OtelStartTime(ctx, startTime)
+	w.metrics.StartTime(startTime, selector)
 
 	res := make(chan any)
 	go func() {
@@ -101,15 +101,13 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 			if err := recover(); err != nil {
 				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
-				tableMetrics.OtelPanicsAdd(ctx, 1)
-				atomic.AddUint64(&tableMetrics.Panics, 1)
+				w.metrics.AddPanics(ctx, 1, selector)
 			}
 			close(res)
 		}()
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
-			tableMetrics.OtelErrorsAdd(ctx, 1)
-			atomic.AddUint64(&tableMetrics.Errors, 1)
+			w.metrics.AddErrors(ctx, 1, selector)
 			// Send SyncError message
 			syncErrorMsg := &message.SyncError{
 				TableName: table.Name,
@@ -125,11 +123,9 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	}
 
 	endTime := time.Now()
-	duration := endTime.Sub(startTime)
-	tableMetrics.Duration.Store(&duration)
-	tableMetrics.OtelEndTime(ctx, endTime)
+	w.metrics.EndTime(ctx, endTime, selector)
 	if parent == nil {
-		logger.Info().Uint64("resources", tableMetrics.Resources).Uint64("errors", tableMetrics.Errors).Dur("duration_ms", duration).Msg("table sync finished")
+		logger.Info().Uint64("resources", w.metrics.GetResources(selector)).Uint64("errors", w.metrics.GetErrors(selector)).Dur("duration_ms", w.metrics.GetDuration(selector)).Msg("table sync finished")
 	}
 }
 
@@ -139,6 +135,7 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 		return
 	}
 
+	selector := w.metrics.NewSelector(client.ID(), table.Name)
 	resourcesChan := make(chan *schema.Resource, len(resourcesSlice))
 	go func() {
 		defer close(resourcesChan)
@@ -154,9 +151,8 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 				}
 
 				if err := resolvedResource.CalculateCQID(w.deterministicCQID); err != nil {
-					tableMetrics := w.metrics.TableClient[table.Name][client.ID()]
 					w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
-					atomic.AddUint64(&tableMetrics.Errors, 1)
+					w.metrics.AddErrors(ctx, 1, selector)
 					return
 				}
 				if err := resolvedResource.StoreCQClientID(client.ID()); err != nil {
@@ -165,9 +161,8 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 				if err := resolvedResource.Validate(); err != nil {
 					switch err.(type) {
 					case *schema.PKError:
-						tableMetrics := w.metrics.TableClient[table.Name][client.ID()]
 						w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
-						atomic.AddUint64(&tableMetrics.Errors, 1)
+						w.metrics.AddErrors(ctx, 1, selector)
 						return
 					case *schema.PKComponentError:
 						w.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")
