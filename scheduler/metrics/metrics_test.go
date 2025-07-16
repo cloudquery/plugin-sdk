@@ -8,7 +8,7 @@ import (
 )
 
 func TestMetrics(t *testing.T) {
-	m := NewMetrics("test_invocation_id")
+	m := NewMetrics()
 
 	m.measurements["test_table_1"] = tableMeasurements{
 		clients: map[string]*measurement{

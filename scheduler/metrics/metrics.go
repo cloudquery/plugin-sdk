@@ -29,7 +29,7 @@ var (
 	once      sync.Once
 )
 
-func NewMetrics(invocationID string) *Metrics {
+func NewMetrics() *Metrics {
 	once.Do(func() {
 		resources, _ = otel.Meter(ResourceName).Int64Counter(resourcesMetricName,
 			metric.WithDescription("Number of resources synced for a table"),
@@ -83,7 +83,7 @@ type measurement struct {
 	duration  *durationMeasurement
 }
 
-func (m *Metrics) NewSelector(clientID, tableName string) Selector {
+func (*Metrics) NewSelector(clientID, tableName string) Selector {
 	return Selector{
 		Set: attribute.NewSet(
 			attribute.Key("sync.table.name").String(tableName),

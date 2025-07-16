@@ -45,9 +45,8 @@ func testResolver(_ context.Context, _ schema.ClientMeta, parent *schema.Resourc
 
 func TestScheduler(t *testing.T) {
 	nopLogger := zerolog.Nop()
-	invocationID := uuid.New().String()
-	m := metrics.NewMetrics(invocationID)
-	scheduler := NewShuffleQueueScheduler(nopLogger, m, int64(0), WithWorkerCount(1000), WithInvocationID(invocationID))
+	m := metrics.NewMetrics()
+	scheduler := NewShuffleQueueScheduler(nopLogger, m, int64(0), WithWorkerCount(1000), WithInvocationID(uuid.New().String()))
 	tableClients := []WorkUnit{
 		{
 			Table: &schema.Table{
