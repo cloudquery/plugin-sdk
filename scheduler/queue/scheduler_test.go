@@ -82,7 +82,7 @@ func TestScheduler(t *testing.T) {
 	}
 
 	for _, tc := range tableClients {
-		m.InitWithClients(scheduler.invocationID, tc.Table, []schema.ClientMeta{tc.Client})
+		m.InitWithClients(tc.Table, []schema.ClientMeta{tc.Client})
 	}
 
 	resolvedResources := make(chan *schema.Resource)

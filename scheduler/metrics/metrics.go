@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -20,42 +21,38 @@ const (
 	durationMetricName  = "sync.table.duration"
 )
 
+var (
+	resources metric.Int64Counter
+	errors    metric.Int64Counter
+	panics    metric.Int64Counter
+	duration  metric.Int64Counter
+	once      sync.Once
+)
+
 func NewMetrics(invocationID string) *Metrics {
-	resources, err := otel.Meter(ResourceName).Int64Counter(resourcesMetricName,
-		metric.WithDescription("Number of resources synced for a table"),
-		metric.WithUnit("/{tot}"),
-	)
-	if err != nil {
-		return nil
-	}
+	once.Do(func() {
+		resources, _ = otel.Meter(ResourceName).Int64Counter(resourcesMetricName,
+			metric.WithDescription("Number of resources synced for a table"),
+			metric.WithUnit("/{tot}"),
+		)
 
-	errors, err := otel.Meter(ResourceName).Int64Counter(errorsMetricName,
-		metric.WithDescription("Number of errors encountered while syncing a table"),
-		metric.WithUnit("/{tot}"),
-	)
-	if err != nil {
-		return nil
-	}
+		errors, _ = otel.Meter(ResourceName).Int64Counter(errorsMetricName,
+			metric.WithDescription("Number of errors encountered while syncing a table"),
+			metric.WithUnit("/{tot}"),
+		)
 
-	panics, err := otel.Meter(ResourceName).Int64Counter(panicsMetricName,
-		metric.WithDescription("Number of panics encountered while syncing a table"),
-		metric.WithUnit("/{tot}"),
-	)
-	if err != nil {
-		return nil
-	}
+		panics, _ = otel.Meter(ResourceName).Int64Counter(panicsMetricName,
+			metric.WithDescription("Number of panics encountered while syncing a table"),
+			metric.WithUnit("/{tot}"),
+		)
 
-	duration, err := otel.Meter(ResourceName).Int64Counter(durationMetricName,
-		metric.WithDescription("Duration of syncing a table"),
-		metric.WithUnit("ms"),
-	)
-	if err != nil {
-		return nil
-	}
+		duration, _ = otel.Meter(ResourceName).Int64Counter(durationMetricName,
+			metric.WithDescription("Duration of syncing a table"),
+			metric.WithUnit("ms"),
+		)
+	})
 
 	return &Metrics{
-		invocationID: invocationID,
-
 		resources: resources,
 		errors:    errors,
 		panics:    panics,
@@ -66,8 +63,6 @@ func NewMetrics(invocationID string) *Metrics {
 }
 
 type Metrics struct {
-	invocationID string
-
 	resources metric.Int64Counter
 	errors    metric.Int64Counter
 	panics    metric.Int64Counter
@@ -88,45 +83,9 @@ type measurement struct {
 	duration  *durationMeasurement
 }
 
-func (m *measurement) Equal(other *measurement) bool {
-	return m.resources == other.resources && m.errors == other.errors && m.panics == other.panics && m.duration == other.duration
-}
-
-// Equal compares to stats. Mostly useful in testing
-func (m *Metrics) Equal(other *Metrics) bool {
-	for table, clientStats := range m.measurements {
-		for client, stats := range clientStats.clients {
-			if _, ok := other.measurements[table]; !ok {
-				return false
-			}
-			if _, ok := other.measurements[table].clients[client]; !ok {
-				return false
-			}
-			if !stats.Equal(other.measurements[table].clients[client]) {
-				return false
-			}
-		}
-	}
-	for table, clientStats := range other.measurements {
-		for client, stats := range clientStats.clients {
-			if _, ok := m.measurements[table]; !ok {
-				return false
-			}
-			if _, ok := m.measurements[table].clients[client]; !ok {
-				return false
-			}
-			if !stats.Equal(m.measurements[table].clients[client]) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func (m *Metrics) NewSelector(clientID, tableName string) Selector {
 	return Selector{
 		Set: attribute.NewSet(
-			attribute.Key("sync.invocation.id").String(m.invocationID),
 			attribute.Key("sync.table.name").String(tableName),
 		),
 		clientID:  clientID,
@@ -134,13 +93,13 @@ func (m *Metrics) NewSelector(clientID, tableName string) Selector {
 	}
 }
 
-func (m *Metrics) InitWithClients(invocationID string, table *schema.Table, clients []schema.ClientMeta) {
+func (m *Metrics) InitWithClients(table *schema.Table, clients []schema.ClientMeta) {
 	m.measurements[table.Name] = tableMeasurements{clients: make(map[string]*measurement), duration: &durationMeasurement{}}
 	for _, client := range clients {
 		m.measurements[table.Name].clients[client.ID()] = &measurement{duration: &durationMeasurement{}}
 	}
 	for _, relation := range table.Relations {
-		m.InitWithClients(invocationID, relation, clients)
+		m.InitWithClients(relation, clients)
 	}
 }
 
