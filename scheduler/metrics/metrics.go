@@ -87,6 +87,7 @@ func (*Metrics) NewSelector(clientID, tableName string) Selector {
 	return Selector{
 		Set: attribute.NewSet(
 			attribute.Key("sync.table.name").String(tableName),
+			attribute.Key("sync.client.id").String(""),
 		),
 		clientID:  clientID,
 		tableName: tableName,
