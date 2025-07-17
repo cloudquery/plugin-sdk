@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -12,35 +11,6 @@ import (
 
 func RecordsDiff(sc *arrow.Schema, have, want []arrow.Record) string {
 	return TableDiff(array.NewTableFromRecords(sc, have), array.NewTableFromRecords(sc, want))
-}
-
-func getUnifiedDiff(edits array.Edits, wantCol, haveCol arrow.Array) string {
-	defer func() {
-		if r := recover(); r != nil {
-			wantDataType := wantCol.DataType()
-			wantData := make([]byte, wantCol.Len())
-			for _, buffer := range wantCol.Data().Buffers() {
-				buf := buffer.Buf()
-				if len(buf) > 0 {
-					wantData = append(wantData, buf...)
-				}
-			}
-			haveDataType := haveCol.DataType()
-			haveData := make([]byte, haveCol.Len())
-			for _, buffer := range haveCol.Data().Buffers() {
-				buf := buffer.Buf()
-				if len(buf) > 0 {
-					haveData = append(haveData, buf...)
-				}
-			}
-
-			wantBase64 := base64.StdEncoding.EncodeToString(wantData)
-			haveBase64 := base64.StdEncoding.EncodeToString(haveData)
-
-			panic(fmt.Errorf("panic in getUnifiedDiff: %s, want: (%s), have: (%s), want type: %s, have type: %s", r, wantBase64, haveBase64, wantDataType, haveDataType))
-		}
-	}()
-	return edits.UnifiedDiff(wantCol, haveCol)
 }
 
 func TableDiff(have, want arrow.Table) string {
@@ -69,7 +39,7 @@ func TableDiff(have, want arrow.Table) string {
 		if err != nil {
 			panic(fmt.Errorf("want: %v, have: %v, error: %w", wantCol.DataType(), haveCol.DataType(), err))
 		}
-		diff := getUnifiedDiff(edits, wantCol, haveCol)
+		diff := edits.UnifiedDiff(wantCol, haveCol)
 		if diff != "" {
 			sb.WriteString(have.Schema().Field(i).Name)
 			sb.WriteString(": ")
