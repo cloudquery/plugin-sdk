@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"sync"
-	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -199,7 +198,7 @@ func (s *Scheduler) SyncAll(ctx context.Context, client schema.ClientMeta, table
 }
 
 func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables schema.Tables, res chan<- message.SyncMessage, opts ...SyncOption) error {
-	ctx, span := otel.Tracer(metrics.OtelName).Start(ctx,
+	ctx, span := otel.Tracer(metrics.ResourceName).Start(ctx,
 		"sync",
 		trace.WithAttributes(attribute.Key("sync.invocation.id").String(s.invocationID)),
 	)
@@ -209,7 +208,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}
 
 	syncClient := &syncClient{
-		metrics:      &metrics.Metrics{TableClient: make(map[string]map[string]*metrics.TableClientMetrics)},
+		metrics:      metrics.NewMetrics(),
 		tables:       tables,
 		client:       client,
 		scheduler:    s,
@@ -279,13 +278,8 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
 	clientName := client.ID()
 	for _, table := range tables {
-		m := s.metrics.TableClient[table.Name][clientName]
-		duration := m.Duration.Load()
-		if duration == nil {
-			// This can happen for a relation when there are no resources to resolve from the parent
-			duration = new(time.Duration)
-		}
-		s.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", m.Resources).Dur("duration_ms", *duration).Uint64("errors", m.Errors).Msg("table sync finished")
+		selector := s.metrics.NewSelector(clientName, table.Name)
+		s.logger.Info().Str("table", table.Name).Str("client", clientName).Uint64("resources", s.metrics.GetResources(selector)).Dur("duration_ms", s.metrics.GetDuration(selector)).Uint64("errors", s.metrics.GetErrors(selector)).Msg("table sync finished")
 		s.logTablesMetrics(table.Relations, client)
 	}
 }

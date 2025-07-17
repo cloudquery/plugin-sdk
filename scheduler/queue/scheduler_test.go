@@ -9,6 +9,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/transformers"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
@@ -44,8 +45,8 @@ func testResolver(_ context.Context, _ schema.ClientMeta, parent *schema.Resourc
 
 func TestScheduler(t *testing.T) {
 	nopLogger := zerolog.Nop()
-	m := &metrics.Metrics{TableClient: make(map[string]map[string]*metrics.TableClientMetrics)}
-	scheduler := NewShuffleQueueScheduler(nopLogger, m, int64(0), WithWorkerCount(1000))
+	m := metrics.NewMetrics()
+	scheduler := NewShuffleQueueScheduler(nopLogger, m, int64(0), WithWorkerCount(1000), WithInvocationID(uuid.New().String()))
 	tableClients := []WorkUnit{
 		{
 			Table: &schema.Table{

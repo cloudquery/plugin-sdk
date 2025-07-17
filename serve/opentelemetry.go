@@ -9,7 +9,6 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/rs/zerolog"
-
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
