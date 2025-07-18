@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.87.3](https://github.com/cloudquery/plugin-sdk/compare/v4.87.2...v4.87.3) (2025-07-17)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/service/licensemanager to v1.32.0 ([#2230](https://github.com/cloudquery/plugin-sdk/issues/2230)) ([28a1479](https://github.com/cloudquery/plugin-sdk/commit/28a147900315aa9756fc66e7329e3cfbe111e4b5))
+* Improve telemetry allocations ([#2185](https://github.com/cloudquery/plugin-sdk/issues/2185)) ([b07ce76](https://github.com/cloudquery/plugin-sdk/commit/b07ce76c3d3bd1e00a13b30f413d981c733d595e))
+* Upgrade golangci-lint to v2 ([#2228](https://github.com/cloudquery/plugin-sdk/issues/2228)) ([7fc238c](https://github.com/cloudquery/plugin-sdk/commit/7fc238c8e7aa2c044bb1f62901c18d44c5f36d7c))
+
 ## [4.87.2](https://github.com/cloudquery/plugin-sdk/compare/v4.87.1...v4.87.2) (2025-07-09)
 
 
