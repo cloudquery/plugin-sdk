@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/rand"
-	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -317,11 +316,9 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 
 		// Generate a CIDR prefix length between 8 and 30
 		cidr := 8 + rnd.Intn(23)
-		input := fmt.Sprintf(`%d.%d.%d.%d/%d`, ip[0], ip[1], ip[2], ip[3], cidr)
-		_, data, _ := net.ParseCIDR(input)
 
 		// Format as an IP address with CIDR notation
-		return fmt.Sprintf(`"%s"`, data.String())
+		return fmt.Sprintf(`"%d.%d.%d.%d/%d"`, ip[0], ip[1], ip[2], ip[3], cidr)
 	}
 	if arrow.TypeEqual(dataType, types.ExtensionTypes.MAC) {
 		mac := make([]byte, 6)
