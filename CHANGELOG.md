@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.87.4](https://github.com/cloudquery/plugin-sdk/compare/v4.87.3...v4.87.4) (2025-07-23)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/apache/arrow-go/v18 to v18.4.0 ([#2234](https://github.com/cloudquery/plugin-sdk/issues/2234)) ([3955c1d](https://github.com/cloudquery/plugin-sdk/commit/3955c1d4d2b3c8827a75ba99b713f40948b3adb2))
+* Don't lose IP data in `AppendValueFromString` ([#2236](https://github.com/cloudquery/plugin-sdk/issues/2236)) ([6f1db88](https://github.com/cloudquery/plugin-sdk/commit/6f1db88d07830f45b0140be41a13a36363ca7d81))
+
 ## [4.87.3](https://github.com/cloudquery/plugin-sdk/compare/v4.87.2...v4.87.3) (2025-07-17)
 
 
