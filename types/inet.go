@@ -53,10 +53,11 @@ func (b *InetBuilder) AppendValueFromString(s string) error {
 		b.AppendNull()
 		return nil
 	}
-	_, data, err := net.ParseCIDR(s)
+	ip, data, err := net.ParseCIDR(s)
 	if err != nil {
 		return err
 	}
+	data.IP = ip
 	b.Append(data)
 	return nil
 }
