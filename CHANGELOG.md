@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.87.5](https://github.com/cloudquery/plugin-sdk/compare/v4.87.4...v4.87.5) (2025-07-26)
+
+
+### Bug Fixes
+
+* **deps:** Update module google.golang.org/grpc to v1.74.1 ([#2238](https://github.com/cloudquery/plugin-sdk/issues/2238)) ([eeed6a6](https://github.com/cloudquery/plugin-sdk/commit/eeed6a681af717dc5c96e5564c4fb1c4b2a4d2a8))
+
 ## [4.87.4](https://github.com/cloudquery/plugin-sdk/compare/v4.87.3...v4.87.4) (2025-07-23)
 
 
