@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
+	"github.com/samber/lo"
 	"github.com/thoas/go-funk"
 )
 
@@ -256,6 +258,100 @@ func (t TableColumnChange) String() string {
 	default:
 		return fmt.Sprintf("column: %s, type: %s, current: %s, previous: %s", t.ColumnName, t.Type, t.Current, t.Previous)
 	}
+}
+
+func getColumnChangeSummary(change TableColumnChange) string {
+	switch change.Type {
+	case TableColumnChangeTypeAdd:
+		if change.Current.PrimaryKey {
+			return fmt.Sprintf("Column %q added with type %q and primary key constraint", change.ColumnName, change.Current.Type)
+		}
+		if change.Current.Unique {
+			return fmt.Sprintf("Column %q added with type %q and unique constraint", change.ColumnName, change.Current.Type)
+		}
+		if change.Current.NotNull {
+			return fmt.Sprintf("Column %q added with type %q and not null constraint", change.ColumnName, change.Current.Type)
+		}
+		if change.Current.IncrementalKey {
+			return fmt.Sprintf("Column %q added with type %q and as an incremental key", change.ColumnName, change.Current.Type)
+		}
+		return fmt.Sprintf("Column %q added with type %q", change.ColumnName, change.Current.Type)
+	case TableColumnChangeTypeUpdate:
+		if change.Previous.Type != change.Current.Type {
+			return fmt.Sprintf("Type changed from %q to %q for column %q", change.Previous.Type, change.Current.Type, change.ColumnName)
+		}
+		if !change.Previous.PrimaryKey && change.Current.PrimaryKey {
+			return fmt.Sprintf("Primary key constraint added to column %q", change.ColumnName)
+		}
+		if change.Previous.PrimaryKey && !change.Current.PrimaryKey {
+			return fmt.Sprintf("Primary key constraint removed from column %q", change.ColumnName)
+		}
+		if !change.Previous.Unique && change.Current.Unique {
+			return fmt.Sprintf("Unique constraint added to column %q", change.ColumnName)
+		}
+		if change.Previous.Unique && !change.Current.Unique {
+			return fmt.Sprintf("Unique constraint removed from column %q", change.ColumnName)
+		}
+		if !change.Previous.NotNull && change.Current.NotNull {
+			return fmt.Sprintf("Not null constraint added to column %q", change.ColumnName)
+		}
+		if change.Previous.NotNull && !change.Current.NotNull {
+			return fmt.Sprintf("Not null constraint removed from column %q", change.ColumnName)
+		}
+		if !change.Previous.IncrementalKey && change.Current.IncrementalKey {
+			return fmt.Sprintf("Column %q added as an incremental key", change.ColumnName)
+		}
+		if change.Previous.IncrementalKey && !change.Current.IncrementalKey {
+			return fmt.Sprintf("Column %q removed as an incremental key", change.ColumnName)
+		}
+		if !change.Previous.PrimaryKeyComponent && change.Current.PrimaryKeyComponent {
+			return fmt.Sprintf("Primary key component condition added to column %q", change.ColumnName)
+		}
+		if change.Previous.PrimaryKeyComponent && !change.Current.PrimaryKeyComponent {
+			return fmt.Sprintf("Primary key component condition removed from column %q", change.ColumnName)
+		}
+		return fmt.Sprintf("Column %q updated. Previous: %s, Current: %s", change.ColumnName, change.Previous, change.Current)
+	case TableColumnChangeTypeRemove:
+		if change.Previous.PrimaryKey {
+			return fmt.Sprintf("Primary key column %q removed", change.ColumnName)
+		}
+		if change.Previous.Unique {
+			return fmt.Sprintf("Unique column %q removed", change.ColumnName)
+		}
+		if change.Previous.NotNull {
+			return fmt.Sprintf("Not null column %q removed", change.ColumnName)
+		}
+		if change.Previous.IncrementalKey {
+			return fmt.Sprintf("Incremental key column %q removed", change.ColumnName)
+		}
+		return fmt.Sprintf("Column %q with type %q removed", change.ColumnName, change.Previous.Type)
+	case TableColumnChangeTypeRemoveUniqueConstraint:
+		return fmt.Sprintf("Unique constraint removed from column %q", change.ColumnName)
+	case TableColumnChangeTypeMoveToCQOnly:
+		return fmt.Sprintf("Primary key columns removed and replaced with a single column %q with type %q", change.ColumnName, change.Current.Type)
+	default:
+		return fmt.Sprintf("column: %s, type: %s, current: %s, previous: %s", change.ColumnName, change.Type, change.Current, change.Previous)
+	}
+}
+
+func GetChangesSummary(tablesChanges map[string][]TableColumnChange) string {
+	tables := lo.Keys(tablesChanges)
+	slices.Sort(tables)
+	summary := strings.Builder{}
+	for i, table := range tables {
+		summary.WriteString(fmt.Sprintf("%s:\n", table))
+		changes := tablesChanges[table]
+		changesString := lo.Map(changes, func(change TableColumnChange, _ int) string {
+			return fmt.Sprintf("  - %s", getColumnChangeSummary(change))
+		})
+		slices.Sort(changesString)
+		summary.WriteString(strings.Join(changesString, "\n"))
+		if i < len(tables)-1 {
+			summary.WriteString("\n\n")
+		}
+	}
+
+	return summary.String()
 }
 
 func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool, skipDependentTables bool) Tables {
