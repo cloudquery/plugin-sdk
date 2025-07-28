@@ -338,7 +338,7 @@ func GetChangesSummary(tablesChanges map[string][]TableColumnChange) string {
 	tables := lo.Keys(tablesChanges)
 	slices.Sort(tables)
 	summary := strings.Builder{}
-	for _, table := range tables {
+	for i, table := range tables {
 		summary.WriteString(fmt.Sprintf("%s:\n", table))
 		changes := tablesChanges[table]
 		changesString := lo.Map(changes, func(change TableColumnChange, _ int) string {
@@ -346,7 +346,9 @@ func GetChangesSummary(tablesChanges map[string][]TableColumnChange) string {
 		})
 		slices.Sort(changesString)
 		summary.WriteString(strings.Join(changesString, "\n"))
-		summary.WriteString("\n")
+		if i < len(tables)-1 {
+			summary.WriteString("\n\n")
+		}
 	}
 
 	return summary.String()
