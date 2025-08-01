@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.32.0
 	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.29.2
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/cloudquery-api-go v1.14.0
+	github.com/cloudquery/cloudquery-api-go v1.14.1
 	github.com/cloudquery/codegen v0.3.31
 	github.com/cloudquery/plugin-pb-go v1.26.18
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
@@ -24,7 +24,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.49.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
-	github.com/spf13/cobra v1.9.0
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/thoas/go-funk v0.9.3
 	go.opentelemetry.io/otel v1.37.0
@@ -77,7 +77,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/oapi-codegen/runtime v1.1.1 // indirect
+	github.com/oapi-codegen/runtime v1.1.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect

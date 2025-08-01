@@ -30,7 +30,7 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
-	github.com/cloudquery/cloudquery-api-go v1.14.0 // indirect
+	github.com/cloudquery/cloudquery-api-go v1.14.1 // indirect
 	github.com/cloudquery/codegen v0.3.31 // indirect
 	github.com/cloudquery/plugin-pb-go v1.26.18 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
@@ -52,12 +52,12 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/oapi-codegen/runtime v1.1.1 // indirect
+	github.com/oapi-codegen/runtime v1.1.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/samber/lo v1.49.1 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
-	github.com/spf13/cobra v1.9.0 // indirect
+	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/thoas/go-funk v0.9.3 // indirect
