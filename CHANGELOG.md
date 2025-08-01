@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.88.2](https://github.com/cloudquery/plugin-sdk/compare/v4.88.1...v4.88.2) (2025-08-01)
+
+
+### Bug Fixes
+
+* **deps:** Update golang.org/x/exp digest to 645b1fa ([#2250](https://github.com/cloudquery/plugin-sdk/issues/2250)) ([ab469c1](https://github.com/cloudquery/plugin-sdk/commit/ab469c12bd91a322f189426353da8449282c7ac1))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.14.0 ([#2246](https://github.com/cloudquery/plugin-sdk/issues/2246)) ([291b0d9](https://github.com/cloudquery/plugin-sdk/commit/291b0d9aff6ad1a3b9aab8b4764463937bc4f59b))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.14.1 ([#2254](https://github.com/cloudquery/plugin-sdk/issues/2254)) ([fb148a1](https://github.com/cloudquery/plugin-sdk/commit/fb148a1e180aa94ad0fa816e0a88d2fef4e27623))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.16 ([#2245](https://github.com/cloudquery/plugin-sdk/issues/2245)) ([5223700](https://github.com/cloudquery/plugin-sdk/commit/5223700c37b646825c7f2e41c46f07c61b3b4a31))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.17 ([#2248](https://github.com/cloudquery/plugin-sdk/issues/2248)) ([3b8a166](https://github.com/cloudquery/plugin-sdk/commit/3b8a1668687bb1b471c5f15a1f6e23ebfb78aa05))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.26.18 ([#2249](https://github.com/cloudquery/plugin-sdk/issues/2249)) ([8e35433](https://github.com/cloudquery/plugin-sdk/commit/8e354333c60518df08bfd17d8c0961d55acd170e))
+* **deps:** Update module github.com/grpc-ecosystem/go-grpc-middleware/v2 to v2.3.2 ([#2251](https://github.com/cloudquery/plugin-sdk/issues/2251)) ([a76d1c2](https://github.com/cloudquery/plugin-sdk/commit/a76d1c2c34e4c48c4fc38dcef3960365c9639c1f))
+* **deps:** Update module github.com/spf13/cobra to v1.9.1 ([#2252](https://github.com/cloudquery/plugin-sdk/issues/2252)) ([3db1576](https://github.com/cloudquery/plugin-sdk/commit/3db1576eda360fcf9eeac7674295f54c0822cf92))
+
 ## [4.88.1](https://github.com/cloudquery/plugin-sdk/compare/v4.88.0...v4.88.1) (2025-07-29)
 
 
