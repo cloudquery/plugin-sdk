@@ -71,6 +71,8 @@ linters:
           disabled: true
         - name: var-naming
           disabled: true
+        - name: enforce-switch-style
+          disabled: true
   exclusions:
     generated: lax
     presets:
