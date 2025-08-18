@@ -443,6 +443,9 @@ func (u *BatchUpdater) getTableUsage() (usage []cqapi.UsageIncreaseTablesInner, 
 	defer u.Unlock()
 
 	for key, value := range u.tables {
+		if value == 0 {
+			continue
+		}
 		usage = append(usage, cqapi.UsageIncreaseTablesInner{
 			Name: key,
 			Rows: int(value),
