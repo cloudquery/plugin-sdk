@@ -260,7 +260,7 @@ func (t TableColumnChange) String() string {
 	}
 }
 
-func getColumnChangeSummary(change TableColumnChange) string {
+func GetColumnChangeSummary(change TableColumnChange) string {
 	switch change.Type {
 	case TableColumnChangeTypeAdd:
 		if change.Current.PrimaryKey {
@@ -342,7 +342,7 @@ func GetChangesSummary(tablesChanges map[string][]TableColumnChange) string {
 		summary.WriteString(fmt.Sprintf("%s:\n", table))
 		changes := tablesChanges[table]
 		changesString := lo.Map(changes, func(change TableColumnChange, _ int) string {
-			return fmt.Sprintf("  - %s", getColumnChangeSummary(change))
+			return fmt.Sprintf("  - %s", GetColumnChangeSummary(change))
 		})
 		slices.Sort(changesString)
 		summary.WriteString(strings.Join(changesString, "\n"))
