@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - run: |
           venv="$HOME/.local/share/venv"
           python3 -m venv "$venv"
@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: markdownlint-cli
         uses: nosborn/github-action-markdown-cli@v3.5.0
         with:

@@ -14,7 +14,7 @@ jobs:
       matrix:
         plugin: [simple_plugin]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GH_CQ_BOT }}
       - name: Set up Go 1.x
