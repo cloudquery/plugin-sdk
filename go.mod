@@ -22,7 +22,7 @@ require (
 	github.com/invopop/jsonschema v0.13.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/rs/zerolog v1.34.0
-	github.com/samber/lo v1.49.1
+	github.com/samber/lo v1.51.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
@@ -41,7 +41,7 @@ require (
 	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sync v0.16.0
-	golang.org/x/text v0.27.0
+	golang.org/x/text v0.28.0
 	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.7
 )
