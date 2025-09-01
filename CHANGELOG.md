@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.89.1](https://github.com/cloudquery/plugin-sdk/compare/v4.89.0...v4.89.1) (2025-09-01)
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2262](https://github.com/cloudquery/plugin-sdk/issues/2262)) ([b8cf390](https://github.com/cloudquery/plugin-sdk/commit/b8cf3902daef8d1bfbde5d7c7908c70f8085c0a6))
+* **deps:** Update module github.com/samber/lo to v1.51.0 ([#2265](https://github.com/cloudquery/plugin-sdk/issues/2265)) ([ea8ca00](https://github.com/cloudquery/plugin-sdk/commit/ea8ca0036e5b447ad5c9af677a318dc52ca69296))
+* **deps:** Update module github.com/stretchr/testify to v1.11.0 ([#2266](https://github.com/cloudquery/plugin-sdk/issues/2266)) ([691cf32](https://github.com/cloudquery/plugin-sdk/commit/691cf32340d5aa4bfa0b3c939957e0c8af7110ab))
+* **deps:** Update module golang.org/x/text to v0.28.0 ([#2267](https://github.com/cloudquery/plugin-sdk/issues/2267)) ([2e436ed](https://github.com/cloudquery/plugin-sdk/commit/2e436edccb2adbb8ce5c828b4bfed0519dc831d8))
+
 ## [4.89.0](https://github.com/cloudquery/plugin-sdk/compare/v4.88.1...v4.89.0) (2025-08-19)
 
 
