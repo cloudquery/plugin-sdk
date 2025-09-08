@@ -14,4 +14,4 @@ jobs:
       - uses: bcoe/conventional-release-labels@v1
         with:
           type_labels: '{ "feat": "feat", "fix": "fix", "chore": "chore", "refactor": "refactor", "test": "test", "breaking": "breaking" }'
-          ignored_types: []
+          ignored_types: '[]'
