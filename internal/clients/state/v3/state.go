@@ -163,7 +163,7 @@ func (c *Client) Flush(ctx context.Context) error {
 			version.Append(val.version)
 		}
 	}
-	rec := bldr.NewRecord()
+	rec := bldr.NewRecordBatch()
 	recordBytes, err := pb.RecordToBytes(rec)
 	if err != nil {
 		return err

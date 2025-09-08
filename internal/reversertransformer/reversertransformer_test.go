@@ -55,13 +55,13 @@ func makeRequestFromString(s string) *pb.Transform_Request {
 	return &pb.Transform_Request{Record: bs}
 }
 
-func makeRecordFromString(s string) arrow.Record {
+func makeRecordFromString(s string) arrow.RecordBatch {
 	str := array.NewStringBuilder(memory.DefaultAllocator)
 	str.AppendString(s)
 	arr := str.NewStringArray()
 	schema := arrow.NewSchema([]arrow.Field{{Name: "col1", Type: arrow.BinaryTypes.String}}, nil)
 
-	return array.NewRecord(schema, []arrow.Array{arr}, 1)
+	return array.NewRecordBatch(schema, []arrow.Array{arr}, 1)
 }
 
 type mockTransformServer struct {

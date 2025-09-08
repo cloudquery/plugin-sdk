@@ -162,7 +162,7 @@ func (s *Server) Write(msg pb.Destination_WriteServer) error {
 			return status.Errorf(codes.InvalidArgument, "failed to create reader: %v", err)
 		}
 		for rdr.Next() {
-			rec := rdr.Record()
+			rec := rdr.RecordBatch()
 			rec.Retain()
 			msg := &message.WriteInsert{
 				Record: rec,

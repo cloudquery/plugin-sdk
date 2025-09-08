@@ -66,7 +66,7 @@ func (m WriteMigrateTables) GetMessageByTable(tableName string) *WriteMigrateTab
 
 type WriteInsert struct {
 	writeBaseMessage
-	Record arrow.Record
+	Record arrow.RecordBatch
 }
 
 func (m *WriteInsert) GetTable() *schema.Table {
@@ -86,16 +86,16 @@ func (m WriteInserts) Exists(tableName string) bool {
 	})
 }
 
-func (m WriteInserts) GetRecords() []arrow.Record {
-	res := make([]arrow.Record, len(m))
+func (m WriteInserts) GetRecords() []arrow.RecordBatch {
+	res := make([]arrow.RecordBatch, len(m))
 	for i := range m {
 		res[i] = m[i].Record
 	}
 	return res
 }
 
-func (m WriteInserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
-	res := make([]arrow.Record, 0, len(m))
+func (m WriteInserts) GetRecordsForTable(table *schema.Table) []arrow.RecordBatch {
+	res := make([]arrow.RecordBatch, 0, len(m))
 	for _, insert := range m {
 		tableNameMeta, ok := insert.Record.Schema().Metadata().GetValue(schema.MetadataTableName)
 		if !ok || tableNameMeta != table.Name {
@@ -139,7 +139,7 @@ type TableRelations []TableRelation
 type Predicate struct {
 	Operator string
 	Column   string
-	Record   arrow.Record
+	Record   arrow.RecordBatch
 }
 
 type Predicates []Predicate
