@@ -49,7 +49,7 @@ func (s Schemas) SchemaByName(name string) *arrow.Schema {
 	return nil
 }
 
-func hashRecord(record arrow.Record) arrow.Array {
+func hashRecord(record arrow.RecordBatch) arrow.Array {
 	numRows := int(record.NumRows())
 	fields := record.Schema().Fields()
 	hashArray := types.NewUUIDBuilder(memory.DefaultAllocator)
@@ -100,7 +100,7 @@ func TimestampArrayFromTime(t time.Time, unit arrow.TimeUnit, timeZone string, n
 	return arrayBuilder.NewArray(), nil
 }
 
-func ReplaceFieldInRecord(src arrow.Record, fieldName string, field arrow.Array) (record arrow.Record, err error) {
+func ReplaceFieldInRecord(src arrow.RecordBatch, fieldName string, field arrow.Array) (record arrow.RecordBatch, err error) {
 	fieldIndexes := src.Schema().FieldIndices(fieldName)
 	for i := range fieldIndexes {
 		record, err = src.SetColumn(fieldIndexes[i], field)
@@ -111,7 +111,7 @@ func ReplaceFieldInRecord(src arrow.Record, fieldName string, field arrow.Array)
 	return record, nil
 }
 
-func AddInternalColumnsToRecord(record arrow.Record, cqClientIDValue string) (arrow.Record, error) {
+func AddInternalColumnsToRecord(record arrow.RecordBatch, cqClientIDValue string) (arrow.RecordBatch, error) {
 	schema := record.Schema()
 	nRows := int(record.NumRows())
 
@@ -145,5 +145,5 @@ func AddInternalColumnsToRecord(record arrow.Record, cqClientIDValue string) (ar
 	allColumns := append(record.Columns(), newColumns...)
 	metadata := schema.Metadata()
 	newSchema := arrow.NewSchema(allFields, &metadata)
-	return array.NewRecord(newSchema, allColumns, int64(nRows)), nil
+	return array.NewRecordBatch(newSchema, allColumns, int64(nRows)), nil
 }

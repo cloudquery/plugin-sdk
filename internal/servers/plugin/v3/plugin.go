@@ -114,7 +114,7 @@ func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Respo
 }
 
 func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
-	records := make(chan arrow.Record)
+	records := make(chan arrow.RecordBatch)
 	var readErr error
 	ctx := stream.Context()
 
@@ -412,8 +412,8 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 
 func (s *Server) Transform(stream pb.Plugin_TransformServer) error {
 	var (
-		recvRecords = make(chan arrow.Record)
-		sendRecords = make(chan arrow.Record)
+		recvRecords = make(chan arrow.RecordBatch)
+		sendRecords = make(chan arrow.RecordBatch)
 		ctx         = stream.Context()
 		eg, gctx    = errgroup.WithContext(ctx)
 	)

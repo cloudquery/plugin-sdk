@@ -233,7 +233,7 @@ func TestBatchUpserts(t *testing.T) {
 	}
 }
 
-func getRecord(sc *arrow.Schema, rows int) arrow.Record {
+func getRecord(sc *arrow.Schema, rows int) arrow.RecordBatch {
 	builder := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 	defer builder.Release()
 
@@ -241,5 +241,5 @@ func getRecord(sc *arrow.Schema, rows int) arrow.Record {
 		f.AppendEmptyValues(rows)
 	}
 
-	return builder.NewRecord()
+	return builder.NewRecordBatch()
 }

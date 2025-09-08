@@ -62,7 +62,7 @@ func TestOnWriteError(t *testing.T) {
 // 	sourceSpec := pbPlugin.Spec{
 // 		Name: sourceName,
 // 	}
-// 	ch := make(chan arrow.Record, 1)
+// 	ch := make(chan arrow.RecordBatch, 1)
 // 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 // 	opts := schema.GenTestDataOptions{
 // 		SourceName: "test",

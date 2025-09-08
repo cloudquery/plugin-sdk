@@ -96,11 +96,11 @@ func TypeV2ToV3(dataType schemav2.ValueType) arrow.DataType {
 	}
 }
 
-func CQTypesOneToRecord(mem memory.Allocator, c schemav2.CQTypes, arrowSchema *arrow.Schema) arrow.Record {
+func CQTypesOneToRecord(mem memory.Allocator, c schemav2.CQTypes, arrowSchema *arrow.Schema) arrow.RecordBatch {
 	return CQTypesToRecord(mem, []schemav2.CQTypes{c}, arrowSchema)
 }
 
-func CQTypesToRecord(mem memory.Allocator, c []schemav2.CQTypes, arrowSchema *arrow.Schema) arrow.Record {
+func CQTypesToRecord(mem memory.Allocator, c []schemav2.CQTypes, arrowSchema *arrow.Schema) arrow.RecordBatch {
 	bldr := array.NewRecordBuilder(mem, arrowSchema)
 	fields := bldr.Fields()
 	for i := range fields {
@@ -242,5 +242,5 @@ func CQTypesToRecord(mem memory.Allocator, c []schemav2.CQTypes, arrowSchema *ar
 		}
 	}
 
-	return bldr.NewRecord()
+	return bldr.NewRecordBatch()
 }

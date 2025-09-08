@@ -7,7 +7,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-func String(resource arrow.Record) string {
+func String(resource arrow.RecordBatch) string {
 	sc := resource.Schema()
 	table, err := schema.NewTableFromArrowSchema(sc)
 	if err != nil {

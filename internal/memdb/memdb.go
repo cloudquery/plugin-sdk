@@ -16,7 +16,7 @@ import (
 
 // client is mostly used for testing the destination plugin.
 type client struct {
-	memoryDB      map[string][]arrow.Record
+	memoryDB      map[string][]arrow.RecordBatch
 	tables        map[string]*schema.Table
 	memoryDBLock  sync.RWMutex
 	errOnWrite    bool
@@ -42,7 +42,7 @@ func WithBlockingWrite() Option {
 
 func GetNewClient(options ...Option) plugin.NewClientFunc {
 	c := &client{
-		memoryDB:     make(map[string][]arrow.Record),
+		memoryDB:     make(map[string][]arrow.RecordBatch),
 		memoryDBLock: sync.RWMutex{},
 		tables: map[string]*schema.Table{
 			"table1": {
@@ -112,13 +112,13 @@ func NewMemDBClientErrOnNew(context.Context, zerolog.Logger, []byte, plugin.NewC
 	return nil, errors.New("newTestDestinationMemDBClientErrOnNew")
 }
 
-func (c *client) overwrite(table *schema.Table, record arrow.Record) {
+func (c *client) overwrite(table *schema.Table, record arrow.RecordBatch) {
 	for i := int64(0); i < record.NumRows(); i++ {
 		c.overwriteRow(table, record.NewSlice(i, i+1))
 	}
 }
 
-func (c *client) overwriteRow(table *schema.Table, data arrow.Record) {
+func (c *client) overwriteRow(table *schema.Table, data arrow.RecordBatch) {
 	tableName := table.Name
 	pksIndex := table.PrimaryKeysIndexes()
 	if len(pksIndex) == 0 {
@@ -152,7 +152,7 @@ func (*client) GetSpec() any {
 	return &Spec{}
 }
 
-func (c *client) Read(_ context.Context, table *schema.Table, res chan<- arrow.Record) error {
+func (c *client) Read(_ context.Context, table *schema.Table, res chan<- arrow.RecordBatch) error {
 	c.memoryDBLock.RLock()
 	defer c.memoryDBLock.RUnlock()
 
@@ -196,7 +196,7 @@ func (c *client) migrate(_ context.Context, table *schema.Table) {
 	tableName := table.Name
 	memTable := c.memoryDB[tableName]
 	if memTable == nil {
-		c.memoryDB[tableName] = make([]arrow.Record, 0)
+		c.memoryDB[tableName] = make([]arrow.RecordBatch, 0)
 		c.tables[tableName] = table
 		return
 	}
@@ -206,7 +206,7 @@ func (c *client) migrate(_ context.Context, table *schema.Table) {
 	if changes == nil {
 		return
 	}
-	c.memoryDB[tableName] = make([]arrow.Record, 0)
+	c.memoryDB[tableName] = make([]arrow.RecordBatch, 0)
 	c.tables[tableName] = table
 }
 
@@ -253,7 +253,7 @@ func (c *client) Close(context.Context) error {
 }
 
 func (c *client) deleteStale(_ context.Context, msg *message.WriteDeleteStale) {
-	var filteredTable []arrow.Record
+	var filteredTable []arrow.RecordBatch
 	tableName := msg.TableName
 	for i, row := range c.memoryDB[tableName] {
 		sc := row.Schema()
@@ -280,7 +280,7 @@ func (c *client) deleteStale(_ context.Context, msg *message.WriteDeleteStale) {
 }
 
 func (c *client) deleteRecord(_ context.Context, msg *message.WriteDeleteRecord) {
-	var filteredTable []arrow.Record
+	var filteredTable []arrow.RecordBatch
 	tableName := msg.TableName
 	for i, row := range c.memoryDB[tableName] {
 		isMatch := true
@@ -308,7 +308,7 @@ func (c *client) deleteRecord(_ context.Context, msg *message.WriteDeleteRecord)
 	c.memoryDB[tableName] = filteredTable
 }
 
-func (*client) Transform(_ context.Context, _ <-chan arrow.Record, _ chan<- arrow.Record) error {
+func (*client) Transform(_ context.Context, _ <-chan arrow.RecordBatch, _ chan<- arrow.RecordBatch) error {
 	return nil
 }
 
@@ -316,7 +316,7 @@ func (*client) TransformSchema(_ context.Context, _ *arrow.Schema) (*arrow.Schem
 	return nil, nil
 }
 
-func evaluatePredicate(pred message.Predicate, record arrow.Record) bool {
+func evaluatePredicate(pred message.Predicate, record arrow.RecordBatch) bool {
 	sc := record.Schema()
 	indices := sc.FieldIndices(pred.Column)
 	if len(indices) == 0 {

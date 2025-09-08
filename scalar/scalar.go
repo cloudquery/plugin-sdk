@@ -35,10 +35,10 @@ type Scalar interface {
 
 type Vector []Scalar
 
-func (v Vector) ToArrowRecord(sc *arrow.Schema) arrow.Record {
+func (v Vector) ToArrowRecord(sc *arrow.Schema) arrow.RecordBatch {
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 	AppendToRecordBuilder(bldr, v)
-	rec := bldr.NewRecord()
+	rec := bldr.NewRecordBatch()
 	return rec
 }
 
