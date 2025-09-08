@@ -8,15 +8,15 @@ import (
 )
 
 // readAll is used in tests to read all records from a table.
-func (p *Plugin) readAll(ctx context.Context, table *schema.Table) ([]arrow.Record, error) {
+func (p *Plugin) readAll(ctx context.Context, table *schema.Table) ([]arrow.RecordBatch, error) {
 	var err error
-	ch := make(chan arrow.Record)
+	ch := make(chan arrow.RecordBatch)
 	go func() {
 		defer close(ch)
 		err = p.client.Read(ctx, table, ch)
 	}()
 	// nolint:prealloc
-	var records []arrow.Record
+	var records []arrow.RecordBatch
 	for record := range ch {
 		records = append(records, sliceToSingleRowRecord(record)...)
 	}
@@ -24,8 +24,8 @@ func (p *Plugin) readAll(ctx context.Context, table *schema.Table) ([]arrow.Reco
 	return records, err
 }
 
-func sliceToSingleRowRecord(record arrow.Record) []arrow.Record {
-	result := make([]arrow.Record, record.NumRows())
+func sliceToSingleRowRecord(record arrow.RecordBatch) []arrow.RecordBatch {
+	result := make([]arrow.RecordBatch, record.NumRows())
 	for i := int64(0); i < record.NumRows(); i++ {
 		result[i] = record.NewSlice(i, i+1)
 	}

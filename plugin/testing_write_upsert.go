@@ -29,7 +29,7 @@ func (s *WriterTestSuite) testUpsertBasic(ctx context.Context) error {
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	bldr.Field(1).(*array.StringBuilder).Append("foo")
-	record := bldr.NewRecord()
+	record := bldr.NewRecordBatch()
 
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: record,
@@ -61,7 +61,7 @@ func (s *WriterTestSuite) testUpsertBasic(ctx context.Context) error {
 	if totalItems != 1 {
 		return fmt.Errorf("expected 1 item, got %d", totalItems)
 	}
-	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record}); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.RecordBatch{record}); diff != "" {
 		return fmt.Errorf("record differs: %s", diff)
 	}
 	return nil
@@ -102,7 +102,7 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 		return fmt.Errorf("expected items after initial insert: %d, got %d", rowsPerRecord, totalItems)
 	}
 
-	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{normalRecord}); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.RecordBatch{normalRecord}); diff != "" {
 		return fmt.Errorf("record differs after insert: %s", diff)
 	}
 
@@ -126,7 +126,7 @@ func (s *WriterTestSuite) testUpsertAll(ctx context.Context) error {
 		return fmt.Errorf("expected items after upsert: %d, got %d", rowsPerRecord, totalItems)
 	}
 
-	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{nullRecord}); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.RecordBatch{nullRecord}); diff != "" {
 		return fmt.Errorf("record differs after upsert (columns should be null): %s", diff)
 	}
 
@@ -151,12 +151,12 @@ func (s *WriterTestSuite) testInsertDuplicatePK(ctx context.Context) error {
 
 	// Create a multi-row record with a duplicate PK value, but different values for the other columns.
 	sc := table.ToArrowSchema()
-	var records []arrow.Record
+	var records []arrow.RecordBatch
 	for j := 0; j < rowsPerRecord; j++ {
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		bldr.Field(0).(*array.Int64Builder).Append(1)
 		bldr.Field(1).(*array.StringBuilder).Append("foo" + fmt.Sprint(j))
-		records = append(records, bldr.NewRecord())
+		records = append(records, bldr.NewRecordBatch())
 		bldr.Release()
 	}
 
@@ -169,7 +169,7 @@ func (s *WriterTestSuite) testInsertDuplicatePK(ctx context.Context) error {
 		}
 		columns[n] = concatenated
 	}
-	normalRecord := array.NewRecord(sc, columns, -1)
+	normalRecord := array.NewRecordBatch(sc, columns, -1)
 
 	// normalRecord
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
@@ -195,14 +195,14 @@ func (s *WriterTestSuite) testInsertDuplicatePK(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to extract last row from record: %w", err)
 	}
-	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{lastRow}); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), records, []arrow.RecordBatch{lastRow}); diff != "" {
 		return fmt.Errorf("record differs after insert: %s", diff)
 	}
 
 	return nil
 }
 
-func extractLastRowFromRecord(table *schema.Table, existingRecord arrow.Record) (arrow.Record, error) {
+func extractLastRowFromRecord(table *schema.Table, existingRecord arrow.RecordBatch) (arrow.RecordBatch, error) {
 	sc := table.ToArrowSchema()
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 	for i, c := range table.Columns {
@@ -213,7 +213,7 @@ func extractLastRowFromRecord(table *schema.Table, existingRecord arrow.Record) 
 			return nil, fmt.Errorf("failed to unmarshal json `%v` for column %v: %v", col.ValueStr(lastRow), c.Name, err)
 		}
 	}
-	lastRecord := append([]arrow.Record{}, bldr.NewRecord())
+	lastRecord := append([]arrow.RecordBatch{}, bldr.NewRecordBatch())
 	bldr.Release()
 
 	arrowTable := array.NewTableFromRecords(sc, lastRecord)
@@ -226,5 +226,5 @@ func extractLastRowFromRecord(table *schema.Table, existingRecord arrow.Record) 
 		columns[n] = concatenated
 	}
 
-	return array.NewRecord(sc, columns, -1), nil
+	return array.NewRecordBatch(sc, columns, -1), nil
 }

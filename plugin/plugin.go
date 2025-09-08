@@ -38,7 +38,7 @@ func (UnimplementedDestination) Write(context.Context, <-chan message.WriteMessa
 	return ErrNotImplemented
 }
 
-func (UnimplementedDestination) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
+func (UnimplementedDestination) Read(context.Context, *schema.Table, chan<- arrow.RecordBatch) error {
 	return ErrNotImplemented
 }
 
@@ -56,7 +56,7 @@ func (UnimplementedSource) Tables(context.Context, TableOptions) (schema.Tables,
 
 type UnimplementedTransformer struct{}
 
-func (UnimplementedTransformer) Transform(context.Context, <-chan arrow.Record, chan<- arrow.Record) error {
+func (UnimplementedTransformer) Transform(context.Context, <-chan arrow.RecordBatch, chan<- arrow.RecordBatch) error {
 	return ErrNotImplemented
 }
 func (UnimplementedTransformer) TransformSchema(context.Context, *arrow.Schema) (*arrow.Schema, error) {

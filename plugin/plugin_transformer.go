@@ -7,11 +7,11 @@ import (
 )
 
 type TransformerClient interface {
-	Transform(context.Context, <-chan arrow.Record, chan<- arrow.Record) error
+	Transform(context.Context, <-chan arrow.RecordBatch, chan<- arrow.RecordBatch) error
 	TransformSchema(context.Context, *arrow.Schema) (*arrow.Schema, error)
 }
 
-func (p *Plugin) Transform(ctx context.Context, recvRecords <-chan arrow.Record, sendRecords chan<- arrow.Record) error {
+func (p *Plugin) Transform(ctx context.Context, recvRecords <-chan arrow.RecordBatch, sendRecords chan<- arrow.RecordBatch) error {
 	err := p.client.Transform(ctx, recvRecords, sendRecords)
 	close(sendRecords)
 	return err

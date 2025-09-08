@@ -121,7 +121,7 @@ func TestPluginSync(t *testing.T) {
 	sc := table.ToArrowSchema()
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 	bldr.Field(0).(*array.StringBuilder).Append("test")
-	record := bldr.NewRecord()
+	record := bldr.NewRecordBatch()
 	recordBytes, err := pbSource.RecordToBytes(record)
 	if err != nil {
 		t.Fatal(err)

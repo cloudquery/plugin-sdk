@@ -33,7 +33,7 @@ func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context, t *testing.T
 	bldr.Field(0).(*array.Int64Builder).Append(0)
 	bldr.Field(1).(*array.StringBuilder).Append(sourceName)
 	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime)
-	record1 := bldr.NewRecord()
+	record1 := bldr.NewRecordBatch()
 
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteInsert{Record: record1}), "failed to insert record")
 	record1 = s.handleNulls(record1) // we process nulls after writing
@@ -51,13 +51,13 @@ func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context, t *testing.T
 	records, err = s.plugin.readAll(ctx, table)
 	r.NoErrorf(err, "failed to read after delete stale")
 	r.EqualValuesf(1, TotalRows(records), "unexpected amount of items after delete stale")
-	r.Emptyf(RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record1}), "record differs after delete stale")
+	r.Emptyf(RecordsDiff(table.ToArrowSchema(), records, []arrow.RecordBatch{record1}), "record differs after delete stale")
 
 	syncTime = syncTime.Add(time.Second)
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	bldr.Field(1).(*array.StringBuilder).Append(sourceName)
 	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime)
-	record2 := bldr.NewRecord()
+	record2 := bldr.NewRecordBatch()
 
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteInsert{Record: record2}), "failed to insert second record")
 	record2 = s.handleNulls(record2) // we process nulls after writing
@@ -66,7 +66,7 @@ func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context, t *testing.T
 	r.NoErrorf(err, "failed to read second time")
 	sortRecords(table, records, "id")
 	r.EqualValuesf(2, TotalRows(records), "unexpected amount of items second time")
-	r.Emptyf(RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record1, record2}), "record differs after delete stale")
+	r.Emptyf(RecordsDiff(table.ToArrowSchema(), records, []arrow.RecordBatch{record1, record2}), "record differs after delete stale")
 
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteDeleteStale{
 		TableName:  table.Name,
@@ -77,7 +77,7 @@ func (s *WriterTestSuite) testDeleteStaleBasic(ctx context.Context, t *testing.T
 	records, err = s.plugin.readAll(ctx, table)
 	r.NoErrorf(err, "failed to read after second delete stale")
 	r.EqualValuesf(1, TotalRows(records), "unexpected amount of items after second delete stale")
-	r.Emptyf(RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record2}), "record differs after second delete stale")
+	r.Emptyf(RecordsDiff(table.ToArrowSchema(), records, []arrow.RecordBatch{record2}), "record differs after second delete stale")
 }
 
 func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) {
@@ -134,7 +134,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 	r.NoErrorf(err, "failed to read second time")
 	sortRecords(table, readRecords, "id")
 	r.EqualValuesf(2*rowsPerRecord, TotalRows(readRecords), "unexpected amount of items after second read")
-	r.Emptyf(RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{normalRecord, nullRecord}), "record differs")
+	r.Emptyf(RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.RecordBatch{normalRecord, nullRecord}), "record differs")
 
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteDeleteStale{
 		TableName:  table.Name,
@@ -147,7 +147,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 	sortRecords(table, readRecords, "id")
 
 	r.EqualValuesf(rowsPerRecord, TotalRows(readRecords), "unexpected amount of items after second delete stale")
-	r.Emptyf(RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{nullRecord}), "record differs")
+	r.Emptyf(RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.RecordBatch{nullRecord}), "record differs")
 }
 
 func (s *WriterTestSuite) testDeleteRecordBasic(ctx context.Context, t *testing.T) {
@@ -170,7 +170,7 @@ func (s *WriterTestSuite) testDeleteRecordBasic(ctx context.Context, t *testing.
 	bldr.Field(0).(*array.Int64Builder).Append(0)
 	bldr.Field(1).(*array.StringBuilder).Append(sourceName)
 	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime)
-	record1 := bldr.NewRecord()
+	record1 := bldr.NewRecordBatch()
 
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteInsert{Record: record1}), "failed to insert record")
 	record1 = s.handleNulls(record1) // we process nulls after writing
@@ -187,7 +187,7 @@ func (s *WriterTestSuite) testDeleteRecordBasic(ctx context.Context, t *testing.
 		},
 	}).ToArrowSchema())
 	bldrDeleteNoMatch.Field(0).(*array.Int64Builder).Append(1)
-	deleteValue := bldrDeleteNoMatch.NewRecord()
+	deleteValue := bldrDeleteNoMatch.NewRecordBatch()
 
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteDeleteRecord{
 		DeleteRecord: message.DeleteRecord{
@@ -210,7 +210,7 @@ func (s *WriterTestSuite) testDeleteRecordBasic(ctx context.Context, t *testing.
 	records, err = s.plugin.readAll(ctx, table)
 	r.NoErrorf(err, "failed to read after delete with no match")
 	r.EqualValuesf(1, TotalRows(records), "unexpected amount of items after delete with no match")
-	r.Emptyf(RecordsDiff(table.ToArrowSchema(), records, []arrow.Record{record1}), "record differs after delete with no match")
+	r.Emptyf(RecordsDiff(table.ToArrowSchema(), records, []arrow.RecordBatch{record1}), "record differs after delete with no match")
 
 	// create value for delete statement will be delete One record
 	bldrDeleteMatch := array.NewRecordBuilder(memory.DefaultAllocator, (&schema.Table{
@@ -220,7 +220,7 @@ func (s *WriterTestSuite) testDeleteRecordBasic(ctx context.Context, t *testing.
 		},
 	}).ToArrowSchema())
 	bldrDeleteMatch.Field(0).(*array.Int64Builder).Append(0)
-	deleteValue = bldrDeleteMatch.NewRecord()
+	deleteValue = bldrDeleteMatch.NewRecordBatch()
 
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteDeleteRecord{
 		DeleteRecord: message.DeleteRecord{
@@ -265,7 +265,7 @@ func (s *WriterTestSuite) testDeleteAllRecords(ctx context.Context, t *testing.T
 	bldr.Field(0).(*array.Int64Builder).Append(0)
 	bldr.Field(1).(*array.StringBuilder).Append(sourceName)
 	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime)
-	record1 := bldr.NewRecord()
+	record1 := bldr.NewRecordBatch()
 
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteInsert{Record: record1}), "failed to insert record")
 
@@ -286,7 +286,7 @@ func (s *WriterTestSuite) testDeleteAllRecords(ctx context.Context, t *testing.T
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	bldr.Field(1).(*array.StringBuilder).Append(sourceName)
 	bldr.Field(2).(*array.TimestampBuilder).AppendTime(syncTime.Add(time.Second))
-	record2 := bldr.NewRecord()
+	record2 := bldr.NewRecordBatch()
 
 	r.NoErrorf(s.plugin.writeOne(ctx, &message.WriteInsert{Record: record2}), "failed to insert second record")
 

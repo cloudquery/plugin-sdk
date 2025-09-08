@@ -11,7 +11,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-func TotalRows(records []arrow.Record) int64 {
+func TotalRows(records []arrow.RecordBatch) int64 {
 	totalRows := int64(0)
 	for _, record := range records {
 		totalRows += record.NumRows()
@@ -37,7 +37,7 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 	bldr.Field(0).(*array.Int64Builder).Append(1)
 	bldr.Field(1).(*array.StringBuilder).Append("foo")
-	record := bldr.NewRecord()
+	record := bldr.NewRecordBatch()
 
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: record,
@@ -73,7 +73,7 @@ func (s *WriterTestSuite) testInsertBasic(ctx context.Context) error {
 		return fmt.Errorf("expected 2 items, got %d", totalItems)
 	}
 
-	if diff := RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{record, record}); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.RecordBatch{record, record}); diff != "" {
 		return fmt.Errorf("record[0] differs: %s", diff)
 	}
 
@@ -134,7 +134,7 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	if totalItems != 2*rowsPerRecord {
 		return fmt.Errorf("items expected after second insert: %d, got: %d", 2*rowsPerRecord, totalItems)
 	}
-	if diff := RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.Record{normalRecord, nullRecord}); diff != "" {
+	if diff := RecordsDiff(table.ToArrowSchema(), readRecords, []arrow.RecordBatch{normalRecord, nullRecord}); diff != "" {
 		return fmt.Errorf("record[0] differs: %s", diff)
 	}
 	return nil

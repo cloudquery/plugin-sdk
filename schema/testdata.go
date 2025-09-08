@@ -219,17 +219,17 @@ func (tg *TestDataGenerator) Reset() {
 	tg.colToRnd = map[string]*rand.Rand{}
 }
 
-// Generate will produce a single arrow.Record with the given schema and options.
-func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arrow.Record {
+// Generate will produce a single arrow.RecordBatch with the given schema and options.
+func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arrow.RecordBatch {
 	sc := table.ToArrowSchema()
 	if opts.MaxRows == 0 {
 		// We generate an empty record
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		defer bldr.Release()
-		return bldr.NewRecord()
+		return bldr.NewRecordBatch()
 	}
 
-	var records []arrow.Record
+	var records []arrow.RecordBatch
 	for j := 0; j < opts.MaxRows; j++ {
 		tg.counter++
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
@@ -248,7 +248,7 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 				panic(fmt.Sprintf("failed to unmarshal json `%v` for column %v: %v", l, c.Name, err))
 			}
 		}
-		records = append(records, bldr.NewRecord())
+		records = append(records, bldr.NewRecordBatch())
 		bldr.Release()
 	}
 
@@ -262,7 +262,7 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 		columns[n] = concatenated
 	}
 
-	return array.NewRecord(sc, columns, -1)
+	return array.NewRecordBatch(sc, columns, -1)
 }
 
 func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {

@@ -9,7 +9,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/types"
 )
 
-func FindEmptyColumns(table *Table, records []arrow.Record) []string {
+func FindEmptyColumns(table *Table, records []arrow.RecordBatch) []string {
 	columnsWithValues := make([]bool, len(table.Columns))
 	emptyColumns := make([]string, 0)
 

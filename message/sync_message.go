@@ -30,7 +30,7 @@ func (m SyncMigrateTable) GetTable() *schema.Table {
 
 type SyncInsert struct {
 	syncBaseMessage
-	Record arrow.Record
+	Record arrow.RecordBatch
 }
 
 func (m *SyncInsert) GetTable() *schema.Table {
@@ -90,8 +90,8 @@ func (m SyncInserts) Exists(tableName string) bool {
 	return false
 }
 
-func (m SyncInserts) GetRecords() []arrow.Record {
-	res := make([]arrow.Record, len(m))
+func (m SyncInserts) GetRecords() []arrow.RecordBatch {
+	res := make([]arrow.RecordBatch, len(m))
 	for i := range m {
 		res[i] = m[i].Record
 	}
@@ -99,8 +99,8 @@ func (m SyncInserts) GetRecords() []arrow.Record {
 }
 
 // Get all records for a single table
-func (m SyncInserts) GetRecordsForTable(table *schema.Table) []arrow.Record {
-	res := make([]arrow.Record, 0, len(m))
+func (m SyncInserts) GetRecordsForTable(table *schema.Table) []arrow.RecordBatch {
+	res := make([]arrow.RecordBatch, 0, len(m))
 	for _, insert := range m {
 		md := insert.Record.Schema().Metadata()
 		tableNameMeta, ok := md.GetValue(schema.MetadataTableName)

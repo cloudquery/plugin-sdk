@@ -91,13 +91,13 @@ func (s *WriterTestSuite) replaceNullsByEmptyNestedArray(arr arrow.Array) arrow.
 	}
 }
 
-func (s *WriterTestSuite) handleNulls(record arrow.Record) arrow.Record {
+func (s *WriterTestSuite) handleNulls(record arrow.RecordBatch) arrow.RecordBatch {
 	cols := record.Columns()
 	newCols := make([]arrow.Array, len(cols))
 	for c, col := range cols {
 		newCols[c] = s.handleNullsArray(col)
 	}
-	return array.NewRecord(record.Schema(), newCols, record.NumRows())
+	return array.NewRecordBatch(record.Schema(), newCols, record.NumRows())
 }
 
 func (s *WriterTestSuite) handleNullsArray(arr arrow.Array) arrow.Array {
