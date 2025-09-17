@@ -131,7 +131,7 @@ func TestAppendToBuilderTimestamp(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			bldr := array.NewTimestampBuilder(memory.DefaultAllocator, timestamp.Type)
+			bldr := array.NewTimestampBuilderWithLayout(memory.DefaultAllocator, timestamp.Type, ArrowDeprecatedLayout)
 			AppendToBuilder(bldr, &timestamp)
 
 			arr := bldr.NewArray().(*array.Timestamp)

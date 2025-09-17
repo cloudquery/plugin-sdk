@@ -16,6 +16,8 @@ const (
 	// these are used by Arrow string format (time is in UTC)
 	arrowStringFormat    = "2006-01-02 15:04:05.999999999"
 	arrowStringFormatNew = "2006-01-02 15:04:05.999999999Z"
+
+	ArrowDeprecatedLayout = "2006-01-02 15:04:05.999999999Z0700"
 )
 
 type Timestamp struct {
