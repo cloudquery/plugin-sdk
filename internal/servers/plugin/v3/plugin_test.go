@@ -148,7 +148,7 @@ func TestPluginSync(t *testing.T) {
 	}
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 	bldr.Field(0).(*array.StringBuilder).Append("test")
-	record := bldr.NewRecord()
+	record := bldr.NewRecordBatch()
 	recordBytes, err := pb.RecordToBytes(record)
 	if err != nil {
 		t.Fatal(err)
@@ -245,7 +245,7 @@ func getColumnAdderPlugin(...plugin.Option) plugin.NewClientFunc {
 	}
 }
 
-func (*mockSourceColumnAdderPluginClient) Transform(context.Context, <-chan arrow.Record, chan<- arrow.Record) error {
+func (*mockSourceColumnAdderPluginClient) Transform(context.Context, <-chan arrow.RecordBatch, chan<- arrow.RecordBatch) error {
 	return nil
 }
 func (*mockSourceColumnAdderPluginClient) TransformSchema(_ context.Context, old *arrow.Schema) (*arrow.Schema, error) {
@@ -259,7 +259,7 @@ type testTransformPluginClient struct {
 	recordsSent int32
 }
 
-func (c *testTransformPluginClient) Transform(ctx context.Context, recvRecords <-chan arrow.Record, sendRecords chan<- arrow.Record) error {
+func (c *testTransformPluginClient) Transform(ctx context.Context, recvRecords <-chan arrow.RecordBatch, sendRecords chan<- arrow.RecordBatch) error {
 	for record := range recvRecords {
 		select {
 		default:
@@ -384,11 +384,11 @@ func makeRequestFromString(s string) *pb.Transform_Request {
 	return &pb.Transform_Request{Record: bs}
 }
 
-func makeRecordFromString(s string) arrow.Record {
+func makeRecordFromString(s string) arrow.RecordBatch {
 	str := array.NewStringBuilder(memory.DefaultAllocator)
 	str.AppendString(s)
 	arr := str.NewStringArray()
 	sch := arrow.NewSchema([]arrow.Field{{Name: "col1", Type: arrow.BinaryTypes.String}}, nil)
 
-	return array.NewRecord(sch, []arrow.Array{arr}, 1)
+	return array.NewRecordBatch(sch, []arrow.Array{arr}, 1)
 }

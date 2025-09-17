@@ -26,7 +26,7 @@ func (*testPluginClient) Tables(context.Context, TableOptions) (schema.Tables, e
 	return schema.Tables{}, nil
 }
 
-func (*testPluginClient) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
+func (*testPluginClient) Read(context.Context, *schema.Table, chan<- arrow.RecordBatch) error {
 	return nil
 }
 
@@ -56,7 +56,7 @@ func (c *testPluginClient) Write(_ context.Context, res <-chan message.WriteMess
 func (*testPluginClient) Close(context.Context) error {
 	return nil
 }
-func (*testPluginClient) Transform(context.Context, <-chan arrow.Record, chan<- arrow.Record) error {
+func (*testPluginClient) Transform(context.Context, <-chan arrow.RecordBatch, chan<- arrow.RecordBatch) error {
 	return nil
 }
 func (*testPluginClient) TransformSchema(context.Context, *arrow.Schema) (*arrow.Schema, error) {

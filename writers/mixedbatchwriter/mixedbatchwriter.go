@@ -207,7 +207,7 @@ type insertBatchManager struct {
 func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInsert) error {
 	add, toFlush, rest := batch.SliceRecord(msg.Record, m.limit)
 	if add != nil {
-		m.batch = append(m.batch, &message.WriteInsert{Record: add.Record})
+		m.batch = append(m.batch, &message.WriteInsert{Record: add.RecordBatch})
 		m.limit.AddSlice(add)
 	}
 	if len(toFlush) > 0 || rest != nil || m.limit.ReachedLimit() {
@@ -226,7 +226,7 @@ func (m *insertBatchManager) append(ctx context.Context, msg *message.WriteInser
 
 	// set the remainder
 	if rest != nil {
-		m.batch = append(m.batch, &message.WriteInsert{Record: rest.Record})
+		m.batch = append(m.batch, &message.WriteInsert{Record: rest.RecordBatch})
 		m.limit.AddSlice(rest)
 	}
 

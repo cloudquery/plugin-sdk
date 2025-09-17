@@ -3,7 +3,7 @@ module github.com/cloudquery/plugin-sdk/v4
 go 1.24.4
 
 require (
-	github.com/apache/arrow-go/v18 v18.4.0
+	github.com/apache/arrow-go/v18 v18.4.1
 	github.com/aws/aws-sdk-go-v2 v1.38.3
 	github.com/aws/aws-sdk-go-v2/config v1.31.6
 	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.36.2
@@ -25,7 +25,7 @@ require (
 	github.com/samber/lo v1.51.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	github.com/thoas/go-funk v0.9.3
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.13.0
@@ -73,7 +73,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -98,3 +98,5 @@ require (
 )
 
 replace github.com/invopop/jsonschema => github.com/cloudquery/jsonschema v0.0.0-20240220124159-92878faa2a66
+
+replace github.com/apache/arrow-go/v18 => github.com/cloudquery/arrow-go/v18 v18.0.0-20250917180258-5bc4c36376be

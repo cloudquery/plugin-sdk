@@ -177,7 +177,7 @@ func TestBatchStreamFlushDifferentMessages(t *testing.T) {
 
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, streamingBatchTestTable.ToArrowSchema())
 	bldr.Field(0).(*array.Int64Builder).Append(1)
-	record := bldr.NewRecord()
+	record := bldr.NewRecordBatch()
 
 	if l := testClient.MessageLen(messageTypeMigrateTable); l != 0 {
 		t.Fatalf("expected 0 migrate table messages, got %d", l)
@@ -389,7 +389,7 @@ func TestStreamingBatchUpserts(t *testing.T) {
 
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 	bldr.Field(0).(*array.Int64Builder).Append(1)
-	record := bldr.NewRecord()
+	record := bldr.NewRecordBatch()
 
 	ch <- &message.WriteInsert{
 		Record: record,
@@ -590,7 +590,7 @@ func waitForLength(t *testing.T, checkLen func(messageType) int, msgType message
 }
 
 // nolint:unparam
-func getRecord(sc *arrow.Schema, rows int) arrow.Record {
+func getRecord(sc *arrow.Schema, rows int) arrow.RecordBatch {
 	builder := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 	defer builder.Release()
 
@@ -598,7 +598,7 @@ func getRecord(sc *arrow.Schema, rows int) arrow.Record {
 		f.AppendEmptyValues(rows)
 	}
 
-	return builder.NewRecord()
+	return builder.NewRecordBatch()
 }
 
 // nolint:unparam

@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func RecordDiff(l arrow.Record, r arrow.Record) string {
+func RecordDiff(l arrow.RecordBatch, r arrow.RecordBatch) string {
 	var sb strings.Builder
 	if l.NumCols() != r.NumCols() {
 		return fmt.Sprintf("different number of columns: %d vs %d", l.NumCols(), r.NumCols())
@@ -39,7 +39,7 @@ func RecordDiff(l arrow.Record, r arrow.Record) string {
 	return sb.String()
 }
 
-func buildTestRecord(withClientIDValue string) arrow.Record {
+func buildTestRecord(withClientIDValue string) arrow.RecordBatch {
 	testFields := []arrow.Field{
 		{Name: "id", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
 		{Name: "name", Type: arrow.BinaryTypes.String, Nullable: true},
@@ -96,13 +96,13 @@ func buildTestRecord(withClientIDValue string) arrow.Record {
 	values := lo.Map(builders, func(builder array.Builder, _ int) arrow.Array {
 		return builder.NewArray()
 	})
-	return array.NewRecord(schema, values, int64(testValuesCount))
+	return array.NewRecordBatch(schema, values, int64(testValuesCount))
 }
 
 func TestAddInternalColumnsToRecord(t *testing.T) {
 	tests := []struct {
 		name               string
-		record             arrow.Record
+		record             arrow.RecordBatch
 		cqClientIDValue    string
 		expectedNewColumns int64
 	}{

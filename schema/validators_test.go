@@ -18,7 +18,7 @@ func TestFindEmptyColumns(t *testing.T) {
 		MaxRows:  1,
 		NullRows: true,
 	})
-	v := FindEmptyColumns(table, []arrow.Record{record})
+	v := FindEmptyColumns(table, []arrow.RecordBatch{record})
 	require.NotEmpty(t, v)
 	require.Len(t, v, len(table.Columns)-1) // exclude "id"
 }
@@ -30,7 +30,7 @@ func TestFindEmptyColumnsNotEmpty(t *testing.T) {
 		MaxRows:  1,
 		NullRows: false,
 	})
-	v := FindEmptyColumns(table, []arrow.Record{record})
+	v := FindEmptyColumns(table, []arrow.RecordBatch{record})
 	require.Empty(t, v)
 }
 
@@ -47,7 +47,7 @@ func TestFindEmptyColumnsJSON(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("failed to unmarshal json for column: %v", err))
 	}
-	records := []arrow.Record{bldr.NewRecord()}
+	records := []arrow.RecordBatch{bldr.NewRecordBatch()}
 	bldr.Release()
 
 	v := FindEmptyColumns(table, records)
