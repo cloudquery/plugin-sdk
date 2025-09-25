@@ -25,6 +25,11 @@ type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, 
 
 type RowResolver func(ctx context.Context, meta ClientMeta, resource *Resource) error
 
+type RowsChunkResolver struct {
+	ChunkSize    int
+	RowsResolver func(ctx context.Context, meta ClientMeta, resourcesChunk []*Resource) error
+}
+
 type Multiplexer func(meta ClientMeta) []ClientMeta
 
 type Transform func(table *Table) error
@@ -86,6 +91,9 @@ type Table struct {
 	// PreResourceResolver is called before all columns are resolved but after Resource is created. The ordering of resolvers is:
 	//  (Table) Resolver → PreResourceResolver → ColumnResolvers → PostResourceResolver
 	PreResourceResolver RowResolver `json:"-"`
+
+	PreResourceChunkResolver *RowsChunkResolver `json:"-"`
+
 	// IsIncremental is a flag that indicates if the table is incremental or not. This flag mainly affects how the table is
 	// documented.
 	IsIncremental bool `json:"is_incremental"`
