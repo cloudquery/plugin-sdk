@@ -6,6 +6,9 @@ on:
       - ".github/workflow/lint_markdown.yml"
       - "**.md"
 
+permissions:
+  contents: read
+
 jobs:
   lint-grammar:
     runs-on: ubuntu-latest

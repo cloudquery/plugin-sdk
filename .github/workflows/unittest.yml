@@ -7,6 +7,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   unitests:
     strategy:
@@ -37,6 +40,7 @@ jobs:
         with:
           name: delta-action-benchmarks
           retention-days: 7
+          if-no-files-found: error
           path: |
             .delta.*
             pr_number
