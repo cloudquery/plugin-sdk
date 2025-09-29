@@ -5,6 +5,9 @@ on:
     types: [opened, reopened]
     paths:
       - 'go.mod'
+permissions:
+  contents: read
+
 jobs:
   go-mod-tidy-example:
     timeout-minutes: 5

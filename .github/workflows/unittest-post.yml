@@ -6,6 +6,9 @@ on:
     types:
       - completed
 
+permissions:
+  contents: read
+
 jobs:
   post-unitests:
     runs-on: ubuntu-latest
