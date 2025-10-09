@@ -23,7 +23,7 @@ jobs:
       - name: Vale
         uses: errata-ai/vale-action@dcded780f1ff68e2558e802a165a484a4a3e2fb8
         with:
-          vale_flags: "--glob=!{docs/testdata/*,CHANGELOG.md,.github/styles/proselint/README.md,examples/simple_plugin/docs/*.md}"
+          vale_flags: "--glob=!{docs/testdata/*,CHANGELOG.md,.github/styles/proselint/README.md,examples/simple_plugin/docs/*.md,coverage.md}"
           filter_mode: nofilter
           version: '3.0.3'
         env:
@@ -39,4 +39,4 @@ jobs:
         with:
           files: .
           config_file: .markdownlint.yaml
-          ignore_files: "{docs/testdata/*,CHANGELOG.md,examples/simple_plugin/docs/*.md}"
+          ignore_files: "{docs/testdata/*,CHANGELOG.md,examples/simple_plugin/docs/*.md,coverage.md}"
