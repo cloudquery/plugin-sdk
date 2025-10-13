@@ -531,7 +531,7 @@
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:83: | process | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:87: | close | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:122: | send | 100.0% |
-| github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:130: | work | 66.7% |
+| github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:130: | work | 71.4% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:173: | process | 87.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:215: | close | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batchsender/batch_sender.go:28: | NewBatchSender | 0.0% |
@@ -602,7 +602,7 @@
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:148: | resolveResourcesDfs | 72.7% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_round_robin.go:15: | syncRoundRobin | 85.2% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_round_robin.go:69: | roundRobinInterleave | 100.0% |
-| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_shuffle.go:13: | syncShuffle | 93.5% |
+| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_shuffle.go:13: | syncShuffle | 87.1% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_shuffle.go:75: | hashTableNames | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_shuffle.go:81: | shuffle | 66.7% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_shuffle_queue.go:10: | syncShuffleQueue | 94.4% |
