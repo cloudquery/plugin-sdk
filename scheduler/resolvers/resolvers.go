@@ -41,11 +41,14 @@ func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metric
 	}
 }
 
-func ResolveSingleResource(ctx context.Context, logger zerolog.Logger, m *metrics.Metrics, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, item any, c *caser.Caser) *schema.Resource {
+func ResolveResourcesChunk(ctx context.Context, logger zerolog.Logger, m *metrics.Metrics, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, chunk []any, c *caser.Caser) []*schema.Resource {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
-	resource := schema.NewResourceData(table, parent, item)
+	resources := make([]*schema.Resource, len(chunk))
+	for i, item := range chunk {
+		resources[i] = schema.NewResourceData(table, parent, item)
+	}
 	objectStartTime := time.Now()
 
 	clientID := client.ID()
@@ -60,25 +63,39 @@ func ResolveSingleResource(ctx context.Context, logger zerolog.Logger, m *metric
 			m.AddPanics(ctx, 1, selector)
 		}
 	}()
-	if table.PreResourceResolver != nil {
-		if err := table.PreResourceResolver(ctx, client, resource); err != nil {
-			tableLogger.Error().Err(err).Msg("pre resource resolver failed")
+
+	if table.PreResourceChunkResolver != nil {
+		if err := table.PreResourceChunkResolver.RowsResolver(ctx, client, resources); err != nil {
+			tableLogger.Error().Stack().Err(err).Msg("pre resource chunk resolver finished with error")
 			m.AddErrors(ctx, 1, selector)
 			return nil
 		}
 	}
 
-	for _, column := range table.Columns {
-		resolveColumn(ctx, tableLogger, m, selector, client, resource, column, c)
+	if table.PreResourceResolver != nil {
+		for _, resource := range resources {
+			if err := table.PreResourceResolver(ctx, client, resource); err != nil {
+				tableLogger.Error().Err(err).Msg("pre resource resolver failed")
+				m.AddErrors(ctx, 1, selector)
+				return nil
+			}
+		}
 	}
-
-	if table.PostResourceResolver != nil {
-		if err := table.PostResourceResolver(ctx, client, resource); err != nil {
-			tableLogger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
-			m.AddErrors(ctx, 1, selector)
+	for _, resource := range resources {
+		for _, column := range table.Columns {
+			resolveColumn(ctx, tableLogger, m, selector, client, resource, column, c)
 		}
 	}
 
-	m.AddResources(ctx, 1, selector)
-	return resource
+	if table.PostResourceResolver != nil {
+		for _, resource := range resources {
+			if err := table.PostResourceResolver(ctx, client, resource); err != nil {
+				tableLogger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
+				m.AddErrors(ctx, 1, selector)
+			}
+		}
+	}
+
+	m.AddResources(ctx, int64(len(resources)), selector)
+	return resources
 }
