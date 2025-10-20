@@ -531,7 +531,7 @@
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:83: | process | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:87: | close | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:122: | send | 100.0% |
-| github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:130: | work | 71.4% |
+| github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:130: | work | 66.7% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:173: | process | 87.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:215: | close | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batchsender/batch_sender.go:28: | NewBatchSender | 0.0% |
