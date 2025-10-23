@@ -12,6 +12,15 @@ import (
 	invoschema "github.com/invopop/jsonschema"
 )
 
+func transformDescription(table *schema.Table, tableNamesToOptionsDocs map[string]string) {
+	if tableNamesToOptionsDocs[table.Name] != "" {
+		table.Description = table.Description + "\n\n" + tableNamesToOptionsDocs[table.Name]
+	}
+	for _, rel := range table.Relations {
+		transformDescription(rel, tableNamesToOptionsDocs)
+	}
+}
+
 func TableOptionsDescriptionTransformer(tableOptions any, jsonSchema string) (schema.Transform, error) {
 	var sc invoschema.Schema
 	if err := json.Unmarshal([]byte(jsonSchema), &sc); err != nil {
@@ -44,9 +53,7 @@ func TableOptionsDescriptionTransformer(tableOptions any, jsonSchema string) (sc
 	}
 
 	return func(table *schema.Table) error {
-		if tableNamesToOptionsDocs[table.Name] != "" {
-			table.Description = table.Description + "\n\n" + tableNamesToOptionsDocs[table.Name]
-		}
+		transformDescription(table, tableNamesToOptionsDocs)
 		return nil
 	}, nil
 }

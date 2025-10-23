@@ -13,12 +13,19 @@ import (
 var testSchema string
 
 type testTableOptions struct {
-	Dummy testdata.DummyTableOptions `json:"dummy,omitempty"`
+	Dummy  testdata.DummyTableOptions `json:"dummy,omitempty"`
+	Dummy2 testdata.DummyTableOptions `json:"dummy2,omitempty"`
 }
 
 var testTable = &schema.Table{
 	Name:        "dummy",
 	Description: "This is a dummy table",
+	Relations: []*schema.Table{
+		{
+			Name:        "dummy2",
+			Description: "",
+		},
+	},
 }
 
 func TestTableOptionsDescriptionTransformer(t *testing.T) {
@@ -58,6 +65,9 @@ func TestTableOptionsDescriptionTransformer(t *testing.T) {
 			}
 			require.NoError(t, transformer(tt.args.table))
 			require.Equal(t, tt.wantDesc, tt.args.table.Description)
+			for _, rel := range tt.args.table.Relations {
+				require.NotEmpty(t, rel.Description)
+			}
 		})
 	}
 }
