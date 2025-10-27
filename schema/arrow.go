@@ -87,6 +87,15 @@ func StringArrayFromValue(value string, nRows int) arrow.Array {
 	return arrayBuilder.NewArray()
 }
 
+func UInt64ArrayFromValue(value uint64, nRows int) arrow.Array {
+	arrayBuilder := array.NewUint64Builder(memory.DefaultAllocator)
+	arrayBuilder.Reserve(nRows)
+	for i := 0; i < nRows; i++ {
+		arrayBuilder.Append(value)
+	}
+	return arrayBuilder.NewArray()
+}
+
 func TimestampArrayFromTime(t time.Time, unit arrow.TimeUnit, timeZone string, nRows int) (arrow.Array, error) {
 	ts, err := arrow.TimestampFromTime(t, unit)
 	if err != nil {
