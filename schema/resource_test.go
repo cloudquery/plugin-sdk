@@ -45,6 +45,21 @@ func TestResource_Validate(t *testing.T) {
 			resource: NewResourceData(&Table{Name: "test", Columns: ColumnList{{Name: "col1", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true}}}, nil, nil),
 			err:      &PKComponentError{MissingPKComponents: []string{"col1"}},
 		},
+		{
+			name: "valid resource with primary key components and skip validation",
+			resource: NewResourceData(&Table{Name: "test", Columns: ColumnList{
+				{
+					Name: "col1", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true,
+				},
+				{
+					Name: "col2", Type: arrow.BinaryTypes.String, PrimaryKey: true, SkipPKValidation: true,
+				},
+			}}, nil, nil),
+			err: nil,
+			valueSetter: func(resource *Resource) error {
+				return resource.Set("col1", "test")
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
