@@ -85,6 +85,12 @@ func WithPrimaryKeyComponents(fields ...string) StructTransformerOption {
 	}
 }
 
+func WithSkipPrimaryKeyValidation(fields ...string) StructTransformerOption {
+	return func(t *structTransformer) {
+		t.skipPKValidationFields = fields
+	}
+}
+
 // WithMaxJSONTypeSchemaDepth allows to specify the maximum depth of JSON type schema
 func WithMaxJSONTypeSchemaDepth(maxDepth int) StructTransformerOption {
 	return func(t *structTransformer) {

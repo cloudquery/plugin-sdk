@@ -322,6 +322,39 @@ var (
 			},
 		},
 	}
+
+	expectedTableWithSkipPKValidation = schema.Table{
+		Name: "test_pk_struct",
+		Columns: schema.ColumnList{
+			{
+				Name:             "parent",
+				Type:             arrow.BinaryTypes.String,
+				SkipPKValidation: true,
+			},
+			{
+				Name: "name",
+				Type: arrow.BinaryTypes.String,
+			},
+			{
+				Name: "version",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+		},
+	}
+
+	expectedTestTableNonEmbeddedStructWithSkipPKValidation = schema.Table{
+		Name: "test_struct",
+		Columns: schema.ColumnList{
+			schema.Column{Name: "int_col", Type: arrow.PrimitiveTypes.Int64},
+			schema.Column{Name: "test_struct", Type: types.ExtensionTypes.JSON},
+			schema.Column{
+				Name:             "non_embedded_embedded_string",
+				Type:             arrow.BinaryTypes.String,
+				SkipPKValidation: true,
+			},
+			schema.Column{Name: "non_embedded_int_col", Type: arrow.PrimitiveTypes.Int64},
+		},
+	}
 )
 
 func TestTableFromGoStruct(t *testing.T) {
@@ -476,6 +509,38 @@ func TestTableFromGoStruct(t *testing.T) {
 			},
 			want: expectedTestTableStructNonNullableFields,
 		},
+		{
+			name: "Should configure skip PK validation when option is set",
+			args: args{
+				testStruct: testPKStruct{},
+				options: []StructTransformerOption{
+					WithSkipPrimaryKeyValidation("Parent"),
+				},
+			},
+			want: expectedTableWithSkipPKValidation,
+		},
+		{
+			name: "Should return an error when a skip PK validation field is not found",
+			args: args{
+				testStruct: testPKStruct{},
+				options: []StructTransformerOption{
+					WithSkipPrimaryKeyValidation("Parent", "InvalidColumn"),
+				},
+			},
+			want:    expectedTableWithSkipPKValidation,
+			wantErr: true,
+		},
+		{
+			name: "Should configure skip PK validation for unwrapped struct fields",
+			args: args{
+				testStruct: testStructWithNonEmbeddedStruct{},
+				options: []StructTransformerOption{
+					WithUnwrapStructFields("NonEmbedded"),
+					WithSkipPrimaryKeyValidation("NonEmbedded.EmbeddedString"),
+				},
+			},
+			want: expectedTestTableNonEmbeddedStructWithSkipPKValidation,
+		},
 	}
 
 	for _, tt := range tests {
@@ -511,6 +576,19 @@ func TestTableFromGoStruct(t *testing.T) {
 
 			if diff := cmp.Diff(table.PrimaryKeys(), tt.want.PrimaryKeys()); diff != "" {
 				t.Fatalf("table does not match expected. diff (-got, +want): %v", diff)
+			}
+
+			// Check SkipPKValidation field for columns that have it set in expected
+			for _, wantCol := range tt.want.Columns {
+				if wantCol.SkipPKValidation {
+					gotCol := table.Column(wantCol.Name)
+					if gotCol == nil {
+						t.Fatalf("column %q not found", wantCol.Name)
+					}
+					if !gotCol.SkipPKValidation {
+						t.Fatalf("column %q expected SkipPKValidation=true, got false", wantCol.Name)
+					}
+				}
 			}
 		})
 	}

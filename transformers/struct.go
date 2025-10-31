@@ -30,6 +30,8 @@ type structTransformer struct {
 	pkFieldsFound                 []string
 	pkComponentFields             []string
 	pkComponentFieldsFound        []string
+	skipPKValidationFields        []string
+	skipPKValidationFieldsFound   []string
 	jsonSchemaNameTransformer     NameTransformer
 
 	maxJSONTypeSchemaDepth int
@@ -190,6 +192,13 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 		}
 	}
 
+	for _, skipPK := range t.skipPKValidationFields {
+		if skipPK == path {
+			column.SkipPKValidation = true
+			t.skipPKValidationFieldsFound = append(t.skipPKValidationFieldsFound, skipPK)
+		}
+	}
+
 	t.table.Columns = append(t.table.Columns, column)
 
 	return nil
@@ -243,6 +252,10 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 
 		if diff := funk.SubtractString(t.pkComponentFields, t.pkComponentFieldsFound); len(diff) > 0 {
 			return fmt.Errorf("failed to find all of the desired primary key components: %v", diff)
+		}
+
+		if diff := funk.SubtractString(t.skipPKValidationFields, t.skipPKValidationFieldsFound); len(diff) > 0 {
+			return fmt.Errorf("failed to find all of the desired skip primary key validation fields: %v", diff)
 		}
 		return nil
 	}
