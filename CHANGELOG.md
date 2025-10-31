@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.91.0](https://github.com/cloudquery/plugin-sdk/compare/v4.90.0...v4.91.0) (2025-10-31)
+
+
+### Features
+
+* Expose transformer option for Skipping PK Validation ([#2312](https://github.com/cloudquery/plugin-sdk/issues/2312)) ([d43e7cc](https://github.com/cloudquery/plugin-sdk/commit/d43e7cc2f23a7e4b86319209b798bb717542c168))
+
 ## [4.90.0](https://github.com/cloudquery/plugin-sdk/compare/v4.89.1...v4.90.0) (2025-10-31)
 
 
