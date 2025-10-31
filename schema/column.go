@@ -49,6 +49,9 @@ type Column struct {
 
 	// If the column type is JSON, this field will have a JSON string that represents the schema of the JSON object.
 	TypeSchema string `json:"type_schema,omitempty"`
+
+	// Some PK columns can be nullable if there are a part of a composite PK, so we want to skip validation for them.
+	SkipPKValidation bool `json:"skip_pk_validation"`
 }
 
 // NewColumnFromArrowField creates a new Column from an arrow.Field

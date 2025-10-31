@@ -152,6 +152,9 @@ func (r *Resource) Validate() error {
 	var missingPks []string
 	var missingPKComponents []string
 	for i, c := range r.Table.Columns {
+		if c.SkipPKValidation {
+			continue
+		}
 		switch {
 		case c.PrimaryKey && !r.data[i].IsValid():
 			missingPks = append(missingPks, c.Name)
