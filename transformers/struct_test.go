@@ -327,13 +327,13 @@ var (
 		Name: "test_pk_struct",
 		Columns: schema.ColumnList{
 			{
-				Name:                "parent",
-				Type:                arrow.BinaryTypes.String,
-				SkipPKValidation:    true,
+				Name:             "parent",
+				Type:             arrow.BinaryTypes.String,
+				SkipPKValidation: true,
 			},
 			{
-				Name:                "name",
-				Type:                arrow.BinaryTypes.String,
+				Name: "name",
+				Type: arrow.BinaryTypes.String,
 			},
 			{
 				Name: "version",
