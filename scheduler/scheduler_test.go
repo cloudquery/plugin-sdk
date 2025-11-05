@@ -192,7 +192,7 @@ const chunkSize = 200
 func testTableSuccessWithRowsChunkResolverSendSingleItemToResChan() *schema.Table {
 	return &schema.Table{
 		Name: "test_table_success_with_rows_chunk_resolver",
-		Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- any) error {
+		Resolver: func(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 			for i := range chunkSize {
 				res <- i
 			}
@@ -200,9 +200,9 @@ func testTableSuccessWithRowsChunkResolverSendSingleItemToResChan() *schema.Tabl
 		},
 		PreResourceChunkResolver: &schema.RowsChunkResolver{
 			ChunkSize: chunkSize,
-			RowsResolver: func(ctx context.Context, meta schema.ClientMeta, resourcesChunk []*schema.Resource) error {
+			RowsResolver: func(_ context.Context, _ schema.ClientMeta, resourcesChunk []*schema.Resource) error {
 				for _, resource := range resourcesChunk {
-					resource.Set("test_column", strconv.Itoa(resource.Item.(int)))
+					_ = resource.Set("test_column", strconv.Itoa(resource.Item.(int)))
 				}
 				return nil
 			},
@@ -219,7 +219,7 @@ func testTableSuccessWithRowsChunkResolverSendSingleItemToResChan() *schema.Tabl
 func testTableSuccessWithRowsChunkResolverSendSliceToResChan() *schema.Table {
 	return &schema.Table{
 		Name: "test_table_success_with_rows_chunk_resolver",
-		Resolver: func(ctx context.Context, meta schema.ClientMeta, parent *schema.Resource, res chan<- any) error {
+		Resolver: func(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 			data := make([]int, chunkSize)
 			for i := range chunkSize {
 				data[i] = i
@@ -229,9 +229,9 @@ func testTableSuccessWithRowsChunkResolverSendSliceToResChan() *schema.Table {
 		},
 		PreResourceChunkResolver: &schema.RowsChunkResolver{
 			ChunkSize: chunkSize,
-			RowsResolver: func(ctx context.Context, meta schema.ClientMeta, resourcesChunk []*schema.Resource) error {
+			RowsResolver: func(_ context.Context, _ schema.ClientMeta, resourcesChunk []*schema.Resource) error {
 				for _, resource := range resourcesChunk {
-					resource.Set("test_column", strconv.Itoa(resource.Item.(int)))
+					_ = resource.Set("test_column", strconv.Itoa(resource.Item.(int)))
 				}
 				return nil
 			},
@@ -245,11 +245,11 @@ func testTableSuccessWithRowsChunkResolverSendSliceToResChan() *schema.Table {
 	}
 }
 
-func expectedChunkedResolverData(schema *arrow.Schema) []arrow.Record {
+func expectedChunkedResolverData(s *arrow.Schema) []arrow.Record {
 	const rowsPerRecord = 50
 	data := make([]arrow.Record, chunkSize/rowsPerRecord)
 	for i := range data {
-		builder := array.NewRecordBuilder(memory.DefaultAllocator, schema)
+		builder := array.NewRecordBuilder(memory.DefaultAllocator, s)
 		for j := range rowsPerRecord {
 			builder.Field(0).(*array.StringBuilder).Append(strconv.Itoa(i*rowsPerRecord + j))
 		}
