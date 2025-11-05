@@ -25,6 +25,7 @@ type TableResolver func(ctx context.Context, meta ClientMeta, parent *Resource, 
 
 type RowResolver func(ctx context.Context, meta ClientMeta, resource *Resource) error
 
+// EXPERIMENTAL: RowsChunkResolver API might change in future versions of the SDK
 type RowsChunkResolver struct {
 	ChunkSize    int
 	RowsResolver func(ctx context.Context, meta ClientMeta, resourcesChunk []*Resource) error
