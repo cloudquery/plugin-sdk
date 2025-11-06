@@ -13,6 +13,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -157,8 +158,11 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 	go func() {
 		defer close(resourcesChan)
 		var wg sync.WaitGroup
-		for i := range resourcesSlice {
-			i := i
+		chunks := [][]any{resourcesSlice}
+		if table.PreResourceChunkResolver != nil {
+			chunks = lo.Chunk(resourcesSlice, table.PreResourceChunkResolver.ChunkSize)
+		}
+		for i := range chunks {
 			resourceConcurrencyKey := table.Name + "-" + client.ID() + "-" + "resource"
 			resourceSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(resourceConcurrencyKey, semaphore.NewWeighted(s.scheduler.singleResourceMaxConcurrency))
 			resourceSem := resourceSemVal.(*semaphore.Weighted)
@@ -183,33 +187,34 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 				defer resourceSem.Release(1)
 				defer s.scheduler.resourceSem.Release(1)
 				defer wg.Done()
-				//nolint:all
-				resolvedResource := resolvers.ResolveSingleResource(ctx, s.logger, s.metrics, table, client, parent, resourcesSlice[i], s.scheduler.caser)
-				if resolvedResource == nil {
+				resolvedResources := resolvers.ResolveResourcesChunk(ctx, s.logger, s.metrics, table, client, parent, chunks[i], s.scheduler.caser)
+				if len(resolvedResources) == 0 {
 					return
 				}
 
-				if err := resolvedResource.CalculateCQID(s.deterministicCQID); err != nil {
-					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
-					s.metrics.AddErrors(ctx, 1, selector)
-					return
-				}
-				if err := resolvedResource.StoreCQClientID(client.ID()); err != nil {
-					s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("failed to store _cq_client_id")
-				}
-				if err := resolvedResource.Validate(); err != nil {
-					switch err.(type) {
-					case *schema.PKError:
-						s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
+				for _, resolvedResource := range resolvedResources {
+					if err := resolvedResource.CalculateCQID(s.deterministicCQID); err != nil {
+						s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
 						s.metrics.AddErrors(ctx, 1, selector)
 						return
-					case *schema.PKComponentError:
-						s.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")
 					}
-				}
-				select {
-				case resourcesChan <- resolvedResource:
-				case <-ctx.Done():
+					if err := resolvedResource.StoreCQClientID(client.ID()); err != nil {
+						s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("failed to store _cq_client_id")
+					}
+					if err := resolvedResource.Validate(); err != nil {
+						switch err.(type) {
+						case *schema.PKError:
+							s.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
+							s.metrics.AddErrors(ctx, 1, selector)
+							return
+						case *schema.PKComponentError:
+							s.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")
+						}
+					}
+					select {
+					case resourcesChan <- resolvedResource:
+					case <-ctx.Done():
+					}
 				}
 			}()
 		}
