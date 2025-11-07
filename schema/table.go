@@ -72,6 +72,9 @@ type Table struct {
 	Title string `json:"title"`
 	// table description
 	Description string `json:"description"`
+	// AdditionalDescription is an optional field that can be used to provide more context after the basic preamble and
+	// permissions information.
+	AdditionalDescription string `json:"additionalDescription"`
 	// List of permissions needed to access this table, if any. For example ["Microsoft.Network/dnsZones/read"] or ["storage.buckets.list"]
 	PermissionsNeeded []string `json:"permissions_needed"`
 	// List of columns that may contain sensitive or secret data
