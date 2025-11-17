@@ -591,7 +591,7 @@
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler.go:92: | WithShard | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler.go:147: | NewScheduler | 92.9% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler.go:185: | SyncAll | 0.0% |
-| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler.go:200: | Sync | 86.8% |
+| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler.go:200: | Sync | 81.6% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler.go:278: | logTablesMetrics | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler.go:287: | maxDepth | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler.go:301: | shardTableClients | 100.0% |
@@ -599,7 +599,7 @@
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_debug.go:30: | syncTest | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:23: | syncDfs | 86.7% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:80: | resolveTableDfs | 86.1% |
-| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:149: | resolveResourcesDfs | 69.6% |
+| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:149: | resolveResourcesDfs | 73.9% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_round_robin.go:15: | syncRoundRobin | 85.2% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_round_robin.go:69: | roundRobinInterleave | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_shuffle.go:13: | syncShuffle | 87.1% |
@@ -936,4 +936,4 @@
 | github.com/cloudquery/plugin-sdk/v4/writers/ticker.go:32: | Stop | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/ticker.go:34: | Reset | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/ticker.go:36: | Chan | 0.0% |
-| total: | (statements) | 55.1% |
+| total: | (statements) | 55.2% |
