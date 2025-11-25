@@ -4,3 +4,4 @@ CHANGELOG.md
 go.mod
 go.sum
 .github/
+coverage.md
