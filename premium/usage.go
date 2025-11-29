@@ -410,6 +410,9 @@ func (u *BatchUpdater) CheckQuota(ctx context.Context) (CheckQuotaResult, error)
 		return CheckQuotaResult{HasQuota: false}, fmt.Errorf("failed to get usage: %w", err)
 	}
 	if usage.StatusCode() != http.StatusOK {
+		if u.tokenClient.GetTokenType() == auth.APIKey && usage.StatusCode() == http.StatusForbidden {
+			u.logger.Warn().Msg("API Key may have expired. Please see the CloudQuery Console see the expiration status.")
+		}
 		return CheckQuotaResult{HasQuota: false}, fmt.Errorf("failed to get usage: %s", usage.Status())
 	}
 
