@@ -22,6 +22,7 @@ func WithAccessToken(token, tokenType string, expiry time.Time) TokenSourceOptio
 }
 
 // WithToken sets the default token for the token source.
+// Deprecated: Use oauth2.StaticTokenSource directly instead.
 func WithToken(token oauth2.Token) TokenSourceOption {
 	return func(t *tokenSource) {
 		t.currentToken = token
@@ -29,14 +30,7 @@ func WithToken(token oauth2.Token) TokenSourceOption {
 }
 
 // WithDefaultContext sets the default context for the token source, used when creating a new token request.
-func WithDefaultContext(ctx context.Context) TokenSourceOption {
-	return func(t *tokenSource) {
-		t.defaultContext = ctx
-	}
-}
-
-func withNoWrap() TokenSourceOption {
-	return func(t *tokenSource) {
-		t.noWrap = true
-	}
+// Deprecated: not used in the current implementation.
+func WithDefaultContext(_ context.Context) TokenSourceOption {
+	return func(*tokenSource) {}
 }
