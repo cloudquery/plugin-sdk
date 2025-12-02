@@ -32,5 +32,5 @@ func WithToken(token oauth2.Token) TokenSourceOption {
 // WithDefaultContext sets the default context for the token source, used when creating a new token request.
 // Deprecated: not used in the current implementation.
 func WithDefaultContext(_ context.Context) TokenSourceOption {
-	return func(t *tokenSource) {}
+	return func(*tokenSource) {}
 }
