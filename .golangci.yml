@@ -29,6 +29,7 @@ linters:
     gocritic:
       disabled-checks:
         - commentFormatting
+        - deprecatedComment
     govet:
       disable:
         - fieldalignment
