@@ -9,24 +9,35 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/types"
 )
 
+func isValueValid(i int, arr arrow.Array) bool {
+	if arr.IsValid(i) {
+		if arrow.TypeEqual(arr.DataType(), types.ExtensionTypes.JSON) {
+			// JSON column shouldn't be empty
+			val := arr.GetOneForMarshal(i).(json.RawMessage)
+			if isEmptyJSON(val) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
 func FindEmptyColumns(table *Table, records []arrow.Record) []string {
 	columnsWithValues := make([]bool, len(table.Columns))
 	emptyColumns := make([]string, 0)
 
 	for _, resource := range records {
 		for colIndex, arr := range resource.Columns() {
+			allValuesValid := true
 			for i := 0; i < arr.Len(); i++ {
-				if arr.IsValid(i) {
-					if arrow.TypeEqual(arr.DataType(), types.ExtensionTypes.JSON) {
-						// JSON column shouldn't be empty
-						val := arr.GetOneForMarshal(i).(json.RawMessage)
-						if isEmptyJSON(val) {
-							continue
-						}
-					}
-
-					columnsWithValues[colIndex] = true
+				if !isValueValid(i, arr) {
+					allValuesValid = false
+					break
 				}
+			}
+			if allValuesValid {
+				columnsWithValues[colIndex] = true
 			}
 		}
 	}
