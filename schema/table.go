@@ -118,6 +118,14 @@ type Table struct {
 
 	// IgnorePKComponentsMismatchValidation is a flag that indicates if the table should skip validating usage of both primary key components and primary keys
 	IgnorePKComponentsMismatchValidation bool `json:"ignore_pk_components_mismatch_validation"`
+
+	// ConcurrencySettings Enables configuring concurrency settings for specific table. This provides a mechanism for irregular APIs to have unique settings either because it shares a common rate limit pool or has different limits than the default settings.
+	ConcurrencySettings *ConcurrencySettings `json:"concurrency_settings,omitempty"`
+}
+type ConcurrencySettings struct {
+	ConcurrencyKey         *string `json:"concurrency_key,omitempty"`
+	MaxResourceConcurrency *int    `json:"max_resource_concurrency,omitempty"`
+	MaxTableConcurrency    *int    `json:"max_table_concurrency,omitempty"`
 }
 
 var (
