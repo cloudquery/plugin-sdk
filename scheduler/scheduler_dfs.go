@@ -163,8 +163,17 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 			chunks = lo.Chunk(resourcesSlice, table.PreResourceChunkResolver.ChunkSize)
 		}
 		for i := range chunks {
-			resourceConcurrencyKey := table.Name + "-" + client.ID() + "-" + "resource"
-			resourceSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(resourceConcurrencyKey, semaphore.NewWeighted(s.scheduler.singleResourceMaxConcurrency))
+			resourceConcurrencyKey := table.Name
+			if table.ConcurrencySettings != nil && lo.FromPtr(table.ConcurrencySettings.ConcurrencyKey) != "" {
+				resourceConcurrencyKey = lo.FromPtr(table.ConcurrencySettings.ConcurrencyKey)
+			}
+			resourceConcurrencyKey = resourceConcurrencyKey + "-" + client.ID() + "-" + "resource"
+			resourceConcurrency := s.scheduler.singleResourceMaxConcurrency
+			if table.ConcurrencySettings != nil && lo.FromPtr(table.ConcurrencySettings.MaxResourceConcurrency) > 0 {
+				resourceConcurrency = int64(lo.FromPtr(table.ConcurrencySettings.MaxResourceConcurrency))
+			}
+
+			resourceSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(resourceConcurrencyKey, semaphore.NewWeighted(resourceConcurrency))
 			resourceSem := resourceSemVal.(*semaphore.Weighted)
 			if err := resourceSem.Acquire(ctx, 1); err != nil {
 				s.logger.Warn().Err(err).Msg("failed to acquire semaphore. context cancelled")
@@ -227,9 +236,18 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 		resolvedResources <- resource
 		for _, relation := range resource.Table.Relations {
 			relation := relation
-			tableConcurrencyKey := table.Name + "-" + client.ID()
+			tableConcurrencyKey := table.Name
+			if table.ConcurrencySettings != nil && lo.FromPtr(table.ConcurrencySettings.ConcurrencyKey) != "" {
+				tableConcurrencyKey = lo.FromPtr(table.ConcurrencySettings.ConcurrencyKey)
+			}
+			tableConcurrencyKey = tableConcurrencyKey + "-" + client.ID()
+			tableConcurrency := s.scheduler.singleNestedTableMaxConcurrency
+			if table.ConcurrencySettings != nil && lo.FromPtr(table.ConcurrencySettings.MaxTableConcurrency) > 0 {
+				tableConcurrency = int64(lo.FromPtr(table.ConcurrencySettings.MaxTableConcurrency))
+			}
+
 			// Acquire the semaphore for the table
-			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(tableConcurrencyKey, semaphore.NewWeighted(s.scheduler.singleNestedTableMaxConcurrency))
+			tableSemVal, _ := s.scheduler.singleTableConcurrency.LoadOrStore(tableConcurrencyKey, semaphore.NewWeighted(tableConcurrency))
 			tableSem := tableSemVal.(*semaphore.Weighted)
 			if err := tableSem.Acquire(ctx, 1); err != nil {
 				// This means context was cancelled
