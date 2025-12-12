@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.93.0](https://github.com/cloudquery/plugin-sdk/compare/v4.92.1...v4.93.0) (2025-12-12)
+
+
+### Features
+
+* Update OTEL to latest version ([#2349](https://github.com/cloudquery/plugin-sdk/issues/2349)) ([d4ee1ab](https://github.com/cloudquery/plugin-sdk/commit/d4ee1ab7d7e5f837068f9ed3b077c694856d7dff))
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2343](https://github.com/cloudquery/plugin-sdk/issues/2343)) ([e1aaee1](https://github.com/cloudquery/plugin-sdk/commit/e1aaee11d33a6c868fcf1e04497690819a3608e5))
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2347](https://github.com/cloudquery/plugin-sdk/issues/2347)) ([81598ca](https://github.com/cloudquery/plugin-sdk/commit/81598cad9c5b011dd76c7e20e0ad2ea2b79a69cc))
+* **deps:** Update opentelemetry-go monorepo ([#2348](https://github.com/cloudquery/plugin-sdk/issues/2348)) ([3a7f6d5](https://github.com/cloudquery/plugin-sdk/commit/3a7f6d59a0fa544a495179e41f454700d3aa6994))
+
 ## [4.92.1](https://github.com/cloudquery/plugin-sdk/compare/v4.92.0...v4.92.1) (2025-12-05)
 
 
