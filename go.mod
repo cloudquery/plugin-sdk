@@ -24,7 +24,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.52.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/thoas/go-funk v0.9.3
 	go.opentelemetry.io/otel v1.39.0
@@ -40,7 +40,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.39.0
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
 	golang.org/x/oauth2 v0.33.0
-	golang.org/x/sync v0.18.0
+	golang.org/x/sync v0.19.0
 	golang.org/x/text v0.31.0
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.10
