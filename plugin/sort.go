@@ -12,7 +12,7 @@ import (
 // Because "id" is auto-incrementing in the test  data generator, if passed "id"
 // this should result in records being returned in insertion order.
 // nolint:unparam
-func sortRecords(table *schema.Table, records []arrow.Record, columnName string) {
+func sortRecords(table *schema.Table, records []arrow.RecordBatch, columnName string) {
 	sch := table.ToArrowSchema()
 	if !sch.HasField(columnName) {
 		panic("table has no '" + columnName + "' column to sort on")

@@ -68,7 +68,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		return fmt.Errorf("expected items: %d, got: %d", rowsPerRecord, totalItems)
 	}
 
-	if diff := RecordsDiff(source.ToArrowSchema(), records, []arrow.Record{resource1}); diff != "" {
+	if diff := RecordsDiff(source.ToArrowSchema(), records, []arrow.RecordBatch{resource1}); diff != "" {
 		return fmt.Errorf("first record differs from expectation: %s", diff)
 	}
 
@@ -349,14 +349,14 @@ func (s *WriterTestSuite) testMigrate(
 	})
 }
 
-func expectRows(sc *arrow.Schema, records []arrow.Record, expectTotal int64, expectedLast arrow.Record) error {
+func expectRows(sc *arrow.Schema, records []arrow.RecordBatch, expectTotal int64, expectedLast arrow.RecordBatch) error {
 	totalItems := TotalRows(records)
 	if totalItems != expectTotal {
 		return fmt.Errorf("expected %d items, got %d", expectTotal, totalItems)
 	}
 	lastRecord := records[len(records)-1]
 	lastRow := lastRecord.NewSlice(lastRecord.NumRows()-1, lastRecord.NumRows())
-	if diff := RecordsDiff(sc, []arrow.Record{lastRow}, []arrow.Record{expectedLast}); diff != "" {
+	if diff := RecordsDiff(sc, []arrow.RecordBatch{lastRow}, []arrow.RecordBatch{expectedLast}); diff != "" {
 		return fmt.Errorf("record #%d differs from expectation: %s", totalItems, diff)
 	}
 	return nil

@@ -96,7 +96,7 @@ func TestPluginServe(t *testing.T) {
 	}
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, testTable.ToArrowSchema())
 	bldr.Field(0).(*array.StringBuilder).Append("test")
-	record := bldr.NewRecord()
+	record := bldr.NewRecordBatch()
 
 	recordBytes, err := pb.RecordToBytes(record)
 	if err != nil {
@@ -140,7 +140,7 @@ func TestPluginServe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var resources []arrow.Record
+	var resources []arrow.RecordBatch
 	for {
 		r, err := syncClient.Recv()
 		if err == io.EOF {
@@ -155,7 +155,7 @@ func TestPluginServe(t *testing.T) {
 			t.Fatal(err)
 		}
 		for rdr.Next() {
-			rec := rdr.Record()
+			rec := rdr.RecordBatch()
 			rec.Retain()
 			resources = append(resources, rec)
 		}

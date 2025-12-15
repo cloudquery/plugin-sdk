@@ -7,13 +7,13 @@ import (
 
 type (
 	SlicedRecord struct {
-		arrow.Record
+		arrow.RecordBatch
 		Bytes       int64 // we need this as the util.TotalRecordSize will report the full size even for the sliced record
 		bytesPerRow int64
 	}
 )
 
-func (s *SlicedRecord) split(limit *Cap) (add *SlicedRecord, toFlush []arrow.Record, rest *SlicedRecord) {
+func (s *SlicedRecord) split(limit *Cap) (add *SlicedRecord, toFlush []arrow.RecordBatch, rest *SlicedRecord) {
 	if s == nil {
 		return nil, nil, nil
 	}
@@ -23,13 +23,13 @@ func (s *SlicedRecord) split(limit *Cap) (add *SlicedRecord, toFlush []arrow.Rec
 		limit.add(add.Bytes, add.NumRows())
 	}
 
-	if s.Record == nil {
+	if s.RecordBatch == nil {
 		// all processed
 		return add, nil, nil
 	}
 
 	toFlush = s.getToFlush(limit)
-	if s.Record == nil {
+	if s.RecordBatch == nil {
 		// all processed
 		return add, toFlush, nil
 	}
@@ -56,21 +56,21 @@ func (s *SlicedRecord) getAdd(limit *Cap) *SlicedRecord {
 		// grab the whole record (either no limits or not overflowing)
 		res := *s
 		s.Bytes = 0
-		s.Record = nil
+		s.RecordBatch = nil
 		return &res
 	}
 
 	res := SlicedRecord{
-		Record:      s.NewSlice(0, rows),
+		RecordBatch: s.NewSlice(0, rows),
 		Bytes:       rows * s.bytesPerRow,
 		bytesPerRow: s.bytesPerRow,
 	}
-	s.Record = s.NewSlice(rows, s.NumRows())
+	s.RecordBatch = s.NewSlice(rows, s.NumRows())
 	s.Bytes -= res.Bytes
 	return &res
 }
 
-func (s *SlicedRecord) getToFlush(limit *Cap) []arrow.Record {
+func (s *SlicedRecord) getToFlush(limit *Cap) []arrow.RecordBatch {
 	rowsByBytes := limit.bytes.capPerN(s.bytesPerRow)
 	rows := limit.rows.cap()
 	switch {
@@ -93,7 +93,7 @@ func (s *SlicedRecord) getToFlush(limit *Cap) []arrow.Record {
 		return nil
 	}
 
-	flush := make([]arrow.Record, 0, s.NumRows()/rows)
+	flush := make([]arrow.RecordBatch, 0, s.NumRows()/rows)
 	offset := int64(0)
 	for offset+rows <= s.NumRows() {
 		flush = append(flush, s.NewSlice(offset, offset+rows))
@@ -101,33 +101,33 @@ func (s *SlicedRecord) getToFlush(limit *Cap) []arrow.Record {
 	}
 	if offset == s.NumRows() {
 		// we processed everything for flush
-		s.Record = nil
+		s.RecordBatch = nil
 		s.Bytes = 0
 		return flush
 	}
 
 	// set record to the remainder
-	s.Record = s.NewSlice(offset, s.NumRows())
+	s.RecordBatch = s.NewSlice(offset, s.NumRows())
 	s.Bytes = s.NumRows() * s.bytesPerRow
 
 	return flush
 }
 
-func (s *SlicedRecord) slice() []arrow.Record {
-	res := make([]arrow.Record, s.NumRows())
+func (s *SlicedRecord) slice() []arrow.RecordBatch {
+	res := make([]arrow.RecordBatch, s.NumRows())
 	for i := int64(0); i < s.NumRows(); i++ {
 		res[i] = s.NewSlice(i, i+1)
 	}
 	return res
 }
 
-func newSlicedRecord(r arrow.Record) *SlicedRecord {
+func newSlicedRecord(r arrow.RecordBatch) *SlicedRecord {
 	if r.NumRows() == 0 {
 		return nil
 	}
 	res := SlicedRecord{
-		Record: r,
-		Bytes:  util.TotalRecordSize(r),
+		RecordBatch: r,
+		Bytes:       util.TotalRecordSize(r),
 	}
 	res.bytesPerRow = res.Bytes / r.NumRows()
 	return &res
@@ -139,7 +139,7 @@ func newSlicedRecord(r arrow.Record) *SlicedRecord {
 // - `flush` represents sliced arrow.Record that needs own batch to be flushed
 // - `remaining` represents the overflow of the batch after `add` & `flush` are processed
 // Note that the `limit` provided will not be updated.
-func SliceRecord(r arrow.Record, limit *Cap) (add *SlicedRecord, flush []arrow.Record, remaining *SlicedRecord) {
+func SliceRecord(r arrow.RecordBatch, limit *Cap) (add *SlicedRecord, flush []arrow.RecordBatch, remaining *SlicedRecord) {
 	l := *limit // copy value
 	return newSlicedRecord(r).split(&l)
 }

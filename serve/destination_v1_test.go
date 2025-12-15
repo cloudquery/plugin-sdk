@@ -107,7 +107,7 @@ func TestDestinationV1(t *testing.T) {
 	bldr.Field(0).(*array.StringBuilder).Append(sourceName)
 	bldr.Field(1).(*array.TimestampBuilder).AppendTime(syncTime)
 	bldr.Field(2).(*array.Int16Builder).Append(1)
-	rec := bldr.NewRecord()
+	rec := bldr.NewRecordBatch()
 
 	sourceSpecBytes, err := json.Marshal(sourceSpec)
 	if err != nil {

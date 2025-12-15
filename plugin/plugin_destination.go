@@ -12,7 +12,7 @@ import (
 
 type DestinationClient interface {
 	Close(ctx context.Context) error
-	Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error
+	Read(ctx context.Context, table *schema.Table, res chan<- arrow.RecordBatch) error
 	Write(ctx context.Context, res <-chan message.WriteMessage) error
 }
 
@@ -40,7 +40,7 @@ func (p *Plugin) Write(ctx context.Context, res <-chan message.WriteMessage) err
 }
 
 // Read is read data from the requested table to the given channel, returned in the same format as the table
-func (p *Plugin) Read(ctx context.Context, table *schema.Table, res chan<- arrow.Record) error {
+func (p *Plugin) Read(ctx context.Context, table *schema.Table, res chan<- arrow.RecordBatch) error {
 	if !p.mu.TryLock() {
 		return errors.New("plugin already in use")
 	}

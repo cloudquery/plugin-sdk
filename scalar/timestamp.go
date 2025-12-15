@@ -16,6 +16,9 @@ const (
 	// these are used by Arrow string format (time is in UTC)
 	arrowStringFormat    = "2006-01-02 15:04:05.999999999"
 	arrowStringFormatNew = "2006-01-02 15:04:05.999999999Z"
+
+	// See https://github.com/apache/arrow-go/pull/510, special layout for backwards compatibility
+	TimestampStringLayout = "2006-01-02 15:04:05.999999999Z0700"
 )
 
 type Timestamp struct {

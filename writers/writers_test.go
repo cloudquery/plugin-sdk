@@ -23,7 +23,7 @@ import (
 type bCase struct {
 	name string
 	wr   writers.Writer
-	rec  func() arrow.Record
+	rec  func() arrow.RecordBatch
 }
 
 func BenchmarkWriterMemory(b *testing.B) {
@@ -88,7 +88,7 @@ func BenchmarkWriterMemory(b *testing.B) {
 	}
 }
 
-func makeRecord() func() arrow.Record {
+func makeRecord() func() arrow.RecordBatch {
 	table := &schema.Table{
 		Name: "test_table",
 		Columns: schema.ColumnList{
@@ -100,14 +100,14 @@ func makeRecord() func() arrow.Record {
 	}
 	sc := table.ToArrowSchema()
 
-	return func() arrow.Record {
+	return func() arrow.RecordBatch {
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		bldr.Field(0).(*array.StringBuilder).Append("test")
-		return bldr.NewRecord()
+		return bldr.NewRecordBatch()
 	}
 }
 
-func makeWideRecord() func() arrow.Record {
+func makeWideRecord() func() arrow.RecordBatch {
 	table := &schema.Table{
 		Name: "test_wide_table",
 		Columns: schema.ColumnList{
@@ -129,17 +129,17 @@ func makeWideRecord() func() arrow.Record {
 	}
 	sc := table.ToArrowSchema()
 
-	return func() arrow.Record {
+	return func() arrow.RecordBatch {
 		bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 		bldr.Field(0).(*array.StringBuilder).Append("test")
 		for i := 0; i < numWideCols; i++ {
 			bldr.Field(i + 1).(*array.Int64Builder).Append(randVals[i])
 		}
-		return bldr.NewRecord()
+		return bldr.NewRecordBatch()
 	}
 }
 
-func writerMatrix[T writers.Writer, C any, O ~func(T)](prefix string, constructor func(C, ...O) (T, error), client C, recordMaker func() func() arrow.Record, optsMatrix map[string][]O) []bCase {
+func writerMatrix[T writers.Writer, C any, O ~func(T)](prefix string, constructor func(C, ...O) (T, error), client C, recordMaker func() func() arrow.RecordBatch, optsMatrix map[string][]O) []bCase {
 	bCases := make([]bCase, 0, len(optsMatrix))
 
 	k := maps.Keys(optsMatrix)
