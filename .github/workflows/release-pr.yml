@@ -31,7 +31,7 @@ jobs:
         with:
           prerelease: true
       - name: Trigger Renovate
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         if: steps.release.outputs.release_created && steps.semver_parser.outputs.prerelease == ''
         with:
           github-token: ${{ secrets.GH_CQ_BOT }}
