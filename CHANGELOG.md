@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.93.1](https://github.com/cloudquery/plugin-sdk/compare/v4.93.0...v4.93.1) (2025-12-16)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.14.7 ([#2365](https://github.com/cloudquery/plugin-sdk/issues/2365)) ([1953885](https://github.com/cloudquery/plugin-sdk/commit/19538857776889bba19f91f5acbaa103703768b4))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.27.1 ([#2367](https://github.com/cloudquery/plugin-sdk/issues/2367)) ([985d54a](https://github.com/cloudquery/plugin-sdk/commit/985d54ace1f535e9c8afb7f6f9e87e6921fe9ef2))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.27.2 ([#2368](https://github.com/cloudquery/plugin-sdk/issues/2368)) ([d54cb52](https://github.com/cloudquery/plugin-sdk/commit/d54cb521324ded7593cf9add421bb38c280166b0))
+* **deps:** Update module github.com/spf13/cobra to v1.10.2 ([#2353](https://github.com/cloudquery/plugin-sdk/issues/2353)) ([8c37fb4](https://github.com/cloudquery/plugin-sdk/commit/8c37fb478994612422dc4b83ef7eec10a249e019))
+* **deps:** Update module golang.org/x/oauth2 to v0.34.0 ([#2364](https://github.com/cloudquery/plugin-sdk/issues/2364)) ([d8a6cff](https://github.com/cloudquery/plugin-sdk/commit/d8a6cffc93620ce623e809451b9a659ccf649f80))
+* **deps:** Update module golang.org/x/sync to v0.19.0 ([#2355](https://github.com/cloudquery/plugin-sdk/issues/2355)) ([72f27ac](https://github.com/cloudquery/plugin-sdk/commit/72f27ac9573dcf3e00ecfe557b8519bac6d70610))
+
 ## [4.93.0](https://github.com/cloudquery/plugin-sdk/compare/v4.92.1...v4.93.0) (2025-12-12)
 
 
