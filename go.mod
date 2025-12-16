@@ -3,7 +3,7 @@ module github.com/cloudquery/plugin-sdk/v4
 go 1.24.4
 
 require (
-	github.com/apache/arrow-go/v18 v18.4.0
+	github.com/apache/arrow-go/v18 v18.5.0
 	github.com/aws/aws-sdk-go-v2 v1.40.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.3
 	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.37.2
@@ -11,7 +11,7 @@ require (
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.14.7
 	github.com/cloudquery/codegen v0.3.33
-	github.com/cloudquery/plugin-pb-go v1.26.18
+	github.com/cloudquery/plugin-pb-go v1.27.1
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/goccy/go-json v0.10.5
 	github.com/golang/mock v1.6.0
@@ -38,12 +38,12 @@ require (
 	go.opentelemetry.io/otel/sdk/log v0.15.0
 	go.opentelemetry.io/otel/sdk/metric v1.39.0
 	go.opentelemetry.io/otel/trace v1.39.0
-	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
+	golang.org/x/exp v0.0.0-20251209150349-8475f28825e9
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.19.0
-	golang.org/x/text v0.31.0
+	golang.org/x/text v0.32.0
 	google.golang.org/grpc v1.77.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -70,12 +70,12 @@ require (
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/google/flatbuffers v25.2.10+incompatible // indirect
+	github.com/google/flatbuffers v25.9.23+incompatible // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
+	github.com/klauspost/compress v1.18.2 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -88,11 +88,11 @@ require (
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
-	golang.org/x/mod v0.29.0 // indirect
-	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/mod v0.31.0 // indirect
+	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/telemetry v0.0.0-20251008203120-078029d740a8 // indirect
-	golang.org/x/tools v0.38.0 // indirect
+	golang.org/x/telemetry v0.0.0-20251203150158-8fff8a5912fc // indirect
+	golang.org/x/tools v0.40.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect

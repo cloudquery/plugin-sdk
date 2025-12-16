@@ -9,7 +9,7 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/memory"
 )
 
-func RecordsDiff(sc *arrow.Schema, have, want []arrow.Record) string {
+func RecordsDiff(sc *arrow.Schema, have, want []arrow.RecordBatch) string {
 	return TableDiff(array.NewTableFromRecords(sc, have), array.NewTableFromRecords(sc, want))
 }
 

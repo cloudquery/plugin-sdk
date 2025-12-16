@@ -245,15 +245,15 @@ func testTableSuccessWithRowsChunkResolverSendSliceToResChan() *schema.Table {
 	}
 }
 
-func expectedChunkedResolverData(s *arrow.Schema) []arrow.Record {
+func expectedChunkedResolverData(s *arrow.Schema) []arrow.RecordBatch {
 	const rowsPerRecord = 50
-	data := make([]arrow.Record, chunkSize/rowsPerRecord)
+	data := make([]arrow.RecordBatch, chunkSize/rowsPerRecord)
 	for i := range data {
 		builder := array.NewRecordBuilder(memory.DefaultAllocator, s)
 		for j := range rowsPerRecord {
 			builder.Field(0).(*array.StringBuilder).Append(strconv.Itoa(i*rowsPerRecord + j))
 		}
-		record := builder.NewRecord()
+		record := builder.NewRecordBatch()
 		data[i] = record
 	}
 	return data
@@ -262,7 +262,7 @@ func expectedChunkedResolverData(s *arrow.Schema) []arrow.Record {
 type syncTestCase struct {
 	table             *schema.Table
 	data              []scalar.Vector
-	dataAsRecords     []arrow.Record
+	dataAsRecords     []arrow.RecordBatch
 	deterministicCQID bool
 	err               error
 }
@@ -440,12 +440,12 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 
 	dataAsRecords := tc.dataAsRecords
 	if dataAsRecords == nil {
-		dataAsRecords = lo.Map(tc.data, func(item scalar.Vector, _ int) arrow.Record {
+		dataAsRecords = lo.Map(tc.data, func(item scalar.Vector, _ int) arrow.RecordBatch {
 			return item.ToArrowRecord(tc.table.ToArrowSchema())
 		})
 	}
 
-	gotRecords := make([]arrow.Record, 0)
+	gotRecords := make([]arrow.RecordBatch, 0)
 	for msg := range msgs {
 		switch v := msg.(type) {
 		case *message.SyncInsert:
@@ -476,14 +476,14 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 	}
 
 	// We do this since the SDK can batch rows into a single record, so we need to compare them as single row records
-	slicedExpectedRecords := make([]arrow.Record, 0)
+	slicedExpectedRecords := make([]arrow.RecordBatch, 0)
 	for _, record := range dataAsRecords {
 		for j := int64(0); j < record.NumRows(); j++ {
 			slicedRecord := record.NewSlice(j, j+1)
 			slicedExpectedRecords = append(slicedExpectedRecords, slicedRecord)
 		}
 	}
-	gotSlicedRecords := make([]arrow.Record, 0)
+	gotSlicedRecords := make([]arrow.RecordBatch, 0)
 	for _, record := range gotRecords {
 		for j := int64(0); j < record.NumRows(); j++ {
 			slicedRecord := record.NewSlice(j, j+1)
@@ -496,7 +496,7 @@ func testSyncTable(t *testing.T, tc syncTestCase, strategy Strategy, determinist
 
 	for _, expectedRecord := range slicedExpectedRecords {
 		// Records can be returned in any order, so we need to find the matching record
-		_, found := lo.Find(gotSlicedRecords, func(gotRecord arrow.Record) bool {
+		_, found := lo.Find(gotSlicedRecords, func(gotRecord arrow.RecordBatch) bool {
 			if deterministicCQID {
 				return array.RecordEqual(gotRecord, expectedRecord)
 			}

@@ -157,7 +157,7 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 
 			add, toFlush, rest := batch.SliceRecord(r.Record, limit)
 			if add != nil {
-				resources = append(resources, &message.WriteInsert{Record: add.Record})
+				resources = append(resources, &message.WriteInsert{Record: add.RecordBatch})
 				limit.AddSlice(add)
 			}
 			if len(toFlush) > 0 || rest != nil || limit.ReachedLimit() {
@@ -174,7 +174,7 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 
 			// set the remainder
 			if rest != nil {
-				resources = append(resources, &message.WriteInsert{Record: rest.Record})
+				resources = append(resources, &message.WriteInsert{Record: rest.RecordBatch})
 				limit.AddSlice(rest)
 			}
 

@@ -97,7 +97,7 @@ func getTestMessages() testMessages {
 	// message to insert into table1
 	bldr1 := array.NewRecordBuilder(memory.DefaultAllocator, table1.ToArrowSchema())
 	bldr1.Field(0).(*array.Int64Builder).Append(1)
-	rec1 := bldr1.NewRecord()
+	rec1 := bldr1.NewRecordBatch()
 	msgInsertTable1 := &message.WriteInsert{
 		Record: rec1,
 	}
@@ -105,7 +105,7 @@ func getTestMessages() testMessages {
 	// message to insert into table2
 	bldr2 := array.NewRecordBuilder(memory.DefaultAllocator, table1.ToArrowSchema())
 	bldr2.Field(0).(*array.Int64Builder).Append(1)
-	rec2 := bldr2.NewRecord()
+	rec2 := bldr2.NewRecordBatch()
 	msgInsertTable2 := &message.WriteInsert{
 		Record: rec2,
 	}

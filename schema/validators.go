@@ -23,7 +23,7 @@ func isValueValid(i int, arr arrow.Array) bool {
 	return false
 }
 
-func FindEmptyColumns(table *Table, records []arrow.Record) []string {
+func FindEmptyColumns(table *Table, records []arrow.RecordBatch) []string {
 	columnsWithValues := make([]bool, len(table.Columns))
 	emptyColumns := make([]string, 0)
 

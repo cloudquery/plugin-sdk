@@ -472,7 +472,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup)
 				add, toFlush, rest := batch.SliceRecord(ins.Record, s.limit)
 				if add != nil {
 					s.limit.AddSlice(add)
-					s.send(ctx, any(&message.WriteInsert{Record: add.Record}).(T))
+					s.send(ctx, any(&message.WriteInsert{Record: add.RecordBatch}).(T))
 				}
 				if len(toFlush) > 0 || rest != nil || s.limit.ReachedLimit() {
 					// flush current batch
@@ -489,7 +489,7 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup)
 				// set the remainder
 				if rest != nil {
 					s.limit.AddSlice(rest)
-					s.send(ctx, any(&message.WriteInsert{Record: rest.Record}).(T))
+					s.send(ctx, any(&message.WriteInsert{Record: rest.RecordBatch}).(T))
 				}
 			} else {
 				s.send(ctx, r)

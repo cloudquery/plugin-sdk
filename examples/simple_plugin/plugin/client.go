@@ -59,12 +59,12 @@ func (*Client) Write(context.Context, <-chan message.WriteMessage) error {
 	return nil
 }
 
-func (*Client) Read(context.Context, *schema.Table, chan<- arrow.Record) error {
+func (*Client) Read(context.Context, *schema.Table, chan<- arrow.RecordBatch) error {
 	// Not implemented, just used for testing destination packaging
 	return nil
 }
 
-func (*Client) Transform(_ context.Context, _ <-chan arrow.Record, _ chan<- arrow.Record) error {
+func (*Client) Transform(_ context.Context, _ <-chan arrow.RecordBatch, _ chan<- arrow.RecordBatch) error {
 	// Not implemented, just used for testing destination packaging
 	return nil
 }
