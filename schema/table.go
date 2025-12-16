@@ -116,6 +116,10 @@ type Table struct {
 	// with whether the table makes use of a paid API or not.
 	IsPaid bool `json:"is_paid"`
 
+	// SourcePluginVersion is the version of the source plugin that created this table.
+	// This is set when tables are retrieved from a plugin and is included in the Arrow schema metadata.
+	SourcePluginVersion string `json:"source_plugin_version,omitempty"`
+
 	// IgnorePKComponentsMismatchValidation is a flag that indicates if the table should skip validating usage of both primary key components and primary keys
 	IgnorePKComponentsMismatchValidation bool `json:"ignore_pk_components_mismatch_validation"`
 }
@@ -231,6 +235,9 @@ func NewTableFromArrowSchema(sc *arrow.Schema) (*Table, error) {
 	}
 	if isPaid, found := tableMD.GetValue(MetadataTableIsPaid); found {
 		table.IsPaid = isPaid == MetadataTrue
+	}
+	if sourcePluginVersion, found := tableMD.GetValue(MetadataTablePluginVersion); found {
+		table.SourcePluginVersion = sourcePluginVersion
 	}
 	return table, nil
 }
@@ -373,6 +380,14 @@ func (tt Tables) FilterDfsFunc(include, exclude func(*Table) bool, skipDependent
 		}
 	}
 	return filteredTables
+}
+
+// SetSourcePluginVersion sets the SourcePluginVersion on all tables recursively, including relations.
+func (tt Tables) SetSourcePluginVersion(version string) {
+	for _, t := range tt {
+		t.SourcePluginVersion = version
+		t.Relations.SetSourcePluginVersion(version)
+	}
 }
 
 func (tt Tables) ToArrowSchemas() Schemas {
@@ -606,6 +621,9 @@ func (t *Table) ToArrowSchema() *arrow.Schema {
 	md[MetadataTablePermissionsNeeded] = string(asJSON)
 	asJSON, _ = json.Marshal(t.SensitiveColumns)
 	md[MetadataTableSensitiveColumns] = string(asJSON)
+	if t.SourcePluginVersion != "" {
+		md[MetadataTablePluginVersion] = t.SourcePluginVersion
+	}
 
 	schemaMd := arrow.MetadataFrom(md)
 	for i, c := range t.Columns {

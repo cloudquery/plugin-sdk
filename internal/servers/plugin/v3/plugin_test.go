@@ -50,6 +50,32 @@ func TestGetVersion(t *testing.T) {
 	}
 }
 
+func TestGetTables(t *testing.T) {
+	ctx := context.Background()
+	pluginVersion := "v1.2.3"
+	s := Server{
+		Plugin: plugin.NewPlugin("test", pluginVersion, memdb.NewMemDBClient),
+	}
+
+	_, err := s.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+
+	res, err := s.GetTables(ctx, &pb.GetTables_Request{Tables: []string{"*"}})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	require.Greater(t, len(res.Tables), 0, "expected at least one table")
+
+	// Verify that the plugin version is included in the schema metadata
+	for _, tableBytes := range res.Tables {
+		sc, err := pb.NewSchemaFromBytes(tableBytes)
+		require.NoError(t, err)
+
+		version, found := sc.Metadata().GetValue(schema.MetadataTablePluginVersion)
+		require.True(t, found, "expected plugin version to be in schema metadata")
+		require.Equal(t, pluginVersion, version, "expected plugin version to match")
+	}
+}
+
 type mockSyncServer struct {
 	grpc.ServerStream
 	messages []*pb.Sync_Response

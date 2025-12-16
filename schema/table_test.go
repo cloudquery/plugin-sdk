@@ -717,7 +717,8 @@ func TestTablesToAndFromArrow(t *testing.T) {
 			Parent: &Table{
 				Name: "parent_table",
 			},
-			IsIncremental: true,
+			IsIncremental:       true,
+			SourcePluginVersion: "v1.0.0",
 			Columns: []Column{
 				{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
 				{Name: "int", Type: arrow.PrimitiveTypes.Int64},
@@ -743,6 +744,48 @@ func TestTablesToAndFromArrow(t *testing.T) {
 		}
 		if diff := cmp.Diff(table, tableFromArrow); diff != "" {
 			t.Errorf("diff (+got, -want): %v", diff)
+		}
+	}
+}
+
+func TestSetSourcePluginVersion(t *testing.T) {
+	version := "v2.1.0"
+	tables := Tables{
+		&Table{
+			Name: "table1",
+			Relations: Tables{
+				&Table{
+					Name: "table2",
+					Relations: Tables{
+						&Table{Name: "table3"},
+					},
+				},
+			},
+		},
+		&Table{Name: "table4"},
+	}
+
+	tables.SetSourcePluginVersion(version)
+
+	// Verify all tables have the version set
+	flattened := tables.FlattenTables()
+	for _, table := range flattened {
+		if table.SourcePluginVersion != version {
+			t.Errorf("expected SourcePluginVersion to be %q, got %q for table %s", version, table.SourcePluginVersion, table.Name)
+		}
+	}
+
+	// Verify relations also have the version set
+	for _, table := range tables {
+		if table.SourcePluginVersion != version {
+			t.Errorf("expected SourcePluginVersion to be %q, got %q for table %s", version, table.SourcePluginVersion, table.Name)
+		}
+		if len(table.Relations) > 0 {
+			for _, rel := range table.Relations {
+				if rel.SourcePluginVersion != version {
+					t.Errorf("expected SourcePluginVersion to be %q, got %q for relation %s", version, rel.SourcePluginVersion, rel.Name)
+				}
+			}
 		}
 	}
 }

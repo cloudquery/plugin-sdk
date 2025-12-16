@@ -39,6 +39,8 @@ func (s *Server) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get tables: %v", err)
 	}
+	pluginVersion := s.Plugin.Version()
+	tables.SetSourcePluginVersion(pluginVersion)
 	schemas := tables.ToArrowSchemas()
 	encoded := make([][]byte, len(schemas))
 	for i, sc := range schemas {
@@ -203,6 +205,9 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		pbMsg := &pb.Sync_Response{}
 		switch m := msg.(type) {
 		case *message.SyncMigrateTable:
+			pluginVersion := s.Plugin.Version()
+			m.Table.SourcePluginVersion = pluginVersion
+			m.Table.Relations.SetSourcePluginVersion(pluginVersion)
 			tableSchema := m.Table.ToArrowSchema()
 			schemaBytes, err := pb.SchemaToBytes(tableSchema)
 			if err != nil {

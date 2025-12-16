@@ -29,6 +29,7 @@ const (
 	MetadataTableIsPaid            = "cq:table_paid"
 	MetadataTablePermissionsNeeded = "cq:table_permissions_needed"
 	MetadataTableSensitiveColumns  = "cq:table_sensitive_columns"
+	MetadataTablePluginVersion     = "cq:table_plugin_version"
 )
 
 type Schemas []*arrow.Schema
@@ -110,6 +111,24 @@ func ReplaceFieldInRecord(src arrow.RecordBatch, fieldName string, field arrow.A
 		}
 	}
 	return record, nil
+}
+
+// AddPluginVersionToSchema adds the plugin version metadata to an Arrow schema.
+// It returns a new schema with the version added to the metadata.
+func AddPluginVersionToSchema(sc *arrow.Schema, version string) *arrow.Schema {
+	if version == "" {
+		return sc
+	}
+	existingMD := sc.Metadata()
+	md := make(map[string]string)
+	for i := 0; i < existingMD.Len(); i++ {
+		key := existingMD.Keys()[i]
+		value := existingMD.Values()[i]
+		md[key] = value
+	}
+	md[MetadataTablePluginVersion] = version
+	newMetadata := arrow.MetadataFrom(md)
+	return arrow.NewSchema(sc.Fields(), &newMetadata)
 }
 
 func AddInternalColumnsToRecord(record arrow.RecordBatch, cqClientIDValue string) (arrow.RecordBatch, error) {
