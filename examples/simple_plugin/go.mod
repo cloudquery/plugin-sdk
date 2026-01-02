@@ -1,6 +1,6 @@
 module github.com/cloudquery/plugin-sdk/examples/simple_plugin
 
-go 1.24.4
+go 1.25.5
 
 require (
 	github.com/apache/arrow-go/v18 v18.5.0
@@ -33,7 +33,7 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudquery/cloudquery-api-go v1.14.8 // indirect
-	github.com/cloudquery/codegen v0.3.33 // indirect
+	github.com/cloudquery/codegen v0.3.34 // indirect
 	github.com/cloudquery/plugin-pb-go v1.27.2 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
