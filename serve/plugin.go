@@ -2,10 +2,12 @@ package serve
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -38,12 +40,19 @@ type PluginServe struct {
 	plugin                *plugin.Plugin
 	args                  []string
 	destinationV0V1Server bool
+	sentryDSN             string
 	testListener          bool
 	testListenerConn      *bufconn.Listener
 	versions              []int
 }
 
 type PluginOption func(*PluginServe)
+
+func WithPluginSentryDSN(dsn string) PluginOption {
+	return func(s *PluginServe) {
+		s.sentryDSN = dsn
+	}
+}
 
 // WithDestinationV0V1Server is used to include destination v0 and v1 server to work
 // with older sources
@@ -106,7 +115,6 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	var address string
 	var network string
 	var noSentry bool
-	var sentryDSN string
 	var otelEndpoint string
 	var otelEndpointInsecure bool
 	var licenseFile string
@@ -125,6 +133,11 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 		Long:  servePluginShort,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			doSentry, _ := strconv.ParseBool(os.Getenv("CQ_SENTRY_ENABLED"))
+			if doSentry && noSentry {
+				return errors.New("CQ_SENTRY_ENABLED and --no-sentry cannot be used together")
+			}
+
 			zerologLevel, err := zerolog.ParseLevel(logLevel.String())
 			if err != nil {
 				return err
@@ -208,9 +221,9 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 
 			version := s.plugin.Version()
 
-			if len(sentryDSN) > 0 && !strings.EqualFold(version, "development") && !noSentry {
+			if doSentry && len(s.sentryDSN) > 0 && !strings.EqualFold(version, "development") && !noSentry {
 				err = sentry.Init(sentry.ClientOptions{
-					Dsn:              sentryDSN,
+					Dsn:              s.sentryDSN,
 					Debug:            false,
 					AttachStacktrace: false,
 					Release:          version,
@@ -265,7 +278,6 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	cmd.Flags().StringVar(&otelEndpoint, "otel-endpoint", "", "Open Telemetry HTTP collector endpoint")
 	cmd.Flags().BoolVar(&otelEndpointInsecure, "otel-endpoint-insecure", false, "use Open Telemetry HTTP endpoint (for development only)")
 	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
-	cmd.Flags().StringVar(&sentryDSN, "sentry-dsn", "", "Sentry DSN to use")
 	cmd.Flags().StringVar(&licenseFile, "license", "", "Path to offline license file or directory")
 
 	return cmd
