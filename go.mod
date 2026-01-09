@@ -13,6 +13,7 @@ require (
 	github.com/cloudquery/codegen v0.3.35
 	github.com/cloudquery/plugin-pb-go v1.27.5
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
+	github.com/getsentry/sentry-go v0.40.0
 	github.com/goccy/go-json v0.10.5
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.7.0
@@ -67,7 +68,6 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/getsentry/sentry-go v0.40.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
