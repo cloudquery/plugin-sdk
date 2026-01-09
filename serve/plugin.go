@@ -13,6 +13,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/premium"
 	"github.com/cloudquery/plugin-sdk/v4/types"
+	"github.com/getsentry/sentry-go"
 
 	pbDestinationV0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	pbDestinationV1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
@@ -105,6 +106,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	var address string
 	var network string
 	var noSentry bool
+	var sentryDSN string
 	var otelEndpoint string
 	var otelEndpointInsecure bool
 	var licenseFile string
@@ -204,6 +206,33 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				Versions: []int32{0, 1, 2, 3},
 			})
 
+			version := s.plugin.Version()
+
+			if len(sentryDSN) > 0 && !strings.EqualFold(version, "development") && !noSentry {
+				err = sentry.Init(sentry.ClientOptions{
+					Dsn:              sentryDSN,
+					Debug:            false,
+					AttachStacktrace: false,
+					Release:          version,
+					Transport:        sentry.NewHTTPSyncTransport(),
+					ServerName:       "oss", // set to "oss" on purpose to avoid sending any identifying information
+					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations
+					Integrations: func(integrations []sentry.Integration) []sentry.Integration {
+						var filteredIntegrations []sentry.Integration
+						for _, integration := range integrations {
+							if integration.Name() == "Modules" {
+								continue
+							}
+							filteredIntegrations = append(filteredIntegrations, integration)
+						}
+						return filteredIntegrations
+					},
+				})
+				if err != nil {
+					log.Error().Err(err).Msg("Error initializing sentry")
+				}
+			}
+
 			ctx := cmd.Context()
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -236,6 +265,7 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 	cmd.Flags().StringVar(&otelEndpoint, "otel-endpoint", "", "Open Telemetry HTTP collector endpoint")
 	cmd.Flags().BoolVar(&otelEndpointInsecure, "otel-endpoint-insecure", false, "use Open Telemetry HTTP endpoint (for development only)")
 	cmd.Flags().BoolVar(&noSentry, "no-sentry", false, "disable sentry")
+	cmd.Flags().StringVar(&sentryDSN, "sentry-dsn", "", "Sentry DSN to use")
 	cmd.Flags().StringVar(&licenseFile, "license", "", "Path to offline license file or directory")
 
 	return cmd

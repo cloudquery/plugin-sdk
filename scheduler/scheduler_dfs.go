@@ -13,6 +13,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/getsentry/sentry-go"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -119,6 +120,10 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 				stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 				logger.Error().Interface("error", err).Str("stack", stack).Msg("table resolver finished with panic")
 				s.metrics.AddPanics(ctx, 1, selector)
+				sentry.WithScope(func(scope *sentry.Scope) {
+					scope.SetTag("table", table.Name)
+					sentry.CurrentHub().CaptureMessage(stack)
+				})
 			}
 			close(res)
 		}()

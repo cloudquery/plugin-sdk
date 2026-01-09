@@ -67,6 +67,7 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/getsentry/sentry-go v0.40.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -101,3 +102,5 @@ require (
 )
 
 replace github.com/invopop/jsonschema => github.com/cloudquery/jsonschema v0.0.0-20240220124159-92878faa2a66
+
+replace github.com/cloudquery/plugin-pb-go => github.com/cloudquery/plugin-pb-go v1.27.6-0.20260109101738-6e12d05766f1
