@@ -2,10 +2,12 @@ package serve
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/premium"
 	"github.com/cloudquery/plugin-sdk/v4/types"
+	"github.com/getsentry/sentry-go"
 
 	pbDestinationV0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
 	pbDestinationV1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
@@ -37,12 +40,19 @@ type PluginServe struct {
 	plugin                *plugin.Plugin
 	args                  []string
 	destinationV0V1Server bool
+	sentryDSN             string
 	testListener          bool
 	testListenerConn      *bufconn.Listener
 	versions              []int
 }
 
 type PluginOption func(*PluginServe)
+
+func WithPluginSentryDSN(dsn string) PluginOption {
+	return func(s *PluginServe) {
+		s.sentryDSN = dsn
+	}
+}
 
 // WithDestinationV0V1Server is used to include destination v0 and v1 server to work
 // with older sources
@@ -123,6 +133,11 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 		Long:  servePluginShort,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			doSentry, _ := strconv.ParseBool(os.Getenv("CQ_SENTRY_ENABLED"))
+			if doSentry && noSentry {
+				return errors.New("CQ_SENTRY_ENABLED and --no-sentry cannot be used together")
+			}
+
 			zerologLevel, err := zerolog.ParseLevel(logLevel.String())
 			if err != nil {
 				return err
@@ -203,6 +218,33 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 			pbdiscoveryv1.RegisterDiscoveryServer(grpcServer, &discoveryServerV1.Server{
 				Versions: []int32{0, 1, 2, 3},
 			})
+
+			version := s.plugin.Version()
+
+			if doSentry && len(s.sentryDSN) > 0 && !strings.EqualFold(version, "development") && !noSentry {
+				err = sentry.Init(sentry.ClientOptions{
+					Dsn:              s.sentryDSN,
+					Debug:            false,
+					AttachStacktrace: false,
+					Release:          version,
+					Transport:        sentry.NewHTTPSyncTransport(),
+					ServerName:       "oss", // set to "oss" on purpose to avoid sending any identifying information
+					// https://docs.sentry.io/platforms/go/configuration/options/#removing-default-integrations
+					Integrations: func(integrations []sentry.Integration) []sentry.Integration {
+						var filteredIntegrations []sentry.Integration
+						for _, integration := range integrations {
+							if integration.Name() == "Modules" {
+								continue
+							}
+							filteredIntegrations = append(filteredIntegrations, integration)
+						}
+						return filteredIntegrations
+					},
+				})
+				if err != nil {
+					log.Error().Err(err).Msg("Error initializing sentry")
+				}
+			}
 
 			ctx := cmd.Context()
 			c := make(chan os.Signal, 1)

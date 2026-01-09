@@ -9,6 +9,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"github.com/thoas/go-funk"
 )
@@ -20,6 +21,11 @@ func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metric
 			stack := fmt.Sprintf("%s\n%s", err, string(debug.Stack()))
 			logger.Error().Str("column", column.Name).Interface("error", err).TimeDiff("duration", time.Now(), columnStartTime).Str("stack", stack).Msg("column resolver finished with panic")
 			m.AddPanics(ctx, 1, selector)
+			sentry.WithScope(func(scope *sentry.Scope) {
+				scope.SetTag("table", resource.Table.Name)
+				scope.SetTag("column", column.Name)
+				sentry.CurrentHub().CaptureMessage(stack)
+			})
 		}
 	}()
 
