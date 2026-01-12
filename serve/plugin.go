@@ -88,6 +88,7 @@ func Plugin(p *plugin.Plugin, opts ...PluginOption) *PluginServe {
 	for _, opt := range opts {
 		opt(s)
 	}
+	s.sentryDSN = getEnvOrDefault("CQ_SENTRY_DSN", s.sentryDSN)
 	return s
 }
 
