@@ -21,7 +21,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.17 // indirect
-	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.37.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.37.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.35.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.9 // indirect
