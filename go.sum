@@ -29,8 +29,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.4 h1:0ryTNEd
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.4/go.mod h1:HQ4qwNZh32C3CBeO6iJLQlgtMzqeG17ziAA/3KDJFow=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.17 h1:RuNSMoozM8oXlgLG/n6WLaFGoea7/CddrCfIiSA+xdY=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.17/go.mod h1:F2xxQ9TZz5gDWsclCtPQscGpP0VUOc8RqgFM3vDENmU=
-github.com/aws/aws-sdk-go-v2/service/licensemanager v1.37.5 h1:PBImbYZGWdHx2O1aduhHydEB/qxD4IfqeXxZFQvv0/4=
-github.com/aws/aws-sdk-go-v2/service/licensemanager v1.37.5/go.mod h1:5PjsoCYFWYF0sXYhxJ0sY1VzemMEwOjT7KEsTyeFewM=
+github.com/aws/aws-sdk-go-v2/service/licensemanager v1.37.6 h1:1SSkGYoKOYhpyiNmwVCJ1MPw8WzenZNG4r/j2RjQASM=
+github.com/aws/aws-sdk-go-v2/service/licensemanager v1.37.6/go.mod h1:5PjsoCYFWYF0sXYhxJ0sY1VzemMEwOjT7KEsTyeFewM=
 github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.35.5 h1:1Hjj8PU+7XwTOCfvltkPQgfoPMuG0fCE+d+scx2t+Hg=
 github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.35.5/go.mod h1:NT4FIii7ipCAB5CdKi0mQU/2Y3OjS8wckyx5AIFgVs4=
 github.com/aws/aws-sdk-go-v2/service/signin v1.0.5 h1:VrhDvQib/i0lxvr3zqlUwLwJP4fpmpyD9wYG1vfSu+Y=
