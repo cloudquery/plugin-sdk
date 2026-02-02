@@ -40,6 +40,7 @@ func BenchmarkWriterMemory(b *testing.B) {
 		"bytes100M": {streamingbatchwriter.WithBatchSizeBytes(100000000)},
 	}
 
+	//nolint:prealloc
 	var bCases []bCase
 	bCases = append(bCases, writerMatrix("BatchWriter", batchwriter.New, newBatchWriterClient(), makeRecord, batchwriterOpts)...)
 	bCases = append(bCases, writerMatrix("BatchWriter wide", batchwriter.New, newBatchWriterClient(), makeWideRecord, batchwriterOpts)...)

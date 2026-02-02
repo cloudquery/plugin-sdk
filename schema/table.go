@@ -482,6 +482,7 @@ func (tt Tables) UnflattenTables() (Tables, error) {
 }
 
 func (tt Tables) TableNames() []string {
+	//nolint:prealloc
 	ret := []string{}
 	for _, t := range tt {
 		ret = append(ret, t.TableNames()...)
@@ -742,6 +743,7 @@ func (t *Table) PrimaryKeyComponents() []string {
 }
 
 func (t *Table) TableNames() []string {
+	//nolint:prealloc
 	ret := []string{t.Name}
 	for _, rel := range t.Relations {
 		ret = append(ret, rel.TableNames()...)
