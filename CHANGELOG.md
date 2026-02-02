@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.94.1](https://github.com/cloudquery/plugin-sdk/compare/v4.94.0...v4.94.1) (2026-02-02)
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2390](https://github.com/cloudquery/plugin-sdk/issues/2390)) ([f50c14c](https://github.com/cloudquery/plugin-sdk/commit/f50c14c3b6bb1b9b1314dc013cb4e78ad5327707))
+* **deps:** Update golang.org/x/exp digest to 716be56 ([#2395](https://github.com/cloudquery/plugin-sdk/issues/2395)) ([3a7a913](https://github.com/cloudquery/plugin-sdk/commit/3a7a913693bb9ec81ca30135cc4c5f5d03e25e2e))
+* **deps:** Update module github.com/apache/arrow-go/v18 to v18.5.1 ([#2400](https://github.com/cloudquery/plugin-sdk/issues/2400)) ([78985aa](https://github.com/cloudquery/plugin-sdk/commit/78985aa956ac1c0e524b897cf4881d28c26560d9))
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/service/licensemanager to v1.37.6 ([#2393](https://github.com/cloudquery/plugin-sdk/issues/2393)) ([5b129f8](https://github.com/cloudquery/plugin-sdk/commit/5b129f8df656fdb4f5e78d6e93136cb279c8be3f))
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/service/marketplacemetering to v1.35.6 ([#2394](https://github.com/cloudquery/plugin-sdk/issues/2394)) ([cf0438b](https://github.com/cloudquery/plugin-sdk/commit/cf0438b0840804c47430dec43c1ed2ef9fa2f57a))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.27.6 ([#2401](https://github.com/cloudquery/plugin-sdk/issues/2401)) ([1cc9ada](https://github.com/cloudquery/plugin-sdk/commit/1cc9adad97bff7ccffaea7dcc6015aaa73f91418))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.41.0 ([#2397](https://github.com/cloudquery/plugin-sdk/issues/2397)) ([907b607](https://github.com/cloudquery/plugin-sdk/commit/907b607408f1f2279bd0957ed467a327d612c6ff))
+
 ## [4.94.0](https://github.com/cloudquery/plugin-sdk/compare/v4.93.1...v4.94.0) (2026-01-12)
 
 
