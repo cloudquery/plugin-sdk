@@ -7,7 +7,7 @@ import (
 )
 
 // This test verifies there is no data race between Send() and the timer-triggered flush.
-func TestSend_ConcurrentWithTimerFlush(t *testing.T) {
+func TestSend_ConcurrentWithTimerFlush(_ *testing.T) {
 	// The race occurs when:
 	//   1. a Send() call schedules a timer via time.AfterFunc
 	//   2. the timer fires and calls flush() on a separate goroutine
