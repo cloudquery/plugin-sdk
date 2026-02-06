@@ -19,10 +19,10 @@ const (
 // - If the current batch has reached the batch size, it will be sent immediately
 // - Otherwise, a timer will be started to send the current batch after the batch timeout
 type BatchSender struct {
-	sendFn    func(any)
-	items     []any
-	timer     *time.Timer
-	itemsLock sync.Mutex
+	sendFn func(any)
+	items  []any
+	timer  *time.Timer
+	mu     sync.Mutex
 }
 
 func NewBatchSender(sendFn func(any)) *BatchSender {
@@ -30,6 +30,9 @@ func NewBatchSender(sendFn func(any)) *BatchSender {
 }
 
 func (bs *BatchSender) Send(item any) {
+	bs.mu.Lock()
+	defer bs.mu.Unlock()
+
 	if bs.timer != nil {
 		bs.timer.Stop()
 	}
@@ -39,34 +42,29 @@ func (bs *BatchSender) Send(item any) {
 	// If item is already a slice, send it directly
 	// together with the current batch
 	if len(items) > 1 {
-		bs.flush(items...)
+		bs.flushLocked(items...)
 		return
 	}
 
 	// Otherwise, add item to the current batch
-	bs.appendToBatch(items...)
+	bs.items = append(bs.items, items...)
 
 	// If the current batch has reached the batch size, send it
 	if len(bs.items) >= batchSize {
-		bs.flush()
+		bs.flushLocked()
 		return
 	}
 
 	// Otherwise, start a timer to send the current batch after the batch timeout
-	bs.timer = time.AfterFunc(batchTimeout, func() { bs.flush() })
+	bs.timer = time.AfterFunc(batchTimeout, func() {
+		bs.mu.Lock()
+		defer bs.mu.Unlock()
+		bs.flushLocked()
+	})
 }
 
-func (bs *BatchSender) appendToBatch(items ...any) {
-	bs.itemsLock.Lock()
-	defer bs.itemsLock.Unlock()
-
-	bs.items = append(bs.items, items...)
-}
-
-func (bs *BatchSender) flush(items ...any) {
-	bs.itemsLock.Lock()
-	defer bs.itemsLock.Unlock()
-
+// flushLocked sends all buffered items. Must be called with bs.mu held.
+func (bs *BatchSender) flushLocked(items ...any) {
 	bs.items = append(bs.items, items...)
 
 	if len(bs.items) == 0 {
@@ -78,8 +76,11 @@ func (bs *BatchSender) flush(items ...any) {
 }
 
 func (bs *BatchSender) Close() {
+	bs.mu.Lock()
+	defer bs.mu.Unlock()
+
 	if bs.timer != nil {
 		bs.timer.Stop()
 	}
-	bs.flush()
+	bs.flushLocked()
 }
