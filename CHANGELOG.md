@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.94.2](https://github.com/cloudquery/plugin-sdk/compare/v4.94.1...v4.94.2) (2026-02-06)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/codegen to v0.3.36 ([#2403](https://github.com/cloudquery/plugin-sdk/issues/2403)) ([b7188f1](https://github.com/cloudquery/plugin-sdk/commit/b7188f174bcb1286ccd1194d85d7268fb1ecb4ce))
+* Fix race condition on batchsender when sending resources from multiple goroutines ([#2405](https://github.com/cloudquery/plugin-sdk/issues/2405)) ([a0e2801](https://github.com/cloudquery/plugin-sdk/commit/a0e28013ec8178bad7e123cd86c1f7701bc27f86))
+
 ## [4.94.1](https://github.com/cloudquery/plugin-sdk/compare/v4.94.0...v4.94.1) (2026-02-02)
 
 
