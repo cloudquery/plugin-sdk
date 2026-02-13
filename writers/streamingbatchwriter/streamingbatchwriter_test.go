@@ -624,3 +624,61 @@ func requireErrorCount(t *testing.T, errCh chan error, expectedMin, expectedMax 
 	}
 	return -1
 }
+
+func TestDeleteRecordFlushesPendingInserts(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	errCh := make(chan error, 10)
+
+	testClient := newClient()
+	wr, err := New(testClient, WithBatchSizeRows(1000000)) // large batch to avoid auto-flush
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a table for insert
+	insertTable := &schema.Table{
+		Name: "child_table",
+		Columns: []schema.Column{
+			{
+				Name: "id",
+				Type: arrow.PrimitiveTypes.Int64,
+			},
+		},
+	}
+
+	// Build insert record
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, insertTable.ToArrowSchema())
+	bldr.Field(0).(*array.Int64Builder).Append(1)
+	record := bldr.NewRecord()
+
+	md := arrow.NewMetadata(
+		[]string{schema.MetadataTableName},
+		[]string{insertTable.Name},
+	)
+	newSchema := arrow.NewSchema(
+		record.Schema().Fields(),
+		&md,
+	)
+
+	record = array.NewRecord(newSchema, record.Columns(), record.NumRows())
+
+	// Send insert 
+	if err := wr.startWorker(ctx, errCh, &message.WriteInsert{Record: record}); err != nil {
+		t.Fatal(err)
+	}
+
+	// send delete record to trigger flush
+	del := &message.WriteDeleteRecord{
+		DeleteRecord: message.DeleteRecord{
+			TableName: insertTable.Name,
+		},
+	}
+
+	if err := wr.startWorker(ctx, errCh, del); err != nil {
+		t.Fatal(err)
+	}
+	waitForLength(t, testClient.MessageLen, messageTypeInsert, 1)
+	_ = wr.Close(ctx)
+}
