@@ -130,7 +130,7 @@ func (s *PluginServe) build(pluginDirectory string, target plugin.BuildTarget, d
 		stripSymbols = ""
 	}
 	ldFlags := fmt.Sprintf("%[1]s -w -X %[2]s/plugin.Version=%[3]s -X %[2]s/resources/plugin.Version=%[3]s", stripSymbols, importPath, pluginVersion)
-	args := []string{"build", "-o", pluginPath, "-buildmode=exe", "-ldflags", ldFlags}
+	args := []string{"build", "-trimpath", "-buildvcs=false", "-mod=readonly", "-o", pluginPath, "-buildmode=exe", "-ldflags", ldFlags}
 	cmd := exec.Command("go", args...)
 	cmd.Dir = pluginDirectory
 	cmd.Stdout = os.Stdout
