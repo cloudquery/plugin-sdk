@@ -34,7 +34,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudquery/cloudquery-api-go v1.14.8 // indirect
 	github.com/cloudquery/codegen v0.3.37 // indirect
-	github.com/cloudquery/plugin-pb-go v1.27.6 // indirect
+	github.com/cloudquery/plugin-pb-go v1.27.7 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/getsentry/sentry-go v0.41.0 // indirect
