@@ -22,10 +22,21 @@ jobs:
         with:
           token: ${{ secrets.GH_CQ_BOT }}
       - name: Set up Go 1.x
+        id: setup-go
         uses: actions/setup-go@v6
         with:
           go-version: "1.25"
           cache: false
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ steps.setup-go.outputs.go-version }}-
+            ${{ runner.os }}-go-
       - name: Generate Coverage Report
         run: make coverage
 

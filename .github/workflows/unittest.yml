@@ -21,9 +21,21 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v6
       - name: Set up Go 1.x
+        id: setup-go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+          cache: false
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ steps.setup-go.outputs.go-version }}-
+            ${{ runner.os }}-go-
       - run: go mod download
       - run: go build ./...
       - name: Run tests
