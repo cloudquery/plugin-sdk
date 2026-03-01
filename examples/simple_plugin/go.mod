@@ -37,7 +37,7 @@ require (
 	github.com/cloudquery/plugin-pb-go v1.27.7 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/getsentry/sentry-go v0.41.0 // indirect
+	github.com/getsentry/sentry-go v0.42.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
