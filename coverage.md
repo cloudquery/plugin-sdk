@@ -593,7 +593,7 @@
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_debug.go:30: | syncTest | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:24: | syncDfs | 86.7% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:81: | resolveTableDfs | 87.2% |
-| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:154: | resolveResourcesDfs | 69.6% |
+| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:154: | resolveResourcesDfs | 73.9% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_round_robin.go:15: | syncRoundRobin | 85.2% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_round_robin.go:69: | roundRobinInterleave | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_shuffle.go:13: | syncShuffle | 87.1% |
