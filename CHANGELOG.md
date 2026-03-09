@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.94.4](https://github.com/cloudquery/plugin-sdk/compare/v4.94.3...v4.94.4) (2026-03-09)
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2431](https://github.com/cloudquery/plugin-sdk/issues/2431)) ([bf81478](https://github.com/cloudquery/plugin-sdk/commit/bf81478b6636b656a5e6610c03f00f1fec991124))
+* **deps:** Update module github.com/apache/arrow-go/v18 to v18.5.2 ([#2432](https://github.com/cloudquery/plugin-sdk/issues/2432)) ([ea6f657](https://github.com/cloudquery/plugin-sdk/commit/ea6f657f85546de25e78bf7c4a810723f716f332))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.42.0 ([#2421](https://github.com/cloudquery/plugin-sdk/issues/2421)) ([62c0e08](https://github.com/cloudquery/plugin-sdk/commit/62c0e08e83076dbed96b8e5ec50d98b732ee015a))
+* **deps:** Update module go.opentelemetry.io/otel/sdk to v1.40.0 [SECURITY] ([#2428](https://github.com/cloudquery/plugin-sdk/issues/2428)) ([5886105](https://github.com/cloudquery/plugin-sdk/commit/588610538d24219a0dfe2f8ec7a87715a4633daa))
+* **deps:** Update module golang.org/x/oauth2 to v0.35.0 ([#2422](https://github.com/cloudquery/plugin-sdk/issues/2422)) ([d6c5def](https://github.com/cloudquery/plugin-sdk/commit/d6c5defcc0bb718f4449e9e7dab6782e075348c3))
+* **deps:** Update module golang.org/x/text to v0.34.0 ([#2423](https://github.com/cloudquery/plugin-sdk/issues/2423)) ([99c9a8c](https://github.com/cloudquery/plugin-sdk/commit/99c9a8c9f3b6d8d07ab3fa0fd4093b94759e45fb))
+* **deps:** Update opentelemetry-go monorepo ([#2424](https://github.com/cloudquery/plugin-sdk/issues/2424)) ([7fc6dd6](https://github.com/cloudquery/plugin-sdk/commit/7fc6dd6b83153f82b8388a394b9e1098b82e65d6))
+
 ## [4.94.3](https://github.com/cloudquery/plugin-sdk/compare/v4.94.2...v4.94.3) (2026-02-23)
 
 
