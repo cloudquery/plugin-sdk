@@ -86,7 +86,7 @@ linters:
           disabled: true
         - name: identical-switch-branches
           disabled: true
-        - use-waitgroup-go
+        - name: use-waitgroup-go
           disabled: true
   exclusions:
     generated: lax
