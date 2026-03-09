@@ -1,6 +1,6 @@
 module github.com/cloudquery/plugin-sdk/v4
 
-go 1.24.4
+go 1.25.0
 
 require (
 	github.com/apache/arrow-go/v18 v18.5.2
@@ -11,7 +11,7 @@ require (
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.14.8
 	github.com/cloudquery/codegen v0.3.37
-	github.com/cloudquery/plugin-pb-go v1.27.7
+	github.com/cloudquery/plugin-pb-go v1.27.8
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/goccy/go-json v0.10.5
@@ -39,7 +39,7 @@ require (
 	go.opentelemetry.io/otel/sdk/log v0.16.0
 	go.opentelemetry.io/otel/sdk/metric v1.40.0
 	go.opentelemetry.io/otel/trace v1.40.0
-	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
+	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/text v0.34.0
