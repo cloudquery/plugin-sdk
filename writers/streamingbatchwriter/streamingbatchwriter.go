@@ -154,6 +154,31 @@ func (w *StreamingBatchWriter) Flush(context.Context) error {
 	return nil // not checked below
 }
 
+func (w *StreamingBatchWriter) flushInsertWorkers(ctx context.Context) error {
+	w.workersLock.RLock()
+	workers := make([]*streamingWorkerManager[*message.WriteInsert], 0, len(w.insertWorkers))
+	for _, worker := range w.insertWorkers {
+		workers = append(workers, worker)
+	}
+	w.workersLock.RUnlock()
+
+	for _, worker := range workers {
+		done := make(chan bool)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case worker.flush <- done:
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-done:
+		}
+	}
+	return nil
+}
+
+
 func (w *StreamingBatchWriter) Close(context.Context) error {
 	w.workersLock.Lock()
 	defer w.workersLock.Unlock()
@@ -323,6 +348,10 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 
 		return nil
 	case *message.WriteDeleteRecord:
+		// flush pending inserts and table buffers before deletions
+		if err := w.flushInsertWorkers(ctx); err != nil {
+			return err
+		}
 		w.workersLock.Lock()
 		defer w.workersLock.Unlock()
 
@@ -331,7 +360,6 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			return nil
 		}
 
-		// TODO: flush all workers for nested tables as well (See https://github.com/cloudquery/plugin-sdk/issues/1296)
 		w.deleteRecordWorker = &streamingWorkerManager[*message.WriteDeleteRecord]{
 			ch:        make(chan *message.WriteDeleteRecord),
 			writeFunc: w.client.DeleteRecords,
@@ -516,3 +544,6 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup)
 		}
 	}
 }
+
+
+
