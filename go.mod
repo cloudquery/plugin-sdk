@@ -1,6 +1,6 @@
 module github.com/cloudquery/plugin-sdk/v4
 
-go 1.25.5
+go 1.26.1
 
 require (
 	github.com/apache/arrow-go/v18 v18.5.2
@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.36.2
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.14.8
-	github.com/cloudquery/codegen v0.3.37
+	github.com/cloudquery/codegen v0.4.0
 	github.com/cloudquery/plugin-pb-go v1.27.11
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.42.0
