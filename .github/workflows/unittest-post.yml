@@ -16,9 +16,9 @@ jobs:
     timeout-minutes: 10
     steps:
       # This posts the status to the PR/commit
-      - uses: haya14busa/action-workflow_run-status@v1
+      - uses: haya14busa/action-workflow_run-status@967ed83efa565c257675ed70cfe5231f062ddd94 # v1
       - name: Download benchmarks
-        uses: dawidd6/action-download-artifact@v15
+        uses: dawidd6/action-download-artifact@fe9d59ce33ce92db8a6ac90b2c8be6b6d90417c8 # v15
         with:
           # This is the workflow that triggered this run
           workflow: ${{ github.event.workflow.id }}
@@ -30,7 +30,7 @@ jobs:
         id: pr_number
         run: echo "pr_number=$(cat pr_number)" >> $GITHUB_OUTPUT
       - name: Post deltas to GitHub
-        uses: netlify/delta-action@v4
+        uses: netlify/delta-action@1195810c67610e177b2f60da3f4cf6f620bd5d54 # v4
         with:
           title: "⏱️ Benchmark results"
           style: "text"
