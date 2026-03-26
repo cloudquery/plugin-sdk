@@ -395,7 +395,7 @@ func (tt Tables) FilterDfs(tables, skipTables []string, skipDependentTables bool
 			}
 		}
 		if !matched {
-			return nil, fmt.Errorf("tables include a pattern %s with no matches", includePattern)
+			return nil, &PatternMatchError{Key: "tables", Pattern: includePattern}
 		}
 	}
 	for _, excludePattern := range skipTables {
@@ -407,7 +407,7 @@ func (tt Tables) FilterDfs(tables, skipTables []string, skipDependentTables bool
 			}
 		}
 		if !matched {
-			return nil, fmt.Errorf("skip_tables include a pattern %s with no matches", excludePattern)
+			return nil, &PatternMatchError{Key: "skip_tables", Pattern: excludePattern}
 		}
 	}
 	include := func(t *Table) bool {

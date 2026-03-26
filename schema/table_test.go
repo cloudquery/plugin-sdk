@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -440,6 +441,51 @@ func TestTablesFilterDFS(t *testing.T) {
 			if diff := cmp.Diff(gotNames, tt.want); diff != "" {
 				t.Errorf("diff (+got, -want): %v", diff)
 			}
+		})
+	}
+}
+
+func TestFilterDfsPatternMatchError(t *testing.T) {
+	tables := Tables{
+		{Name: "aws_s3_buckets"},
+		{Name: "aws_ec2_instances"},
+	}
+
+	tests := []struct {
+		name        string
+		tables      []string
+		skipTables  []string
+		wantKey     string
+		wantPattern string
+		wantMessage string
+	}{
+		{
+			name:        "unmatched tables pattern",
+			tables:      []string{"aws_no_such_table"},
+			skipTables:  []string{},
+			wantKey:     "tables",
+			wantPattern: "aws_no_such_table",
+			wantMessage: "tables include a pattern aws_no_such_table with no matches",
+		},
+		{
+			name:        "unmatched skip_tables pattern",
+			tables:      []string{"*"},
+			skipTables:  []string{"gcp_*"},
+			wantKey:     "skip_tables",
+			wantPattern: "gcp_*",
+			wantMessage: "skip_tables include a pattern gcp_* with no matches",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := tables.FilterDfs(tt.tables, tt.skipTables, false)
+			require.Error(t, err)
+
+			var patErr *PatternMatchError
+			require.True(t, errors.As(err, &patErr), "expected errors.As to match *PatternMatchError, got %T", err)
+			require.Equal(t, tt.wantKey, patErr.Key)
+			require.Equal(t, tt.wantPattern, patErr.Pattern)
+			require.Equal(t, tt.wantMessage, err.Error())
 		})
 	}
 }
