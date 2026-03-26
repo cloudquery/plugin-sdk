@@ -32,7 +32,7 @@ require (
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cloudquery/cloudquery-api-go v1.14.8 // indirect
+	github.com/cloudquery/cloudquery-api-go v1.14.9 // indirect
 	github.com/cloudquery/codegen v0.4.0 // indirect
 	github.com/cloudquery/plugin-pb-go v1.27.11 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
