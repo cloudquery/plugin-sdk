@@ -17,6 +17,17 @@ const (
 	cannotSetIndex              = "cannot set index %d"
 )
 
+// PatternMatchError is returned by Tables.FilterDfs when a tables or skip_tables
+// pattern does not match any known table.
+type PatternMatchError struct {
+	Key     string // "tables" or "skip_tables"
+	Pattern string // the glob pattern that had no matches
+}
+
+func (e *PatternMatchError) Error() string {
+	return fmt.Sprintf("%s include a pattern %s with no matches", e.Key, e.Pattern)
+}
+
 type ValidationError struct {
 	Err   error
 	Msg   string
