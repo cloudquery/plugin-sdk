@@ -2,7 +2,7 @@
 version = 1
 
 [approve]
-auto_approve_usernames = ["cq-bot"]
+auto_approve_usernames = ["cloudquery-ci"]
 
 [merge.message]
 body = "pull_request_body"
