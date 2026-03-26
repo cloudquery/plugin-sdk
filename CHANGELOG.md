@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.95.0](https://github.com/cloudquery/plugin-sdk/compare/v4.94.7...v4.95.0) (2026-03-26)
+
+
+### Features
+
+* **schema:** Extract `PatternMatchError` typed error from `FilterDfs` ([#2458](https://github.com/cloudquery/plugin-sdk/issues/2458)) ([8b3e522](https://github.com/cloudquery/plugin-sdk/commit/8b3e522efa5c141e6b5d08c3e6fcb9f8581a6034))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/cloudquery/codegen to v0.4.0 ([#2455](https://github.com/cloudquery/plugin-sdk/issues/2455)) ([041d331](https://github.com/cloudquery/plugin-sdk/commit/041d3313dbb6b018a8ba906a5e8c1a4bf5c16118))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.27.11 ([#2453](https://github.com/cloudquery/plugin-sdk/issues/2453)) ([1f94119](https://github.com/cloudquery/plugin-sdk/commit/1f941193ce694ffaa7c66dcb5e040ce497d30a86))
+
 ## [4.94.7](https://github.com/cloudquery/plugin-sdk/compare/v4.94.6...v4.94.7) (2026-03-23)
 
 
