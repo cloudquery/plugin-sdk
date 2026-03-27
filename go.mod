@@ -101,4 +101,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/invopop/jsonschema => github.com/cloudquery/jsonschema v0.0.0-20240220124159-92878faa2a66
+replace github.com/invopop/jsonschema => github.com/cloudquery/jsonschema v0.0.0-20260327151118-8dfb902740f6
