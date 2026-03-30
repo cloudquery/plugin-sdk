@@ -632,9 +632,10 @@
 | github.com/cloudquery/plugin-sdk/v4/schema/convert.go:145: | underlyingUUIDType | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/schema/convert.go:166: | underlyingSliceType | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/schema/convert.go:188: | underlyingPtrType | 0.0% |
-| github.com/cloudquery/plugin-sdk/v4/schema/errors.go:27: | Error | 0.0% |
-| github.com/cloudquery/plugin-sdk/v4/schema/errors.go:35: | MaskedError | 0.0% |
-| github.com/cloudquery/plugin-sdk/v4/schema/errors.go:42: | Unwrap | 0.0% |
+| github.com/cloudquery/plugin-sdk/v4/schema/errors.go:27: | Error | 100.0% |
+| github.com/cloudquery/plugin-sdk/v4/schema/errors.go:38: | Error | 0.0% |
+| github.com/cloudquery/plugin-sdk/v4/schema/errors.go:46: | MaskedError | 0.0% |
+| github.com/cloudquery/plugin-sdk/v4/schema/errors.go:53: | Unwrap | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/schema/meta.go:52: | parentCqUUIDResolver | 10.0% |
 | github.com/cloudquery/plugin-sdk/v4/schema/resolvers.go:15: | PathResolver | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/schema/resolvers.go:22: | ParentColumnResolver | 0.0% |
@@ -932,4 +933,4 @@
 | github.com/cloudquery/plugin-sdk/v4/writers/ticker.go:32: | Stop | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/ticker.go:34: | Reset | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/ticker.go:36: | Chan | 0.0% |
-| total: | (statements) | 55.1% |
+| total: | (statements) | 55.2% |
