@@ -21,7 +21,7 @@ jobs:
           python3 -m venv "$venv"
           echo "$venv/bin" >> $GITHUB_PATH
       - name: Vale
-        uses: errata-ai/vale-action@dcded780f1ff68e2558e802a165a484a4a3e2fb8
+        uses: errata-ai/vale-action@0135b9fe2b3107365569cc3142b9a1c85221ea2f
         with:
           vale_flags: "--glob=!{docs/testdata/*,CHANGELOG.md,.github/styles/proselint/README.md,examples/simple_plugin/docs/*.md,coverage.md}"
           filter_mode: nofilter
