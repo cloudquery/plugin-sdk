@@ -88,6 +88,8 @@ linters:
           disabled: true
         - name: use-waitgroup-go
           disabled: true
+        - name: package-naming
+          disabled: true
   exclusions:
     generated: lax
     presets:

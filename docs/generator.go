@@ -1,11 +1,12 @@
 package docs
 
 import (
+	"cmp"
 	"embed"
 	"fmt"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -87,8 +88,8 @@ func DefaultTitleTransformer(table *schema.Table) string {
 }
 
 func sortTables(tables schema.Tables) {
-	sort.SliceStable(tables, func(i, j int) bool {
-		return tables[i].Name < tables[j].Name
+	slices.SortStableFunc(tables, func(a, b *schema.Table) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 
 	for _, table := range tables {
