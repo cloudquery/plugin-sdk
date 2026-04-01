@@ -1,7 +1,8 @@
 package plugin
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
@@ -18,16 +19,16 @@ func sortRecords(table *schema.Table, records []arrow.RecordBatch, columnName st
 		panic("table has no '" + columnName + "' column to sort on")
 	}
 	colIndex := sch.FieldIndices(columnName)[0]
-	sort.Slice(records, func(i, j int) bool {
-		switch records[i].Column(colIndex).DataType().(type) {
+	slices.SortFunc(records, func(a, b arrow.RecordBatch) int {
+		switch a.Column(colIndex).DataType().(type) {
 		case *arrow.Int64Type:
-			v1 := records[i].Column(colIndex).(*array.Int64).Value(0)
-			v2 := records[j].Column(colIndex).(*array.Int64).Value(0)
-			return v1 < v2
+			v1 := a.Column(colIndex).(*array.Int64).Value(0)
+			v2 := b.Column(colIndex).(*array.Int64).Value(0)
+			return cmp.Compare(v1, v2)
 		case *arrow.StringType:
-			v1 := records[i].Column(colIndex).(*array.String).Value(0)
-			v2 := records[j].Column(colIndex).(*array.String).Value(0)
-			return v1 < v2
+			v1 := a.Column(colIndex).(*array.String).Value(0)
+			v2 := b.Column(colIndex).(*array.String).Value(0)
+			return cmp.Compare(v1, v2)
 		default:
 			panic("unsupported type for sorting")
 		}
