@@ -13,7 +13,7 @@ require (
 	github.com/cloudquery/codegen v0.4.0
 	github.com/cloudquery/plugin-pb-go v1.27.13
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
-	github.com/getsentry/sentry-go v0.42.0
+	github.com/getsentry/sentry-go v0.44.1
 	github.com/goccy/go-json v0.10.6
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.7.0
@@ -40,7 +40,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.42.0
 	go.opentelemetry.io/otel/trace v1.42.0
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
-	golang.org/x/oauth2 v0.35.0
+	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.20.0
 	golang.org/x/text v0.35.0
 	google.golang.org/grpc v1.79.3
