@@ -12,7 +12,7 @@ require (
 	github.com/cloudquery/cloudquery-api-go v1.14.9
 	github.com/cloudquery/codegen v0.4.0
 	github.com/cloudquery/plugin-pb-go v1.27.13
-	github.com/cloudquery/plugin-sdk/v2 v2.7.0
+	github.com/cloudquery/plugin-sdk/v4 v4.95.0
 	github.com/getsentry/sentry-go v0.44.1
 	github.com/goccy/go-json v0.10.6
 	github.com/golang/mock v1.6.0
