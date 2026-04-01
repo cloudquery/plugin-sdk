@@ -4,7 +4,7 @@ import (
 	"context"
 	"math/rand"
 	"runtime"
-	"sort"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -144,7 +144,7 @@ func writerMatrix[T writers.Writer, C any, O ~func(T)](prefix string, constructo
 	bCases := make([]bCase, 0, len(optsMatrix))
 
 	k := maps.Keys(optsMatrix)
-	sort.Strings(k)
+	slices.Sort(k)
 
 	for _, name := range k {
 		opts := optsMatrix[name]
