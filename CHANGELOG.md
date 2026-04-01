@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.95.1](https://github.com/cloudquery/plugin-sdk/compare/v4.95.0...v4.95.1) (2026-04-01)
+
+
+### Bug Fixes
+
+* **deps:** Update github.com/cloudquery/jsonschema digest to 8dfb902 ([#2466](https://github.com/cloudquery/plugin-sdk/issues/2466)) ([6b54996](https://github.com/cloudquery/plugin-sdk/commit/6b54996ab46acd975d1147a3f1c2a8291efbcba4))
+* **deps:** Update module github.com/cloudquery/cloudquery-api-go to v1.14.9 ([#2459](https://github.com/cloudquery/plugin-sdk/issues/2459)) ([68b78c1](https://github.com/cloudquery/plugin-sdk/commit/68b78c1c81dee2415ebbaf86c6e91d898542b214))
+* **deps:** Update module github.com/cloudquery/codegen to v0.4.1 ([#2468](https://github.com/cloudquery/plugin-sdk/issues/2468)) ([64f01c0](https://github.com/cloudquery/plugin-sdk/commit/64f01c0d18447f037e5361ed28843237530a0b9e))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.27.12 ([#2460](https://github.com/cloudquery/plugin-sdk/issues/2460)) ([d304516](https://github.com/cloudquery/plugin-sdk/commit/d3045169302cd6d027f3b60a941db22f64b904a3))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.27.13 ([#2463](https://github.com/cloudquery/plugin-sdk/issues/2463)) ([2623f3c](https://github.com/cloudquery/plugin-sdk/commit/2623f3c499d322522c7a1773f6da353ed5913983))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.27.14 ([#2477](https://github.com/cloudquery/plugin-sdk/issues/2477)) ([9364ffa](https://github.com/cloudquery/plugin-sdk/commit/9364ffa40d9c908843ee2e50b45f9f652bd219e1))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.44.1 ([#2471](https://github.com/cloudquery/plugin-sdk/issues/2471)) ([ab459ad](https://github.com/cloudquery/plugin-sdk/commit/ab459ad394a7e29edc9ea2d426e3b77613efb8ac))
+* **deps:** Update module golang.org/x/oauth2 to v0.36.0 ([#2472](https://github.com/cloudquery/plugin-sdk/issues/2472)) ([e4cbbb5](https://github.com/cloudquery/plugin-sdk/commit/e4cbbb522dec8bf68af6db50926c910742792236))
+* **deps:** Update opentelemetry-go monorepo ([#2473](https://github.com/cloudquery/plugin-sdk/issues/2473)) ([d36cc11](https://github.com/cloudquery/plugin-sdk/commit/d36cc11141c93fea6230b381458250109a8d86d9))
+
 ## [4.95.0](https://github.com/cloudquery/plugin-sdk/compare/v4.94.7...v4.95.0) (2026-03-26)
 
 
