@@ -54,7 +54,7 @@ jobs:
         run: echo ${{ github.event.number }} > ./pr_number
       - name: Upload deltas
         if: matrix.os == 'ubicloud-standard-8'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: delta-action-benchmarks
           retention-days: 7
