@@ -29,13 +29,13 @@
 | github.com/cloudquery/plugin-sdk/v4/configtype/time.go:254: | addUnit | 50.0% |
 | github.com/cloudquery/plugin-sdk/v4/configtype/time.go:290: | Duration | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/configtype/util.go:5: | patternCases | 100.0% |
-| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:60: | String | 0.0% |
-| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:64: | FormatFromString | 0.0% |
-| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:81: | DefaultTitleTransformer | 75.0% |
-| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:89: | sortTables | 100.0% |
-| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:101: | NewGenerator | 100.0% |
-| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:115: | Generate | 66.7% |
-| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:130: | GenerateJSON | 0.0% |
+| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:61: | String | 0.0% |
+| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:65: | FormatFromString | 0.0% |
+| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:82: | DefaultTitleTransformer | 75.0% |
+| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:90: | sortTables | 100.0% |
+| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:102: | NewGenerator | 100.0% |
+| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:116: | Generate | 66.7% |
+| github.com/cloudquery/plugin-sdk/v4/docs/generator.go:131: | GenerateJSON | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/docs/json.go:28: | renderTablesAsJSON | 90.0% |
 | github.com/cloudquery/plugin-sdk/v4/docs/json.go:42: | jsonifyTables | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/docs/markdown.go:18: | renderTablesAsMarkdown | 73.7% |
@@ -273,7 +273,7 @@
 | github.com/cloudquery/plugin-sdk/v4/plugin/plugin_testconn.go:42: | UnimplementedTestConnectionFn | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/plugin/plugin_transformer.go:14: | Transform | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/plugin/plugin_transformer.go:19: | TransformSchema | 0.0% |
-| github.com/cloudquery/plugin-sdk/v4/plugin/sort.go:15: | sortRecords | 0.0% |
+| github.com/cloudquery/plugin-sdk/v4/plugin/sort.go:16: | sortRecords | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/plugin/testing.go:10: | tableNameForTest | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/plugin/testing_validation.go:10: | ValidateNoEmptyColumns | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/plugin/testing_validation.go:20: | ValidateSensitiveColumns | 0.0% |
@@ -593,7 +593,7 @@
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_debug.go:30: | syncTest | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:24: | syncDfs | 86.7% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:81: | resolveTableDfs | 87.2% |
-| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:154: | resolveResourcesDfs | 73.9% |
+| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:154: | resolveResourcesDfs | 69.6% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_round_robin.go:15: | syncRoundRobin | 85.2% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_round_robin.go:69: | roundRobinInterleave | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_shuffle.go:13: | syncShuffle | 87.1% |
@@ -933,4 +933,4 @@
 | github.com/cloudquery/plugin-sdk/v4/writers/ticker.go:32: | Stop | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/ticker.go:34: | Reset | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/ticker.go:36: | Chan | 0.0% |
-| total: | (statements) | 55.2% |
+| total: | (statements) | 55.1% |
