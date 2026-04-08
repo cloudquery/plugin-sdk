@@ -7,8 +7,8 @@ This is the repository for CloudQuery SDK. If you are looking for CloudQuery CLI
 ## Links
 
 - [Homepage](https://cloudquery.io)
-- [Platform](https://docs.cloudquery.io)
-- [Documentation](https://cli-docs.cloudquery.io)
+- [Platform](https://www.cloudquery.io)
+- [Documentation](https://www.cloudquery.io/docs)
 - [CLI and Plugins Monorepo](https://github.com/cloudquery/cloudquery)
 - [Community](https://community.cloudquery.io)
 
