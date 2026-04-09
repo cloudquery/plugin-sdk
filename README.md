@@ -21,6 +21,6 @@ The plugin SDK is imported as a dependency by CloudQuery plugins. When starting 
 
 ## Supported plugins
 
-<https://www.cloudquery.io/plugins>
+<https://www.cloudquery.io/hub/plugins/source>
 
 If you want us to add a new plugin or resource please open an [Issue](https://github.com/cloudquery/cloudquery/issues).
