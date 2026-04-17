@@ -10,6 +10,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/storage"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -95,6 +96,15 @@ func WithShard(num int32, total int32) SyncOption {
 	}
 }
 
+// WithStorage configures the queue backend used by the shuffle-queue
+// scheduler strategy. When nil, the scheduler constructs an in-memory
+// backend at Sync time. Used only when Strategy == StrategyShuffleQueue.
+func WithStorage(s storage.Storage) Option {
+	return func(sc *Scheduler) {
+		sc.storage = s
+	}
+}
+
 type Client interface {
 	ID() string
 }
@@ -122,6 +132,7 @@ type Scheduler struct {
 	batchSettings *BatchSettings
 
 	invocationID string
+	storage      storage.Storage
 }
 
 type shard struct {
