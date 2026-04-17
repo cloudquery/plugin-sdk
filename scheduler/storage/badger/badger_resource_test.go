@@ -11,7 +11,7 @@ import (
 func TestBadger_PutGetResource(t *testing.T) {
 	s := newBadger(t)
 	ctx := context.Background()
-	require.NoError(t, s.PutResource(ctx, "id-1", []byte("hello"), 1))
+	require.NoError(t, s.PutResource(ctx, "id-1", []byte("hello"), 1, ""))
 
 	got, err := s.GetResource(ctx, "id-1")
 	require.NoError(t, err)
@@ -21,7 +21,7 @@ func TestBadger_PutGetResource(t *testing.T) {
 func TestBadger_RefcountDeleteOnZero(t *testing.T) {
 	s := newBadger(t)
 	ctx := context.Background()
-	require.NoError(t, s.PutResource(ctx, "id-1", []byte("x"), 2))
+	require.NoError(t, s.PutResource(ctx, "id-1", []byte("x"), 2, ""))
 
 	require.NoError(t, s.DecResourceRefcount(ctx, "id-1"))
 	_, err := s.GetResource(ctx, "id-1")

@@ -38,10 +38,23 @@ type Storage interface {
 
 	// PutResource inserts a resource blob with an initial refcount.
 	// refcount must be >= 1 (a resource with zero pins should never exist).
-	PutResource(ctx context.Context, id string, data []byte, refcount int) error
+	//
+	// parentID is "" for root resources. When parentID != "", the backend
+	// atomically increments parentID's refcount by 1 as part of the same
+	// operation that stores the new resource — this gives every stored
+	// descendant its own pin on its parent. If parentID doesn't exist, the
+	// call fails with ErrResourceNotFound and the new resource is not stored.
+	//
+	// Cascade-on-delete: when DecResourceRefcount causes deletion (refcount
+	// hits zero), a Dec is propagated to the stored parentID (if any),
+	// recursively up the chain. This releases each stored-descendant pin as
+	// the descendant itself is freed.
+	PutResource(ctx context.Context, id string, data []byte, refcount int, parentID string) error
 	GetResource(ctx context.Context, id string) ([]byte, error)
 	// DecResourceRefcount decrements refcount by 1 and deletes when it
-	// reaches zero, atomically within a single backend operation.
+	// reaches zero, atomically within a single backend operation. On
+	// deletion, a Dec is cascaded to the stored parentID (if any),
+	// recursively.
 	DecResourceRefcount(ctx context.Context, id string) error
 
 	Close(ctx context.Context) error

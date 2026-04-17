@@ -79,6 +79,7 @@ func workKey() []byte {
 type resourceEntry struct {
 	Data     []byte `json:"data"`
 	Refcount int    `json:"refcount"`
+	ParentID string `json:"parent_id,omitempty"`
 }
 
 func resourceKey(id string) []byte {
@@ -158,16 +159,40 @@ func (s *Storage) WorkLen(ctx context.Context) (int, error) {
 	return count, err
 }
 
-func (s *Storage) PutResource(ctx context.Context, id string, data []byte, refcount int) error {
+func (s *Storage) PutResource(ctx context.Context, id string, data []byte, refcount int, parentID string) error {
 	if refcount < 1 {
 		return errors.New("badger: refcount must be >= 1")
 	}
-	entry := resourceEntry{Data: data, Refcount: refcount}
-	blob, err := json.Marshal(entry)
-	if err != nil {
-		return fmt.Errorf("badger: marshal resource: %w", err)
-	}
-	return s.db.Update(func(txn *badgerdb.Txn) error {
+	return s.updateWithRetry(func(txn *badgerdb.Txn) error {
+		if parentID != "" {
+			parentKey := resourceKey(parentID)
+			parentItem, err := txn.Get(parentKey)
+			if errors.Is(err, badgerdb.ErrKeyNotFound) {
+				return storage.ErrResourceNotFound
+			}
+			if err != nil {
+				return err
+			}
+			var parentEntry resourceEntry
+			if err := parentItem.Value(func(val []byte) error {
+				return json.Unmarshal(val, &parentEntry)
+			}); err != nil {
+				return fmt.Errorf("badger: unmarshal parent: %w", err)
+			}
+			parentEntry.Refcount++
+			parentBlob, err := json.Marshal(parentEntry)
+			if err != nil {
+				return fmt.Errorf("badger: marshal parent: %w", err)
+			}
+			if err := txn.Set(parentKey, parentBlob); err != nil {
+				return err
+			}
+		}
+		entry := resourceEntry{Data: data, Refcount: refcount, ParentID: parentID}
+		blob, err := json.Marshal(entry)
+		if err != nil {
+			return fmt.Errorf("badger: marshal resource: %w", err)
+		}
 		return txn.Set(resourceKey(id), blob)
 	})
 }
@@ -196,30 +221,42 @@ func (s *Storage) GetResource(ctx context.Context, id string) ([]byte, error) {
 
 func (s *Storage) DecResourceRefcount(ctx context.Context, id string) error {
 	return s.updateWithRetry(func(txn *badgerdb.Txn) error {
-		key := resourceKey(id)
-		item, err := txn.Get(key)
-		if errors.Is(err, badgerdb.ErrKeyNotFound) {
-			return storage.ErrResourceNotFound
-		}
-		if err != nil {
+		return decInTxn(txn, id)
+	})
+}
+
+func decInTxn(txn *badgerdb.Txn, id string) error {
+	key := resourceKey(id)
+	item, err := txn.Get(key)
+	if errors.Is(err, badgerdb.ErrKeyNotFound) {
+		return storage.ErrResourceNotFound
+	}
+	if err != nil {
+		return err
+	}
+	var entry resourceEntry
+	if err := item.Value(func(val []byte) error {
+		return json.Unmarshal(val, &entry)
+	}); err != nil {
+		return fmt.Errorf("badger: unmarshal resource: %w", err)
+	}
+	entry.Refcount--
+	if entry.Refcount <= 0 {
+		if err := txn.Delete(key); err != nil {
 			return err
 		}
-		var entry resourceEntry
-		if err := item.Value(func(val []byte) error {
-			return json.Unmarshal(val, &entry)
-		}); err != nil {
-			return fmt.Errorf("badger: unmarshal resource: %w", err)
+		if entry.ParentID != "" {
+			if err := decInTxn(txn, entry.ParentID); err != nil && !errors.Is(err, storage.ErrResourceNotFound) {
+				return err
+			}
 		}
-		entry.Refcount--
-		if entry.Refcount <= 0 {
-			return txn.Delete(key)
-		}
-		blob, err := json.Marshal(entry)
-		if err != nil {
-			return fmt.Errorf("badger: marshal resource: %w", err)
-		}
-		return txn.Set(key, blob)
-	})
+		return nil
+	}
+	blob, err := json.Marshal(entry)
+	if err != nil {
+		return fmt.Errorf("badger: marshal resource: %w", err)
+	}
+	return txn.Set(key, blob)
 }
 
 func (s *Storage) Close(ctx context.Context) error {

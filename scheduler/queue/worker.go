@@ -75,16 +75,16 @@ func (w *worker) work(ctx context.Context, activeWorkSignal *activeWorkSignal) {
 }
 
 // runJob processes a single SerializedWorkUnit. Guarantees: on any return
-// path (success, error, panic), if j.ParentID != "" AND the unit did not
-// transfer its pin to a stored intermediate, exactly one
-// DecResourceRefcount call is made.
+// path (success, error, panic), if j.ParentID != "", exactly one
+// DecResourceRefcount call is made against j.ParentID. Each stored
+// descendant acquires its own pin on parentID via PutResource's atomic Inc,
+// and cascade-on-delete releases those pins as the descendants are freed.
 func (w *worker) runJob(ctx context.Context, j *storage.SerializedWorkUnit) {
-	pinTransferred := false
 	defer func() {
 		if r := recover(); r != nil {
 			w.logger.Error().Interface("panic", r).Str("table", j.TableName).Msg("worker panic")
 		}
-		if j.ParentID != "" && !pinTransferred {
+		if j.ParentID != "" {
 			if err := w.store.DecResourceRefcount(ctx, j.ParentID); err != nil {
 				w.logger.Error().Err(err).Str("parent_id", j.ParentID).Msg("failed to dec parent refcount")
 			}
@@ -116,14 +116,14 @@ func (w *worker) runJob(ctx context.Context, j *storage.SerializedWorkUnit) {
 		}
 	}
 
-	transferred := w.resolveTable(ctx, table, client, parent, j.ParentID)
-	pinTransferred = transferred
+	w.resolveTable(ctx, table, client, parent, j.ParentID)
 }
 
-// resolveTable resolves a single table+client+parent unit. Returns true if
-// the WorkUnit's pin on j.ParentID was transferred to one or more stored
-// intermediate resources (so the caller must NOT decrement).
-func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, parentID string) (pinTransferred bool) {
+// resolveTable resolves a single table+client+parent unit. Each stored
+// intermediate resource created while iterating results acquires its own
+// fresh pin on parentID via PutResource's atomic Inc, so the caller (runJob)
+// can always Dec exactly once on completion.
+func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, parentID string) {
 	clientName := client.ID()
 	ctx, span := otel.Tracer(metrics.ResourceName).Start(ctx,
 		"sync.table."+table.Name,
@@ -173,9 +173,7 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	}()
 
 	for r := range res {
-		if w.resolveResource(ctx, table, client, parent, parentID, r) {
-			pinTransferred = true
-		}
+		w.resolveResource(ctx, table, client, parent, parentID, r)
 	}
 
 	endTime := time.Now()
@@ -183,17 +181,17 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	if parent == nil {
 		logger.Info().Uint64("resources", w.metrics.GetResources(selector)).Uint64("errors", w.metrics.GetErrors(selector)).Dur("duration_ms", w.metrics.GetDuration(selector)).Msg("table sync finished")
 	}
-	return pinTransferred
 }
 
 // resolveResource processes one chunk of items returned by a resolver.
-// Returns true if at least one stored intermediate resource was created
-// with ParentID == parentID, which means the caller's pin must NOT be
-// released (it's been transferred to the new intermediate).
-func (w *worker) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, parentID string, resources any) (pinTransferred bool) {
+// For each resolved resource that has child relations, it stores the
+// resource (acquiring a fresh pin on parentID via PutResource's atomic Inc)
+// and pushes WorkUnits for the relations. Cascade-on-delete in the storage
+// backend releases the parent pin when the intermediate is eventually freed.
+func (w *worker) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, parentID string, resources any) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
-		return false
+		return
 	}
 
 	selector := w.metrics.NewSelector(client.ID(), table.Name)
@@ -228,7 +226,7 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 			select {
 			case w.resolvedResources <- r:
 			case <-ctx.Done():
-				return pinTransferred
+				return
 			}
 
 			// If this resource has children, store it and push WorkUnits.
@@ -240,7 +238,7 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 					w.metrics.AddErrors(ctx, 1, selector)
 					continue
 				}
-				if err := w.store.PutResource(ctx, newID, blob, len(r.Table.Relations)); err != nil {
+				if err := w.store.PutResource(ctx, newID, blob, len(r.Table.Relations), parentID); err != nil {
 					w.logger.Error().Err(err).Str("table", r.Table.Name).Msg("failed to persist resource")
 					w.metrics.AddErrors(ctx, 1, selector)
 					continue
@@ -258,16 +256,7 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 					w.metrics.AddErrors(ctx, 1, selector)
 					continue
 				}
-
-				// Pin transfer: since this intermediate references parentID,
-				// the WorkUnit's pin must NOT be decremented on completion —
-				// the intermediate now owns that pin and will release it when
-				// its own refcount drains.
-				if parentID != "" && !pinTransferred {
-					pinTransferred = true
-				}
 			}
 		}
 	}
-	return pinTransferred
 }

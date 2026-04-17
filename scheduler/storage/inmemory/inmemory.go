@@ -22,6 +22,7 @@ type Storage struct {
 type resourceEntry struct {
 	data     []byte
 	refcount int
+	parentID string
 }
 
 // New returns a Storage seeded for deterministic random-pop ordering.
@@ -67,15 +68,22 @@ func (s *Storage) WorkLen(_ context.Context) (int, error) {
 	return len(s.queue), nil
 }
 
-func (s *Storage) PutResource(_ context.Context, id string, data []byte, refcount int) error {
+func (s *Storage) PutResource(_ context.Context, id string, data []byte, refcount int, parentID string) error {
 	if refcount < 1 {
 		return errors.New("storage/inmemory: refcount must be >= 1")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if parentID != "" {
+		parent, ok := s.resources[parentID]
+		if !ok {
+			return storage.ErrResourceNotFound
+		}
+		parent.refcount++
+	}
 	cp := make([]byte, len(data))
 	copy(cp, data)
-	s.resources[id] = &resourceEntry{data: cp, refcount: refcount}
+	s.resources[id] = &resourceEntry{data: cp, refcount: refcount, parentID: parentID}
 	return nil
 }
 
@@ -94,13 +102,26 @@ func (s *Storage) GetResource(_ context.Context, id string) ([]byte, error) {
 func (s *Storage) DecResourceRefcount(_ context.Context, id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.decLocked(id)
+}
+
+func (s *Storage) decLocked(id string) error {
 	entry, ok := s.resources[id]
 	if !ok {
 		return storage.ErrResourceNotFound
 	}
 	entry.refcount--
 	if entry.refcount <= 0 {
+		parentID := entry.parentID
 		delete(s.resources, id)
+		if parentID != "" {
+			// Cascade: releases the stored-descendant pin on the parent.
+			// Swallow ErrResourceNotFound — it indicates a caller bug but
+			// shouldn't prevent the delete from succeeding.
+			if err := s.decLocked(parentID); err != nil && !errors.Is(err, storage.ErrResourceNotFound) {
+				return err
+			}
+		}
 	}
 	return nil
 }
