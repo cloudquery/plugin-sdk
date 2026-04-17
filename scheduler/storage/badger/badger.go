@@ -43,7 +43,8 @@ func Open(opts Options) (*Storage, error) {
 // --- Storage methods below this line will be filled in subsequent tasks. ---
 
 const (
-	workPrefix = "w/"
+	workPrefix     = "w/"
+	resourcePrefix = "r/"
 )
 
 // workKey generates a unique key for a queued work unit. UUID gives random
@@ -51,6 +52,18 @@ const (
 // particular pop order" requirement.
 func workKey() []byte {
 	return []byte(workPrefix + uuid.NewString())
+}
+
+// resourceEntry is the on-disk representation of a parent resource. Stored
+// as a single JSON blob; refcount is a field so DecResourceRefcount can
+// update it atomically within one transaction.
+type resourceEntry struct {
+	Data     []byte `json:"data"`
+	Refcount int    `json:"refcount"`
+}
+
+func resourceKey(id string) []byte {
+	return []byte(resourcePrefix + id)
 }
 
 func (s *Storage) PushWork(ctx context.Context, w storage.SerializedWorkUnit) error {
@@ -127,14 +140,69 @@ func (s *Storage) WorkLen(ctx context.Context) (int, error) {
 }
 
 func (s *Storage) PutResource(ctx context.Context, id string, data []byte, refcount int) error {
-	return errors.New("not implemented")
+	if refcount < 1 {
+		return errors.New("badger: refcount must be >= 1")
+	}
+	entry := resourceEntry{Data: data, Refcount: refcount}
+	blob, err := json.Marshal(entry)
+	if err != nil {
+		return fmt.Errorf("badger: marshal resource: %w", err)
+	}
+	return s.db.Update(func(txn *badgerdb.Txn) error {
+		return txn.Set(resourceKey(id), blob)
+	})
 }
+
 func (s *Storage) GetResource(ctx context.Context, id string) ([]byte, error) {
-	return nil, errors.New("not implemented")
+	var out []byte
+	err := s.db.View(func(txn *badgerdb.Txn) error {
+		item, err := txn.Get(resourceKey(id))
+		if errors.Is(err, badgerdb.ErrKeyNotFound) {
+			return storage.ErrResourceNotFound
+		}
+		if err != nil {
+			return err
+		}
+		return item.Value(func(val []byte) error {
+			var entry resourceEntry
+			if err := json.Unmarshal(val, &entry); err != nil {
+				return fmt.Errorf("badger: unmarshal resource: %w", err)
+			}
+			out = append(out[:0], entry.Data...)
+			return nil
+		})
+	})
+	return out, err
 }
+
 func (s *Storage) DecResourceRefcount(ctx context.Context, id string) error {
-	return errors.New("not implemented")
+	return s.db.Update(func(txn *badgerdb.Txn) error {
+		key := resourceKey(id)
+		item, err := txn.Get(key)
+		if errors.Is(err, badgerdb.ErrKeyNotFound) {
+			return storage.ErrResourceNotFound
+		}
+		if err != nil {
+			return err
+		}
+		var entry resourceEntry
+		if err := item.Value(func(val []byte) error {
+			return json.Unmarshal(val, &entry)
+		}); err != nil {
+			return fmt.Errorf("badger: unmarshal resource: %w", err)
+		}
+		entry.Refcount--
+		if entry.Refcount <= 0 {
+			return txn.Delete(key)
+		}
+		blob, err := json.Marshal(entry)
+		if err != nil {
+			return fmt.Errorf("badger: marshal resource: %w", err)
+		}
+		return txn.Set(key, blob)
+	})
 }
+
 func (s *Storage) Close(ctx context.Context) error {
 	if s.db == nil {
 		return nil
