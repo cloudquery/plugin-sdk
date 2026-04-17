@@ -54,11 +54,20 @@ func buildE2ETables() schema.Tables {
 func runSync(t *testing.T, cfg *scheduler.QueueConfig) []message.SyncMessage {
 	t.Helper()
 	tables := buildE2ETables()
-	for _, tbl := range tables.FlattenTables() {
-		if tbl.Transform != nil {
-			require.NoError(t, tbl.Transform(tbl))
+
+	// Apply transforms IN PLACE on the actual table tree (not copies from
+	// FlattenTables). Transforms populate columns; if we transform copies
+	// the originals stay column-less and inserts produce zero rows.
+	var applyTransforms func([]*schema.Table)
+	applyTransforms = func(ts []*schema.Table) {
+		for _, tbl := range ts {
+			if tbl.Transform != nil {
+				require.NoError(t, tbl.Transform(tbl))
+			}
+			applyTransforms(tbl.Relations)
 		}
 	}
+	applyTransforms(tables)
 
 	opts := []scheduler.Option{
 		scheduler.WithStrategy(scheduler.StrategyShuffleQueue),
@@ -84,22 +93,22 @@ func TestE2E_InMemoryVsBadger_Equivalent(t *testing.T) {
 		Path: badgerDir,
 	})
 
-	// Count inserts per table. Exact ordering may differ, but totals should match.
-	countInserts := func(ms []message.SyncMessage) int {
-		n := 0
+	// Count ROWS across all SyncInsert messages, not just message count.
+	// Batching differences between backends may produce different message
+	// counts for the same logical data — row count is the true equivalence.
+	countRows := func(ms []message.SyncMessage) int64 {
+		var n int64
 		for _, m := range ms {
-			if _, ok := m.(*message.SyncInsert); ok {
-				n++
+			if im, ok := m.(*message.SyncInsert); ok {
+				n += im.Record.NumRows()
 			}
 		}
 		return n
 	}
-	inMemN := countInserts(inMemMsgs)
-	badgerN := countInserts(badgerMsgs)
-	require.Equal(t, inMemN, badgerN, "in-memory vs badger insert count should match: in-memory=%d badger=%d", inMemN, badgerN)
+	inMemRows := countRows(inMemMsgs)
+	badgerRows := countRows(badgerMsgs)
 
-	// Expected: 2 roots + (2 * 2) = 6 resources → some number of SyncInsert batches.
-	// Minimum 1 message for each table's resources (ensure nonzero).
-	require.Greater(t, inMemN, 0, "in-memory produced zero inserts")
-	require.Greater(t, badgerN, 0, "badger produced zero inserts")
+	// Expected: 2 roots + (2 roots * 2 children each) = 6 rows total.
+	require.Equal(t, int64(6), inMemRows, "in-memory row count should match expected fixture output")
+	require.Equal(t, inMemRows, badgerRows, "badger row count should match in-memory: in-memory=%d badger=%d", inMemRows, badgerRows)
 }
