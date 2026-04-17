@@ -1,6 +1,5 @@
 // Package inmemory is the default Storage backend — holds all scheduler
-// state in process memory. Matches the behavior of the pre-existing
-// ConcurrentRandomQueue: random-pop work semantics, atomic refcounts.
+// state in process memory with random-pop work semantics and atomic refcounts.
 package inmemory
 
 import (
