@@ -32,6 +32,7 @@ func TestContract(t *testing.T, newStorage func(t *testing.T) storage.Storage) {
 	t.Run("concurrent_refcount_no_double_delete", func(t *testing.T) { testConcurrentRefcountNoDoubleDelete(t, newStorage(t)) })
 	t.Run("close_is_idempotent", func(t *testing.T) { testCloseIsIdempotent(t, newStorage(t)) })
 	t.Run("cascade_dec_deletes_ancestors", func(t *testing.T) { testCascadeDecDeletesAncestors(t, newStorage(t)) })
+	t.Run("cascade_dec_fanout", func(t *testing.T) { testCascadeDecFanout(t, newStorage(t)) })
 	t.Run("put_resource_rejects_unknown_parent", func(t *testing.T) { testPutResourceRejectsUnknownParent(t, newStorage(t)) })
 }
 
@@ -260,6 +261,44 @@ func testCascadeDecDeletesAncestors(t *testing.T, s storage.Storage) {
 	// Drain gp's own refcount → delete gp, no further cascade (parentID=="").
 	require.NoError(t, s.DecResourceRefcount(ctx, "gp"))
 	_, err = s.GetResource(ctx, "gp")
+	require.ErrorIs(t, err, storage.ErrResourceNotFound)
+}
+
+// testCascadeDecFanout verifies the multi-intermediate fanout case: a single
+// parent has N stored children each referencing it. Each child drains
+// independently, each cascade-Decs the parent exactly once. Parent is
+// deleted only when its own initial refcount plus all N fanout pins drain.
+// This is the exact pattern that regressed the original pin-transfer design.
+func testCascadeDecFanout(t *testing.T, s storage.Storage) {
+	ctx := context.Background()
+	require.NoError(t, s.PutResource(ctx, "p", []byte("p"), 1, ""))
+	// p.refcount = 1 (its own)
+
+	require.NoError(t, s.PutResource(ctx, "c1", []byte("c1"), 1, "p"))
+	require.NoError(t, s.PutResource(ctx, "c2", []byte("c2"), 1, "p"))
+	require.NoError(t, s.PutResource(ctx, "c3", []byte("c3"), 1, "p"))
+	// p.refcount = 4 (1 own + 1 each for c1/c2/c3)
+
+	// Drain c1: c1 deleted → cascade Dec(p) → p.refcount = 3 (still alive).
+	require.NoError(t, s.DecResourceRefcount(ctx, "c1"))
+	_, err := s.GetResource(ctx, "c1")
+	require.ErrorIs(t, err, storage.ErrResourceNotFound)
+	_, err = s.GetResource(ctx, "p")
+	require.NoError(t, err, "p must still exist after c1's cascade (refcount 3)")
+
+	// Drain c2: same, p.refcount = 2.
+	require.NoError(t, s.DecResourceRefcount(ctx, "c2"))
+	_, err = s.GetResource(ctx, "p")
+	require.NoError(t, err, "p must still exist after c2's cascade (refcount 2)")
+
+	// Drain c3: c3 deleted, cascade → p.refcount = 1 (its own initial pin).
+	require.NoError(t, s.DecResourceRefcount(ctx, "c3"))
+	_, err = s.GetResource(ctx, "p")
+	require.NoError(t, err, "p must still exist after c3's cascade (refcount 1 from its own initial pin)")
+
+	// Drain p's own pin: p deleted.
+	require.NoError(t, s.DecResourceRefcount(ctx, "p"))
+	_, err = s.GetResource(ctx, "p")
 	require.ErrorIs(t, err, storage.ErrResourceNotFound)
 }
 
