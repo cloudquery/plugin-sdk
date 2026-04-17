@@ -27,6 +27,25 @@ type Storage struct {
 	db *badgerdb.DB
 }
 
+// maxUpdateRetries bounds the retry loop for Badger Update calls that hit
+// SSI transaction conflicts. Under contention from many concurrent workers,
+// a handful of retries is typical; exceeding this limit indicates pathology
+// (e.g., every worker racing on the same key at once).
+const maxUpdateRetries = 100
+
+// updateWithRetry runs fn inside s.db.Update, retrying on ErrConflict up to
+// maxUpdateRetries times. Necessary because Badger's SSI Update does not
+// auto-retry; callers must when they intend read-modify-write semantics.
+func (s *Storage) updateWithRetry(fn func(txn *badgerdb.Txn) error) error {
+	for i := 0; i < maxUpdateRetries; i++ {
+		err := s.db.Update(fn)
+		if !errors.Is(err, badgerdb.ErrConflict) {
+			return err
+		}
+	}
+	return fmt.Errorf("badger: transaction conflict after %d retries", maxUpdateRetries)
+}
+
 // Open creates or opens a Badger database at opts.Path.
 func Open(opts Options) (*Storage, error) {
 	if opts.Path == "" {
@@ -96,7 +115,7 @@ func (s *Storage) PushWorkBatch(ctx context.Context, ws []storage.SerializedWork
 
 func (s *Storage) PopWork(ctx context.Context) (*storage.SerializedWorkUnit, error) {
 	var out *storage.SerializedWorkUnit
-	err := s.db.Update(func(txn *badgerdb.Txn) error {
+	err := s.updateWithRetry(func(txn *badgerdb.Txn) error {
 		it := txn.NewIterator(badgerdb.DefaultIteratorOptions)
 		defer it.Close()
 		prefix := []byte(workPrefix)
@@ -176,7 +195,7 @@ func (s *Storage) GetResource(ctx context.Context, id string) ([]byte, error) {
 }
 
 func (s *Storage) DecResourceRefcount(ctx context.Context, id string) error {
-	return s.db.Update(func(txn *badgerdb.Txn) error {
+	return s.updateWithRetry(func(txn *badgerdb.Txn) error {
 		key := resourceKey(id)
 		item, err := txn.Get(key)
 		if errors.Is(err, badgerdb.ErrKeyNotFound) {
