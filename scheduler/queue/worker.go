@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"runtime/debug"
-	"sync"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/caser"
@@ -12,8 +11,10 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/storage"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/getsentry/sentry-go"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel"
@@ -22,8 +23,10 @@ import (
 )
 
 type worker struct {
-	jobs              <-chan *WorkUnit
-	queue             *ConcurrentRandomQueue[WorkUnit]
+	jobs              <-chan *storage.SerializedWorkUnit
+	store             storage.Storage
+	codec             *Codec
+	lookups           *workerLookups
 	resolvedResources chan<- *schema.Resource
 
 	logger            zerolog.Logger
@@ -31,23 +34,14 @@ type worker struct {
 	invocationID      string
 	deterministicCQID bool
 	metrics           *metrics.Metrics
-	// message channel for sending SyncError messages
-	msgChan chan<- message.SyncMessage
-}
-
-func (w *worker) work(ctx context.Context, activeWorkSignal *activeWorkSignal) {
-	for j := range w.jobs {
-		activeWorkSignal.Add()
-
-		w.resolveTable(ctx, j.Table, j.Client, j.Parent)
-
-		activeWorkSignal.Done()
-	}
+	msgChan           chan<- message.SyncMessage
 }
 
 func newWorker(
-	jobs <-chan *WorkUnit,
-	queue *ConcurrentRandomQueue[WorkUnit],
+	jobs <-chan *storage.SerializedWorkUnit,
+	store storage.Storage,
+	codec *Codec,
+	lookups *workerLookups,
 	resolvedResources chan<- *schema.Resource,
 
 	logger zerolog.Logger,
@@ -59,7 +53,9 @@ func newWorker(
 ) *worker {
 	return &worker{
 		jobs:              jobs,
-		queue:             queue,
+		store:             store,
+		codec:             codec,
+		lookups:           lookups,
 		resolvedResources: resolvedResources,
 		logger:            logger,
 		caser:             c,
@@ -70,7 +66,64 @@ func newWorker(
 	}
 }
 
-func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource) {
+func (w *worker) work(ctx context.Context, activeWorkSignal *activeWorkSignal) {
+	for j := range w.jobs {
+		activeWorkSignal.Add()
+		w.runJob(ctx, j)
+		activeWorkSignal.Done()
+	}
+}
+
+// runJob processes a single SerializedWorkUnit. Guarantees: on any return
+// path (success, error, panic), if j.ParentID != "" AND the unit did not
+// transfer its pin to a stored intermediate, exactly one
+// DecResourceRefcount call is made.
+func (w *worker) runJob(ctx context.Context, j *storage.SerializedWorkUnit) {
+	pinTransferred := false
+	defer func() {
+		if r := recover(); r != nil {
+			w.logger.Error().Interface("panic", r).Str("table", j.TableName).Msg("worker panic")
+		}
+		if j.ParentID != "" && !pinTransferred {
+			if err := w.store.DecResourceRefcount(ctx, j.ParentID); err != nil {
+				w.logger.Error().Err(err).Str("parent_id", j.ParentID).Msg("failed to dec parent refcount")
+			}
+		}
+	}()
+
+	table, ok := w.lookups.tables[j.TableName]
+	if !ok {
+		w.logger.Error().Str("table", j.TableName).Msg("unknown table in work unit")
+		return
+	}
+	client, ok := w.lookups.clients[j.ClientID]
+	if !ok {
+		w.logger.Error().Str("client", j.ClientID).Msg("unknown client in work unit")
+		return
+	}
+
+	var parent *schema.Resource
+	if j.ParentID != "" {
+		blob, err := w.store.GetResource(ctx, j.ParentID)
+		if err != nil {
+			w.logger.Error().Err(err).Str("parent_id", j.ParentID).Msg("failed to load parent resource")
+			return
+		}
+		parent, _, err = w.codec.DecodeResource(blob)
+		if err != nil {
+			w.logger.Error().Err(err).Str("parent_id", j.ParentID).Msg("failed to decode parent resource")
+			return
+		}
+	}
+
+	transferred := w.resolveTable(ctx, table, client, parent, j.ParentID)
+	pinTransferred = transferred
+}
+
+// resolveTable resolves a single table+client+parent unit. Returns true if
+// the WorkUnit's pin on j.ParentID was transferred to one or more stored
+// intermediate resources (so the caller must NOT decrement).
+func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, parentID string) (pinTransferred bool) {
 	clientName := client.ID()
 	ctx, span := otel.Tracer(metrics.ResourceName).Start(ctx,
 		"sync.table."+table.Name,
@@ -83,7 +136,7 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	logger := w.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 	ctx = logger.WithContext(ctx)
 	startTime := time.Now()
-	if parent == nil { // Log only for root tables, otherwise we spam too much.
+	if parent == nil {
 		logger.Info().Msg("top level table resolver started")
 	}
 
@@ -114,18 +167,15 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			logger.Error().Err(err).Msg("table resolver finished with error")
 			w.metrics.AddErrors(ctx, 1, selector)
-			// Send SyncError message
-			syncErrorMsg := &message.SyncError{
-				TableName: table.Name,
-				Error:     err.Error(),
-			}
-			w.msgChan <- syncErrorMsg
+			w.msgChan <- &message.SyncError{TableName: table.Name, Error: err.Error()}
 			return
 		}
 	}()
 
 	for r := range res {
-		w.resolveResource(ctx, table, client, parent, r)
+		if w.resolveResource(ctx, table, client, parent, parentID, r) {
+			pinTransferred = true
+		}
 	}
 
 	endTime := time.Now()
@@ -133,67 +183,91 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 	if parent == nil {
 		logger.Info().Uint64("resources", w.metrics.GetResources(selector)).Uint64("errors", w.metrics.GetErrors(selector)).Dur("duration_ms", w.metrics.GetDuration(selector)).Msg("table sync finished")
 	}
+	return pinTransferred
 }
 
-func (w *worker) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any) {
+// resolveResource processes one chunk of items returned by a resolver.
+// Returns true if at least one stored intermediate resource was created
+// with ParentID == parentID, which means the caller's pin must NOT be
+// released (it's been transferred to the new intermediate).
+func (w *worker) resolveResource(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, parentID string, resources any) (pinTransferred bool) {
 	resourcesSlice := helpers.InterfaceSlice(resources)
 	if len(resourcesSlice) == 0 {
-		return
+		return false
 	}
 
 	selector := w.metrics.NewSelector(client.ID(), table.Name)
-	resourcesChan := make(chan *schema.Resource, len(resourcesSlice))
-	go func() {
-		defer close(resourcesChan)
-		var wg sync.WaitGroup
-		chunks := [][]any{resourcesSlice}
-		if table.PreResourceChunkResolver != nil {
-			chunks = lo.Chunk(resourcesSlice, table.PreResourceChunkResolver.ChunkSize)
-		}
-		for i := range chunks {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				resolvedResources := resolvers.ResolveResourcesChunk(ctx, w.logger, w.metrics, table, client, parent, chunks[i], w.caser)
-				for _, resolvedResource := range resolvedResources {
-					if err := resolvedResource.CalculateCQID(w.deterministicCQID); err != nil {
-						w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
-						w.metrics.AddErrors(ctx, 1, selector)
-						return
-					}
-					if err := resolvedResource.StoreCQClientID(client.ID()); err != nil {
-						w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("failed to store _cq_client_id")
-					}
-					if err := resolvedResource.Validate(); err != nil {
-						switch err.(type) {
-						case *schema.PKError:
-							w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
-							w.metrics.AddErrors(ctx, 1, selector)
-							return
-						case *schema.PKComponentError:
-							w.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")
-						}
-					}
-					select {
-					case resourcesChan <- resolvedResource:
-					case <-ctx.Done():
-					}
-				}
-			}()
-		}
-		wg.Wait()
-	}()
+	chunks := [][]any{resourcesSlice}
+	if table.PreResourceChunkResolver != nil {
+		chunks = lo.Chunk(resourcesSlice, table.PreResourceChunkResolver.ChunkSize)
+	}
 
-	for resource := range resourcesChan {
-		resource := resource
-		w.resolvedResources <- resource
-		for _, r := range resource.Table.Relations {
-			relation := r
-			w.queue.Push(WorkUnit{
-				Table:  relation,
-				Client: client,
-				Parent: resource,
-			})
+	for i := range chunks {
+		resolved := resolvers.ResolveResourcesChunk(ctx, w.logger, w.metrics, table, client, parent, chunks[i], w.caser)
+		for _, r := range resolved {
+			if err := r.CalculateCQID(w.deterministicCQID); err != nil {
+				w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
+				w.metrics.AddErrors(ctx, 1, selector)
+				continue
+			}
+			if err := r.StoreCQClientID(client.ID()); err != nil {
+				w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("failed to store _cq_client_id")
+			}
+			if err := r.Validate(); err != nil {
+				switch err.(type) {
+				case *schema.PKError:
+					w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
+					w.metrics.AddErrors(ctx, 1, selector)
+					continue
+				case *schema.PKComponentError:
+					w.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")
+				}
+			}
+
+			// Emit to destination pipeline.
+			select {
+			case w.resolvedResources <- r:
+			case <-ctx.Done():
+				return pinTransferred
+			}
+
+			// If this resource has children, store it and push WorkUnits.
+			if len(r.Table.Relations) > 0 {
+				newID := uuid.NewString()
+				blob, err := w.codec.EncodeResource(r, parentID)
+				if err != nil {
+					w.logger.Error().Err(err).Str("table", r.Table.Name).Msg("failed to encode resource")
+					w.metrics.AddErrors(ctx, 1, selector)
+					continue
+				}
+				if err := w.store.PutResource(ctx, newID, blob, len(r.Table.Relations)); err != nil {
+					w.logger.Error().Err(err).Str("table", r.Table.Name).Msg("failed to persist resource")
+					w.metrics.AddErrors(ctx, 1, selector)
+					continue
+				}
+				wus := make([]storage.SerializedWorkUnit, 0, len(r.Table.Relations))
+				for _, rel := range r.Table.Relations {
+					wus = append(wus, storage.SerializedWorkUnit{
+						TableName: rel.Name,
+						ClientID:  client.ID(),
+						ParentID:  newID,
+					})
+				}
+				if err := w.store.PushWorkBatch(ctx, wus); err != nil {
+					w.logger.Error().Err(err).Msg("failed to push child work units")
+					w.metrics.AddErrors(ctx, 1, selector)
+					continue
+				}
+
+				// Pin transfer: since this intermediate references parentID,
+				// the WorkUnit's pin must NOT be decremented on completion —
+				// the intermediate now owns that pin and will release it when
+				// its own refcount drains.
+				if parentID != "" && !pinTransferred {
+					pinTransferred = true
+				}
+			}
 		}
 	}
+	return pinTransferred
 }

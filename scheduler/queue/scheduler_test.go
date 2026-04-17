@@ -7,6 +7,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/storage/inmemory"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/cloudquery/plugin-sdk/v4/transformers"
 	"github.com/google/uuid"
@@ -35,8 +36,18 @@ func testResolver(_ context.Context, _ schema.ClientMeta, parent *schema.Resourc
 		if parent == nil {
 			resources = append(resources, &Data{Name: fmt.Sprintf("test-%d", i)})
 		} else {
-			item := parent.Item.(*Data)
-			resources = append(resources, &Data{Name: fmt.Sprintf("%s-test-%d", item.Name, i)})
+			// The codec round-trip normalizes Item to the value type,
+			// so support both *Data (direct in-memory) and Data (post-codec).
+			var name string
+			switch it := parent.Item.(type) {
+			case *Data:
+				name = it.Name
+			case Data:
+				name = it.Name
+			default:
+				return fmt.Errorf("unexpected parent item type %T", parent.Item)
+			}
+			resources = append(resources, &Data{Name: fmt.Sprintf("%s-test-%d", name, i)})
 		}
 	}
 	res <- resources
@@ -46,7 +57,6 @@ func testResolver(_ context.Context, _ schema.ClientMeta, parent *schema.Resourc
 func TestScheduler(t *testing.T) {
 	nopLogger := zerolog.Nop()
 	m := metrics.NewMetrics()
-	scheduler := NewShuffleQueueScheduler(nopLogger, m, int64(0), WithWorkerCount(1000), WithInvocationID(uuid.New().String()))
 	tableClients := []WorkUnit{
 		{
 			Table: &schema.Table{
@@ -80,9 +90,26 @@ func TestScheduler(t *testing.T) {
 		},
 	}
 
+	// Apply Transform on all tables so they have ItemSampleType available for the codec.
+	allTables := schema.Tables{}
+	for _, tc := range tableClients {
+		require.NoError(t, tc.Table.Transform(tc.Table))
+		for _, rel := range tc.Table.Relations {
+			require.NoError(t, rel.Transform(rel))
+		}
+		allTables = append(allTables, tc.Table)
+	}
+
 	for _, tc := range tableClients {
 		m.InitWithClients(tc.Table, []schema.ClientMeta{tc.Client})
 	}
+
+	scheduler := NewShuffleQueueScheduler(nopLogger, m, int64(0),
+		WithWorkerCount(1000),
+		WithInvocationID(uuid.New().String()),
+		WithStorage(inmemory.New(0)),
+		WithCodec(NewCodec(allTables)),
+	)
 
 	resolvedResources := make(chan *schema.Resource)
 	msgs := make(chan message.SyncMessage, 10)
