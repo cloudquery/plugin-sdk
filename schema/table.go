@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -118,6 +119,13 @@ type Table struct {
 
 	// IgnorePKComponentsMismatchValidation is a flag that indicates if the table should skip validating usage of both primary key components and primary keys
 	IgnorePKComponentsMismatchValidation bool `json:"ignore_pk_components_mismatch_validation"`
+
+	// itemSample holds a zero-value sample of the type returned by this
+	// table's Resolver (the runtime type of Resource.Item). Populated
+	// automatically by transformers.TransformWithStruct; exposed via
+	// SetItemSample for plugins that use a custom Transform.
+	// Consulted only when the scheduler uses an external queue backend.
+	itemSample reflect.Type
 }
 
 var (
@@ -765,4 +773,30 @@ func (t *Table) Copy(parent *Table) *Table {
 
 func ValidColumnName(name string) bool {
 	return reValidColumnName.MatchString(name)
+}
+
+// SetItemSample records a sample of the Item type. First-write-wins — if
+// already set, subsequent calls are ignored. Safe to call multiple times
+// from plugin registration code.
+//
+// Typically called automatically by transformers.TransformWithStruct;
+// plugin authors using a custom Transform should call this directly with
+// a zero-value of their Item type.
+func (t *Table) SetItemSample(sample any) {
+	if t.itemSample != nil {
+		return
+	}
+	if sample == nil {
+		return
+	}
+	rt := reflect.TypeOf(sample)
+	if rt.Kind() == reflect.Pointer {
+		rt = rt.Elem()
+	}
+	t.itemSample = rt
+}
+
+// ItemSampleType returns the recorded Item type, or nil if unset.
+func (t *Table) ItemSampleType() reflect.Type {
+	return t.itemSample
 }
