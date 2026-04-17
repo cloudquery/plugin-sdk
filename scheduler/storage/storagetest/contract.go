@@ -5,9 +5,9 @@ package storagetest
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/storage"
 	"github.com/stretchr/testify/require"
@@ -21,8 +21,10 @@ func TestContract(t *testing.T, newStorage func(t *testing.T) storage.Storage) {
 	t.Run("push_pop_roundtrip", func(t *testing.T) { testPushPopRoundtrip(t, newStorage(t)) })
 	t.Run("pop_empty_returns_nil", func(t *testing.T) { testPopEmptyReturnsNil(t, newStorage(t)) })
 	t.Run("push_batch", func(t *testing.T) { testPushBatch(t, newStorage(t)) })
+	t.Run("push_batch_empty", func(t *testing.T) { testPushBatchEmpty(t, newStorage(t)) })
 	t.Run("work_len", func(t *testing.T) { testWorkLen(t, newStorage(t)) })
 	t.Run("resource_put_get", func(t *testing.T) { testResourcePutGet(t, newStorage(t)) })
+	t.Run("resource_put_rejects_zero_refcount", func(t *testing.T) { testPutResourceRejectsZeroRefcount(t, newStorage(t)) })
 	t.Run("resource_refcount_delete_on_zero", func(t *testing.T) { testRefcountDeleteOnZero(t, newStorage(t)) })
 	t.Run("resource_get_missing_errors", func(t *testing.T) { testGetMissingErrors(t, newStorage(t)) })
 	t.Run("resource_dec_missing_errors", func(t *testing.T) { testDecMissingErrors(t, newStorage(t)) })
@@ -127,16 +129,30 @@ func testConcurrentPushPopNoLoss(t *testing.T, s storage.Storage) {
 	ctx := context.Background()
 	const n = 500
 	var wg sync.WaitGroup
+	var pushErr error
+	var pushErrMu sync.Mutex
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for i := 0; i < n; i++ {
-			_ = s.PushWork(ctx, storage.SerializedWorkUnit{TableName: "t"})
+			if err := s.PushWork(ctx, storage.SerializedWorkUnit{TableName: "t"}); err != nil {
+				pushErrMu.Lock()
+				if pushErr == nil {
+					pushErr = err
+				}
+				pushErrMu.Unlock()
+				return
+			}
 		}
 	}()
 
+	deadline := time.Now().Add(10 * time.Second)
 	popped := 0
 	for popped < n {
+		if time.Now().After(deadline) {
+			t.Fatalf("lost work: popped %d of %d after deadline", popped, n)
+		}
 		got, err := s.PopWork(ctx)
 		require.NoError(t, err)
 		if got != nil {
@@ -144,6 +160,10 @@ func testConcurrentPushPopNoLoss(t *testing.T, s storage.Storage) {
 		}
 	}
 	wg.Wait()
+
+	pushErrMu.Lock()
+	require.NoError(t, pushErr, "push error during concurrent test")
+	pushErrMu.Unlock()
 
 	n2, err := s.WorkLen(ctx)
 	require.NoError(t, err)
@@ -156,21 +176,55 @@ func testConcurrentRefcountNoDoubleDelete(t *testing.T, s storage.Storage) {
 	require.NoError(t, s.PutResource(ctx, "shared", []byte("x"), n))
 
 	var wg sync.WaitGroup
+	errs := make(chan error, n)
 	wg.Add(n)
 	for i := 0; i < n; i++ {
 		go func() {
 			defer wg.Done()
-			_ = s.DecResourceRefcount(ctx, "shared")
+			if err := s.DecResourceRefcount(ctx, "shared"); err != nil {
+				errs <- err
+			}
 		}()
 	}
 	wg.Wait()
+	close(errs)
+
+	// A correct backend gives us exactly n successful decs. Any error here
+	// indicates a double-delete bug (over-decrement) or worse.
+	var got []error
+	for e := range errs {
+		got = append(got, e)
+	}
+	require.Empty(t, got, "expected no errors from %d concurrent decs, got: %v", n, got)
 
 	_, err := s.GetResource(ctx, "shared")
-	require.True(t, errors.Is(err, storage.ErrResourceNotFound), "resource should be deleted after all refs drained, got err=%v", err)
+	require.ErrorIs(t, err, storage.ErrResourceNotFound, "resource should be deleted after all refs drained")
 }
 
 func testCloseIsIdempotent(t *testing.T, s storage.Storage) {
 	ctx := context.Background()
 	require.NoError(t, s.Close(ctx))
 	require.NoError(t, s.Close(ctx))
+}
+
+func testPutResourceRejectsZeroRefcount(t *testing.T, s storage.Storage) {
+	ctx := context.Background()
+	err := s.PutResource(ctx, "id", []byte("x"), 0)
+	require.Error(t, err, "PutResource with refcount=0 must return an error")
+
+	err = s.PutResource(ctx, "id", []byte("x"), -1)
+	require.Error(t, err, "PutResource with refcount<0 must return an error")
+
+	_, err = s.GetResource(ctx, "id")
+	require.ErrorIs(t, err, storage.ErrResourceNotFound, "failed Put must not create the resource")
+}
+
+func testPushBatchEmpty(t *testing.T, s storage.Storage) {
+	ctx := context.Background()
+	require.NoError(t, s.PushWorkBatch(ctx, nil), "empty batch should be a no-op")
+	require.NoError(t, s.PushWorkBatch(ctx, []storage.SerializedWorkUnit{}), "empty batch should be a no-op")
+
+	n, err := s.WorkLen(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 0, n)
 }
