@@ -172,7 +172,7 @@ func testTableColumnResolverPanic() *schema.Table {
 }
 
 func testTableRelationSuccess() *schema.Table {
-	return &schema.Table{
+	t := &schema.Table{
 		Name:     "test_table_relation_success",
 		Resolver: testResolverSuccess,
 		Columns: []schema.Column{
@@ -185,6 +185,13 @@ func testTableRelationSuccess() *schema.Table {
 			testTableSuccess(),
 		},
 	}
+	// The shuffle-queue strategy spills parent resources to external storage
+	// and reconstructs them via Codec (JSON round-trip). The codec requires
+	// the parent table to declare its Item type so it can decode back to the
+	// concrete Go type. testResolverSuccess emits map[string]any, so we set
+	// the sample to that type.
+	t.SetItemSample(map[string]any{})
+	return t
 }
 
 const chunkSize = 200
