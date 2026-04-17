@@ -4,10 +4,12 @@ package badger
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
 	badgerdb "github.com/dgraph-io/badger/v4"
+	"github.com/google/uuid"
 
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/storage"
 )
@@ -40,18 +42,90 @@ func Open(opts Options) (*Storage, error) {
 
 // --- Storage methods below this line will be filled in subsequent tasks. ---
 
+const (
+	workPrefix = "w/"
+)
+
+// workKey generates a unique key for a queued work unit. UUID gives random
+// scan order when iterating the prefix, satisfying the contract's "no
+// particular pop order" requirement.
+func workKey() []byte {
+	return []byte(workPrefix + uuid.NewString())
+}
+
 func (s *Storage) PushWork(ctx context.Context, w storage.SerializedWorkUnit) error {
-	return errors.New("not implemented")
+	data, err := json.Marshal(w)
+	if err != nil {
+		return fmt.Errorf("badger: marshal work: %w", err)
+	}
+	return s.db.Update(func(txn *badgerdb.Txn) error {
+		return txn.Set(workKey(), data)
+	})
 }
+
 func (s *Storage) PushWorkBatch(ctx context.Context, ws []storage.SerializedWorkUnit) error {
-	return errors.New("not implemented")
+	if len(ws) == 0 {
+		return nil
+	}
+	wb := s.db.NewWriteBatch()
+	defer wb.Cancel()
+	for _, w := range ws {
+		data, err := json.Marshal(w)
+		if err != nil {
+			return fmt.Errorf("badger: marshal work: %w", err)
+		}
+		if err := wb.Set(workKey(), data); err != nil {
+			return fmt.Errorf("badger: write batch: %w", err)
+		}
+	}
+	return wb.Flush()
 }
+
 func (s *Storage) PopWork(ctx context.Context) (*storage.SerializedWorkUnit, error) {
-	return nil, errors.New("not implemented")
+	var out *storage.SerializedWorkUnit
+	err := s.db.Update(func(txn *badgerdb.Txn) error {
+		it := txn.NewIterator(badgerdb.DefaultIteratorOptions)
+		defer it.Close()
+		prefix := []byte(workPrefix)
+		it.Seek(prefix)
+		if !it.ValidForPrefix(prefix) {
+			return nil // empty queue
+		}
+		item := it.Item()
+		key := item.KeyCopy(nil)
+		value, err := item.ValueCopy(nil)
+		if err != nil {
+			return fmt.Errorf("badger: read work value: %w", err)
+		}
+		var w storage.SerializedWorkUnit
+		if err := json.Unmarshal(value, &w); err != nil {
+			return fmt.Errorf("badger: unmarshal work: %w", err)
+		}
+		out = &w
+		return txn.Delete(key)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
+
 func (s *Storage) WorkLen(ctx context.Context) (int, error) {
-	return 0, errors.New("not implemented")
+	count := 0
+	err := s.db.View(func(txn *badgerdb.Txn) error {
+		opts := badgerdb.DefaultIteratorOptions
+		opts.PrefetchValues = false
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		prefix := []byte(workPrefix)
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			count++
+		}
+		return nil
+	})
+	return count, err
 }
+
 func (s *Storage) PutResource(ctx context.Context, id string, data []byte, refcount int) error {
 	return errors.New("not implemented")
 }
