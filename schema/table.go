@@ -775,23 +775,29 @@ func ValidColumnName(name string) bool {
 	return reValidColumnName.MatchString(name)
 }
 
-// SetItemSample records a sample of the Item type. First-write-wins — if
-// already set, subsequent calls are ignored. Safe to call multiple times
-// from plugin registration code.
+// SetItemSample records a sample of the Item type. Idempotent for identical
+// types (multiple calls with the same type are no-ops); panics on conflict
+// because a Table cannot legitimately resolve two different Item types.
 //
 // Typically called automatically by transformers.TransformWithStruct;
 // plugin authors using a custom Transform should call this directly with
 // a zero-value of their Item type.
+//
+// Not safe for concurrent writes. Expected to be called only during plugin
+// table registration, never during a sync.
 func (t *Table) SetItemSample(sample any) {
-	if t.itemSample != nil {
-		return
-	}
 	if sample == nil {
 		return
 	}
 	rt := reflect.TypeOf(sample)
-	if rt.Kind() == reflect.Pointer {
+	for rt.Kind() == reflect.Pointer {
 		rt = rt.Elem()
+	}
+	if t.itemSample != nil {
+		if t.itemSample != rt {
+			panic(fmt.Sprintf("schema.Table %q: itemSample already set to %v, got conflicting %v", t.Name, t.itemSample, rt))
+		}
+		return
 	}
 	t.itemSample = rt
 }
