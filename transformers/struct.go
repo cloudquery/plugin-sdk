@@ -220,6 +220,7 @@ func TransformWithStruct(st any, opts ...StructTransformerOption) schema.Transfo
 
 	return func(table *schema.Table) error {
 		t.table = table
+		table.SetItemSample(st)
 		e := reflect.ValueOf(st)
 		if e.Kind() == reflect.Pointer {
 			e = e.Elem()
