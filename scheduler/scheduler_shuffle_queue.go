@@ -3,13 +3,12 @@ package scheduler
 import (
 	"context"
 
-	"github.com/cloudquery/plugin-sdk/v4/scheduler/queue"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/queue"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler/storage/inmemory"
 )
 
 func (s *syncClient) syncShuffleQueue(ctx context.Context, resolvedResources chan<- *schema.Resource) {
-	// we have this because plugins can return sometimes clients in a random way which will cause
-	// differences between this run and the next one.
 	preInitialisedClients := make([][]schema.ClientMeta, len(s.tables))
 	tableNames := make([]string, len(s.tables))
 	for i, table := range s.tables {
@@ -19,8 +18,6 @@ func (s *syncClient) syncShuffleQueue(ctx context.Context, resolvedResources cha
 			clients = table.Multiplex(s.client)
 		}
 		preInitialisedClients[i] = clients
-		// we do this here to avoid locks so we initial the metrics structure once in the main goroutines
-		// and then we can just read from it in the other goroutines concurrently given we are not writing to it.
 		s.metrics.InitWithClients(table, clients)
 	}
 
@@ -28,6 +25,22 @@ func (s *syncClient) syncShuffleQueue(ctx context.Context, resolvedResources cha
 	tableClients = shardTableClients(tableClients, s.shard)
 	seed := hashTableNames(tableNames)
 	shuffle(tableClients, seed)
+
+	// Storage: use the scheduler-provided storage, or construct an in-memory
+	// default if none was configured. This preserves backward compatibility —
+	// users not setting spec.queue get the same random-pop in-memory queue as
+	// before.
+	store := s.scheduler.storage
+	if store == nil {
+		store = inmemory.New(seed)
+		defer func() {
+			if err := store.Close(ctx); err != nil {
+				s.logger.Warn().Err(err).Msg("failed to close in-memory storage")
+			}
+		}()
+	}
+
+	codec := queue.NewCodec(s.tables.FlattenTables())
 
 	scheduler := queue.NewShuffleQueueScheduler(
 		s.logger,
@@ -37,6 +50,8 @@ func (s *syncClient) syncShuffleQueue(ctx context.Context, resolvedResources cha
 		queue.WithCaser(s.scheduler.caser),
 		queue.WithDeterministicCQID(s.deterministicCQID),
 		queue.WithInvocationID(s.invocationID),
+		queue.WithStorage(store),
+		queue.WithCodec(codec),
 	)
 	queueClients := make([]queue.WorkUnit, 0, len(tableClients))
 	for _, tc := range tableClients {
