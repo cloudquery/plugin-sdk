@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -83,4 +84,42 @@ func TestCodec_DecodeUnknownTableErrors(t *testing.T) {
 	_, _, err = c.DecodeResource(blob)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unknown_table")
+}
+
+func TestCodec_DecodeResourceWithChain(t *testing.T) {
+	parentTbl := &schema.Table{
+		Name:      "parent_tbl",
+		Transform: transformers.TransformWithStruct(&codecTestItem{}),
+	}
+	childTbl := &schema.Table{
+		Name:      "child_tbl",
+		Transform: transformers.TransformWithStruct(&codecTestItem{}),
+	}
+	require.NoError(t, parentTbl.Transform(parentTbl))
+	require.NoError(t, childTbl.Transform(childTbl))
+
+	c := NewCodec(schema.Tables{parentTbl, childTbl})
+
+	parentBytes, err := c.EncodeResource(schema.NewResourceData(parentTbl, nil, codecTestItem{ID: "p"}), "")
+	require.NoError(t, err)
+	childBytes, err := c.EncodeResource(schema.NewResourceData(childTbl, nil, codecTestItem{ID: "c"}), "parent-id")
+	require.NoError(t, err)
+
+	blobs := map[string][]byte{"parent-id": parentBytes}
+	fetch := func(id string) ([]byte, error) {
+		b, ok := blobs[id]
+		if !ok {
+			return nil, fmt.Errorf("not found: %s", id)
+		}
+		return b, nil
+	}
+
+	decoded, parentID, err := c.DecodeResourceWithChain(childBytes, fetch, 4)
+	require.NoError(t, err)
+	require.Equal(t, "parent-id", parentID)
+	require.Equal(t, "child_tbl", decoded.Table.Name)
+	require.NotNil(t, decoded.Parent, "chain walk should attach parent")
+	require.Equal(t, "parent_tbl", decoded.Parent.Table.Name)
+	require.Equal(t, codecTestItem{ID: "p"}, decoded.Parent.Item)
+	require.Nil(t, decoded.Parent.Parent, "no grandparent in this test")
 }

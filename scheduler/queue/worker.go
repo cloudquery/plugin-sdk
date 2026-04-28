@@ -109,7 +109,13 @@ func (w *worker) runJob(ctx context.Context, j *storage.SerializedWorkUnit) {
 			w.logger.Error().Err(err).Str("parent_id", j.ParentID).Msg("failed to load parent resource")
 			return
 		}
-		parent, _, err = w.codec.DecodeResource(blob)
+		fetch := func(id string) ([]byte, error) {
+			return w.store.GetResource(ctx, id)
+		}
+		// maxAncestorDepth matches scheduler.DefaultMaxDepth (4); hard-coded
+		// here to avoid importing the parent scheduler package.
+		const maxAncestorDepth = 4
+		parent, _, err = w.codec.DecodeResourceWithChain(blob, fetch, maxAncestorDepth)
 		if err != nil {
 			w.logger.Error().Err(err).Str("parent_id", j.ParentID).Msg("failed to decode parent resource")
 			return
