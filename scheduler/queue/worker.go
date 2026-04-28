@@ -260,6 +260,15 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 				if err := w.store.PushWorkBatch(ctx, wus); err != nil {
 					w.logger.Error().Err(err).Msg("failed to push child work units")
 					w.metrics.AddErrors(ctx, 1, selector)
+					// PutResource succeeded; drain the stored intermediate's
+					// refcount so it doesn't leak. This triggers cascade-Dec
+					// to the parent chain (including our parentID pin).
+					for k := 0; k < len(r.Table.Relations); k++ {
+						if decErr := w.store.DecResourceRefcount(ctx, newID); decErr != nil {
+							w.logger.Error().Err(decErr).Str("id", newID).Msg("failed to drain orphaned intermediate refcount")
+							break
+						}
+					}
 					continue
 				}
 			}
