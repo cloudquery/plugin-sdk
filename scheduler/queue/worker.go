@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/caser"
@@ -206,72 +207,79 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 		chunks = lo.Chunk(resourcesSlice, table.PreResourceChunkResolver.ChunkSize)
 	}
 
+	var wg sync.WaitGroup
 	for i := range chunks {
-		resolved := resolvers.ResolveResourcesChunk(ctx, w.logger, w.metrics, table, client, parent, chunks[i], w.caser)
-		for _, r := range resolved {
-			if err := r.CalculateCQID(w.deterministicCQID); err != nil {
-				w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
-				w.metrics.AddErrors(ctx, 1, selector)
-				continue
-			}
-			if err := r.StoreCQClientID(client.ID()); err != nil {
-				w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("failed to store _cq_client_id")
-			}
-			if err := r.Validate(); err != nil {
-				switch err.(type) {
-				case *schema.PKError:
-					w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
-					w.metrics.AddErrors(ctx, 1, selector)
-					continue
-				case *schema.PKComponentError:
-					w.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")
-				}
-			}
-
-			// Emit to destination pipeline.
-			select {
-			case w.resolvedResources <- r:
-			case <-ctx.Done():
-				return
-			}
-
-			// If this resource has children, store it and push WorkUnits.
-			if len(r.Table.Relations) > 0 {
-				newID := uuid.NewString()
-				blob, err := w.codec.EncodeResource(r, parentID)
-				if err != nil {
-					w.logger.Error().Err(err).Str("table", r.Table.Name).Msg("failed to encode resource")
+		wg.Add(1)
+		i := i
+		go func() {
+			defer wg.Done()
+			resolved := resolvers.ResolveResourcesChunk(ctx, w.logger, w.metrics, table, client, parent, chunks[i], w.caser)
+			for _, r := range resolved {
+				if err := r.CalculateCQID(w.deterministicCQID); err != nil {
+					w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")
 					w.metrics.AddErrors(ctx, 1, selector)
 					continue
 				}
-				if err := w.store.PutResource(ctx, newID, blob, len(r.Table.Relations), parentID); err != nil {
-					w.logger.Error().Err(err).Str("table", r.Table.Name).Msg("failed to persist resource")
-					w.metrics.AddErrors(ctx, 1, selector)
-					continue
+				if err := r.StoreCQClientID(client.ID()); err != nil {
+					w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("failed to store _cq_client_id")
 				}
-				wus := make([]storage.SerializedWorkUnit, 0, len(r.Table.Relations))
-				for _, rel := range r.Table.Relations {
-					wus = append(wus, storage.SerializedWorkUnit{
-						TableName: rel.Name,
-						ClientID:  client.ID(),
-						ParentID:  newID,
-					})
-				}
-				if err := w.store.PushWorkBatch(ctx, wus); err != nil {
-					w.logger.Error().Err(err).Msg("failed to push child work units")
-					w.metrics.AddErrors(ctx, 1, selector)
-					// PutResource succeeded; drain the stored intermediate's
-					// refcount so it doesn't leak. This triggers cascade-Dec
-					// to the parent chain (including our parentID pin).
-					for k := 0; k < len(r.Table.Relations); k++ {
-						if decErr := w.store.DecResourceRefcount(ctx, newID); decErr != nil {
-							w.logger.Error().Err(decErr).Str("id", newID).Msg("failed to drain orphaned intermediate refcount")
-							break
-						}
+				if err := r.Validate(); err != nil {
+					switch err.(type) {
+					case *schema.PKError:
+						w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation error")
+						w.metrics.AddErrors(ctx, 1, selector)
+						continue
+					case *schema.PKComponentError:
+						w.logger.Warn().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with validation warning")
 					}
-					continue
+				}
+
+				// Emit to destination pipeline.
+				select {
+				case w.resolvedResources <- r:
+				case <-ctx.Done():
+					return
+				}
+
+				// If this resource has children, store it and push WorkUnits.
+				if len(r.Table.Relations) > 0 {
+					newID := uuid.NewString()
+					blob, err := w.codec.EncodeResource(r, parentID)
+					if err != nil {
+						w.logger.Error().Err(err).Str("table", r.Table.Name).Msg("failed to encode resource")
+						w.metrics.AddErrors(ctx, 1, selector)
+						continue
+					}
+					if err := w.store.PutResource(ctx, newID, blob, len(r.Table.Relations), parentID); err != nil {
+						w.logger.Error().Err(err).Str("table", r.Table.Name).Msg("failed to persist resource")
+						w.metrics.AddErrors(ctx, 1, selector)
+						continue
+					}
+					wus := make([]storage.SerializedWorkUnit, 0, len(r.Table.Relations))
+					for _, rel := range r.Table.Relations {
+						wus = append(wus, storage.SerializedWorkUnit{
+							TableName: rel.Name,
+							ClientID:  client.ID(),
+							ParentID:  newID,
+						})
+					}
+					if err := w.store.PushWorkBatch(ctx, wus); err != nil {
+						w.logger.Error().Err(err).Msg("failed to push child work units")
+						w.metrics.AddErrors(ctx, 1, selector)
+						// PutResource succeeded; drain the stored intermediate's
+						// refcount so it doesn't leak. This triggers cascade-Dec
+						// to the parent chain (including our parentID pin).
+						for k := 0; k < len(r.Table.Relations); k++ {
+							if decErr := w.store.DecResourceRefcount(ctx, newID); decErr != nil {
+								w.logger.Error().Err(decErr).Str("id", newID).Msg("failed to drain orphaned intermediate refcount")
+								break
+							}
+						}
+						continue
+					}
 				}
 			}
-		}
+		}()
 	}
+	wg.Wait()
 }
