@@ -9,6 +9,16 @@ import (
 )
 
 func (s *syncClient) syncShuffleQueue(ctx context.Context, resolvedResources chan<- *schema.Resource) {
+	// If a non-default Storage was configured (via WithStorage), validate
+	// that all tables with relations have an itemSample. Skipping this check
+	// when storage is nil (default in-memory path) preserves backward compat.
+	if s.scheduler.storage != nil {
+		if err := ValidateTablesForQueue(s.tables, &QueueConfig{Type: QueueTypeBadger}); err != nil {
+			s.logger.Error().Err(err).Msg("external queue startup validation failed")
+			return
+		}
+	}
+
 	preInitialisedClients := make([][]schema.ClientMeta, len(s.tables))
 	tableNames := make([]string, len(s.tables))
 	for i, table := range s.tables {
