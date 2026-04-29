@@ -161,8 +161,9 @@ func (w *BatchWriter) worker(ctx context.Context, tableName string, ch <-chan *m
 				limit.AddSlice(add)
 			}
 			if len(toFlush) > 0 || rest != nil || limit.ReachedLimit() {
-				// flush current batch
-				send()
+				if limit.Rows() > 0 {
+					send()
+				}
 				ticker.Reset(w.batchTimeout)
 			}
 			for _, sliceToFlush := range toFlush {
