@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.95.2](https://github.com/cloudquery/plugin-sdk/compare/v4.95.1...v4.95.2) (2026-05-04)
+
+
+### Bug Fixes
+
+* BatchWriter: Ensure flushed batch has at least one record ([#2489](https://github.com/cloudquery/plugin-sdk/issues/2489)) ([1b94998](https://github.com/cloudquery/plugin-sdk/commit/1b94998c89d5efab0dc9c8047b79cb1334500baa))
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2479](https://github.com/cloudquery/plugin-sdk/issues/2479)) ([8a7776e](https://github.com/cloudquery/plugin-sdk/commit/8a7776e928ec442bf7aef7b801ab7343032e68c5))
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2488](https://github.com/cloudquery/plugin-sdk/issues/2488)) ([16dc4cd](https://github.com/cloudquery/plugin-sdk/commit/16dc4cd490fcfeca79aba9d5b1529766d53703a3))
+* **deps:** Update dependency go to v1.26.2 ([#2492](https://github.com/cloudquery/plugin-sdk/issues/2492)) ([5d6f29b](https://github.com/cloudquery/plugin-sdk/commit/5d6f29b6248639d55a97c499701868578d06ad88))
+* **deps:** Update golang.org/x/exp digest to 746e56f ([#2491](https://github.com/cloudquery/plugin-sdk/issues/2491)) ([f2e021c](https://github.com/cloudquery/plugin-sdk/commit/f2e021cc9728020a5061a4530201a61de32b31e4))
+* **deps:** Update module github.com/apache/arrow-go/v18 to v18.6.0 ([#2500](https://github.com/cloudquery/plugin-sdk/issues/2500)) ([970feba](https://github.com/cloudquery/plugin-sdk/commit/970febab77c3ba78b5ca1d59e921b8a8c26ad778))
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/config to v1.32.14 ([#2487](https://github.com/cloudquery/plugin-sdk/issues/2487)) ([2537b94](https://github.com/cloudquery/plugin-sdk/commit/2537b94f5f8aa29b510196a15d5de1a151ed0015))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.27.15 ([#2502](https://github.com/cloudquery/plugin-sdk/issues/2502)) ([9673b46](https://github.com/cloudquery/plugin-sdk/commit/9673b46dd4fbc8a056d86ce62b0ab30f83843dea))
+* **deps:** Update module github.com/getsentry/sentry-go to v0.46.0 ([#2493](https://github.com/cloudquery/plugin-sdk/issues/2493)) ([4f16e2c](https://github.com/cloudquery/plugin-sdk/commit/4f16e2c66d3cc43cfb72ac15b85a16ccb1b6fdf1))
+* **deps:** Update module github.com/invopop/jsonschema to v0.14.0 ([#2494](https://github.com/cloudquery/plugin-sdk/issues/2494)) ([2b9793d](https://github.com/cloudquery/plugin-sdk/commit/2b9793d736429848d3fbbc067c6035775876056a))
+* **deps:** Update module github.com/rs/zerolog to v1.35.1 ([#2495](https://github.com/cloudquery/plugin-sdk/issues/2495)) ([4884771](https://github.com/cloudquery/plugin-sdk/commit/488477168b42534df2a4b66500422cf3afd9161a))
+* **deps:** Update module go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp to v0.19.0 [SECURITY] ([#2483](https://github.com/cloudquery/plugin-sdk/issues/2483)) ([7161513](https://github.com/cloudquery/plugin-sdk/commit/7161513f7c36e1f36e6d6e9c1e144cf3f5f1dddf))
+* **deps:** Update module go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp to v1.43.0 [SECURITY] ([#2484](https://github.com/cloudquery/plugin-sdk/issues/2484)) ([56a019e](https://github.com/cloudquery/plugin-sdk/commit/56a019eacb9c420a5103104886718a652ff014ec))
+* **deps:** Update module go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp to v1.43.0 [SECURITY] ([#2485](https://github.com/cloudquery/plugin-sdk/issues/2485)) ([059ac53](https://github.com/cloudquery/plugin-sdk/commit/059ac535ee866638bcb826dca6588a0dda9d96b1))
+* **deps:** Update module golang.org/x/text to v0.36.0 ([#2496](https://github.com/cloudquery/plugin-sdk/issues/2496)) ([d9d1a63](https://github.com/cloudquery/plugin-sdk/commit/d9d1a63e09b7e5d1e6c0ac68e61f0228a10ba1b4))
+
 ## [4.95.1](https://github.com/cloudquery/plugin-sdk/compare/v4.95.0...v4.95.1) (2026-04-01)
 
 
