@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.95.3](https://github.com/cloudquery/plugin-sdk/compare/v4.95.2...v4.95.3) (2026-06-01)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/getsentry/sentry-go to v0.46.2 ([#2511](https://github.com/cloudquery/plugin-sdk/issues/2511)) ([539d1d8](https://github.com/cloudquery/plugin-sdk/commit/539d1d8bf8c8d7d4b862bca31b37158549ed4b92))
+* **deps:** Update module golang.org/x/text to v0.37.0 ([#2513](https://github.com/cloudquery/plugin-sdk/issues/2513)) ([6c6ee5a](https://github.com/cloudquery/plugin-sdk/commit/6c6ee5ad51483c741c7acda6e2987de5347dfaf7))
+* **deps:** Update module google.golang.org/grpc to v1.81.1 ([#2506](https://github.com/cloudquery/plugin-sdk/issues/2506)) ([1251d87](https://github.com/cloudquery/plugin-sdk/commit/1251d8731c1ae8a6a40b35e5366c1cb4440cf713))
+
 ## [4.95.2](https://github.com/cloudquery/plugin-sdk/compare/v4.95.1...v4.95.2) (2026-05-16)
 
 
