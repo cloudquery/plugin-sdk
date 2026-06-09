@@ -13,7 +13,7 @@ require (
 	github.com/cloudquery/codegen v0.4.1
 	github.com/cloudquery/plugin-pb-go v1.27.15
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
-	github.com/getsentry/sentry-go v0.46.0
+	github.com/getsentry/sentry-go v0.46.2
 	github.com/goccy/go-json v0.10.6
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.7.0
@@ -42,7 +42,7 @@ require (
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.20.0
-	golang.org/x/text v0.36.0
+	golang.org/x/text v0.37.0
 	google.golang.org/grpc v1.81.1
 	google.golang.org/protobuf v1.36.11
 )
