@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   actions: read
+  statuses: write
 
 jobs:
   post-unitests:
