@@ -16,8 +16,10 @@ import (
 //
 // Use it like this:
 //
-// - When a worker picks up a task, call `Add()` (like a WaitGroup)
-// - When a worker finishes a task, call `Done()` (like a WaitGroup)
+//   - When the dispatcher takes a task off the queue to hand it to a worker, call `Add()` (like a WaitGroup).
+//     Marking the task active before the handoff ensures the idle check cannot fire while
+//     the task is in flight between the queue and a worker.
+//   - When a worker finishes a task, call `Done()` (like a WaitGroup)
 //
 // - If the queue is empty, check `IsIdle()` to check if no workers are active.
 // - If workers are still active, call `Wait()` to block until state changes.
@@ -35,7 +37,7 @@ func newActiveWorkSignal() *activeWorkSignal {
 	}
 }
 
-// Add means a worker has started working on a task.
+// Add means the dispatcher has taken a task off the queue for a worker.
 //
 // Wake up the work queuing goroutine.
 func (s *activeWorkSignal) Add() {

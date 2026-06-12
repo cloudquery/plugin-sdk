@@ -79,7 +79,7 @@ func ResolveResourcesChunk(ctx context.Context, logger zerolog.Logger, m *metric
 	}
 
 	if table.PreResourceResolver != nil {
-		filtered := make([]*schema.Resource, 0, len(resources))
+		filtered := resources[:0]
 		for _, resource := range resources {
 			if err := table.PreResourceResolver(ctx, client, resource); err != nil {
 				if ctx.Err() != nil {
