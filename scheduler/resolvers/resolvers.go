@@ -79,13 +79,21 @@ func ResolveResourcesChunk(ctx context.Context, logger zerolog.Logger, m *metric
 	}
 
 	if table.PreResourceResolver != nil {
+		filtered := resources[:0]
 		for _, resource := range resources {
 			if err := table.PreResourceResolver(ctx, client, resource); err != nil {
+				if ctx.Err() != nil {
+					tableLogger.Error().Err(err).Msg("pre resource resolver failed, context cancelled")
+					m.AddErrors(ctx, 1, selector)
+					return nil
+				}
 				tableLogger.Error().Err(err).Msg("pre resource resolver failed")
 				m.AddErrors(ctx, 1, selector)
-				return nil
+				continue
 			}
+			filtered = append(filtered, resource)
 		}
+		resources = filtered
 	}
 	for _, resource := range resources {
 		for _, column := range table.Columns {

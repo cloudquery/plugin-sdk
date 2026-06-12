@@ -119,8 +119,10 @@ func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedR
 			default:
 				item := queue.Pop()
 
-				// There is work to do
+				// There is work to do. Mark it active before handing it off so the
+				// idle check below cannot fire while the item is in flight to a worker.
 				if item != nil {
+					activeWorkSignal.Add()
 					jobs <- item
 					continue
 				}
