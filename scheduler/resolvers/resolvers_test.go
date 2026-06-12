@@ -94,3 +94,49 @@ func TestResolveResourcesChunk_PreResourceResolverPartialFailure(t *testing.T) {
 		})
 	}
 }
+
+// TestResolveResourcesChunk_PreResourceResolverContextCancelled verifies that
+// once the context is cancelled, the chunk is dropped immediately with a single
+// error instead of emitting one error per remaining resource.
+func TestResolveResourcesChunk_PreResourceResolverContextCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	calls := 0
+	table := &schema.Table{
+		Name: "test_table",
+		PreResourceResolver: func(_ context.Context, _ schema.ClientMeta, _ *schema.Resource) error {
+			calls++
+			if calls == 2 {
+				cancel()
+				return errors.New("pre resource resolver boom")
+			}
+			return nil
+		},
+		Columns: []schema.Column{
+			{
+				Name: "test_column",
+				Type: arrow.PrimitiveTypes.Int64,
+				Resolver: func(_ context.Context, _ schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
+					return resource.Set(c.Name, int64(resource.Item.(int)))
+				},
+			},
+		},
+	}
+
+	client := testClient{}
+	m := metrics.NewMetrics()
+	m.InitWithClients(table, []schema.ClientMeta{client})
+
+	chunk := []any{0, 1, 2, 3, 4}
+	logger := zerolog.New(zerolog.NewTestWriter(t))
+
+	resources := ResolveResourcesChunk(ctx, logger, m, table, client, nil, chunk, caser.New())
+
+	require.Empty(t, resources, "cancelled chunk should not return resources")
+	require.Equal(t, 2, calls, "resolver should not be called for resources after cancellation")
+
+	selector := m.NewSelector(client.ID(), table.Name)
+	require.Equal(t, uint64(1), m.GetErrors(selector), "cancellation should be counted as a single error, not one per remaining resource")
+	require.Equal(t, uint64(0), m.GetResources(selector), "no resources should be counted for a cancelled chunk")
+}

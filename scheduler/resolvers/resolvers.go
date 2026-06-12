@@ -9,9 +9,7 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
-	"github.com/thoas/go-funk"
 )
 
 func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metrics, selector metrics.Selector, client schema.ClientMeta, resource *schema.Resource, column schema.Column, c *caser.Caser) {
@@ -82,6 +80,11 @@ func ResolveResourcesChunk(ctx context.Context, logger zerolog.Logger, m *metric
 		filtered := make([]*schema.Resource, 0, len(resources))
 		for _, resource := range resources {
 			if err := table.PreResourceResolver(ctx, client, resource); err != nil {
+				if ctx.Err() != nil {
+					tableLogger.Error().Err(err).Msg("pre resource resolver failed, context cancelled")
+					m.AddErrors(ctx, 1, selector)
+					return nil
+				}
 				tableLogger.Error().Err(err).Msg("pre resource resolver failed")
 				m.AddErrors(ctx, 1, selector)
 				continue
