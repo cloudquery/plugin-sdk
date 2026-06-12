@@ -9,7 +9,9 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/caser"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
+	"github.com/thoas/go-funk"
 )
 
 func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metrics, selector metrics.Selector, client schema.ClientMeta, resource *schema.Resource, column schema.Column, c *caser.Caser) {

@@ -37,8 +37,9 @@ type worker struct {
 
 func (w *worker) work(ctx context.Context, activeWorkSignal *activeWorkSignal) {
 	for j := range w.jobs {
-		activeWorkSignal.Add()
-
+		// the work unit was already marked active by the dispatcher before it was
+		// handed off, so the dispatcher can never observe an idle state while a
+		// job is in flight between the queue and a worker
 		w.resolveTable(ctx, j.Table, j.Client, j.Parent)
 
 		activeWorkSignal.Done()
