@@ -38,11 +38,21 @@ jobs:
           TAG_NAME: ${{ steps.release.outputs.tag_name }}
         with:
           prerelease: true
+      - name: Generate Renovate dispatch token
+        id: renovate-token
+        if: steps.release.outputs.release_created && steps.semver_parser.outputs.prerelease == ''
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ secrets.CQ_APP_ID }}
+          private-key: ${{ secrets.CQ_APP_PRIVATE_KEY }}
+          owner: cloudquery
+          repositories: .github
+          permission-actions: write
       - name: Trigger Renovate
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         if: steps.release.outputs.release_created && steps.semver_parser.outputs.prerelease == ''
         with:
-          github-token: ${{ steps.app-token.outputs.token }}
+          github-token: ${{ steps.renovate-token.outputs.token }}
           script: |
             github.rest.actions.createWorkflowDispatch({
               owner: 'cloudquery',
