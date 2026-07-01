@@ -29,12 +29,12 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
       - name: Set up Go 1.x
         id: setup-go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version-file: go.mod
           cache: false
       - name: Cache Go modules
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: |
             ~/go/pkg/mod
@@ -46,6 +46,6 @@ jobs:
       - name: Run go mod tidy
         working-directory: examples/${{ matrix.plugin }}
         run: go mod tidy
-      - uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7
+      - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7
         with:
             commit_message: "chore: Tidy"
