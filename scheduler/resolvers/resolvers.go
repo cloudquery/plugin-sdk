@@ -32,7 +32,7 @@ func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metric
 	handleErr := func(err error) {
 		event := schema.ErrorEvent{Table: resource.Table, Client: client, Phase: schema.ErrorPhaseColumnResolver, Column: &column}
 		if classifier.Suppress(ctx, err, event) {
-			logger.Debug().Str("column", column.Name).Err(err).Msg("column resolver finished with error (suppressed)")
+			logger.Debug().Str("column", column.Name).Err(err).Msg("column resolver finished with suppressed error")
 			return
 		}
 		logger.Error().Err(err).Msg("column resolver finished with error")
@@ -81,7 +81,7 @@ func ResolveResourcesChunk(ctx context.Context, logger zerolog.Logger, m *metric
 		if err := table.PreResourceChunkResolver.RowsResolver(ctx, client, resources); err != nil {
 			event := schema.ErrorEvent{Table: table, Client: client, Phase: schema.ErrorPhasePreResourceChunkResolver}
 			if classifier.Suppress(ctx, err, event) {
-				tableLogger.Debug().Err(err).Msg("pre resource chunk resolver finished with error (suppressed)")
+				tableLogger.Debug().Err(err).Msg("pre resource chunk resolver finished with suppressed error")
 			} else {
 				tableLogger.Error().Stack().Err(err).Msg("pre resource chunk resolver finished with error")
 				m.AddErrors(ctx, 1, selector)
@@ -128,7 +128,7 @@ func ResolveResourcesChunk(ctx context.Context, logger zerolog.Logger, m *metric
 			if err := table.PostResourceResolver(ctx, client, resource); err != nil {
 				event := schema.ErrorEvent{Table: table, Client: client, Phase: schema.ErrorPhasePostResourceResolver}
 				if classifier.Suppress(ctx, err, event) {
-					tableLogger.Debug().Err(err).Msg("post resource resolver finished with error (suppressed)")
+					tableLogger.Debug().Err(err).Msg("post resource resolver finished with suppressed error")
 				} else {
 					tableLogger.Error().Stack().Err(err).Msg("post resource resolver finished with error")
 					m.AddErrors(ctx, 1, selector)

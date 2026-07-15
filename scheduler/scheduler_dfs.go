@@ -130,7 +130,7 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			event := schema.ErrorEvent{Table: table, Client: client, Phase: schema.ErrorPhaseTableResolver}
 			if s.scheduler.errorClassifier.Suppress(ctx, err, event) {
-				logger.Debug().Err(err).Msg("table resolver finished with error (suppressed)")
+				logger.Debug().Err(err).Msg("table resolver finished with suppressed error")
 				return
 			}
 			logger.Error().Err(err).Msg("table resolver finished with error")

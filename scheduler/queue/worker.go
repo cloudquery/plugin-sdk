@@ -118,7 +118,7 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
 			event := schema.ErrorEvent{Table: table, Client: client, Phase: schema.ErrorPhaseTableResolver}
 			if w.errorClassifier.Suppress(ctx, err, event) {
-				logger.Debug().Err(err).Msg("table resolver finished with error (suppressed)")
+				logger.Debug().Err(err).Msg("table resolver finished with suppressed error")
 				return
 			}
 			logger.Error().Err(err).Msg("table resolver finished with error")
