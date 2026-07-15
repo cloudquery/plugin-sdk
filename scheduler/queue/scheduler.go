@@ -33,6 +33,7 @@ type Scheduler struct {
 	metrics           *metrics.Metrics
 	invocationID      string
 	seed              int64
+	errorClassifier   schema.ErrorClassifier
 }
 
 type Option func(*Scheduler)
@@ -58,6 +59,12 @@ func WithDeterministicCQID(deterministicCQID bool) Option {
 func WithInvocationID(invocationID string) Option {
 	return func(d *Scheduler) {
 		d.invocationID = invocationID
+	}
+}
+
+func WithErrorClassifier(classifier schema.ErrorClassifier) Option {
+	return func(d *Scheduler) {
+		d.errorClassifier = classifier
 	}
 }
 
@@ -104,6 +111,7 @@ func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedR
 				d.deterministicCQID,
 				d.metrics,
 				msgChan,
+				d.errorClassifier,
 			).work(ctx, activeWorkSignal)
 			return nil
 		})

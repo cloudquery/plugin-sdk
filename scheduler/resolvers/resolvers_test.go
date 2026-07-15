@@ -76,7 +76,7 @@ func TestResolveResourcesChunk_PreResourceResolverPartialFailure(t *testing.T) {
 			chunk := []any{0, 1, 2, 3, 4}
 			logger := zerolog.New(zerolog.NewTestWriter(t))
 
-			resources := ResolveResourcesChunk(context.Background(), logger, m, table, client, nil, chunk, caser.New())
+			resources := ResolveResourcesChunk(context.Background(), logger, m, table, client, nil, chunk, caser.New(), nil)
 
 			gotItems := make([]int, len(resources))
 			for i, r := range resources {
@@ -131,7 +131,7 @@ func TestResolveResourcesChunk_PreResourceResolverContextCancelled(t *testing.T)
 	chunk := []any{0, 1, 2, 3, 4}
 	logger := zerolog.New(zerolog.NewTestWriter(t))
 
-	resources := ResolveResourcesChunk(ctx, logger, m, table, client, nil, chunk, caser.New())
+	resources := ResolveResourcesChunk(ctx, logger, m, table, client, nil, chunk, caser.New(), nil)
 
 	require.Empty(t, resources, "cancelled chunk should not return resources")
 	require.Equal(t, 2, calls, "resolver should not be called for resources after cancellation")

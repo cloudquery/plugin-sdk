@@ -128,6 +128,11 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 			close(res)
 		}()
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
+			event := schema.ErrorEvent{Table: table, Client: client, Phase: schema.ErrorPhaseTableResolver}
+			if s.scheduler.errorClassifier.Suppress(ctx, err, event) {
+				logger.Debug().Err(err).Msg("table resolver finished with error (suppressed)")
+				return
+			}
 			logger.Error().Err(err).Msg("table resolver finished with error")
 			s.metrics.AddErrors(ctx, 1, selector)
 			// Send SyncError message
@@ -192,7 +197,7 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 				defer resourceSem.Release(1)
 				defer s.scheduler.resourceSem.Release(1)
 				defer wg.Done()
-				resolvedResources := resolvers.ResolveResourcesChunk(ctx, s.logger, s.metrics, table, client, parent, chunks[i], s.scheduler.caser)
+				resolvedResources := resolvers.ResolveResourcesChunk(ctx, s.logger, s.metrics, table, client, parent, chunks[i], s.scheduler.caser, s.scheduler.errorClassifier)
 				if len(resolvedResources) == 0 {
 					return
 				}
