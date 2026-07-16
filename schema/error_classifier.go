@@ -43,6 +43,7 @@ type ErrorEvent struct {
 // raised. Suppressed errors are logged at debug level and are not counted in error
 // metrics or emitted as a SyncError message. A nil ErrorClassifier raises every error.
 // It is not consulted for primary key calculation or validation errors.
+// The classifier may be invoked concurrently; implementations must be safe for concurrent use.
 type ErrorClassifier func(ctx context.Context, err error, event ErrorEvent) bool
 
 // Suppress is a nil-safe call: a nil ErrorClassifier returns false.
