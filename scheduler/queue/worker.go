@@ -163,7 +163,7 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				resolvedResources := resolvers.ResolveResourcesChunk(ctx, w.logger, w.metrics, table, client, parent, chunks[i], w.caser, w.errorClassifier)
+				resolvedResources := resolvers.ResolveResourcesChunkWithClassifier(ctx, w.logger, w.metrics, table, client, parent, chunks[i], w.caser, w.errorClassifier)
 				for _, resolvedResource := range resolvedResources {
 					if err := resolvedResource.CalculateCQID(w.deterministicCQID); err != nil {
 						w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")

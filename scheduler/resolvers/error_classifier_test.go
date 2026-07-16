@@ -96,7 +96,7 @@ func TestResolveResourcesChunk_ErrorClassifier(t *testing.T) {
 				table := tc.table()
 				m := metrics.NewMetrics()
 				m.InitWithClients(table, []schema.ClientMeta{client})
-				ResolveResourcesChunk(context.Background(), logger, m, table, client, nil, chunk, caser.New(), nil)
+				ResolveResourcesChunkWithClassifier(context.Background(), logger, m, table, client, nil, chunk, caser.New(), nil)
 				require.Equal(t, uint64(1), m.GetErrors(m.NewSelector(client.ID(), table.Name)))
 			})
 
@@ -109,7 +109,7 @@ func TestResolveResourcesChunk_ErrorClassifier(t *testing.T) {
 					gotEvent = event
 					return true
 				}
-				ResolveResourcesChunk(context.Background(), logger, m, table, client, nil, chunk, caser.New(), classifier)
+				ResolveResourcesChunkWithClassifier(context.Background(), logger, m, table, client, nil, chunk, caser.New(), classifier)
 				require.Equal(t, uint64(0), m.GetErrors(m.NewSelector(client.ID(), table.Name)), "suppressed error should not be counted")
 				require.Equal(t, tc.wantPhase, gotEvent.Phase)
 				require.Equal(t, table, gotEvent.Table)

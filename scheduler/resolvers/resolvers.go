@@ -54,7 +54,13 @@ func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metric
 	}
 }
 
-func ResolveResourcesChunk(ctx context.Context, logger zerolog.Logger, m *metrics.Metrics, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, chunk []any, c *caser.Caser, classifier schema.ErrorClassifier) []*schema.Resource {
+// Deprecated: use ResolveResourcesChunkWithClassifier. This retains the original
+// signature and resolves with a nil classifier, so every error is raised.
+func ResolveResourcesChunk(ctx context.Context, logger zerolog.Logger, m *metrics.Metrics, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, chunk []any, c *caser.Caser) []*schema.Resource {
+	return ResolveResourcesChunkWithClassifier(ctx, logger, m, table, client, parent, chunk, c, nil)
+}
+
+func ResolveResourcesChunkWithClassifier(ctx context.Context, logger zerolog.Logger, m *metrics.Metrics, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, chunk []any, c *caser.Caser, classifier schema.ErrorClassifier) []*schema.Resource {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 

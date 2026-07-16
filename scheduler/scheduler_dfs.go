@@ -197,7 +197,7 @@ func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Tabl
 				defer resourceSem.Release(1)
 				defer s.scheduler.resourceSem.Release(1)
 				defer wg.Done()
-				resolvedResources := resolvers.ResolveResourcesChunk(ctx, s.logger, s.metrics, table, client, parent, chunks[i], s.scheduler.caser, s.scheduler.errorClassifier)
+				resolvedResources := resolvers.ResolveResourcesChunkWithClassifier(ctx, s.logger, s.metrics, table, client, parent, chunks[i], s.scheduler.caser, s.scheduler.errorClassifier)
 				if len(resolvedResources) == 0 {
 					return
 				}
