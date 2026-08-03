@@ -22,7 +22,7 @@ func stripNullsFromLists(list array.ListLike) array.ListLike {
 			if slc.IsNull(k) {
 				continue
 			}
-			err := vBldr.AppendValueFromString(slc.ValueStr(k))
+			err := appendFromString(vBldr, slc.ValueStr(k))
 			if err != nil {
 				panic(err)
 			}
@@ -47,7 +47,7 @@ func (s *WriterTestSuite) replaceNullsByEmpty(arr arrow.Array) arrow.Array {
 				continue
 			}
 
-			if err := builder.AppendValueFromString(arr.ValueStr(j)); err != nil {
+			if err := appendFromString(builder, arr.ValueStr(j)); err != nil {
 				panic(err)
 			}
 		}
