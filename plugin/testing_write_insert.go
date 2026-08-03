@@ -93,6 +93,7 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:            rowsPerRecord,
 		TimePrecision:      s.genDatOptions.TimePrecision,
+		MaxIntegerBits:     s.genDatOptions.MaxIntegerBits,
 		UseHomogeneousType: s.useHomogeneousTypes,
 	})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
@@ -113,9 +114,10 @@ func (s *WriterTestSuite) testInsertAll(ctx context.Context) error {
 	}
 
 	nullRecord := tg.Generate(table, schema.GenTestDataOptions{
-		MaxRows:       rowsPerRecord,
-		TimePrecision: s.genDatOptions.TimePrecision,
-		NullRows:      true,
+		MaxRows:        rowsPerRecord,
+		TimePrecision:  s.genDatOptions.TimePrecision,
+		MaxIntegerBits: s.genDatOptions.MaxIntegerBits,
+		NullRows:       true,
 	})
 	if err := s.plugin.writeOne(ctx, &message.WriteInsert{
 		Record: nullRecord,

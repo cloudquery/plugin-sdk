@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -15,6 +16,9 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/uuid"
 )
+
+// Float64SafeIntegerBits is the MaxIntegerBits value for destinations that round-trip integers through float64.
+const Float64SafeIntegerBits = 53
 
 // TestSourceOptions controls which types are included by TestSourceColumns.
 type TestSourceOptions struct {
@@ -29,6 +33,7 @@ type TestSourceOptions struct {
 	SkipTimestamps bool // timestamp types. Microsecond timestamp is always be included, regardless of this setting.
 	TimePrecision  time.Duration
 	SkipDecimals   bool
+	MaxIntegerBits int // bounds the magnitude of generated int64/uint64 values to this many bits. Zero means the full 64-bit range. See Float64SafeIntegerBits.
 }
 
 // listOfColumns returns a list of columns that are lists of the given columns.
@@ -198,6 +203,8 @@ type GenTestDataOptions struct {
 	NullRows bool
 	// UseHomogeneousType indicates whether to use a single type for JSON arrays.
 	UseHomogeneousType bool
+	// MaxIntegerBits bounds the magnitude of generated int64/uint64 values to this many bits. Zero means the full 64-bit range. See Float64SafeIntegerBits.
+	MaxIntegerBits int
 }
 
 type TestDataGenerator struct {
@@ -263,6 +270,20 @@ func (tg *TestDataGenerator) Generate(table *Table, opts GenTestDataOptions) arr
 	}
 
 	return array.NewRecordBatch(sc, columns, -1)
+}
+
+func signedInt64Bound(maxIntegerBits int) int64 {
+	if maxIntegerBits <= 0 || maxIntegerBits >= 63 {
+		return math.MaxInt64
+	}
+	return int64(1) << uint(maxIntegerBits)
+}
+
+func boundUint64(v uint64, maxIntegerBits int) uint64 {
+	if maxIntegerBits <= 0 || maxIntegerBits >= 64 {
+		return v
+	}
+	return v & (uint64(1)<<uint(maxIntegerBits) - 1)
 }
 
 func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataType, opts GenTestDataOptions) string {
@@ -339,7 +360,7 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 		case arrow.PrimitiveTypes.Int32:
 			return fmt.Sprintf("-%d", rnd.Intn(int(^uint32(0)>>1)))
 		case arrow.PrimitiveTypes.Int64:
-			return fmt.Sprintf("-%d", rnd.Int63n(int64(^uint64(0)>>1)))
+			return fmt.Sprintf("-%d", rnd.Int63n(signedInt64Bound(opts.MaxIntegerBits)))
 		}
 	}
 
@@ -353,7 +374,7 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 		case arrow.PrimitiveTypes.Uint32:
 			return fmt.Sprintf("%d", rnd.Uint64()%(uint64(^uint32(0))))
 		case arrow.PrimitiveTypes.Uint64:
-			return fmt.Sprintf("%d", rnd.Uint64())
+			return fmt.Sprintf("%d", boundUint64(rnd.Uint64(), opts.MaxIntegerBits))
 		}
 	}
 
@@ -447,8 +468,8 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 				//       For now, we begrudgingly accept loss of precision in these cases.
 				//       See https://github.com/cloudquery/plugin-sdk/issues/830
 				t = t.Truncate(time.Microsecond)
-				// Use string timestamp string format here because JSON integers are
-				// unmarshalled as float64, losing precision for nanosecond timestamps.
+				// Use the string timestamp format here so the value stays exact
+				// regardless of how the JSON decoder handles large integers.
 				return t.Format(`"2006-01-02 15:04:05.999999999"`)
 			case arrow.FixedWidthTypes.Time32s:
 				h, m, s := t.Clock()

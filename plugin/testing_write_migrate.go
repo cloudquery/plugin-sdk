@@ -42,6 +42,7 @@ func (s *WriterTestSuite) migrate(ctx context.Context, target *schema.Table, sou
 		SyncTime:           syncTime,
 		MaxRows:            rowsPerRecord,
 		TimePrecision:      s.genDatOptions.TimePrecision,
+		MaxIntegerBits:     s.genDatOptions.MaxIntegerBits,
 		UseHomogeneousType: s.useHomogeneousTypes,
 	}
 	// Test Generator should be initialized with the current number of items in the destination

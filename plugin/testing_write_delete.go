@@ -96,6 +96,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 	normalRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:            rowsPerRecord,
 		TimePrecision:      s.genDatOptions.TimePrecision,
+		MaxIntegerBits:     s.genDatOptions.MaxIntegerBits,
 		SourceName:         "test",
 		SyncTime:           syncTime, // Generate call may truncate the value further based on the options
 		UseHomogeneousType: s.useHomogeneousTypes,
@@ -122,6 +123,7 @@ func (s *WriterTestSuite) testDeleteStaleAll(ctx context.Context, t *testing.T) 
 	nullRecord := tg.Generate(table, schema.GenTestDataOptions{
 		MaxRows:            rowsPerRecord,
 		TimePrecision:      s.genDatOptions.TimePrecision,
+		MaxIntegerBits:     s.genDatOptions.MaxIntegerBits,
 		NullRows:           true,
 		SourceName:         "test",
 		SyncTime:           syncTime, // Generate call may truncate the value further based on the options

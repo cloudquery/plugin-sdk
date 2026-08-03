@@ -7,6 +7,7 @@ import (
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -21,6 +22,7 @@ type client struct {
 	memoryDBLock  sync.RWMutex
 	errOnWrite    bool
 	blockingWrite bool
+	float64Ints   bool
 }
 
 type Option func(*client)
@@ -38,6 +40,47 @@ func WithBlockingWrite() Option {
 	return func(c *client) {
 		c.blockingWrite = true
 	}
+}
+
+// WithFloat64Ints makes writes round 64-bit integers through float64, mimicking destinations
+// whose storage or wire format cannot represent them exactly.
+func WithFloat64Ints() Option {
+	return func(c *client) {
+		c.float64Ints = true
+	}
+}
+
+func roundIntsThroughFloat64(record arrow.RecordBatch) arrow.RecordBatch {
+	columns := make([]arrow.Array, record.NumCols())
+	for i := range columns {
+		switch col := record.Column(i).(type) {
+		case *array.Int64:
+			bldr := array.NewInt64Builder(memory.DefaultAllocator)
+			for j := 0; j < col.Len(); j++ {
+				if col.IsNull(j) {
+					bldr.AppendNull()
+					continue
+				}
+				bldr.Append(int64(float64(col.Value(j))))
+			}
+			columns[i] = bldr.NewArray()
+			bldr.Release()
+		case *array.Uint64:
+			bldr := array.NewUint64Builder(memory.DefaultAllocator)
+			for j := 0; j < col.Len(); j++ {
+				if col.IsNull(j) {
+					bldr.AppendNull()
+					continue
+				}
+				bldr.Append(uint64(float64(col.Value(j))))
+			}
+			columns[i] = bldr.NewArray()
+			bldr.Release()
+		default:
+			columns[i] = record.Column(i)
+		}
+	}
+	return array.NewRecordBatch(record.Schema(), columns, record.NumRows())
 }
 
 func GetNewClient(options ...Option) plugin.NewClientFunc {
@@ -239,7 +282,11 @@ func (c *client) Write(ctx context.Context, msgs <-chan message.WriteMessage) er
 				return errors.New("table name not found in schema metadata")
 			}
 			table := c.tables[tableName]
-			c.overwrite(table, msg.Record)
+			record := msg.Record
+			if c.float64Ints {
+				record = roundIntsThroughFloat64(record)
+			}
+			c.overwrite(table, record)
 		}
 
 		c.memoryDBLock.Unlock()
