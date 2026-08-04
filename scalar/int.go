@@ -1,6 +1,7 @@
 package scalar
 
 import (
+	"encoding/json"
 	"math"
 	"strconv"
 
@@ -124,6 +125,8 @@ func (s *Int) Set(val any) error {
 		return s.Set(int64(value))
 	case float64:
 		return s.Set(int64(value))
+	case json.Number:
+		return s.Set(string(value))
 	case string:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
