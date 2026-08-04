@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.96.1](https://github.com/cloudquery/plugin-sdk/compare/v4.96.0...v4.96.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* Preserve int64 precision when setting nested scalars from JSON ([#2556](https://github.com/cloudquery/plugin-sdk/issues/2556)) ([65ae9bc](https://github.com/cloudquery/plugin-sdk/commit/65ae9bcd5062bd110f49610de32ba8967fce07a9))
+
 ## [4.96.0](https://github.com/cloudquery/plugin-sdk/compare/v4.95.3...v4.96.0) (2026-08-03)
 
 
