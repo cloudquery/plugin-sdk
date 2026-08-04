@@ -59,7 +59,7 @@ func (s *Struct) Set(val any) error {
 	switch value := val.(type) {
 	case string:
 		var x map[string]any
-		if err := json.Unmarshal([]byte(value), &x); err != nil {
+		if err := unmarshalJSONWithNumbers([]byte(value), &x); err != nil {
 			return err
 		}
 		for name := range x {
@@ -88,7 +88,7 @@ func (s *Struct) Set(val any) error {
 
 	case []byte:
 		var x map[string]any
-		if err := json.Unmarshal(value, &x); err != nil {
+		if err := unmarshalJSONWithNumbers(value, &x); err != nil {
 			return err
 		}
 		s.Value = x

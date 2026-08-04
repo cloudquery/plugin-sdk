@@ -1,7 +1,6 @@
 package scalar
 
 import (
-	"encoding/json"
 	"reflect"
 	"strings"
 
@@ -93,7 +92,7 @@ func (s *List) Set(val any) error {
 	switch value := val.(type) {
 	case string:
 		var x []any
-		if err := json.Unmarshal([]byte(value), &x); err != nil {
+		if err := unmarshalJSONWithNumbers([]byte(value), &x); err != nil {
 			return err
 		}
 		length := len(x)
@@ -110,7 +109,7 @@ func (s *List) Set(val any) error {
 
 	case []byte:
 		var x []any
-		if err := json.Unmarshal(value, &x); err != nil {
+		if err := unmarshalJSONWithNumbers(value, &x); err != nil {
 			return err
 		}
 		length := len(x)

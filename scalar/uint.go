@@ -1,6 +1,7 @@
 package scalar
 
 import (
+	"encoding/json"
 	"math"
 	"strconv"
 
@@ -128,6 +129,8 @@ func (s *Uint) Set(val any) error {
 			return &ValidationError{Type: s.DataType(), Msg: "float64 is greater than MaxUint64", Value: value}
 		}
 		return s.Set(uint64(value))
+	case json.Number:
+		return s.Set(string(value))
 	case string:
 		v, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
