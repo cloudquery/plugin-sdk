@@ -14,10 +14,10 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/faker"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/premium/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestUnpackLicense(t *testing.T) {
