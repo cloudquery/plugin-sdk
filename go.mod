@@ -17,7 +17,7 @@ require (
 	github.com/goccy/go-json v0.10.6
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/invopop/jsonschema v0.14.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
