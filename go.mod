@@ -17,15 +17,15 @@ require (
 	github.com/goccy/go-json v0.10.6
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/invopop/jsonschema v0.14.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/rs/zerolog v1.35.1
 	github.com/samber/lo v1.53.0
-	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.1
 	github.com/thoas/go-funk v0.9.3
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.20.0
@@ -39,10 +39,10 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
 	go.uber.org/mock v0.6.0
-	golang.org/x/exp v0.0.0-20260611194520-c48552f49976
+	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.22.0
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	google.golang.org/grpc v1.83.1
 	google.golang.org/protobuf v1.36.12
 )
@@ -88,17 +88,17 @@ require (
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
-	golang.org/x/mod v0.37.0 // indirect
-	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/mod v0.39.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260625142307-59b4966ccb57 // indirect
-	golang.org/x/tools v0.47.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260811182544-a038080d80e5 // indirect
+	golang.org/x/tools v0.49.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/invopop/jsonschema => github.com/cloudquery/jsonschema v0.0.0-20260703174721-45e7e20e0ed8
