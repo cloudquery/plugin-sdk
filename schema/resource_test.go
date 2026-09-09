@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -68,6 +69,26 @@ func TestResource_Validate(t *testing.T) {
 			}
 			validationError := tt.resource.Validate()
 			require.Equal(t, tt.err, validationError)
+		})
+	}
+}
+
+func TestResource_SetWithColumnIndex(t *testing.T) {
+	for _, buildIndex := range []bool{false, true} {
+		t.Run("buildIndex="+strconv.FormatBool(buildIndex), func(t *testing.T) {
+			table := &Table{Name: "test", Columns: stringColumns("a", "b", "c")}
+			if buildIndex {
+				table.BuildColumnIndex()
+			}
+			r := NewResourceData(table, nil, nil)
+			for _, name := range []string{"a", "b", "c"} {
+				require.NoError(t, r.Set(name, "value-"+name))
+			}
+			for i, name := range []string{"a", "b", "c"} {
+				require.Equal(t, "value-"+name, r.Get(name).String())
+				require.Equal(t, "value-"+name, r.data[i].String())
+			}
+			require.Panics(t, func() { _ = r.Set("missing", "x") })
 		})
 	}
 }

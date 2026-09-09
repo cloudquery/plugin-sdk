@@ -118,6 +118,34 @@ type Table struct {
 
 	// IgnorePKComponentsMismatchValidation is a flag that indicates if the table should skip validating usage of both primary key components and primary keys
 	IgnorePKComponentsMismatchValidation bool `json:"ignore_pk_components_mismatch_validation"`
+
+	// columnIndex is an optional name -> Columns offset cache built by BuildColumnIndex.
+	// ColumnIndex validates every hit, so a stale cache costs a scan, never correctness.
+	columnIndex map[string]int
+}
+
+// BuildColumnIndex caches column offsets for this table and its relations, making
+// ColumnIndex (and so Resource.Get/Set) a map lookup rather than a scan over Columns.
+// Call it once, from a single goroutine, after the table tree is final. It is optional:
+// lookups stay correct without it, and the mutators that shift offsets drop the cache.
+func (t *Table) BuildColumnIndex() {
+	idx := make(map[string]int, len(t.Columns))
+	for i := range t.Columns {
+		idx[t.Columns[i].Name] = i
+	}
+	t.columnIndex = idx
+	for _, rel := range t.Relations {
+		rel.BuildColumnIndex()
+	}
+}
+
+// ColumnIndex returns the offset of name in Columns, or -1. It uses the BuildColumnIndex
+// cache while that cache still agrees with Columns, and scans otherwise.
+func (t *Table) ColumnIndex(name string) int {
+	if i, ok := t.columnIndex[name]; ok && i < len(t.Columns) && t.Columns[i].Name == name {
+		return i
+	}
+	return t.Columns.Index(name)
 }
 
 var (
@@ -139,6 +167,7 @@ func AddCqIDs(table *Table) {
 		},
 		table.Columns...,
 	)
+	table.columnIndex = nil
 	for _, rel := range table.Relations {
 		AddCqIDs(rel)
 	}
@@ -149,6 +178,7 @@ func AddCqIDs(table *Table) {
 func AddCqClientID(t *Table) {
 	if t.Columns.Get(CqClientIDColumn.Name) == nil {
 		t.Columns = append(ColumnList{CqClientIDColumn}, t.Columns...)
+		t.columnIndex = nil
 	}
 	for _, rel := range t.Relations {
 		AddCqClientID(rel)
@@ -707,6 +737,7 @@ func (t *Table) OverwriteOrAddColumn(column *Column) {
 		}
 	}
 	t.Columns = append([]Column{*column}, t.Columns...)
+	t.columnIndex = nil
 }
 
 func (t *Table) PrimaryKeys() []string {
@@ -754,6 +785,7 @@ func (t *Table) TableNames() []string {
 func (t *Table) Copy(parent *Table) *Table {
 	c := *t
 	c.Parent = parent
+	c.columnIndex = nil // don't alias the source table's cache
 	c.Columns = make([]Column, len(t.Columns))
 	copy(c.Columns, t.Columns)
 	c.Relations = make([]*Table, len(t.Relations))

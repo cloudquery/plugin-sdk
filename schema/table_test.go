@@ -7,6 +7,7 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -787,7 +788,7 @@ func TestTablesToAndFromArrow(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(table, tableFromArrow); diff != "" {
+		if diff := cmp.Diff(table, tableFromArrow, cmpopts.IgnoreUnexported(Table{})); diff != "" {
 			t.Errorf("diff (+got, -want): %v", diff)
 		}
 	}

@@ -40,7 +40,7 @@ func NewResourceData(t *Table, parent *Resource, item any) *Resource {
 }
 
 func (r *Resource) Get(columnName string) scalar.Scalar {
-	index := r.Table.Columns.Index(columnName)
+	index := r.Table.ColumnIndex(columnName)
 	if index == -1 {
 		// we panic because we want to distinguish between code error and api error
 		// this also saves additional checks in our testing code
@@ -53,12 +53,17 @@ func (r *Resource) Get(columnName string) scalar.Scalar {
 // one of concrete  it returns an error just for backward compatibility
 // and panics in case it fails
 func (r *Resource) Set(columnName string, value any) error {
-	index := r.Table.Columns.Index(columnName)
+	index := r.Table.ColumnIndex(columnName)
 	if index == -1 {
 		// we panic because we want to distinguish between code error and api error
 		// this also saves additional checks in our testing code
 		panic(columnName + " column not found")
 	}
+	return r.setAtIndex(index, columnName, value)
+}
+
+// setAtIndex is Set for callers that already hold the column's offset.
+func (r *Resource) setAtIndex(index int, columnName string, value any) error {
 	if err := r.data[index].Set(value); err != nil {
 		panic(fmt.Errorf("failed to set column %s: %w", columnName, err))
 	}
@@ -113,22 +118,24 @@ func calculateCqIDValue(r *Resource, cols []string) hash.Hash {
 func (r *Resource) storeCQID(value uuid.UUID) error {
 	// We skip if _cq_id is not present.
 	// Mostly the problem here is because the transformation step is baked into the resolving step
-	if r.Table.Columns.Get(CqIDColumn.Name) == nil {
+	index := r.Table.ColumnIndex(CqIDColumn.Name)
+	if index == -1 {
 		return nil
 	}
 	b, err := value.MarshalBinary()
 	if err != nil {
 		return err
 	}
-	return r.Set(CqIDColumn.Name, b)
+	return r.setAtIndex(index, CqIDColumn.Name, b)
 }
 
 func (r *Resource) StoreCQClientID(clientID string) error {
 	// We skip if _cq_client_id is not present.
-	if r.Table.Columns.Get(CqClientIDColumn.Name) == nil {
+	index := r.Table.ColumnIndex(CqClientIDColumn.Name)
+	if index == -1 {
 		return nil
 	}
-	return r.Set(CqClientIDColumn.Name, clientID)
+	return r.setAtIndex(index, CqClientIDColumn.Name, clientID)
 }
 
 type PKError struct {

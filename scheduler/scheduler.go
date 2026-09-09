@@ -224,6 +224,12 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		return fmt.Errorf("max depth exceeded, max depth is %d", s.maxDepth)
 	}
 
+	// Tables are final here, so cache column offsets for Resource.Get/Set. They must not
+	// be shared with a concurrent Sync; Tables.FilterDfs already hands out copies.
+	for _, table := range tables {
+		table.BuildColumnIndex()
+	}
+
 	// send migrate messages first
 	for _, tableOriginal := range tables.FlattenTables() {
 		migrateMessage := &message.SyncMigrateTable{
