@@ -1,6 +1,7 @@
 package scalar
 
 import (
+	"encoding/json"
 	"math"
 	"strconv"
 
@@ -119,6 +120,8 @@ func (s *Float) Set(val any) error {
 			return err
 		}
 		s.Value = value
+	case json.Number:
+		return s.Set(string(value))
 	case string:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {

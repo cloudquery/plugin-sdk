@@ -208,7 +208,7 @@ func extractLastRowFromRecord(table *schema.Table, existingRecord arrow.RecordBa
 	for i, c := range table.Columns {
 		col := existingRecord.Column(i)
 		lastRow := int(existingRecord.NumRows()) - 1
-		err := bldr.Field(i).AppendValueFromString(col.ValueStr(lastRow))
+		err := appendFromString(bldr.Field(i), col.ValueStr(lastRow))
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal json `%v` for column %v: %v", col.ValueStr(lastRow), c.Name, err)
 		}

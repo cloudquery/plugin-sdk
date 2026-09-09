@@ -37,6 +37,7 @@ func (s *syncClient) syncShuffleQueue(ctx context.Context, resolvedResources cha
 		queue.WithCaser(s.scheduler.caser),
 		queue.WithDeterministicCQID(s.deterministicCQID),
 		queue.WithInvocationID(s.invocationID),
+		queue.WithErrorClassifier(s.scheduler.errorClassifier),
 	)
 	queueClients := make([]queue.WorkUnit, 0, len(tableClients))
 	for _, tc := range tableClients {

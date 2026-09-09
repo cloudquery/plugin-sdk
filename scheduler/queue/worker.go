@@ -32,7 +32,8 @@ type worker struct {
 	deterministicCQID bool
 	metrics           *metrics.Metrics
 	// message channel for sending SyncError messages
-	msgChan chan<- message.SyncMessage
+	msgChan         chan<- message.SyncMessage
+	errorClassifier schema.ErrorClassifier
 }
 
 func (w *worker) work(ctx context.Context, activeWorkSignal *activeWorkSignal) {
@@ -57,6 +58,7 @@ func newWorker(
 	deterministicCQID bool,
 	m *metrics.Metrics,
 	msgChan chan<- message.SyncMessage,
+	errorClassifier schema.ErrorClassifier,
 ) *worker {
 	return &worker{
 		jobs:              jobs,
@@ -68,6 +70,7 @@ func newWorker(
 		invocationID:      invocationID,
 		metrics:           m,
 		msgChan:           msgChan,
+		errorClassifier:   errorClassifier,
 	}
 }
 
@@ -113,6 +116,11 @@ func (w *worker) resolveTable(ctx context.Context, table *schema.Table, client s
 			close(res)
 		}()
 		if err := table.Resolver(ctx, client, parent, res); err != nil {
+			event := schema.ErrorEvent{Table: table, Client: client, Phase: schema.ErrorPhaseTableResolver}
+			if w.errorClassifier.Suppress(ctx, err, event) {
+				logger.Debug().Err(err).Msg("table resolver finished with suppressed error")
+				return
+			}
 			logger.Error().Err(err).Msg("table resolver finished with error")
 			w.metrics.AddErrors(ctx, 1, selector)
 			// Send SyncError message
@@ -155,7 +163,7 @@ func (w *worker) resolveResource(ctx context.Context, table *schema.Table, clien
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				resolvedResources := resolvers.ResolveResourcesChunk(ctx, w.logger, w.metrics, table, client, parent, chunks[i], w.caser)
+				resolvedResources := resolvers.ResolveResourcesChunkWithClassifier(ctx, w.logger, w.metrics, table, client, parent, chunks[i], w.caser, w.errorClassifier)
 				for _, resolvedResource := range resolvedResources {
 					if err := resolvedResource.CalculateCQID(w.deterministicCQID); err != nil {
 						w.logger.Error().Err(err).Str("table", table.Name).Str("client", client.ID()).Msg("resource resolver finished with primary key calculation error")

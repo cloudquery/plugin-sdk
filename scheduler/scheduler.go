@@ -37,11 +37,34 @@ const (
 	StrategyShuffleQueue
 )
 
+// Re-exported from the schema package for use with WithErrorClassifier.
+type (
+	ErrorClassifier = schema.ErrorClassifier
+	ErrorEvent      = schema.ErrorEvent
+	ErrorPhase      = schema.ErrorPhase
+)
+
+const (
+	ErrorPhaseTableResolver            = schema.ErrorPhaseTableResolver
+	ErrorPhasePreResourceChunkResolver = schema.ErrorPhasePreResourceChunkResolver
+	ErrorPhasePreResourceResolver      = schema.ErrorPhasePreResourceResolver
+	ErrorPhaseColumnResolver           = schema.ErrorPhaseColumnResolver
+	ErrorPhasePostResourceResolver     = schema.ErrorPhasePostResourceResolver
+)
+
 type Option func(*Scheduler)
 
 func WithLogger(logger zerolog.Logger) Option {
 	return func(s *Scheduler) {
 		s.logger = logger
+	}
+}
+
+// WithErrorClassifier sets the classifier consulted for every resolver error. See
+// schema.ErrorClassifier.
+func WithErrorClassifier(classifier ErrorClassifier) Option {
+	return func(s *Scheduler) {
+		s.errorClassifier = classifier
 	}
 }
 
@@ -122,6 +145,8 @@ type Scheduler struct {
 	batchSettings *BatchSettings
 
 	invocationID string
+
+	errorClassifier schema.ErrorClassifier
 }
 
 type shard struct {

@@ -1,3 +1,8 @@
+.PHONY: gen-mocks
+gen-mocks:
+	go install go.uber.org/mock/mockgen@v0.6.0
+	go generate ./premium/...
+
 .PHONY: test
 test:
 	go test -tags=assert -race ./...

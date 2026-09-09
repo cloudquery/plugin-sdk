@@ -190,7 +190,7 @@ func (h *otelLoggerHook) Run(e *zerolog.Event, level zerolog.Level, message stri
 	record := otellog.Record{}
 	record.SetTimestamp(time.Now().UTC())
 	record.SetSeverity(otellogSeverity(level))
-	record.SetBody(otellog.StringValue(message))
+	record.SetBody(attribute.StringValue(message))
 	// See https://github.com/rs/zerolog/issues/493, this is ugly but it works
 	// At the moment there's no way to get the log fields from the event, so we use reflection to get the buffer and parse it
 	// TODO: Remove this if https://github.com/rs/zerolog/pull/682 is merged
@@ -198,7 +198,7 @@ func (h *otelLoggerHook) Run(e *zerolog.Event, level zerolog.Level, message stri
 	eventBuffer := fmt.Sprintf("%s}", reflect.ValueOf(e).Elem().FieldByName("buf"))
 	err := json.Unmarshal([]byte(eventBuffer), &logData)
 	if err == nil {
-		recordAttributes := make([]otellog.KeyValue, 0, len(logData))
+		recordAttributes := make([]attribute.KeyValue, 0, len(logData))
 		for k, v := range logData {
 			if k == "level" {
 				continue
@@ -214,25 +214,25 @@ func (h *otelLoggerHook) Run(e *zerolog.Event, level zerolog.Level, message stri
 					continue
 				}
 			}
-			var attributeValue otellog.Value
+			var attributeValue attribute.Value
 			switch v := v.(type) {
 			case string:
-				attributeValue = otellog.StringValue(v)
+				attributeValue = attribute.StringValue(v)
 			case int:
-				attributeValue = otellog.IntValue(v)
+				attributeValue = attribute.IntValue(v)
 			case int64:
-				attributeValue = otellog.Int64Value(v)
+				attributeValue = attribute.Int64Value(v)
 			case float64:
-				attributeValue = otellog.Float64Value(v)
+				attributeValue = attribute.Float64Value(v)
 			case bool:
-				attributeValue = otellog.BoolValue(v)
+				attributeValue = attribute.BoolValue(v)
 			case []byte:
-				attributeValue = otellog.BytesValue(v)
+				attributeValue = attribute.StringValue(string(v))
 			default:
-				attributeValue = otellog.StringValue(fmt.Sprintf("%v", v))
+				attributeValue = attribute.StringValue(fmt.Sprintf("%v", v))
 			}
-			recordAttributes = append(recordAttributes, otellog.KeyValue{
-				Key:   k,
+			recordAttributes = append(recordAttributes, attribute.KeyValue{
+				Key:   attribute.Key(k),
 				Value: attributeValue,
 			})
 		}

@@ -49,7 +49,7 @@ const (
 	QueryIntervalHeader         = "x-cq-query-interval"
 )
 
-//go:generate mockgen -package=mocks -destination=../premium/mocks/marketplacemetering.go -source=usage.go AWSMarketplaceClientInterface
+//go:generate mockgen -package=mocks -destination=../premium/mocks/marketplacemetering.go -source=usage.go -exclude_interfaces=TokenClient,QuotaMonitor,UsageClient AWSMarketplaceClientInterface
 type AWSMarketplaceClientInterface interface {
 	MeterUsage(ctx context.Context, params *marketplacemetering.MeterUsageInput, optFns ...func(*marketplacemetering.Options)) (*marketplacemetering.MeterUsageOutput, error)
 }
