@@ -62,9 +62,11 @@ func (o Op) String() string {
 type Change struct {
 	// Table is the name of the table the changed resource belongs to.
 	Table string
-	// Keys is a one-row record whose columns are the table's identity columns:
-	// its primary key components when it declares any, otherwise its primary
-	// keys. Build it with schema.NewKeysRecord.
+	// Keys is a one-row record whose columns are a non-empty subset of the
+	// table's identity columns: its primary key components when it declares any,
+	// otherwise its primary keys. An event that knows only part of a resource's
+	// identity, such as its ARN, supplies just that part. Build it with
+	// schema.NewKeysRecord.
 	Keys arrow.RecordBatch
 	Op   Op
 	// EventID identifies this change in the source's event stream. It is echoed
@@ -101,9 +103,11 @@ type Ready struct {
 // RefreshResource identifies one resource to re-fetch during a refresh sync.
 type RefreshResource struct {
 	Table string
-	// Keys is a one-row record whose columns are the table's identity columns:
-	// its primary key components when it declares any, otherwise its primary
-	// keys. Build it with schema.NewKeysRecord.
+	// Keys is a one-row record whose columns are a non-empty subset of the
+	// table's identity columns: its primary key components when it declares any,
+	// otherwise its primary keys. An event that knows only part of a resource's
+	// identity, such as its ARN, supplies just that part. Build it with
+	// schema.NewKeysRecord.
 	Keys arrow.RecordBatch
 	Op   Op
 }

@@ -55,9 +55,19 @@ func TestNewKeysRecord_CompositePKOrder(t *testing.T) {
 	require.Equal(t, "42", rec.Column(1).ValueStr(0))
 }
 
-func TestNewKeysRecord_MissingPK(t *testing.T) {
-	_, err := NewKeysRecord(keysTestTable(), map[string]any{"account_id": "123456789012"})
-	require.ErrorContains(t, err, "arn")
+func TestNewKeysRecord_SubsetOfPKs(t *testing.T) {
+	// A subset is fine: an event that knows only one of the keys still names a
+	// resource well enough to delete by.
+	rec, err := NewKeysRecord(keysTestTable(), map[string]any{"account_id": "123456789012"})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, rec.NumCols())
+	require.Equal(t, "account_id", rec.Schema().Field(0).Name)
+	require.Equal(t, "account_id=123456789012", KeysString(rec))
+}
+
+func TestNewKeysRecord_EmptyValues(t *testing.T) {
+	_, err := NewKeysRecord(keysTestTable(), map[string]any{})
+	require.ErrorContains(t, err, "no values given")
 	require.ErrorContains(t, err, "test_table")
 }
 
@@ -146,10 +156,55 @@ func TestNewKeysRecord_ComponentTableRejectsCqID(t *testing.T) {
 	require.ErrorContains(t, err, "not an identity column")
 }
 
-func TestNewKeysRecord_ComponentTableMissingComponent(t *testing.T) {
-	_, err := NewKeysRecord(componentsTestTable(), map[string]any{"account_id": "123456789012"})
-	require.ErrorContains(t, err, "missing identity column")
-	require.ErrorContains(t, err, "arn")
+// iamPolicyLikeTable mirrors aws_iam_policies: four identity columns, of which a
+// CloudTrail event knows only account_id and arn.
+func iamPolicyLikeTable() *Table {
+	table := &Table{
+		Name: "test_iam_policies",
+		Columns: ColumnList{
+			{Name: "account_id", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+			{Name: "id", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+			{Name: "input_hash", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+			{Name: "arn", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+			{Name: "description", Type: arrow.BinaryTypes.String},
+		},
+	}
+	AddCqIDs(table)
+	return table
+}
+
+func TestNewKeysRecord_SubsetOfIdentityColumns(t *testing.T) {
+	table := iamPolicyLikeTable()
+	require.Equal(t, []string{"account_id", "id", "input_hash", "arn"}, table.IdentityColumns())
+
+	// The event knows 2 of the 4 identity columns.
+	rec, err := NewKeysRecord(table, map[string]any{
+		"arn":        "arn:aws:iam::123456789012:policy/demo",
+		"account_id": "123456789012",
+	})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, rec.NumRows())
+	require.EqualValues(t, 2, rec.NumCols())
+
+	// Declaration order, not map order: account_id is declared before arn.
+	require.Equal(t, []string{"account_id", "arn"}, []string{rec.Schema().Field(0).Name, rec.Schema().Field(1).Name})
+	require.Equal(t, "account_id=123456789012,arn=arn:aws:iam::123456789012:policy/demo", KeysString(rec))
+}
+
+func TestNewKeysRecord_SubsetStillRejectsNonIdentityColumn(t *testing.T) {
+	_, err := NewKeysRecord(iamPolicyLikeTable(), map[string]any{
+		"arn":         "arn:aws:iam::123456789012:policy/demo",
+		"description": "not an identity column",
+	})
+	require.ErrorContains(t, err, "description")
+	require.ErrorContains(t, err, "not an identity column")
+}
+
+func TestNewKeysRecord_ComponentTableSubset(t *testing.T) {
+	rec, err := NewKeysRecord(componentsTestTable(), map[string]any{"arn": "arn:aws:ec2:i-123"})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, rec.NumCols())
+	require.Equal(t, "arn=arn:aws:ec2:i-123", KeysString(rec))
 }
 
 func TestKeysString(t *testing.T) {

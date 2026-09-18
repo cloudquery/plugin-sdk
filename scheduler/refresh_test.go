@@ -236,6 +236,75 @@ func TestRefresh_OpDeleteOnPrimaryKeyComponentTable(t *testing.T) {
 	require.Equal(t, "arn:aws:ec2:i-123", del.WhereClause[0].Predicates[0].Record.Column(0).ValueStr(0))
 }
 
+// iamPolicyLikeRefreshTable mirrors aws_iam_policies: four identity columns, of
+// which an event knows only account_id and arn.
+func iamPolicyLikeRefreshTable() schema.Tables {
+	table := &schema.Table{
+		Name: "test_iam_policies",
+		Resolver: func(context.Context, schema.ClientMeta, *schema.Resource, chan<- any) error {
+			return errors.New("the table resolver must not run during a refresh")
+		},
+		Columns: schema.ColumnList{
+			{Name: "account_id", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true, Resolver: schema.PathResolver("account_id")},
+			{Name: "id", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true, Resolver: schema.PathResolver("id")},
+			{Name: "input_hash", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true, Resolver: schema.PathResolver("input_hash")},
+			{Name: "arn", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true, Resolver: schema.PathResolver("arn")},
+		},
+	}
+	schema.AddCqIDs(table)
+	return schema.Tables{table.Copy(nil)}
+}
+
+func TestRefresh_OpDeleteWithIdentityColumnSubset(t *testing.T) {
+	tables := iamPolicyLikeRefreshTable()
+	table := tables.Get("test_iam_policies")
+	require.Equal(t, []string{"account_id", "id", "input_hash", "arn"}, table.IdentityColumns())
+
+	// The event knows 2 of the 4 identity columns.
+	keys, err := schema.NewKeysRecord(table, map[string]any{
+		"account_id": "123456789012",
+		"arn":        "arn:aws:iam::123456789012:policy/demo",
+	})
+	require.NoError(t, err)
+
+	r := &fakeRefresher{}
+	msgs, err := runRefresh(t, tables, r, []plugin.RefreshResource{
+		{Table: "test_iam_policies", Keys: keys, Op: plugin.OpDelete},
+	})
+	require.NoError(t, err)
+	require.Empty(t, r.refreshCalls(), "OpDelete must not call Refresh")
+	require.Len(t, msgs, 1)
+
+	del, ok := msgs[0].(*message.SyncDeleteRecord)
+	require.True(t, ok, "expected a delete record, got %T", msgs[0])
+	require.Len(t, del.WhereClause[0].Predicates, 2, "predicates must cover exactly the columns the event supplied")
+	require.Equal(t, "account_id", del.WhereClause[0].Predicates[0].Column)
+	require.Equal(t, "arn", del.WhereClause[0].Predicates[1].Column)
+	require.Equal(t, "arn:aws:iam::123456789012:policy/demo", del.WhereClause[0].Predicates[1].Record.Column(0).ValueStr(0))
+}
+
+func TestRefresh_NotFoundWithIdentityColumnSubset(t *testing.T) {
+	tables := iamPolicyLikeRefreshTable()
+	table := tables.Get("test_iam_policies")
+
+	keys, err := schema.NewKeysRecord(table, map[string]any{"arn": "arn:aws:iam::123456789012:policy/gone"})
+	require.NoError(t, err)
+
+	r := &fakeRefresher{errs: map[string]error{
+		"test_iam_policies:arn=arn:aws:iam::123456789012:policy/gone": ErrNotFound,
+	}}
+	msgs, err := runRefresh(t, tables, r, []plugin.RefreshResource{
+		{Table: "test_iam_policies", Keys: keys, Op: plugin.OpUpsert},
+	})
+	require.NoError(t, err)
+	require.Len(t, msgs, 1)
+
+	del, ok := msgs[0].(*message.SyncDeleteRecord)
+	require.True(t, ok, "expected a delete record, got %T", msgs[0])
+	require.Len(t, del.WhereClause[0].Predicates, 1)
+	require.Equal(t, "arn", del.WhereClause[0].Predicates[0].Column)
+}
+
 func TestRefresh_NotFoundOnPrimaryKeyComponentTable(t *testing.T) {
 	tables := componentsRefreshTable()
 	table := tables.Get("test_components")

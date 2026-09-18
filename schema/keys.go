@@ -11,47 +11,56 @@ import (
 )
 
 // NewKeysRecord builds the one-row record that identifies a single resource of
-// the given table. Its schema is the table's identity columns - the primary key
-// components when the table declares any, otherwise the primary keys - in
-// Table.IdentityColumns() order, so that two records for the same resource are
-// always byte-identical regardless of the iteration order of values.
+// the given table. Its columns are a non-empty subset of the table's identity
+// columns - the primary key components when the table declares any, otherwise
+// the primary keys - always in Table.IdentityColumns() order, so that two
+// records naming the same columns of the same resource are byte-identical
+// regardless of the iteration order of values.
 //
-// It is an error for values to omit an identity column or to carry any column
-// that is not one. In particular a table whose only primary key is _cq_id is
-// keyed on its components, and passing _cq_id is rejected.
+// A subset is allowed because an event often knows only part of a resource's
+// identity: a CloudTrail event carries the ARN, while the table's components may
+// also include derived columns such as an input hash. Whatever is supplied has
+// to identify the resource well enough for the caller's purpose; this function
+// only enforces that it is non-empty and that every column is an identity
+// column. In particular a table whose only primary key is _cq_id is keyed on its
+// components, and passing _cq_id is rejected.
 func NewKeysRecord(table *Table, values map[string]any) (arrow.RecordBatch, error) {
 	identity := table.IdentityColumns()
 	if len(identity) == 0 {
 		return nil, fmt.Errorf("table %q has no identity columns", table.Name)
 	}
+	if len(values) == 0 {
+		return nil, fmt.Errorf("no values given for table %q, expected at least one of %v", table.Name, identity)
+	}
+
 	wanted := make(map[string]struct{}, len(identity))
 	for _, name := range identity {
 		wanted[name] = struct{}{}
 	}
-
 	for name := range values {
 		if table.Column(name) == nil {
 			return nil, fmt.Errorf("column %q does not exist on table %q", name, table.Name)
 		}
 		if _, ok := wanted[name]; !ok {
-			return nil, fmt.Errorf("column %q is not an identity column of table %q (expected %v)", name, table.Name, identity)
+			return nil, fmt.Errorf("column %q is not an identity column of table %q (expected a subset of %v)", name, table.Name, identity)
 		}
 	}
 
-	fields := make([]arrow.Field, len(identity))
-	scalars := make(scalar.Vector, len(identity))
-	for i, name := range identity {
+	// Follow the table's declaration order, skipping what was not supplied.
+	fields := make([]arrow.Field, 0, len(values))
+	scalars := make(scalar.Vector, 0, len(values))
+	for _, name := range identity {
 		value, ok := values[name]
 		if !ok {
-			return nil, fmt.Errorf("missing identity column %q for table %q", name, table.Name)
+			continue
 		}
 		col := table.Column(name)
-		fields[i] = arrow.Field{Name: col.Name, Type: col.Type, Nullable: true}
+		fields = append(fields, arrow.Field{Name: col.Name, Type: col.Type, Nullable: true})
 		s := scalar.NewScalar(col.Type)
 		if err := s.Set(value); err != nil {
 			return nil, fmt.Errorf("failed to set identity column %q for table %q: %w", name, table.Name, err)
 		}
-		scalars[i] = s
+		scalars = append(scalars, s)
 	}
 
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, arrow.NewSchema(fields, nil))

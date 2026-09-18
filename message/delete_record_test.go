@@ -134,6 +134,48 @@ func TestNewDeleteRecordByKeys_PrimaryKeyComponents(t *testing.T) {
 	}, msg.TableRelations)
 }
 
+func TestNewDeleteRecordByKeys_IdentityColumnSubset(t *testing.T) {
+	// Mirrors aws_iam_policies: four identity columns, an event that knows two.
+	table := (&schema.Table{
+		Name: "test_iam_policies",
+		Columns: schema.ColumnList{
+			{Name: "account_id", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+			{Name: "id", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+			{Name: "input_hash", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+			{Name: "arn", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+		},
+	}).Copy(nil)
+	schema.AddCqIDs(table)
+
+	keys, err := schema.NewKeysRecord(table, map[string]any{
+		"account_id": "123456789012",
+		"arn":        "arn:aws:iam::123456789012:policy/demo",
+	})
+	require.NoError(t, err)
+
+	msg, err := NewDeleteRecordByKeys(table, keys)
+	require.NoError(t, err)
+
+	group := msg.WhereClause[0]
+	require.Len(t, group.Predicates, 2, "predicates must cover exactly the columns the record carries")
+	require.Equal(t, "account_id", group.Predicates[0].Column)
+	require.Equal(t, "123456789012", group.Predicates[0].Record.Column(0).ValueStr(0))
+	require.Equal(t, "arn", group.Predicates[1].Column)
+	require.Equal(t, "arn:aws:iam::123456789012:policy/demo", group.Predicates[1].Record.Column(0).ValueStr(0))
+}
+
+func TestNewDeleteRecordByKeys_SingleColumnSubset(t *testing.T) {
+	table := componentsDeleteTestTable()
+
+	keys, err := schema.NewKeysRecord(table, map[string]any{"arn": "arn:aws:ec2:i-123"})
+	require.NoError(t, err)
+
+	msg, err := NewDeleteRecordByKeys(table, keys)
+	require.NoError(t, err)
+	require.Len(t, msg.WhereClause[0].Predicates, 1)
+	require.Equal(t, "arn", msg.WhereClause[0].Predicates[0].Column)
+}
+
 func TestNewDeleteRecordByKeys_ColumnMismatch(t *testing.T) {
 	table := deleteRecordTestTable()
 	other := &schema.Table{
@@ -145,7 +187,35 @@ func TestNewDeleteRecordByKeys_ColumnMismatch(t *testing.T) {
 
 	_, err = NewDeleteRecordByKeys(table, keys)
 	require.ErrorContains(t, err, "test_parent")
-	require.ErrorContains(t, err, "identity columns")
+	require.ErrorContains(t, err, "not a subset")
+}
+
+func TestNewDeleteRecordByKeys_NoColumns(t *testing.T) {
+	table := &schema.Table{
+		Name:    "test_leaf",
+		Columns: schema.ColumnList{{Name: "arn", Type: arrow.BinaryTypes.String, PrimaryKey: true}},
+	}
+	// A one-row record that carries no columns at all.
+	empty := array.NewRecordBatch(arrow.NewSchema(nil, nil), nil, 1)
+
+	_, err := NewDeleteRecordByKeys(table, empty)
+	require.ErrorContains(t, err, "no columns")
+}
+
+func TestNewDeleteRecordByKeys_WrongOrder(t *testing.T) {
+	table := deleteRecordTestTable()
+	// Same columns as the identity set, but reversed: not a subset in order.
+	sc := arrow.NewSchema([]arrow.Field{
+		{Name: "id", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
+		{Name: "account_id", Type: arrow.BinaryTypes.String, Nullable: true},
+	}, nil)
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+	defer bldr.Release()
+	bldr.Field(0).(*array.Int64Builder).Append(42)
+	bldr.Field(1).(*array.StringBuilder).Append("123456789012")
+
+	_, err := NewDeleteRecordByKeys(table, bldr.NewRecordBatch())
+	require.ErrorContains(t, err, "not a subset")
 }
 
 func TestNewDeleteRecordByKeys_TooManyRows(t *testing.T) {

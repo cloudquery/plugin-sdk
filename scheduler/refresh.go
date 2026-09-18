@@ -25,8 +25,8 @@ var ErrNotFound = errors.New("resource not found")
 type Refresher interface {
 	// Refresh returns the client scoped to the resource and the resource's current
 	// items, or ErrNotFound if it no longer exists. keys is a one-row record whose
-	// columns are the table's identity columns: its primary key components when it
-	// declares any, otherwise its primary keys.
+	// columns are a non-empty subset of the table's identity columns: its primary
+	// key components when it declares any, otherwise its primary keys.
 	Refresh(ctx context.Context, table *schema.Table, keys arrow.RecordBatch) (schema.ClientMeta, []any, error)
 }
 
@@ -160,7 +160,8 @@ func (s *Scheduler) refreshResource(ctx context.Context, tables schema.Tables, r
 }
 
 // sendDeleteRecord emits the delete for one resource. NewDeleteRecordByKeys is
-// what validates that the keys record matches the table's identity columns.
+// what validates that the keys record is a subset of the table's identity
+// columns, and it predicates on exactly the columns the record carries.
 func sendDeleteRecord(ctx context.Context, table *schema.Table, keys arrow.RecordBatch, res chan<- message.SyncMessage) error {
 	msg, err := message.NewDeleteRecordByKeys(table, keys)
 	if err != nil {
