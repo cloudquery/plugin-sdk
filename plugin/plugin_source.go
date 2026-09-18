@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/glob"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -28,6 +30,90 @@ type SyncOptions struct {
 	DeterministicCQID   bool
 	BackendOptions      *BackendOptions
 	Shard               *Shard
+	// Refresh, when non-empty, limits the sync to the listed resources: the plugin
+	// re-fetches each one and emits an Insert for the resources it finds and a
+	// DeleteRecord for the ones it does not. `Tables` is ignored and no
+	// MigrateTable message is emitted.
+	Refresh []RefreshResource
+}
+
+// Op is the kind of change that happened to a resource.
+type Op int
+
+const (
+	// OpUpsert means the resource was created or updated and should be re-fetched.
+	OpUpsert Op = iota
+	// OpDelete means the resource no longer exists and should be deleted downstream.
+	OpDelete
+)
+
+func (o Op) String() string {
+	switch o {
+	case OpUpsert:
+		return "upsert"
+	case OpDelete:
+		return "delete"
+	default:
+		return fmt.Sprintf("Op(%d)", int(o))
+	}
+}
+
+// Change is a single resource-level change observed by a WatchClient.
+type Change struct {
+	// Table is the name of the table the changed resource belongs to.
+	Table string
+	// Keys is a one-row record whose columns are the table's primary key columns.
+	Keys arrow.RecordBatch
+	Op   Op
+	// EventID identifies this change in the source's event stream. It is echoed
+	// back by Ack to checkpoint progress.
+	EventID string
+	// Time is when the change happened at the source.
+	Time time.Time
+}
+
+// WatchOptions configures a Watch stream.
+type WatchOptions struct {
+	Tables         []string
+	SkipTables     []string
+	BackendOptions *BackendOptions
+	Shard          *Shard
+	// Drain asks Watch to return once the sources are caught up instead of
+	// following the stream indefinitely.
+	Drain bool
+}
+
+// Position tells Watch where to start reading from.
+type Position struct {
+	// Since starts the stream at the given time. When nil, Watch resumes from the
+	// stored checkpoint.
+	Since *time.Time
+}
+
+// Ready is the result of WatchReady: the state of the stored checkpoint.
+type Ready struct {
+	HasCheckpoint  bool
+	CheckpointTime time.Time
+}
+
+// RefreshResource identifies one resource to re-fetch during a refresh sync.
+type RefreshResource struct {
+	Table string
+	// Keys is a one-row record whose columns are the table's primary key columns.
+	Keys arrow.RecordBatch
+	Op   Op
+}
+
+// WatchClient is an optional interface a source client can implement to support
+// event-based syncing. It is type-asserted on the client, like OnBeforeSender.
+type WatchClient interface {
+	// WatchReady prepares the watch and reports the state of the stored checkpoint.
+	WatchReady(ctx context.Context, opts WatchOptions) (Ready, error)
+	// Watch streams changes to the given channel. It returns nil once the sources
+	// are drained (when WatchOptions.Drain is set) or when ctx is done.
+	Watch(ctx context.Context, pos Position, changes chan<- Change) error
+	// Ack checkpoints every change up to and including eventID.
+	Ack(ctx context.Context, eventID string) error
 }
 
 type SourceClient interface {
@@ -100,5 +186,62 @@ func (p *Plugin) Sync(ctx context.Context, options SyncOptions, res chan<- messa
 		return fmt.Errorf("failed to sync unmanaged client: %w", err)
 	}
 
+	return nil
+}
+
+// watchClient returns the client as a WatchClient, or ErrNotImplemented if the
+// client does not support watching.
+func (p *Plugin) watchClient() (WatchClient, error) {
+	if p.client == nil {
+		return nil, errors.New("plugin not initialized. call Init() first")
+	}
+	c, ok := p.client.(WatchClient)
+	if !ok {
+		return nil, ErrNotImplemented
+	}
+	return c, nil
+}
+
+// WatchReady prepares a watch stream and reports the state of the stored checkpoint.
+// It returns ErrNotImplemented if the client does not implement WatchClient.
+//
+// Unlike Sync, the watch methods do not take the plugin lock: a watch stream is
+// long-lived and must not block refresh syncs running alongside it.
+func (p *Plugin) WatchReady(ctx context.Context, opts WatchOptions) (Ready, error) {
+	c, err := p.watchClient()
+	if err != nil {
+		return Ready{}, err
+	}
+	ready, err := c.WatchReady(ctx, opts)
+	if err != nil {
+		return Ready{}, fmt.Errorf("failed to prepare watch: %w", err)
+	}
+	return ready, nil
+}
+
+// Watch streams changes from the client to the given channel until it is drained
+// or ctx is done. It returns ErrNotImplemented if the client does not implement
+// WatchClient.
+func (p *Plugin) Watch(ctx context.Context, pos Position, changes chan<- Change) error {
+	c, err := p.watchClient()
+	if err != nil {
+		return err
+	}
+	if err := c.Watch(ctx, pos, changes); err != nil {
+		return fmt.Errorf("failed to watch: %w", err)
+	}
+	return nil
+}
+
+// Ack checkpoints every change up to and including eventID. It returns
+// ErrNotImplemented if the client does not implement WatchClient.
+func (p *Plugin) Ack(ctx context.Context, eventID string) error {
+	c, err := p.watchClient()
+	if err != nil {
+		return err
+	}
+	if err := c.Ack(ctx, eventID); err != nil {
+		return fmt.Errorf("failed to ack event %q: %w", eventID, err)
+	}
 	return nil
 }
