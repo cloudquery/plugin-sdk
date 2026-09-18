@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -37,7 +38,9 @@ type Client struct {
 	tables    schema.Tables
 	scheduler *scheduler.Scheduler
 
-	// stateClient and checkpoint are set by WatchReady.
+	// watchMu guards stateClient and checkpoint. Watch and Ack run concurrently
+	// for the lifetime of a watch stream, and Close can land on top of either.
+	watchMu     sync.Mutex
 	stateClient state.Client
 	checkpoint  string
 }
@@ -115,13 +118,12 @@ func (c *Client) WatchReady(ctx context.Context, opts plugin.WatchOptions) (plug
 	if err != nil {
 		return plugin.Ready{}, fmt.Errorf("failed to connect to the state backend: %w", err)
 	}
-	c.stateClient = stateClient
 
 	eventID, err := stateClient.GetKey(ctx, checkpointKey)
 	if err != nil {
 		return plugin.Ready{}, fmt.Errorf("failed to read %s: %w", checkpointKey, err)
 	}
-	c.checkpoint = eventID
+	c.setWatchState(stateClient, eventID)
 	if eventID == "" {
 		return plugin.Ready{}, nil
 	}
@@ -145,8 +147,8 @@ func (c *Client) WatchReady(ctx context.Context, opts plugin.WatchOptions) (plug
 // checkpoint; otherwise only the changes after the checkpointed event are.
 func (c *Client) Watch(ctx context.Context, pos plugin.Position, changes chan<- plugin.Change) error {
 	pending := c.config.Changes
-	if pos.Since == nil && c.checkpoint != "" {
-		pending = changesAfter(pending, c.checkpoint)
+	if checkpoint := c.watchCheckpoint(); pos.Since == nil && checkpoint != "" {
+		pending = changesAfter(pending, checkpoint)
 	}
 
 	for _, change := range pending {
@@ -184,8 +186,29 @@ func changesAfter(changes []client.Change, eventID string) []client.Change {
 	return changes
 }
 
-// Ack checkpoints every change up to and including eventID.
+// setWatchState records what WatchReady found.
+func (c *Client) setWatchState(stateClient state.Client, checkpoint string) {
+	c.watchMu.Lock()
+	defer c.watchMu.Unlock()
+	c.stateClient = stateClient
+	c.checkpoint = checkpoint
+}
+
+// watchCheckpoint returns the last acked event id.
+func (c *Client) watchCheckpoint() string {
+	c.watchMu.Lock()
+	defer c.watchMu.Unlock()
+	return c.checkpoint
+}
+
+// Ack checkpoints every change up to and including eventID. It runs on a
+// different goroutine than Watch, so it takes the lock for the whole write:
+// acks are serialised with each other anyway, and Close must not pull the state
+// client out from under one.
 func (c *Client) Ack(ctx context.Context, eventID string) error {
+	c.watchMu.Lock()
+	defer c.watchMu.Unlock()
+
 	if c.stateClient == nil {
 		return errors.New("watch not started: call WatchReady first")
 	}
@@ -211,7 +234,12 @@ func (c *Client) Tables(_ context.Context, options plugin.TableOptions) (schema.
 	return tt, nil
 }
 
+// Close releases the state backend. It can be called while a watch is still
+// running, so it waits for an in-flight Ack instead of closing underneath it.
 func (c *Client) Close(_ context.Context) error {
+	c.watchMu.Lock()
+	defer c.watchMu.Unlock()
+
 	if c.stateClient == nil {
 		return nil
 	}

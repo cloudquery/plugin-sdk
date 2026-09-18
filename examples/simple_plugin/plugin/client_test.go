@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -152,5 +153,95 @@ func TestSpecValidation(t *testing.T) {
 	_, err := Configure(context.Background(), zerolog.Nop(), []byte(`{"changes":[{"table":"test_some_table"}]}`), plugin.NewClientOptions{})
 	if err == nil || !strings.Contains(err.Error(), "event_id is required") {
 		t.Fatalf("expected an event_id validation error, got %v", err)
+	}
+}
+
+// TestWatchAndAckRunConcurrently exercises the WatchClient contract: Watch and
+// Ack are called from different goroutines for the lifetime of the stream, so
+// everything they share has to be guarded. Run it under -race.
+func TestWatchAndAckRunConcurrently(t *testing.T) {
+	c := newEventSyncClient(t)
+	ctx := context.Background()
+
+	if _, err := c.WatchReady(ctx, plugin.WatchOptions{Tables: []string{"*"}}); err != nil {
+		t.Fatalf("WatchReady failed: %v", err)
+	}
+
+	// Several episodes so the two goroutines actually overlap rather than
+	// happening to run one after the other.
+	for range 50 {
+		changes := make(chan plugin.Change)
+		var (
+			wg       sync.WaitGroup
+			watchErr error
+			ackErr   error
+		)
+
+		wg.Add(3)
+		go func() {
+			defer wg.Done()
+			defer close(changes)
+			watchErr = c.Watch(ctx, plugin.Position{}, changes)
+		}()
+		go func() {
+			defer wg.Done()
+			for range changes { //revive:disable-line:empty-block // the acker below drives the checkpoint
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			for _, eventID := range []string{"e1", "e2"} {
+				if err := c.Ack(ctx, eventID); err != nil {
+					ackErr = err
+					return
+				}
+			}
+		}()
+		wg.Wait()
+
+		if watchErr != nil {
+			t.Fatalf("Watch failed: %v", watchErr)
+		}
+		if ackErr != nil {
+			t.Fatalf("Ack failed: %v", ackErr)
+		}
+	}
+
+	if checkpoint := c.watchCheckpoint(); checkpoint != "e2" {
+		t.Errorf("expected the checkpoint to be e2, got %q", checkpoint)
+	}
+}
+
+// TestCloseIsSafeDuringAcks closes the client while acks are still in flight,
+// which is what happens when a follow-mode sync is cancelled.
+func TestCloseIsSafeDuringAcks(t *testing.T) {
+	c := newEventSyncClient(t)
+	ctx := context.Background()
+
+	if _, err := c.WatchReady(ctx, plugin.WatchOptions{Tables: []string{"*"}}); err != nil {
+		t.Fatalf("WatchReady failed: %v", err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// An ack that lands after Close is rejected, not a panic or a race.
+		for range 100 {
+			if err := c.Ack(ctx, "e1"); err != nil && !strings.Contains(err.Error(), "watch not started") {
+				t.Errorf("unexpected ack error: %v", err)
+				return
+			}
+		}
+	}()
+
+	if err := c.Close(ctx); err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
+	wg.Wait()
+
+	// Closing twice is a no-op.
+	if err := c.Close(ctx); err != nil {
+		t.Fatalf("second Close failed: %v", err)
 	}
 }
