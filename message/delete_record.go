@@ -11,10 +11,11 @@ import (
 )
 
 // NewDeleteRecordByKeys builds the delete message for the single resource
-// identified by keys, a one-row record whose columns are the table's primary
-// keys (see schema.NewKeysRecord).
+// identified by keys, a one-row record whose columns are the table's identity
+// columns - the primary key components when the table declares any, otherwise
+// the primary keys (see schema.NewKeysRecord).
 //
-// The where clause is one AND group with an EQ predicate per primary key column,
+// The where clause is one AND group with an EQ predicate per identity column,
 // and the relations cover every descendant table so destinations can cascade the
 // delete.
 func NewDeleteRecordByKeys(table *schema.Table, keys arrow.RecordBatch) (*SyncDeleteRecord, error) {
@@ -25,18 +26,18 @@ func NewDeleteRecordByKeys(table *schema.Table, keys arrow.RecordBatch) (*SyncDe
 		return nil, fmt.Errorf("keys record for table %q must have exactly one row, got %d", table.Name, keys.NumRows())
 	}
 
-	pks := table.PrimaryKeys()
+	identity := table.IdentityColumns()
 	fields := keys.Schema().Fields()
 	names := make([]string, len(fields))
 	for i, field := range fields {
 		names[i] = field.Name
 	}
-	if !slices.Equal(names, pks) {
-		return nil, fmt.Errorf("keys record columns %v do not match the primary keys %v of table %q", names, pks, table.Name)
+	if !slices.Equal(names, identity) {
+		return nil, fmt.Errorf("keys record columns %v do not match the identity columns %v of table %q", names, identity, table.Name)
 	}
 
-	predicates := make(Predicates, len(pks))
-	for i, name := range pks {
+	predicates := make(Predicates, len(identity))
+	for i, name := range identity {
 		column := keys.Column(i)
 		sc := arrow.NewSchema([]arrow.Field{fields[i]}, nil)
 		predicates[i] = Predicate{

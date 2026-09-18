@@ -79,13 +79,77 @@ func TestNewKeysRecord_UnknownColumn(t *testing.T) {
 	require.ErrorContains(t, err, "nonexistent")
 }
 
-func TestNewKeysRecord_NoPrimaryKeys(t *testing.T) {
+func TestNewKeysRecord_NoIdentityColumns(t *testing.T) {
 	table := &Table{
 		Name:    "test_table",
 		Columns: ColumnList{{Name: "col", Type: arrow.BinaryTypes.String}},
 	}
 	_, err := NewKeysRecord(table, map[string]any{})
-	require.ErrorContains(t, err, "no primary keys")
+	require.ErrorContains(t, err, "no identity columns")
+}
+
+// componentsTestTable is shaped like an AWS table: _cq_id is the only primary
+// key and resource identity lives in the primary key components.
+func componentsTestTable() *Table {
+	table := &Table{
+		Name: "test_components",
+		Columns: ColumnList{
+			{Name: "account_id", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+			{Name: "region", Type: arrow.BinaryTypes.String},
+			{Name: "arn", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+		},
+	}
+	AddCqIDs(table)
+	return table
+}
+
+func TestIdentityColumns(t *testing.T) {
+	// Components win when the table declares any.
+	table := componentsTestTable()
+	require.Equal(t, []string{CqIDColumn.Name}, table.PrimaryKeys())
+	require.Equal(t, []string{"account_id", "arn"}, table.IdentityColumns())
+
+	// Otherwise the primary keys are the identity.
+	require.Equal(t, []string{"account_id", "arn"}, keysTestTable().PrimaryKeys())
+	require.Equal(t, []string{"account_id", "arn"}, keysTestTable().IdentityColumns())
+
+	// Neither: no identity at all.
+	require.Empty(t, (&Table{Name: "t", Columns: ColumnList{{Name: "c", Type: arrow.BinaryTypes.String}}}).IdentityColumns())
+}
+
+func TestNewKeysRecord_PrimaryKeyComponents(t *testing.T) {
+	table := componentsTestTable()
+
+	rec, err := NewKeysRecord(table, map[string]any{
+		"arn":        "arn:aws:ec2:i-123",
+		"account_id": "123456789012",
+	})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, rec.NumRows())
+	require.EqualValues(t, 2, rec.NumCols())
+	require.Equal(t, []string{"account_id", "arn"}, []string{rec.Schema().Field(0).Name, rec.Schema().Field(1).Name})
+	require.Equal(t, "123456789012", rec.Column(0).ValueStr(0))
+	require.Equal(t, "arn:aws:ec2:i-123", rec.Column(1).ValueStr(0))
+	require.Equal(t, "account_id=123456789012,arn=arn:aws:ec2:i-123", KeysString(rec))
+}
+
+func TestNewKeysRecord_ComponentTableRejectsCqID(t *testing.T) {
+	table := componentsTestTable()
+
+	// _cq_id is the table's only primary key, but it is not an identity column.
+	_, err := NewKeysRecord(table, map[string]any{
+		"account_id":    "123456789012",
+		"arn":           "arn:aws:ec2:i-123",
+		CqIDColumn.Name: "5c3b1d9e-0000-0000-0000-000000000000",
+	})
+	require.ErrorContains(t, err, CqIDColumn.Name)
+	require.ErrorContains(t, err, "not an identity column")
+}
+
+func TestNewKeysRecord_ComponentTableMissingComponent(t *testing.T) {
+	_, err := NewKeysRecord(componentsTestTable(), map[string]any{"account_id": "123456789012"})
+	require.ErrorContains(t, err, "missing identity column")
+	require.ErrorContains(t, err, "arn")
 }
 
 func TestKeysString(t *testing.T) {

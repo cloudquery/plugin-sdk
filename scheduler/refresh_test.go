@@ -194,6 +194,84 @@ func TestRefresh_OpDeleteSkipsRefresh(t *testing.T) {
 	require.IsType(t, &message.SyncDeleteRecord{}, msgs[0])
 }
 
+// componentsRefreshTable is shaped like an AWS table: _cq_id is the only primary
+// key and identity lives in the primary key components.
+func componentsRefreshTable() schema.Tables {
+	table := &schema.Table{
+		Name: "test_components",
+		Resolver: func(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			res <- map[string]any{"arn": "arn:aws:ec2:i-123", "name": "hello"}
+			return nil
+		},
+		Columns: schema.ColumnList{
+			{Name: "arn", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true, Resolver: schema.PathResolver("arn")},
+			{Name: "name", Type: arrow.BinaryTypes.String, Resolver: schema.PathResolver("name")},
+		},
+	}
+	schema.AddCqIDs(table)
+	return schema.Tables{table.Copy(nil)}
+}
+
+func TestRefresh_OpDeleteOnPrimaryKeyComponentTable(t *testing.T) {
+	tables := componentsRefreshTable()
+	table := tables.Get("test_components")
+	require.Equal(t, []string{schema.CqIDColumn.Name}, table.PrimaryKeys())
+
+	keys, err := schema.NewKeysRecord(table, map[string]any{"arn": "arn:aws:ec2:i-123"})
+	require.NoError(t, err)
+
+	r := &fakeRefresher{}
+	msgs, err := runRefresh(t, tables, r, []plugin.RefreshResource{
+		{Table: "test_components", Keys: keys, Op: plugin.OpDelete},
+	})
+	require.NoError(t, err)
+	require.Empty(t, r.refreshCalls(), "OpDelete must not call Refresh")
+	require.Len(t, msgs, 1)
+
+	del, ok := msgs[0].(*message.SyncDeleteRecord)
+	require.True(t, ok, "expected a delete record, got %T", msgs[0])
+	require.Equal(t, "test_components", del.TableName)
+	require.Len(t, del.WhereClause[0].Predicates, 1)
+	require.Equal(t, "arn", del.WhereClause[0].Predicates[0].Column)
+	require.Equal(t, "arn:aws:ec2:i-123", del.WhereClause[0].Predicates[0].Record.Column(0).ValueStr(0))
+}
+
+func TestRefresh_NotFoundOnPrimaryKeyComponentTable(t *testing.T) {
+	tables := componentsRefreshTable()
+	table := tables.Get("test_components")
+
+	keys, err := schema.NewKeysRecord(table, map[string]any{"arn": "arn:aws:ec2:i-gone"})
+	require.NoError(t, err)
+
+	r := &fakeRefresher{errs: map[string]error{
+		"test_components:arn=arn:aws:ec2:i-gone": ErrNotFound,
+	}}
+	msgs, err := runRefresh(t, tables, r, []plugin.RefreshResource{
+		{Table: "test_components", Keys: keys, Op: plugin.OpUpsert},
+	})
+	require.NoError(t, err)
+	require.Len(t, msgs, 1)
+	require.IsType(t, &message.SyncDeleteRecord{}, msgs[0])
+}
+
+func TestRefresh_UpsertOnPrimaryKeyComponentTable(t *testing.T) {
+	tables := componentsRefreshTable()
+	table := tables.Get("test_components")
+
+	keys, err := schema.NewKeysRecord(table, map[string]any{"arn": "arn:aws:ec2:i-123"})
+	require.NoError(t, err)
+
+	r := &fakeRefresher{items: map[string][]any{
+		"test_components:arn=arn:aws:ec2:i-123": {map[string]any{"arn": "arn:aws:ec2:i-123", "name": "hello"}},
+	}}
+	msgs, err := runRefresh(t, tables, r, []plugin.RefreshResource{
+		{Table: "test_components", Keys: keys, Op: plugin.OpUpsert},
+	}, WithSyncDeterministicCQID(true))
+	require.NoError(t, err)
+	require.EqualValues(t, 1, msgs.InsertItems())
+	require.True(t, msgs.GetInserts().Exists("test_components"))
+}
+
 func TestRefresh_OneFailureDoesNotStopTheOthers(t *testing.T) {
 	tables := refreshTestTables()
 	parent := tables.Get("test_refresh_parent")

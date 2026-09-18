@@ -11,40 +11,45 @@ import (
 )
 
 // NewKeysRecord builds the one-row record that identifies a single resource of
-// the given table. Its schema is the table's primary key columns, in
-// table.PrimaryKeys() order, so that two records for the same resource are
+// the given table. Its schema is the table's identity columns - the primary key
+// components when the table declares any, otherwise the primary keys - in
+// Table.IdentityColumns() order, so that two records for the same resource are
 // always byte-identical regardless of the iteration order of values.
 //
-// It is an error for values to omit a primary key column or to carry any column
-// that is not one.
+// It is an error for values to omit an identity column or to carry any column
+// that is not one. In particular a table whose only primary key is _cq_id is
+// keyed on its components, and passing _cq_id is rejected.
 func NewKeysRecord(table *Table, values map[string]any) (arrow.RecordBatch, error) {
-	pks := table.PrimaryKeys()
-	if len(pks) == 0 {
-		return nil, fmt.Errorf("table %q has no primary keys", table.Name)
+	identity := table.IdentityColumns()
+	if len(identity) == 0 {
+		return nil, fmt.Errorf("table %q has no identity columns", table.Name)
+	}
+	wanted := make(map[string]struct{}, len(identity))
+	for _, name := range identity {
+		wanted[name] = struct{}{}
 	}
 
 	for name := range values {
-		col := table.Column(name)
-		switch {
-		case col == nil:
+		if table.Column(name) == nil {
 			return nil, fmt.Errorf("column %q does not exist on table %q", name, table.Name)
-		case !col.PrimaryKey:
-			return nil, fmt.Errorf("column %q is not a primary key of table %q", name, table.Name)
+		}
+		if _, ok := wanted[name]; !ok {
+			return nil, fmt.Errorf("column %q is not an identity column of table %q (expected %v)", name, table.Name, identity)
 		}
 	}
 
-	fields := make([]arrow.Field, len(pks))
-	scalars := make(scalar.Vector, len(pks))
-	for i, name := range pks {
+	fields := make([]arrow.Field, len(identity))
+	scalars := make(scalar.Vector, len(identity))
+	for i, name := range identity {
 		value, ok := values[name]
 		if !ok {
-			return nil, fmt.Errorf("missing primary key %q for table %q", name, table.Name)
+			return nil, fmt.Errorf("missing identity column %q for table %q", name, table.Name)
 		}
 		col := table.Column(name)
 		fields[i] = arrow.Field{Name: col.Name, Type: col.Type, Nullable: true}
 		s := scalar.NewScalar(col.Type)
 		if err := s.Set(value); err != nil {
-			return nil, fmt.Errorf("failed to set primary key %q for table %q: %w", name, table.Name, err)
+			return nil, fmt.Errorf("failed to set identity column %q for table %q: %w", name, table.Name, err)
 		}
 		scalars[i] = s
 	}

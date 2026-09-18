@@ -83,6 +83,57 @@ func TestNewDeleteRecordByKeys_NoRelations(t *testing.T) {
 	require.Len(t, msg.WhereClause[0].Predicates, 1)
 }
 
+// componentsDeleteTestTable is shaped like an AWS table: _cq_id is the only
+// primary key and identity lives in the primary key components.
+func componentsDeleteTestTable() *schema.Table {
+	child := &schema.Table{
+		Name:    "test_components_child",
+		Columns: schema.ColumnList{{Name: "arn", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true}},
+	}
+	table := &schema.Table{
+		Name: "test_components",
+		Columns: schema.ColumnList{
+			{Name: "account_id", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+			{Name: "region", Type: arrow.BinaryTypes.String},
+			{Name: "arn", Type: arrow.BinaryTypes.String, PrimaryKeyComponent: true},
+		},
+		Relations: schema.Tables{child},
+	}
+	schema.AddCqIDs(table)
+	return table.Copy(nil)
+}
+
+func TestNewDeleteRecordByKeys_PrimaryKeyComponents(t *testing.T) {
+	table := componentsDeleteTestTable()
+	require.Equal(t, []string{schema.CqIDColumn.Name}, table.PrimaryKeys())
+
+	keys, err := schema.NewKeysRecord(table, map[string]any{
+		"account_id": "123456789012",
+		"arn":        "arn:aws:ec2:i-123",
+	})
+	require.NoError(t, err)
+
+	msg, err := NewDeleteRecordByKeys(table, keys)
+	require.NoError(t, err)
+	require.Equal(t, "test_components", msg.TableName)
+
+	group := msg.WhereClause[0]
+	require.Equal(t, "AND", group.GroupingType)
+	require.Len(t, group.Predicates, 2, "predicates must be on the components, not on _cq_id")
+
+	require.Equal(t, "EQ", group.Predicates[0].Operator)
+	require.Equal(t, "account_id", group.Predicates[0].Column)
+	require.Equal(t, "123456789012", group.Predicates[0].Record.Column(0).ValueStr(0))
+
+	require.Equal(t, "EQ", group.Predicates[1].Operator)
+	require.Equal(t, "arn", group.Predicates[1].Column)
+	require.Equal(t, "arn:aws:ec2:i-123", group.Predicates[1].Record.Column(0).ValueStr(0))
+
+	require.Equal(t, TableRelations{
+		{TableName: "test_components_child", ParentTable: "test_components"},
+	}, msg.TableRelations)
+}
+
 func TestNewDeleteRecordByKeys_ColumnMismatch(t *testing.T) {
 	table := deleteRecordTestTable()
 	other := &schema.Table{
@@ -94,6 +145,7 @@ func TestNewDeleteRecordByKeys_ColumnMismatch(t *testing.T) {
 
 	_, err = NewDeleteRecordByKeys(table, keys)
 	require.ErrorContains(t, err, "test_parent")
+	require.ErrorContains(t, err, "identity columns")
 }
 
 func TestNewDeleteRecordByKeys_TooManyRows(t *testing.T) {

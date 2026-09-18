@@ -742,6 +742,21 @@ func (t *Table) PrimaryKeyComponents() []string {
 	return primaryKeyComponents
 }
 
+// IdentityColumns returns the columns that identify a single resource of this
+// table: the primary key components when the table declares any, otherwise the
+// primary keys.
+//
+// Tables that keep _cq_id as their only primary key carry resource identity in
+// the components instead, which is also what Resource.CalculateCQID hashes to
+// derive a deterministic _cq_id. Anything that has to name one resource - a keys
+// record, a delete predicate - uses this set rather than the primary keys.
+func (t *Table) IdentityColumns() []string {
+	if components := t.PrimaryKeyComponents(); len(components) > 0 {
+		return components
+	}
+	return t.PrimaryKeys()
+}
+
 func (t *Table) TableNames() []string {
 	//nolint:prealloc
 	ret := []string{t.Name}
