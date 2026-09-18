@@ -106,13 +106,32 @@ type RefreshResource struct {
 
 // WatchClient is an optional interface a source client can implement to support
 // event-based syncing. It is type-asserted on the client, like OnBeforeSender.
+//
+// Call order and concurrency, which implementations must honour:
+//
+//   - WatchReady is called first and on its own. Watch and Ack are not called
+//     until it has returned.
+//   - Watch and Ack are then called concurrently, from different goroutines, for
+//     the lifetime of the stream. An Ack routinely arrives while Watch is blocked
+//     sending a change or waiting for the next one, so Watch must not be the only
+//     thing that can make progress.
+//   - Acks are serialised with respect to each other, but not with respect to
+//     Watch. Any state the two share - a checkpoint, a state client, a cursor -
+//     must be guarded by the implementation. Neither the SDK nor the gRPC server
+//     takes a lock around these calls, and Plugin.Sync can run a refresh on the
+//     same client at the same time.
+//   - Close may be called while a watch is still running, so it must be safe
+//     against a concurrent Ack.
 type WatchClient interface {
 	// WatchReady prepares the watch and reports the state of the stored checkpoint.
+	// It is called once, before Watch and Ack.
 	WatchReady(ctx context.Context, opts WatchOptions) (Ready, error)
 	// Watch streams changes to the given channel. It returns nil once the sources
-	// are drained (when WatchOptions.Drain is set) or when ctx is done.
+	// are drained (when WatchOptions.Drain is set) or when ctx is done. It runs
+	// concurrently with Ack.
 	Watch(ctx context.Context, pos Position, changes chan<- Change) error
-	// Ack checkpoints every change up to and including eventID.
+	// Ack checkpoints every change up to and including eventID. It is called from
+	// a different goroutine than Watch, and may be called while Watch is blocked.
 	Ack(ctx context.Context, eventID string) error
 }
 
