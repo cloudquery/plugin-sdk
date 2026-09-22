@@ -139,10 +139,16 @@ func (w *worker) send() {
 	w.builder.Reserve(w.maxRows)
 	w.curRows = 0 // reset
 
+	if w.maxSizeBytes <= 0 {
+		w.logger.Trace().Str("table", w.tableName).Int64("rows", record.NumRows()).Msg("sending sync insert for rows batch")
+		w.res <- &message.SyncInsert{Record: record}
+		return
+	}
+
 	totalBytes := util.TotalRecordSize(record)
 	w.bytesPerRow = totalBytes / record.NumRows()
 
-	if w.maxSizeBytes <= 0 || totalBytes <= w.maxSizeBytes {
+	if totalBytes <= w.maxSizeBytes {
 		w.logger.Trace().Str("table", w.tableName).Int64("rows", record.NumRows()).Int64("bytes", totalBytes).Msg("sending sync insert for rows batch")
 		w.res <- &message.SyncInsert{Record: record}
 		return
