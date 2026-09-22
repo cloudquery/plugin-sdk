@@ -66,7 +66,7 @@ func (s *SlicedRecord) getAdd(limit *Cap) *SlicedRecord {
 		bytesPerRow: s.bytesPerRow,
 	}
 	s.RecordBatch = s.NewSlice(rows, s.NumRows())
-	s.Bytes -= res.Bytes
+	s.Bytes = max(s.Bytes-res.Bytes, 0)
 	return &res
 }
 
