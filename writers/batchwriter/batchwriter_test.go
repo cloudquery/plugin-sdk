@@ -35,6 +35,16 @@ func (c *testBatchClient) InsertsLen() int {
 	return len(c.inserts)
 }
 
+func (c *testBatchClient) InsertedRows() int64 {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	var rows int64
+	for _, insert := range c.inserts {
+		rows += insert.Record.NumRows()
+	}
+	return rows
+}
+
 func (c *testBatchClient) DeleteStalesLen() int {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -281,6 +291,10 @@ func TestBatchNoEmptyFlush(t *testing.T) {
 	// All rows must have been written via at least one non-empty batch.
 	if testClient.InsertsLen() == 0 {
 		t.Fatalf("expected at least 1 insert message, got 0")
+	}
+	// Every row must be written exactly once, even though none of them fits the byte limit.
+	if got := testClient.InsertedRows(); got != numRows {
+		t.Fatalf("expected %d written rows, got %d", numRows, got)
 	}
 }
 
