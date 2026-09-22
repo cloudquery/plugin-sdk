@@ -53,8 +53,6 @@ func TestBatcherMaxSizeBytes(t *testing.T) {
 		Timeout:      time.Hour,
 	}
 
-	// util.TotalRecordSize reports the size of the whole parent buffer for a slice,
-	// so measure the per row size on an unsplit batch of the same data instead.
 	unsplit := collectBatches(t, BatchSettings{MaxRows: rows, Timeout: time.Hour}, rows, valueSize)
 	require.Len(t, unsplit, 1)
 	bytesPerRow := util.TotalRecordSize(unsplit[0].Record) / unsplit[0].Record.NumRows()

@@ -147,9 +147,6 @@ func SliceRecord(r arrow.RecordBatch, limit *Cap) (add *SlicedRecord, flush []ar
 	return newSlicedRecord(r).split(&l)
 }
 
-// SplitRecord splits r into records that each fit within the limit provided.
-// Rows that exceed the limit on their own get a record of their own.
-// Note that the `limit` provided will not be updated.
 func SplitRecord(r arrow.RecordBatch, limit *Cap) []arrow.RecordBatch {
 	if r.NumRows() == 0 {
 		return []arrow.RecordBatch{r}

@@ -19,7 +19,7 @@ import (
 const (
 	DefaultBatchMaxRows      = 50
 	DefaultBatchTimeout      = 5 * time.Second
-	DefaultBatchMaxSizeBytes = 50 * 1024 * 1024 // 50 MiB
+	DefaultBatchMaxSizeBytes = 50 * 1024 * 1024
 )
 
 type (

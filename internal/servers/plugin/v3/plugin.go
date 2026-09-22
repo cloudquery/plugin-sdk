@@ -22,7 +22,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// MaxMsgSize is the maximum size of a single sync message. It is a var so that tests can lower it.
 var MaxMsgSize = 100 * 1024 * 1024 // 100 MiB
 
 type Server struct {
@@ -285,9 +284,6 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	return syncErr
 }
 
-// sendInsert sends record as one or more insert messages, splitting it when its
-// serialized form exceeds MaxMsgSize. A single row that does not fit is an error,
-// as dropping it would silently lose data.
 func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatch) error {
 	pending := []arrow.RecordBatch{record}
 	for len(pending) > 0 {
@@ -332,9 +328,6 @@ func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatc
 	return nil
 }
 
-// maxRowsPerMessage leaves headroom, as the serialized size doesn't scale exactly with
-// the row count. It must only be called on size > MaxMsgSize and rows > 1, so that the
-// result is always both at least 1 and less than rows, and splitting terminates.
 func maxRowsPerMessage(size int, rows int64) int64 {
 	perMessage := rows * int64(MaxMsgSize) * 9 / (int64(size) * 10)
 	if perMessage >= rows {
