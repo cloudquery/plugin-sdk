@@ -76,3 +76,47 @@ func TestBatcherWithoutMaxSizeBytes(t *testing.T) {
 	require.Len(t, inserts, 1)
 	require.Equal(t, int64(rows), inserts[0].Record.NumRows())
 }
+
+func TestBatcherTableWithoutColumns(t *testing.T) {
+	table := &schema.Table{Name: "no_columns"}
+	res := make(chan message.SyncMessage, 16)
+	batcher := (&BatchSettings{MaxRows: 2, MaxSizeBytes: 1024, Timeout: time.Hour}).
+		getBatcher(context.Background(), res, zerolog.Nop())
+
+	batcher.process(schema.NewResourceData(table, nil, nil))
+	batcher.close()
+	close(res)
+
+	for msg := range res {
+		insert, ok := msg.(*message.SyncInsert)
+		require.True(t, ok)
+		require.Equal(t, int64(0), insert.Record.NumRows())
+	}
+}
+
+func TestBatcherMoreRowsThanBytes(t *testing.T) {
+	const rows = 20000
+	table := &schema.Table{
+		Name:    "bools",
+		Columns: []schema.Column{{Name: "b", Type: arrow.FixedWidthTypes.Boolean}},
+	}
+	res := make(chan message.SyncMessage, 4*rows)
+	batcher := (&BatchSettings{MaxRows: rows, MaxSizeBytes: 64, Timeout: time.Hour}).
+		getBatcher(context.Background(), res, zerolog.Nop())
+
+	for range rows {
+		resource := schema.NewResourceData(table, nil, nil)
+		require.NoError(t, resource.Set("b", true))
+		batcher.process(resource)
+	}
+	batcher.close()
+	close(res)
+
+	var gotRows int64
+	for msg := range res {
+		insert, ok := msg.(*message.SyncInsert)
+		require.True(t, ok)
+		gotRows += insert.Record.NumRows()
+	}
+	require.Equal(t, int64(rows), gotRows)
+}

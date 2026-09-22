@@ -22,13 +22,22 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var MaxMsgSize = 100 * 1024 * 1024 // 100 MiB
+const MaxMsgSize = 100 * 1024 * 1024 // 100 MiB
 
 type Server struct {
 	pb.UnimplementedPluginServer
 	Plugin    *plugin.Plugin
 	Logger    zerolog.Logger
 	Directory string
+
+	MaxMsgSize int
+}
+
+func (s *Server) maxMsgSize() int {
+	if s.MaxMsgSize > 0 {
+		return s.MaxMsgSize
+	}
+	return MaxMsgSize
 }
 
 func (s *Server) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
@@ -269,8 +278,8 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			return status.Errorf(codes.Internal, "unknown message type: %T", msg)
 		}
 
-		if size := proto.Size(pbMsg); size > MaxMsgSize {
-			return status.Errorf(codes.Internal, "message of type %T exceeds max message size: %d bytes > %d bytes", msg, size, MaxMsgSize)
+		if size := proto.Size(pbMsg); size > s.maxMsgSize() {
+			return status.Errorf(codes.Internal, "message of type %T exceeds max message size: %d bytes > %d bytes", msg, size, s.maxMsgSize())
 		}
 		if err := stream.Send(pbMsg); err != nil {
 			return status.Errorf(codes.Internal, "failed to send message: %v", err)
@@ -285,6 +294,7 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 }
 
 func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatch) error {
+	maxMsgSize := s.maxMsgSize()
 	pending := []arrow.RecordBatch{record}
 	for len(pending) > 0 {
 		current := pending[0]
@@ -303,7 +313,7 @@ func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatc
 		}
 
 		size := proto.Size(pbMsg)
-		if size <= MaxMsgSize {
+		if size <= maxMsgSize {
 			if err := stream.Send(pbMsg); err != nil {
 				return status.Errorf(codes.Internal, "failed to send message: %v", err)
 			}
@@ -312,10 +322,10 @@ func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatc
 
 		tableName := recordTableName(current)
 		if current.NumRows() <= 1 {
-			return status.Errorf(codes.Internal, "table %q: single row exceeds max message size: %d bytes > %d bytes", tableName, size, MaxMsgSize)
+			return status.Errorf(codes.Internal, "table %q: single row exceeds max message size: %d bytes > %d bytes", tableName, size, maxMsgSize)
 		}
 
-		rowsPerMessage := maxRowsPerMessage(size, current.NumRows())
+		rowsPerMessage := maxRowsPerMessage(size, current.NumRows(), maxMsgSize)
 		s.Logger.Warn().
 			Str("table", tableName).
 			Int("bytes", size).
@@ -328,8 +338,8 @@ func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatc
 	return nil
 }
 
-func maxRowsPerMessage(size int, rows int64) int64 {
-	perMessage := rows * int64(MaxMsgSize) * 9 / (int64(size) * 10)
+func maxRowsPerMessage(size int, rows int64, maxMsgSize int) int64 {
+	perMessage := rows * int64(maxMsgSize) * 9 / (int64(size) * 10)
 	if perMessage >= rows {
 		perMessage = rows / 2
 	}

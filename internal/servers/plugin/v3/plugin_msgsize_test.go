@@ -41,23 +41,16 @@ func newTestRecord(t *testing.T, tableName string, rows int, valueSize int) arro
 	return builder.NewRecordBatch()
 }
 
-func setMaxMsgSize(t *testing.T, size int) {
-	t.Helper()
-
-	original := MaxMsgSize
-	MaxMsgSize = size
-	t.Cleanup(func() { MaxMsgSize = original })
-}
-
 func TestSendInsertSplitsOversizedRecord(t *testing.T) {
-	setMaxMsgSize(t, 8*1024)
+	t.Parallel()
 
 	const (
-		rows      = 40
-		valueSize = 1024
+		rows       = 40
+		valueSize  = 1024
+		maxMsgSize = 8 * 1024
 	)
 	record := newTestRecord(t, "test_table", rows, valueSize)
-	s := &Server{Logger: zerolog.Nop()}
+	s := &Server{Logger: zerolog.Nop(), MaxMsgSize: maxMsgSize}
 	stream := &recordingSyncServer{}
 
 	require.NoError(t, s.sendInsert(stream, record))
@@ -65,7 +58,7 @@ func TestSendInsertSplitsOversizedRecord(t *testing.T) {
 
 	var gotRows int64
 	for _, msg := range stream.sent {
-		require.LessOrEqual(t, proto.Size(msg), MaxMsgSize)
+		require.LessOrEqual(t, proto.Size(msg), maxMsgSize)
 
 		sentRecord, err := pb.NewRecordFromBytes(msg.GetInsert().GetRecord())
 		require.NoError(t, err)
@@ -75,6 +68,8 @@ func TestSendInsertSplitsOversizedRecord(t *testing.T) {
 }
 
 func TestSendInsertFitsInSingleMessage(t *testing.T) {
+	t.Parallel()
+
 	record := newTestRecord(t, "test_table", 10, 16)
 	s := &Server{Logger: zerolog.Nop()}
 	stream := &recordingSyncServer{}
@@ -84,10 +79,10 @@ func TestSendInsertFitsInSingleMessage(t *testing.T) {
 }
 
 func TestSendInsertSingleRowTooLarge(t *testing.T) {
-	setMaxMsgSize(t, 1024)
+	t.Parallel()
 
 	record := newTestRecord(t, "huge_table", 1, 4*1024)
-	s := &Server{Logger: zerolog.Nop()}
+	s := &Server{Logger: zerolog.Nop(), MaxMsgSize: 1024}
 	stream := &recordingSyncServer{}
 
 	err := s.sendInsert(stream, record)
@@ -97,7 +92,9 @@ func TestSendInsertSingleRowTooLarge(t *testing.T) {
 }
 
 func TestMaxRowsPerMessage(t *testing.T) {
-	setMaxMsgSize(t, 1000)
+	t.Parallel()
+
+	const maxMsgSize = 1000
 
 	for _, tc := range []struct {
 		name string
@@ -110,7 +107,7 @@ func TestMaxRowsPerMessage(t *testing.T) {
 		{name: "two rows", size: 5000, rows: 2},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := maxRowsPerMessage(tc.size, tc.rows)
+			got := maxRowsPerMessage(tc.size, tc.rows, maxMsgSize)
 			require.GreaterOrEqual(t, got, int64(1), "must make progress")
 			require.Less(t, got, tc.rows, "must shrink the batch")
 		})

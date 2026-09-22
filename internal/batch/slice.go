@@ -132,7 +132,7 @@ func newSlicedRecord(r arrow.RecordBatch) *SlicedRecord {
 		RecordBatch: r,
 		Bytes:       util.TotalRecordSize(r),
 	}
-	res.bytesPerRow = res.Bytes / r.NumRows()
+	res.bytesPerRow = max(res.Bytes/r.NumRows(), 1)
 	return &res
 }
 
