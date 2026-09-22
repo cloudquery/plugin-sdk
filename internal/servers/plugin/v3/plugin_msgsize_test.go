@@ -1,6 +1,8 @@
 package plugin
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -8,6 +10,8 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -112,4 +116,56 @@ func TestMaxRowsPerMessage(t *testing.T) {
 			require.Less(t, got, tc.rows, "must shrink the batch")
 		})
 	}
+}
+
+type migrateTableOnlyClient struct {
+	plugin.UnimplementedDestination
+	table *schema.Table
+}
+
+func (migrateTableOnlyClient) Close(context.Context) error { return nil }
+
+func (c migrateTableOnlyClient) Tables(context.Context, plugin.TableOptions) (schema.Tables, error) {
+	return schema.Tables{c.table}, nil
+}
+
+func (c migrateTableOnlyClient) Sync(_ context.Context, _ plugin.SyncOptions, res chan<- message.SyncMessage) error {
+	res <- &message.SyncMigrateTable{Table: c.table}
+	return nil
+}
+
+func wideSchemaTable(columns int) *schema.Table {
+	table := &schema.Table{Name: "wide_table", Columns: make(schema.ColumnList, columns)}
+	for i := range table.Columns {
+		table.Columns[i] = schema.Column{
+			Name: fmt.Sprintf("column_with_a_deliberately_long_name_%d", i),
+			Type: arrow.BinaryTypes.String,
+		}
+	}
+	return table
+}
+
+func TestSyncNonInsertExceedingMaxSizeFailsSync(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	table := wideSchemaTable(200)
+	s := &Server{
+		Logger:     zerolog.Nop(),
+		MaxMsgSize: 512,
+		Plugin: plugin.NewPlugin("test", "development",
+			func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
+				return migrateTableOnlyClient{table: table}, nil
+			}),
+	}
+	_, err := s.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+
+	stream := &recordingSyncServer{}
+	err = s.Sync(&pb.Sync_Request{}, stream)
+
+	require.Error(t, err, "an oversized non-insert message must fail the sync, not be dropped")
+	require.Contains(t, err.Error(), "exceeds max message size")
+	require.Contains(t, err.Error(), "SyncMigrateTable")
+	require.Empty(t, stream.sent)
 }

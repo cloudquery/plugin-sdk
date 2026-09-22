@@ -120,3 +120,24 @@ func TestBatcherMoreRowsThanBytes(t *testing.T) {
 	}
 	require.Equal(t, int64(rows), gotRows)
 }
+
+func TestWorkerReachedSizeLimit(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		maxSizeBytes int64
+		bytesPerRow  int64
+		curRows      int
+		want         bool
+	}{
+		{name: "no cap", maxSizeBytes: 0, bytesPerRow: 1000, curRows: 1_000_000},
+		{name: "unmeasured below cap", maxSizeBytes: 4096, curRows: unmeasuredBatchMaxRows - 1},
+		{name: "unmeasured at cap", maxSizeBytes: 4096, curRows: unmeasuredBatchMaxRows, want: true},
+		{name: "measured below cap", maxSizeBytes: 4096, bytesPerRow: 100, curRows: 40},
+		{name: "measured at cap", maxSizeBytes: 4096, bytesPerRow: 100, curRows: 41, want: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := &worker{maxSizeBytes: tc.maxSizeBytes, bytesPerRow: tc.bytesPerRow, curRows: tc.curRows}
+			require.Equal(t, tc.want, w.reachedSizeLimit())
+		})
+	}
+}

@@ -20,6 +20,8 @@ const (
 	DefaultBatchMaxRows      = 50
 	DefaultBatchTimeout      = 5 * time.Second
 	DefaultBatchMaxSizeBytes = 50 * 1024 * 1024
+
+	unmeasuredBatchMaxRows = DefaultBatchMaxRows
 )
 
 type (
@@ -162,7 +164,13 @@ func (w *worker) send() {
 }
 
 func (w *worker) reachedSizeLimit() bool {
-	return w.maxSizeBytes > 0 && w.bytesPerRow > 0 && int64(w.curRows)*w.bytesPerRow >= w.maxSizeBytes
+	if w.maxSizeBytes <= 0 {
+		return false
+	}
+	if w.bytesPerRow <= 0 {
+		return w.curRows >= unmeasuredBatchMaxRows
+	}
+	return int64(w.curRows)*w.bytesPerRow >= w.maxSizeBytes
 }
 
 func (w *worker) work(done <-chan struct{}, timeout time.Duration) {
