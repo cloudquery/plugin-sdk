@@ -66,7 +66,7 @@ func (s *SlicedRecord) getAdd(limit *Cap) *SlicedRecord {
 		bytesPerRow: s.bytesPerRow,
 	}
 	s.RecordBatch = s.NewSlice(rows, s.NumRows())
-	s.Bytes -= res.Bytes
+	s.Bytes = max(s.Bytes-res.Bytes, 0)
 	return &res
 }
 
@@ -84,7 +84,10 @@ func (s *SlicedRecord) getToFlush(limit *Cap) []arrow.RecordBatch {
 	case rows == 0:
 		// not even a single row fits
 		// we still need to process this, so slice by single row
-		return s.slice()
+		res := s.slice()
+		s.RecordBatch = nil
+		s.Bytes = 0
+		return res
 	case rows < 0:
 		// as s.Record != nil we know that the limits are there in place & the s.Record.NumRows() > 0
 		panic("should never be here")
@@ -129,7 +132,7 @@ func newSlicedRecord(r arrow.RecordBatch) *SlicedRecord {
 		RecordBatch: r,
 		Bytes:       util.TotalRecordSize(r),
 	}
-	res.bytesPerRow = res.Bytes / r.NumRows()
+	res.bytesPerRow = max(res.Bytes/r.NumRows(), 1)
 	return &res
 }
 
@@ -142,4 +145,21 @@ func newSlicedRecord(r arrow.RecordBatch) *SlicedRecord {
 func SliceRecord(r arrow.RecordBatch, limit *Cap) (add *SlicedRecord, flush []arrow.RecordBatch, remaining *SlicedRecord) {
 	l := *limit // copy value
 	return newSlicedRecord(r).split(&l)
+}
+
+func SplitRecord(r arrow.RecordBatch, limit *Cap) []arrow.RecordBatch {
+	if r.NumRows() == 0 {
+		return []arrow.RecordBatch{r}
+	}
+
+	add, toFlush, rest := SliceRecord(r, limit)
+	records := make([]arrow.RecordBatch, 0, len(toFlush)+2)
+	if add != nil {
+		records = append(records, add.RecordBatch)
+	}
+	records = append(records, toFlush...)
+	if rest != nil {
+		records = append(records, rest.RecordBatch)
+	}
+	return records
 }

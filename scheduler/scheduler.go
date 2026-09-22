@@ -177,8 +177,9 @@ func NewScheduler(opts ...Option) *Scheduler {
 		singleResourceMaxConcurrency:    DefaultSingleResourceMaxConcurrency,
 		singleNestedTableMaxConcurrency: DefaultSingleNestedTableMaxConcurrency,
 		batchSettings: &BatchSettings{
-			MaxRows: DefaultBatchMaxRows,
-			Timeout: DefaultBatchTimeout,
+			MaxRows:      DefaultBatchMaxRows,
+			MaxSizeBytes: DefaultBatchMaxSizeBytes,
+			Timeout:      DefaultBatchTimeout,
 		},
 	}
 	for _, opt := range opts {

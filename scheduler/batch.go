@@ -7,6 +7,8 @@ import (
 
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/apache/arrow-go/v18/arrow/util"
+	"github.com/cloudquery/plugin-sdk/v4/internal/batch"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -15,14 +17,16 @@ import (
 )
 
 const (
-	DefaultBatchMaxRows = 50
-	DefaultBatchTimeout = 5 * time.Second
+	DefaultBatchMaxRows      = 50
+	DefaultBatchTimeout      = 5 * time.Second
+	DefaultBatchMaxSizeBytes = 50 * 1024 * 1024
 )
 
 type (
 	BatchSettings struct {
-		MaxRows int
-		Timeout time.Duration
+		MaxRows      int
+		MaxSizeBytes int64
+		Timeout      time.Duration
 	}
 
 	BatchOption func(settings *BatchSettings)
@@ -51,6 +55,12 @@ func WithBatchMaxRows(rows int) BatchOption {
 	}
 }
 
+func WithBatchMaxSizeBytes(size int64) BatchOption {
+	return func(s *BatchSettings) {
+		s.MaxSizeBytes = size
+	}
+}
+
 func WithBatchTimeout(timeout time.Duration) BatchOption {
 	return func(s *BatchSettings) {
 		s.Timeout = timeout
@@ -63,11 +73,12 @@ func (s *BatchSettings) getBatcher(ctx context.Context, res chan<- message.SyncM
 	}
 
 	return &batcher{
-		done:    ctx.Done(),
-		res:     res,
-		maxRows: s.MaxRows,
-		timeout: s.Timeout,
-		logger:  logger.With().Int("max_rows", s.MaxRows).Dur("timeout_ms", s.Timeout).Logger(),
+		done:         ctx.Done(),
+		res:          res,
+		maxRows:      s.MaxRows,
+		maxSizeBytes: s.MaxSizeBytes,
+		timeout:      s.Timeout,
+		logger:       logger.With().Int("max_rows", s.MaxRows).Int64("max_size_bytes", s.MaxSizeBytes).Dur("timeout_ms", s.Timeout).Logger(),
 	}
 }
 
@@ -93,8 +104,9 @@ type batcher struct {
 
 	res chan<- message.SyncMessage
 
-	maxRows int
-	timeout time.Duration
+	maxRows      int
+	maxSizeBytes int64
+	timeout      time.Duration
 
 	// using sync primitives by value here implies that batcher is to be used by pointer only
 	// workers is a sync.Map rather than a map + mutex pair
@@ -110,6 +122,8 @@ type worker struct {
 	ch               chan *schema.Resource
 	flush            chan chan struct{}
 	curRows, maxRows int
+	maxSizeBytes     int64
+	bytesPerRow      int64
 	builder          *array.RecordBuilder // we can reuse that
 	res              chan<- message.SyncMessage
 
@@ -120,11 +134,35 @@ type worker struct {
 
 // send must be called on len(rows) > 0
 func (w *worker) send() {
-	w.logger.Trace().Str("table", w.tableName).Int("rows", w.curRows).Msg("sending sync insert for rows batch")
-	w.res <- &message.SyncInsert{Record: w.builder.NewRecordBatch()}
-	// we need to reserve here as NewRecord (& underlying NewArray calls) reset the memory
+	record := w.builder.NewRecordBatch()
+	// we need to reserve here as NewRecordBatch (& underlying NewArray calls) reset the memory
 	w.builder.Reserve(w.maxRows)
 	w.curRows = 0 // reset
+
+	if w.maxSizeBytes <= 0 || record.NumRows() == 0 {
+		w.logger.Trace().Str("table", w.tableName).Int64("rows", record.NumRows()).Msg("sending sync insert for rows batch")
+		w.res <- &message.SyncInsert{Record: record}
+		return
+	}
+
+	totalBytes := util.TotalRecordSize(record)
+	w.bytesPerRow = totalBytes / record.NumRows()
+
+	if totalBytes <= w.maxSizeBytes {
+		w.logger.Trace().Str("table", w.tableName).Int64("rows", record.NumRows()).Int64("bytes", totalBytes).Msg("sending sync insert for rows batch")
+		w.res <- &message.SyncInsert{Record: record}
+		return
+	}
+
+	records := batch.SplitRecord(record, batch.CappedAt(w.maxSizeBytes, 0))
+	w.logger.Debug().Str("table", w.tableName).Int64("rows", record.NumRows()).Int64("bytes", totalBytes).Int("messages", len(records)).Msg("splitting oversized rows batch")
+	for _, r := range records {
+		w.res <- &message.SyncInsert{Record: r}
+	}
+}
+
+func (w *worker) reachedSizeLimit() bool {
+	return w.maxSizeBytes > 0 && w.bytesPerRow > 0 && int64(w.curRows)*w.bytesPerRow >= w.maxSizeBytes
 }
 
 func (w *worker) work(done <-chan struct{}, timeout time.Duration) {
@@ -146,7 +184,7 @@ func (w *worker) work(done <-chan struct{}, timeout time.Duration) {
 			scalar.AppendToRecordBuilder(w.builder, r.GetValues())
 			w.curRows++
 			// check if we need to flush
-			if w.maxRows > 0 && w.curRows == w.maxRows {
+			if (w.maxRows > 0 && w.curRows == w.maxRows) || w.reachedSizeLimit() {
 				w.send()
 				ticker.Reset(timeout)
 			}
@@ -199,6 +237,7 @@ func (b *batcher) process(res *schema.Resource) {
 		// fill in the worker fields
 		wr.flush = make(chan chan struct{})
 		wr.maxRows = b.maxRows
+		wr.maxSizeBytes = b.maxSizeBytes
 		wr.builder = array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 		wr.res = b.res
 		wr.builder.Reserve(b.maxRows)

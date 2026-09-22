@@ -8,6 +8,7 @@ import (
 
 	"github.com/apache/arrow-go/v18/arrow"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/internal/batch"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
@@ -28,6 +29,15 @@ type Server struct {
 	Plugin    *plugin.Plugin
 	Logger    zerolog.Logger
 	Directory string
+
+	MaxMsgSize int
+}
+
+func (s *Server) maxMsgSize() int {
+	if s.MaxMsgSize > 0 {
+		return s.MaxMsgSize
+	}
+	return MaxMsgSize
 }
 
 func (s *Server) GetTables(ctx context.Context, req *pb.GetTables_Request) (*pb.GetTables_Response, error) {
@@ -215,15 +225,10 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			}
 
 		case *message.SyncInsert:
-			recordBytes, err := pb.RecordToBytes(m.Record)
-			if err != nil {
-				return status.Errorf(codes.Internal, "failed to encode record: %v", err)
+			if err := s.sendInsert(stream, m.Record); err != nil {
+				return err
 			}
-			pbMsg.Message = &pb.Sync_Response_Insert{
-				Insert: &pb.Sync_MessageInsert{
-					Record: recordBytes,
-				},
-			}
+			continue
 		case *message.SyncDeleteRecord:
 			whereClause := make([]*pb.PredicatesGroup, len(m.WhereClause))
 			for j, predicateGroup := range m.WhereClause {
@@ -273,10 +278,8 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			return status.Errorf(codes.Internal, "unknown message type: %T", msg)
 		}
 
-		size := proto.Size(pbMsg)
-		if size > MaxMsgSize {
-			s.Logger.Error().Int("bytes", size).Msg("Message exceeds max size")
-			continue
+		if size := proto.Size(pbMsg); size > s.maxMsgSize() {
+			return status.Errorf(codes.Internal, "message of type %T exceeds max message size: %d bytes > %d bytes", msg, size, s.maxMsgSize())
 		}
 		if err := stream.Send(pbMsg); err != nil {
 			return status.Errorf(codes.Internal, "failed to send message: %v", err)
@@ -288,6 +291,64 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	}
 
 	return syncErr
+}
+
+func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatch) error {
+	maxMsgSize := s.maxMsgSize()
+	pending := []arrow.RecordBatch{record}
+	for len(pending) > 0 {
+		current := pending[0]
+		pending = pending[1:]
+
+		recordBytes, err := pb.RecordToBytes(current)
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to encode record for table %q: %v", recordTableName(current), err)
+		}
+		pbMsg := &pb.Sync_Response{
+			Message: &pb.Sync_Response_Insert{
+				Insert: &pb.Sync_MessageInsert{
+					Record: recordBytes,
+				},
+			},
+		}
+
+		size := proto.Size(pbMsg)
+		if size <= maxMsgSize {
+			if err := stream.Send(pbMsg); err != nil {
+				return status.Errorf(codes.Internal, "failed to send message: %v", err)
+			}
+			continue
+		}
+
+		tableName := recordTableName(current)
+		if current.NumRows() <= 1 {
+			return status.Errorf(codes.Internal, "table %q: single row exceeds max message size: %d bytes > %d bytes", tableName, size, maxMsgSize)
+		}
+
+		rowsPerMessage := maxRowsPerMessage(size, current.NumRows(), maxMsgSize)
+		s.Logger.Warn().
+			Str("table", tableName).
+			Int("bytes", size).
+			Int64("rows", current.NumRows()).
+			Int64("rows_per_message", rowsPerMessage).
+			Msg("Message exceeds max size, splitting into smaller messages")
+		pending = append(batch.SplitRecord(current, batch.CappedAt(0, rowsPerMessage)), pending...)
+	}
+
+	return nil
+}
+
+func maxRowsPerMessage(size int, rows int64, maxMsgSize int) int64 {
+	perMessage := rows * int64(maxMsgSize) * 9 / (int64(size) * 10)
+	if perMessage >= rows {
+		perMessage = rows / 2
+	}
+	return max(perMessage, 1)
+}
+
+func recordTableName(record arrow.RecordBatch) string {
+	name, _ := record.Schema().Metadata().GetValue(schema.MetadataTableName)
+	return name
 }
 
 func (s *Server) Write(stream pb.Plugin_WriteServer) error {
