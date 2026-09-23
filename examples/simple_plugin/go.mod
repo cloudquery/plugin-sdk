@@ -32,7 +32,7 @@ require (
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cloudquery/cloudquery-api-go v1.14.12 // indirect
+	github.com/cloudquery/cloudquery-api-go v1.14.13 // indirect
 	github.com/cloudquery/codegen v0.4.1 // indirect
 	github.com/cloudquery/plugin-pb-go v1.27.21 // indirect
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
@@ -53,7 +53,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/oapi-codegen/runtime v1.3.0 // indirect
+	github.com/oapi-codegen/runtime v1.7.0 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.27 // indirect
 	github.com/samber/lo v1.53.0 // indirect

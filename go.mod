@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/licensemanager v1.44.1
 	github.com/aws/aws-sdk-go-v2/service/marketplacemetering v1.42.1
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cloudquery/cloudquery-api-go v1.14.12
+	github.com/cloudquery/cloudquery-api-go v1.14.13
 	github.com/cloudquery/codegen v0.4.1
 	github.com/cloudquery/plugin-pb-go v1.27.21
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
@@ -79,7 +79,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/oapi-codegen/runtime v1.3.0 // indirect
+	github.com/oapi-codegen/runtime v1.7.0 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.27 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
