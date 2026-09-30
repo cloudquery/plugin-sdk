@@ -449,7 +449,7 @@ func (tg TestDataGenerator) getExampleJSON(colName string, dataType arrow.DataTy
 				t = t.Truncate(time.Microsecond)
 				// Use string timestamp string format here because JSON integers are
 				// unmarshalled as float64, losing precision for nanosecond timestamps.
-				return t.Format(`"2006-01-02 15:04:05.999999999"`)
+				return t.UTC().Format(`"2006-01-02 15:04:05.999999999Z07:00"`)
 			case arrow.FixedWidthTypes.Time32s:
 				h, m, s := t.Clock()
 				return strconv.Itoa(h*3600 + m*60 + s)
