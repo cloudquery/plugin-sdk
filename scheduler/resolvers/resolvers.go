@@ -14,7 +14,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metrics, selector metrics.Selector, client schema.ClientMeta, resource *schema.Resource, column schema.Column, c *caser.Caser, classifier schema.ErrorClassifier) {
+func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metrics, selector metrics.Selector, client schema.ClientMeta, resource *schema.Resource, column schema.Column, colIndex int, c *caser.Caser, classifier schema.ErrorClassifier) {
 	columnStartTime := time.Now()
 	defer func() {
 		if err := recover(); err != nil {
@@ -47,7 +47,7 @@ func resolveColumn(ctx context.Context, logger zerolog.Logger, m *metrics.Metric
 		// base use case: try to get column with CamelCase name
 		v := funk.Get(resource.GetItem(), c.ToPascal(column.Name), funk.WithAllowZero())
 		if v != nil {
-			if err := resource.Set(column.Name, v); err != nil {
+			if err := resource.SetWithIndex(column.Name, colIndex, v); err != nil {
 				handleErr(err)
 			}
 		}
@@ -124,8 +124,8 @@ func ResolveResourcesChunkWithClassifier(ctx context.Context, logger zerolog.Log
 		resources = filtered
 	}
 	for _, resource := range resources {
-		for _, column := range table.Columns {
-			resolveColumn(ctx, tableLogger, m, selector, client, resource, column, c, classifier)
+		for colIndex, column := range table.Columns {
+			resolveColumn(ctx, tableLogger, m, selector, client, resource, column, colIndex, c, classifier)
 		}
 	}
 
