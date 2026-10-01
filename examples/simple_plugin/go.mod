@@ -1,6 +1,6 @@
 module github.com/cloudquery/plugin-sdk/examples/simple_plugin
 
-go 1.26.5
+go 1.27.1
 
 require (
 	github.com/apache/arrow-go/v18 v18.8.0
