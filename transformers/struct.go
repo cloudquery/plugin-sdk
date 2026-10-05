@@ -2,6 +2,7 @@ package transformers
 
 import (
 	"bytes"
+	"encoding"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -291,21 +292,40 @@ func normalizePointer(field reflect.StructField) reflect.Value {
 	return reflect.New(field.Type)
 }
 
+var (
+	jsonMarshalerType = reflect.TypeFor[json.Marshaler]()
+	textMarshalerType = reflect.TypeFor[encoding.TextMarshaler]()
+)
+
+func implementsInterface(t reflect.Type, iface reflect.Type) bool {
+	return t.Implements(iface) || reflect.PointerTo(t).Implements(iface)
+}
+
+func ownMarshalerSchema(t reflect.Type) (string, bool) {
+	switch t.Kind() {
+	case reflect.Struct, reflect.Map, reflect.Slice:
+	default:
+		return "", false
+	}
+	switch {
+	case implementsInterface(t, jsonMarshalerType):
+		return types.ExtensionTypes.JSON.String(), true
+	case implementsInterface(t, textMarshalerType):
+		return arrow.BinaryTypes.String.String(), true
+	default:
+		return "", false
+	}
+}
+
 func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth int) any {
 	normalizedField := normalizePointer(field)
+	if marshalerSchema, ok := ownMarshalerSchema(normalizedField.Elem().Type()); ok {
+		return marshalerSchema
+	}
 	switch normalizedField.Elem().Kind() {
 	case reflect.Struct:
 		fieldsMap := make(map[string]any)
-		fieldType := normalizedField.Elem().Type()
-		for i := 0; i < fieldType.NumField(); i++ {
-			structField := fieldType.Field(i)
-			if !structField.IsExported() || isTypeIgnored(structField.Type) {
-				continue
-			}
-			name, err := t.jsonSchemaNameTransformer(structField)
-			if err != nil {
-				continue
-			}
+		for name, structField := range t.jsonSchemaFields(normalizedField.Elem().Type()) {
 			columnType, err := t.getColumnType(structField)
 			if err != nil {
 				continue
