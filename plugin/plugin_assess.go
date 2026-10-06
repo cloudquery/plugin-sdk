@@ -63,8 +63,7 @@ type TableFinding struct {
 	ForcedModeBehavior       string
 	Columns                  []ColumnFinding
 	Evidence                 []Evidence
-	CoverageIncomplete       bool
-	CoverageIncompleteReason string
+	IncompleteCoverageReason string
 }
 
 // Assessor is an optional DestinationClient interface that reports how schema changes would be applied, without writing anything.
@@ -86,8 +85,7 @@ func (p *Plugin) AssessTables(ctx context.Context, tables []TablePair, options A
 		findings[i] = TableFinding{
 			TableName:                table.TableName(),
 			Category:                 AssessCategoryUnknown,
-			CoverageIncomplete:       true,
-			CoverageIncompleteReason: AssessNotSupportedReason,
+			IncompleteCoverageReason: AssessNotSupportedReason,
 		}
 	}
 	return findings, nil

@@ -21,7 +21,7 @@ func TestAssessTablesWithoutAssessorReturnsUnknown(t *testing.T) {
 	require.NoError(t, err)
 
 	unknown := func(name string) TableFinding {
-		return TableFinding{TableName: name, Category: AssessCategoryUnknown, CoverageIncomplete: true, CoverageIncompleteReason: AssessNotSupportedReason}
+		return TableFinding{TableName: name, Category: AssessCategoryUnknown, IncompleteCoverageReason: AssessNotSupportedReason}
 	}
 	require.Equal(t, []TableFinding{unknown("changed"), unknown("added"), unknown("removed")}, findings)
 }

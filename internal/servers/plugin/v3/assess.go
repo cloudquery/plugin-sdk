@@ -71,8 +71,7 @@ func tableFindingToPB(f plugin.TableFinding) *pb.AssessTables_TableFinding {
 		ForcedModeBehavior:       f.ForcedModeBehavior,
 		Columns:                  columns,
 		Evidence:                 evidenceToPB(f.Evidence),
-		CoverageIncomplete:       f.CoverageIncomplete,
-		CoverageIncompleteReason: f.CoverageIncompleteReason,
+		IncompleteCoverageReason: f.IncompleteCoverageReason,
 	}
 }
 

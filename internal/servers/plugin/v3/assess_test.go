@@ -43,8 +43,7 @@ func (c *assessorClient) AssessTables(_ context.Context, tables []plugin.TablePa
 			Evidence:           []plugin.Evidence{{SyntheticValue: `["env:prod"]`, Before: `{"tags":["env:prod"]}`, After: `{"tags":["env:prod"]}`}},
 		}},
 		Evidence:                 []plugin.Evidence{{SyntheticValue: "header", Before: "tags", After: "tags"}},
-		CoverageIncomplete:       true,
-		CoverageIncompleteReason: "nested values not compared",
+		IncompleteCoverageReason: "nested values not compared",
 	}}, nil
 }
 
@@ -111,8 +110,7 @@ func TestAssessTablesRoundTrip(t *testing.T) {
 			Evidence:           []*pb.AssessTables_Evidence{{SyntheticValue: `["env:prod"]`, Before: `{"tags":["env:prod"]}`, After: `{"tags":["env:prod"]}`}},
 		}},
 		Evidence:                 []*pb.AssessTables_Evidence{{SyntheticValue: "header", Before: "tags", After: "tags"}},
-		CoverageIncomplete:       true,
-		CoverageIncompleteReason: "nested values not compared",
+		IncompleteCoverageReason: "nested values not compared",
 	}}}
 	require.Empty(t, cmp.Diff(want, resp, protocmp.Transform()))
 }
@@ -129,8 +127,7 @@ func TestAssessTablesWithoutAssessorReturnsUnknown(t *testing.T) {
 	want := &pb.AssessTables_Response{Tables: []*pb.AssessTables_TableFinding{{
 		TableName:                "test_table",
 		Category:                 pb.AssessTables_CATEGORY_UNKNOWN,
-		CoverageIncomplete:       true,
-		CoverageIncompleteReason: plugin.AssessNotSupportedReason,
+		IncompleteCoverageReason: plugin.AssessNotSupportedReason,
 	}}}
 	require.Empty(t, cmp.Diff(want, resp, protocmp.Transform()))
 }
