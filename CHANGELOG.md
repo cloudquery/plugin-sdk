@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.98.0](https://github.com/cloudquery/plugin-sdk/compare/v4.97.0...v4.98.0) (2026-10-07)
+
+
+### Features
+
+* Add shared synthetic-record helpers for destination assessment ([#2619](https://github.com/cloudquery/plugin-sdk/issues/2619)) ([ce8099b](https://github.com/cloudquery/plugin-sdk/commit/ce8099bde118fe3aaf9a893cfe573f79e8818ee4))
+
 ## [4.97.0](https://github.com/cloudquery/plugin-sdk/compare/v4.96.6...v4.97.0) (2026-10-07)
 
 
