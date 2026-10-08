@@ -317,6 +317,24 @@ func ownMarshalerSchema(t reflect.Type, addressable bool) (string, bool) {
 	}
 }
 
+func (t *structTransformer) mapKeyJSONSchema(keyType reflect.Type, depth int) string {
+	switch keyType.Kind() {
+	case reflect.String,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if keyType.Kind() != reflect.String && keyType.Implements(textMarshalerType) {
+			return arrow.BinaryTypes.String.String()
+		}
+		keySchema, _ := t.fieldToJSONSchema(reflect.StructField{Type: keyType}, depth+1, false).(string)
+		return keySchema
+	default:
+		if keyType.Implements(textMarshalerType) {
+			return arrow.BinaryTypes.String.String()
+		}
+		return ""
+	}
+}
+
 func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth int, addressable bool) any {
 	normalizedField := normalizePointer(field)
 	addressable = addressable || field.Type.Kind() == reflect.Pointer
@@ -350,10 +368,8 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 		}
 		return fieldsMap
 	case reflect.Map:
-		keySchema, ok := t.fieldToJSONSchema(reflect.StructField{
-			Type: normalizedField.Elem().Type().Key(),
-		}, depth+1, false).(string)
-		if keySchema == "" || !ok {
+		keySchema := t.mapKeyJSONSchema(normalizedField.Elem().Type().Key(), depth)
+		if keySchema == "" {
 			return ""
 		}
 		valueSchema := t.fieldToJSONSchema(reflect.StructField{

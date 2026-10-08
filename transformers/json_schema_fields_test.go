@@ -145,6 +145,24 @@ type SchemaTestPointerPath struct {
 	*SchemaTestMid
 }
 
+type SchemaTestMapKey struct {
+	ID string
+}
+
+func (k SchemaTestMapKey) MarshalText() ([]byte, error) {
+	return []byte(k.ID), nil
+}
+
+func (k SchemaTestMapKey) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]string{"id": k.ID})
+}
+
+type SchemaTestNumericKey int
+
+func (k SchemaTestNumericKey) MarshalText() ([]byte, error) {
+	return []byte(fmt.Sprintf("key-%d", int(k))), nil
+}
+
 type schemaTestUnexportedEmbed struct {
 	Exported string `json:"exported"`
 }
@@ -298,6 +316,26 @@ func TestJSONTypeSchemaMatchesEncoder(t *testing.T) {
 			want: `{"value":"json"}`,
 		},
 		{
+			name: "uses utf8 for map keys that the encoder writes as text",
+			testStruct: struct {
+				Item struct {
+					ByStruct  map[SchemaTestMapKey]string     `json:"by_struct"`
+					ByNumber  map[SchemaTestNumericKey]string `json:"by_number"`
+					ByPointer map[*SchemaTestMapKey]string    `json:"by_pointer"`
+				} `json:"item"`
+			}{},
+			want: `{"by_number":{"utf8":"utf8"},"by_pointer":{"utf8":"utf8"},"by_struct":{"utf8":"utf8"}}`,
+		},
+		{
+			name: "keeps the int64 key type for a plain integer map key",
+			testStruct: struct {
+				Item struct {
+					ByInt map[int]string `json:"by_int"`
+				} `json:"item"`
+			}{},
+			want: `{"by_int":{"int64":"utf8"}}`,
+		},
+		{
 			name: "ignores pointer MarshalJSON for a value column",
 			testStruct: struct {
 				Value SchemaTestPointerMarshaler `json:"value"`
@@ -423,6 +461,17 @@ func TestJSONTypeSchemaKeysMatchMarshalledValue(t *testing.T) {
 					Item struct {
 						SchemaTestPointerPath
 						SchemaTestValuePath
+					}
+				}{}
+			},
+		},
+		{
+			name: "map keys with their own marshallers",
+			column: func() any {
+				return &struct {
+					Item struct {
+						ByStruct map[SchemaTestMapKey]SchemaTestSecret
+						ByNumber map[SchemaTestNumericKey]SchemaTestSecret
 					}
 				}{}
 			},
