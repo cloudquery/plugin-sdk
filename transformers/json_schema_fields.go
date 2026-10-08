@@ -46,12 +46,14 @@ func (t *structTransformer) jsonSchemaFields(structType reflect.Type, addressabl
 					}
 					reached, ok := nextByType[fieldType]
 					if !ok {
-						reached = &embeddedJSONStruct{structType: fieldType}
+						reached = &embeddedJSONStruct{
+							structType:  fieldType,
+							addressable: embedded.addressable || structField.Type.Kind() == reflect.Pointer,
+						}
 						nextByType[fieldType] = reached
 						next = append(next, reached)
 					}
 					reached.count++
-					reached.addressable = reached.addressable || embedded.addressable || structField.Type.Kind() == reflect.Pointer
 					continue
 				}
 				if !structField.IsExported() && !isEmbeddedStruct {

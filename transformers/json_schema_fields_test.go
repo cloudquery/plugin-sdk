@@ -129,6 +129,22 @@ func (v SchemaTestMarshalerList) MarshalJSON() ([]byte, error) {
 	return json.Marshal(len(v))
 }
 
+type SchemaTestDeep struct {
+	Value SchemaTestPointerMarshaler `json:"value"`
+}
+
+type SchemaTestMid struct {
+	SchemaTestDeep
+}
+
+type SchemaTestValuePath struct {
+	SchemaTestMid
+}
+
+type SchemaTestPointerPath struct {
+	*SchemaTestMid
+}
+
 type schemaTestUnexportedEmbed struct {
 	Exported string `json:"exported"`
 }
@@ -262,6 +278,26 @@ func TestJSONTypeSchemaMatchesEncoder(t *testing.T) {
 			want: `{"value":"json"}`,
 		},
 		{
+			name: "takes addressability from the first path to a shared embedded type when it is a value",
+			testStruct: struct {
+				Item struct {
+					SchemaTestValuePath
+					SchemaTestPointerPath
+				} `json:"item"`
+			}{},
+			want: `{"value":{"Value":"utf8"}}`,
+		},
+		{
+			name: "takes addressability from the first path to a shared embedded type when it is a pointer",
+			testStruct: struct {
+				Item struct {
+					SchemaTestPointerPath
+					SchemaTestValuePath
+				} `json:"item"`
+			}{},
+			want: `{"value":"json"}`,
+		},
+		{
 			name: "ignores pointer MarshalJSON for a value column",
 			testStruct: struct {
 				Value SchemaTestPointerMarshaler `json:"value"`
@@ -368,6 +404,28 @@ func TestJSONTypeSchemaKeysMatchMarshalledValue(t *testing.T) {
 		{
 			name:   "diamond of embedded structs",
 			column: func() any { return schemaTestDiamondColumn(8) },
+		},
+		{
+			name: "shared embedded type reached by a value path first",
+			column: func() any {
+				return &struct {
+					Item struct {
+						SchemaTestValuePath
+						SchemaTestPointerPath
+					}
+				}{}
+			},
+		},
+		{
+			name: "shared embedded type reached by a pointer path first",
+			column: func() any {
+				return &struct {
+					Item struct {
+						SchemaTestPointerPath
+						SchemaTestValuePath
+					}
+				}{}
+			},
 		},
 		{
 			name: "pointer-only marshallers in a value column",
