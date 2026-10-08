@@ -2,25 +2,35 @@ package transformers
 
 import (
 	"reflect"
-	"slices"
 	"strings"
 )
 
 type jsonSchemaField struct {
-	field  reflect.StructField
-	depth  int
-	tagged bool
+	field       reflect.StructField
+	depth       int
+	tagged      bool
+	addressable bool
 }
 
-func (t *structTransformer) jsonSchemaFields(structType reflect.Type) map[string]reflect.StructField {
+type embeddedJSONStruct struct {
+	structType  reflect.Type
+	count       int
+	addressable bool
+}
+
+func (t *structTransformer) jsonSchemaFields(structType reflect.Type, addressable bool) map[string]jsonSchemaField {
 	candidates := make(map[string][]jsonSchemaField)
 	visited := make(map[reflect.Type]bool)
-	level := []reflect.Type{structType}
+	level := []*embeddedJSONStruct{{structType: structType, count: 1, addressable: addressable}}
 	for depth := 0; len(level) > 0; depth++ {
-		var next []reflect.Type
-		for _, levelType := range level {
-			for i := 0; i < levelType.NumField(); i++ {
-				structField := levelType.Field(i)
+		for _, embedded := range level {
+			visited[embedded.structType] = true
+		}
+		var next []*embeddedJSONStruct
+		nextByType := make(map[reflect.Type]*embeddedJSONStruct)
+		for _, embedded := range level {
+			for i := 0; i < embedded.structType.NumField(); i++ {
+				structField := embedded.structType.Field(i)
 				if isTypeIgnored(structField.Type) {
 					continue
 				}
@@ -31,7 +41,17 @@ func (t *structTransformer) jsonSchemaFields(structType reflect.Type) map[string
 				tagName, _, _ := strings.Cut(structField.Tag.Get("json"), ",")
 				isEmbeddedStruct := structField.Anonymous && fieldType.Kind() == reflect.Struct
 				if isEmbeddedStruct && tagName == "" {
-					next = append(next, fieldType)
+					if visited[fieldType] {
+						continue
+					}
+					reached, ok := nextByType[fieldType]
+					if !ok {
+						reached = &embeddedJSONStruct{structType: fieldType}
+						nextByType[fieldType] = reached
+						next = append(next, reached)
+					}
+					reached.count++
+					reached.addressable = reached.addressable || embedded.addressable || structField.Type.Kind() == reflect.Pointer
 					continue
 				}
 				if !structField.IsExported() && !isEmbeddedStruct {
@@ -41,23 +61,25 @@ func (t *structTransformer) jsonSchemaFields(structType reflect.Type) map[string
 				if err != nil || name == "" {
 					continue
 				}
-				candidates[name] = append(candidates[name], jsonSchemaField{
-					field:  structField,
-					depth:  depth,
-					tagged: tagName != "",
-				})
+				candidate := jsonSchemaField{
+					field:       structField,
+					depth:       depth,
+					tagged:      tagName != "",
+					addressable: embedded.addressable,
+				}
+				candidates[name] = append(candidates[name], candidate)
+				if embedded.count > 1 {
+					candidates[name] = append(candidates[name], candidate)
+				}
 			}
 		}
-		for _, levelType := range level {
-			visited[levelType] = true
-		}
-		level = slices.DeleteFunc(next, func(nextType reflect.Type) bool { return visited[nextType] })
+		level = next
 	}
 
-	fields := make(map[string]reflect.StructField, len(candidates))
+	fields := make(map[string]jsonSchemaField, len(candidates))
 	for name, sameName := range candidates {
 		if winner, ok := dominantJSONSchemaField(sameName); ok {
-			fields[name] = winner.field
+			fields[name] = winner
 		}
 	}
 	return fields

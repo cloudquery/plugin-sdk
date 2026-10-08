@@ -170,7 +170,7 @@ func (t *structTransformer) addColumnFromField(field reflect.StructField, parent
 
 	// Enrich JSON column with detailed schema
 	if columnType == types.ExtensionTypes.JSON {
-		column.TypeSchema = structSchemaToJSON(t.fieldToJSONSchema(field, 0))
+		column.TypeSchema = structSchemaToJSON(t.fieldToJSONSchema(field, 0, false))
 	}
 
 	for _, pk := range t.pkFields {
@@ -297,35 +297,37 @@ var (
 	textMarshalerType = reflect.TypeFor[encoding.TextMarshaler]()
 )
 
-func implementsInterface(t reflect.Type, iface reflect.Type) bool {
-	return t.Implements(iface) || reflect.PointerTo(t).Implements(iface)
+func implementsInterface(t reflect.Type, iface reflect.Type, addressable bool) bool {
+	return t.Implements(iface) || (addressable && reflect.PointerTo(t).Implements(iface))
 }
 
-func ownMarshalerSchema(t reflect.Type) (string, bool) {
+func ownMarshalerSchema(t reflect.Type, addressable bool) (string, bool) {
 	switch t.Kind() {
 	case reflect.Struct, reflect.Map, reflect.Slice:
 	default:
 		return "", false
 	}
 	switch {
-	case implementsInterface(t, jsonMarshalerType):
+	case implementsInterface(t, jsonMarshalerType, addressable):
 		return types.ExtensionTypes.JSON.String(), true
-	case implementsInterface(t, textMarshalerType):
+	case implementsInterface(t, textMarshalerType, addressable):
 		return arrow.BinaryTypes.String.String(), true
 	default:
 		return "", false
 	}
 }
 
-func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth int) any {
+func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth int, addressable bool) any {
 	normalizedField := normalizePointer(field)
-	if marshalerSchema, ok := ownMarshalerSchema(normalizedField.Elem().Type()); ok {
+	addressable = addressable || field.Type.Kind() == reflect.Pointer
+	if marshalerSchema, ok := ownMarshalerSchema(normalizedField.Elem().Type(), addressable); ok {
 		return marshalerSchema
 	}
 	switch normalizedField.Elem().Kind() {
 	case reflect.Struct:
 		fieldsMap := make(map[string]any)
-		for name, structField := range t.jsonSchemaFields(normalizedField.Elem().Type()) {
+		for name, schemaField := range t.jsonSchemaFields(normalizedField.Elem().Type(), addressable) {
+			structField := schemaField.field
 			columnType, err := t.getColumnType(structField)
 			if err != nil {
 				continue
@@ -336,7 +338,7 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 			}
 			// Avoid infinite recursion
 			if columnType == types.ExtensionTypes.JSON && depth < t.maxJSONTypeSchemaDepth {
-				fieldsMap[name] = t.fieldToJSONSchema(structField, depth+1)
+				fieldsMap[name] = t.fieldToJSONSchema(structField, depth+1, schemaField.addressable)
 				continue
 			}
 			asList, ok := columnType.(*arrow.ListType)
@@ -350,13 +352,13 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 	case reflect.Map:
 		keySchema, ok := t.fieldToJSONSchema(reflect.StructField{
 			Type: normalizedField.Elem().Type().Key(),
-		}, depth+1).(string)
+		}, depth+1, false).(string)
 		if keySchema == "" || !ok {
 			return ""
 		}
 		valueSchema := t.fieldToJSONSchema(reflect.StructField{
 			Type: normalizedField.Elem().Type().Elem(),
-		}, depth+1)
+		}, depth+1, false)
 		if valueSchema == "" {
 			return ""
 		}
@@ -366,7 +368,7 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 	case reflect.Slice:
 		valueSchema := t.fieldToJSONSchema(reflect.StructField{
 			Type: normalizedField.Elem().Type().Elem(),
-		}, depth+1)
+		}, depth+1, true)
 		if valueSchema == "" {
 			return ""
 		}

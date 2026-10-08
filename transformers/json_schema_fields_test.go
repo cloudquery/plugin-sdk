@@ -1,6 +1,7 @@
 package transformers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -9,8 +10,8 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/faker"
+	"github.com/cloudquery/plugin-sdk/v4/scalar"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
-	gojson "github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 )
 
@@ -241,6 +242,33 @@ func TestJSONTypeSchemaMatchesEncoder(t *testing.T) {
 			want: `{"value":"json"}`,
 		},
 		{
+			name: "uses pointer MarshalJSON only where the encoder can take the address",
+			testStruct: struct {
+				Item struct {
+					Value SchemaTestPointerMarshaler            `json:"value"`
+					List  []SchemaTestPointerMarshaler          `json:"list"`
+					Map   map[string]SchemaTestPointerMarshaler `json:"map"`
+				} `json:"item"`
+			}{},
+			want: `{"list":["json"],"map":{"utf8":{"Value":"utf8"}},"value":{"Value":"utf8"}}`,
+		},
+		{
+			name: "uses pointer MarshalJSON for a value field inside a pointer",
+			testStruct: struct {
+				Item *struct {
+					Value SchemaTestPointerMarshaler `json:"value"`
+				} `json:"item"`
+			}{},
+			want: `{"value":"json"}`,
+		},
+		{
+			name: "ignores pointer MarshalJSON for a value column",
+			testStruct: struct {
+				Value SchemaTestPointerMarshaler `json:"value"`
+			}{},
+			want: `{"Value":"utf8"}`,
+		},
+		{
 			name: "uses json for a column type with MarshalJSON",
 			testStruct: struct {
 				Port SchemaTestIntOrString `json:"port"`
@@ -337,6 +365,34 @@ func TestJSONTypeSchemaKeysMatchMarshalledValue(t *testing.T) {
 				}{}
 			},
 		},
+		{
+			name:   "diamond of embedded structs",
+			column: func() any { return schemaTestDiamondColumn(8) },
+		},
+		{
+			name: "pointer-only marshallers in a value column",
+			column: func() any {
+				return &struct {
+					Item struct {
+						Value SchemaTestPointerMarshaler
+						List  []SchemaTestPointerMarshaler
+						Map   map[string]SchemaTestPointerMarshaler
+					}
+				}{}
+			},
+		},
+		{
+			name: "pointer-only marshallers in a pointer column",
+			column: func() any {
+				return &struct {
+					Item *struct {
+						Value SchemaTestPointerMarshaler
+						List  []SchemaTestPointerMarshaler
+						Map   map[string]SchemaTestPointerMarshaler
+					}
+				}{}
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -351,21 +407,46 @@ func TestJSONTypeSchemaKeysMatchMarshalledValue(t *testing.T) {
 			var typeSchema any
 			require.NoError(t, json.Unmarshal([]byte(table.Columns[0].TypeSchema), &typeSchema))
 
-			marshalled, err := gojson.MarshalWithOption(firstFieldValue(column), gojson.DisableHTMLEscape())
-			require.NoError(t, err)
+			resource := schema.NewResourceData(&table, nil, column)
+			require.NoError(t, table.Columns[0].Resolver(context.Background(), nil, resource, table.Columns[0]))
+			stored, ok := resource.Get(table.Columns[0].Name).(*scalar.JSON)
+			require.True(t, ok)
 			var value any
-			require.NoError(t, json.Unmarshal(marshalled, &value))
+			require.NoError(t, json.Unmarshal(stored.Value, &value))
 
 			var mismatches []string
 			compareJSONKeys(typeSchema, value, "$", &mismatches)
 			slices.Sort(mismatches)
-			require.Empty(t, mismatches, "type schema: %s\nvalue: %s", table.Columns[0].TypeSchema, marshalled)
+			require.Empty(t, mismatches, "type schema: %s\nvalue: %s", table.Columns[0].TypeSchema, stored.Value)
 		})
 	}
 }
 
-func firstFieldValue(column any) any {
-	return reflect.ValueOf(column).Elem().Field(0).Interface()
+func schemaTestDiamondColumn(levels int) any {
+	level := reflect.TypeFor[SchemaTestObjectReference]()
+	for range levels {
+		left := reflect.StructOf([]reflect.StructField{
+			{Name: "Shared", Type: level, Anonymous: true},
+		})
+		right := reflect.StructOf([]reflect.StructField{
+			{Name: "Shared", Type: level, Anonymous: true},
+			{Name: "Ignored", Type: reflect.TypeFor[bool](), Tag: `json:"-"`},
+		})
+		level = reflect.StructOf([]reflect.StructField{
+			{Name: "Left", Type: left, Anonymous: true},
+			{Name: "Right", Type: right, Anonymous: true},
+			{Name: "ID", Type: reflect.TypeFor[string](), Tag: `json:"id"`},
+		})
+	}
+	return reflect.New(reflect.StructOf([]reflect.StructField{
+		{Name: "Item", Type: level, Tag: `json:"item"`},
+	})).Interface()
+}
+
+func TestJSONTypeSchemaDropsFieldsOfADiamondOfEmbeddedStructs(t *testing.T) {
+	table := schema.Table{Name: "test"}
+	require.NoError(t, TransformWithStruct(schemaTestDiamondColumn(8))(&table))
+	require.Equal(t, `{"id":"utf8"}`, table.Column("item").TypeSchema)
 }
 
 func compareJSONKeys(typeSchema, value any, path string, mismatches *[]string) {
@@ -373,6 +454,14 @@ func compareJSONKeys(typeSchema, value any, path string, mismatches *[]string) {
 		return
 	}
 	switch s := typeSchema.(type) {
+	case string:
+		if s == "json" || s == "any" {
+			return
+		}
+		switch value.(type) {
+		case map[string]any, []any:
+			*mismatches = append(*mismatches, fmt.Sprintf("%s: schema has %s, value is %T", path, s, value))
+		}
 	case []any:
 		values, ok := value.([]any)
 		if !ok {
