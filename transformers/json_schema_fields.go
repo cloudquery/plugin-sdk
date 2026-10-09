@@ -18,7 +18,25 @@ type embeddedJSONStruct struct {
 	addressable bool
 }
 
+type jsonSchemaFieldsKey struct {
+	structType  reflect.Type
+	addressable bool
+}
+
 func (t *structTransformer) jsonSchemaFields(structType reflect.Type, addressable bool) map[string]jsonSchemaField {
+	key := jsonSchemaFieldsKey{structType: structType, addressable: addressable}
+	if fields, ok := t.jsonSchemaFieldsCache[key]; ok {
+		return fields
+	}
+	if t.jsonSchemaFieldsCache == nil {
+		t.jsonSchemaFieldsCache = make(map[jsonSchemaFieldsKey]map[string]jsonSchemaField)
+	}
+	fields := t.computeJSONSchemaFields(structType, addressable)
+	t.jsonSchemaFieldsCache[key] = fields
+	return fields
+}
+
+func (t *structTransformer) computeJSONSchemaFields(structType reflect.Type, addressable bool) map[string]jsonSchemaField {
 	candidates := make(map[string][]jsonSchemaField)
 	visited := make(map[reflect.Type]bool)
 	level := []*embeddedJSONStruct{{structType: structType, count: 1, addressable: addressable}}

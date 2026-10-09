@@ -36,6 +36,7 @@ type structTransformer struct {
 	jsonSchemaNameTransformer     NameTransformer
 
 	maxJSONTypeSchemaDepth int
+	jsonSchemaFieldsCache  map[jsonSchemaFieldsKey]map[string]jsonSchemaField
 }
 
 func isFieldStruct(reflectType reflect.Type) bool {
@@ -301,6 +302,35 @@ func implementsInterface(t reflect.Type, iface reflect.Type, addressable bool) b
 	return t.Implements(iface) || (addressable && reflect.PointerTo(t).Implements(iface))
 }
 
+func jsonTagName(field reflect.StructField) string {
+	name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+	return name
+}
+
+func hasJSONTaggedField(t reflect.Type) bool {
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		if name := jsonTagName(field); field.IsExported() && name != "" && name != "-" {
+			return true
+		}
+	}
+	return false
+}
+
+func hasHiddenStructField(t reflect.Type) bool {
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		fieldType := field.Type
+		if fieldType.Kind() == reflect.Pointer {
+			fieldType = fieldType.Elem()
+		}
+		if field.IsExported() && !field.Anonymous && jsonTagName(field) == "-" && fieldType.Kind() == reflect.Struct {
+			return true
+		}
+	}
+	return false
+}
+
 func ownMarshalerSchema(t reflect.Type, addressable bool) (string, bool) {
 	switch t.Kind() {
 	case reflect.Struct, reflect.Map, reflect.Slice:
@@ -309,6 +339,9 @@ func ownMarshalerSchema(t reflect.Type, addressable bool) (string, bool) {
 	}
 	switch {
 	case implementsInterface(t, jsonMarshalerType, addressable):
+		if t.Kind() == reflect.Struct && hasJSONTaggedField(t) && !hasHiddenStructField(t) {
+			return "", false
+		}
 		return types.ExtensionTypes.JSON.String(), true
 	case implementsInterface(t, textMarshalerType, addressable):
 		return arrow.BinaryTypes.String.String(), true
@@ -344,7 +377,12 @@ func (t *structTransformer) fieldToJSONSchema(field reflect.StructField, depth i
 	switch normalizedField.Elem().Kind() {
 	case reflect.Struct:
 		fieldsMap := make(map[string]any)
-		for name, schemaField := range t.jsonSchemaFields(normalizedField.Elem().Type(), addressable) {
+		structType := normalizedField.Elem().Type()
+		taggedOnly := implementsInterface(structType, jsonMarshalerType, addressable)
+		for name, schemaField := range t.jsonSchemaFields(structType, addressable) {
+			if taggedOnly && !schemaField.tagged {
+				continue
+			}
 			structField := schemaField.field
 			columnType, err := t.getColumnType(structField)
 			if err != nil {
