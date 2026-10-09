@@ -167,6 +167,51 @@ type schemaTestUnexportedEmbed struct {
 	Exported string `json:"exported"`
 }
 
+type SchemaTestGeneratedClient struct {
+	ID                   string   `json:"id"`
+	Name                 *string  `json:"name,omitempty"`
+	ForceSendFields      []string `json:"-"`
+	AdditionalProperties map[string]any
+}
+
+func (v SchemaTestGeneratedClient) MarshalJSON() ([]byte, error) {
+	object := map[string]any{"id": v.ID}
+	if v.Name != nil {
+		object["name"] = *v.Name
+	}
+	for key, value := range v.AdditionalProperties {
+		object[key] = value
+	}
+	return json.Marshal(object)
+}
+
+type SchemaTestServerResponse struct {
+	StatusCode int `json:"statusCode"`
+}
+
+type SchemaTestGeneratedResponse struct {
+	SchemaTestServerResponse `json:"-"`
+	ID                       string            `json:"id"`
+	explicitFields           *SchemaTestSecret //nolint:unused
+}
+
+func (v SchemaTestGeneratedResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]string{"id": v.ID})
+}
+
+type SchemaTestPaymentSource struct {
+	ID     string            `json:"id"`
+	Object string            `json:"object"`
+	Card   *SchemaTestSecret `json:"-"`
+}
+
+func (v SchemaTestPaymentSource) MarshalJSON() ([]byte, error) {
+	if v.Card != nil {
+		return json.Marshal(v.Card)
+	}
+	return json.Marshal(v.ID)
+}
+
 func TestJSONTypeSchemaMatchesEncoder(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -265,6 +310,33 @@ func TestJSONTypeSchemaMatchesEncoder(t *testing.T) {
 				} `json:"item"`
 			}{},
 			want: `{"port":"json"}`,
+		},
+		{
+			name: "keeps the tagged fields of a type with MarshalJSON",
+			testStruct: struct {
+				Item struct {
+					Client SchemaTestGeneratedClient `json:"client"`
+				} `json:"item"`
+			}{},
+			want: `{"client":{"id":"utf8","name":"utf8"}}`,
+		},
+		{
+			name: "keeps the tagged fields of a type with MarshalJSON and hidden metadata",
+			testStruct: struct {
+				Item struct {
+					Response SchemaTestGeneratedResponse `json:"response"`
+				} `json:"item"`
+			}{},
+			want: `{"response":{"id":"utf8"}}`,
+		},
+		{
+			name: "uses json for a type with MarshalJSON that hides a struct variant",
+			testStruct: struct {
+				Item struct {
+					Source SchemaTestPaymentSource `json:"source"`
+				} `json:"item"`
+			}{},
+			want: `{"source":"json"}`,
 		},
 		{
 			name: "uses json for a type with a pointer MarshalJSON",
@@ -435,6 +507,17 @@ func TestJSONTypeSchemaKeysMatchMarshalledValue(t *testing.T) {
 						Value   *SchemaTestPointerMarshaler
 						Text    SchemaTestText
 						Secrets SchemaTestMarshalerList
+					}
+				}{}
+			},
+		},
+		{
+			name: "types with MarshalJSON and json tags",
+			column: func() any {
+				return &struct {
+					Item struct {
+						Client   SchemaTestGeneratedClient
+						Response SchemaTestGeneratedResponse
 					}
 				}{}
 			},
