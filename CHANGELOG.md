@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.98.1](https://github.com/cloudquery/plugin-sdk/compare/v4.98.0...v4.98.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2629](https://github.com/cloudquery/plugin-sdk/issues/2629)) ([fae9da3](https://github.com/cloudquery/plugin-sdk/commit/fae9da3627be4996ec56193e0635789e65d562c5))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.28.0 ([#2625](https://github.com/cloudquery/plugin-sdk/issues/2625)) ([b1a7243](https://github.com/cloudquery/plugin-sdk/commit/b1a72436fbce75ea49dce08e1712fbcbb0b5e255))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.28.1 ([#2627](https://github.com/cloudquery/plugin-sdk/issues/2627)) ([fc17c1b](https://github.com/cloudquery/plugin-sdk/commit/fc17c1b4c52429abbfa27cc7184a3d9514af905c))
+* Make the JSON type schema match the JSON that the encoder writes ([#2620](https://github.com/cloudquery/plugin-sdk/issues/2620)) ([befd5cc](https://github.com/cloudquery/plugin-sdk/commit/befd5ccc03793ef38aa034eb8b310aa7afb36db9))
+
 ## [4.98.0](https://github.com/cloudquery/plugin-sdk/compare/v4.97.0...v4.98.0) (2026-10-07)
 
 
