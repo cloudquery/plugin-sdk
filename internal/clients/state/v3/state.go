@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"sync"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/ipc"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/premium"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"google.golang.org/grpc"
 )
@@ -22,6 +24,7 @@ const (
 )
 
 type Client struct {
+	ctx           context.Context
 	client        pb.PluginClient
 	mem           map[string]versionedValue
 	changes       map[string]struct{} // changed keys
@@ -39,6 +42,7 @@ type versionedValue struct {
 func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (*Client, error) {
 	table := Table(tableName)
 	c := &Client{
+		ctx:           ctx,
 		conn:          conn,
 		client:        pb.NewPluginClient(conn),
 		mem:           make(map[string]versionedValue),
@@ -149,6 +153,13 @@ func (c *Client) SetKey(_ context.Context, key string, value string) error {
 func (c *Client) Flush(ctx context.Context) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+	return c.flushLocked(ctx)
+}
+
+func (c *Client) flushLocked(ctx context.Context) error {
+	if len(c.changes) == 0 {
+		return nil
+	}
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, c.schema)
 	keys, values := bldr.Field(0).(*array.StringBuilder), bldr.Field(1).(*array.StringBuilder)
 	var version *array.Uint64Builder
@@ -195,11 +206,28 @@ func (c *Client) GetKey(_ context.Context, key string) (string, error) {
 	return c.mem[key].value, nil
 }
 
+// Close saves changes not yet flushed, then closes the connection.
+// It drops them instead when the context passed to NewClient was cancelled for a reason other than quota:
+// the sync stopped early, and moving the cursors forward would skip records that were never written.
 func (c *Client) Close() error {
-	if c.conn != nil {
-		return c.conn.Close()
+	c.mutex.Lock()
+	var err error
+	if !stoppedEarly(c.ctx) {
+		err = c.flushLocked(context.WithoutCancel(c.ctx))
 	}
-	return nil
+	c.mutex.Unlock()
+	if c.conn != nil {
+		return errors.Join(err, c.conn.Close())
+	}
+	return err
+}
+
+func stoppedEarly(ctx context.Context) bool {
+	if ctx.Err() == nil {
+		return false
+	}
+	var noQuota premium.ErrNoQuota
+	return !errors.As(context.Cause(ctx), &noQuota)
 }
 
 func Table(name string) *schema.Table {

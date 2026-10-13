@@ -18,6 +18,8 @@ type Client interface {
 	SetKey(ctx context.Context, key string, value string) error
 	GetKey(ctx context.Context, key string) (string, error)
 	Flush(ctx context.Context) error
+	// Close saves changes not yet flushed, unless the context the client was created with
+	// was cancelled for a reason other than quota, then closes the connection.
 	Close() error
 }
 
