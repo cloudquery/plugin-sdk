@@ -75,7 +75,8 @@ func (bs *BatchSender) flushLocked(items ...any) {
 	bs.items = nil
 }
 
-func (bs *BatchSender) Close() {
+// Flush sends the buffered items and waits for sendFn to return.
+func (bs *BatchSender) Flush() {
 	bs.mu.Lock()
 	defer bs.mu.Unlock()
 
@@ -83,4 +84,8 @@ func (bs *BatchSender) Close() {
 		bs.timer.Stop()
 	}
 	bs.flushLocked()
+}
+
+func (bs *BatchSender) Close() {
+	bs.Flush()
 }

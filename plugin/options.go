@@ -53,6 +53,15 @@ func WithConnectionTester(tester ConnectionTester) Option {
 	}
 }
 
+// WithFlushSupport declares that the client's Write handles message.WriteFlush: it commits every message received
+// before the flush, then calls Done. The writers in the writers package do this, so a client whose Write passes the
+// message channel to one of them can set this option.
+func WithFlushSupport() Option {
+	return func(p *Plugin) {
+		p.supportsFlush = true
+	}
+}
+
 type TableOptions struct {
 	Tables              []string
 	SkipTables          []string

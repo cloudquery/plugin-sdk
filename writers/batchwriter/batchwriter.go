@@ -3,7 +3,9 @@ package batchwriter
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/internal/batch"
@@ -32,6 +34,11 @@ type BatchWriter struct {
 	deleteStaleMessages  message.WriteDeleteStales
 	deleteRecordLock     sync.Mutex
 	deleteRecordMessages message.WriteDeleteRecords
+
+	// inserts that failed to write, reported on message.WriteFlush
+	insertFailures  atomic.Uint64
+	insertErrLock   sync.Mutex
+	lastInsertError error
 
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
@@ -203,6 +210,10 @@ func (w *BatchWriter) flushTable(ctx context.Context, tableName string, resource
 	duration := time.Since(start)
 	if err != nil {
 		w.logger.Err(err).Str("table", tableName).Int64("len", batchSize).Dur("duration", duration).Msg("failed to write batch")
+		w.insertErrLock.Lock()
+		w.lastInsertError = err
+		w.insertErrLock.Unlock()
+		w.insertFailures.Add(1)
 	} else {
 		w.logger.Debug().Str("table", tableName).Int64("len", batchSize).Dur("duration", duration).Msg("batch written successfully")
 	}
@@ -271,8 +282,19 @@ func (w *BatchWriter) writeAll(ctx context.Context, msgs []message.WriteMessage)
 }
 
 func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
+	reportedFailures := w.insertFailures.Load()
 	for msg := range msgs {
 		switch m := msg.(type) {
+		case *message.WriteFlush:
+			err := w.Flush(ctx)
+			if failures := w.insertFailures.Load(); failures != reportedFailures {
+				w.insertErrLock.Lock()
+				lastErr := w.lastInsertError
+				w.insertErrLock.Unlock()
+				err = errors.Join(err, fmt.Errorf("%d batch writes failed since the previous flush, last error: %w", failures-reportedFailures, lastErr))
+				reportedFailures = failures
+			}
+			m.Done(err)
 		case *message.WriteDeleteStale:
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err

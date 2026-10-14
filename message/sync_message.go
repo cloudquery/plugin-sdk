@@ -131,3 +131,18 @@ type SyncError struct {
 func (e SyncError) GetTable() *schema.Table {
 	return &schema.Table{Name: e.TableName}
 }
+
+// SyncCheckpoint carries state backend rows (key, value, version). The client persists them once every message sent
+// before the checkpoint is committed to all destinations.
+type SyncCheckpoint struct {
+	syncBaseMessage
+	Record arrow.RecordBatch
+}
+
+func (m *SyncCheckpoint) GetTable() *schema.Table {
+	table, err := schema.NewTableFromArrowSchema(m.Record.Schema())
+	if err != nil {
+		panic(err)
+	}
+	return table
+}

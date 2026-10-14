@@ -101,6 +101,8 @@ type Plugin struct {
 	invocationID string
 	// Method to test connection given a spec
 	testConnFn ConnectionTester
+	// the client's Write commits everything received before a message.WriteFlush, then calls its Done
+	supportsFlush bool
 }
 
 // NewPlugin returns a new CloudQuery Plugin with the given name, version and implementation.
@@ -131,6 +133,11 @@ func NewPlugin(name string, version string, newClient NewClientFunc, options ...
 // InvocationID returns the invocation ID for the current execution
 func (p *Plugin) InvocationID() string {
 	return p.invocationID
+}
+
+// SupportsFlush reports whether the plugin's Write handles message.WriteFlush
+func (p *Plugin) SupportsFlush() bool {
+	return p.supportsFlush
 }
 
 // Name returns the name of this plugin

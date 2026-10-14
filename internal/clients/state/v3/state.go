@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"iter"
+	"maps"
+	"slices"
 	"sync"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -11,6 +14,8 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/ipc"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/internal/checkpoint"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"google.golang.org/grpc"
 )
@@ -22,13 +27,26 @@ const (
 )
 
 type Client struct {
-	client        pb.PluginClient
-	mem           map[string]versionedValue
-	changes       map[string]struct{} // changed keys
+	client pb.PluginClient
+	mem    map[string]versionedValue
+	// changed keys, with the scope of the last change (nil outside table resolvers)
+	changes       map[string]checkpoint.Scope
 	mutex         *sync.RWMutex
 	schema        *arrow.Schema
 	versionedMode bool
 	conn          *grpc.ClientConn
+	// when set, Flush sends checkpoints instead of writing to the backend
+	checkpoints chan<- message.SyncMessage
+}
+
+type Option func(*Client)
+
+// WithCheckpoints makes Flush send the changes as message.SyncCheckpoint on res instead of writing them to the
+// backend. Changes made within a table resolver are sent after the resources it produced before the Flush.
+func WithCheckpoints(res chan<- message.SyncMessage) Option {
+	return func(c *Client) {
+		c.checkpoints = res
+	}
 }
 
 type versionedValue struct {
@@ -36,15 +54,18 @@ type versionedValue struct {
 	version uint64
 }
 
-func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (*Client, error) {
+func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string, opts ...Option) (*Client, error) {
 	table := Table(tableName)
 	c := &Client{
 		conn:          conn,
 		client:        pb.NewPluginClient(conn),
 		mem:           make(map[string]versionedValue),
-		changes:       make(map[string]struct{}),
+		changes:       make(map[string]checkpoint.Scope),
 		mutex:         &sync.RWMutex{},
 		versionedMode: table.Column(versionColumn) != nil,
+	}
+	for _, opt := range opts {
+		opt(c)
 	}
 	sc := table.ToArrowSchema()
 	c.schema = sc
@@ -131,7 +152,7 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (*C
 	return c, nil
 }
 
-func (c *Client) SetKey(_ context.Context, key string, value string) error {
+func (c *Client) SetKey(ctx context.Context, key string, value string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -142,28 +163,17 @@ func (c *Client) SetKey(_ context.Context, key string, value string) error {
 		value:   value,
 		version: c.mem[key].version + 1,
 	}
-	c.changes[key] = struct{}{}
+	c.changes[key] = checkpoint.FromContext(ctx)
 	return nil
 }
 
 func (c *Client) Flush(ctx context.Context) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	bldr := array.NewRecordBuilder(memory.DefaultAllocator, c.schema)
-	keys, values := bldr.Field(0).(*array.StringBuilder), bldr.Field(1).(*array.StringBuilder)
-	var version *array.Uint64Builder
-	if c.versionedMode {
-		version = bldr.Field(2).(*array.Uint64Builder)
+	if c.checkpoints != nil {
+		return c.flushCheckpoints(ctx)
 	}
-	for k := range c.changes {
-		val := c.mem[k]
-		keys.Append(k)
-		values.Append(val.value)
-		if version != nil {
-			version.Append(val.version)
-		}
-	}
-	rec := bldr.NewRecordBatch()
+	rec := c.record(maps.Keys(c.changes))
 	recordBytes, err := pb.RecordToBytes(rec)
 	if err != nil {
 		return err
@@ -185,8 +195,57 @@ func (c *Client) Flush(ctx context.Context) error {
 		return err
 	}
 
-	c.changes = make(map[string]struct{})
+	c.changes = make(map[string]checkpoint.Scope)
 	return nil
+}
+
+// flushCheckpoints sends one checkpoint per scope, so each waits only for the resources of the scope that changed its keys.
+func (c *Client) flushCheckpoints(ctx context.Context) error {
+	keysByScope := make(map[checkpoint.Scope][]string)
+	for key, scope := range c.changes {
+		keysByScope[scope] = append(keysByScope[scope], key)
+	}
+	for scope, keys := range keysByScope {
+		msg := &message.SyncCheckpoint{Record: c.record(slices.Values(keys))}
+		if err := c.sendCheckpoint(ctx, scope, msg); err != nil {
+			return err
+		}
+		for _, key := range keys {
+			delete(c.changes, key)
+		}
+	}
+	return nil
+}
+
+func (c *Client) sendCheckpoint(ctx context.Context, scope checkpoint.Scope, msg *message.SyncCheckpoint) error {
+	if scope != nil {
+		return scope.Checkpoint(ctx, msg)
+	}
+	select {
+	case c.checkpoints <- msg:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (c *Client) record(keys iter.Seq[string]) arrow.RecordBatch {
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, c.schema)
+	defer bldr.Release()
+	keyBldr, valueBldr := bldr.Field(0).(*array.StringBuilder), bldr.Field(1).(*array.StringBuilder)
+	var versionBldr *array.Uint64Builder
+	if c.versionedMode {
+		versionBldr = bldr.Field(2).(*array.Uint64Builder)
+	}
+	for k := range keys {
+		val := c.mem[k]
+		keyBldr.Append(k)
+		valueBldr.Append(val.value)
+		if versionBldr != nil {
+			versionBldr.Append(val.version)
+		}
+	}
+	return bldr.NewRecordBatch()
 }
 
 func (c *Client) GetKey(_ context.Context, key string) (string, error) {

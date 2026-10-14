@@ -1,0 +1,398 @@
+package serve
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"strconv"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
+	pbdiscoveryv1 "github.com/cloudquery/plugin-pb-go/pb/discovery/v1"
+	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/internal/checkpoint"
+	stateV3 "github.com/cloudquery/plugin-sdk/v4/internal/clients/state/v3"
+	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
+	discoveryServerV1 "github.com/cloudquery/plugin-sdk/v4/internal/servers/discovery/v1"
+	serversv3 "github.com/cloudquery/plugin-sdk/v4/internal/servers/plugin/v3"
+	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
+	"github.com/cloudquery/plugin-sdk/v4/scheduler"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/cloudquery/plugin-sdk/v4/state"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
+)
+
+// servePlugin serves p over an in-memory listener and returns a client connection to it.
+func servePlugin(t *testing.T, p *plugin.Plugin) *grpc.ClientConn {
+	t.Helper()
+	srv := Plugin(p, WithArgs("serve"), WithTestListener())
+	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := srv.Serve(ctx); err != nil {
+			t.Error(err)
+		}
+	}()
+	t.Cleanup(func() {
+		cancel()
+		wg.Wait()
+	})
+
+	// nolint:staticcheck
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(srv.bufPluginDialer), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+	return conn
+}
+
+// serveBackend serves p on a TCP address, as state clients dial backends by address.
+func serveBackend(t *testing.T, p *plugin.Plugin) string {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	grpcServer := grpc.NewServer()
+	pb.RegisterPluginServer(grpcServer, &serversv3.Server{Plugin: p, Logger: zerolog.Nop()})
+	pbdiscoveryv1.RegisterDiscoveryServer(grpcServer, &discoveryServerV1.Server{Versions: []int32{3}})
+	go func() { _ = grpcServer.Serve(listener) }()
+	t.Cleanup(grpcServer.Stop)
+	return listener.Addr().String()
+}
+
+func insertRecord(t *testing.T, table *schema.Table, ids ...int64) []byte {
+	t.Helper()
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+	defer bldr.Release()
+	bldr.Field(0).(*array.Int64Builder).AppendValues(ids, nil)
+	recordBytes, err := pb.RecordToBytes(bldr.NewRecordBatch())
+	require.NoError(t, err)
+	return recordBytes
+}
+
+func TestInitReportsFlushSupport(t *testing.T) {
+	for _, supported := range []bool{false, true} {
+		t.Run(fmt.Sprintf("supported=%t", supported), func(t *testing.T) {
+			var opts []plugin.Option
+			if supported {
+				opts = append(opts, plugin.WithFlushSupport())
+			}
+			c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, opts...)))
+			res, err := c.Init(context.Background(), &pb.Init_Request{})
+			require.NoError(t, err)
+			require.Equal(t, supported, res.SupportsFlush)
+		})
+	}
+}
+
+func TestWriteStreamFlush(t *testing.T) {
+	ctx := context.Background()
+	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())))
+	_, err := c.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+
+	table := &schema.Table{Name: "test_flush", Columns: []schema.Column{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	tableBytes, err := pb.SchemaToBytes(table.ToArrowSchema())
+	require.NoError(t, err)
+
+	stream, err := c.WriteStream(ctx)
+	require.NoError(t, err)
+	require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_MigrateTable{MigrateTable: &pb.Write_MessageMigrateTable{Table: tableBytes}}}))
+	require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Insert{Insert: &pb.Write_MessageInsert{Record: insertRecord(t, table, 1, 2)}}}))
+	require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 7}}}))
+	res, err := stream.Recv()
+	require.NoError(t, err)
+	require.EqualValues(t, 7, res.FlushId)
+
+	readClient, err := c.Read(ctx, &pb.Read_Request{Table: tableBytes})
+	require.NoError(t, err)
+	var rows int64
+	for {
+		res, err := readClient.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		require.NoError(t, err)
+		record, err := pb.NewRecordFromBytes(res.Record)
+		require.NoError(t, err)
+		rows += record.NumRows()
+	}
+	require.EqualValues(t, 2, rows)
+
+	require.NoError(t, stream.CloseSend())
+	_, err = stream.Recv()
+	require.ErrorIs(t, err, io.EOF)
+}
+
+func TestWriteStreamWithoutFlushSupport(t *testing.T) {
+	ctx := context.Background()
+	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient)))
+	_, err := c.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+
+	stream, err := c.WriteStream(ctx)
+	require.NoError(t, err)
+	_, err = stream.Recv()
+	require.Equal(t, codes.Unimplemented, status.Code(err))
+}
+
+func TestWriteStreamFlushFailure(t *testing.T) {
+	ctx := context.Background()
+	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.GetNewClient(memdb.WithErrOnWrite()), plugin.WithFlushSupport())))
+	_, err := c.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+
+	stream, err := c.WriteStream(ctx)
+	require.NoError(t, err)
+	// the plugin may fail before or after receiving the flush
+	_ = stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 1}}})
+	_, err = stream.Recv()
+	require.Error(t, err)
+	require.NotErrorIs(t, err, io.EOF)
+}
+
+func TestWriteRejectsFlush(t *testing.T) {
+	ctx := context.Background()
+	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())))
+	_, err := c.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+
+	stream, err := c.Write(ctx)
+	require.NoError(t, err)
+	require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 1}}}))
+	_, err = stream.CloseAndRecv()
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+const (
+	checkpointPages    = 3
+	checkpointPageSize = 4
+)
+
+var checkpointTable = &schema.Table{
+	Name: "test_checkpoint_items",
+	Columns: []schema.Column{{
+		Name: "id",
+		Type: arrow.PrimitiveTypes.Int64,
+		Resolver: func(_ context.Context, _ schema.ClientMeta, resource *schema.Resource, c schema.Column) error {
+			return resource.Set(c.Name, resource.Item.(int64))
+		},
+	}},
+}
+
+type checkpointSourceClient struct {
+	plugin.UnimplementedDestination
+}
+
+func (*checkpointSourceClient) ID() string { return "checkpoint_source" }
+
+func (*checkpointSourceClient) Close(context.Context) error { return nil }
+
+func (*checkpointSourceClient) Tables(context.Context, plugin.TableOptions) (schema.Tables, error) {
+	return schema.Tables{checkpointTable}, nil
+}
+
+// Sync syncs pages of items, checkpointing the page number as the cursor after each page. It sets one more key in the
+// resolver and flushes it after the scheduler returns.
+func (c *checkpointSourceClient) Sync(ctx context.Context, options plugin.SyncOptions, res chan<- message.SyncMessage) error {
+	stateClient, err := state.NewConnectedClientWithOptions(ctx, options.BackendOptions, state.ConnectionOptions{}, state.ClientOptions{Checkpoints: res})
+	if err != nil {
+		return err
+	}
+	defer stateClient.Close()
+
+	table := *checkpointTable
+	table.Resolver = func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+		for page := range checkpointPages {
+			ids := make([]int64, checkpointPageSize)
+			for i := range ids {
+				ids[i] = int64(page*checkpointPageSize + i)
+			}
+			res <- ids
+			if err := stateClient.SetKey(ctx, "cursor", strconv.Itoa(page)); err != nil {
+				return err
+			}
+			if err := stateClient.Flush(ctx); err != nil {
+				return err
+			}
+		}
+		return stateClient.SetKey(ctx, "finished", "true")
+	}
+	s := scheduler.NewScheduler(scheduler.WithBatchOptions(scheduler.WithBatchMaxRows(1000), scheduler.WithBatchTimeout(time.Hour)))
+	if err := s.Sync(ctx, c, schema.Tables{&table}, res); err != nil {
+		return err
+	}
+	return stateClient.Flush(ctx)
+}
+
+func newCheckpointSource(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
+	return &checkpointSourceClient{}, nil
+}
+
+func readState(t *testing.T, conn *grpc.ClientConn, tableName string) map[string]string {
+	t.Helper()
+	tableBytes, err := pb.SchemaToBytes(stateV3.Table(tableName).ToArrowSchema())
+	require.NoError(t, err)
+	readClient, err := pb.NewPluginClient(conn).Read(context.Background(), &pb.Read_Request{Table: tableBytes})
+	require.NoError(t, err)
+	values := map[string]string{}
+	for {
+		res, err := readClient.Recv()
+		if errors.Is(err, io.EOF) {
+			return values
+		}
+		require.NoError(t, err)
+		record, err := pb.NewRecordFromBytes(res.Record)
+		require.NoError(t, err)
+		addStateRows(values, record)
+	}
+}
+
+func addStateRows(values map[string]string, record arrow.RecordBatch) {
+	keys, vals := record.Column(0).(*array.String), record.Column(1).(*array.String)
+	for i := range keys.Len() {
+		values[keys.Value(i)] = vals.Value(i)
+	}
+}
+
+func TestSyncCheckpoints(t *testing.T) {
+	for _, supportsCheckpoints := range []bool{true, false} {
+		t.Run(fmt.Sprintf("supports_checkpoints=%t", supportsCheckpoints), func(t *testing.T) {
+			ctx := context.Background()
+			backendPlugin := plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())
+			require.NoError(t, backendPlugin.Init(ctx, nil, plugin.NewClientOptions{}))
+			backendAddr := serveBackend(t, backendPlugin)
+
+			c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("checkpoint_source", "v1.0.0", newCheckpointSource)))
+			_, err := c.Init(ctx, &pb.Init_Request{})
+			require.NoError(t, err)
+
+			syncClient, err := c.Sync(ctx, &pb.Sync_Request{
+				Backend:             &pb.Sync_BackendOptions{TableName: "cq_state", Connection: backendAddr},
+				SupportsCheckpoints: supportsCheckpoints,
+			})
+			require.NoError(t, err)
+
+			sent := map[int64]bool{}
+			checkpointed := map[string]string{}
+			for {
+				res, err := syncClient.Recv()
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				require.NoError(t, err)
+				switch m := res.Message.(type) {
+				case *pb.Sync_Response_Insert:
+					record, err := pb.NewRecordFromBytes(m.Insert.Record)
+					require.NoError(t, err)
+					for _, id := range record.Column(record.Schema().FieldIndices("id")[0]).(*array.Int64).Int64Values() {
+						sent[id] = true
+					}
+				case *pb.Sync_Response_Checkpoint:
+					require.True(t, supportsCheckpoints)
+					record, err := pb.NewRecordFromBytes(m.Checkpoint.Record)
+					require.NoError(t, err)
+					values := map[string]string{}
+					addStateRows(values, record)
+					if cursor, ok := values["cursor"]; ok {
+						page, err := strconv.Atoi(cursor)
+						require.NoError(t, err)
+						for id := range int64((page + 1) * checkpointPageSize) {
+							require.Truef(t, sent[id], "checkpoint for page %d sent before row %d", page, id)
+						}
+					}
+					if _, ok := values["finished"]; ok {
+						require.Len(t, sent, checkpointPages*checkpointPageSize)
+					}
+					for k, v := range values {
+						checkpointed[k] = v
+					}
+				}
+			}
+			require.Len(t, sent, checkpointPages*checkpointPageSize)
+
+			backendState := readState(t, servePluginConn(t, backendAddr), "cq_state")
+			want := map[string]string{"cursor": strconv.Itoa(checkpointPages - 1), "finished": "true"}
+			if supportsCheckpoints {
+				require.Equal(t, want, checkpointed)
+				require.Empty(t, backendState, "the client persists checkpoints")
+			} else {
+				require.Empty(t, checkpointed)
+				require.Equal(t, want, backendState)
+			}
+		})
+	}
+}
+
+func servePluginConn(t *testing.T, addr string) *grpc.ClientConn {
+	t.Helper()
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+	return conn
+}
+
+type recordingScope struct {
+	msgs []message.SyncMessage
+}
+
+func (s *recordingScope) Checkpoint(_ context.Context, msg message.SyncMessage) error {
+	s.msgs = append(s.msgs, msg)
+	return nil
+}
+
+func checkpointValues(t *testing.T, msgs ...message.SyncMessage) map[string]string {
+	t.Helper()
+	values := map[string]string{}
+	for _, msg := range msgs {
+		require.IsType(t, &message.SyncCheckpoint{}, msg)
+		addStateRows(values, msg.(*message.SyncCheckpoint).Record)
+	}
+	return values
+}
+
+func TestStateClientCheckpointsPerScope(t *testing.T) {
+	ctx := context.Background()
+	conn := servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient))
+	_, err := pb.NewPluginClient(conn).Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+
+	res := make(chan message.SyncMessage, 10)
+	stateClient, err := stateV3.NewClient(ctx, conn, "test_scopes", stateV3.WithCheckpoints(res))
+	require.NoError(t, err)
+
+	scopeA, scopeB := &recordingScope{}, &recordingScope{}
+	ctxA, ctxB := checkpoint.WithScope(ctx, scopeA), checkpoint.WithScope(ctx, scopeB)
+	require.NoError(t, stateClient.SetKey(ctxA, "a", "1"))
+	require.NoError(t, stateClient.SetKey(ctxB, "b", "1"))
+	require.NoError(t, stateClient.SetKey(ctx, "c", "1"))
+	require.NoError(t, stateClient.SetKey(ctxA, "shared", "1"))
+	require.NoError(t, stateClient.SetKey(ctxB, "shared", "2"))
+
+	require.NoError(t, stateClient.Flush(ctxA))
+	require.Len(t, scopeA.msgs, 1)
+	require.Equal(t, map[string]string{"a": "1"}, checkpointValues(t, scopeA.msgs...))
+	require.Len(t, scopeB.msgs, 1)
+	require.Equal(t, map[string]string{"b": "1", "shared": "2"}, checkpointValues(t, scopeB.msgs...))
+	require.Len(t, res, 1)
+	require.Equal(t, map[string]string{"c": "1"}, checkpointValues(t, <-res))
+
+	require.NoError(t, stateClient.Flush(ctx))
+	require.Len(t, scopeA.msgs, 1)
+	require.Len(t, scopeB.msgs, 1)
+	require.Empty(t, res)
+
+	require.Empty(t, readState(t, conn, "test_scopes"), "checkpoints are not written to the backend")
+}

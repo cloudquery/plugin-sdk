@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
+	"github.com/cloudquery/plugin-sdk/v4/internal/checkpoint"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/batchsender"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
@@ -90,6 +91,8 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	defer span.End()
 	logger := s.logger.With().Str("table", table.Name).Str("client", clientName).Logger()
 	ctx = logger.WithContext(ctx)
+	scope := newTableScope(s.checkpoints)
+	ctx = checkpoint.WithScope(ctx, scope)
 
 	startTime := time.Now()
 	if parent == nil { // Log only for root tables, otherwise we spam too much.
@@ -148,12 +151,30 @@ func (s *syncClient) resolveTableDfs(ctx context.Context, table *schema.Table, c
 	batchSender := batchsender.NewBatchSender(func(item any) {
 		s.resolveResourcesDfs(ctx, table, client, parent, item, resolvedResources, depth)
 	})
-	for r := range res {
-		batchSender.Send(r)
+	for done := false; !done; {
+		select {
+		case r, ok := <-res:
+			if !ok {
+				done = true
+				break
+			}
+			batchSender.Send(r)
+		case <-scope.notify:
+			// resolving is synchronous, so everything received so far is sent once Flush returns
+			batchSender.Flush()
+			s.sendCheckpoints(ctx, scope.take())
+		}
 	}
 	batchSender.Close()
+	s.sendCheckpoints(ctx, scope.end())
 
 	// we don't need any waitgroups here because we are waiting for the channel to close
+}
+
+func (s *syncClient) sendCheckpoints(ctx context.Context, msgs []message.SyncMessage) {
+	if err := s.checkpoints.send(ctx, msgs); err != nil {
+		s.logger.Warn().Err(err).Int("checkpoints", len(msgs)).Msg("dropped state checkpoints")
+	}
 }
 
 func (s *syncClient) resolveResourcesDfs(ctx context.Context, table *schema.Table, client schema.ClientMeta, parent *schema.Resource, resources any, resolvedResources chan<- *schema.Resource, depth int) {

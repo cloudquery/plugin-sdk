@@ -196,6 +196,15 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 		})
 	})
 
+	t.Run("TestFlush", func(t *testing.T) {
+		if !p.SupportsFlush() {
+			t.Skip("plugin does not support flush")
+		}
+		if err := suite.testFlush(ctx); err != nil {
+			t.Fatal(err)
+		}
+	})
+
 	t.Run("TestMigrate", func(t *testing.T) {
 		if suite.tests.SkipMigrate {
 			t.Skip("skipping " + t.Name())

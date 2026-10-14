@@ -84,6 +84,8 @@ func (s *BatchSettings) getBatcher(ctx context.Context, res chan<- message.SyncM
 
 type batcherInterface interface {
 	process(res *schema.Resource)
+	// flush sends every resource passed to process so far
+	flush()
 	close()
 }
 
@@ -94,6 +96,8 @@ type nopBatcher struct {
 func (n *nopBatcher) process(resource *schema.Resource) {
 	n.res <- &message.SyncInsert{Record: resource.GetValues().ToArrowRecord(resource.Table.ToArrowSchema())}
 }
+
+func (*nopBatcher) flush() {}
 
 func (*nopBatcher) close() {}
 
@@ -165,6 +169,17 @@ func (w *worker) reachedSizeLimit() bool {
 	return w.maxSizeBytes > 0 && w.bytesPerRow > 0 && int64(w.curRows)*w.bytesPerRow >= w.maxSizeBytes
 }
 
+// add appends r to the batch and reports whether that sent the batch.
+func (w *worker) add(r *schema.Resource) bool {
+	scalar.AppendToRecordBuilder(w.builder, r.GetValues())
+	w.curRows++
+	if (w.maxRows > 0 && w.curRows == w.maxRows) || w.reachedSizeLimit() {
+		w.send()
+		return true
+	}
+	return false
+}
+
 func (w *worker) work(done <-chan struct{}, timeout time.Duration) {
 	ticker := writers.NewTicker(timeout)
 	defer ticker.Stop()
@@ -180,12 +195,7 @@ func (w *worker) work(done <-chan struct{}, timeout time.Duration) {
 				return
 			}
 
-			// append to builder
-			scalar.AppendToRecordBuilder(w.builder, r.GetValues())
-			w.curRows++
-			// check if we need to flush
-			if (w.maxRows > 0 && w.curRows == w.maxRows) || w.reachedSizeLimit() {
-				w.send()
+			if w.add(r) {
 				ticker.Reset(timeout)
 			}
 
@@ -195,6 +205,10 @@ func (w *worker) work(done <-chan struct{}, timeout time.Duration) {
 			}
 
 		case ch := <-w.flush:
+			// resources queued before the flush request must go out with it
+			for queued := len(w.ch); queued > 0; queued-- {
+				w.add(<-w.ch)
+			}
 			if w.curRows > 0 {
 				w.send()
 				ticker.Reset(timeout)
@@ -217,9 +231,12 @@ func (b *batcher) process(res *schema.Resource) {
 		return
 	}
 
-	// we alloc only ch here, as it may be needed right away
+	// we alloc only the channels here, as they may be needed right away
 	// for instance, if another goroutine will get the value allocated by us
-	wr := &worker{ch: make(chan *schema.Resource, 5)} // 5 is quite enough
+	wr := &worker{
+		ch:    make(chan *schema.Resource, 5), // 5 is quite enough
+		flush: make(chan chan struct{}),
+	}
 	v, loaded = b.workers.LoadOrStore(table.Name, wr)
 	if loaded {
 		// means that the worker was already in tne sync.Map, so we just discard the wr value
@@ -235,7 +252,6 @@ func (b *batcher) process(res *schema.Resource) {
 		defer b.wg.Done()
 
 		// fill in the worker fields
-		wr.flush = make(chan chan struct{})
 		wr.maxRows = b.maxRows
 		wr.maxSizeBytes = b.maxSizeBytes
 		wr.builder = array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
@@ -249,6 +265,23 @@ func (b *batcher) process(res *schema.Resource) {
 	}()
 
 	wr.ch <- res
+}
+
+func (b *batcher) flush() {
+	b.workers.Range(func(_, v any) bool {
+		ack := make(chan struct{})
+		select {
+		case v.(*worker).flush <- ack:
+		case <-b.done:
+			return false
+		}
+		select {
+		case <-ack:
+			return true
+		case <-b.done:
+			return false
+		}
+	})
 }
 
 func (b *batcher) close() {

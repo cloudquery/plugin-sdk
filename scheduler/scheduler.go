@@ -166,6 +166,8 @@ type syncClient struct {
 	// message channel for sending SyncError messages
 	msgChan chan<- message.SyncMessage
 
+	checkpoints *syncCheckpoints
+
 	shard *shard
 }
 
@@ -241,6 +243,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		logger:       s.logger,
 		invocationID: s.invocationID,
 		msgChan:      res,
+		checkpoints:  newSyncCheckpoints(res),
 	}
 	for _, opt := range opts {
 		opt(syncClient)
@@ -287,18 +290,46 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	}()
 
 	b := s.batchSettings.getBatcher(ctx, res, s.logger)
-	defer b.close()    // wait for all resources to be processed
+	err := syncClient.processResources(ctx, b, resources)
+	close(syncClient.checkpoints.loopDone)
+	b.close() // wait for all resources to be processed
+	if err != nil || ctx.Err() != nil {
+		syncClient.checkpoints.abort()
+		return err
+	}
+	return syncClient.checkpoints.complete(ctx)
+}
+
+// processResources hands resources to the batcher until resources is closed. Checkpoints go out after the resources
+// received before them.
+func (s *syncClient) processResources(ctx context.Context, b batcherInterface, resources <-chan *schema.Resource) error {
 	done := ctx.Done() // no need to do the lookups in loop
-	for resource := range resources {
+	for {
 		select {
-		case <-done:
-			s.logger.Debug().Msg("sync context cancelled")
-			return context.Cause(ctx)
-		default:
-			b.process(resource)
+		case resource, ok := <-resources:
+			if !ok {
+				return context.Cause(ctx)
+			}
+			select {
+			case <-done:
+				s.logger.Debug().Msg("sync context cancelled")
+				return context.Cause(ctx)
+			default:
+				b.process(resource)
+			}
+		case msgs := <-s.checkpoints.requests:
+			select {
+			case <-done:
+				s.logger.Debug().Msg("sync context cancelled")
+				return context.Cause(ctx)
+			default:
+				b.flush()
+				if err := sendMessages(ctx, s.msgChan, msgs); err != nil {
+					return err
+				}
+			}
 		}
 	}
-	return context.Cause(ctx)
 }
 
 func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {

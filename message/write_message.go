@@ -2,6 +2,7 @@ package message
 
 import (
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -169,3 +170,29 @@ func (m WriteDeleteRecord) GetTable() *schema.Table {
 }
 
 type WriteDeleteRecords []*WriteDeleteRecord
+
+// WriteFlush asks the writer to commit every message it received before this one.
+// The writer calls Done once those messages are committed, or with the error that prevented it.
+type WriteFlush struct {
+	writeBaseMessage
+	result chan error
+	once   sync.Once
+}
+
+func NewWriteFlush() *WriteFlush {
+	return &WriteFlush{result: make(chan error, 1)}
+}
+
+func (*WriteFlush) GetTable() *schema.Table {
+	return &schema.Table{}
+}
+
+// Done reports the outcome of the flush. Only the first call has an effect.
+func (m *WriteFlush) Done(err error) {
+	m.once.Do(func() { m.result <- err })
+}
+
+// Result receives the error passed to Done.
+func (m *WriteFlush) Result() <-chan error {
+	return m.result
+}

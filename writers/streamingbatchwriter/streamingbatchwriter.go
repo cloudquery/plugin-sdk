@@ -154,6 +154,40 @@ func (w *StreamingBatchWriter) Flush(context.Context) error {
 	return nil // not checked below
 }
 
+// commit ends the open batches and waits for their handlers to return.
+func (w *StreamingBatchWriter) commit(ctx context.Context) error {
+	w.workersLock.RLock()
+	defer w.workersLock.RUnlock()
+	errs := make([]error, 0, 3+len(w.insertWorkers))
+	errs = append(errs,
+		commitWorker(ctx, w.migrateWorker),
+		commitWorker(ctx, w.deleteStaleWorker),
+		commitWorker(ctx, w.deleteRecordWorker),
+	)
+	for _, worker := range w.insertWorkers {
+		errs = append(errs, commitWorker(ctx, worker))
+	}
+	return errors.Join(errs...)
+}
+
+func commitWorker[T message.WriteMessage](ctx context.Context, s *streamingWorkerManager[T]) error {
+	if s == nil {
+		return nil
+	}
+	done := make(chan error)
+	select {
+	case s.commit <- done:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 func (w *StreamingBatchWriter) Close(context.Context) error {
 	w.workersLock.Lock()
 	defer w.workersLock.Unlock()
@@ -188,6 +222,10 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 		defer close(errCh)
 		defer w.Close(ctx)
 		for msg := range msgs {
+			if flush, ok := msg.(*message.WriteFlush); ok {
+				flush.Done(w.commit(ctx))
+				continue
+			}
 			msgType := writers.MsgID(msg)
 			if w.lastMsgType != writers.MsgTypeUnset && w.lastMsgType != msgType {
 				_ = w.Flush(ctx)
@@ -239,8 +277,9 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			ch:        make(chan *message.WriteMigrateTable),
 			writeFunc: w.client.MigrateTable,
 
-			flush: make(chan chan bool),
-			errCh: errCh,
+			flush:  make(chan chan bool),
+			commit: make(chan chan error),
+			errCh:  errCh,
 
 			tableName:    tableName,
 			limit:        batch.CappedAt(0, w.batchSizeRows),
@@ -268,8 +307,9 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			writeFunc: w.client.DeleteStale,
 			tableName: tableName,
 
-			flush: make(chan chan bool),
-			errCh: errCh,
+			flush:  make(chan chan bool),
+			commit: make(chan chan error),
+			errCh:  errCh,
 
 			limit:        batch.CappedAt(0, w.batchSizeRows),
 			batchTimeout: w.batchTimeout,
@@ -305,8 +345,9 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			writeFunc: w.client.WriteTable,
 			tableName: tableName,
 
-			flush: make(chan chan bool),
-			errCh: errCh,
+			flush:  make(chan chan bool),
+			commit: make(chan chan error),
+			errCh:  errCh,
 
 			limit:        batch.CappedAt(w.batchSizeBytes, w.batchSizeRows),
 			batchTimeout: w.batchTimeout,
@@ -337,8 +378,9 @@ func (w *StreamingBatchWriter) startWorker(ctx context.Context, errCh chan<- err
 			writeFunc: w.client.DeleteRecords,
 			tableName: tableName,
 
-			flush: make(chan chan bool),
-			errCh: errCh,
+			flush:  make(chan chan bool),
+			commit: make(chan chan error),
+			errCh:  errCh,
 
 			limit:        batch.CappedAt(w.batchSizeBytes, w.batchSizeRows),
 			batchTimeout: w.batchTimeout,
@@ -362,8 +404,11 @@ type streamingWorkerManager[T message.WriteMessage] struct {
 	writeFunc func(context.Context, <-chan T) error
 	tableName string
 
-	flush chan chan bool
-	errCh chan<- error
+	flush  chan chan bool
+	commit chan chan error
+	errCh  chan<- error
+	// a handler failed or panicked, so some messages may not be written
+	errored atomic.Bool
 
 	limit        *batch.Cap
 	batchTimeout time.Duration
@@ -411,6 +456,7 @@ func (s *streamingWorkerManager[T]) send(ctx context.Context, data T) {
 		defer s.workerWg.Done()
 		defer func() {
 			if msg := recover(); msg != nil {
+				s.errored.Store(true)
 				switch v := msg.(type) {
 				case error:
 					s.errCh <- fmt.Errorf("panic processing %s: %w [recovered]", s.tableName, v)
@@ -430,6 +476,7 @@ func (s *streamingWorkerManager[T]) send(ctx context.Context, data T) {
 
 		err := s.writeFunc(ctx, ch)
 		if err != nil {
+			s.errored.Store(true)
 			s.failed.Store(true)
 			go func() {
 				// nolint:revive
@@ -510,6 +557,15 @@ func (s *streamingWorkerManager[T]) run(ctx context.Context, wg *sync.WaitGroup)
 				ticker.Reset(s.batchTimeout)
 			}
 			done <- true
+		case done := <-s.commit:
+			s.closeFlush()
+			s.workerWg.Wait()
+			ticker.Reset(s.batchTimeout)
+			if s.errored.Load() {
+				done <- fmt.Errorf("failed to write messages for %s", s.tableName)
+			} else {
+				done <- nil
+			}
 		case <-ctxDone:
 			// this means the request was cancelled
 			return // after this NO other call will succeed
