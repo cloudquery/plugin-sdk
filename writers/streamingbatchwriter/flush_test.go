@@ -92,6 +92,7 @@ type blockingCommitClient struct {
 }
 
 func (c *blockingCommitClient) WriteTable(_ context.Context, msgs <-chan *message.WriteInsert) error {
+	// nolint:revive
 	for range msgs {
 	}
 	c.committing <- struct{}{}
