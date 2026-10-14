@@ -2,14 +2,18 @@ package scheduler
 
 import (
 	"context"
-	"errors"
+	"maps"
+	"slices"
 	"sync"
+
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 
 	"github.com/cloudquery/plugin-sdk/v4/internal/checkpoint"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 )
-
-var errSyncAborted = errors.New("sync aborted before the checkpoint could be sent")
 
 // syncCheckpoints sends checkpoints on the sync message channel after the resources handed to the batcher before them.
 // As a checkpoint.Scope, it holds checkpoints until the sync completes, for strategies that cannot track what a table
@@ -22,13 +26,22 @@ type syncCheckpoints struct {
 	// closed once the batcher is closed
 	finished chan struct{}
 
-	mu        sync.Mutex
-	deferred  []message.SyncMessage
-	done      bool
-	completed bool
+	mu       sync.Mutex
+	deferred []message.SyncMessage
+	// state rows held until the sync completes, by table, so repeated checkpoints of a key keep only the newest row
+	deferredState map[string]*heldState
+	done          bool
+	completed     bool
 }
 
 var _ checkpoint.Scope = (*syncCheckpoints)(nil)
+
+// state table columns, see the state client
+const (
+	stateKeyColumn     = "key"
+	stateValueColumn   = "value"
+	stateVersionColumn = "version"
+)
 
 func newSyncCheckpoints(res chan<- message.SyncMessage) *syncCheckpoints {
 	return &syncCheckpoints{
@@ -61,7 +74,7 @@ func (c *syncCheckpoints) sendAfterSync(ctx context.Context, msgs []message.Sync
 		return context.Cause(ctx)
 	}
 	if !c.completed {
-		return errSyncAborted
+		return checkpoint.ErrSyncAborted
 	}
 	return sendMessages(ctx, c.res, msgs)
 }
@@ -69,7 +82,9 @@ func (c *syncCheckpoints) sendAfterSync(ctx context.Context, msgs []message.Sync
 func (c *syncCheckpoints) Checkpoint(ctx context.Context, msg message.SyncMessage) error {
 	c.mu.Lock()
 	if !c.done {
-		c.deferred = append(c.deferred, msg)
+		if !c.holdState(msg) {
+			c.deferred = append(c.deferred, msg)
+		}
 		c.mu.Unlock()
 		return nil
 	}
@@ -81,7 +96,11 @@ func (c *syncCheckpoints) Checkpoint(ctx context.Context, msg message.SyncMessag
 func (c *syncCheckpoints) complete(ctx context.Context) error {
 	c.mu.Lock()
 	deferred := c.deferred
+	for _, state := range c.deferredState {
+		deferred = append(deferred, &message.SyncCheckpoint{Record: state.record()})
+	}
 	c.deferred = nil
+	c.deferredState = nil
 	c.done = true
 	c.completed = true
 	c.mu.Unlock()
@@ -93,6 +112,7 @@ func (c *syncCheckpoints) complete(ctx context.Context) error {
 func (c *syncCheckpoints) abort() {
 	c.mu.Lock()
 	c.deferred = nil
+	c.deferredState = nil
 	c.done = true
 	c.mu.Unlock()
 	close(c.finished)
@@ -152,6 +172,12 @@ func (t *tableScope) end() []message.SyncMessage {
 
 func sendMessages(ctx context.Context, res chan<- message.SyncMessage, msgs []message.SyncMessage) error {
 	for _, msg := range msgs {
+		if barrier, ok := msg.(*checkpoint.Barrier); ok {
+			if err := barrier.Reached(ctx, res); err != nil {
+				return err
+			}
+			continue
+		}
 		select {
 		case res <- msg:
 		case <-ctx.Done():
@@ -159,4 +185,83 @@ func sendMessages(ctx context.Context, res chan<- message.SyncMessage, msgs []me
 		}
 	}
 	return nil
+}
+
+type stateRow struct {
+	value   string
+	version uint64
+}
+
+type heldState struct {
+	schema *arrow.Schema
+	rows   map[string]stateRow
+}
+
+// holdState merges a state checkpoint into the held state, and reports false for other messages.
+// Must be called with c.mu held.
+func (c *syncCheckpoints) holdState(msg message.SyncMessage) bool {
+	m, ok := msg.(*message.SyncCheckpoint)
+	if !ok {
+		return false
+	}
+	tableName, _ := m.Record.Schema().Metadata().GetValue(schema.MetadataTableName)
+	keys, keysOK := column[*array.String](m.Record, stateKeyColumn)
+	values, valuesOK := column[*array.String](m.Record, stateValueColumn)
+	versions, versioned := column[*array.Uint64](m.Record, stateVersionColumn)
+	if !keysOK || !valuesOK || (!versioned && m.Record.Schema().HasField(stateVersionColumn)) {
+		return false
+	}
+	state := c.deferredState[tableName]
+	if state == nil || !state.schema.Equal(m.Record.Schema()) {
+		if state != nil {
+			c.deferred = append(c.deferred, &message.SyncCheckpoint{Record: state.record()})
+		}
+		state = &heldState{schema: m.Record.Schema(), rows: make(map[string]stateRow)}
+		if c.deferredState == nil {
+			c.deferredState = make(map[string]*heldState)
+		}
+		c.deferredState[tableName] = state
+	}
+	for i := range keys.Len() {
+		row := stateRow{value: values.Value(i)}
+		if versioned {
+			row.version = versions.Value(i)
+			if held, ok := state.rows[keys.Value(i)]; ok && held.version > row.version {
+				continue
+			}
+		}
+		state.rows[keys.Value(i)] = row
+	}
+	return true
+}
+
+func (s *heldState) record() arrow.RecordBatch {
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, s.schema)
+	defer bldr.Release()
+	for _, key := range slices.Sorted(maps.Keys(s.rows)) {
+		row := s.rows[key]
+		for i, field := range s.schema.Fields() {
+			switch field.Name {
+			case stateKeyColumn:
+				bldr.Field(i).(*array.StringBuilder).Append(key)
+			case stateValueColumn:
+				bldr.Field(i).(*array.StringBuilder).Append(row.value)
+			case stateVersionColumn:
+				bldr.Field(i).(*array.Uint64Builder).Append(row.version)
+			default:
+				bldr.Field(i).AppendNull()
+			}
+		}
+	}
+	return bldr.NewRecordBatch()
+}
+
+func column[T arrow.Array](record arrow.RecordBatch, name string) (T, bool) {
+	var zero T
+	indices := record.Schema().FieldIndices(name)
+	if len(indices) != 1 {
+		return zero, false
+	}
+	col, ok := record.Column(indices[0]).(T)
+	return col, ok
 }

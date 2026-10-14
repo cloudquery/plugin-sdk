@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"slices"
 	"strconv"
 	"sync"
 	"testing"
@@ -346,9 +347,13 @@ func servePluginConn(t *testing.T, addr string) *grpc.ClientConn {
 
 type recordingScope struct {
 	msgs []message.SyncMessage
+	err  error
 }
 
 func (s *recordingScope) Checkpoint(_ context.Context, msg message.SyncMessage) error {
+	if s.err != nil {
+		return s.err
+	}
 	s.msgs = append(s.msgs, msg)
 	return nil
 }
@@ -363,15 +368,21 @@ func checkpointValues(t *testing.T, msgs ...message.SyncMessage) map[string]stri
 	return values
 }
 
-func TestStateClientCheckpointsPerScope(t *testing.T) {
+func newCheckpointStateClient(t *testing.T, tableName string) (*stateV3.Client, chan message.SyncMessage, *grpc.ClientConn) {
+	t.Helper()
 	ctx := context.Background()
 	conn := servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient))
 	_, err := pb.NewPluginClient(conn).Init(ctx, &pb.Init_Request{})
 	require.NoError(t, err)
-
 	res := make(chan message.SyncMessage, 10)
-	stateClient, err := stateV3.NewClient(ctx, conn, "test_scopes", stateV3.WithCheckpoints(res))
+	stateClient, err := stateV3.NewClient(ctx, conn, tableName, stateV3.WithCheckpoints(res))
 	require.NoError(t, err)
+	return stateClient, res, conn
+}
+
+func TestStateClientCheckpointsPerScope(t *testing.T) {
+	ctx := context.Background()
+	stateClient, res, conn := newCheckpointStateClient(t, "test_scopes")
 
 	scopeA, scopeB := &recordingScope{}, &recordingScope{}
 	ctxA, ctxB := checkpoint.WithScope(ctx, scopeA), checkpoint.WithScope(ctx, scopeB)
@@ -382,17 +393,166 @@ func TestStateClientCheckpointsPerScope(t *testing.T) {
 	require.NoError(t, stateClient.SetKey(ctxB, "shared", "2"))
 
 	require.NoError(t, stateClient.Flush(ctxA))
-	require.Len(t, scopeA.msgs, 1)
-	require.Equal(t, map[string]string{"a": "1"}, checkpointValues(t, scopeA.msgs...))
-	require.Len(t, scopeB.msgs, 1)
-	require.Equal(t, map[string]string{"b": "1", "shared": "2"}, checkpointValues(t, scopeB.msgs...))
 	require.Len(t, res, 1)
 	require.Equal(t, map[string]string{"c": "1"}, checkpointValues(t, <-res))
 
+	// the shared key waits for both scopes: each gets a barrier, and the last one to reach it sends the checkpoint
+	require.Len(t, scopeA.msgs, 2)
+	require.Len(t, scopeB.msgs, 2)
+	var barriers []*checkpoint.Barrier
+	for _, scope := range []*recordingScope{scopeA, scopeB} {
+		var direct []message.SyncMessage
+		for _, msg := range scope.msgs {
+			if barrier, ok := msg.(*checkpoint.Barrier); ok {
+				barriers = append(barriers, barrier)
+			} else {
+				direct = append(direct, msg)
+			}
+		}
+		require.Len(t, direct, 1)
+	}
+	require.Equal(t, map[string]string{"a": "1"}, checkpointValues(t, scopeA.msgs[slices.IndexFunc(scopeA.msgs, isCheckpoint)]))
+	require.Equal(t, map[string]string{"b": "1"}, checkpointValues(t, scopeB.msgs[slices.IndexFunc(scopeB.msgs, isCheckpoint)]))
+	require.Len(t, barriers, 2)
+	require.NoError(t, barriers[0].Reached(ctx, res))
+	require.Empty(t, res)
+	require.NoError(t, barriers[1].Reached(ctx, res))
+	require.Equal(t, map[string]string{"shared": "2"}, checkpointValues(t, <-res))
+
 	require.NoError(t, stateClient.Flush(ctx))
-	require.Len(t, scopeA.msgs, 1)
-	require.Len(t, scopeB.msgs, 1)
+	require.Len(t, scopeA.msgs, 2)
+	require.Len(t, scopeB.msgs, 2)
 	require.Empty(t, res)
 
 	require.Empty(t, readState(t, conn, "test_scopes"), "checkpoints are not written to the backend")
+}
+
+func isCheckpoint(msg message.SyncMessage) bool {
+	_, ok := msg.(*message.SyncCheckpoint)
+	return ok
+}
+
+func TestStateClientKeepsKeysOfFailedCheckpoints(t *testing.T) {
+	ctx := context.Background()
+	stateClient, res, _ := newCheckpointStateClient(t, "test_failed_scopes")
+
+	aborted := &recordingScope{err: checkpoint.ErrSyncAborted}
+	require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, aborted), "a", "1"))
+	require.NoError(t, stateClient.SetKey(ctx, "b", "1"))
+
+	// the failed scope does not stop other keys from being sent
+	require.ErrorIs(t, stateClient.Flush(ctx), state.ErrSyncAborted)
+	require.Equal(t, map[string]string{"b": "1"}, checkpointValues(t, <-res))
+
+	aborted.err = nil
+	require.NoError(t, stateClient.Flush(ctx))
+	require.Equal(t, map[string]string{"a": "1"}, checkpointValues(t, aborted.msgs...))
+	require.Empty(t, res)
+}
+
+// heldFlushClient hands each flush to the test instead of completing it.
+type heldFlushClient struct {
+	plugin.UnimplementedDestination
+	flushes chan *message.WriteFlush
+}
+
+func (*heldFlushClient) Close(context.Context) error { return nil }
+func (*heldFlushClient) Tables(context.Context, plugin.TableOptions) (schema.Tables, error) {
+	return nil, nil
+}
+func (*heldFlushClient) Sync(context.Context, plugin.SyncOptions, chan<- message.SyncMessage) error {
+	return plugin.ErrNotImplemented
+}
+
+func (c *heldFlushClient) Write(_ context.Context, msgs <-chan message.WriteMessage) error {
+	for msg := range msgs {
+		if flush, ok := msg.(*message.WriteFlush); ok {
+			c.flushes <- flush
+		}
+	}
+	return nil
+}
+
+func TestWriteStreamAcksFlushOnlyAfterCommit(t *testing.T) {
+	ctx := context.Background()
+	client := &heldFlushClient{flushes: make(chan *message.WriteFlush)}
+	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("held", "v1.0.0", func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
+		return client, nil
+	}, plugin.WithFlushSupport())))
+	_, err := c.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+
+	stream, err := c.WriteStream(ctx)
+	require.NoError(t, err)
+	responses := make(chan *pb.Write_Response)
+	errs := make(chan error, 1)
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err != nil {
+				errs <- err
+				return
+			}
+			responses <- res
+		}
+	}()
+
+	require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 3}}}))
+	flush := <-client.flushes
+	select {
+	case res := <-responses:
+		t.Fatalf("flush %d acknowledged before it completed", res.FlushId)
+	case err := <-errs:
+		t.Fatal(err)
+	case <-time.After(200 * time.Millisecond):
+	}
+	flush.Done(nil)
+	require.EqualValues(t, 3, (<-responses).FlushId)
+
+	require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 4}}}))
+	(<-client.flushes).Done(errors.New("disk full"))
+	select {
+	case err := <-errs:
+		require.Equal(t, codes.Internal, status.Code(err))
+		require.ErrorContains(t, err, "flush failed: disk full")
+	case res := <-responses:
+		t.Fatalf("failed flush %d acknowledged", res.FlushId)
+	case <-time.After(5 * time.Second):
+		t.Fatal("stream did not fail after the flush failed")
+	}
+}
+
+func TestWriteStreamRejectsEmptyMessage(t *testing.T) {
+	ctx := context.Background()
+	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())))
+	_, err := c.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+
+	stream, err := c.WriteStream(ctx)
+	require.NoError(t, err)
+	require.NoError(t, stream.Send(&pb.Write_Request{}))
+	_, err = stream.Recv()
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+type noFlushClient struct {
+	plugin.Client
+}
+
+func (noFlushClient) SupportsFlush() bool { return false }
+
+func TestClientCanTurnOffFlushSupport(t *testing.T) {
+	ctx := context.Background()
+	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", func(ctx context.Context, logger zerolog.Logger, spec []byte, opts plugin.NewClientOptions) (plugin.Client, error) {
+		client, err := memdb.NewMemDBClient(ctx, logger, spec, opts)
+		return noFlushClient{Client: client}, err
+	}, plugin.WithFlushSupport())))
+	res, err := c.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+	require.False(t, res.SupportsFlush)
+
+	stream, err := c.WriteStream(ctx)
+	require.NoError(t, err)
+	_, err = stream.Recv()
+	require.Equal(t, codes.Unimplemented, status.Code(err))
 }

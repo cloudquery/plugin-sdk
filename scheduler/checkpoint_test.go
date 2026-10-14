@@ -3,15 +3,18 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/internal/checkpoint"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -262,7 +265,166 @@ func TestCheckpointAfterCancelledSync(t *testing.T) {
 	res := make(chan message.SyncMessage)
 	wait := collectSyncMessages(res)
 	_ = s.Sync(ctx, &testExecutionClient{}, schema.Tables{table}, res)
-	require.ErrorIs(t, scope.Checkpoint(context.Background(), &testMarker{name: "after"}), errSyncAborted)
+	require.ErrorIs(t, scope.Checkpoint(context.Background(), &testMarker{name: "after"}), checkpoint.ErrSyncAborted)
 	close(res)
 	require.Empty(t, requireMarkersAfterRows(t, wait()))
+}
+
+// cancellingBatcher cancels the sync while it flushes.
+type cancellingBatcher struct {
+	cancel  context.CancelFunc
+	flushed bool
+}
+
+func (*cancellingBatcher) process(*schema.Resource) {}
+func (b *cancellingBatcher) flush() bool {
+	b.cancel()
+	return b.flushed
+}
+func (*cancellingBatcher) close() {}
+
+func TestCheckpointNotSentWhenSyncIsCancelledDuringFlush(t *testing.T) {
+	for _, flushed := range []bool{false, true} {
+		t.Run(fmt.Sprintf("flushed=%t", flushed), func(t *testing.T) {
+			// sending is a random choice between res and ctx.Done, so repeat to catch a checkpoint going out
+			for range 50 {
+				ctx, cancel := context.WithCancel(context.Background())
+				res := make(chan message.SyncMessage, 1)
+				s := &syncClient{checkpoints: newSyncCheckpoints(res), msgChan: res, logger: zerolog.Nop()}
+				resources := make(chan *schema.Resource)
+				errCh := make(chan error, 1)
+				go func() {
+					errCh <- s.processResources(ctx, &cancellingBatcher{cancel: cancel, flushed: flushed}, resources)
+				}()
+				require.NoError(t, s.checkpoints.send(context.Background(), []message.SyncMessage{&testMarker{name: "checkpoint"}}))
+				close(resources)
+				require.ErrorIs(t, <-errCh, context.Canceled)
+				require.Empty(t, res)
+			}
+		})
+	}
+}
+
+func stateCheckpoint(key, value string, version uint64) *message.SyncCheckpoint {
+	sc := (&schema.Table{Name: "cq_state", Columns: schema.ColumnList{
+		{Name: stateKeyColumn, Type: arrow.BinaryTypes.String, PrimaryKey: true},
+		{Name: stateValueColumn, Type: arrow.BinaryTypes.String},
+		{Name: stateVersionColumn, Type: arrow.PrimitiveTypes.Uint64},
+	}}).ToArrowSchema()
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
+	defer bldr.Release()
+	bldr.Field(0).(*array.StringBuilder).Append(key)
+	bldr.Field(1).(*array.StringBuilder).Append(value)
+	bldr.Field(2).(*array.Uint64Builder).Append(version)
+	return &message.SyncCheckpoint{Record: bldr.NewRecordBatch()}
+}
+
+func stateValues(t *testing.T, msgs message.SyncMessages) map[string]string {
+	t.Helper()
+	values := map[string]string{}
+	for _, msg := range msgs {
+		if m, ok := msg.(*message.SyncCheckpoint); ok {
+			keys, _ := column[*array.String](m.Record, stateKeyColumn)
+			vals, _ := column[*array.String](m.Record, stateValueColumn)
+			for i := range keys.Len() {
+				values[keys.Value(i)] = vals.Value(i)
+			}
+		}
+	}
+	return values
+}
+
+func TestHeldCheckpointsAreCoalesced(t *testing.T) {
+	table := &schema.Table{
+		Name:    checkpointParentTable,
+		Columns: []schema.Column{idColumn()},
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			scope := checkpoint.FromContext(ctx)
+			for page := range 5 {
+				res <- []int64{int64(page)}
+				if err := scope.Checkpoint(ctx, stateCheckpoint("cursor", strconv.Itoa(page), uint64(page+1))); err != nil {
+					return err
+				}
+			}
+			// an older version does not replace the newer one
+			return scope.Checkpoint(ctx, stateCheckpoint("cursor", "stale", 1))
+		},
+	}
+	s := NewScheduler(WithStrategy(StrategyShuffleQueue))
+	res := make(chan message.SyncMessage)
+	wait := collectSyncMessages(res)
+	require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{table}, res))
+	close(res)
+	msgs := wait()
+
+	var checkpoints int
+	for _, msg := range msgs {
+		if _, ok := msg.(*message.SyncCheckpoint); ok {
+			checkpoints++
+		}
+	}
+	require.Equal(t, 1, checkpoints)
+	require.Equal(t, map[string]string{"cursor": "4"}, stateValues(t, msgs))
+	require.IsType(t, &message.SyncCheckpoint{}, msgs[len(msgs)-1])
+}
+
+func TestPendingCheckpointsDroppedWhenSyncIsCancelled(t *testing.T) {
+	for _, strategy := range []Strategy{StrategyDFS, StrategyShuffleQueue} {
+		t.Run(strategy.String(), func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			table := &schema.Table{
+				Name:    checkpointParentTable,
+				Columns: []schema.Column{idColumn()},
+				Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+					res <- []int64{1, 2}
+					err := checkpoint.FromContext(ctx).Checkpoint(ctx, &testMarker{name: "pending", parents: []int64{1, 2}})
+					cancel()
+					return err
+				},
+			}
+			// the batch never fills, so the rows are dropped when the sync is cancelled
+			s := NewScheduler(WithStrategy(strategy), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+			res := make(chan message.SyncMessage)
+			wait := collectSyncMessages(res)
+			_ = s.Sync(ctx, &testExecutionClient{}, schema.Tables{table}, res)
+			close(res)
+			require.Empty(t, requireMarkersAfterRows(t, wait()))
+		})
+	}
+}
+
+func TestJoinedCheckpointFollowsEveryScope(t *testing.T) {
+	var (
+		parentScope = make(chan checkpoint.Scope, 1)
+		joinedSent  = make(chan struct{})
+	)
+	parent := &schema.Table{
+		Name:    checkpointParentTable,
+		Columns: []schema.Column{idColumn()},
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			res <- []int64{1, 2, 3}
+			parentScope <- checkpoint.FromContext(ctx)
+			<-joinedSent
+			return nil
+		},
+	}
+	other := &schema.Table{
+		Name:    checkpointChildTable,
+		Columns: []schema.Column{idColumn()},
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			res <- []int64{10, 11}
+			scope := checkpoint.Join(<-parentScope, checkpoint.FromContext(ctx))
+			defer close(joinedSent)
+			return scope.Checkpoint(ctx, &testMarker{name: "joined", parents: []int64{1, 2, 3}, children: []int64{10, 11}})
+		},
+	}
+	for range 20 {
+		joinedSent = make(chan struct{})
+		s := NewScheduler(WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+		res := make(chan message.SyncMessage)
+		wait := collectSyncMessages(res)
+		require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{parent, other}, res))
+		close(res)
+		require.Len(t, requireMarkersAfterRows(t, wait()), 1)
+	}
 }

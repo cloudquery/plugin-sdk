@@ -318,15 +318,13 @@ func (s *syncClient) processResources(ctx context.Context, b batcherInterface, r
 				b.process(resource)
 			}
 		case msgs := <-s.checkpoints.requests:
-			select {
-			case <-done:
+			// a cancelled sync may drop resources, and their checkpoints must not go out
+			if !b.flush() || ctx.Err() != nil {
 				s.logger.Debug().Msg("sync context cancelled")
 				return context.Cause(ctx)
-			default:
-				b.flush()
-				if err := sendMessages(ctx, s.msgChan, msgs); err != nil {
-					return err
-				}
+			}
+			if err := sendMessages(ctx, s.msgChan, msgs); err != nil {
+				return err
 			}
 		}
 	}

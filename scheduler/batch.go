@@ -84,8 +84,9 @@ func (s *BatchSettings) getBatcher(ctx context.Context, res chan<- message.SyncM
 
 type batcherInterface interface {
 	process(res *schema.Resource)
-	// flush sends every resource passed to process so far
-	flush()
+	// flush sends every resource passed to process so far. It reports false if the sync was cancelled first, as
+	// workers then drop the resources they hold.
+	flush() bool
 	close()
 }
 
@@ -97,7 +98,7 @@ func (n *nopBatcher) process(resource *schema.Resource) {
 	n.res <- &message.SyncInsert{Record: resource.GetValues().ToArrowRecord(resource.Table.ToArrowSchema())}
 }
 
-func (*nopBatcher) flush() {}
+func (*nopBatcher) flush() bool { return true }
 
 func (*nopBatcher) close() {}
 
@@ -267,21 +268,25 @@ func (b *batcher) process(res *schema.Resource) {
 	wr.ch <- res
 }
 
-func (b *batcher) flush() {
+func (b *batcher) flush() bool {
+	flushed := true
 	b.workers.Range(func(_, v any) bool {
 		ack := make(chan struct{})
 		select {
 		case v.(*worker).flush <- ack:
 		case <-b.done:
+			flushed = false
 			return false
 		}
 		select {
 		case <-ack:
 			return true
 		case <-b.done:
+			flushed = false
 			return false
 		}
 	})
+	return flushed
 }
 
 func (b *batcher) close() {

@@ -14,6 +14,7 @@
 // 2. The batch size is reached
 // 3. The batch size in bytes is reached
 // 4. A different message type is received
+// 5. A message.WriteFlush is received: every open batch completes, and the flush is done once their handlers return
 //
 // Each handler can get invoked multiple times as new batches are processed.
 // Handlers get invoked only if there's a message of that type at hand: First message of the batch is immediately available in the channel.

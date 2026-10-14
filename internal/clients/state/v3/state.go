@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"iter"
 	"maps"
@@ -29,7 +30,7 @@ const (
 type Client struct {
 	client pb.PluginClient
 	mem    map[string]versionedValue
-	// changed keys, with the scope of the last change (nil outside table resolvers)
+	// changed keys, with the scope covering every change since the last flush (nil outside table resolvers)
 	changes       map[string]checkpoint.Scope
 	mutex         *sync.RWMutex
 	schema        *arrow.Schema
@@ -163,7 +164,7 @@ func (c *Client) SetKey(ctx context.Context, key string, value string) error {
 		value:   value,
 		version: c.mem[key].version + 1,
 	}
-	c.changes[key] = checkpoint.FromContext(ctx)
+	c.changes[key] = checkpoint.Join(c.changes[key], checkpoint.FromContext(ctx))
 	return nil
 }
 
@@ -199,22 +200,37 @@ func (c *Client) Flush(ctx context.Context) error {
 	return nil
 }
 
-// flushCheckpoints sends one checkpoint per scope, so each waits only for the resources of the scope that changed its keys.
+// flushCheckpoints sends one checkpoint per scope, so each waits only for the resources of the scopes that changed its
+// keys. Keys whose checkpoint fails stay pending.
 func (c *Client) flushCheckpoints(ctx context.Context) error {
 	keysByScope := make(map[checkpoint.Scope][]string)
 	for key, scope := range c.changes {
 		keysByScope[scope] = append(keysByScope[scope], key)
 	}
-	for scope, keys := range keysByScope {
+	// keys changed outside table resolvers do not wait for any scope, so they go first
+	scopes := slices.SortedFunc(maps.Keys(keysByScope), func(a, b checkpoint.Scope) int {
+		switch {
+		case a == nil && b != nil:
+			return -1
+		case a != nil && b == nil:
+			return 1
+		default:
+			return 0
+		}
+	})
+	var errs []error
+	for _, scope := range scopes {
+		keys := keysByScope[scope]
 		msg := &message.SyncCheckpoint{Record: c.record(slices.Values(keys))}
 		if err := c.sendCheckpoint(ctx, scope, msg); err != nil {
-			return err
+			errs = append(errs, err)
+			continue
 		}
 		for _, key := range keys {
 			delete(c.changes, key)
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 func (c *Client) sendCheckpoint(ctx context.Context, scope checkpoint.Scope, msg *message.SyncCheckpoint) error {

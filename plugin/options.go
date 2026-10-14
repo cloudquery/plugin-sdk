@@ -56,6 +56,10 @@ func WithConnectionTester(tester ConnectionTester) Option {
 // WithFlushSupport declares that the client's Write handles message.WriteFlush: it commits every message received
 // before the flush, then calls Done. The writers in the writers package do this, so a client whose Write passes the
 // message channel to one of them can set this option.
+//
+// A flush ends every open batch, like reaching the batch size does. Do not set this option if ending a batch early
+// loses or corrupts data, for example a file destination that writes the whole sync to a single object. A client whose
+// support depends on its spec implements FlushSupporter.
 func WithFlushSupport() Option {
 	return func(p *Plugin) {
 		p.supportsFlush = true

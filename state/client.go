@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	pbDiscovery "github.com/cloudquery/plugin-pb-go/pb/discovery/v1"
+	"github.com/cloudquery/plugin-sdk/v4/internal/checkpoint"
 	stateV3 "github.com/cloudquery/plugin-sdk/v4/internal/clients/state/v3"
 	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -14,6 +15,10 @@ import (
 )
 
 const defaultMaxMsgSizeInBytes = 100 * 1024 * 1024 // 100 MiB
+
+// ErrSyncAborted is returned by Flush when the sync was cancelled before the state could be sent as a checkpoint.
+// The state stays pending.
+var ErrSyncAborted = checkpoint.ErrSyncAborted
 
 type Client interface {
 	SetKey(ctx context.Context, key string, value string) error
@@ -28,7 +33,7 @@ type ClientOptions struct {
 	// the state once the destinations commit the resources synced before it. Changes made within a table resolver (using
 	// its ctx) wait only for the resources that resolver produced; other changes must be flushed after the resources
 	// they summarize are sent, e.g. once the scheduler's Sync returns.
-	// NewClientWithOptions uses it as is; NewConnectedClientWithOptions uses it only when the CLI supports checkpoints.
+	// Only NewConnectedClientWithOptions uses it, as only the backend options say whether the CLI supports checkpoints.
 	Checkpoints chan<- message.SyncMessage
 }
 
@@ -40,7 +45,12 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Cl
 	return NewClientWithOptions(ctx, conn, tableName, ClientOptions{})
 }
 
-func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, clOpts ClientOptions) (Client, error) {
+func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, _ ClientOptions) (Client, error) {
+	return newStateClient(ctx, conn, tableName, nil)
+}
+
+// newStateClient makes Flush send checkpoints on checkpoints, if set, instead of writing to the backend.
+func newStateClient(ctx context.Context, conn *grpc.ClientConn, tableName string, checkpoints chan<- message.SyncMessage) (Client, error) {
 	discoveryClient := pbDiscovery.NewDiscoveryClient(conn)
 	versions, err := discoveryClient.GetVersions(ctx, &pbDiscovery.GetVersions_Request{})
 	if err != nil {
@@ -51,8 +61,8 @@ func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName 
 	}
 
 	var opts []stateV3.Option
-	if clOpts.Checkpoints != nil {
-		opts = append(opts, stateV3.WithCheckpoints(clOpts.Checkpoints))
+	if checkpoints != nil {
+		opts = append(opts, stateV3.WithCheckpoints(checkpoints))
 	}
 	return stateV3.NewClient(ctx, conn, tableName, opts...)
 }
@@ -78,8 +88,9 @@ func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.Back
 		return nil, fmt.Errorf("backend_options must contain both connection and table_name: %v", backendOpts)
 	}
 
-	if !backendOpts.SupportsCheckpoints {
-		clOpts.Checkpoints = nil
+	var checkpoints chan<- message.SyncMessage
+	if backendOpts.SupportsCheckpoints {
+		checkpoints = clOpts.Checkpoints
 	}
 	if connOpts.MaxMsgSizeInBytes <= 0 {
 		connOpts.MaxMsgSizeInBytes = defaultMaxMsgSizeInBytes
@@ -97,7 +108,7 @@ func NewConnectedClientWithOptions(ctx context.Context, backendOpts *plugin.Back
 		return &NoOpClient{}, fmt.Errorf("failed to dial grpc source plugin at %s: %w", backendOpts.Connection, err)
 	}
 
-	stateClient, err := NewClientWithOptions(ctx, backendConn, backendOpts.TableName, clOpts)
+	stateClient, err := newStateClient(ctx, backendConn, backendOpts.TableName, checkpoints)
 	if err != nil {
 		return &NoOpClient{}, fmt.Errorf("failed to create state client: %w", err)
 	}

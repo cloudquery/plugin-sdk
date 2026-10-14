@@ -475,6 +475,8 @@ func (s *Server) WriteStream(stream pb.Plugin_WriteStreamServer) error {
 
 		select {
 		case msgs <- pluginMessage:
+		case <-writeDone:
+			return stop(codes.Internal, "plugin stopped writing")
 		case <-gctx.Done():
 			return stop(codes.Canceled, "plugin stopped writing")
 		case <-ctx.Done():
@@ -566,8 +568,9 @@ func writeRequestToMessage(r *pb.Write_Request) (message.WriteMessage, error) {
 				WhereClause:    whereClause,
 			},
 		}, nil
+	default:
+		return nil, status.Errorf(codes.InvalidArgument, "unknown message type: %T", pbMsg)
 	}
-	return nil, nil
 }
 
 func (s *Server) Transform(stream pb.Plugin_TransformServer) error {

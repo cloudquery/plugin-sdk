@@ -135,9 +135,21 @@ func (p *Plugin) InvocationID() string {
 	return p.invocationID
 }
 
+// FlushSupporter is implemented by clients whose flush support depends on their spec.
+// It is only consulted for plugins created with WithFlushSupport.
+type FlushSupporter interface {
+	SupportsFlush() bool
+}
+
 // SupportsFlush reports whether the plugin's Write handles message.WriteFlush
 func (p *Plugin) SupportsFlush() bool {
-	return p.supportsFlush
+	if !p.supportsFlush {
+		return false
+	}
+	if client, ok := p.client.(FlushSupporter); ok {
+		return client.SupportsFlush()
+	}
+	return true
 }
 
 // Name returns the name of this plugin
