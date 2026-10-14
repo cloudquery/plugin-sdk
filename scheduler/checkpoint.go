@@ -30,8 +30,10 @@ type syncCheckpoints struct {
 	deferred []message.SyncMessage
 	// state rows held until the sync completes, by table, so repeated checkpoints of a key keep only the newest row
 	deferredState map[string]*heldState
-	done          bool
-	completed     bool
+	// sent once the held state is sent, to track the checkpoints merged into it
+	heldSent  *checkpoint.Sent
+	done      bool
+	completed bool
 }
 
 var _ checkpoint.Scope = (*syncCheckpoints)(nil)
@@ -99,13 +101,21 @@ func (c *syncCheckpoints) complete(ctx context.Context) error {
 	for _, state := range c.deferredState {
 		deferred = append(deferred, &message.SyncCheckpoint{Record: state.record()})
 	}
+	heldSent := c.heldSent
 	c.deferred = nil
 	c.deferredState = nil
+	c.heldSent = nil
 	c.done = true
 	c.completed = true
 	c.mu.Unlock()
 	close(c.finished)
-	return sendMessages(ctx, c.res, deferred)
+	if err := sendMessages(ctx, c.res, deferred); err != nil {
+		return err
+	}
+	if heldSent == nil {
+		return nil
+	}
+	return heldSent.Finish(ctx, c.res)
 }
 
 // abort is called once the batcher is closed when some resources may not have been sent.
@@ -113,6 +123,7 @@ func (c *syncCheckpoints) abort() {
 	c.mu.Lock()
 	c.deferred = nil
 	c.deferredState = nil
+	c.heldSent = nil
 	c.done = true
 	c.mu.Unlock()
 	close(c.finished)
@@ -172,16 +183,8 @@ func (t *tableScope) end() []message.SyncMessage {
 
 func sendMessages(ctx context.Context, res chan<- message.SyncMessage, msgs []message.SyncMessage) error {
 	for _, msg := range msgs {
-		if barrier, ok := msg.(*checkpoint.Barrier); ok {
-			if err := barrier.Reached(ctx, res); err != nil {
-				return err
-			}
-			continue
-		}
-		select {
-		case res <- msg:
-		case <-ctx.Done():
-			return context.Cause(ctx)
+		if err := checkpoint.Deliver(ctx, res, msg); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -200,6 +203,10 @@ type heldState struct {
 // holdState merges a state checkpoint into the held state, and reports false for other messages.
 // Must be called with c.mu held.
 func (c *syncCheckpoints) holdState(msg message.SyncMessage) bool {
+	tracked, isTracked := msg.(*checkpoint.Tracked)
+	if isTracked {
+		msg = tracked.Message
+	}
 	m, ok := msg.(*message.SyncCheckpoint)
 	if !ok {
 		return false
@@ -231,6 +238,12 @@ func (c *syncCheckpoints) holdState(msg message.SyncMessage) bool {
 			}
 		}
 		state.rows[keys.Value(i)] = row
+	}
+	if isTracked {
+		if c.heldSent == nil {
+			c.heldSent = &checkpoint.Sent{}
+		}
+		tracked.Sent.MergeInto(c.heldSent)
 	}
 	return true
 }

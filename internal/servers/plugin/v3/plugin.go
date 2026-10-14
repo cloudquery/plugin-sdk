@@ -279,15 +279,11 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 			if !req.SupportsCheckpoints {
 				return status.Errorf(codes.Internal, "plugin sent a checkpoint, but the client does not support checkpoints")
 			}
-			recordBytes, err := pb.RecordToBytes(m.Record)
-			if err != nil {
-				return status.Errorf(codes.Internal, "failed to encode checkpoint record: %v", err)
+			// each part of a split checkpoint holds whole rows, and the client persists them all after the same point
+			if err := s.sendRecord(stream, m.Record, checkpointResponse); err != nil {
+				return err
 			}
-			pbMsg.Message = &pb.Sync_Response_Checkpoint{
-				Checkpoint: &pb.Sync_MessageCheckpoint{
-					Record: recordBytes,
-				},
-			}
+			continue
 		default:
 			return status.Errorf(codes.Internal, "unknown message type: %T", msg)
 		}
@@ -307,7 +303,32 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	return syncErr
 }
 
+func insertResponse(recordBytes []byte) *pb.Sync_Response {
+	return &pb.Sync_Response{
+		Message: &pb.Sync_Response_Insert{
+			Insert: &pb.Sync_MessageInsert{
+				Record: recordBytes,
+			},
+		},
+	}
+}
+
+func checkpointResponse(recordBytes []byte) *pb.Sync_Response {
+	return &pb.Sync_Response{
+		Message: &pb.Sync_Response_Checkpoint{
+			Checkpoint: &pb.Sync_MessageCheckpoint{
+				Record: recordBytes,
+			},
+		},
+	}
+}
+
 func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatch) error {
+	return s.sendRecord(stream, record, insertResponse)
+}
+
+// sendRecord sends record in responses made by toResponse, split to stay within the max message size.
+func (s *Server) sendRecord(stream pb.Plugin_SyncServer, record arrow.RecordBatch, toResponse func([]byte) *pb.Sync_Response) error {
 	maxMsgSize := s.maxMsgSize()
 	pending := []arrow.RecordBatch{record}
 	for len(pending) > 0 {
@@ -318,13 +339,7 @@ func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatc
 		if err != nil {
 			return status.Errorf(codes.Internal, "failed to encode record for table %q: %v", recordTableName(current), err)
 		}
-		pbMsg := &pb.Sync_Response{
-			Message: &pb.Sync_Response_Insert{
-				Insert: &pb.Sync_MessageInsert{
-					Record: recordBytes,
-				},
-			},
-		}
+		pbMsg := toResponse(recordBytes)
 
 		size := proto.Size(pbMsg)
 		if size <= maxMsgSize {

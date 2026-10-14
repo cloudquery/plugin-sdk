@@ -362,10 +362,21 @@ func checkpointValues(t *testing.T, msgs ...message.SyncMessage) map[string]stri
 	t.Helper()
 	values := map[string]string{}
 	for _, msg := range msgs {
+		if tracked, ok := msg.(*checkpoint.Tracked); ok {
+			msg = tracked.Message
+		}
 		require.IsType(t, &message.SyncCheckpoint{}, msg)
 		addStateRows(values, msg.(*message.SyncCheckpoint).Record)
 	}
 	return values
+}
+
+// deliver sends what a scope received as the scheduler would, once the scope's resources are sent.
+func deliver(t *testing.T, res chan<- message.SyncMessage, msgs ...message.SyncMessage) {
+	t.Helper()
+	for _, msg := range msgs {
+		require.NoError(t, checkpoint.Deliver(context.Background(), res, msg))
+	}
 }
 
 func newCheckpointStateClient(t *testing.T, tableName string) (*stateV3.Client, chan message.SyncMessage, *grpc.ClientConn) {
@@ -399,24 +410,24 @@ func TestStateClientCheckpointsPerScope(t *testing.T) {
 	// the shared key waits for both scopes: each gets a barrier, and the last one to reach it sends the checkpoint
 	require.Len(t, scopeA.msgs, 2)
 	require.Len(t, scopeB.msgs, 2)
-	var barriers []*checkpoint.Barrier
+	var barriers []message.SyncMessage
 	for _, scope := range []*recordingScope{scopeA, scopeB} {
-		var direct []message.SyncMessage
+		var tracked []message.SyncMessage
 		for _, msg := range scope.msgs {
-			if barrier, ok := msg.(*checkpoint.Barrier); ok {
-				barriers = append(barriers, barrier)
+			if _, ok := msg.(*checkpoint.Barrier); ok {
+				barriers = append(barriers, msg)
 			} else {
-				direct = append(direct, msg)
+				tracked = append(tracked, msg)
 			}
 		}
-		require.Len(t, direct, 1)
+		require.Len(t, tracked, 1)
 	}
 	require.Equal(t, map[string]string{"a": "1"}, checkpointValues(t, scopeA.msgs[slices.IndexFunc(scopeA.msgs, isCheckpoint)]))
 	require.Equal(t, map[string]string{"b": "1"}, checkpointValues(t, scopeB.msgs[slices.IndexFunc(scopeB.msgs, isCheckpoint)]))
 	require.Len(t, barriers, 2)
-	require.NoError(t, barriers[0].Reached(ctx, res))
+	deliver(t, res, barriers[0])
 	require.Empty(t, res)
-	require.NoError(t, barriers[1].Reached(ctx, res))
+	deliver(t, res, barriers[1])
 	require.Equal(t, map[string]string{"shared": "2"}, checkpointValues(t, <-res))
 
 	require.NoError(t, stateClient.Flush(ctx))
@@ -428,8 +439,35 @@ func TestStateClientCheckpointsPerScope(t *testing.T) {
 }
 
 func isCheckpoint(msg message.SyncMessage) bool {
-	_, ok := msg.(*message.SyncCheckpoint)
+	_, ok := msg.(*checkpoint.Tracked)
 	return ok
+}
+
+func TestStateClientCheckpointWaitsForPreviousCheckpointOfKey(t *testing.T) {
+	ctx := context.Background()
+	stateClient, res, _ := newCheckpointStateClient(t, "test_previous")
+
+	scopeA, scopeB := &recordingScope{}, &recordingScope{}
+	require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, scopeA), "cursor", "1"))
+	require.NoError(t, stateClient.Flush(ctx))
+	require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, scopeB), "cursor", "2"))
+	require.NoError(t, stateClient.Flush(ctx))
+	require.Len(t, scopeA.msgs, 1)
+	require.Len(t, scopeB.msgs, 1)
+
+	// scope B finishes first, but its checkpoint must not overtake scope A's resources
+	deliver(t, res, scopeB.msgs...)
+	require.Empty(t, res)
+	deliver(t, res, scopeA.msgs...)
+	require.Equal(t, map[string]string{"cursor": "1"}, checkpointValues(t, <-res))
+	require.Equal(t, map[string]string{"cursor": "2"}, checkpointValues(t, <-res))
+
+	// once sent, a checkpoint holds back nothing
+	scopeC := &recordingScope{}
+	require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, scopeC), "cursor", "3"))
+	require.NoError(t, stateClient.Flush(ctx))
+	require.Len(t, scopeC.msgs, 1)
+	require.IsType(t, &checkpoint.Tracked{}, scopeC.msgs[0])
 }
 
 func TestStateClientKeepsKeysOfFailedCheckpoints(t *testing.T) {

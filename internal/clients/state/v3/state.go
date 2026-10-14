@@ -31,7 +31,9 @@ type Client struct {
 	client pb.PluginClient
 	mem    map[string]versionedValue
 	// changed keys, with the scope covering every change since the last flush (nil outside table resolvers)
-	changes       map[string]checkpoint.Scope
+	changes map[string]checkpoint.Scope
+	// the last checkpoint of each key, which the next checkpoint of the key must not overtake
+	sent          map[string]*checkpoint.Sent
 	mutex         *sync.RWMutex
 	schema        *arrow.Schema
 	versionedMode bool
@@ -62,6 +64,7 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string, opt
 		client:        pb.NewPluginClient(conn),
 		mem:           make(map[string]versionedValue),
 		changes:       make(map[string]checkpoint.Scope),
+		sent:          make(map[string]*checkpoint.Sent),
 		mutex:         &sync.RWMutex{},
 		versionedMode: table.Column(versionColumn) != nil,
 	}
@@ -222,27 +225,35 @@ func (c *Client) flushCheckpoints(ctx context.Context) error {
 	for _, scope := range scopes {
 		keys := keysByScope[scope]
 		msg := &message.SyncCheckpoint{Record: c.record(slices.Values(keys))}
-		if err := c.sendCheckpoint(ctx, scope, msg); err != nil {
+		sent, err := checkpoint.Send(ctx, c.checkpoints, scope, c.unsent(keys), msg)
+		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
 		for _, key := range keys {
 			delete(c.changes, key)
+			c.sent[key] = sent
 		}
 	}
 	return errors.Join(errs...)
 }
 
-func (c *Client) sendCheckpoint(ctx context.Context, scope checkpoint.Scope, msg *message.SyncCheckpoint) error {
-	if scope != nil {
-		return scope.Checkpoint(ctx, msg)
+// unsent returns the previous checkpoints of keys that are not sent yet, as the scopes they wait for may still be
+// sending the resources they cover.
+func (c *Client) unsent(keys []string) []*checkpoint.Sent {
+	var unsent []*checkpoint.Sent
+	for _, key := range keys {
+		sent, ok := c.sent[key]
+		if !ok {
+			continue
+		}
+		if sent.Done() {
+			delete(c.sent, key)
+		} else if !slices.Contains(unsent, sent) {
+			unsent = append(unsent, sent)
+		}
 	}
-	select {
-	case c.checkpoints <- msg:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return unsent
 }
 
 func (c *Client) record(keys iter.Seq[string]) arrow.RecordBatch {

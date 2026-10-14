@@ -428,3 +428,34 @@ func TestJoinedCheckpointFollowsEveryScope(t *testing.T) {
 		require.Len(t, requireMarkersAfterRows(t, wait()), 1)
 	}
 }
+
+func TestHeldCheckpointsAreMarkedSentWhenTheSyncCompletes(t *testing.T) {
+	var sent []*checkpoint.Sent
+	table := &schema.Table{
+		Name:    checkpointParentTable,
+		Columns: []schema.Column{idColumn()},
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			for page := range 3 {
+				res <- []int64{int64(page)}
+				s, err := checkpoint.Send(ctx, nil, checkpoint.FromContext(ctx), nil, stateCheckpoint("cursor", strconv.Itoa(page), uint64(page+1)))
+				if err != nil {
+					return err
+				}
+				sent = append(sent, s)
+			}
+			return nil
+		},
+	}
+	s := NewScheduler(WithStrategy(StrategyShuffleQueue))
+	res := make(chan message.SyncMessage)
+	wait := collectSyncMessages(res)
+	require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{table}, res))
+	close(res)
+	msgs := wait()
+
+	require.Equal(t, map[string]string{"cursor": "2"}, stateValues(t, msgs))
+	require.Len(t, sent, 3)
+	for _, s := range sent {
+		require.True(t, s.Done())
+	}
+}
