@@ -174,7 +174,8 @@ func commitWorker[T message.WriteMessage](ctx context.Context, s *streamingWorke
 	if s == nil {
 		return nil
 	}
-	done := make(chan error)
+	// buffered, so the worker does not block if ctx is done before it replies
+	done := make(chan error, 1)
 	select {
 	case s.commit <- done:
 	case <-ctx.Done():
@@ -221,9 +222,11 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 	go func() {
 		defer close(errCh)
 		defer w.Close(ctx)
+		// a rejected message is never written, so every later flush must fail
+		var rejectErr error
 		for msg := range msgs {
 			if flush, ok := msg.(*message.WriteFlush); ok {
-				flush.Done(w.commit(ctx))
+				flush.Done(errors.Join(rejectErr, w.commit(ctx)))
 				continue
 			}
 			msgType := writers.MsgID(msg)
@@ -232,6 +235,9 @@ func (w *StreamingBatchWriter) Write(ctx context.Context, msgs <-chan message.Wr
 			}
 			w.lastMsgType = msgType
 			if err := w.startWorker(ctx, errCh, msg); err != nil {
+				if rejectErr == nil {
+					rejectErr = err
+				}
 				errCh <- err
 			}
 		}
