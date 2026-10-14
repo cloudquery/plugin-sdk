@@ -440,7 +440,7 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 }
 
 // WriteStream is Write that also accepts flushes. It answers each flush once the plugin's Write commits every message
-// sent before it.
+// sent before it, or with the error that prevented it. A failed flush does not end the stream.
 func (s *Server) WriteStream(stream pb.Plugin_WriteStreamServer) error {
 	if !s.Plugin.SupportsFlush() {
 		return status.Errorf(codes.Unimplemented, "plugin does not support flush")
@@ -514,10 +514,11 @@ func (s *Server) WriteStream(stream pb.Plugin_WriteStreamServer) error {
 		case <-ctx.Done():
 			return stop(codes.Canceled, "context done: %v", ctx.Err())
 		}
+		res := &pb.Write_Response{FlushId: r.GetFlush().GetId()}
 		if flushErr != nil {
-			return stop(codes.Internal, "flush failed: %v", flushErr)
+			res.FlushError = flushErr.Error()
 		}
-		if err := stream.Send(&pb.Write_Response{FlushId: r.GetFlush().GetId()}); err != nil {
+		if err := stream.Send(res); err != nil {
 			return stop(codes.Internal, "failed to send flush response: %v", err)
 		}
 	}

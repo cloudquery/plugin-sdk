@@ -557,14 +557,20 @@ func TestWriteStreamAcksFlushOnlyAfterCommit(t *testing.T) {
 
 	require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 4}}}))
 	receive(t, client.flushes).Done(errors.New("disk full"))
+	res := receive(t, responses)
+	require.EqualValues(t, 4, res.FlushId)
+	require.Equal(t, "disk full", res.FlushError)
+
+	// the stream stays open after a failed flush
+	require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 5}}}))
+	receive(t, client.flushes).Done(nil)
+	res = receive(t, responses)
+	require.EqualValues(t, 5, res.FlushId)
+	require.Empty(t, res.FlushError)
 	select {
 	case err := <-errs:
-		require.Equal(t, codes.Internal, status.Code(err))
-		require.ErrorContains(t, err, "flush failed: disk full")
-	case res := <-responses:
-		t.Fatalf("failed flush %d acknowledged", res.FlushId)
-	case <-time.After(5 * time.Second):
-		t.Fatal("stream did not fail after the flush failed")
+		t.Fatalf("stream ended: %v", err)
+	default:
 	}
 }
 
