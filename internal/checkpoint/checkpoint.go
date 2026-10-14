@@ -110,6 +110,8 @@ type Sent struct {
 	mergedInto *Sent
 	// for a checkpoint that others are merged into: the scope holding it
 	heldBy Scope
+	// set when the checkpoint is aborted
+	abortFlags map[*atomic.Bool]struct{}
 }
 
 // NewHeld returns a Sent for a checkpoint that holder merges other checkpoints into.
@@ -153,6 +155,21 @@ func (s *Sent) holder() Scope {
 	return r.heldBy
 }
 
+// NotifyAbort sets flag if the checkpoint is aborted, or now if it already was.
+func (s *Sent) NotifyAbort(flag *atomic.Bool) {
+	r := s.root()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.aborted {
+		flag.Store(true)
+		return
+	}
+	if r.abortFlags == nil {
+		r.abortFlags = make(map[*atomic.Bool]struct{})
+	}
+	r.abortFlags[flag] = struct{}{}
+}
+
 // MergedInto reports whether s is sent with into.
 func (s *Sent) MergedInto(into *Sent) bool {
 	return s != into && s.root() == into
@@ -161,12 +178,15 @@ func (s *Sent) MergedInto(into *Sent) bool {
 // MergeInto marks s as sent once into is sent, and aborted if into is aborted. into must not be sent yet.
 func (s *Sent) MergeInto(into *Sent) {
 	s.mu.Lock()
-	waiting := s.waiting
-	s.waiting = nil
+	waiting, flags := s.waiting, s.abortFlags
+	s.waiting, s.abortFlags = nil, nil
 	s.mergedInto = into
 	s.mu.Unlock()
 	for _, barrier := range waiting {
 		into.wait(barrier)
+	}
+	for flag := range flags {
+		into.NotifyAbort(flag)
 	}
 }
 
@@ -198,7 +218,7 @@ func (s *Sent) Finish(ctx context.Context, res chan<- message.SyncMessage) error
 	}
 	s.done = true
 	waiting := s.waiting
-	s.waiting = nil
+	s.waiting, s.abortFlags = nil, nil
 	s.mu.Unlock()
 	var errs []error
 	for _, barrier := range waiting {
@@ -218,9 +238,12 @@ func (s *Sent) Abort() {
 		return
 	}
 	r.aborted = true
-	waiting := r.waiting
-	r.waiting = nil
+	waiting, flags := r.waiting, r.abortFlags
+	r.waiting, r.abortFlags = nil, nil
 	r.mu.Unlock()
+	for flag := range flags {
+		flag.Store(true)
+	}
 	for _, barrier := range waiting {
 		barrier.abort()
 	}
@@ -302,6 +325,14 @@ func commonHolder(pending []*Sent) Scope {
 	return holder
 }
 
+// Collapse returns the shared scope a Collapsing scope collapsed into, or scope itself.
+func Collapse(scope Scope) Scope {
+	if c, ok := scope.(Collapsing); ok {
+		return c.Collapsed()
+	}
+	return scope
+}
+
 // Join returns a scope whose checkpoints follow the resources of all the given scopes. It skips nil scopes, merges
 // scopes that collapsed into the same one, and returns nil if all are nil.
 func Join(scopes ...Scope) Scope {
@@ -309,9 +340,7 @@ func Join(scopes ...Scope) Scope {
 	var unique []Scope
 	for _, scope := range scopes {
 		for _, s := range flatten(scope) {
-			if c, ok := s.(Collapsing); ok {
-				s = c.Collapsed()
-			}
+			s = Collapse(s)
 			if _, ok := seen[s]; ok {
 				continue
 			}

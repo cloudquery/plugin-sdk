@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -529,5 +530,143 @@ func TestShuffleQueueMergesCheckpointsOfKeysAlsoSetOutsideResolvers(t *testing.T
 	require.Equal(t, map[string]string{"cursor": "5"}, stateValues(t, msgs))
 	for _, s := range sent {
 		require.True(t, s.Done())
+	}
+}
+
+func TestAbortDropsCheckpointsOfStuckResolvers(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var (
+		release   = make(chan struct{})
+		stuckSent = make(chan *checkpoint.Sent, 1)
+		gate      = make(chan struct{})
+		resume    = make(chan struct{})
+	)
+	defer close(release)
+	stuck := &schema.Table{
+		Name:    checkpointParentTable,
+		Columns: []schema.Column{idColumn()},
+		// the resolver goroutine never gets past this resource, so it never forwards the checkpoint after it
+		PreResourceResolver: func(context.Context, schema.ClientMeta, *schema.Resource) error {
+			<-release
+			return errors.New("released")
+		},
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			res <- int64(1)
+			sent, err := checkpoint.Send(ctx, nil, checkpoint.FromContext(ctx), nil, &testMarker{name: "stuck"})
+			stuckSent <- sent
+			return err
+		},
+	}
+	other := &schema.Table{
+		Name:    checkpointChildTable,
+		Columns: []schema.Column{idColumn()},
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			res <- int64(2)
+			return checkpoint.FromContext(ctx).Checkpoint(ctx, &testMarker{name: "other"})
+		},
+	}
+
+	res := make(chan message.SyncMessage)
+	go func() {
+		for msg := range res {
+			// stop reading once the other table's row arrives, so the sync is cancelled while sending its checkpoint
+			if insert, ok := msg.(*message.SyncInsert); ok && insert.GetTable().Name == checkpointChildTable {
+				close(gate)
+				<-resume
+			}
+		}
+	}()
+	defer close(res)
+	defer close(resume)
+
+	s := NewScheduler(WithStrategy(StrategyDFS), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+	syncErr := make(chan error, 1)
+	go func() {
+		syncErr <- s.Sync(ctx, &testExecutionClient{}, schema.Tables{stuck, other}, res)
+	}()
+	sent := receiveWithin(t, stuckSent)
+	receiveWithin(t, gate)
+	require.False(t, sent.Done() || sent.Aborted(), "the checkpoint waits for the stuck resolver")
+	cancel()
+	require.ErrorIs(t, receiveWithin(t, syncErr), context.Canceled)
+	require.True(t, sent.Aborted(), "a state client waiting for the checkpoint must not hang")
+}
+
+func TestTableScopeStartedAfterAbortDropsCheckpoints(t *testing.T) {
+	c := newSyncCheckpoints(make(chan message.SyncMessage))
+	close(c.loopDone)
+	c.abort()
+
+	sent, err := checkpoint.Send(context.Background(), nil, newTableScope(c), nil, &testMarker{name: "late"})
+	require.ErrorIs(t, err, checkpoint.ErrSyncAborted)
+	require.True(t, sent.Aborted())
+}
+
+func TestEndedTableScopesCollapse(t *testing.T) {
+	scopes := make(chan checkpoint.Scope, 2)
+	collapsedWhileRunning := make(chan bool, 2)
+	table := func(name string) *schema.Table {
+		return &schema.Table{
+			Name:    name,
+			Columns: []schema.Column{idColumn()},
+			Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+				scope := checkpoint.FromContext(ctx)
+				collapsedWhileRunning <- checkpoint.Collapse(scope) != scope
+				scopes <- scope
+				res <- int64(1)
+				return nil
+			},
+		}
+	}
+	s := NewScheduler(WithStrategy(StrategyDFS))
+	res := make(chan message.SyncMessage)
+	wait := collectSyncMessages(res)
+	require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{table(checkpointParentTable), table(checkpointChildTable)}, res))
+	close(res)
+	wait()
+
+	require.False(t, <-collapsedWhileRunning)
+	require.False(t, <-collapsedWhileRunning)
+	a, b := <-scopes, <-scopes
+	require.NotSame(t, a, b)
+	require.Same(t, checkpoint.Collapse(a), checkpoint.Collapse(b))
+	require.Same(t, checkpoint.Collapse(a), checkpoint.Join(a, b), "joining ended scopes waits on the sync once")
+}
+
+func TestSyncAllDropsCheckpointsAfterItReturns(t *testing.T) {
+	var scope checkpoint.Scope
+	table := &schema.Table{
+		Name:    checkpointParentTable,
+		Columns: []schema.Column{idColumn()},
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			scope = checkpoint.FromContext(ctx)
+			res <- int64(1)
+			return nil
+		},
+	}
+	for _, strategy := range []Strategy{StrategyDFS, StrategyShuffleQueue} {
+		t.Run(strategy.String(), func(t *testing.T) {
+			s := NewScheduler(WithStrategy(strategy))
+			_, err := s.SyncAll(context.Background(), &testExecutionClient{}, schema.Tables{table})
+			require.NoError(t, err)
+			// SyncAll closed its channel, so sending would panic
+			sent, err := checkpoint.Send(context.Background(), nil, scope, nil, &testMarker{name: "late"})
+			require.ErrorIs(t, err, errResClosed)
+			require.True(t, sent.Aborted())
+		})
+	}
+}
+
+// receiveWithin fails the test instead of hanging when nothing arrives.
+func receiveWithin[T any](t *testing.T, ch <-chan T) T {
+	t.Helper()
+	select {
+	case v := <-ch:
+		return v
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for a value")
+		var zero T
+		return zero
 	}
 }

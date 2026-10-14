@@ -34,13 +34,20 @@ func (s *WriterTestSuite) testFlush(ctx context.Context) error {
 	defer cancel()
 	msgs := make(chan message.WriteMessage)
 	writeErr := make(chan error, 1)
+	writeDone := make(chan struct{})
 	go func() {
+		defer close(writeDone)
 		writeErr <- s.plugin.Write(ctx, msgs)
 	}()
 	msgsOpen := true
 	defer func() {
 		if msgsOpen {
 			close(msgs)
+		}
+		// a failed step must not leave Write running into the next test
+		select {
+		case <-writeDone:
+		case <-time.After(flushTestTimeout):
 		}
 	}()
 

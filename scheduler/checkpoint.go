@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"maps"
 	"slices"
 	"sync"
@@ -33,9 +34,17 @@ type syncCheckpoints struct {
 	// state rows held until the sync completes, by table, so repeated checkpoints of a key keep only the newest row
 	deferredState map[string]*heldState
 	// sent once the held state is sent, to track the checkpoints merged into it
-	heldSent  *checkpoint.Sent
+	heldSent *checkpoint.Sent
+	// table scopes that did not end, whose pending checkpoints an aborted sync drops
+	scopes    map[*tableScope]struct{}
 	done      bool
 	completed bool
+
+	// set when the caller closes res once Sync returns, as SyncAll does
+	closeRes bool
+	// held to send on res after Sync, so that Sync returns only once those sends are over
+	resMu     sync.RWMutex
+	resClosed bool
 }
 
 var (
@@ -84,11 +93,29 @@ func (c *syncCheckpoints) sendAfterSync(ctx context.Context, msgs []message.Sync
 		dropMessages(msgs)
 		return context.Cause(ctx)
 	}
-	if !c.completed {
+	c.resMu.RLock()
+	defer c.resMu.RUnlock()
+	switch {
+	case !c.completed:
 		dropMessages(msgs)
 		return checkpoint.ErrSyncAborted
+	case c.resClosed:
+		dropMessages(msgs)
+		return errResClosed
 	}
 	return sendMessages(ctx, c.res, msgs)
+}
+
+var errResClosed = errors.New("the sync message channel is closed, as the sync returned")
+
+// returned is called when Sync returns. It waits for checkpoints being sent, if the caller then closes res.
+func (c *syncCheckpoints) returned() {
+	if !c.closeRes {
+		return
+	}
+	c.resMu.Lock()
+	defer c.resMu.Unlock()
+	c.resClosed = true
 }
 
 // endedScope is the scope of table resolvers that ended.
@@ -151,14 +178,19 @@ func (c *syncCheckpoints) complete(ctx context.Context) error {
 // abort is called once the batcher is closed when some resources may not have been sent.
 func (c *syncCheckpoints) abort() {
 	c.mu.Lock()
-	deferred, heldSent := c.deferred, c.heldSent
+	deferred, heldSent, scopes := c.deferred, c.heldSent, c.scopes
 	c.deferred = nil
 	c.deferredState = nil
 	c.heldSent = nil
+	c.scopes = nil
 	c.done = true
 	c.mu.Unlock()
 	close(c.finished)
 	dropMessages(deferred)
+	// a resolver goroutine that is stuck after the cancellation never forwards its pending checkpoints
+	for scope := range scopes {
+		dropMessages(scope.end())
+	}
 	if heldSent != nil {
 		heldSent.Abort()
 	}
@@ -182,7 +214,19 @@ var (
 )
 
 func newTableScope(checkpoints *syncCheckpoints) *tableScope {
-	return &tableScope{checkpoints: checkpoints, notify: make(chan struct{}, 1)}
+	t := &tableScope{checkpoints: checkpoints, notify: make(chan struct{}, 1)}
+	checkpoints.mu.Lock()
+	defer checkpoints.mu.Unlock()
+	if checkpoints.done {
+		// nothing drops the checkpoints of a scope that starts after the sync, so they go straight to the sync
+		t.ended = true
+		return t
+	}
+	if checkpoints.scopes == nil {
+		checkpoints.scopes = make(map[*tableScope]struct{})
+	}
+	checkpoints.scopes[t] = struct{}{}
+	return t
 }
 
 func (t *tableScope) Checkpoint(ctx context.Context, msg message.SyncMessage) error {
@@ -222,10 +266,13 @@ func (t *tableScope) take() []message.SyncMessage {
 // end returns the pending checkpoints. Later checkpoints go straight to the sync.
 func (t *tableScope) end() []message.SyncMessage {
 	t.mu.Lock()
-	defer t.mu.Unlock()
 	pending := t.pending
 	t.pending = nil
 	t.ended = true
+	t.mu.Unlock()
+	t.checkpoints.mu.Lock()
+	delete(t.checkpoints.scopes, t)
+	t.checkpoints.mu.Unlock()
 	return pending
 }
 

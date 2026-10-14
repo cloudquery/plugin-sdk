@@ -99,7 +99,7 @@ func TestInitReportsFlushSupport(t *testing.T) {
 }
 
 func TestWriteStreamFlush(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())))
 	_, err := c.Init(ctx, &pb.Init_Request{})
 	require.NoError(t, err)
@@ -138,7 +138,7 @@ func TestWriteStreamFlush(t *testing.T) {
 }
 
 func TestWriteStreamWithoutFlushSupport(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient)))
 	_, err := c.Init(ctx, &pb.Init_Request{})
 	require.NoError(t, err)
@@ -150,7 +150,7 @@ func TestWriteStreamWithoutFlushSupport(t *testing.T) {
 }
 
 func TestWriteStreamFlushFailure(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.GetNewClient(memdb.WithErrOnWrite()), plugin.WithFlushSupport())))
 	_, err := c.Init(ctx, &pb.Init_Request{})
 	require.NoError(t, err)
@@ -165,7 +165,7 @@ func TestWriteStreamFlushFailure(t *testing.T) {
 }
 
 func TestWriteRejectsFlush(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())))
 	_, err := c.Init(ctx, &pb.Init_Request{})
 	require.NoError(t, err)
@@ -279,7 +279,7 @@ func addStateRows(values map[string]string, record arrow.RecordBatch) {
 func TestSyncCheckpoints(t *testing.T) {
 	for _, supportsCheckpoints := range []bool{true, false} {
 		t.Run(fmt.Sprintf("supports_checkpoints=%t", supportsCheckpoints), func(t *testing.T) {
-			ctx := context.Background()
+			ctx := testContext(t)
 			backendPlugin := plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())
 			require.NoError(t, backendPlugin.Init(ctx, nil, plugin.NewClientOptions{}))
 			backendAddr := serveBackend(t, backendPlugin)
@@ -389,7 +389,7 @@ func deliver(t *testing.T, res chan<- message.SyncMessage, msgs ...message.SyncM
 
 func newCheckpointStateClient(t *testing.T, tableName string) (*stateV3.Client, chan message.SyncMessage, *grpc.ClientConn) {
 	t.Helper()
-	ctx := context.Background()
+	ctx := testContext(t)
 	conn := servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient))
 	_, err := pb.NewPluginClient(conn).Init(ctx, &pb.Init_Request{})
 	require.NoError(t, err)
@@ -400,7 +400,7 @@ func newCheckpointStateClient(t *testing.T, tableName string) (*stateV3.Client, 
 }
 
 func TestStateClientCheckpointsPerScope(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	stateClient, res, conn := newCheckpointStateClient(t, "test_scopes")
 
 	scopeA, scopeB := &recordingScope{}, &recordingScope{}
@@ -452,7 +452,7 @@ func isCheckpoint(msg message.SyncMessage) bool {
 }
 
 func TestStateClientCheckpointWaitsForPreviousCheckpointOfKey(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	stateClient, res, _ := newCheckpointStateClient(t, "test_previous")
 
 	scopeA, scopeB := &recordingScope{}, &recordingScope{}
@@ -479,7 +479,7 @@ func TestStateClientCheckpointWaitsForPreviousCheckpointOfKey(t *testing.T) {
 }
 
 func TestStateClientKeepsKeysOfFailedCheckpoints(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	stateClient, res, _ := newCheckpointStateClient(t, "test_failed_scopes")
 
 	aborted := &recordingScope{err: checkpoint.ErrSyncAborted}
@@ -520,7 +520,7 @@ func (c *heldFlushClient) Write(_ context.Context, msgs <-chan message.WriteMess
 }
 
 func TestWriteStreamAcksFlushOnlyAfterCommit(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	client := &heldFlushClient{flushes: make(chan *message.WriteFlush)}
 	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("held", "v1.0.0", func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
 		return client, nil
@@ -575,7 +575,7 @@ func TestWriteStreamAcksFlushOnlyAfterCommit(t *testing.T) {
 }
 
 func TestWriteStreamRejectsEmptyMessage(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())))
 	_, err := c.Init(ctx, &pb.Init_Request{})
 	require.NoError(t, err)
@@ -594,7 +594,7 @@ type noFlushClient struct {
 func (noFlushClient) SupportsFlush() bool { return false }
 
 func TestClientCanTurnOffFlushSupport(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", func(ctx context.Context, logger zerolog.Logger, spec []byte, opts plugin.NewClientOptions) (plugin.Client, error) {
 		client, err := memdb.NewMemDBClient(ctx, logger, spec, opts)
 		return noFlushClient{Client: client}, err
@@ -611,7 +611,7 @@ func TestClientCanTurnOffFlushSupport(t *testing.T) {
 
 func TestShuffleQueueCoalescesFlushedCheckpoints(t *testing.T) {
 	const pages = 100
-	ctx := context.Background()
+	ctx := testContext(t)
 	backendPlugin := plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())
 	require.NoError(t, backendPlugin.Init(ctx, nil, plugin.NewClientOptions{}))
 	backendAddr := serveBackend(t, backendPlugin)
@@ -653,7 +653,7 @@ func TestShuffleQueueCoalescesFlushedCheckpoints(t *testing.T) {
 }
 
 func TestStateClientJoinsScopesOfSameValueWrites(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	stateClient, res, _ := newCheckpointStateClient(t, "test_same_value")
 
 	scopeA, scopeB := &recordingScope{}, &recordingScope{}
@@ -671,7 +671,7 @@ func TestStateClientJoinsScopesOfSameValueWrites(t *testing.T) {
 }
 
 func TestStateClientKeepsKeysWhoseCheckpointWasDropped(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	stateClient, res, _ := newCheckpointStateClient(t, "test_dropped")
 
 	scope := &recordingScope{}
@@ -696,7 +696,7 @@ type collapsingScope struct {
 func (s *collapsingScope) Collapsed() checkpoint.Scope { return s.into }
 
 func TestStateClientCollapsesEndedScopes(t *testing.T) {
-	ctx := context.Background()
+	ctx := testContext(t)
 	stateClient, res, _ := newCheckpointStateClient(t, "test_collapsed")
 
 	shared := &recordingScope{}
@@ -746,7 +746,7 @@ func TestWriteStreamWhenThePluginStopsWriting(t *testing.T) {
 		{name: "before completing the flush", takeFirst: 1, err: "plugin stopped writing before the flush completed"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := testContext(t)
 			client := &stoppingClient{takeFirst: tc.takeFirst}
 			c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("stopping", "v1.0.0", func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
 				return client, nil
@@ -774,4 +774,97 @@ func TestInitDoesNotReportFlushSupportWithoutConnection(t *testing.T) {
 	res, err := c.Init(context.Background(), &pb.Init_Request{NoConnection: true})
 	require.NoError(t, err)
 	require.False(t, res.SupportsFlush)
+}
+
+func TestWriteStreamFlushErrorIsValidUTF8(t *testing.T) {
+	ctx := testContext(t)
+	client := &heldFlushClient{flushes: make(chan *message.WriteFlush)}
+	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("held", "v1.0.0", func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
+		return client, nil
+	}, plugin.WithFlushSupport())))
+	_, err := c.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+	stream, err := c.WriteStream(ctx)
+	require.NoError(t, err)
+
+	for id, tc := range []struct{ err, want string }{
+		{err: "bad \xff byte", want: "bad � byte"},
+		{err: "", want: "flush failed"},
+	} {
+		require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: uint64(id)}}}))
+		receive(t, client.flushes).Done(errors.New(tc.err))
+		res, err := stream.Recv()
+		require.NoError(t, err)
+		require.EqualValues(t, id, res.FlushId)
+		require.Equal(t, tc.want, res.FlushError)
+	}
+}
+
+// failOnceClient fails the first flush, then returns from Write without waiting for its messages to end.
+type failOnceClient struct {
+	heldFlushClient
+}
+
+func (*failOnceClient) Write(_ context.Context, msgs <-chan message.WriteMessage) error {
+	for msg := range msgs {
+		if flush, ok := msg.(*message.WriteFlush); ok {
+			flush.Done(errors.New("disk full"))
+			return nil
+		}
+	}
+	return nil
+}
+
+func TestWriteStreamReportsFailedFlushWhenWriteReturns(t *testing.T) {
+	// the server sees the failure and the end of Write at once, and picks either first
+	for i := range 20 {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			ctx := testContext(t)
+			c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("fail_once", "v1.0.0", func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
+				return &failOnceClient{}, nil
+			}, plugin.WithFlushSupport())))
+			_, err := c.Init(ctx, &pb.Init_Request{})
+			require.NoError(t, err)
+			stream, err := c.WriteStream(ctx)
+			require.NoError(t, err)
+
+			require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 1}}}))
+			res, err := stream.Recv()
+			require.NoError(t, err)
+			require.EqualValues(t, 1, res.FlushId)
+			require.Equal(t, "disk full", res.FlushError)
+			require.NoError(t, stream.CloseSend())
+			_, err = stream.Recv()
+			require.ErrorIs(t, err, io.EOF)
+		})
+	}
+}
+
+func TestStateClientSendsKeysOfTheSameScopesTogether(t *testing.T) {
+	ctx := testContext(t)
+	stateClient, res, _ := newCheckpointStateClient(t, "test_grouped")
+
+	scopeA, scopeB := &recordingScope{}, &recordingScope{}
+	ctxA, ctxB := checkpoint.WithScope(ctx, scopeA), checkpoint.WithScope(ctx, scopeB)
+	require.NoError(t, stateClient.SetKey(ctxA, "a1", "1"))
+	require.NoError(t, stateClient.SetKey(ctxA, "a2", "1"))
+	require.NoError(t, stateClient.SetKey(ctxB, "b", "1"))
+	require.NoError(t, stateClient.SetKey(ctx, "c1", "1"))
+	require.NoError(t, stateClient.SetKey(ctx, "c2", "1"))
+	require.NoError(t, stateClient.Flush(ctx))
+
+	require.Len(t, res, 1)
+	require.Equal(t, map[string]string{"c1": "1", "c2": "1"}, checkpointValues(t, <-res))
+	require.Len(t, scopeA.msgs, 1)
+	require.Equal(t, map[string]string{"a1": "1", "a2": "1"}, checkpointValues(t, scopeA.msgs...))
+	require.Len(t, scopeB.msgs, 1)
+	require.Equal(t, map[string]string{"b": "1"}, checkpointValues(t, scopeB.msgs...))
+}
+
+// testContext bounds the streams of a test, so that it fails instead of hanging.
+func testContext(t *testing.T) context.Context {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	t.Cleanup(cancel)
+	return ctx
 }

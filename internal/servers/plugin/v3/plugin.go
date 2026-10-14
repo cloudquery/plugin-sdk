@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
@@ -516,7 +517,11 @@ func (s *Server) WriteStream(stream pb.Plugin_WriteStreamServer) error {
 		}
 		res := &pb.Write_Response{FlushId: r.GetFlush().GetId()}
 		if flushErr != nil {
-			res.FlushError = flushErr.Error()
+			// protobuf strings must be valid UTF-8, and an empty one would report success
+			res.FlushError = strings.ToValidUTF8(flushErr.Error(), "\uFFFD")
+			if res.FlushError == "" {
+				res.FlushError = "flush failed"
+			}
 		}
 		if err := stream.Send(res); err != nil {
 			return stop(codes.Internal, "failed to send flush response: %v", err)

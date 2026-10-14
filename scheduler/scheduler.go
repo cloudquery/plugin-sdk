@@ -112,6 +112,13 @@ func WithInvocationID(invocationID string) Option {
 	}
 }
 
+// withResClosedOnReturn tells Sync that the caller closes res once Sync returns, so later checkpoints must not be sent.
+func withResClosedOnReturn() SyncOption {
+	return func(s *syncClient) {
+		s.checkpoints.closeRes = true
+	}
+}
+
 func WithShard(num int32, total int32) SyncOption {
 	return func(s *syncClient) {
 		s.shard = &shard{num: num, total: total}
@@ -215,7 +222,7 @@ func (s *Scheduler) SyncAll(ctx context.Context, client schema.ClientMeta, table
 	var err error
 	go func() {
 		defer close(res)
-		err = s.Sync(ctx, client, tables, res)
+		err = s.Sync(ctx, client, tables, res, withResClosedOnReturn())
 	}()
 	// nolint:prealloc
 	var messages message.SyncMessages
@@ -289,6 +296,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		}
 	}()
 
+	defer syncClient.checkpoints.returned()
 	b := s.batchSettings.getBatcher(ctx, res, s.logger)
 	err := syncClient.processResources(ctx, b, resources)
 	close(syncClient.checkpoints.loopDone)
