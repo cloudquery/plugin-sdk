@@ -36,7 +36,10 @@ type syncCheckpoints struct {
 	completed bool
 }
 
-var _ checkpoint.Scope = (*syncCheckpoints)(nil)
+var (
+	_ checkpoint.Scope    = (*syncCheckpoints)(nil)
+	_ checkpoint.Covering = (*syncCheckpoints)(nil)
+)
 
 // state table columns, see the state client
 const (
@@ -92,6 +95,14 @@ func (c *syncCheckpoints) Checkpoint(ctx context.Context, msg message.SyncMessag
 	}
 	c.mu.Unlock()
 	return c.sendAfterSync(ctx, []message.SyncMessage{msg})
+}
+
+// Covers reports whether sent is merged into the held state, which a checkpoint passed now is merged into too, or sent
+// after.
+func (c *syncCheckpoints) Covers(sent *checkpoint.Sent) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return !c.done && c.heldSent != nil && sent.MergedInto(c.heldSent)
 }
 
 // complete is called once the batcher is closed after sending every resource.

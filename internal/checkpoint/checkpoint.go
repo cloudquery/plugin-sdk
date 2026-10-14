@@ -4,6 +4,7 @@ package checkpoint
 import (
 	"context"
 	"errors"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -19,6 +20,12 @@ type Scope interface {
 	// Checkpoint passes msg to Deliver after every resource the scope produced before the call is sent.
 	// It may return before that.
 	Checkpoint(ctx context.Context, msg message.SyncMessage) error
+}
+
+// Covering is implemented by scopes that never send a checkpoint before an unsent one they already hold.
+type Covering interface {
+	// Covers reports whether a checkpoint passed to the scope now will be sent no earlier than sent.
+	Covers(sent *Sent) bool
 }
 
 type scopeKey struct{}
@@ -102,6 +109,13 @@ func (s *Sent) MergeInto(into *Sent) {
 	}
 }
 
+// MergedInto reports whether s was merged into into.
+func (s *Sent) MergedInto(into *Sent) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.mergedInto == into
+}
+
 // wait makes barrier wait for s. It reports true, without waiting, if s was sent.
 func (s *Sent) wait(barrier *Barrier) bool {
 	s.mu.Lock()
@@ -141,6 +155,9 @@ func Send(ctx context.Context, res chan<- message.SyncMessage, scope Scope, afte
 	sent := &Sent{}
 	tracked := &Tracked{Message: msg, Sent: sent}
 	scopes := flatten(scope)
+	if covering, ok := scope.(Covering); ok {
+		after = slices.DeleteFunc(slices.Clone(after), covering.Covers)
+	}
 	if len(after) == 0 {
 		switch len(scopes) {
 		case 0:

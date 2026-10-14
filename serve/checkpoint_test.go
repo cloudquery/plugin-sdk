@@ -195,6 +195,8 @@ var checkpointTable = &schema.Table{
 
 type checkpointSourceClient struct {
 	plugin.UnimplementedDestination
+	strategy scheduler.Strategy
+	pages    int
 }
 
 func (*checkpointSourceClient) ID() string { return "checkpoint_source" }
@@ -216,7 +218,7 @@ func (c *checkpointSourceClient) Sync(ctx context.Context, options plugin.SyncOp
 
 	table := *checkpointTable
 	table.Resolver = func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
-		for page := range checkpointPages {
+		for page := range c.pages {
 			ids := make([]int64, checkpointPageSize)
 			for i := range ids {
 				ids[i] = int64(page*checkpointPageSize + i)
@@ -231,15 +233,21 @@ func (c *checkpointSourceClient) Sync(ctx context.Context, options plugin.SyncOp
 		}
 		return stateClient.SetKey(ctx, "finished", "true")
 	}
-	s := scheduler.NewScheduler(scheduler.WithBatchOptions(scheduler.WithBatchMaxRows(1000), scheduler.WithBatchTimeout(time.Hour)))
+	s := scheduler.NewScheduler(scheduler.WithStrategy(c.strategy), scheduler.WithBatchOptions(scheduler.WithBatchMaxRows(1000), scheduler.WithBatchTimeout(time.Hour)))
 	if err := s.Sync(ctx, c, schema.Tables{&table}, res); err != nil {
 		return err
 	}
 	return stateClient.Flush(ctx)
 }
 
-func newCheckpointSource(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
-	return &checkpointSourceClient{}, nil
+func newCheckpointSource(ctx context.Context, logger zerolog.Logger, spec []byte, opts plugin.NewClientOptions) (plugin.Client, error) {
+	return newCheckpointSourceWith(scheduler.StrategyDFS, checkpointPages)(ctx, logger, spec, opts)
+}
+
+func newCheckpointSourceWith(strategy scheduler.Strategy, pages int) plugin.NewClientFunc {
+	return func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
+		return &checkpointSourceClient{strategy: strategy, pages: pages}, nil
+	}
 }
 
 func readState(t *testing.T, conn *grpc.ClientConn, tableName string) map[string]string {
@@ -593,4 +601,47 @@ func TestClientCanTurnOffFlushSupport(t *testing.T) {
 	require.NoError(t, err)
 	_, err = stream.Recv()
 	require.Equal(t, codes.Unimplemented, status.Code(err))
+}
+
+func TestShuffleQueueCoalescesFlushedCheckpoints(t *testing.T) {
+	const pages = 100
+	ctx := context.Background()
+	backendPlugin := plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())
+	require.NoError(t, backendPlugin.Init(ctx, nil, plugin.NewClientOptions{}))
+	backendAddr := serveBackend(t, backendPlugin)
+
+	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("checkpoint_source", "v1.0.0", newCheckpointSourceWith(scheduler.StrategyShuffleQueue, pages))))
+	_, err := c.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+	syncClient, err := c.Sync(ctx, &pb.Sync_Request{
+		Backend:             &pb.Sync_BackendOptions{TableName: "cq_state", Connection: backendAddr},
+		SupportsCheckpoints: true,
+	})
+	require.NoError(t, err)
+
+	var rows int64
+	var cursors []string
+	for {
+		res, err := syncClient.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		require.NoError(t, err)
+		switch m := res.Message.(type) {
+		case *pb.Sync_Response_Insert:
+			record, err := pb.NewRecordFromBytes(m.Insert.Record)
+			require.NoError(t, err)
+			rows += record.NumRows()
+		case *pb.Sync_Response_Checkpoint:
+			record, err := pb.NewRecordFromBytes(m.Checkpoint.Record)
+			require.NoError(t, err)
+			values := map[string]string{}
+			addStateRows(values, record)
+			if cursor, ok := values["cursor"]; ok {
+				require.EqualValues(t, pages*checkpointPageSize, rows, "the cursor follows every row")
+				cursors = append(cursors, cursor)
+			}
+		}
+	}
+	require.Equal(t, []string{strconv.Itoa(pages - 1)}, cursors, "flushes of the cursor are merged into one checkpoint")
 }
