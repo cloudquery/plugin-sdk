@@ -17,8 +17,8 @@ var ErrSyncAborted = errors.New("sync aborted before the checkpoint could be sen
 
 // Scope is the part of a sync that a table resolver drives: the resources it produces and their relations.
 type Scope interface {
-	// Checkpoint passes msg to Deliver after every resource the scope produced before the call is sent.
-	// It may return before that.
+	// Checkpoint passes msg to Deliver after every resource the scope produced before the call is sent, or to Drop if
+	// the sync is cancelled first. It may return before that.
 	Checkpoint(ctx context.Context, msg message.SyncMessage) error
 }
 
@@ -26,6 +26,13 @@ type Scope interface {
 type Covering interface {
 	// Covers reports whether a checkpoint passed to the scope now will be sent no earlier than sent.
 	Covers(sent *Sent) bool
+}
+
+// Collapsing is implemented by scopes that can become equivalent to a scope they share with others, such as a table
+// resolver's scope once the resolver ends.
+type Collapsing interface {
+	// Collapsed returns the shared scope, or the scope itself.
+	Collapsed() Scope
 }
 
 type scopeKey struct{}
@@ -46,7 +53,11 @@ func Deliver(ctx context.Context, res chan<- message.SyncMessage, msg message.Sy
 	case *Barrier:
 		return m.reached(ctx, res)
 	case *Tracked:
+		if m.Sent.Aborted() {
+			return nil
+		}
 		if err := Deliver(ctx, res, m.Message); err != nil {
+			m.Sent.Abort()
 			return err
 		}
 		return m.Sent.Finish(ctx, res)
@@ -60,9 +71,21 @@ func Deliver(ctx context.Context, res chan<- message.SyncMessage, msg message.Sy
 	}
 }
 
+// Drop marks msg as never to be sent: a dropped *Tracked message, or the message a dropped *Barrier leads to, is
+// aborted, and so are the checkpoints waiting for it.
+func Drop(msg message.SyncMessage) {
+	switch m := msg.(type) {
+	case *Barrier:
+		m.abort()
+	case *Tracked:
+		m.Sent.Abort()
+	}
+}
+
 // Barrier travels through scopes and sent checkpoints, and calls reached each time one of them gets to it.
 type Barrier struct {
 	reached func(ctx context.Context, res chan<- message.SyncMessage) error
+	abort   func()
 }
 
 func (*Barrier) GetTable() *schema.Table { return nil }
@@ -77,27 +100,65 @@ type Tracked struct {
 func (*Tracked) GetTable() *schema.Table { return nil }
 func (*Tracked) IsSyncMessage() bool     { return true }
 
-// Sent tracks whether a checkpoint was sent, so that later checkpoints of the same keys can wait for it.
+// Sent tracks whether a checkpoint was sent or aborted, so that later checkpoints of the same keys can wait for it.
 type Sent struct {
 	mu      sync.Mutex
 	done    bool
+	aborted bool
 	waiting []*Barrier
 	// set when the checkpoint was merged into another one, which is then sent in its place
 	mergedInto *Sent
+	// for a checkpoint that others are merged into: the scope holding it
+	heldBy Scope
+}
+
+// NewHeld returns a Sent for a checkpoint that holder merges other checkpoints into.
+func NewHeld(holder Scope) *Sent {
+	return &Sent{heldBy: holder}
+}
+
+// root returns the checkpoint s is sent with.
+func (s *Sent) root() *Sent {
+	for {
+		s.mu.Lock()
+		into := s.mergedInto
+		s.mu.Unlock()
+		if into == nil {
+			return s
+		}
+		s = into
+	}
 }
 
 // Done reports whether the checkpoint was sent.
 func (s *Sent) Done() bool {
-	s.mu.Lock()
-	mergedInto, done := s.mergedInto, s.done
-	s.mu.Unlock()
-	if mergedInto != nil {
-		return mergedInto.Done()
-	}
-	return done
+	r := s.root()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.done
 }
 
-// MergeInto marks s as sent once into is sent. into must not be sent yet.
+// Aborted reports whether the checkpoint was dropped.
+func (s *Sent) Aborted() bool {
+	r := s.root()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.aborted
+}
+
+func (s *Sent) holder() Scope {
+	r := s.root()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.heldBy
+}
+
+// MergedInto reports whether s is sent with into.
+func (s *Sent) MergedInto(into *Sent) bool {
+	return s != into && s.root() == into
+}
+
+// MergeInto marks s as sent once into is sent, and aborted if into is aborted. into must not be sent yet.
 func (s *Sent) MergeInto(into *Sent) {
 	s.mu.Lock()
 	waiting := s.waiting
@@ -109,32 +170,32 @@ func (s *Sent) MergeInto(into *Sent) {
 	}
 }
 
-// MergedInto reports whether s was merged into into.
-func (s *Sent) MergedInto(into *Sent) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.mergedInto == into
-}
-
 // wait makes barrier wait for s. It reports true, without waiting, if s was sent.
 func (s *Sent) wait(barrier *Barrier) bool {
-	s.mu.Lock()
-	if s.mergedInto != nil {
-		into := s.mergedInto
-		s.mu.Unlock()
-		return into.wait(barrier)
-	}
-	defer s.mu.Unlock()
-	if s.done {
+	r := s.root()
+	r.mu.Lock()
+	switch {
+	case r.done:
+		r.mu.Unlock()
 		return true
+	case r.aborted:
+		r.mu.Unlock()
+		barrier.abort()
+		return false
+	default:
+		r.waiting = append(r.waiting, barrier)
+		r.mu.Unlock()
+		return false
 	}
-	s.waiting = append(s.waiting, barrier)
-	return false
 }
 
 // Finish marks s as sent, and releases the checkpoints waiting for it.
 func (s *Sent) Finish(ctx context.Context, res chan<- message.SyncMessage) error {
 	s.mu.Lock()
+	if s.done || s.aborted {
+		s.mu.Unlock()
+		return nil
+	}
 	s.done = true
 	waiting := s.waiting
 	s.waiting = nil
@@ -148,17 +209,48 @@ func (s *Sent) Finish(ctx context.Context, res chan<- message.SyncMessage) error
 	return errors.Join(errs...)
 }
 
+// Abort marks s as dropped, and aborts the checkpoints waiting for it.
+func (s *Sent) Abort() {
+	r := s.root()
+	r.mu.Lock()
+	if r.done || r.aborted {
+		r.mu.Unlock()
+		return
+	}
+	r.aborted = true
+	waiting := r.waiting
+	r.waiting = nil
+	r.mu.Unlock()
+	for _, barrier := range waiting {
+		barrier.abort()
+	}
+}
+
 // Send passes msg to Deliver once every one of scope's resources produced before the call is sent, and every
 // checkpoint in after is sent. Without a scope or pending checkpoints to wait for, it sends msg on res.
-// The returned Sent tracks msg.
+// The returned Sent tracks msg. If a checkpoint in after was aborted, Send returns ErrSyncAborted.
 func Send(ctx context.Context, res chan<- message.SyncMessage, scope Scope, after []*Sent, msg message.SyncMessage) (*Sent, error) {
+	pending := make([]*Sent, 0, len(after))
+	for _, previous := range after {
+		switch {
+		case previous.Aborted():
+			return nil, ErrSyncAborted
+		case !previous.Done():
+			pending = append(pending, previous)
+		}
+	}
+	if scope == nil {
+		// waiting only for checkpoints one scope holds: going through that scope sends no earlier, and lets it merge msg
+		scope = commonHolder(pending)
+	}
+	if covering, ok := scope.(Covering); ok {
+		pending = slices.DeleteFunc(pending, covering.Covers)
+	}
+
 	sent := &Sent{}
 	tracked := &Tracked{Message: msg, Sent: sent}
 	scopes := flatten(scope)
-	if covering, ok := scope.(Covering); ok {
-		after = slices.DeleteFunc(slices.Clone(after), covering.Covers)
-	}
-	if len(after) == 0 {
+	if len(pending) == 0 {
 		switch len(scopes) {
 		case 0:
 			return sent, Deliver(ctx, res, tracked)
@@ -168,15 +260,18 @@ func Send(ctx context.Context, res chan<- message.SyncMessage, scope Scope, afte
 	}
 
 	var remaining atomic.Int64
-	remaining.Store(int64(len(scopes) + len(after)))
-	barrier := &Barrier{reached: func(ctx context.Context, res chan<- message.SyncMessage) error {
-		if remaining.Add(-1) > 0 {
-			return nil
-		}
-		return Deliver(ctx, res, tracked)
-	}}
+	remaining.Store(int64(len(scopes) + len(pending)))
+	barrier := &Barrier{
+		reached: func(ctx context.Context, res chan<- message.SyncMessage) error {
+			if remaining.Add(-1) > 0 {
+				return nil
+			}
+			return Deliver(ctx, res, tracked)
+		},
+		abort: sent.Abort,
+	}
 	var errs []error
-	for _, previous := range after {
+	for _, previous := range pending {
 		if previous.wait(barrier) {
 			if err := barrier.reached(ctx, res); err != nil {
 				errs = append(errs, err)
@@ -188,18 +283,40 @@ func Send(ctx context.Context, res chan<- message.SyncMessage, scope Scope, afte
 			errs = append(errs, err)
 		}
 	}
-	return sent, errors.Join(errs...)
+	if err := errors.Join(errs...); err != nil {
+		sent.Abort()
+		return nil, err
+	}
+	return sent, nil
 }
 
-// Join returns a scope whose checkpoints follow the resources of all the given scopes. It skips nil scopes, and
-// returns nil if all are nil.
+func commonHolder(pending []*Sent) Scope {
+	var holder Scope
+	for _, sent := range pending {
+		h := sent.holder()
+		if h == nil || (holder != nil && h != holder) {
+			return nil
+		}
+		holder = h
+	}
+	return holder
+}
+
+// Join returns a scope whose checkpoints follow the resources of all the given scopes. It skips nil scopes, merges
+// scopes that collapsed into the same one, and returns nil if all are nil.
 func Join(scopes ...Scope) Scope {
+	seen := make(map[Scope]struct{}, len(scopes))
 	var unique []Scope
 	for _, scope := range scopes {
 		for _, s := range flatten(scope) {
-			if !contains(unique, s) {
-				unique = append(unique, s)
+			if c, ok := s.(Collapsing); ok {
+				s = c.Collapsed()
 			}
+			if _, ok := seen[s]; ok {
+				continue
+			}
+			seen[s] = struct{}{}
+			unique = append(unique, s)
 		}
 	}
 	switch len(unique) {
@@ -230,13 +347,4 @@ func flatten(scope Scope) []Scope {
 	default:
 		return []Scope{s}
 	}
-}
-
-func contains(scopes []Scope, scope Scope) bool {
-	for _, s := range scopes {
-		if s == scope {
-			return true
-		}
-	}
-	return false
 }

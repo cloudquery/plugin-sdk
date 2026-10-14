@@ -127,3 +127,30 @@ func TestFlushMessageCancelledDuringCommit(t *testing.T) {
 		t.Fatal("Write did not return after the flush was cancelled")
 	}
 }
+
+func TestFlushMessageCommitsDeletes(t *testing.T) {
+	testClient := newClient()
+	wr, err := New(testClient, WithBatchTimeout(time.Hour))
+	require.NoError(t, err)
+
+	ch := make(chan message.WriteMessage)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- wr.Write(context.Background(), ch)
+	}()
+
+	ch <- &message.WriteDeleteStale{TableName: streamingBatchTestTable.Name, SourceName: "source", SyncTime: time.Now()}
+	flush := message.NewWriteFlush()
+	ch <- flush
+	require.NoError(t, <-flush.Result())
+	require.Equal(t, 1, testClient.MessageLen(messageTypeDeleteStale))
+
+	ch <- &message.WriteDeleteRecord{DeleteRecord: message.DeleteRecord{TableName: streamingBatchTestTable.Name}}
+	flush = message.NewWriteFlush()
+	ch <- flush
+	require.NoError(t, <-flush.Result())
+	require.Equal(t, 1, testClient.MessageLen(messageTypeDeleteRecord))
+
+	close(ch)
+	require.NoError(t, <-errCh)
+}

@@ -120,7 +120,8 @@ func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Respo
 	if err := s.Plugin.Init(ctx, req.Spec, plugin.NewClientOptions{NoConnection: req.NoConnection, InvocationID: req.InvocationId}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
-	return &pb.Init_Response{SupportsFlush: s.Plugin.SupportsFlush()}, nil
+	// a client without a connection does not write, and its spec may not be set
+	return &pb.Init_Response{SupportsFlush: !req.NoConnection && s.Plugin.SupportsFlush()}, nil
 }
 
 func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {

@@ -321,6 +321,7 @@ func (s *syncClient) processResources(ctx context.Context, b batcherInterface, r
 			// a cancelled sync may drop resources, and their checkpoints must not go out
 			if !b.flush() || ctx.Err() != nil {
 				s.logger.Debug().Msg("sync context cancelled")
+				dropMessages(msgs)
 				return context.Cause(ctx)
 			}
 			if err := sendMessages(ctx, s.msgChan, msgs); err != nil {

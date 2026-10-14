@@ -305,7 +305,7 @@ func TestCheckpointNotSentWhenSyncIsCancelledDuringFlush(t *testing.T) {
 	}
 }
 
-func stateCheckpoint(key, value string, version uint64) *message.SyncCheckpoint {
+func cursorCheckpoint(value string, version uint64) *message.SyncCheckpoint {
 	sc := (&schema.Table{Name: "cq_state", Columns: schema.ColumnList{
 		{Name: stateKeyColumn, Type: arrow.BinaryTypes.String, PrimaryKey: true},
 		{Name: stateValueColumn, Type: arrow.BinaryTypes.String},
@@ -313,7 +313,7 @@ func stateCheckpoint(key, value string, version uint64) *message.SyncCheckpoint 
 	}}).ToArrowSchema()
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, sc)
 	defer bldr.Release()
-	bldr.Field(0).(*array.StringBuilder).Append(key)
+	bldr.Field(0).(*array.StringBuilder).Append("cursor")
 	bldr.Field(1).(*array.StringBuilder).Append(value)
 	bldr.Field(2).(*array.Uint64Builder).Append(version)
 	return &message.SyncCheckpoint{Record: bldr.NewRecordBatch()}
@@ -342,12 +342,12 @@ func TestHeldCheckpointsAreCoalesced(t *testing.T) {
 			scope := checkpoint.FromContext(ctx)
 			for page := range 5 {
 				res <- []int64{int64(page)}
-				if err := scope.Checkpoint(ctx, stateCheckpoint("cursor", strconv.Itoa(page), uint64(page+1))); err != nil {
+				if err := scope.Checkpoint(ctx, cursorCheckpoint(strconv.Itoa(page), uint64(page+1))); err != nil {
 					return err
 				}
 			}
 			// an older version does not replace the newer one
-			return scope.Checkpoint(ctx, stateCheckpoint("cursor", "stale", 1))
+			return scope.Checkpoint(ctx, cursorCheckpoint("stale", 1))
 		},
 	}
 	s := NewScheduler(WithStrategy(StrategyShuffleQueue))
@@ -437,7 +437,7 @@ func TestHeldCheckpointsAreMarkedSentWhenTheSyncCompletes(t *testing.T) {
 		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 			for page := range 3 {
 				res <- []int64{int64(page)}
-				s, err := checkpoint.Send(ctx, nil, checkpoint.FromContext(ctx), nil, stateCheckpoint("cursor", strconv.Itoa(page), uint64(page+1)))
+				s, err := checkpoint.Send(ctx, nil, checkpoint.FromContext(ctx), nil, cursorCheckpoint(strconv.Itoa(page), uint64(page+1)))
 				if err != nil {
 					return err
 				}
@@ -455,6 +455,78 @@ func TestHeldCheckpointsAreMarkedSentWhenTheSyncCompletes(t *testing.T) {
 
 	require.Equal(t, map[string]string{"cursor": "2"}, stateValues(t, msgs))
 	require.Len(t, sent, 3)
+	for _, s := range sent {
+		require.True(t, s.Done())
+	}
+}
+
+func TestTableScopeCheckpointAfterCancelledSync(t *testing.T) {
+	for range 20 {
+		var scope checkpoint.Scope
+		ctx, cancel := context.WithCancel(context.Background())
+		table := &schema.Table{
+			Name:    checkpointParentTable,
+			Columns: []schema.Column{idColumn()},
+			Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+				scope = checkpoint.FromContext(ctx)
+				res <- []int64{1, 2}
+				time.Sleep(20 * time.Millisecond)
+				cancel()
+				return nil
+			},
+		}
+		s := NewScheduler(WithStrategy(StrategyDFS), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+		res := make(chan message.SyncMessage)
+		wait := collectSyncMessages(res)
+		_ = s.Sync(ctx, &testExecutionClient{}, schema.Tables{table}, res)
+		// the resolver ended, so its scope sends through the sync, which was aborted
+		err := scope.Checkpoint(context.Background(), &testMarker{name: "after", parents: []int64{1, 2}})
+		close(res)
+		require.ErrorIs(t, err, checkpoint.ErrSyncAborted)
+		require.Empty(t, requireMarkersAfterRows(t, wait()))
+	}
+}
+
+func TestShuffleQueueMergesCheckpointsOfKeysAlsoSetOutsideResolvers(t *testing.T) {
+	var sent []*checkpoint.Sent
+	table := &schema.Table{
+		Name:    checkpointParentTable,
+		Columns: []schema.Column{idColumn()},
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			scope := checkpoint.FromContext(ctx)
+			var previous []*checkpoint.Sent
+			for page := range 6 {
+				res <- []int64{int64(page)}
+				// every other checkpoint is sent as if the key was set outside a resolver
+				var pageScope checkpoint.Scope
+				if page%2 == 0 {
+					pageScope = scope
+				}
+				s, err := checkpoint.Send(ctx, nil, pageScope, previous, cursorCheckpoint(strconv.Itoa(page), uint64(page+1)))
+				if err != nil {
+					return err
+				}
+				previous = []*checkpoint.Sent{s}
+				sent = append(sent, s)
+			}
+			return nil
+		},
+	}
+	s := NewScheduler(WithStrategy(StrategyShuffleQueue))
+	res := make(chan message.SyncMessage)
+	wait := collectSyncMessages(res)
+	require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{table}, res))
+	close(res)
+	msgs := wait()
+
+	var checkpoints int
+	for _, msg := range msgs {
+		if _, ok := msg.(*message.SyncCheckpoint); ok {
+			checkpoints++
+		}
+	}
+	require.Equal(t, 1, checkpoints, "every checkpoint is merged")
+	require.Equal(t, map[string]string{"cursor": "5"}, stateValues(t, msgs))
 	for _, s := range sent {
 		require.True(t, s.Done())
 	}

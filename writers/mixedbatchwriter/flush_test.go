@@ -62,3 +62,25 @@ func TestFlushMessageReportsFailedInserts(t *testing.T) {
 	require.ErrorContains(t, wr.Write(context.Background(), ch), "insert failed")
 	require.ErrorContains(t, <-flush.Result(), "insert failed")
 }
+
+func TestFlushMessageCommitsDeletes(t *testing.T) {
+	msgs := getTestMessages()
+	client := &testMixedBatchClient{}
+	wr, err := New(client, WithBatchTimeout(time.Hour))
+	require.NoError(t, err)
+
+	ch := make(chan message.WriteMessage)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- wr.Write(context.Background(), ch)
+	}()
+
+	ch <- msgs.deleteStale1
+	flush := message.NewWriteFlush()
+	ch <- flush
+	require.NoError(t, <-flush.Result())
+	require.Equal(t, [][]message.WriteMessage{{msgs.deleteStale1}}, client.receivedBatches)
+
+	close(ch)
+	require.NoError(t, <-errCh)
+}

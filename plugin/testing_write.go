@@ -200,6 +200,9 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 		if !p.SupportsFlush() {
 			t.Skip("plugin does not support flush")
 		}
+		if suite.tests.SkipInsert {
+			t.Skip("skipping " + t.Name())
+		}
 		if err := suite.testFlush(ctx); err != nil {
 			t.Fatal(err)
 		}

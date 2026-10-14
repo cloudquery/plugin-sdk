@@ -25,6 +25,8 @@ type syncCheckpoints struct {
 	loopDone chan struct{}
 	// closed once the batcher is closed
 	finished chan struct{}
+	// the scope of every table resolver that ended: they all send checkpoints after the resources Sync received
+	ended *endedScope
 
 	mu       sync.Mutex
 	deferred []message.SyncMessage
@@ -49,15 +51,17 @@ const (
 )
 
 func newSyncCheckpoints(res chan<- message.SyncMessage) *syncCheckpoints {
-	return &syncCheckpoints{
+	c := &syncCheckpoints{
 		res:      res,
 		requests: make(chan []message.SyncMessage),
 		loopDone: make(chan struct{}),
 		finished: make(chan struct{}),
 	}
+	c.ended = &endedScope{checkpoints: c}
+	return c
 }
 
-// send sends msgs after every resource Sync received so far.
+// send sends msgs after every resource Sync received so far. It drops msgs if it fails.
 func (c *syncCheckpoints) send(ctx context.Context, msgs []message.SyncMessage) error {
 	if len(msgs) == 0 {
 		return nil
@@ -68,6 +72,7 @@ func (c *syncCheckpoints) send(ctx context.Context, msgs []message.SyncMessage) 
 	case <-c.loopDone:
 		return c.sendAfterSync(ctx, msgs)
 	case <-ctx.Done():
+		dropMessages(msgs)
 		return context.Cause(ctx)
 	}
 }
@@ -76,12 +81,23 @@ func (c *syncCheckpoints) sendAfterSync(ctx context.Context, msgs []message.Sync
 	select {
 	case <-c.finished:
 	case <-ctx.Done():
+		dropMessages(msgs)
 		return context.Cause(ctx)
 	}
 	if !c.completed {
+		dropMessages(msgs)
 		return checkpoint.ErrSyncAborted
 	}
 	return sendMessages(ctx, c.res, msgs)
+}
+
+// endedScope is the scope of table resolvers that ended.
+type endedScope struct {
+	checkpoints *syncCheckpoints
+}
+
+func (e *endedScope) Checkpoint(ctx context.Context, msg message.SyncMessage) error {
+	return e.checkpoints.send(ctx, []message.SyncMessage{msg})
 }
 
 func (c *syncCheckpoints) Checkpoint(ctx context.Context, msg message.SyncMessage) error {
@@ -121,6 +137,9 @@ func (c *syncCheckpoints) complete(ctx context.Context) error {
 	c.mu.Unlock()
 	close(c.finished)
 	if err := sendMessages(ctx, c.res, deferred); err != nil {
+		if heldSent != nil {
+			heldSent.Abort()
+		}
 		return err
 	}
 	if heldSent == nil {
@@ -132,12 +151,17 @@ func (c *syncCheckpoints) complete(ctx context.Context) error {
 // abort is called once the batcher is closed when some resources may not have been sent.
 func (c *syncCheckpoints) abort() {
 	c.mu.Lock()
+	deferred, heldSent := c.deferred, c.heldSent
 	c.deferred = nil
 	c.deferredState = nil
 	c.heldSent = nil
 	c.done = true
 	c.mu.Unlock()
 	close(c.finished)
+	dropMessages(deferred)
+	if heldSent != nil {
+		heldSent.Abort()
+	}
 }
 
 // tableScope sends checkpoints after the resources its table resolver produced before them, including their relations.
@@ -152,7 +176,10 @@ type tableScope struct {
 	ended   bool
 }
 
-var _ checkpoint.Scope = (*tableScope)(nil)
+var (
+	_ checkpoint.Scope      = (*tableScope)(nil)
+	_ checkpoint.Collapsing = (*tableScope)(nil)
+)
 
 func newTableScope(checkpoints *syncCheckpoints) *tableScope {
 	return &tableScope{checkpoints: checkpoints, notify: make(chan struct{}, 1)}
@@ -171,6 +198,16 @@ func (t *tableScope) Checkpoint(ctx context.Context, msg message.SyncMessage) er
 	default:
 	}
 	return nil
+}
+
+// Collapsed returns the scope shared by all ended table resolvers once the resolver ended.
+func (t *tableScope) Collapsed() checkpoint.Scope {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.ended {
+		return t.checkpoints.ended
+	}
+	return t
 }
 
 // take returns the pending checkpoints.
@@ -192,13 +229,21 @@ func (t *tableScope) end() []message.SyncMessage {
 	return pending
 }
 
+// sendMessages delivers msgs on res, and drops the ones it cannot deliver.
 func sendMessages(ctx context.Context, res chan<- message.SyncMessage, msgs []message.SyncMessage) error {
-	for _, msg := range msgs {
+	for i, msg := range msgs {
 		if err := checkpoint.Deliver(ctx, res, msg); err != nil {
+			dropMessages(msgs[i+1:])
 			return err
 		}
 	}
 	return nil
+}
+
+func dropMessages(msgs []message.SyncMessage) {
+	for _, msg := range msgs {
+		checkpoint.Drop(msg)
+	}
 }
 
 type stateRow struct {
@@ -252,7 +297,7 @@ func (c *syncCheckpoints) holdState(msg message.SyncMessage) bool {
 	}
 	if isTracked {
 		if c.heldSent == nil {
-			c.heldSent = &checkpoint.Sent{}
+			c.heldSent = checkpoint.NewHeld(c)
 		}
 		tracked.Sent.MergeInto(c.heldSent)
 	}

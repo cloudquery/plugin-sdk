@@ -97,3 +97,51 @@ func TestMergeInto(t *testing.T) {
 	require.True(t, merged.Done())
 	require.Equal(t, []string{"after merged"}, received(res))
 }
+
+// collapsingScope collapses into into once ended.
+type collapsingScope struct {
+	heldScope
+	ended bool
+	into  Scope
+}
+
+func (s *collapsingScope) Collapsed() Scope {
+	if s.ended {
+		return s.into
+	}
+	return s
+}
+
+func TestJoinCollapsesEndedScopes(t *testing.T) {
+	shared := &heldScope{}
+	a := &collapsingScope{ended: true, into: shared}
+	b := &collapsingScope{ended: true, into: shared}
+	running := &collapsingScope{into: shared}
+
+	require.Same(t, shared, Join(a, b))
+	joined, ok := Join(a, b, running).(*joined)
+	require.True(t, ok)
+	require.Len(t, joined.scopes, 2)
+}
+
+func TestAbortReleasesLaterCheckpoints(t *testing.T) {
+	ctx := context.Background()
+	res := make(chan message.SyncMessage, 10)
+	a, b := &heldScope{}, &heldScope{}
+
+	first, err := Send(ctx, res, a, nil, marker("first"))
+	require.NoError(t, err)
+	second, err := Send(ctx, res, b, []*Sent{first}, marker("second"))
+	require.NoError(t, err)
+
+	for _, msg := range a.msgs {
+		Drop(msg)
+	}
+	require.True(t, first.Aborted())
+	require.True(t, second.Aborted(), "a checkpoint waiting for an aborted one is aborted too")
+	b.deliver(t, res)
+	require.Empty(t, received(res))
+
+	_, err = Send(ctx, res, b, []*Sent{second}, marker("third"))
+	require.ErrorIs(t, err, ErrSyncAborted)
+}

@@ -544,7 +544,7 @@ func TestWriteStreamAcksFlushOnlyAfterCommit(t *testing.T) {
 	}()
 
 	require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 3}}}))
-	flush := <-client.flushes
+	flush := receive(t, client.flushes)
 	select {
 	case res := <-responses:
 		t.Fatalf("flush %d acknowledged before it completed", res.FlushId)
@@ -553,10 +553,10 @@ func TestWriteStreamAcksFlushOnlyAfterCommit(t *testing.T) {
 	case <-time.After(200 * time.Millisecond):
 	}
 	flush.Done(nil)
-	require.EqualValues(t, 3, (<-responses).FlushId)
+	require.EqualValues(t, 3, receive(t, responses).FlushId)
 
 	require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 4}}}))
-	(<-client.flushes).Done(errors.New("disk full"))
+	receive(t, client.flushes).Done(errors.New("disk full"))
 	select {
 	case err := <-errs:
 		require.Equal(t, codes.Internal, status.Code(err))
@@ -644,4 +644,128 @@ func TestShuffleQueueCoalescesFlushedCheckpoints(t *testing.T) {
 		}
 	}
 	require.Equal(t, []string{strconv.Itoa(pages - 1)}, cursors, "flushes of the cursor are merged into one checkpoint")
+}
+
+func TestStateClientJoinsScopesOfSameValueWrites(t *testing.T) {
+	ctx := context.Background()
+	stateClient, res, _ := newCheckpointStateClient(t, "test_same_value")
+
+	scopeA, scopeB := &recordingScope{}, &recordingScope{}
+	require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, scopeA), "cursor", "1"))
+	// the same value from another resolver summarizes its resources too
+	require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, scopeB), "cursor", "1"))
+	require.NoError(t, stateClient.Flush(ctx))
+
+	require.Len(t, scopeA.msgs, 1)
+	require.Len(t, scopeB.msgs, 1)
+	deliver(t, res, scopeA.msgs...)
+	require.Empty(t, res)
+	deliver(t, res, scopeB.msgs...)
+	require.Equal(t, map[string]string{"cursor": "1"}, checkpointValues(t, <-res))
+}
+
+func TestStateClientKeepsKeysWhoseCheckpointWasDropped(t *testing.T) {
+	ctx := context.Background()
+	stateClient, res, _ := newCheckpointStateClient(t, "test_dropped")
+
+	scope := &recordingScope{}
+	require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, scope), "cursor", "1"))
+	require.NoError(t, stateClient.Flush(ctx))
+	require.Len(t, scope.msgs, 1)
+
+	// the sync is cancelled before the checkpoint is sent
+	checkpoint.Drop(scope.msgs[0])
+	require.ErrorIs(t, stateClient.Flush(ctx), state.ErrSyncAborted)
+	require.NoError(t, stateClient.SetKey(ctx, "cursor", "2"))
+	require.ErrorIs(t, stateClient.Flush(ctx), state.ErrSyncAborted)
+	require.Empty(t, res)
+}
+
+// collapsingScope stands for a table resolver's scope, which collapses into the sync's once the resolver ends.
+type collapsingScope struct {
+	recordingScope
+	into checkpoint.Scope
+}
+
+func (s *collapsingScope) Collapsed() checkpoint.Scope { return s.into }
+
+func TestStateClientCollapsesEndedScopes(t *testing.T) {
+	ctx := context.Background()
+	stateClient, res, _ := newCheckpointStateClient(t, "test_collapsed")
+
+	shared := &recordingScope{}
+	for i := range 1000 {
+		scope := &collapsingScope{into: shared}
+		require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, scope), "cursor", strconv.Itoa(i)))
+	}
+	require.NoError(t, stateClient.Flush(ctx))
+	require.Len(t, shared.msgs, 1, "one checkpoint through the shared scope")
+	deliver(t, res, shared.msgs...)
+	require.Equal(t, map[string]string{"cursor": "999"}, checkpointValues(t, <-res))
+}
+
+// receive fails the test instead of hanging when nothing arrives.
+func receive[T any](t *testing.T, ch <-chan T) T {
+	t.Helper()
+	select {
+	case v := <-ch:
+		return v
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for a value")
+		var zero T
+		return zero
+	}
+}
+
+// stoppingClient's Write returns without waiting for its messages to end, after taking takeFirst messages.
+type stoppingClient struct {
+	heldFlushClient
+	takeFirst int
+}
+
+func (c *stoppingClient) Write(_ context.Context, msgs <-chan message.WriteMessage) error {
+	for range c.takeFirst {
+		<-msgs
+	}
+	return nil
+}
+
+func TestWriteStreamWhenThePluginStopsWriting(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		takeFirst int
+		err       string
+	}{
+		{name: "before taking the flush", takeFirst: 0, err: "plugin stopped writing"},
+		{name: "before completing the flush", takeFirst: 1, err: "plugin stopped writing before the flush completed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			client := &stoppingClient{takeFirst: tc.takeFirst}
+			c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("stopping", "v1.0.0", func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
+				return client, nil
+			}, plugin.WithFlushSupport())))
+			_, err := c.Init(ctx, &pb.Init_Request{})
+			require.NoError(t, err)
+
+			stream, err := c.WriteStream(ctx)
+			require.NoError(t, err)
+			require.NoError(t, stream.Send(&pb.Write_Request{Message: &pb.Write_Request_Flush{Flush: &pb.Write_MessageFlush{Id: 1}}}))
+			errs := make(chan error, 1)
+			go func() {
+				_, err := stream.Recv()
+				errs <- err
+			}()
+			err = receive(t, errs)
+			require.Equal(t, codes.Internal, status.Code(err))
+			require.ErrorContains(t, err, tc.err)
+		})
+	}
+}
+
+func TestInitDoesNotReportFlushSupportWithoutConnection(t *testing.T) {
+	c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient, plugin.WithFlushSupport())))
+	res, err := c.Init(context.Background(), &pb.Init_Request{NoConnection: true})
+	require.NoError(t, err)
+	require.False(t, res.SupportsFlush)
 }

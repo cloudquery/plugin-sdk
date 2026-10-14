@@ -85,3 +85,37 @@ func TestFlushMessageReportsFailuresFromTimeouts(t *testing.T) {
 	require.NoError(t, stop())
 	require.NoError(t, wr.Close(context.Background()))
 }
+
+func TestFlushMessageCommitsDeletes(t *testing.T) {
+	testClient := &testBatchClient{}
+	wr, err := New(testClient, WithBatchTimeout(time.Hour))
+	require.NoError(t, err)
+	ch, stop := startWrite(t, wr)
+
+	ch <- &message.WriteMigrateTable{Table: batchTestTables[0]}
+	ch <- &message.WriteDeleteStale{TableName: batchTestTables[0].Name, SourceName: "source", SyncTime: time.Now()}
+	require.NoError(t, flush(ch))
+	require.Equal(t, 1, testClient.DeleteStalesLen())
+
+	ch <- &message.WriteDeleteRecord{DeleteRecord: message.DeleteRecord{TableName: batchTestTables[0].Name}}
+	require.NoError(t, flush(ch))
+	testClient.mutex.Lock()
+	require.Len(t, testClient.deleteRecords, 1)
+	testClient.mutex.Unlock()
+
+	require.NoError(t, stop())
+	require.NoError(t, wr.Close(context.Background()))
+}
+
+func TestFlushMessageErrorNamesTable(t *testing.T) {
+	wr, err := New(&failingBatchClient{}, WithBatchTimeout(time.Hour))
+	require.NoError(t, err)
+	ch, stop := startWrite(t, wr)
+
+	ch <- &message.WriteMigrateTable{Table: batchTestTables[0]}
+	ch <- &message.WriteInsert{Record: getRecord(batchTestTables[0].ToArrowSchema(), 1)}
+	require.ErrorContains(t, flush(ch), "table "+batchTestTables[0].Name+": write failed")
+
+	require.NoError(t, stop())
+	require.NoError(t, wr.Close(context.Background()))
+}

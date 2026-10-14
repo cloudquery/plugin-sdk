@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"iter"
 	"maps"
@@ -30,8 +31,9 @@ const (
 type Client struct {
 	client pb.PluginClient
 	mem    map[string]versionedValue
-	// changed keys, with the scope covering every change since the last flush (nil outside table resolvers)
-	changes map[string]checkpoint.Scope
+	// changed keys. With checkpoints, each key has the scopes of its changes since the last flush, nil for changes made
+	// outside table resolvers.
+	changes map[string]map[checkpoint.Scope]struct{}
 	// the last checkpoint of each key, which the next checkpoint of the key must not overtake
 	sent          map[string]*checkpoint.Sent
 	mutex         *sync.RWMutex
@@ -63,7 +65,7 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string, opt
 		conn:          conn,
 		client:        pb.NewPluginClient(conn),
 		mem:           make(map[string]versionedValue),
-		changes:       make(map[string]checkpoint.Scope),
+		changes:       make(map[string]map[checkpoint.Scope]struct{}),
 		sent:          make(map[string]*checkpoint.Sent),
 		mutex:         &sync.RWMutex{},
 		versionedMode: table.Column(versionColumn) != nil,
@@ -160,14 +162,27 @@ func (c *Client) SetKey(ctx context.Context, key string, value string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
+	scopes, pending := c.changes[key]
 	if c.mem[key].value == value {
+		// the pending change summarizes this caller's resources too
+		if pending && c.checkpoints != nil {
+			scopes[checkpoint.FromContext(ctx)] = struct{}{}
+		}
 		return nil // don't update if the value is the same
 	}
 	c.mem[key] = versionedValue{
 		value:   value,
 		version: c.mem[key].version + 1,
 	}
-	c.changes[key] = checkpoint.Join(c.changes[key], checkpoint.FromContext(ctx))
+	if c.checkpoints == nil {
+		c.changes[key] = nil
+		return nil
+	}
+	if !pending {
+		scopes = make(map[checkpoint.Scope]struct{})
+		c.changes[key] = scopes
+	}
+	scopes[checkpoint.FromContext(ctx)] = struct{}{}
 	return nil
 }
 
@@ -199,15 +214,20 @@ func (c *Client) Flush(ctx context.Context) error {
 		return err
 	}
 
-	c.changes = make(map[string]checkpoint.Scope)
+	c.changes = make(map[string]map[checkpoint.Scope]struct{})
 	return nil
 }
 
 // flushCheckpoints sends one checkpoint per scope, so each waits only for the resources of the scopes that changed its
 // keys. Keys whose checkpoint fails stay pending.
 func (c *Client) flushCheckpoints(ctx context.Context) error {
+	aborted := c.abortedKeys()
 	keysByScope := make(map[checkpoint.Scope][]string)
-	for key, scope := range c.changes {
+	for key, scopes := range c.changes {
+		if _, ok := aborted[key]; ok {
+			continue
+		}
+		scope := checkpoint.Join(slices.Collect(maps.Keys(scopes))...)
 		keysByScope[scope] = append(keysByScope[scope], key)
 	}
 	// keys changed outside table resolvers do not wait for any scope, so they go first
@@ -222,6 +242,9 @@ func (c *Client) flushCheckpoints(ctx context.Context) error {
 		}
 	})
 	var errs []error
+	if len(aborted) > 0 {
+		errs = append(errs, fmt.Errorf("%d keys: %w", len(aborted), checkpoint.ErrSyncAborted))
+	}
 	for _, scope := range scopes {
 		keys := keysByScope[scope]
 		msg := &message.SyncCheckpoint{Record: c.record(slices.Values(keys))}
@@ -240,6 +263,24 @@ func (c *Client) flushCheckpoints(ctx context.Context) error {
 
 // unsent returns the previous checkpoints of keys that are not sent yet, as the scopes they wait for may still be
 // sending the resources they cover.
+// abortedKeys returns the keys whose last checkpoint was dropped by a cancelled sync. They stay pending, as the
+// resources they summarize may have been dropped too. It forgets checkpoints that were sent.
+func (c *Client) abortedKeys() map[string]struct{} {
+	aborted := make(map[string]struct{})
+	for key, sent := range c.sent {
+		switch {
+		case sent.Done():
+			delete(c.sent, key)
+		case sent.Aborted():
+			aborted[key] = struct{}{}
+			if _, ok := c.changes[key]; !ok {
+				c.changes[key] = make(map[checkpoint.Scope]struct{})
+			}
+		}
+	}
+	return aborted
+}
+
 func (c *Client) unsent(keys []string) []*checkpoint.Sent {
 	var unsent []*checkpoint.Sent
 	for _, key := range keys {

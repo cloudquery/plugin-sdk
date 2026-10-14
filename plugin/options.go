@@ -60,6 +60,9 @@ func WithConnectionTester(tester ConnectionTester) Option {
 // A flush ends every open batch, like reaching the batch size does. Do not set this option if ending a batch early
 // loses or corrupts data, for example a file destination that writes the whole sync to a single object. A client whose
 // support depends on its spec implements FlushSupporter.
+//
+// A flush fails if any message before it failed to write. With flush support, the CLI then fails the sync instead of
+// saving state past the lost rows, while without it, the writers only log failed batches.
 func WithFlushSupport() Option {
 	return func(p *Plugin) {
 		p.supportsFlush = true
