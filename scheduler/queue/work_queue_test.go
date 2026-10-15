@@ -35,7 +35,9 @@ func requireNextReturned(t *testing.T, next <-chan *WorkUnit) *WorkUnit {
 
 func TestWorkQueue(t *testing.T) {
 	t.Run("returns nil when nothing is queued or in progress", func(t *testing.T) {
-		require.Nil(t, newWorkQueue(0, 0).Next(t.Context()))
+		synctest.Test(t, func(t *testing.T) {
+			require.Nil(t, newWorkQueue(0, 0).Next(t.Context()))
+		})
 	})
 
 	t.Run("wakes up when a work unit in progress queues a relation", func(t *testing.T) {
