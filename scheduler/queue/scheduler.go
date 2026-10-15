@@ -89,13 +89,12 @@ func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedR
 	if len(tableClients) == 0 {
 		return
 	}
-	queue := NewConcurrentRandomQueue[WorkUnit](d.seed, len(tableClients))
+	queue := newWorkQueue(d.seed, len(tableClients))
 	for _, tc := range tableClients {
 		queue.Push(tc)
 	}
 
 	jobs := make(chan *WorkUnit)
-	activeWorkSignal := newActiveWorkSignal()
 
 	// Worker pool
 	workerPool, _ := errgroup.WithContext(ctx)
@@ -112,7 +111,7 @@ func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedR
 				d.metrics,
 				msgChan,
 				d.errorClassifier,
-			).work(ctx, activeWorkSignal)
+			).work(ctx)
 			return nil
 		})
 	}
@@ -120,29 +119,8 @@ func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedR
 	// Work distribution
 	go func() {
 		defer close(jobs)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				item := queue.Pop()
-
-				// There is work to do. Mark it active before handing it off so the
-				// idle check below cannot fire while the item is in flight to a worker.
-				if item != nil {
-					activeWorkSignal.Add()
-					jobs <- item
-					continue
-				}
-
-				// Queue is empty and no active work, done!
-				if activeWorkSignal.IsIdle() {
-					return
-				}
-
-				// Queue is empty and there is active work, wait for changes
-				activeWorkSignal.Wait()
-			}
+		for item := queue.Next(ctx); item != nil; item = queue.Next(ctx) {
+			jobs <- item
 		}
 	}()
 

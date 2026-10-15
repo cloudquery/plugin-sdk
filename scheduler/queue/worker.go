@@ -23,7 +23,7 @@ import (
 
 type worker struct {
 	jobs              <-chan *WorkUnit
-	queue             *ConcurrentRandomQueue[WorkUnit]
+	queue             *workQueue
 	resolvedResources chan<- *schema.Resource
 
 	logger            zerolog.Logger
@@ -36,20 +36,16 @@ type worker struct {
 	errorClassifier schema.ErrorClassifier
 }
 
-func (w *worker) work(ctx context.Context, activeWorkSignal *activeWorkSignal) {
+func (w *worker) work(ctx context.Context) {
 	for j := range w.jobs {
-		// the work unit was already marked active by the dispatcher before it was
-		// handed off, so the dispatcher can never observe an idle state while a
-		// job is in flight between the queue and a worker
 		w.resolveTable(ctx, j.Table, j.Client, j.Parent)
-
-		activeWorkSignal.Done()
+		w.queue.Done()
 	}
 }
 
 func newWorker(
 	jobs <-chan *WorkUnit,
-	queue *ConcurrentRandomQueue[WorkUnit],
+	queue *workQueue,
 	resolvedResources chan<- *schema.Resource,
 
 	logger zerolog.Logger,
