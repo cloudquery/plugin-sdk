@@ -53,9 +53,9 @@ func WithConnectionTester(tester ConnectionTester) Option {
 	}
 }
 
-// WithFlushSupport declares that the client's Write handles message.WriteFlush: it commits every message received
-// before the flush, then calls Done. The writers in the writers package do this, so a client whose Write passes the
-// message channel to one of them can set this option. A Write that wraps or filters the channel must forward every
+// WithFlushSupport declares that the client's Write handles message.WriteFlush: it tries to commit every message
+// received before the flush, then calls Done, with an error if some of them may not have been committed. The writers in
+// the writers package do this, so a client whose Write passes the message channel to one of them can set this option. A Write that wraps or filters the channel must forward every
 // message.WriteFlush, or call its Done itself, or the sync waits for it forever.
 //
 // A flush ends every open batch, like reaching the batch size does. Do not set this option if ending a batch early
