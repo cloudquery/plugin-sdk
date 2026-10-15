@@ -89,13 +89,12 @@ func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedR
 	if len(tableClients) == 0 {
 		return
 	}
-	queue := NewConcurrentRandomQueue[WorkUnit](d.seed, len(tableClients))
+	queue := newWorkQueue(d.seed, len(tableClients))
 	for _, tc := range tableClients {
 		queue.Push(tc)
 	}
 
 	jobs := make(chan *WorkUnit)
-	activeWorkSignal := newActiveWorkSignal()
 
 	// Worker pool
 	workerPool, _ := errgroup.WithContext(ctx)
@@ -112,40 +111,18 @@ func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedR
 				d.metrics,
 				msgChan,
 				d.errorClassifier,
-			).work(ctx, activeWorkSignal)
+			).work(ctx)
 			return nil
 		})
 	}
 
-	go dispatch(ctx, queue, jobs, activeWorkSignal)
+	// Work distribution
+	go func() {
+		defer close(jobs)
+		for item := queue.Next(ctx); item != nil; item = queue.Next(ctx) {
+			jobs <- item
+		}
+	}()
 
 	_ = workerPool.Wait()
-}
-
-type workQueue interface {
-	Pop() *WorkUnit
-}
-
-// dispatch hands queued work units to workers until the queue is empty and no work is active.
-func dispatch(ctx context.Context, queue workQueue, jobs chan<- *WorkUnit, activeWorkSignal *activeWorkSignal) {
-	defer close(jobs)
-	for ctx.Err() == nil {
-		item := queue.Pop()
-		if item == nil {
-			if !activeWorkSignal.IsIdle() {
-				activeWorkSignal.Wait()
-				continue
-			}
-			// Workers push relations before calling Done, so nothing can be pushed once idle,
-			// but the last active work unit may have pushed between the Pop above and the idle check.
-			if item = queue.Pop(); item == nil {
-				return
-			}
-		}
-
-		// Mark the item active before handing it off so the idle check cannot fire
-		// while the item is in flight to a worker.
-		activeWorkSignal.Add()
-		jobs <- item
-	}
 }
