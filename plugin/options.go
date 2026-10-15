@@ -62,10 +62,12 @@ func WithConnectionTester(tester ConnectionTester) Option {
 // loses or corrupts data, for example a file destination that writes the whole sync to a single object. A client whose
 // support depends on its spec implements FlushSupporter.
 //
-// A flush fails if a message since the previous flush failed to write. The CLI then stops saving state for the sync,
-// so that it never passes the lost rows, and reports the failure once the sync finishes. Writers that stop on a failed
-// write, such as the mixed batch writer, still end the sync. Without flush support, the batch writer only logs failed
-// batches.
+// A flush fails if a message since the previous flush may not have been written, and names the tables of those messages
+// if the writer can tell. The CLI then stops saving state for the source, so that its state never passes the lost
+// rows, skips delete-stale for the failed tables, and reports the failure once the sync finishes. The next sync then
+// syncs again every row after the last saved state, so in append write mode, the destination gets those rows again.
+// Writers that stop on a failed write, such as the mixed batch writer, end the sync, unless they reported the failure
+// on a flush first. Without flush support, the batch writer only logs failed batches.
 func WithFlushSupport() Option {
 	return func(p *Plugin) {
 		p.supportsFlush = true

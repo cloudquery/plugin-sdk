@@ -132,33 +132,42 @@ func (s *Sent) root() *Sent {
 	}
 }
 
+// lockRoot returns the checkpoint s is sent with, locked. It is still the root once locked, as MergeInto runs under the
+// lock of the checkpoint it merges.
+func (s *Sent) lockRoot() *Sent {
+	for {
+		r := s.root()
+		r.mu.Lock()
+		if r.mergedInto == nil {
+			return r
+		}
+		r.mu.Unlock()
+	}
+}
+
 // Done reports whether the checkpoint was sent.
 func (s *Sent) Done() bool {
-	r := s.root()
-	r.mu.Lock()
+	r := s.lockRoot()
 	defer r.mu.Unlock()
 	return r.done
 }
 
 // Aborted reports whether the checkpoint was dropped.
 func (s *Sent) Aborted() bool {
-	r := s.root()
-	r.mu.Lock()
+	r := s.lockRoot()
 	defer r.mu.Unlock()
 	return r.aborted
 }
 
 func (s *Sent) holder() Scope {
-	r := s.root()
-	r.mu.Lock()
+	r := s.lockRoot()
 	defer r.mu.Unlock()
 	return r.heldBy
 }
 
 // NotifyAbort sets flag if the checkpoint is aborted, or now if it already was.
 func (s *Sent) NotifyAbort(flag *atomic.Bool) {
-	r := s.root()
-	r.mu.Lock()
+	r := s.lockRoot()
 	defer r.mu.Unlock()
 	if r.aborted {
 		flag.Store(true)
@@ -192,8 +201,7 @@ func (s *Sent) MergeInto(into *Sent) {
 
 // wait makes barrier wait for s. It reports true, without waiting, if s was sent.
 func (s *Sent) wait(barrier *Barrier) bool {
-	r := s.root()
-	r.mu.Lock()
+	r := s.lockRoot()
 	switch {
 	case r.done:
 		r.mu.Unlock()
@@ -231,8 +239,7 @@ func (s *Sent) Finish(ctx context.Context, res chan<- message.SyncMessage) error
 
 // Abort marks s as dropped, and aborts the checkpoints waiting for it.
 func (s *Sent) Abort() {
-	r := s.root()
-	r.mu.Lock()
+	r := s.lockRoot()
 	if r.done || r.aborted {
 		r.mu.Unlock()
 		return

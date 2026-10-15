@@ -35,7 +35,7 @@ type Client struct {
 	mem    map[string]versionedValue
 	// changed keys. With checkpoints, each key has the scopes of its changes since the last flush, nil for changes made
 	// outside table resolvers.
-	changes map[string]map[checkpoint.Scope]struct{}
+	changes map[string]*scopeSet
 	// the last checkpoint of each key, which the next checkpoint of the key must not overtake
 	sent map[string]*checkpoint.Sent
 	// set when one of the checkpoints in sent is aborted
@@ -69,7 +69,7 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string, opt
 		conn:          conn,
 		client:        pb.NewPluginClient(conn),
 		mem:           make(map[string]versionedValue),
-		changes:       make(map[string]map[checkpoint.Scope]struct{}),
+		changes:       make(map[string]*scopeSet),
 		sent:          make(map[string]*checkpoint.Sent),
 		mutex:         &sync.RWMutex{},
 		versionedMode: table.Column(versionColumn) != nil,
@@ -170,7 +170,7 @@ func (c *Client) SetKey(ctx context.Context, key string, value string) error {
 	if c.mem[key].value == value {
 		// the pending change summarizes this caller's resources too
 		if pending && c.checkpoints != nil {
-			addScope(scopes, checkpoint.FromContext(ctx))
+			scopes.add(checkpoint.FromContext(ctx))
 		}
 		return nil // don't update if the value is the same
 	}
@@ -183,26 +183,42 @@ func (c *Client) SetKey(ctx context.Context, key string, value string) error {
 		return nil
 	}
 	if !pending {
-		scopes = make(map[checkpoint.Scope]struct{})
+		scopes = newScopeSet()
 		c.changes[key] = scopes
 	}
-	addScope(scopes, checkpoint.FromContext(ctx))
+	scopes.add(checkpoint.FromContext(ctx))
 	return nil
 }
 
-// addScope adds scope to scopes. When scopes doubles past 64, it collapses the scopes of ended resolvers into one, so
-// that a key many resolvers change keeps a small set.
-func addScope(scopes map[checkpoint.Scope]struct{}, scope checkpoint.Scope) {
-	scopes[scope] = struct{}{}
-	if n := len(scopes); n < 64 || n&(n-1) != 0 {
+// minCompactSize is the size at which a scope set is first compacted.
+const minCompactSize = 64
+
+// scopeSet holds the scopes of a key's changes since the last flush.
+type scopeSet struct {
+	scopes map[checkpoint.Scope]struct{}
+	// the size at which the set is compacted next
+	compactAt int
+}
+
+func newScopeSet() *scopeSet {
+	return &scopeSet{scopes: make(map[checkpoint.Scope]struct{}), compactAt: minCompactSize}
+}
+
+// add adds scope. Once the set reaches compactAt, it collapses the scopes of ended resolvers into the one they share,
+// so that a key that many resolvers change keeps a small set. It compacts again only once the set doubles, so that a
+// set of scopes that do not collapse costs constant time per add.
+func (s *scopeSet) add(scope checkpoint.Scope) {
+	s.scopes[scope] = struct{}{}
+	if len(s.scopes) < s.compactAt {
 		return
 	}
-	for s := range scopes {
-		if collapsed := checkpoint.Collapse(s); collapsed != s {
-			delete(scopes, s)
-			scopes[collapsed] = struct{}{}
+	for scope := range s.scopes {
+		if collapsed := checkpoint.Collapse(scope); collapsed != scope {
+			delete(s.scopes, scope)
+			s.scopes[collapsed] = struct{}{}
 		}
 	}
+	s.compactAt = max(minCompactSize, 2*len(s.scopes))
 }
 
 func (c *Client) Flush(ctx context.Context) error {
@@ -233,7 +249,7 @@ func (c *Client) Flush(ctx context.Context) error {
 		return err
 	}
 
-	c.changes = make(map[string]map[checkpoint.Scope]struct{})
+	c.changes = make(map[string]*scopeSet)
 	return nil
 }
 
@@ -246,7 +262,7 @@ func (c *Client) flushCheckpoints(ctx context.Context) error {
 		if _, ok := aborted[key]; ok {
 			continue
 		}
-		scope, id := joinScopes(scopes)
+		scope, id := joinScopes(scopes.scopes)
 		group, ok := groups[id]
 		if !ok {
 			group = &checkpointGroup{scope: scope}
@@ -313,7 +329,7 @@ func (c *Client) abortedKeys() map[string]struct{} {
 		case sent.Aborted():
 			aborted[key] = struct{}{}
 			if _, ok := c.changes[key]; !ok {
-				c.changes[key] = make(map[checkpoint.Scope]struct{})
+				c.changes[key] = newScopeSet()
 			}
 		}
 	}

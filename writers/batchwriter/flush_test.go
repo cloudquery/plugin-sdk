@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -80,7 +82,11 @@ func TestFlushMessageReportsFailuresFromTimeouts(t *testing.T) {
 
 	ch <- &message.WriteMigrateTable{Table: batchTestTables[0]}
 	ch <- &message.WriteInsert{Record: getRecord(batchTestTables[0].ToArrowSchema(), 3)}
-	require.Eventually(t, func() bool { return wr.insertFailures.Load() > 0 }, 5*time.Second, time.Millisecond)
+	require.Eventually(t, func() bool {
+		wr.failuresLock.Lock()
+		defer wr.failuresLock.Unlock()
+		return wr.failures[batchTestTables[0].Name].count > 0
+	}, 5*time.Second, time.Millisecond)
 	require.ErrorContains(t, flush(t, ch), "write failed")
 
 	require.NoError(t, stop())
@@ -115,7 +121,9 @@ func TestFlushMessageErrorNamesTable(t *testing.T) {
 
 	ch <- &message.WriteMigrateTable{Table: batchTestTables[0]}
 	ch <- &message.WriteInsert{Record: getRecord(batchTestTables[0].ToArrowSchema(), 1)}
-	require.ErrorContains(t, flush(t, ch), "table "+batchTestTables[0].Name+": write failed")
+	err = flush(t, ch)
+	require.ErrorContains(t, err, "table "+batchTestTables[0].Name+": 1 batch writes failed since the previous flush, last error: write failed")
+	require.Equal(t, []string{batchTestTables[0].Name}, message.FailedTables(err))
 
 	require.NoError(t, stop())
 	require.NoError(t, wr.Close(context.Background()))
@@ -183,10 +191,56 @@ func TestFlushMessageReportsFailedMigrationsAndDeletes(t *testing.T) {
 			for _, msg := range tc.msgs {
 				ch <- msg
 			}
-			require.ErrorContains(t, flush(t, ch), tc.name+" failed")
+			err = flush(t, ch)
+			require.ErrorContains(t, err, tc.name+" failed")
+			require.Equal(t, []string{table.Name}, message.FailedTables(err))
 			require.NoError(t, stop())
 		})
 	}
+}
+
+// failingTableClient fails to write the batches of one table.
+type failingTableClient struct {
+	testBatchClient
+	table string
+}
+
+func (c *failingTableClient) WriteTableBatch(ctx context.Context, name string, msgs message.WriteInserts) error {
+	if name == c.table {
+		return errors.New("write failed")
+	}
+	return c.testBatchClient.WriteTableBatch(ctx, name, msgs)
+}
+
+func TestFlushMessageReportsOnlyTheFailuresOfItsOwnTables(t *testing.T) {
+	table := func(name string) *schema.Table {
+		return &schema.Table{Name: name, Columns: schema.ColumnList{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	}
+	failing, healthy := table("failing"), table("healthy")
+	wr, err := New(&failingTableClient{table: failing.Name}, WithBatchTimeout(time.Hour))
+	require.NoError(t, err)
+	// two streams share the writer, as the state backend's does with the sync's when both use one destination
+	failingCh, stopFailing := startWrite(t, wr)
+	healthyCh, stopHealthy := startWrite(t, wr)
+
+	failingCh <- &message.WriteMigrateTable{Table: failing}
+	healthyCh <- &message.WriteMigrateTable{Table: healthy}
+	failingCh <- &message.WriteInsert{Record: getRecord(failing.ToArrowSchema(), 1)}
+	healthyCh <- &message.WriteInsert{Record: getRecord(healthy.ToArrowSchema(), 1)}
+
+	err = flush(t, failingCh)
+	require.ErrorContains(t, err, "write failed")
+	require.Equal(t, []string{failing.Name}, message.FailedTables(err))
+	require.NoError(t, flush(t, healthyCh), "the failure of another stream's table is not reported")
+
+	// a stream that starts writing a table later does not report its earlier failures
+	healthyCh <- &message.WriteInsert{Record: getRecord(failing.ToArrowSchema(), 1)}
+	err = flush(t, healthyCh)
+	require.Equal(t, []string{failing.Name}, message.FailedTables(err), "only the failure of its own insert")
+	require.ErrorContains(t, err, "1 batch writes failed")
+
+	require.NoError(t, stopFailing())
+	require.NoError(t, stopHealthy())
 }
 
 // receive fails the test instead of hanging when nothing arrives.

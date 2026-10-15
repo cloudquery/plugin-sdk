@@ -430,3 +430,38 @@ func TestPluginSyncCheckpoints(t *testing.T) {
 	require.ErrorContains(t, s.Sync(&pb.Sync_Request{}, stream), "client does not support checkpoints")
 	require.Empty(t, stream.messages)
 }
+
+func TestWaitForFlush(t *testing.T) {
+	ctx := context.Background()
+	writeDone := make(chan struct{})
+	close(writeDone)
+	// Write completed the flush and returned: whichever the select picks, the result is not lost
+	for range 100 {
+		flush := message.NewWriteFlush()
+		flush.Done(errors.New("disk full"))
+		flushErr, completed, err := waitForFlush(ctx, flush, writeDone)
+		require.NoError(t, err)
+		require.True(t, completed)
+		require.EqualError(t, flushErr, "disk full")
+	}
+
+	_, completed, err := waitForFlush(ctx, message.NewWriteFlush(), writeDone)
+	require.NoError(t, err)
+	require.False(t, completed, "Write returned without completing the flush")
+
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	_, _, err = waitForFlush(cancelled, message.NewWriteFlush(), make(chan struct{}))
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestFlushResponse(t *testing.T) {
+	require.Equal(t, &pb.Write_Response{FlushId: 1}, flushResponse(1, nil))
+	require.Equal(t, &pb.Write_Response{FlushId: 2, FlushError: "flush failed"}, flushResponse(2, errors.New("")))
+	require.Equal(t, &pb.Write_Response{FlushId: 3, FlushError: "bad � byte"}, flushResponse(3, errors.New("bad \xff byte")))
+	require.Equal(t, &pb.Write_Response{
+		FlushId:      4,
+		FlushError:   "table b: disk full",
+		FailedTables: []string{"a", "b�"},
+	}, flushResponse(4, &message.FailedTablesError{Tables: []string{"b\xff", "a"}, Err: errors.New("table b: disk full")}))
+}

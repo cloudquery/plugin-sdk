@@ -57,7 +57,9 @@ func TestFlushMessageReportsFailedWrites(t *testing.T) {
 	ch <- &message.WriteInsert{Record: getRecord(streamingBatchTestTable.ToArrowSchema(), 1)}
 	flush := message.NewWriteFlush()
 	ch <- flush
-	require.ErrorContains(t, receive(t, flush.Result()), "failed to write messages for table1")
+	err = receive(t, flush.Result())
+	require.ErrorContains(t, err, "failed to write messages for table1")
+	require.Equal(t, []string{"table1"}, message.FailedTables(err))
 
 	close(ch)
 	require.ErrorContains(t, receive(t, errCh), "commit failed")
@@ -78,7 +80,9 @@ func TestFlushMessageReportsRejectedMessages(t *testing.T) {
 	ch <- &message.WriteInsert{Record: getRecord(noTableName, 1)}
 	flush := message.NewWriteFlush()
 	ch <- flush
-	require.ErrorContains(t, receive(t, flush.Result()), "table name not found in metadata")
+	err = receive(t, flush.Result())
+	require.ErrorContains(t, err, "table name not found in metadata")
+	require.Nil(t, message.FailedTables(err), "a message without a table may belong to any table")
 
 	close(ch)
 	require.ErrorContains(t, receive(t, errCh), "table name not found in metadata")

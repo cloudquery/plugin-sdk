@@ -440,8 +440,9 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 	}
 }
 
-// WriteStream is Write that also accepts flushes. It answers each flush once the plugin's Write commits every message
-// sent before it, or with the error that prevented it. A failed flush does not end the stream.
+// WriteStream is Write that also accepts flushes. It answers each flush once the plugin's Write has tried to commit
+// every message sent before it, with an error if some of them may not have been committed. A failed flush does not end
+// the stream.
 func (s *Server) WriteStream(stream pb.Plugin_WriteStreamServer) error {
 	if !s.Plugin.SupportsFlush() {
 		return status.Errorf(codes.Unimplemented, "plugin does not support flush")
@@ -503,30 +504,51 @@ func (s *Server) WriteStream(stream pb.Plugin_WriteStreamServer) error {
 			continue
 		}
 
-		var flushErr error
-		select {
-		case flushErr = <-flush.Result():
-		case <-writeDone:
-			select {
-			case flushErr = <-flush.Result():
-			default:
-				return stop(codes.Internal, "plugin stopped writing before the flush completed")
-			}
-		case <-ctx.Done():
-			return stop(codes.Canceled, "context done: %v", ctx.Err())
+		flushErr, completed, err := waitForFlush(ctx, flush, writeDone)
+		switch {
+		case err != nil:
+			return stop(codes.Canceled, "context done: %v", err)
+		case !completed:
+			return stop(codes.Internal, "plugin stopped writing before the flush completed")
 		}
-		res := &pb.Write_Response{FlushId: r.GetFlush().GetId()}
-		if flushErr != nil {
-			// protobuf strings must be valid UTF-8, and an empty one would report success
-			res.FlushError = strings.ToValidUTF8(flushErr.Error(), "\uFFFD")
-			if res.FlushError == "" {
-				res.FlushError = "flush failed"
-			}
-		}
-		if err := stream.Send(res); err != nil {
+		if err := stream.Send(flushResponse(r.GetFlush().GetId(), flushErr)); err != nil {
 			return stop(codes.Internal, "failed to send flush response: %v", err)
 		}
 	}
+}
+
+// waitForFlush returns the error flush completed with, or completed=false if Write returned without completing it.
+func waitForFlush(ctx context.Context, flush *message.WriteFlush, writeDone <-chan struct{}) (flushErr error, completed bool, err error) {
+	select {
+	case result := <-flush.Result():
+		return result, true, nil
+	case <-writeDone:
+		// Write may have completed the flush right before returning
+		select {
+		case result := <-flush.Result():
+			return result, true, nil
+		default:
+			return nil, false, nil
+		}
+	case <-ctx.Done():
+		return nil, false, ctx.Err()
+	}
+}
+
+func flushResponse(id uint64, flushErr error) *pb.Write_Response {
+	res := &pb.Write_Response{FlushId: id}
+	if flushErr == nil {
+		return res
+	}
+	// protobuf strings must be valid UTF-8, and an empty error would report success
+	res.FlushError = strings.ToValidUTF8(flushErr.Error(), "\uFFFD")
+	if res.FlushError == "" {
+		res.FlushError = "flush failed"
+	}
+	for _, table := range message.FailedTables(flushErr) {
+		res.FailedTables = append(res.FailedTables, strings.ToValidUTF8(table, "\uFFFD"))
+	}
+	return res
 }
 
 func writeRequestToMessage(r *pb.Write_Request) (message.WriteMessage, error) {

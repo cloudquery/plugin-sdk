@@ -4,19 +4,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"slices"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
+	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/internal/checkpoint"
+	stateV3 "github.com/cloudquery/plugin-sdk/v4/internal/clients/state/v3"
+	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
+	serversv3 "github.com/cloudquery/plugin-sdk/v4/internal/servers/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/test/bufconn"
 )
 
 type testMarker struct {
@@ -537,12 +548,14 @@ func TestAbortDropsCheckpointsOfStuckResolvers(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var (
-		release   = make(chan struct{})
-		stuckSent = make(chan *checkpoint.Sent, 1)
-		gate      = make(chan struct{})
-		resume    = make(chan struct{})
+		release = make(chan struct{})
+		queued  = make(chan struct{})
+		gate    = make(chan struct{})
+		resume  = make(chan struct{})
+		res     = make(chan message.SyncMessage)
 	)
 	defer close(release)
+	stateClient := newCheckpointStateClient(t, res)
 	stuck := &schema.Table{
 		Name:    checkpointParentTable,
 		Columns: []schema.Column{idColumn()},
@@ -553,9 +566,11 @@ func TestAbortDropsCheckpointsOfStuckResolvers(t *testing.T) {
 		},
 		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 			res <- int64(1)
-			sent, err := checkpoint.Send(ctx, nil, checkpoint.FromContext(ctx), nil, &testMarker{name: "stuck"})
-			stuckSent <- sent
-			return err
+			defer close(queued)
+			if err := stateClient.SetKey(ctx, "cursor", "1"); err != nil {
+				return err
+			}
+			return stateClient.Flush(ctx)
 		},
 	}
 	other := &schema.Table{
@@ -567,9 +582,12 @@ func TestAbortDropsCheckpointsOfStuckResolvers(t *testing.T) {
 		},
 	}
 
-	res := make(chan message.SyncMessage)
+	var cursorSent atomic.Bool
 	go func() {
 		for msg := range res {
+			if _, ok := msg.(*message.SyncCheckpoint); ok {
+				cursorSent.Store(true)
+			}
 			// stop reading once the other table's row arrives, so the sync is cancelled while sending its checkpoint
 			if insert, ok := msg.(*message.SyncInsert); ok && insert.GetTable().Name == checkpointChildTable {
 				close(gate)
@@ -585,12 +603,83 @@ func TestAbortDropsCheckpointsOfStuckResolvers(t *testing.T) {
 	go func() {
 		syncErr <- s.Sync(ctx, &testExecutionClient{}, schema.Tables{stuck, other}, res)
 	}()
-	sent := receiveWithin(t, stuckSent)
+	receiveWithin(t, queued)
 	receiveWithin(t, gate)
-	require.False(t, sent.Done() || sent.Aborted(), "the checkpoint waits for the stuck resolver")
 	cancel()
 	require.ErrorIs(t, receiveWithin(t, syncErr), context.Canceled)
-	require.True(t, sent.Aborted(), "a state client waiting for the checkpoint must not hang")
+	require.ErrorIs(t, stateClient.Flush(context.Background()), checkpoint.ErrSyncAborted, "the checkpoint behind the stuck resolver is aborted")
+	require.False(t, cursorSent.Load())
+}
+
+func TestShuffleQueueAbortDropsCheckpointsOfStuckResolvers(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var (
+		release   = make(chan struct{})
+		queued    = make(chan struct{})
+		cancelled = make(chan struct{})
+		done      = make(chan struct{})
+		res       = make(chan message.SyncMessage)
+	)
+	defer close(release)
+	defer close(done)
+	stateClient := newCheckpointStateClient(t, res)
+	stuck := &schema.Table{
+		Name:    checkpointParentTable,
+		Columns: []schema.Column{idColumn()},
+		PreResourceResolver: func(context.Context, schema.ClientMeta, *schema.Resource) error {
+			<-release
+			return errors.New("released")
+		},
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			res <- int64(1)
+			defer close(queued)
+			if err := stateClient.SetKey(ctx, "cursor", "1"); err != nil {
+				return err
+			}
+			return stateClient.Flush(ctx)
+		},
+	}
+	// sends resources after the cancel, so that the sync notices it while the stuck resolver never returns
+	waker := &schema.Table{
+		Name:    checkpointChildTable,
+		Columns: []schema.Column{idColumn()},
+		Resolver: func(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			<-cancelled
+			ids := make([]int64, 64)
+			for i := range ids {
+				ids[i] = int64(i)
+			}
+			res <- ids
+			return nil
+		},
+	}
+
+	var cursorSent atomic.Bool
+	go func() {
+		for {
+			select {
+			case msg := <-res:
+				if _, ok := msg.(*message.SyncCheckpoint); ok {
+					cursorSent.Store(true)
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	s := NewScheduler(WithStrategy(StrategyShuffleQueue), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+	syncErr := make(chan error, 1)
+	go func() {
+		syncErr <- s.Sync(ctx, &testExecutionClient{}, schema.Tables{stuck, waker}, res)
+	}()
+	receiveWithin(t, queued)
+	cancel()
+	close(cancelled)
+	require.ErrorIs(t, receiveWithin(t, syncErr), context.Canceled)
+	require.ErrorIs(t, stateClient.Flush(context.Background()), checkpoint.ErrSyncAborted, "the held checkpoint is aborted")
+	require.False(t, cursorSent.Load())
 }
 
 func TestTableScopeStartedAfterAbortDropsCheckpoints(t *testing.T) {
@@ -669,4 +758,141 @@ func receiveWithin[T any](t *testing.T, ch <-chan T) T {
 		var zero T
 		return zero
 	}
+}
+
+func TestCheckpointOfEndedResolverFollowsItsRows(t *testing.T) {
+	res := make(chan message.SyncMessage)
+	stateClient := newCheckpointStateClient(t, res)
+	endedScope := make(chan checkpoint.Scope, 1)
+	ended := &schema.Table{
+		Name:    checkpointParentTable,
+		Columns: []schema.Column{idColumn()},
+		// ends with its row still in the batcher, and the cursor not yet flushed
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+			endedScope <- checkpoint.FromContext(ctx)
+			res <- int64(1)
+			return stateClient.SetKey(ctx, "cursor", "1")
+		},
+	}
+	flushing := &schema.Table{
+		Name:    checkpointChildTable,
+		Columns: []schema.Column{idColumn()},
+		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, _ chan<- any) error {
+			scope := <-endedScope
+			deadline := time.Now().Add(10 * time.Second)
+			for checkpoint.Collapse(scope) == scope {
+				if time.Now().After(deadline) {
+					return errors.New("the other resolver did not end")
+				}
+				time.Sleep(time.Millisecond)
+			}
+			return stateClient.Flush(ctx)
+		},
+	}
+
+	s := NewScheduler(WithStrategy(StrategyDFS), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+	wait := collectSyncMessages(res)
+	require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{ended, flushing}, res))
+	close(res)
+	msgs := wait()
+
+	rowAt, cursorAt := -1, -1
+	for i, msg := range msgs {
+		switch m := msg.(type) {
+		case *message.SyncError:
+			t.Fatal(m.Error)
+		case *message.SyncInsert:
+			if slices.Contains(recordIDs(m.Record), 1) {
+				rowAt = i
+			}
+		case *message.SyncCheckpoint:
+			if stateValues(t, message.SyncMessages{m})["cursor"] == "1" {
+				cursorAt = i
+			}
+		}
+	}
+	require.NotEqual(t, -1, cursorAt, "the cursor is sent")
+	require.Less(t, rowAt, cursorAt, "the cursor follows the row of the resolver that set it")
+}
+
+func TestSyncReportsCancellationWhileTheBatcherCloses(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	table := func(name string) *schema.Table {
+		return &schema.Table{
+			Name:    name,
+			Columns: []schema.Column{idColumn()},
+			Resolver: func(_ context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
+				res <- []int64{1, 2}
+				return nil
+			},
+		}
+	}
+	// the batches never fill, so their rows go out only as the batcher closes. The first one cancels the sync before
+	// the other can be sent.
+	s := NewScheduler(WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+	res := make(chan message.SyncMessage)
+	go func() {
+		for msg := range res {
+			if _, ok := msg.(*message.SyncInsert); ok {
+				cancel()
+			}
+		}
+	}()
+	err := s.Sync(ctx, &testExecutionClient{}, schema.Tables{table(checkpointParentTable), table(checkpointChildTable)}, res)
+	close(res)
+	require.ErrorIs(t, err, context.Canceled, "the sync may have dropped rows, so it must not report success")
+}
+
+func TestReturnedWaitsForCheckpointsBeingSent(t *testing.T) {
+	res := make(chan message.SyncMessage)
+	c := newSyncCheckpoints(res)
+	c.closeRes = true
+	close(c.loopDone)
+	require.NoError(t, c.complete(context.Background()))
+
+	sent := make(chan error, 1)
+	go func() {
+		sent <- c.send(context.Background(), []message.SyncMessage{&testMarker{name: "late"}})
+	}()
+	// wait until the send holds the read lock, blocked on res
+	for c.resMu.TryLock() {
+		c.resMu.Unlock()
+		time.Sleep(time.Millisecond)
+	}
+	returned := make(chan struct{})
+	go func() {
+		c.returned()
+		close(returned)
+	}()
+	select {
+	case <-returned:
+		t.Fatal("returned did not wait for the checkpoint being sent")
+	case <-time.After(100 * time.Millisecond):
+	}
+	require.IsType(t, &testMarker{}, receiveWithin(t, res))
+	require.NoError(t, receiveWithin(t, sent))
+	receiveWithin(t, returned)
+	require.ErrorIs(t, c.send(context.Background(), []message.SyncMessage{&testMarker{name: "after"}}), errResClosed)
+}
+
+// newCheckpointStateClient returns a state client that sends its checkpoints on res, backed by an in-memory plugin.
+func newCheckpointStateClient(t *testing.T, res chan<- message.SyncMessage) *stateV3.Client {
+	t.Helper()
+	p := plugin.NewPlugin("memdb", "v1.0.0", memdb.NewMemDBClient)
+	require.NoError(t, p.Init(context.Background(), nil, plugin.NewClientOptions{}))
+	listener := bufconn.Listen(1024 * 1024)
+	server := grpc.NewServer()
+	pb.RegisterPluginServer(server, &serversv3.Server{Plugin: p, Logger: zerolog.Nop()})
+	go func() { _ = server.Serve(listener) }()
+	t.Cleanup(server.Stop)
+	conn, err := grpc.NewClient("passthrough:///bufnet",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return listener.Dial() }),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+	client, err := stateV3.NewClient(context.Background(), conn, "cq_state", stateV3.WithCheckpoints(res))
+	require.NoError(t, err)
+	return client
 }

@@ -165,8 +165,10 @@ func (w *StreamingBatchWriter) commit(ctx context.Context) error {
 		commitWorker(ctx, w.deleteStaleWorker),
 		commitWorker(ctx, w.deleteRecordWorker),
 	)
-	for _, worker := range w.insertWorkers {
-		errs = append(errs, commitWorker(ctx, worker))
+	for tableName, worker := range w.insertWorkers {
+		if err := commitWorker(ctx, worker); err != nil {
+			errs = append(errs, &message.FailedTablesError{Tables: []string{tableName}, Err: err})
+		}
 	}
 	return errors.Join(errs...)
 }

@@ -60,7 +60,9 @@ func TestFlushMessageReportsFailedInserts(t *testing.T) {
 	close(ch)
 
 	require.ErrorContains(t, wr.Write(context.Background(), ch), "insert failed")
-	require.ErrorContains(t, receive(t, flush.Result()), "insert failed")
+	err = receive(t, flush.Result())
+	require.ErrorContains(t, err, "insert failed")
+	require.Equal(t, []string{msgs.migrateTable1.Table.Name}, message.FailedTables(err))
 }
 
 func TestFlushMessageCommitsDeletes(t *testing.T) {

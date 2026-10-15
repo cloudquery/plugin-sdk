@@ -103,4 +103,4 @@ require (
 
 replace github.com/invopop/jsonschema => github.com/cloudquery/jsonschema v0.0.0-20260703174721-45e7e20e0ed8
 
-replace github.com/cloudquery/plugin-pb-go => github.com/cloudquery/plugin-pb-go v1.28.2-0.20261014214728-e81859e57a1c
+replace github.com/cloudquery/plugin-pb-go => github.com/cloudquery/plugin-pb-go v1.28.2-0.20261015095527-800e8b7ec47e

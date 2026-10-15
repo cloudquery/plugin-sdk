@@ -45,6 +45,7 @@ func (s *WriterTestSuite) testFlush(ctx context.Context) error {
 			close(msgs)
 		}
 		// a failed step must not leave Write running into the next test
+		cancel()
 		select {
 		case <-writeDone:
 		case <-time.After(flushTestTimeout):

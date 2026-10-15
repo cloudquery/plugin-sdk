@@ -413,7 +413,7 @@ func TestStateClientCheckpointsPerScope(t *testing.T) {
 
 	require.NoError(t, stateClient.Flush(ctxA))
 	require.Len(t, res, 1)
-	require.Equal(t, map[string]string{"c": "1"}, checkpointValues(t, <-res))
+	require.Equal(t, map[string]string{"c": "1"}, checkpointValues(t, receive(t, res)))
 
 	// the shared key waits for both scopes: each gets a barrier, and the last one to reach it sends the checkpoint
 	require.Len(t, scopeA.msgs, 2)
@@ -436,7 +436,7 @@ func TestStateClientCheckpointsPerScope(t *testing.T) {
 	deliver(t, res, barriers[0])
 	require.Empty(t, res)
 	deliver(t, res, barriers[1])
-	require.Equal(t, map[string]string{"shared": "2"}, checkpointValues(t, <-res))
+	require.Equal(t, map[string]string{"shared": "2"}, checkpointValues(t, receive(t, res)))
 
 	require.NoError(t, stateClient.Flush(ctx))
 	require.Len(t, scopeA.msgs, 2)
@@ -467,8 +467,8 @@ func TestStateClientCheckpointWaitsForPreviousCheckpointOfKey(t *testing.T) {
 	deliver(t, res, scopeB.msgs...)
 	require.Empty(t, res)
 	deliver(t, res, scopeA.msgs...)
-	require.Equal(t, map[string]string{"cursor": "1"}, checkpointValues(t, <-res))
-	require.Equal(t, map[string]string{"cursor": "2"}, checkpointValues(t, <-res))
+	require.Equal(t, map[string]string{"cursor": "1"}, checkpointValues(t, receive(t, res)))
+	require.Equal(t, map[string]string{"cursor": "2"}, checkpointValues(t, receive(t, res)))
 
 	// once sent, a checkpoint holds back nothing
 	scopeC := &recordingScope{}
@@ -488,7 +488,7 @@ func TestStateClientKeepsKeysOfFailedCheckpoints(t *testing.T) {
 
 	// the failed scope does not stop other keys from being sent
 	require.ErrorIs(t, stateClient.Flush(ctx), state.ErrSyncAborted)
-	require.Equal(t, map[string]string{"b": "1"}, checkpointValues(t, <-res))
+	require.Equal(t, map[string]string{"b": "1"}, checkpointValues(t, receive(t, res)))
 
 	aborted.err = nil
 	require.NoError(t, stateClient.Flush(ctx))
@@ -667,7 +667,7 @@ func TestStateClientJoinsScopesOfSameValueWrites(t *testing.T) {
 	deliver(t, res, scopeA.msgs...)
 	require.Empty(t, res)
 	deliver(t, res, scopeB.msgs...)
-	require.Equal(t, map[string]string{"cursor": "1"}, checkpointValues(t, <-res))
+	require.Equal(t, map[string]string{"cursor": "1"}, checkpointValues(t, receive(t, res)))
 }
 
 func TestStateClientKeepsKeysWhoseCheckpointWasDropped(t *testing.T) {
@@ -707,7 +707,7 @@ func TestStateClientCollapsesEndedScopes(t *testing.T) {
 	require.NoError(t, stateClient.Flush(ctx))
 	require.Len(t, shared.msgs, 1, "one checkpoint through the shared scope")
 	deliver(t, res, shared.msgs...)
-	require.Equal(t, map[string]string{"cursor": "999"}, checkpointValues(t, <-res))
+	require.Equal(t, map[string]string{"cursor": "999"}, checkpointValues(t, receive(t, res)))
 }
 
 // receive fails the test instead of hanging when nothing arrives.
@@ -854,7 +854,7 @@ func TestStateClientSendsKeysOfTheSameScopesTogether(t *testing.T) {
 	require.NoError(t, stateClient.Flush(ctx))
 
 	require.Len(t, res, 1)
-	require.Equal(t, map[string]string{"c1": "1", "c2": "1"}, checkpointValues(t, <-res))
+	require.Equal(t, map[string]string{"c1": "1", "c2": "1"}, checkpointValues(t, receive(t, res)))
 	require.Len(t, scopeA.msgs, 1)
 	require.Equal(t, map[string]string{"a1": "1", "a2": "1"}, checkpointValues(t, scopeA.msgs...))
 	require.Len(t, scopeB.msgs, 1)
@@ -867,4 +867,61 @@ func testContext(t *testing.T) context.Context {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	t.Cleanup(cancel)
 	return ctx
+}
+
+func TestStateClientCompactionKeepsEveryScope(t *testing.T) {
+	ctx := testContext(t)
+	stateClient, res, _ := newCheckpointStateClient(t, "test_compaction")
+
+	// ended resolvers first, so that compactions collapse them while live resolvers keep adding scopes
+	shared := &recordingScope{}
+	for i := range 100 {
+		require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, &collapsingScope{into: shared}), "cursor", strconv.Itoa(i)))
+	}
+	live := make([]*recordingScope, 100)
+	for i := range live {
+		live[i] = &recordingScope{}
+		require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, live[i]), "cursor", strconv.Itoa(100+i)))
+	}
+	require.NoError(t, stateClient.Flush(ctx))
+
+	require.Len(t, shared.msgs, 1, "the ended resolvers' resources are waited for")
+	for i, scope := range live {
+		require.Len(t, scope.msgs, 1, "live scope %d is waited for", i)
+	}
+	for _, scope := range live {
+		deliver(t, res, scope.msgs...)
+	}
+	require.Empty(t, res)
+	deliver(t, res, shared.msgs...)
+	require.Equal(t, map[string]string{"cursor": "199"}, checkpointValues(t, receive(t, res)))
+}
+
+func TestStateClientCheckpointWaitsForThePreviousCheckpointOfEveryKey(t *testing.T) {
+	// each order catches a checkpoint that waits for only one of the keys' previous checkpoints
+	for _, firstKey := range []string{"a", "b"} {
+		t.Run("first "+firstKey, func(t *testing.T) {
+			ctx := testContext(t)
+			stateClient, res, _ := newCheckpointStateClient(t, "test_group_previous")
+			previous := map[string]*recordingScope{"a": {}, "b": {}}
+			for _, key := range []string{"a", "b"} {
+				require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, previous[key]), key, "1"))
+				require.NoError(t, stateClient.Flush(ctx))
+			}
+			both := &recordingScope{}
+			require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, both), "a", "2"))
+			require.NoError(t, stateClient.SetKey(checkpoint.WithScope(ctx, both), "b", "2"))
+			require.NoError(t, stateClient.Flush(ctx))
+			require.Len(t, both.msgs, 1, "the keys of the same scope go in one checkpoint")
+
+			secondKey := map[string]string{"a": "b", "b": "a"}[firstKey]
+			deliver(t, res, both.msgs...)
+			deliver(t, res, previous[firstKey].msgs...)
+			require.Equal(t, map[string]string{firstKey: "1"}, checkpointValues(t, receive(t, res)))
+			require.Empty(t, res, "the checkpoint of both keys waits for the previous checkpoint of %s", secondKey)
+			deliver(t, res, previous[secondKey].msgs...)
+			require.Equal(t, map[string]string{secondKey: "1"}, checkpointValues(t, receive(t, res)))
+			require.Equal(t, map[string]string{"a": "2", "b": "2"}, checkpointValues(t, receive(t, res)))
+		})
+	}
 }

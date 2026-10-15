@@ -97,4 +97,4 @@ require (
 
 replace github.com/cloudquery/plugin-sdk/v4 => ../../
 
-replace github.com/cloudquery/plugin-pb-go => github.com/cloudquery/plugin-pb-go v1.28.2-0.20261014214728-e81859e57a1c
+replace github.com/cloudquery/plugin-pb-go => github.com/cloudquery/plugin-pb-go v1.28.2-0.20261015095527-800e8b7ec47e

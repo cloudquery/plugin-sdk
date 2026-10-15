@@ -303,6 +303,10 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	b.close() // wait for all resources to be processed
 	if err != nil || ctx.Err() != nil {
 		syncClient.checkpoints.abort()
+		if err == nil {
+			// cancelled while the batcher closed, which may have dropped resources
+			err = context.Cause(ctx)
+		}
 		return err
 	}
 	return syncClient.checkpoints.complete(ctx)
