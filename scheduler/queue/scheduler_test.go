@@ -99,3 +99,42 @@ func TestScheduler(t *testing.T) {
 	// 2 top level tables, each with 10 resources, and each top level has a relation with 10 resources
 	require.Len(t, gotResources, 2*10+2*10*10)
 }
+
+type pushOnFirstEmptyPopQueue struct {
+	*ConcurrentRandomQueue[WorkUnit]
+	onFirstEmptyPop func()
+}
+
+func (q *pushOnFirstEmptyPopQueue) Pop() *WorkUnit {
+	item := q.ConcurrentRandomQueue.Pop()
+	if item == nil && q.onFirstEmptyPop != nil {
+		onEmpty := q.onFirstEmptyPop
+		q.onFirstEmptyPop = nil
+		onEmpty()
+	}
+	return item
+}
+
+func TestDispatchHandsOffWorkQueuedByLastActiveUnit(t *testing.T) {
+	activeWorkSignal := newActiveWorkSignal()
+	queue := &pushOnFirstEmptyPopQueue{ConcurrentRandomQueue: NewConcurrentRandomQueue[WorkUnit](0, 1)}
+	queue.Push(WorkUnit{Table: &schema.Table{Name: "parent"}})
+	// The parent's worker queues a relation and finishes after the dispatcher saw an
+	// empty queue but before it checked for active work.
+	queue.onFirstEmptyPop = func() {
+		queue.Push(WorkUnit{Table: &schema.Table{Name: "relation"}})
+		activeWorkSignal.Done()
+	}
+
+	jobs := make(chan *WorkUnit)
+	go dispatch(context.Background(), queue, jobs, activeWorkSignal)
+
+	require.Equal(t, "parent", (<-jobs).Table.Name)
+	relation, ok := <-jobs
+	require.True(t, ok, "dispatcher stopped without handing off the queued relation")
+	require.Equal(t, "relation", relation.Table.Name)
+	activeWorkSignal.Done()
+
+	_, ok = <-jobs
+	require.False(t, ok)
+}

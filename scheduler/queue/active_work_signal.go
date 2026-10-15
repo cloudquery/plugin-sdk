@@ -1,9 +1,7 @@
 package queue
 
 import (
-	"sync"
 	"sync/atomic"
-	"time"
 )
 
 // activeWorkSignal is a thread-safe coordinator for awaiting a worker pool
@@ -22,36 +20,33 @@ import (
 //   - When a worker finishes a task, call `Done()` (like a WaitGroup)
 //
 // - If the queue is empty, check `IsIdle()` to check if no workers are active.
-// - If workers are still active, call `Wait()` to block until state changes.
+// - If workers are still active, call `Wait()` to block until one of them finishes.
 type activeWorkSignal struct {
-	countChangeSignal   *sync.Cond
-	activeWorkUnitCount *atomic.Int32
-	isStarted           *atomic.Bool
+	activeWorkUnitCount atomic.Int32
+	isStarted           atomic.Bool
+	// Buffered with capacity 1 so a Done that happens before Wait is kept rather than lost.
+	workDone chan struct{}
 }
 
 func newActiveWorkSignal() *activeWorkSignal {
-	return &activeWorkSignal{
-		countChangeSignal:   sync.NewCond(&sync.Mutex{}),
-		activeWorkUnitCount: &atomic.Int32{},
-		isStarted:           &atomic.Bool{},
-	}
+	return &activeWorkSignal{workDone: make(chan struct{}, 1)}
 }
 
 // Add means the dispatcher has taken a task off the queue for a worker.
-//
-// Wake up the work queuing goroutine.
 func (s *activeWorkSignal) Add() {
 	s.activeWorkUnitCount.Add(1)
 	s.isStarted.Store(true)
-	s.countChangeSignal.Signal()
 }
 
 // Done means a worker has finished working on a task.
 //
-// If the count became zero, wake up the work queuing goroutine (might have finished).
+// Wake up the work queuing goroutine: the worker might have queued new tasks, or all work might have finished.
 func (s *activeWorkSignal) Done() {
 	s.activeWorkUnitCount.Add(-1)
-	s.countChangeSignal.Signal()
+	select {
+	case s.workDone <- struct{}{}:
+	default:
+	}
 }
 
 // IsIdle returns true if no workers are active. If queue is empty and workers idle, done!
@@ -59,22 +54,8 @@ func (s *activeWorkSignal) IsIdle() bool {
 	return s.isStarted.Load() && s.activeWorkUnitCount.Load() <= 0
 }
 
-// Wait blocks until the count of active workers changes.
+// Wait blocks until a worker finishes a task. It returns immediately if one has
+// finished since the previous Wait returned.
 func (s *activeWorkSignal) Wait() {
-	// A race condition is possible when the last active table asynchronously
-	// queues a relation. The table finishes (calling `.Done()`) a moment
-	// before the queue receives the `.Push()`. At this point, the queue is
-	// empty and there are no active workers.
-	//
-	// A moment later, the queue receives the `.Push()` and queues a new task.
-	//
-	// This is a very infrequent case according to tests, but it happens.
-	time.Sleep(10 * time.Millisecond)
-
-	if s.activeWorkUnitCount.Load() <= 0 {
-		return
-	}
-	s.countChangeSignal.L.Lock()
-	defer s.countChangeSignal.L.Unlock()
-	s.countChangeSignal.Wait()
+	<-s.workDone
 }

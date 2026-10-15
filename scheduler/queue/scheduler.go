@@ -117,34 +117,35 @@ func (d *Scheduler) Sync(ctx context.Context, tableClients []WorkUnit, resolvedR
 		})
 	}
 
-	// Work distribution
-	go func() {
-		defer close(jobs)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				item := queue.Pop()
-
-				// There is work to do. Mark it active before handing it off so the
-				// idle check below cannot fire while the item is in flight to a worker.
-				if item != nil {
-					activeWorkSignal.Add()
-					jobs <- item
-					continue
-				}
-
-				// Queue is empty and no active work, done!
-				if activeWorkSignal.IsIdle() {
-					return
-				}
-
-				// Queue is empty and there is active work, wait for changes
-				activeWorkSignal.Wait()
-			}
-		}
-	}()
+	go dispatch(ctx, queue, jobs, activeWorkSignal)
 
 	_ = workerPool.Wait()
+}
+
+type workQueue interface {
+	Pop() *WorkUnit
+}
+
+// dispatch hands queued work units to workers until the queue is empty and no work is active.
+func dispatch(ctx context.Context, queue workQueue, jobs chan<- *WorkUnit, activeWorkSignal *activeWorkSignal) {
+	defer close(jobs)
+	for ctx.Err() == nil {
+		item := queue.Pop()
+		if item == nil {
+			if !activeWorkSignal.IsIdle() {
+				activeWorkSignal.Wait()
+				continue
+			}
+			// Workers push relations before calling Done, so nothing can be pushed once idle,
+			// but the last active work unit may have pushed between the Pop above and the idle check.
+			if item = queue.Pop(); item == nil {
+				return
+			}
+		}
+
+		// Mark the item active before handing it off so the idle check cannot fire
+		// while the item is in flight to a worker.
+		activeWorkSignal.Add()
+		jobs <- item
+	}
 }
