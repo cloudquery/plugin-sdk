@@ -78,6 +78,18 @@ func TestWorkQueue(t *testing.T) {
 		})
 	})
 
+	t.Run("returns nil when the context is done and work is still queued", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		q := newWorkQueue(0, 2)
+		q.Push(workUnit("first"))
+		q.Push(workUnit("second"))
+		require.NotNil(t, q.Next(ctx))
+
+		cancel()
+
+		require.Nil(t, q.Next(ctx))
+	})
+
 	t.Run("returns nil when the context is done", func(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())

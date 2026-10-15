@@ -38,7 +38,7 @@ func (q *workQueue) Push(item WorkUnit) {
 // Next blocks until a work unit is queued and returns it marked in progress.
 // It returns nil when no work unit is queued or in progress, or when ctx is done.
 func (q *workQueue) Next(ctx context.Context) *WorkUnit {
-	for {
+	for ctx.Err() == nil {
 		q.mu.Lock()
 		item := q.queue.Pop()
 		if item != nil {
@@ -56,9 +56,9 @@ func (q *workQueue) Next(ctx context.Context) *WorkUnit {
 		select {
 		case <-q.changed:
 		case <-ctx.Done():
-			return nil
 		}
 	}
+	return nil
 }
 
 func (q *workQueue) Done() {
