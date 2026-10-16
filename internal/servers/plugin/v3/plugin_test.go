@@ -432,7 +432,8 @@ func TestPluginSyncCheckpoints(t *testing.T) {
 }
 
 func TestWaitForFlush(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	writeDone := make(chan struct{})
 	close(writeDone)
 	// Write completed the flush and returned: whichever the select picks, the result is not lost

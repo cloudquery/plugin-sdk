@@ -820,7 +820,8 @@ func (*failOnceClient) Write(_ context.Context, msgs <-chan message.WriteMessage
 func TestWriteStreamReportsFailedFlushWhenWriteReturns(t *testing.T) {
 	// the server sees the failure and the end of Write at once, and picks either first
 	for i := range 20 {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
+		// stop at the first failure, so that a regression fails the test instead of running past the test timeout
+		if !t.Run(strconv.Itoa(i), func(t *testing.T) {
 			ctx := testContext(t)
 			c := pb.NewPluginClient(servePlugin(t, plugin.NewPlugin("fail_once", "v1.0.0", func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
 				return &failOnceClient{}, nil
@@ -838,7 +839,9 @@ func TestWriteStreamReportsFailedFlushWhenWriteReturns(t *testing.T) {
 			require.NoError(t, stream.CloseSend())
 			_, err = stream.Recv()
 			require.ErrorIs(t, err, io.EOF)
-		})
+		}) {
+			break
+		}
 	}
 }
 

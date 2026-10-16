@@ -13,6 +13,17 @@ type liveScope struct{ id int }
 
 func (*liveScope) Checkpoint(context.Context, message.SyncMessage) error { return nil }
 
+// countingScope counts how often a compaction visits it.
+type countingScope struct {
+	liveScope
+	visits *int
+}
+
+func (s *countingScope) Collapsed() checkpoint.Scope {
+	*s.visits++
+	return s
+}
+
 type endedScope struct {
 	liveScope
 	into checkpoint.Scope
@@ -23,18 +34,13 @@ func (s *endedScope) Collapsed() checkpoint.Scope { return s.into }
 func TestScopeSetCompactsOnlyOnceItDoubles(t *testing.T) {
 	const scopes = 100_000
 	s := newScopeSet()
-	compactions := 0
+	visits := 0
 	for i := range scopes {
-		before := s.compactAt
-		s.add(&liveScope{id: i})
-		if s.compactAt != before {
-			compactions++
-		}
+		s.add(&countingScope{liveScope: liveScope{id: i}, visits: &visits})
 	}
 	require.Len(t, s.scopes, scopes, "live scopes are kept")
-	// each compaction visits the whole set, so doubling keeps the total cost linear
-	require.Equal(t, 11, compactions, "compactions at 64, 128, ..., 65536")
-	require.Equal(t, 131072, s.compactAt)
+	// compactions at 64, 128, ..., 65536 visit 131008 scopes in all: the cost per add stays constant
+	require.Equal(t, 131008, visits)
 }
 
 func TestScopeSetCollapsesEndedScopes(t *testing.T) {

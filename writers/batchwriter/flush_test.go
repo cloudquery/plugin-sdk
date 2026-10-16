@@ -37,7 +37,11 @@ func startWrite(t *testing.T, wr *BatchWriter) (chan<- message.WriteMessage, fun
 func flush(t *testing.T, ch chan<- message.WriteMessage) error {
 	t.Helper()
 	msg := message.NewWriteFlush()
-	ch <- msg
+	select {
+	case ch <- msg:
+	case <-time.After(10 * time.Second):
+		t.Fatal("Write did not take the flush")
+	}
 	return receive(t, msg.Result())
 }
 

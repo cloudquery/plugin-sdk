@@ -165,7 +165,8 @@ func TestNotifyAbort(t *testing.T) {
 	done.NotifyAbort(&finished)
 	require.NoError(t, done.Finish(context.Background(), make(chan message.SyncMessage)))
 	done.Abort()
-	require.False(t, finished.Load(), "a sent checkpoint is never aborted")
+	require.False(t, done.Aborted(), "a sent checkpoint is never aborted")
+	require.False(t, finished.Load())
 }
 
 func TestNotifyAbortFollowsMerges(t *testing.T) {
@@ -181,7 +182,7 @@ func TestNotifyAbortFollowsMerges(t *testing.T) {
 
 func TestConcurrentMergeKeepsAborts(t *testing.T) {
 	// with the root read before its lock is taken, a flag added while the checkpoint merges can be lost
-	for range 1000 {
+	for range 20_000 {
 		var flag atomic.Bool
 		held := NewHeld(&heldScope{})
 		sent := &Sent{}

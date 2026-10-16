@@ -923,7 +923,7 @@ func TestCheckpointsDroppedOnCancelAreAborted(t *testing.T) {
 		c := newSyncCheckpoints(make(chan message.SyncMessage))
 		close(c.loopDone)
 		sent, msgs := tracked()
-		require.ErrorIs(t, c.send(cancelled, msgs), context.Canceled)
+		require.ErrorIs(t, c.sendAfterSync(cancelled, msgs), context.Canceled)
 		require.True(t, sent.Aborted())
 	})
 	t.Run("held until an aborted sync ends", func(t *testing.T) {

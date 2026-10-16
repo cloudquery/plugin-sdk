@@ -117,7 +117,7 @@ func (w *BatchWriter) Flush(ctx context.Context) error {
 		<-done
 	}
 	w.workersLock.RUnlock()
-	// the deletes wait for the migrations before them, so a failure leaves them unwritten too
+	// the deletes wait for every pending migration, so a failure leaves them unwritten too
 	if err := w.flushMigrateTables(ctx); err != nil {
 		return errors.Join(err, w.pendingDeleteStales(), w.pendingDeleteRecords())
 	}
@@ -384,6 +384,7 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 				}
 			}
 		case *message.WriteInsert:
+			// before the worker gets the insert, so that a failure of its batch counts against this Write
 			w.trackFailures(reported, m)
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err
