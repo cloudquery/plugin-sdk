@@ -11,7 +11,7 @@ require (
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.14.13
 	github.com/cloudquery/codegen v0.4.1
-	github.com/cloudquery/plugin-pb-go v1.28.1
+	github.com/cloudquery/plugin-pb-go v1.28.2
 	github.com/cloudquery/plugin-sdk/v2 v2.7.0
 	github.com/getsentry/sentry-go v0.49.0
 	github.com/goccy/go-json v0.10.6
@@ -102,5 +102,3 @@ require (
 )
 
 replace github.com/invopop/jsonschema => github.com/cloudquery/jsonschema v0.0.0-20260703174721-45e7e20e0ed8
-
-replace github.com/cloudquery/plugin-pb-go => github.com/cloudquery/plugin-pb-go v1.28.2-0.20261015095527-800e8b7ec47e
