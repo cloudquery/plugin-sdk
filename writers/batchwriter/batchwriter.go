@@ -3,6 +3,9 @@ package batchwriter
 import (
 	"context"
 	"errors"
+	"fmt"
+	"maps"
+	"slices"
 	"sync"
 	"time"
 
@@ -33,10 +36,19 @@ type BatchWriter struct {
 	deleteRecordLock     sync.Mutex
 	deleteRecordMessages message.WriteDeleteRecords
 
+	// batches that failed to write, by table, reported on message.WriteFlush
+	failuresLock sync.Mutex
+	failures     map[string]tableFailures
+
 	logger         zerolog.Logger
 	batchTimeout   time.Duration
 	batchSize      int64
 	batchSizeBytes int64
+}
+
+type tableFailures struct {
+	count uint64
+	last  error
 }
 
 // Assert at compile-time that BatchWriter implements the Writer interface
@@ -83,6 +95,7 @@ func New(client Client, opts ...Option) (*BatchWriter, error) {
 	c := &BatchWriter{
 		client:         client,
 		workers:        make(map[string]*worker),
+		failures:       make(map[string]tableFailures),
 		logger:         zerolog.Nop(),
 		batchTimeout:   defaultBatchTimeoutSeconds * time.Second,
 		batchSize:      defaultBatchSize,
@@ -104,13 +117,36 @@ func (w *BatchWriter) Flush(ctx context.Context) error {
 		<-done
 	}
 	w.workersLock.RUnlock()
+	// the deletes wait for every pending migration, so a failure leaves them unwritten too
 	if err := w.flushMigrateTables(ctx); err != nil {
-		return err
+		return errors.Join(err, w.pendingDeleteStales(), w.pendingDeleteRecords())
 	}
 	if err := w.flushDeleteStaleTables(ctx); err != nil {
-		return err
+		return errors.Join(err, w.pendingDeleteRecords())
 	}
 	return w.flushDeleteRecordTables(ctx)
+}
+
+var errNotWritten = errors.New("not written, as an earlier write failed")
+
+// pendingDeleteStales returns an error naming the tables of the delete-stale messages not yet written.
+func (w *BatchWriter) pendingDeleteStales() error {
+	w.deleteStaleLock.Lock()
+	defer w.deleteStaleLock.Unlock()
+	if len(w.deleteStaleMessages) == 0 {
+		return nil
+	}
+	return writers.FailedTables(errNotWritten, w.deleteStaleMessages)
+}
+
+// pendingDeleteRecords returns an error naming the tables of the delete-record messages not yet written.
+func (w *BatchWriter) pendingDeleteRecords() error {
+	w.deleteRecordLock.Lock()
+	defer w.deleteRecordLock.Unlock()
+	if len(w.deleteRecordMessages) == 0 {
+		return nil
+	}
+	return writers.FailedTables(errNotWritten, w.deleteRecordMessages)
 }
 
 func (w *BatchWriter) Close(context.Context) error {
@@ -203,6 +239,9 @@ func (w *BatchWriter) flushTable(ctx context.Context, tableName string, resource
 	duration := time.Since(start)
 	if err != nil {
 		w.logger.Err(err).Str("table", tableName).Int64("len", batchSize).Dur("duration", duration).Msg("failed to write batch")
+		w.failuresLock.Lock()
+		w.failures[tableName] = tableFailures{count: w.failures[tableName].count + 1, last: err}
+		w.failuresLock.Unlock()
 	} else {
 		w.logger.Debug().Str("table", tableName).Int64("len", batchSize).Dur("duration", duration).Msg("batch written successfully")
 	}
@@ -215,7 +254,7 @@ func (w *BatchWriter) flushMigrateTables(ctx context.Context) error {
 		return nil
 	}
 	if err := w.client.MigrateTables(ctx, w.migrateTableMessages); err != nil {
-		return err
+		return writers.FailedTables(err, w.migrateTableMessages)
 	}
 	w.migrateTableMessages = w.migrateTableMessages[:0]
 	return nil
@@ -228,7 +267,7 @@ func (w *BatchWriter) flushDeleteStaleTables(ctx context.Context) error {
 		return nil
 	}
 	if err := w.client.DeleteStale(ctx, w.deleteStaleMessages); err != nil {
-		return err
+		return writers.FailedTables(err, w.deleteStaleMessages)
 	}
 	w.deleteStaleMessages = w.deleteStaleMessages[:0]
 	return nil
@@ -241,7 +280,7 @@ func (w *BatchWriter) flushDeleteRecordTables(ctx context.Context) error {
 		return nil
 	}
 	if err := w.client.DeleteRecord(ctx, w.deleteRecordMessages); err != nil {
-		return err
+		return writers.FailedTables(err, w.deleteRecordMessages)
 	}
 	w.deleteRecordMessages = w.deleteRecordMessages[:0]
 	return nil
@@ -261,6 +300,38 @@ func (w *BatchWriter) flushInsert(tableName string) {
 	<-ch
 }
 
+// trackFailures adds the table of msg to reported, so that the next flush reports the failures of that table from now
+// on.
+func (w *BatchWriter) trackFailures(reported map[string]uint64, msg *message.WriteInsert) {
+	tableName, _ := msg.Record.Schema().Metadata().GetValue(schema.MetadataTableName)
+	if _, ok := reported[tableName]; ok {
+		return
+	}
+	w.failuresLock.Lock()
+	defer w.failuresLock.Unlock()
+	reported[tableName] = w.failures[tableName].count
+}
+
+// newFailures returns the batch writes of the tables in reported that failed since the previous flush, and marks them
+// as reported.
+func (w *BatchWriter) newFailures(reported map[string]uint64) error {
+	w.failuresLock.Lock()
+	defer w.failuresLock.Unlock()
+	var errs []error
+	for _, tableName := range slices.Sorted(maps.Keys(reported)) {
+		failures := w.failures[tableName]
+		if failures.count == reported[tableName] {
+			continue
+		}
+		errs = append(errs, &message.FailedTablesError{
+			Tables: []string{tableName},
+			Err:    fmt.Errorf("table %s: %d batch writes failed since the previous flush, last error: %w", tableName, failures.count-reported[tableName], failures.last),
+		})
+		reported[tableName] = failures.count
+	}
+	return errors.Join(errs...)
+}
+
 func (w *BatchWriter) writeAll(ctx context.Context, msgs []message.WriteMessage) error {
 	ch := make(chan message.WriteMessage, len(msgs))
 	for _, msg := range msgs {
@@ -271,8 +342,13 @@ func (w *BatchWriter) writeAll(ctx context.Context, msgs []message.WriteMessage)
 }
 
 func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessage) error {
+	// failed batch writes reported so far, for each table this Write inserts to. Several Write calls can share the
+	// writer, as the state backend's does with the sync's, and each reports only the failures of its own tables.
+	reported := make(map[string]uint64)
 	for msg := range msgs {
 		switch m := msg.(type) {
+		case *message.WriteFlush:
+			m.Done(errors.Join(w.Flush(ctx), w.newFailures(reported)))
 		case *message.WriteDeleteStale:
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err
@@ -308,6 +384,8 @@ func (w *BatchWriter) Write(ctx context.Context, msgs <-chan message.WriteMessag
 				}
 			}
 		case *message.WriteInsert:
+			// before the worker gets the insert, so that a failure of its batch counts against this Write
+			w.trackFailures(reported, m)
 			if err := w.flushMigrateTables(ctx); err != nil {
 				return err
 			}

@@ -14,6 +14,9 @@ import (
 type BackendOptions struct {
 	TableName  string
 	Connection string
+	// SupportsCheckpoints is set when the client persists state from message.SyncCheckpoint,
+	// so state clients send their writes on the sync stream instead of writing to the backend.
+	SupportsCheckpoints bool
 }
 
 type Shard struct {

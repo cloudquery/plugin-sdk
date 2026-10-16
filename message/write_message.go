@@ -2,6 +2,8 @@ package message
 
 import (
 	"slices"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -169,3 +171,80 @@ func (m WriteDeleteRecord) GetTable() *schema.Table {
 }
 
 type WriteDeleteRecords []*WriteDeleteRecord
+
+// WriteFlush asks the writer to commit every message it received before this one.
+// The writer calls Done once it has tried to commit them, with an error if some messages it received since the previous
+// flush may not have been committed. A *FailedTablesError names the tables of those messages.
+type WriteFlush struct {
+	writeBaseMessage
+	result chan error
+	once   sync.Once
+}
+
+func NewWriteFlush() *WriteFlush {
+	return &WriteFlush{result: make(chan error, 1)}
+}
+
+func (*WriteFlush) GetTable() *schema.Table {
+	return &schema.Table{}
+}
+
+// Done reports the outcome of the flush. Only the first call has an effect.
+func (m *WriteFlush) Done(err error) {
+	m.once.Do(func() { m.result <- err })
+}
+
+// Result receives the error passed to Done.
+func (m *WriteFlush) Result() <-chan error {
+	return m.result
+}
+
+// FailedTablesError is a flush error that names the tables whose messages may not have been committed.
+type FailedTablesError struct {
+	Tables []string
+	Err    error
+}
+
+func (e *FailedTablesError) Error() string {
+	if e.Err == nil {
+		return "failed to write tables " + strings.Join(e.Tables, ", ")
+	}
+	return e.Err.Error()
+}
+
+func (e *FailedTablesError) Unwrap() error { return e.Err }
+
+// FailedTables returns the tables a flush error names, sorted and without duplicates. It returns nil if some error
+// joined in err names no tables, as messages of any table may then have been lost.
+func FailedTables(err error) []string {
+	tables, ok := collectFailedTables(err)
+	if !ok {
+		return nil
+	}
+	slices.Sort(tables)
+	return slices.Compact(tables)
+}
+
+func collectFailedTables(err error) ([]string, bool) {
+	switch e := err.(type) {
+	case *FailedTablesError:
+		if len(e.Tables) == 0 || slices.Contains(e.Tables, "") {
+			return nil, false
+		}
+		return slices.Clone(e.Tables), true
+	case interface{ Unwrap() []error }:
+		var tables []string
+		for _, err := range e.Unwrap() {
+			t, ok := collectFailedTables(err)
+			if !ok {
+				return nil, false
+			}
+			tables = append(tables, t...)
+		}
+		return tables, len(tables) > 0
+	case interface{ Unwrap() error }:
+		return collectFailedTables(e.Unwrap())
+	default:
+		return nil, false
+	}
+}

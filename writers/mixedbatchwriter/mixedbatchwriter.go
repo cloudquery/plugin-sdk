@@ -133,6 +133,16 @@ loop:
 			if !ok {
 				break loop
 			}
+			if flushMsg, ok := msg.(*message.WriteFlush); ok {
+				// batches hold a single message type, so only the previous type can have pending messages
+				err := flush(prevMsgType)
+				flushMsg.Done(err)
+				if err != nil {
+					return err
+				}
+				prevMsgType = writers.MsgTypeUnset
+				continue
+			}
 			msgType := writers.MsgID(msg)
 			if prevMsgType != msgType {
 				if err := flush(prevMsgType); err != nil {
@@ -189,7 +199,7 @@ func (m *batchManager[A, T]) flush(ctx context.Context) error {
 
 	err := m.writeFunc(ctx, m.batch)
 	if err != nil {
-		return err
+		return writers.FailedTables(err, m.batch)
 	}
 	clear(m.batch) // GC can work
 	m.batch = m.batch[:0]
@@ -244,7 +254,7 @@ func (m *insertBatchManager) flush(ctx context.Context) error {
 	duration := time.Since(start)
 	if err != nil {
 		m.logger.Err(err).Int64("len", rows).Dur("duration", duration).Msg("failed to write batch")
-		return err
+		return writers.FailedTables(err, m.batch)
 	}
 	m.logger.Debug().Int64("len", rows).Dur("duration", duration).Msg("batch written successfully")
 

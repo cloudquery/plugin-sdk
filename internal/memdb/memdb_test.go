@@ -9,7 +9,7 @@ import (
 
 func TestPlugin(t *testing.T) {
 	ctx := context.Background()
-	p := plugin.NewPlugin("test", "development", NewMemDBClient)
+	p := plugin.NewPlugin("test", "development", NewMemDBClient, plugin.WithFlushSupport())
 	if err := p.Init(ctx, nil, plugin.NewClientOptions{}); err != nil {
 		t.Fatal(err)
 	}

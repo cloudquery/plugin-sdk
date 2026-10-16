@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
@@ -120,7 +121,8 @@ func (s *Server) Init(ctx context.Context, req *pb.Init_Request) (*pb.Init_Respo
 	if err := s.Plugin.Init(ctx, req.Spec, plugin.NewClientOptions{NoConnection: req.NoConnection, InvocationID: req.InvocationId}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to init plugin: %v", err)
 	}
-	return &pb.Init_Response{}, nil
+	// a client without a connection does not write, and its spec may not be set
+	return &pb.Init_Response{SupportsFlush: !req.NoConnection && s.Plugin.SupportsFlush()}, nil
 }
 
 func (s *Server) Read(req *pb.Read_Request, stream pb.Plugin_ReadServer) error {
@@ -184,8 +186,9 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	}
 	if req.Backend != nil {
 		syncOptions.BackendOptions = &plugin.BackendOptions{
-			TableName:  req.Backend.TableName,
-			Connection: req.Backend.Connection,
+			TableName:           req.Backend.TableName,
+			Connection:          req.Backend.Connection,
+			SupportsCheckpoints: req.SupportsCheckpoints,
 		}
 	}
 	if req.Shard != nil {
@@ -274,6 +277,15 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 					Error:     m.Error,
 				},
 			}
+		case *message.SyncCheckpoint:
+			if !req.SupportsCheckpoints {
+				return status.Errorf(codes.Internal, "plugin sent a checkpoint, but the client does not support checkpoints")
+			}
+			// each part of a split checkpoint holds whole rows, and the client persists them all after the same point
+			if err := s.sendRecord(stream, m.Record, checkpointResponse); err != nil {
+				return err
+			}
+			continue
 		default:
 			return status.Errorf(codes.Internal, "unknown message type: %T", msg)
 		}
@@ -293,7 +305,32 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 	return syncErr
 }
 
+func insertResponse(recordBytes []byte) *pb.Sync_Response {
+	return &pb.Sync_Response{
+		Message: &pb.Sync_Response_Insert{
+			Insert: &pb.Sync_MessageInsert{
+				Record: recordBytes,
+			},
+		},
+	}
+}
+
+func checkpointResponse(recordBytes []byte) *pb.Sync_Response {
+	return &pb.Sync_Response{
+		Message: &pb.Sync_Response_Checkpoint{
+			Checkpoint: &pb.Sync_MessageCheckpoint{
+				Record: recordBytes,
+			},
+		},
+	}
+}
+
 func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatch) error {
+	return s.sendRecord(stream, record, insertResponse)
+}
+
+// sendRecord sends record in responses made by toResponse, split to stay within the max message size.
+func (s *Server) sendRecord(stream pb.Plugin_SyncServer, record arrow.RecordBatch, toResponse func([]byte) *pb.Sync_Response) error {
 	maxMsgSize := s.maxMsgSize()
 	pending := []arrow.RecordBatch{record}
 	for len(pending) > 0 {
@@ -304,13 +341,7 @@ func (s *Server) sendInsert(stream pb.Plugin_SyncServer, record arrow.RecordBatc
 		if err != nil {
 			return status.Errorf(codes.Internal, "failed to encode record for table %q: %v", recordTableName(current), err)
 		}
-		pbMsg := &pb.Sync_Response{
-			Message: &pb.Sync_Response_Insert{
-				Insert: &pb.Sync_MessageInsert{
-					Record: recordBytes,
-				},
-			},
-		}
+		pbMsg := toResponse(recordBytes)
 
 		size := proto.Size(pbMsg)
 		if size <= maxMsgSize {
@@ -375,76 +406,14 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 			}
 			return status.Errorf(codes.Internal, "failed to receive msg: %v", err)
 		}
-		var pluginMessage message.WriteMessage
-		var pbMsgConvertErr error
-		switch pbMsg := r.Message.(type) {
-		case *pb.Write_Request_MigrateTable:
-			sc, err := pb.NewSchemaFromBytes(pbMsg.MigrateTable.Table)
-			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
-				break
+		if _, ok := r.Message.(*pb.Write_Request_Flush); ok {
+			close(msgs)
+			if wgErr := eg.Wait(); wgErr != nil {
+				return status.Errorf(codes.InvalidArgument, "flush is only supported on WriteStream and write failed: %v", wgErr)
 			}
-			table, err := schema.NewTableFromArrowSchema(sc)
-			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
-				break
-			}
-			pluginMessage = &message.WriteMigrateTable{
-				Table:        table,
-				MigrateForce: pbMsg.MigrateTable.MigrateForce,
-			}
-		case *pb.Write_Request_Insert:
-			record, err := pb.NewRecordFromBytes(pbMsg.Insert.Record)
-			if err != nil {
-				pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
-				break
-			}
-			pluginMessage = &message.WriteInsert{
-				Record: record,
-			}
-		case *pb.Write_Request_Delete:
-			pluginMessage = &message.WriteDeleteStale{
-				TableName:  pbMsg.Delete.TableName,
-				SourceName: pbMsg.Delete.SourceName,
-				SyncTime:   pbMsg.Delete.SyncTime.AsTime(),
-			}
-
-		case *pb.Write_Request_DeleteRecord:
-			whereClause := make(message.PredicateGroups, len(pbMsg.DeleteRecord.WhereClause))
-
-			for j, predicateGroup := range pbMsg.DeleteRecord.WhereClause {
-				whereClause[j].GroupingType = predicateGroup.GroupingType.String()
-				whereClause[j].Predicates = make(message.Predicates, len(predicateGroup.Predicates))
-				for i, predicate := range predicateGroup.Predicates {
-					record, err := pb.NewRecordFromBytes(predicate.Record)
-					if err != nil {
-						pbMsgConvertErr = status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
-						break
-					}
-					whereClause[j].Predicates[i] = message.Predicate{
-						Record:   record,
-						Column:   predicate.Column,
-						Operator: predicate.Operator.String(),
-					}
-				}
-			}
-
-			tableRelations := make([]message.TableRelation, len(pbMsg.DeleteRecord.TableRelations))
-			for i, tr := range pbMsg.DeleteRecord.TableRelations {
-				tableRelations[i] = message.TableRelation{
-					TableName:   tr.TableName,
-					ParentTable: tr.ParentTable,
-				}
-			}
-			pluginMessage = &message.WriteDeleteRecord{
-				DeleteRecord: message.DeleteRecord{
-					TableName:      pbMsg.DeleteRecord.TableName,
-					TableRelations: tableRelations,
-					WhereClause:    whereClause,
-				},
-			}
+			return status.Errorf(codes.InvalidArgument, "flush is only supported on WriteStream")
 		}
-
+		pluginMessage, pbMsgConvertErr := writeRequestToMessage(r)
 		if pbMsgConvertErr != nil {
 			close(msgs)
 			if wgErr := eg.Wait(); wgErr != nil {
@@ -468,6 +437,183 @@ func (s *Server) Write(stream pb.Plugin_WriteServer) error {
 			}
 			return status.Errorf(codes.Canceled, "context done: %v", ctx.Err())
 		}
+	}
+}
+
+// WriteStream is Write that also accepts flushes. It answers each flush once the plugin's Write has tried to commit
+// every message sent before it, with an error if some of them may not have been committed. A failed flush does not end
+// the stream.
+func (s *Server) WriteStream(stream pb.Plugin_WriteStreamServer) error {
+	if !s.Plugin.SupportsFlush() {
+		return status.Errorf(codes.Unimplemented, "plugin does not support flush")
+	}
+
+	msgs := make(chan message.WriteMessage)
+	ctx := stream.Context()
+	eg, gctx := errgroup.WithContext(ctx)
+	writeDone := make(chan struct{})
+	eg.Go(func() error {
+		defer close(writeDone)
+		return s.Plugin.Write(gctx, msgs)
+	})
+	stop := func(code codes.Code, format string, args ...any) error {
+		close(msgs)
+		if err := eg.Wait(); err != nil {
+			return status.Errorf(code, format+" and write failed: %v", append(args, err)...)
+		}
+		return status.Errorf(code, format, args...)
+	}
+
+	for {
+		r, err := stream.Recv()
+		if err == io.EOF {
+			close(msgs)
+			if err := eg.Wait(); err != nil {
+				return status.Errorf(codes.Internal, "write failed: %v", err)
+			}
+			return nil
+		}
+		if err != nil {
+			return stop(codes.Internal, "failed to receive msg: %v", err)
+		}
+
+		var (
+			pluginMessage message.WriteMessage
+			flush         *message.WriteFlush
+		)
+		if _, ok := r.Message.(*pb.Write_Request_Flush); ok {
+			flush = message.NewWriteFlush()
+			pluginMessage = flush
+		} else {
+			pluginMessage, err = writeRequestToMessage(r)
+			if err != nil {
+				return stop(codes.InvalidArgument, "failed to convert message: %v", err)
+			}
+		}
+
+		select {
+		case msgs <- pluginMessage:
+		case <-writeDone:
+			return stop(codes.Internal, "plugin stopped writing")
+		case <-gctx.Done():
+			return stop(codes.Canceled, "plugin stopped writing")
+		case <-ctx.Done():
+			return stop(codes.Canceled, "context done: %v", ctx.Err())
+		}
+		if flush == nil {
+			continue
+		}
+
+		flushErr, completed, err := waitForFlush(ctx, flush, writeDone)
+		switch {
+		case err != nil:
+			return stop(codes.Canceled, "context done: %v", err)
+		case !completed:
+			return stop(codes.Internal, "plugin stopped writing before the flush completed")
+		}
+		if err := stream.Send(flushResponse(r.GetFlush().GetId(), flushErr)); err != nil {
+			return stop(codes.Internal, "failed to send flush response: %v", err)
+		}
+	}
+}
+
+// waitForFlush returns the error flush completed with, or completed=false if Write returned without completing it.
+func waitForFlush(ctx context.Context, flush *message.WriteFlush, writeDone <-chan struct{}) (flushErr error, completed bool, err error) {
+	select {
+	case result := <-flush.Result():
+		return result, true, nil
+	case <-writeDone:
+		// Write may have completed the flush right before returning
+		select {
+		case result := <-flush.Result():
+			return result, true, nil
+		default:
+			return nil, false, nil
+		}
+	case <-ctx.Done():
+		return nil, false, ctx.Err()
+	}
+}
+
+func flushResponse(id uint64, flushErr error) *pb.Write_Response {
+	res := &pb.Write_Response{FlushId: id}
+	if flushErr == nil {
+		return res
+	}
+	// protobuf strings must be valid UTF-8, and an empty error would report success
+	res.FlushError = strings.ToValidUTF8(flushErr.Error(), "\uFFFD")
+	if res.FlushError == "" {
+		res.FlushError = "flush failed"
+	}
+	for _, table := range message.FailedTables(flushErr) {
+		res.FailedTables = append(res.FailedTables, strings.ToValidUTF8(table, "\uFFFD"))
+	}
+	return res
+}
+
+func writeRequestToMessage(r *pb.Write_Request) (message.WriteMessage, error) {
+	switch pbMsg := r.Message.(type) {
+	case *pb.Write_Request_MigrateTable:
+		sc, err := pb.NewSchemaFromBytes(pbMsg.MigrateTable.Table)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "failed to create schema from bytes: %v", err)
+		}
+		table, err := schema.NewTableFromArrowSchema(sc)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "failed to create table from schema: %v", err)
+		}
+		return &message.WriteMigrateTable{
+			Table:        table,
+			MigrateForce: pbMsg.MigrateTable.MigrateForce,
+		}, nil
+	case *pb.Write_Request_Insert:
+		record, err := pb.NewRecordFromBytes(pbMsg.Insert.Record)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+		}
+		return &message.WriteInsert{
+			Record: record,
+		}, nil
+	case *pb.Write_Request_Delete:
+		return &message.WriteDeleteStale{
+			TableName:  pbMsg.Delete.TableName,
+			SourceName: pbMsg.Delete.SourceName,
+			SyncTime:   pbMsg.Delete.SyncTime.AsTime(),
+		}, nil
+	case *pb.Write_Request_DeleteRecord:
+		whereClause := make(message.PredicateGroups, len(pbMsg.DeleteRecord.WhereClause))
+		for j, predicateGroup := range pbMsg.DeleteRecord.WhereClause {
+			whereClause[j].GroupingType = predicateGroup.GroupingType.String()
+			whereClause[j].Predicates = make(message.Predicates, len(predicateGroup.Predicates))
+			for i, predicate := range predicateGroup.Predicates {
+				record, err := pb.NewRecordFromBytes(predicate.Record)
+				if err != nil {
+					return nil, status.Errorf(codes.InvalidArgument, "failed to create record: %v", err)
+				}
+				whereClause[j].Predicates[i] = message.Predicate{
+					Record:   record,
+					Column:   predicate.Column,
+					Operator: predicate.Operator.String(),
+				}
+			}
+		}
+
+		tableRelations := make([]message.TableRelation, len(pbMsg.DeleteRecord.TableRelations))
+		for i, tr := range pbMsg.DeleteRecord.TableRelations {
+			tableRelations[i] = message.TableRelation{
+				TableName:   tr.TableName,
+				ParentTable: tr.ParentTable,
+			}
+		}
+		return &message.WriteDeleteRecord{
+			DeleteRecord: message.DeleteRecord{
+				TableName:      pbMsg.DeleteRecord.TableName,
+				TableRelations: tableRelations,
+				WhereClause:    whereClause,
+			},
+		}, nil
+	default:
+		return nil, status.Errorf(codes.InvalidArgument, "unknown message type: %T", pbMsg)
 	}
 }
 

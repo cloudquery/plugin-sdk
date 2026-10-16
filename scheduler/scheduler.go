@@ -112,6 +112,13 @@ func WithInvocationID(invocationID string) Option {
 	}
 }
 
+// withResClosedOnReturn tells Sync that the caller closes res once Sync returns, so later checkpoints must not be sent.
+func withResClosedOnReturn() SyncOption {
+	return func(s *syncClient) {
+		s.checkpoints.closeRes = true
+	}
+}
+
 func WithShard(num int32, total int32) SyncOption {
 	return func(s *syncClient) {
 		s.shard = &shard{num: num, total: total}
@@ -166,6 +173,8 @@ type syncClient struct {
 	// message channel for sending SyncError messages
 	msgChan chan<- message.SyncMessage
 
+	checkpoints *syncCheckpoints
+
 	shard *shard
 }
 
@@ -213,7 +222,7 @@ func (s *Scheduler) SyncAll(ctx context.Context, client schema.ClientMeta, table
 	var err error
 	go func() {
 		defer close(res)
-		err = s.Sync(ctx, client, tables, res)
+		err = s.Sync(ctx, client, tables, res, withResClosedOnReturn())
 	}()
 	// nolint:prealloc
 	var messages message.SyncMessages
@@ -241,6 +250,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		logger:       s.logger,
 		invocationID: s.invocationID,
 		msgChan:      res,
+		checkpoints:  newSyncCheckpoints(res),
 	}
 	for _, opt := range opts {
 		opt(syncClient)
@@ -286,19 +296,55 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 		}
 	}()
 
+	defer syncClient.checkpoints.returned()
 	b := s.batchSettings.getBatcher(ctx, res, s.logger)
-	defer b.close()    // wait for all resources to be processed
+	err := syncClient.processResources(ctx, b, resources)
+	close(syncClient.checkpoints.loopDone)
+	b.close() // wait for all resources to be processed
+	if err != nil || ctx.Err() != nil {
+		syncClient.checkpoints.abort()
+		if err == nil {
+			// cancelled while the batcher closed, which may have dropped resources
+			err = context.Cause(ctx)
+		}
+		return err
+	}
+	return syncClient.checkpoints.complete(ctx)
+}
+
+// processResources hands resources to the batcher until resources is closed. Checkpoints go out after the resources
+// received before them.
+func (s *syncClient) processResources(ctx context.Context, b batcherInterface, resources <-chan *schema.Resource) error {
 	done := ctx.Done() // no need to do the lookups in loop
-	for resource := range resources {
+	for {
 		select {
-		case <-done:
-			s.logger.Debug().Msg("sync context cancelled")
-			return context.Cause(ctx)
-		default:
-			b.process(resource)
+		case resource, ok := <-resources:
+			if !ok {
+				return context.Cause(ctx)
+			}
+			select {
+			case <-done:
+				s.logger.Debug().Msg("sync context cancelled")
+				return context.Cause(ctx)
+			default:
+				b.process(resource)
+			}
+		case msgs := <-s.checkpoints.requests:
+			// Every table's batch goes out, not only the ones the checkpoint follows: those would be the tables of the
+			// scope's resources and their relations, which the batcher does not track. A state flush of the source sends a
+			// checkpoint per group of resolver scopes, so it can flush the batches a few times, which costs smaller batches
+			// only.
+			// A cancelled sync may drop resources, and their checkpoints must not go out.
+			if !b.flush() || ctx.Err() != nil {
+				s.logger.Debug().Msg("sync context cancelled")
+				dropMessages(msgs)
+				return context.Cause(ctx)
+			}
+			if err := sendMessages(ctx, s.msgChan, msgs); err != nil {
+				return err
+			}
 		}
 	}
-	return context.Cause(ctx)
 }
 
 func (s *syncClient) logTablesMetrics(tables schema.Tables, client Client) {
