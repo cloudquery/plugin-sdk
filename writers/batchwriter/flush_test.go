@@ -3,6 +3,7 @@ package batchwriter
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -253,5 +254,90 @@ func receive[T any](t *testing.T, ch <-chan T) T {
 		t.Fatal("timed out waiting for a value")
 		var zero T
 		return zero
+	}
+}
+
+// failOnceClient fails the first batch of each table.
+type failOnceClient struct {
+	testBatchClient
+	mu     sync.Mutex
+	failed map[string]bool
+}
+
+func (c *failOnceClient) WriteTableBatch(ctx context.Context, name string, msgs message.WriteInserts) error {
+	c.mu.Lock()
+	first := !c.failed[name]
+	c.failed[name] = true
+	c.mu.Unlock()
+	if first {
+		return errors.New("write failed")
+	}
+	return c.testBatchClient.WriteTableBatch(ctx, name, msgs)
+}
+
+func TestFlushMessageNamesEveryFailedTable(t *testing.T) {
+	table := func(name string) *schema.Table {
+		return &schema.Table{Name: name, Columns: schema.ColumnList{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	}
+	first, second := table("first"), table("second")
+	wr, err := New(&failOnceClient{failed: map[string]bool{}}, WithBatchTimeout(time.Millisecond))
+	require.NoError(t, err)
+	ch, stop := startWrite(t, wr)
+
+	for _, table := range []*schema.Table{second, first} {
+		ch <- &message.WriteMigrateTable{Table: table}
+		ch <- &message.WriteInsert{Record: getRecord(table.ToArrowSchema(), 1)}
+	}
+	failedTables := func() int {
+		wr.failuresLock.Lock()
+		defer wr.failuresLock.Unlock()
+		return len(wr.failures)
+	}
+	require.Eventually(t, func() bool { return failedTables() == 2 }, 5*time.Second, time.Millisecond)
+	// later inserts of the tables succeed, and must not hide the failures before them
+	for _, table := range []*schema.Table{first, second} {
+		ch <- &message.WriteInsert{Record: getRecord(table.ToArrowSchema(), 1)}
+	}
+	err = flush(t, ch)
+	require.Equal(t, []string{"first", "second"}, message.FailedTables(err))
+	require.NoError(t, flush(t, ch), "the failures were reported")
+
+	require.NoError(t, stop())
+}
+
+func TestFlushMessageNamesDeletesLeftUnwrittenByAnEarlierFailure(t *testing.T) {
+	table := batchTestTables[0]
+	deleteRecord := &message.WriteDeleteRecord{DeleteRecord: message.DeleteRecord{TableName: "deleted"}}
+	for _, tc := range []struct {
+		name   string
+		client *failingOpsClient
+		msgs   []message.WriteMessage
+		want   []string
+	}{
+		{
+			name:   "migrate",
+			client: &failingOpsClient{migrateErr: errors.New("migrate failed")},
+			msgs:   []message.WriteMessage{deleteRecord, &message.WriteMigrateTable{Table: table}},
+			want:   []string{"deleted", table.Name},
+		},
+		{
+			name:   "delete stale",
+			client: &failingOpsClient{deleteStaleErr: errors.New("delete stale failed")},
+			msgs:   []message.WriteMessage{deleteRecord, &message.WriteDeleteStale{TableName: "stale", SourceName: "source", SyncTime: time.Now()}},
+			want:   []string{"deleted", "stale"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			wr, err := New(tc.client, WithBatchTimeout(time.Hour))
+			require.NoError(t, err)
+			ch, stop := startWrite(t, wr)
+			for _, msg := range tc.msgs {
+				ch <- msg
+			}
+			err = flush(t, ch)
+			require.ErrorContains(t, err, tc.name+" failed")
+			require.Equal(t, tc.want, message.FailedTables(err))
+			require.NoError(t, stop())
+		})
 	}
 }

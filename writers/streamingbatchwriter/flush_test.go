@@ -8,6 +8,7 @@ import (
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -170,4 +171,33 @@ func receive[T any](t *testing.T, ch <-chan T) T {
 		var zero T
 		return zero
 	}
+}
+
+func TestFlushMessageNamesEveryFailedTable(t *testing.T) {
+	testClient := newClient()
+	testClient.writeCommitErr = errors.New("commit failed")
+	wr, err := New(testClient, WithBatchTimeout(time.Hour))
+	require.NoError(t, err)
+
+	ch := make(chan message.WriteMessage)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- wr.Write(context.Background(), ch)
+	}()
+
+	other := &schema.Table{Name: "table2", Columns: streamingBatchTestTable.Columns}
+	ch <- &message.WriteInsert{Record: getRecord(streamingBatchTestTable.ToArrowSchema(), 1)}
+	ch <- &message.WriteInsert{Record: getRecord(other.ToArrowSchema(), 1)}
+	flush := message.NewWriteFlush()
+	ch <- flush
+	err = receive(t, flush.Result())
+	require.Equal(t, []string{"table1", "table2"}, message.FailedTables(err))
+
+	// a failed handler keeps failing its flushes, as its earlier messages are lost
+	flush = message.NewWriteFlush()
+	ch <- flush
+	require.Equal(t, []string{"table1", "table2"}, message.FailedTables(receive(t, flush.Result())))
+
+	close(ch)
+	require.ErrorContains(t, receive(t, errCh), "commit failed")
 }

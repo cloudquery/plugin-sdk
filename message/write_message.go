@@ -2,6 +2,7 @@ package message
 
 import (
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -204,7 +205,13 @@ type FailedTablesError struct {
 	Err    error
 }
 
-func (e *FailedTablesError) Error() string { return e.Err.Error() }
+func (e *FailedTablesError) Error() string {
+	if e.Err == nil {
+		return "failed to write tables " + strings.Join(e.Tables, ", ")
+	}
+	return e.Err.Error()
+}
+
 func (e *FailedTablesError) Unwrap() error { return e.Err }
 
 // FailedTables returns the tables a flush error names, sorted and without duplicates. It returns nil if some error

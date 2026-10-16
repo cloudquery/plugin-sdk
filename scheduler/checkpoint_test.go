@@ -30,6 +30,9 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
+// testConcurrency keeps shuffle-queue syncs from starting a worker for each of the default 50,000 concurrent resolvers.
+const testConcurrency = 10
+
 type testMarker struct {
 	name string
 	// rows that must be sent before the marker
@@ -183,7 +186,7 @@ func TestCheckpointsFollowTheirResources(t *testing.T) {
 			} {
 				t.Run(fmt.Sprintf("%s/%s/%s", strategy.String(), batching.name, send.name), func(t *testing.T) {
 					for range 20 {
-						s := NewScheduler(WithStrategy(strategy), batching.opt)
+						s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(strategy), batching.opt)
 						res := make(chan message.SyncMessage)
 						wait := collectSyncMessages(res)
 						err := s.Sync(context.Background(), &testExecutionClient{}, checkpointTables(t, pages, pageSize, send.fn), res)
@@ -209,7 +212,7 @@ func TestCheckpointsFollowTheirResources(t *testing.T) {
 
 func TestCheckpointsWaitForSyncWithShuffleQueue(t *testing.T) {
 	const pages, pageSize = 3, 2
-	s := NewScheduler(WithStrategy(StrategyShuffleQueue), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+	s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(StrategyShuffleQueue), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
 	res := make(chan message.SyncMessage)
 	wait := collectSyncMessages(res)
 	err := s.Sync(context.Background(), &testExecutionClient{}, checkpointTables(t, pages, pageSize, sendSlice), res)
@@ -244,7 +247,7 @@ func TestCheckpointAfterSync(t *testing.T) {
 	for _, strategy := range []Strategy{StrategyDFS, StrategyShuffleQueue} {
 		t.Run(strategy.String(), func(t *testing.T) {
 			scopes = nil
-			s := NewScheduler(WithStrategy(strategy), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+			s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(strategy), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
 			res := make(chan message.SyncMessage)
 			wait := collectSyncMessages(res)
 			require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{table}, res))
@@ -273,7 +276,7 @@ func TestCheckpointAfterCancelledSync(t *testing.T) {
 	}
 
 	// with a table scope, Checkpoint could still be queued while the resolver goroutine winds down
-	s := NewScheduler(WithStrategy(StrategyShuffleQueue), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+	s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(StrategyShuffleQueue), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
 	res := make(chan message.SyncMessage)
 	wait := collectSyncMessages(res)
 	_ = s.Sync(ctx, &testExecutionClient{}, schema.Tables{table}, res)
@@ -308,10 +311,12 @@ func TestCheckpointNotSentWhenSyncIsCancelledDuringFlush(t *testing.T) {
 				go func() {
 					errCh <- s.processResources(ctx, &cancellingBatcher{cancel: cancel, flushed: flushed}, resources)
 				}()
-				require.NoError(t, s.checkpoints.send(context.Background(), []message.SyncMessage{&testMarker{name: "checkpoint"}}))
+				sent := &checkpoint.Sent{}
+				require.NoError(t, s.checkpoints.send(context.Background(), []message.SyncMessage{&checkpoint.Tracked{Message: &testMarker{name: "checkpoint"}, Sent: sent}}))
 				close(resources)
-				require.ErrorIs(t, <-errCh, context.Canceled)
+				require.ErrorIs(t, receiveWithin(t, errCh), context.Canceled)
 				require.Empty(t, res)
+				require.True(t, sent.Aborted(), "a state client waiting for the checkpoint learns it was dropped")
 			}
 		})
 	}
@@ -362,7 +367,7 @@ func TestHeldCheckpointsAreCoalesced(t *testing.T) {
 			return scope.Checkpoint(ctx, cursorCheckpoint("stale", 1))
 		},
 	}
-	s := NewScheduler(WithStrategy(StrategyShuffleQueue))
+	s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(StrategyShuffleQueue))
 	res := make(chan message.SyncMessage)
 	wait := collectSyncMessages(res)
 	require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{table}, res))
@@ -395,7 +400,7 @@ func TestPendingCheckpointsDroppedWhenSyncIsCancelled(t *testing.T) {
 				},
 			}
 			// the batch never fills, so the rows are dropped when the sync is cancelled
-			s := NewScheduler(WithStrategy(strategy), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+			s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(strategy), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
 			res := make(chan message.SyncMessage)
 			wait := collectSyncMessages(res)
 			_ = s.Sync(ctx, &testExecutionClient{}, schema.Tables{table}, res)
@@ -432,7 +437,7 @@ func TestJoinedCheckpointFollowsEveryScope(t *testing.T) {
 	}
 	for range 20 {
 		joinedSent = make(chan struct{})
-		s := NewScheduler(WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+		s := NewScheduler(WithConcurrency(testConcurrency), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
 		res := make(chan message.SyncMessage)
 		wait := collectSyncMessages(res)
 		require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{parent, other}, res))
@@ -458,7 +463,7 @@ func TestHeldCheckpointsAreMarkedSentWhenTheSyncCompletes(t *testing.T) {
 			return nil
 		},
 	}
-	s := NewScheduler(WithStrategy(StrategyShuffleQueue))
+	s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(StrategyShuffleQueue))
 	res := make(chan message.SyncMessage)
 	wait := collectSyncMessages(res)
 	require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{table}, res))
@@ -487,7 +492,7 @@ func TestTableScopeCheckpointAfterCancelledSync(t *testing.T) {
 				return nil
 			},
 		}
-		s := NewScheduler(WithStrategy(StrategyDFS), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+		s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(StrategyDFS), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
 		res := make(chan message.SyncMessage)
 		wait := collectSyncMessages(res)
 		_ = s.Sync(ctx, &testExecutionClient{}, schema.Tables{table}, res)
@@ -524,7 +529,7 @@ func TestShuffleQueueMergesCheckpointsOfKeysAlsoSetOutsideResolvers(t *testing.T
 			return nil
 		},
 	}
-	s := NewScheduler(WithStrategy(StrategyShuffleQueue))
+	s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(StrategyShuffleQueue))
 	res := make(chan message.SyncMessage)
 	wait := collectSyncMessages(res)
 	require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{table}, res))
@@ -598,7 +603,7 @@ func TestAbortDropsCheckpointsOfStuckResolvers(t *testing.T) {
 	defer close(res)
 	defer close(resume)
 
-	s := NewScheduler(WithStrategy(StrategyDFS), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+	s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(StrategyDFS), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
 	syncErr := make(chan error, 1)
 	go func() {
 		syncErr <- s.Sync(ctx, &testExecutionClient{}, schema.Tables{stuck, other}, res)
@@ -669,7 +674,7 @@ func TestShuffleQueueAbortDropsCheckpointsOfStuckResolvers(t *testing.T) {
 		}
 	}()
 
-	s := NewScheduler(WithStrategy(StrategyShuffleQueue), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+	s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(StrategyShuffleQueue), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
 	syncErr := make(chan error, 1)
 	go func() {
 		syncErr <- s.Sync(ctx, &testExecutionClient{}, schema.Tables{stuck, waker}, res)
@@ -708,7 +713,7 @@ func TestEndedTableScopesCollapse(t *testing.T) {
 			},
 		}
 	}
-	s := NewScheduler(WithStrategy(StrategyDFS))
+	s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(StrategyDFS))
 	res := make(chan message.SyncMessage)
 	wait := collectSyncMessages(res)
 	require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{table(checkpointParentTable), table(checkpointChildTable)}, res))
@@ -736,7 +741,7 @@ func TestSyncAllDropsCheckpointsAfterItReturns(t *testing.T) {
 	}
 	for _, strategy := range []Strategy{StrategyDFS, StrategyShuffleQueue} {
 		t.Run(strategy.String(), func(t *testing.T) {
-			s := NewScheduler(WithStrategy(strategy))
+			s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(strategy))
 			_, err := s.SyncAll(context.Background(), &testExecutionClient{}, schema.Tables{table})
 			require.NoError(t, err)
 			// SyncAll closed its channel, so sending would panic
@@ -790,7 +795,7 @@ func TestCheckpointOfEndedResolverFollowsItsRows(t *testing.T) {
 		},
 	}
 
-	s := NewScheduler(WithStrategy(StrategyDFS), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+	s := NewScheduler(WithConcurrency(testConcurrency), WithStrategy(StrategyDFS), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
 	wait := collectSyncMessages(res)
 	require.NoError(t, s.Sync(context.Background(), &testExecutionClient{}, schema.Tables{ended, flushing}, res))
 	close(res)
@@ -811,6 +816,7 @@ func TestCheckpointOfEndedResolverFollowsItsRows(t *testing.T) {
 			}
 		}
 	}
+	require.NotEqual(t, -1, rowAt, "the row is sent")
 	require.NotEqual(t, -1, cursorAt, "the cursor is sent")
 	require.Less(t, rowAt, cursorAt, "the cursor follows the row of the resolver that set it")
 }
@@ -830,7 +836,7 @@ func TestSyncReportsCancellationWhileTheBatcherCloses(t *testing.T) {
 	}
 	// the batches never fill, so their rows go out only as the batcher closes. The first one cancels the sync before
 	// the other can be sent.
-	s := NewScheduler(WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
+	s := NewScheduler(WithConcurrency(testConcurrency), WithBatchOptions(WithBatchMaxRows(1000), WithBatchTimeout(time.Hour)))
 	res := make(chan message.SyncMessage)
 	go func() {
 		for msg := range res {
@@ -856,8 +862,10 @@ func TestReturnedWaitsForCheckpointsBeingSent(t *testing.T) {
 		sent <- c.send(context.Background(), []message.SyncMessage{&testMarker{name: "late"}})
 	}()
 	// wait until the send holds the read lock, blocked on res
+	deadline := time.Now().Add(10 * time.Second)
 	for c.resMu.TryLock() {
 		c.resMu.Unlock()
+		require.True(t, time.Now().Before(deadline), "the send did not start")
 		time.Sleep(time.Millisecond)
 	}
 	returned := make(chan struct{})
@@ -895,4 +903,36 @@ func newCheckpointStateClient(t *testing.T, res chan<- message.SyncMessage) *sta
 	client, err := stateV3.NewClient(context.Background(), conn, "cq_state", stateV3.WithCheckpoints(res))
 	require.NoError(t, err)
 	return client
+}
+
+func TestCheckpointsDroppedOnCancelAreAborted(t *testing.T) {
+	tracked := func() (*checkpoint.Sent, []message.SyncMessage) {
+		sent := &checkpoint.Sent{}
+		return sent, []message.SyncMessage{&checkpoint.Tracked{Message: &testMarker{name: "checkpoint"}, Sent: sent}}
+	}
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	t.Run("send while the sync runs", func(t *testing.T) {
+		c := newSyncCheckpoints(make(chan message.SyncMessage))
+		sent, msgs := tracked()
+		require.ErrorIs(t, c.send(cancelled, msgs), context.Canceled)
+		require.True(t, sent.Aborted())
+	})
+	t.Run("send while the batcher closes", func(t *testing.T) {
+		c := newSyncCheckpoints(make(chan message.SyncMessage))
+		close(c.loopDone)
+		sent, msgs := tracked()
+		require.ErrorIs(t, c.send(cancelled, msgs), context.Canceled)
+		require.True(t, sent.Aborted())
+	})
+	t.Run("held until an aborted sync ends", func(t *testing.T) {
+		c := newSyncCheckpoints(make(chan message.SyncMessage))
+		sent, msgs := tracked()
+		require.NoError(t, c.Checkpoint(context.Background(), msgs[0]))
+		require.False(t, sent.Aborted())
+		close(c.loopDone)
+		c.abort()
+		require.True(t, sent.Aborted())
+	})
 }

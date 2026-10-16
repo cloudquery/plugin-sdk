@@ -31,3 +31,10 @@ func TestFailedTables(t *testing.T) {
 		})
 	}
 }
+
+func TestFailedTablesErrorWithoutCause(t *testing.T) {
+	err := &FailedTablesError{Tables: []string{"a", "b"}}
+	require.EqualError(t, err, "failed to write tables a, b")
+	require.NoError(t, errors.Unwrap(err))
+	require.Equal(t, []string{"a", "b"}, FailedTables(err))
+}

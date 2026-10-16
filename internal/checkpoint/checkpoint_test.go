@@ -2,6 +2,8 @@ package checkpoint
 
 import (
 	"context"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/cloudquery/plugin-sdk/v4/message"
@@ -144,4 +146,50 @@ func TestAbortReleasesLaterCheckpoints(t *testing.T) {
 
 	_, err = Send(ctx, res, b, []*Sent{second}, marker("third"))
 	require.ErrorIs(t, err, ErrSyncAborted)
+}
+
+func TestNotifyAbort(t *testing.T) {
+	var flag atomic.Bool
+	sent := &Sent{}
+	sent.NotifyAbort(&flag)
+	require.False(t, flag.Load())
+	sent.Abort()
+	require.True(t, flag.Load())
+
+	var late atomic.Bool
+	sent.NotifyAbort(&late)
+	require.True(t, late.Load(), "a checkpoint aborted already sets the flag at once")
+
+	var finished atomic.Bool
+	done := &Sent{}
+	done.NotifyAbort(&finished)
+	require.NoError(t, done.Finish(context.Background(), make(chan message.SyncMessage)))
+	done.Abort()
+	require.False(t, finished.Load(), "a sent checkpoint is never aborted")
+}
+
+func TestNotifyAbortFollowsMerges(t *testing.T) {
+	var flag atomic.Bool
+	held := NewHeld(&heldScope{})
+	sent := &Sent{}
+	sent.NotifyAbort(&flag)
+	sent.MergeInto(held)
+	held.Abort()
+	require.True(t, flag.Load())
+	require.True(t, sent.Aborted())
+}
+
+func TestConcurrentMergeKeepsAborts(t *testing.T) {
+	// with the root read before its lock is taken, a flag added while the checkpoint merges can be lost
+	for range 1000 {
+		var flag atomic.Bool
+		held := NewHeld(&heldScope{})
+		sent := &Sent{}
+		var wg sync.WaitGroup
+		wg.Go(func() { sent.MergeInto(held) })
+		wg.Go(func() { sent.NotifyAbort(&flag) })
+		wg.Wait()
+		held.Abort()
+		require.True(t, flag.Load())
+	}
 }

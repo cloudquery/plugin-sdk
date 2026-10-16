@@ -117,13 +117,36 @@ func (w *BatchWriter) Flush(ctx context.Context) error {
 		<-done
 	}
 	w.workersLock.RUnlock()
+	// the deletes wait for the migrations before them, so a failure leaves them unwritten too
 	if err := w.flushMigrateTables(ctx); err != nil {
-		return err
+		return errors.Join(err, w.pendingDeleteStales(), w.pendingDeleteRecords())
 	}
 	if err := w.flushDeleteStaleTables(ctx); err != nil {
-		return err
+		return errors.Join(err, w.pendingDeleteRecords())
 	}
 	return w.flushDeleteRecordTables(ctx)
+}
+
+var errNotWritten = errors.New("not written, as an earlier write failed")
+
+// pendingDeleteStales returns an error naming the tables of the delete-stale messages not yet written.
+func (w *BatchWriter) pendingDeleteStales() error {
+	w.deleteStaleLock.Lock()
+	defer w.deleteStaleLock.Unlock()
+	if len(w.deleteStaleMessages) == 0 {
+		return nil
+	}
+	return writers.FailedTables(errNotWritten, w.deleteStaleMessages)
+}
+
+// pendingDeleteRecords returns an error naming the tables of the delete-record messages not yet written.
+func (w *BatchWriter) pendingDeleteRecords() error {
+	w.deleteRecordLock.Lock()
+	defer w.deleteRecordLock.Unlock()
+	if len(w.deleteRecordMessages) == 0 {
+		return nil
+	}
+	return writers.FailedTables(errNotWritten, w.deleteRecordMessages)
 }
 
 func (w *BatchWriter) Close(context.Context) error {

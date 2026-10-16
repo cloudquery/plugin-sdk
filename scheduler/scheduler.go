@@ -330,7 +330,10 @@ func (s *syncClient) processResources(ctx context.Context, b batcherInterface, r
 				b.process(resource)
 			}
 		case msgs := <-s.checkpoints.requests:
-			// a cancelled sync may drop resources, and their checkpoints must not go out
+			// Every table's batch goes out, not only the ones the checkpoint follows: those would be the tables of the
+			// scope's resources and their relations, which the batcher does not track. A checkpoint comes once per state
+			// flush of the source, so this costs smaller batches only.
+			// A cancelled sync may drop resources, and their checkpoints must not go out.
 			if !b.flush() || ctx.Err() != nil {
 				s.logger.Debug().Msg("sync context cancelled")
 				dropMessages(msgs)

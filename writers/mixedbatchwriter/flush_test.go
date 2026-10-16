@@ -6,7 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/cloudquery/plugin-sdk/v4/message"
+	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -127,4 +131,28 @@ func receive[T any](t *testing.T, ch <-chan T) T {
 		var zero T
 		return zero
 	}
+}
+
+func TestFlushMessageNamesEveryTableOfTheFailedBatch(t *testing.T) {
+	table := func(name string) *schema.Table {
+		return &schema.Table{Name: name, Columns: schema.ColumnList{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
+	}
+	insert := func(table *schema.Table) *message.WriteInsert {
+		bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
+		defer bldr.Release()
+		bldr.Field(0).(*array.Int64Builder).Append(1)
+		return &message.WriteInsert{Record: bldr.NewRecordBatch()}
+	}
+	wr, err := New(&failingMixedBatchClient{}, WithBatchTimeout(time.Hour))
+	require.NoError(t, err)
+
+	ch := make(chan message.WriteMessage, 3)
+	flush := message.NewWriteFlush()
+	ch <- insert(table("table2"))
+	ch <- insert(table("table1"))
+	ch <- flush
+	close(ch)
+
+	require.ErrorContains(t, wr.Write(context.Background(), ch), "insert failed")
+	require.Equal(t, []string{"table1", "table2"}, message.FailedTables(receive(t, flush.Result())))
 }

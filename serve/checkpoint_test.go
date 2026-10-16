@@ -382,8 +382,10 @@ func checkpointValues(t *testing.T, msgs ...message.SyncMessage) map[string]stri
 // deliver sends what a scope received as the scheduler would, once the scope's resources are sent.
 func deliver(t *testing.T, res chan<- message.SyncMessage, msgs ...message.SyncMessage) {
 	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	for _, msg := range msgs {
-		require.NoError(t, checkpoint.Deliver(context.Background(), res, msg))
+		require.NoError(t, checkpoint.Deliver(ctx, res, msg))
 	}
 }
 
