@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.99.0](https://github.com/cloudquery/plugin-sdk/compare/v4.98.0...v4.99.0) (2026-10-19)
+
+
+### Features
+
+* Send incremental state as checkpoints after the resources it covers ([#2632](https://github.com/cloudquery/plugin-sdk/issues/2632)) ([a4bba72](https://github.com/cloudquery/plugin-sdk/commit/a4bba72231e62395f3c9c6a7d7d2f85915df4e6e))
+
+
+### Bug Fixes
+
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2629](https://github.com/cloudquery/plugin-sdk/issues/2629)) ([fae9da3](https://github.com/cloudquery/plugin-sdk/commit/fae9da3627be4996ec56193e0635789e65d562c5))
+* **deps:** Update aws-sdk-go-v2 monorepo ([#2635](https://github.com/cloudquery/plugin-sdk/issues/2635)) ([9f96272](https://github.com/cloudquery/plugin-sdk/commit/9f9627249a49d64e3a4d4ba3157876f9c606373e))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.28.0 ([#2625](https://github.com/cloudquery/plugin-sdk/issues/2625)) ([b1a7243](https://github.com/cloudquery/plugin-sdk/commit/b1a72436fbce75ea49dce08e1712fbcbb0b5e255))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.28.1 ([#2627](https://github.com/cloudquery/plugin-sdk/issues/2627)) ([fc17c1b](https://github.com/cloudquery/plugin-sdk/commit/fc17c1b4c52429abbfa27cc7184a3d9514af905c))
+* **deps:** Update module github.com/cloudquery/plugin-pb-go to v1.28.2 ([#2634](https://github.com/cloudquery/plugin-sdk/issues/2634)) ([1e815b0](https://github.com/cloudquery/plugin-sdk/commit/1e815b0415f810ac0338aa4ffedbe06064389a35))
+* Don't drop work queued by the last active table in shuffle-queue ([#2633](https://github.com/cloudquery/plugin-sdk/issues/2633)) ([223018b](https://github.com/cloudquery/plugin-sdk/commit/223018bd63d2166939b6386c1d403e8fe93880b2))
+* Make the JSON type schema match the JSON that the encoder writes ([#2620](https://github.com/cloudquery/plugin-sdk/issues/2620)) ([befd5cc](https://github.com/cloudquery/plugin-sdk/commit/befd5ccc03793ef38aa034eb8b310aa7afb36db9))
+
 ## [4.98.0](https://github.com/cloudquery/plugin-sdk/compare/v4.97.0...v4.98.0) (2026-10-07)
 
 
