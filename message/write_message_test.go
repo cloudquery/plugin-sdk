@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -37,4 +38,20 @@ func TestFailedTablesErrorWithoutCause(t *testing.T) {
 	require.EqualError(t, err, "failed to write tables a, b")
 	require.NoError(t, errors.Unwrap(err))
 	require.Equal(t, []string{"a", "b"}, FailedTables(err))
+}
+
+func TestZeroWriteFlush(t *testing.T) {
+	var flush WriteFlush
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		flush.Done(errors.New("disk full"))
+		flush.Done(nil)
+	}()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("Done blocked")
+	}
+	require.EqualError(t, <-flush.Result(), "disk full")
 }

@@ -32,7 +32,9 @@ type ClientOptions struct {
 	// When the CLI supports checkpoints, Flush sends state on it instead of writing to the backend, and the CLI persists
 	// the state once the destinations commit the resources synced before it. Changes made within a table resolver (using
 	// its ctx) wait only for the resources that resolver produced; other changes must be flushed after the resources
-	// they summarize are sent, e.g. once the scheduler's Sync returns.
+	// they summarize are sent, e.g. once the scheduler's Sync returns. With StrategyShuffleQueue, queue workers resolve
+	// relations on other goroutines, so changes made within table resolvers are held until the scheduler's Sync
+	// completes.
 	// Only NewConnectedClientWithOptions uses it, as only the backend options say whether the CLI supports checkpoints.
 	Checkpoints chan<- message.SyncMessage
 }

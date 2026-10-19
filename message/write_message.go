@@ -177,12 +177,13 @@ type WriteDeleteRecords []*WriteDeleteRecord
 // flush may not have been committed. A *FailedTablesError names the tables of those messages.
 type WriteFlush struct {
 	writeBaseMessage
-	result chan error
-	once   sync.Once
+	results sync.Once
+	result  chan error
+	done    sync.Once
 }
 
 func NewWriteFlush() *WriteFlush {
-	return &WriteFlush{result: make(chan error, 1)}
+	return &WriteFlush{}
 }
 
 func (*WriteFlush) GetTable() *schema.Table {
@@ -191,11 +192,16 @@ func (*WriteFlush) GetTable() *schema.Table {
 
 // Done reports the outcome of the flush. Only the first call has an effect.
 func (m *WriteFlush) Done(err error) {
-	m.once.Do(func() { m.result <- err })
+	m.done.Do(func() { m.resultChan() <- err })
 }
 
 // Result receives the error passed to Done.
 func (m *WriteFlush) Result() <-chan error {
+	return m.resultChan()
+}
+
+func (m *WriteFlush) resultChan() chan error {
+	m.results.Do(func() { m.result = make(chan error, 1) })
 	return m.result
 }
 

@@ -155,7 +155,9 @@ func (w *StreamingBatchWriter) Flush(context.Context) error {
 	return nil // not checked below
 }
 
-// commit ends the open batches and waits for their handlers to return.
+// commit ends the open batches and waits for their handlers to return. The workers are shared, so it reports the
+// failures of every table, also of messages another Write sent. That is no worse than the rest of the writer, which
+// does not support concurrent Write calls: they share lastMsgType, and the first to return closes every worker.
 func (w *StreamingBatchWriter) commit(ctx context.Context) error {
 	w.workersLock.RLock()
 	defer w.workersLock.RUnlock()
