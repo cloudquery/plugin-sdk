@@ -438,7 +438,7 @@ func TestWaitForFlush(t *testing.T) {
 	close(writeDone)
 	// Write completed the flush and returned: whichever the select picks, the result is not lost
 	for range 100 {
-		flush := message.NewWriteFlush()
+		flush := &message.WriteFlush{}
 		flush.Done(errors.New("disk full"))
 		flushErr, completed, err := waitForFlush(ctx, flush, writeDone)
 		require.NoError(t, err)
@@ -446,13 +446,13 @@ func TestWaitForFlush(t *testing.T) {
 		require.EqualError(t, flushErr, "disk full")
 	}
 
-	_, completed, err := waitForFlush(ctx, message.NewWriteFlush(), writeDone)
+	_, completed, err := waitForFlush(ctx, &message.WriteFlush{}, writeDone)
 	require.NoError(t, err)
 	require.False(t, completed, "Write returned without completing the flush")
 
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()
-	_, _, err = waitForFlush(cancelled, message.NewWriteFlush(), make(chan struct{}))
+	_, _, err = waitForFlush(cancelled, &message.WriteFlush{}, make(chan struct{}))
 	require.ErrorIs(t, err, context.Canceled)
 }
 

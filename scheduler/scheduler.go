@@ -115,7 +115,7 @@ func WithInvocationID(invocationID string) Option {
 // withResClosedOnReturn tells Sync that the caller closes res once Sync returns, so later checkpoints must not be sent.
 func withResClosedOnReturn() SyncOption {
 	return func(s *syncClient) {
-		s.checkpoints.closeRes = true
+		s.checkpoints.callerClosesRes = true
 	}
 }
 
@@ -299,7 +299,7 @@ func (s *Scheduler) Sync(ctx context.Context, client schema.ClientMeta, tables s
 	defer syncClient.checkpoints.returned()
 	b := s.batchSettings.getBatcher(ctx, res, s.logger)
 	err := syncClient.processResources(ctx, b, resources)
-	close(syncClient.checkpoints.loopDone)
+	close(syncClient.checkpoints.loopExited)
 	b.close() // wait for all resources to be processed
 	if err != nil || ctx.Err() != nil {
 		syncClient.checkpoints.abort()

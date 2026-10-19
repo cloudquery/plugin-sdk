@@ -136,7 +136,7 @@ func (w *BatchWriter) pendingDeleteStales() error {
 	if len(w.deleteStaleMessages) == 0 {
 		return nil
 	}
-	return writers.FailedTables(errNotWritten, w.deleteStaleMessages)
+	return writers.WithFailedTables(errNotWritten, w.deleteStaleMessages)
 }
 
 // pendingDeleteRecords returns an error naming the tables of the delete-record messages not yet written.
@@ -146,7 +146,7 @@ func (w *BatchWriter) pendingDeleteRecords() error {
 	if len(w.deleteRecordMessages) == 0 {
 		return nil
 	}
-	return writers.FailedTables(errNotWritten, w.deleteRecordMessages)
+	return writers.WithFailedTables(errNotWritten, w.deleteRecordMessages)
 }
 
 func (w *BatchWriter) Close(context.Context) error {
@@ -254,7 +254,7 @@ func (w *BatchWriter) flushMigrateTables(ctx context.Context) error {
 		return nil
 	}
 	if err := w.client.MigrateTables(ctx, w.migrateTableMessages); err != nil {
-		return writers.FailedTables(err, w.migrateTableMessages)
+		return writers.WithFailedTables(err, w.migrateTableMessages)
 	}
 	w.migrateTableMessages = w.migrateTableMessages[:0]
 	return nil
@@ -267,7 +267,7 @@ func (w *BatchWriter) flushDeleteStaleTables(ctx context.Context) error {
 		return nil
 	}
 	if err := w.client.DeleteStale(ctx, w.deleteStaleMessages); err != nil {
-		return writers.FailedTables(err, w.deleteStaleMessages)
+		return writers.WithFailedTables(err, w.deleteStaleMessages)
 	}
 	w.deleteStaleMessages = w.deleteStaleMessages[:0]
 	return nil
@@ -280,7 +280,7 @@ func (w *BatchWriter) flushDeleteRecordTables(ctx context.Context) error {
 		return nil
 	}
 	if err := w.client.DeleteRecord(ctx, w.deleteRecordMessages); err != nil {
-		return writers.FailedTables(err, w.deleteRecordMessages)
+		return writers.WithFailedTables(err, w.deleteRecordMessages)
 	}
 	w.deleteRecordMessages = w.deleteRecordMessages[:0]
 	return nil

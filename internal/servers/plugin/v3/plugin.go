@@ -482,7 +482,7 @@ func (s *Server) WriteStream(stream pb.Plugin_WriteStreamServer) error {
 			flush         *message.WriteFlush
 		)
 		if _, ok := r.Message.(*pb.Write_Request_Flush); ok {
-			flush = message.NewWriteFlush()
+			flush = &message.WriteFlush{}
 			pluginMessage = flush
 		} else {
 			pluginMessage, err = writeRequestToMessage(r)

@@ -22,10 +22,10 @@ type Scope interface {
 	Checkpoint(ctx context.Context, msg message.SyncMessage) error
 }
 
-// Covering is implemented by scopes that never send a checkpoint before an unsent one they already hold.
-type Covering interface {
-	// Covers reports whether a checkpoint passed to the scope now will be sent no earlier than sent.
-	Covers(sent *Sent) bool
+// Ordering is implemented by scopes that never send a checkpoint before an unsent one they already hold.
+type Ordering interface {
+	// SendsAfter reports whether a checkpoint passed to the scope now will be sent no earlier than delivery.
+	SendsAfter(delivery *Delivery) bool
 }
 
 // Collapsing is implemented by scopes that can become equivalent to a scope they share with others, such as a table
@@ -53,14 +53,14 @@ func Deliver(ctx context.Context, res chan<- message.SyncMessage, msg message.Sy
 	case *Barrier:
 		return m.reached(ctx, res)
 	case *Tracked:
-		if m.Sent.Aborted() {
+		if m.Delivery.Aborted() {
 			return nil
 		}
 		if err := Deliver(ctx, res, m.Message); err != nil {
-			m.Sent.Abort()
+			m.Delivery.Abort()
 			return err
 		}
-		return m.Sent.Finish(ctx, res)
+		return m.Delivery.Finish(ctx, res)
 	default:
 		select {
 		case res <- msg:
@@ -78,7 +78,7 @@ func Drop(msg message.SyncMessage) {
 	case *Barrier:
 		m.abort()
 	case *Tracked:
-		m.Sent.Abort()
+		m.Delivery.Abort()
 	}
 }
 
@@ -91,36 +91,36 @@ type Barrier struct {
 func (*Barrier) GetTable() *schema.Table { return nil }
 func (*Barrier) IsSyncMessage() bool     { return true }
 
-// Tracked is a message that marks Sent once Deliver sends it.
+// Tracked is a message that marks Delivery once Deliver sends it.
 type Tracked struct {
-	Message message.SyncMessage
-	Sent    *Sent
+	Message  message.SyncMessage
+	Delivery *Delivery
 }
 
 func (*Tracked) GetTable() *schema.Table { return nil }
 func (*Tracked) IsSyncMessage() bool     { return true }
 
-// Sent tracks whether a checkpoint was sent or aborted, so that later checkpoints of the same keys can wait for it.
-type Sent struct {
+// Delivery tracks whether a checkpoint was sent or aborted, so that later checkpoints of the same keys can wait for it.
+type Delivery struct {
 	mu      sync.Mutex
 	done    bool
 	aborted bool
 	waiting []*Barrier
 	// set when the checkpoint was merged into another one, which is then sent in its place
-	mergedInto *Sent
+	mergedInto *Delivery
 	// for a checkpoint that others are merged into: the scope holding it
 	heldBy Scope
 	// set when the checkpoint is aborted
 	abortFlags map[*atomic.Bool]struct{}
 }
 
-// NewHeld returns a Sent for a checkpoint that holder merges other checkpoints into.
-func NewHeld(holder Scope) *Sent {
-	return &Sent{heldBy: holder}
+// NewHeld returns a Delivery for a checkpoint that holder merges other checkpoints into.
+func NewHeld(holder Scope) *Delivery {
+	return &Delivery{heldBy: holder}
 }
 
 // root returns the checkpoint s is sent with.
-func (s *Sent) root() *Sent {
+func (s *Delivery) root() *Delivery {
 	for {
 		s.mu.Lock()
 		into := s.mergedInto
@@ -134,7 +134,7 @@ func (s *Sent) root() *Sent {
 
 // lockRoot returns the checkpoint s is sent with, locked. It is still the root once locked, as MergeInto runs under the
 // lock of the checkpoint it merges.
-func (s *Sent) lockRoot() *Sent {
+func (s *Delivery) lockRoot() *Delivery {
 	for {
 		r := s.root()
 		r.mu.Lock()
@@ -145,28 +145,28 @@ func (s *Sent) lockRoot() *Sent {
 	}
 }
 
-// Done reports whether the checkpoint was sent.
-func (s *Sent) Done() bool {
+// Delivered reports whether the checkpoint was sent.
+func (s *Delivery) Delivered() bool {
 	r := s.lockRoot()
 	defer r.mu.Unlock()
 	return r.done
 }
 
 // Aborted reports whether the checkpoint was dropped.
-func (s *Sent) Aborted() bool {
+func (s *Delivery) Aborted() bool {
 	r := s.lockRoot()
 	defer r.mu.Unlock()
 	return r.aborted
 }
 
-func (s *Sent) holder() Scope {
+func (s *Delivery) holder() Scope {
 	r := s.lockRoot()
 	defer r.mu.Unlock()
 	return r.heldBy
 }
 
 // NotifyAbort sets flag if the checkpoint is aborted, or now if it already was.
-func (s *Sent) NotifyAbort(flag *atomic.Bool) {
+func (s *Delivery) NotifyAbort(flag *atomic.Bool) {
 	r := s.lockRoot()
 	defer r.mu.Unlock()
 	if r.aborted {
@@ -180,12 +180,12 @@ func (s *Sent) NotifyAbort(flag *atomic.Bool) {
 }
 
 // MergedInto reports whether s is sent with into.
-func (s *Sent) MergedInto(into *Sent) bool {
+func (s *Delivery) MergedInto(into *Delivery) bool {
 	return s != into && s.root() == into
 }
 
 // MergeInto marks s as sent once into is sent, and aborted if into is aborted. into must not be sent yet.
-func (s *Sent) MergeInto(into *Sent) {
+func (s *Delivery) MergeInto(into *Delivery) {
 	s.mu.Lock()
 	waiting, flags := s.waiting, s.abortFlags
 	s.waiting, s.abortFlags = nil, nil
@@ -200,7 +200,7 @@ func (s *Sent) MergeInto(into *Sent) {
 }
 
 // wait makes barrier wait for s. It reports true, without waiting, if s was sent.
-func (s *Sent) wait(barrier *Barrier) bool {
+func (s *Delivery) wait(barrier *Barrier) bool {
 	r := s.lockRoot()
 	switch {
 	case r.done:
@@ -218,7 +218,7 @@ func (s *Sent) wait(barrier *Barrier) bool {
 }
 
 // Finish marks s as sent, and releases the checkpoints waiting for it.
-func (s *Sent) Finish(ctx context.Context, res chan<- message.SyncMessage) error {
+func (s *Delivery) Finish(ctx context.Context, res chan<- message.SyncMessage) error {
 	s.mu.Lock()
 	if s.done || s.aborted {
 		s.mu.Unlock()
@@ -238,7 +238,7 @@ func (s *Sent) Finish(ctx context.Context, res chan<- message.SyncMessage) error
 }
 
 // Abort marks s as dropped, and aborts the checkpoints waiting for it.
-func (s *Sent) Abort() {
+func (s *Delivery) Abort() {
 	r := s.lockRoot()
 	if r.done || r.aborted {
 		r.mu.Unlock()
@@ -256,16 +256,17 @@ func (s *Sent) Abort() {
 	}
 }
 
-// Send passes msg to Deliver once every one of scope's resources produced before the call is sent, and every
-// checkpoint in after is sent. Without a scope or pending checkpoints to wait for, it sends msg on res.
-// The returned Sent tracks msg. If a checkpoint in after was aborted, Send returns ErrSyncAborted.
-func Send(ctx context.Context, res chan<- message.SyncMessage, scope Scope, after []*Sent, msg message.SyncMessage) (*Sent, error) {
-	pending := make([]*Sent, 0, len(after))
+// Schedule passes msg to Deliver once every one of scope's resources produced before the call is sent, and every
+// checkpoint in after is sent, which may be after it returns. Without a scope or pending checkpoints to wait for, it
+// sends msg on res. The returned Delivery tracks msg. If a checkpoint in after was aborted, Schedule returns
+// ErrSyncAborted.
+func Schedule(ctx context.Context, res chan<- message.SyncMessage, scope Scope, after []*Delivery, msg message.SyncMessage) (*Delivery, error) {
+	pending := make([]*Delivery, 0, len(after))
 	for _, previous := range after {
 		switch {
 		case previous.Aborted():
 			return nil, ErrSyncAborted
-		case !previous.Done():
+		case !previous.Delivered():
 			pending = append(pending, previous)
 		}
 	}
@@ -273,12 +274,12 @@ func Send(ctx context.Context, res chan<- message.SyncMessage, scope Scope, afte
 		// waiting only for checkpoints one scope holds: going through that scope sends no earlier, and lets it merge msg
 		scope = commonHolder(pending)
 	}
-	if covering, ok := scope.(Covering); ok {
-		pending = slices.DeleteFunc(pending, covering.Covers)
+	if ordering, ok := scope.(Ordering); ok {
+		pending = slices.DeleteFunc(pending, ordering.SendsAfter)
 	}
 
-	sent := &Sent{}
-	tracked := &Tracked{Message: msg, Sent: sent}
+	sent := &Delivery{}
+	tracked := &Tracked{Message: msg, Delivery: sent}
 	scopes := flatten(scope)
 	if len(pending) == 0 {
 		switch len(scopes) {
@@ -320,7 +321,7 @@ func Send(ctx context.Context, res chan<- message.SyncMessage, scope Scope, afte
 	return sent, nil
 }
 
-func commonHolder(pending []*Sent) Scope {
+func commonHolder(pending []*Delivery) Scope {
 	var holder Scope
 	for _, sent := range pending {
 		h := sent.holder()
@@ -370,7 +371,7 @@ type joined struct {
 }
 
 func (j *joined) Checkpoint(ctx context.Context, msg message.SyncMessage) error {
-	_, err := Send(ctx, nil, j, nil, msg)
+	_, err := Schedule(ctx, nil, j, nil, msg)
 	return err
 }
 

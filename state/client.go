@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -47,7 +48,12 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string) (Cl
 	return NewClientWithOptions(ctx, conn, tableName, ClientOptions{})
 }
 
-func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, _ ClientOptions) (Client, error) {
+// NewClientWithOptions returns a client of the state backend at conn. It returns an error if opts sets Checkpoints, as
+// only NewConnectedClientWithOptions gets the backend options that say whether the CLI persists checkpoints.
+func NewClientWithOptions(ctx context.Context, conn *grpc.ClientConn, tableName string, opts ClientOptions) (Client, error) {
+	if opts.Checkpoints != nil {
+		return nil, errors.New("checkpoints need the backend options of the sync: use NewConnectedClientWithOptions")
+	}
 	return newStateClient(ctx, conn, tableName, nil)
 }
 

@@ -37,7 +37,7 @@ type Client struct {
 	// outside table resolvers.
 	changes map[string]*scopeSet
 	// the last checkpoint of each key, which the next checkpoint of the key must not overtake
-	sent map[string]*checkpoint.Sent
+	last map[string]*checkpoint.Delivery
 	// set when one of the checkpoints in sent is aborted
 	abortSeen     atomic.Bool
 	mutex         *sync.RWMutex
@@ -70,7 +70,7 @@ func NewClient(ctx context.Context, conn *grpc.ClientConn, tableName string, opt
 		client:        pb.NewPluginClient(conn),
 		mem:           make(map[string]versionedValue),
 		changes:       make(map[string]*scopeSet),
-		sent:          make(map[string]*checkpoint.Sent),
+		last:          make(map[string]*checkpoint.Delivery),
 		mutex:         &sync.RWMutex{},
 		versionedMode: table.Column(versionColumn) != nil,
 	}
@@ -256,7 +256,7 @@ func (c *Client) Flush(ctx context.Context) error {
 // flushCheckpoints sends one checkpoint per scope, so each waits only for the resources of the scopes that changed its
 // keys. Keys whose checkpoint fails stay pending.
 func (c *Client) flushCheckpoints(ctx context.Context) error {
-	aborted := c.abortedKeys()
+	aborted := c.requeueAborted()
 	groups := make(map[string]*checkpointGroup)
 	for key, scopes := range c.changes {
 		if _, ok := aborted[key]; ok {
@@ -279,7 +279,7 @@ func (c *Client) flushCheckpoints(ctx context.Context) error {
 	for _, id := range slices.Sorted(maps.Keys(groups)) {
 		group := groups[id]
 		msg := &message.SyncCheckpoint{Record: c.record(slices.Values(group.keys))}
-		sent, err := checkpoint.Send(ctx, c.checkpoints, group.scope, c.unsent(group.keys), msg)
+		sent, err := checkpoint.Schedule(ctx, c.checkpoints, group.scope, c.unsent(group.keys), msg)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -287,7 +287,7 @@ func (c *Client) flushCheckpoints(ctx context.Context) error {
 		sent.NotifyAbort(&c.abortSeen)
 		for _, key := range group.keys {
 			delete(c.changes, key)
-			c.sent[key] = sent
+			c.last[key] = sent
 		}
 	}
 	return errors.Join(errs...)
@@ -315,17 +315,18 @@ func joinScopes(scopes map[checkpoint.Scope]struct{}) (checkpoint.Scope, string)
 	return checkpoint.Join(slices.Collect(maps.Keys(unique))...), strings.Join(ids, ",")
 }
 
-// abortedKeys returns the keys whose last checkpoint was dropped by a cancelled sync. They stay pending, as the
-// resources they summarize may have been dropped too. It only looks once a checkpoint was aborted.
-func (c *Client) abortedKeys() map[string]struct{} {
+// requeueAborted puts the keys whose last checkpoint was dropped by a cancelled sync back among the changes, and
+// returns them: they stay pending, as the resources they summarize may have been dropped too. It also forgets the last
+// checkpoints that were sent. It only looks once a checkpoint was aborted.
+func (c *Client) requeueAborted() map[string]struct{} {
 	if !c.abortSeen.Load() {
 		return nil
 	}
 	aborted := make(map[string]struct{})
-	for key, sent := range c.sent {
+	for key, sent := range c.last {
 		switch {
-		case sent.Done():
-			delete(c.sent, key)
+		case sent.Delivered():
+			delete(c.last, key)
 		case sent.Aborted():
 			aborted[key] = struct{}{}
 			if _, ok := c.changes[key]; !ok {
@@ -338,15 +339,15 @@ func (c *Client) abortedKeys() map[string]struct{} {
 
 // unsent returns the previous checkpoints of keys that are not sent yet, as the scopes they wait for may still be
 // sending the resources they cover.
-func (c *Client) unsent(keys []string) []*checkpoint.Sent {
-	var unsent []*checkpoint.Sent
+func (c *Client) unsent(keys []string) []*checkpoint.Delivery {
+	var unsent []*checkpoint.Delivery
 	for _, key := range keys {
-		sent, ok := c.sent[key]
+		sent, ok := c.last[key]
 		if !ok {
 			continue
 		}
-		if sent.Done() {
-			delete(c.sent, key)
+		if sent.Delivered() {
+			delete(c.last, key)
 		} else if !slices.Contains(unsent, sent) {
 			unsent = append(unsent, sent)
 		}

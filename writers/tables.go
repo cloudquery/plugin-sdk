@@ -5,9 +5,9 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 
-// FailedTables names the tables of msgs in err, so that a flush that fails with it reports them. It returns err as is
+// WithFailedTables names the tables of msgs in err, so that a flush that fails with it reports them. It returns err as is
 // if it is nil, or if a message has no table name.
-func FailedTables[T message.WriteMessage](err error, msgs []T) error {
+func WithFailedTables[T message.WriteMessage](err error, msgs []T) error {
 	if err == nil {
 		return nil
 	}

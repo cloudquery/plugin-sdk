@@ -182,10 +182,6 @@ type WriteFlush struct {
 	done    sync.Once
 }
 
-func NewWriteFlush() *WriteFlush {
-	return &WriteFlush{}
-}
-
 func (*WriteFlush) GetTable() *schema.Table {
 	return &schema.Table{}
 }

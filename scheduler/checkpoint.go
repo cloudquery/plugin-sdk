@@ -23,25 +23,27 @@ type syncCheckpoints struct {
 	res      chan<- message.SyncMessage
 	requests chan []message.SyncMessage
 	// closed when Sync stops reading requests
-	loopDone chan struct{}
-	// closed once the batcher is closed
-	finished chan struct{}
+	loopExited chan struct{}
+	// closed when stopped is set, once the batcher is closed
+	stoppedCh chan struct{}
 	// the scope of every table resolver that ended: they all send checkpoints after the resources Sync received
 	ended *endedScope
 
-	mu       sync.Mutex
-	deferred []message.SyncMessage
+	mu   sync.Mutex
+	held []message.SyncMessage
 	// state rows held until the sync completes, by table, so repeated checkpoints of a key keep only the newest row
-	deferredState map[string]*heldState
+	heldStates map[string]*heldState
 	// sent once the held state is sent, to track the checkpoints merged into it
-	heldSent *checkpoint.Sent
+	heldSent *checkpoint.Delivery
 	// table scopes that did not end, whose pending checkpoints an aborted sync drops
-	scopes    map[*tableScope]struct{}
-	done      bool
-	completed bool
+	scopes map[*tableScope]struct{}
+	// the sync stopped, completed or aborted
+	stopped bool
+	// the sync completed, with every resource sent
+	allSent bool
 
 	// set when the caller closes res once Sync returns, as SyncAll does
-	closeRes bool
+	callerClosesRes bool
 	// held to send on res after Sync, so that Sync returns only once those sends are over
 	resMu     sync.RWMutex
 	resClosed bool
@@ -49,7 +51,7 @@ type syncCheckpoints struct {
 
 var (
 	_ checkpoint.Scope    = (*syncCheckpoints)(nil)
-	_ checkpoint.Covering = (*syncCheckpoints)(nil)
+	_ checkpoint.Ordering = (*syncCheckpoints)(nil)
 )
 
 // state table columns, see the state client
@@ -61,10 +63,10 @@ const (
 
 func newSyncCheckpoints(res chan<- message.SyncMessage) *syncCheckpoints {
 	c := &syncCheckpoints{
-		res:      res,
-		requests: make(chan []message.SyncMessage),
-		loopDone: make(chan struct{}),
-		finished: make(chan struct{}),
+		res:        res,
+		requests:   make(chan []message.SyncMessage),
+		loopExited: make(chan struct{}),
+		stoppedCh:  make(chan struct{}),
 	}
 	c.ended = &endedScope{checkpoints: c}
 	return c
@@ -78,7 +80,7 @@ func (c *syncCheckpoints) send(ctx context.Context, msgs []message.SyncMessage) 
 	select {
 	case c.requests <- msgs:
 		return nil
-	case <-c.loopDone:
+	case <-c.loopExited:
 		return c.sendAfterSync(ctx, msgs)
 	case <-ctx.Done():
 		dropMessages(msgs)
@@ -88,7 +90,7 @@ func (c *syncCheckpoints) send(ctx context.Context, msgs []message.SyncMessage) 
 
 func (c *syncCheckpoints) sendAfterSync(ctx context.Context, msgs []message.SyncMessage) error {
 	select {
-	case <-c.finished:
+	case <-c.stoppedCh:
 	case <-ctx.Done():
 		dropMessages(msgs)
 		return context.Cause(ctx)
@@ -96,7 +98,7 @@ func (c *syncCheckpoints) sendAfterSync(ctx context.Context, msgs []message.Sync
 	c.resMu.RLock()
 	defer c.resMu.RUnlock()
 	switch {
-	case !c.completed:
+	case !c.allSent:
 		dropMessages(msgs)
 		return checkpoint.ErrSyncAborted
 	case c.resClosed:
@@ -110,7 +112,7 @@ var errResClosed = errors.New("the sync message channel is closed, as the sync r
 
 // returned is called when Sync returns. It waits for checkpoints being sent, if the caller then closes res.
 func (c *syncCheckpoints) returned() {
-	if !c.closeRes {
+	if !c.callerClosesRes {
 		return
 	}
 	c.resMu.Lock()
@@ -129,9 +131,9 @@ func (e *endedScope) Checkpoint(ctx context.Context, msg message.SyncMessage) er
 
 func (c *syncCheckpoints) Checkpoint(ctx context.Context, msg message.SyncMessage) error {
 	c.mu.Lock()
-	if !c.done {
+	if !c.stopped {
 		if !c.holdState(msg) {
-			c.deferred = append(c.deferred, msg)
+			c.held = append(c.held, msg)
 		}
 		c.mu.Unlock()
 		return nil
@@ -140,30 +142,30 @@ func (c *syncCheckpoints) Checkpoint(ctx context.Context, msg message.SyncMessag
 	return c.sendAfterSync(ctx, []message.SyncMessage{msg})
 }
 
-// Covers reports whether sent is merged into the held state, which a checkpoint passed now is merged into too, or sent
-// after.
-func (c *syncCheckpoints) Covers(sent *checkpoint.Sent) bool {
+// SendsAfter reports whether delivery is merged into the held state, which a checkpoint passed now is merged into too,
+// or sent after.
+func (c *syncCheckpoints) SendsAfter(delivery *checkpoint.Delivery) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return !c.done && c.heldSent != nil && sent.MergedInto(c.heldSent)
+	return !c.stopped && c.heldSent != nil && delivery.MergedInto(c.heldSent)
 }
 
 // complete is called once the batcher is closed after sending every resource.
 func (c *syncCheckpoints) complete(ctx context.Context) error {
 	c.mu.Lock()
-	deferred := c.deferred
-	for _, state := range c.deferredState {
-		deferred = append(deferred, &message.SyncCheckpoint{Record: state.record()})
+	held := c.held
+	for _, state := range c.heldStates {
+		held = append(held, &message.SyncCheckpoint{Record: state.record()})
 	}
 	heldSent := c.heldSent
-	c.deferred = nil
-	c.deferredState = nil
+	c.held = nil
+	c.heldStates = nil
 	c.heldSent = nil
-	c.done = true
-	c.completed = true
+	c.stopped = true
+	c.allSent = true
 	c.mu.Unlock()
-	close(c.finished)
-	if err := sendMessages(ctx, c.res, deferred); err != nil {
+	close(c.stoppedCh)
+	if err := sendMessages(ctx, c.res, held); err != nil {
 		if heldSent != nil {
 			heldSent.Abort()
 		}
@@ -178,15 +180,15 @@ func (c *syncCheckpoints) complete(ctx context.Context) error {
 // abort is called once the batcher is closed when some resources may not have been sent.
 func (c *syncCheckpoints) abort() {
 	c.mu.Lock()
-	deferred, heldSent, scopes := c.deferred, c.heldSent, c.scopes
-	c.deferred = nil
-	c.deferredState = nil
+	held, heldSent, scopes := c.held, c.heldSent, c.scopes
+	c.held = nil
+	c.heldStates = nil
 	c.heldSent = nil
 	c.scopes = nil
-	c.done = true
+	c.stopped = true
 	c.mu.Unlock()
-	close(c.finished)
-	dropMessages(deferred)
+	close(c.stoppedCh)
+	dropMessages(held)
 	// a resolver goroutine that is stuck after the cancellation never forwards its pending checkpoints
 	for scope := range scopes {
 		dropMessages(scope.end())
@@ -217,7 +219,7 @@ func newTableScope(checkpoints *syncCheckpoints) *tableScope {
 	t := &tableScope{checkpoints: checkpoints, notify: make(chan struct{}, 1)}
 	checkpoints.mu.Lock()
 	defer checkpoints.mu.Unlock()
-	if checkpoints.done {
+	if checkpoints.stopped {
 		// nothing drops the checkpoints of a scope that starts after the sync, so they go straight to the sync
 		t.ended = true
 		return t
@@ -321,16 +323,16 @@ func (c *syncCheckpoints) holdState(msg message.SyncMessage) bool {
 	if !keysOK || !valuesOK || (!versioned && m.Record.Schema().HasField(stateVersionColumn)) {
 		return false
 	}
-	state := c.deferredState[tableName]
+	state := c.heldStates[tableName]
 	if state == nil || !state.schema.Equal(m.Record.Schema()) {
 		if state != nil {
-			c.deferred = append(c.deferred, &message.SyncCheckpoint{Record: state.record()})
+			c.held = append(c.held, &message.SyncCheckpoint{Record: state.record()})
 		}
 		state = &heldState{schema: m.Record.Schema(), rows: make(map[string]stateRow)}
-		if c.deferredState == nil {
-			c.deferredState = make(map[string]*heldState)
+		if c.heldStates == nil {
+			c.heldStates = make(map[string]*heldState)
 		}
-		c.deferredState[tableName] = state
+		c.heldStates[tableName] = state
 	}
 	for i := range keys.Len() {
 		row := stateRow{value: values.Value(i)}
@@ -346,7 +348,7 @@ func (c *syncCheckpoints) holdState(msg message.SyncMessage) bool {
 		if c.heldSent == nil {
 			c.heldSent = checkpoint.NewHeld(c)
 		}
-		tracked.Sent.MergeInto(c.heldSent)
+		tracked.Delivery.MergeInto(c.heldSent)
 	}
 	return true
 }

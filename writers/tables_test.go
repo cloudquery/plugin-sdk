@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFailedTables(t *testing.T) {
+func TestWithFailedTables(t *testing.T) {
 	table := &schema.Table{Name: "inserted", Columns: schema.ColumnList{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}}
 	bldr := array.NewRecordBuilder(memory.DefaultAllocator, table.ToArrowSchema())
 	defer bldr.Release()
 	insert := &message.WriteInsert{Record: bldr.NewRecordBatch()}
 	failed := errors.New("write failed")
 
-	err := FailedTables(failed, []message.WriteMessage{
+	err := WithFailedTables(failed, []message.WriteMessage{
 		insert,
 		&message.WriteMigrateTable{Table: &schema.Table{Name: "migrated"}},
 		&message.WriteDeleteStale{TableName: "stale"},
@@ -28,10 +28,10 @@ func TestFailedTables(t *testing.T) {
 	require.ErrorIs(t, err, failed)
 	require.Equal(t, []string{"deleted", "inserted", "migrated", "stale"}, message.FailedTables(err))
 
-	require.NoError(t, FailedTables(nil, []message.WriteMessage{insert}))
+	require.NoError(t, WithFailedTables(nil, []message.WriteMessage{insert}))
 
 	noName := array.NewRecordBuilder(memory.DefaultAllocator, arrow.NewSchema([]arrow.Field{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}, nil))
 	defer noName.Release()
-	err = FailedTables(failed, []message.WriteMessage{insert, &message.WriteInsert{Record: noName.NewRecordBatch()}})
+	err = WithFailedTables(failed, []message.WriteMessage{insert, &message.WriteInsert{Record: noName.NewRecordBatch()}})
 	require.Equal(t, failed, err, "a message without a table may belong to any table")
 }

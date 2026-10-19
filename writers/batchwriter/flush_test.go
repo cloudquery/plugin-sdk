@@ -36,7 +36,7 @@ func startWrite(t *testing.T, wr *BatchWriter) (chan<- message.WriteMessage, fun
 
 func flush(t *testing.T, ch chan<- message.WriteMessage) error {
 	t.Helper()
-	msg := message.NewWriteFlush()
+	msg := &message.WriteFlush{}
 	select {
 	case ch <- msg:
 	case <-time.After(10 * time.Second):

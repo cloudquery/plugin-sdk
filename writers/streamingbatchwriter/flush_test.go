@@ -26,7 +26,7 @@ func TestFlushMessageCommitsBatches(t *testing.T) {
 	ch <- &message.WriteMigrateTable{Table: streamingBatchTestTable}
 	ch <- &message.WriteInsert{Record: getRecord(streamingBatchTestTable.ToArrowSchema(), 1)}
 	ch <- &message.WriteInsert{Record: getRecord(streamingBatchTestTable.ToArrowSchema(), 1)}
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- flush
 	require.NoError(t, receive(t, flush.Result()))
 	require.Equal(t, 1, testClient.MessageLen(messageTypeMigrateTable))
@@ -34,7 +34,7 @@ func TestFlushMessageCommitsBatches(t *testing.T) {
 	require.Equal(t, 0, testClient.OpenLen(messageTypeInsert))
 
 	ch <- &message.WriteInsert{Record: getRecord(streamingBatchTestTable.ToArrowSchema(), 1)}
-	flush = message.NewWriteFlush()
+	flush = &message.WriteFlush{}
 	ch <- flush
 	require.NoError(t, receive(t, flush.Result()))
 	require.Equal(t, 3, testClient.MessageLen(messageTypeInsert))
@@ -56,7 +56,7 @@ func TestFlushMessageReportsFailedWrites(t *testing.T) {
 	}()
 
 	ch <- &message.WriteInsert{Record: getRecord(streamingBatchTestTable.ToArrowSchema(), 1)}
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- flush
 	err = receive(t, flush.Result())
 	require.ErrorContains(t, err, "failed to write messages for table1")
@@ -79,7 +79,7 @@ func TestFlushMessageReportsRejectedMessages(t *testing.T) {
 
 	noTableName := arrow.NewSchema([]arrow.Field{{Name: "id", Type: arrow.PrimitiveTypes.Int64}}, nil)
 	ch <- &message.WriteInsert{Record: getRecord(noTableName, 1)}
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- flush
 	err = receive(t, flush.Result())
 	require.ErrorContains(t, err, "table name not found in metadata")
@@ -118,7 +118,7 @@ func TestFlushMessageCancelledDuringCommit(t *testing.T) {
 	}()
 
 	ch <- &message.WriteInsert{Record: getRecord(streamingBatchTestTable.ToArrowSchema(), 1)}
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- flush
 	receive(t, testClient.committing)
 	cancel()
@@ -145,13 +145,13 @@ func TestFlushMessageCommitsDeletes(t *testing.T) {
 	}()
 
 	ch <- &message.WriteDeleteStale{TableName: streamingBatchTestTable.Name, SourceName: "source", SyncTime: time.Now()}
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- flush
 	require.NoError(t, receive(t, flush.Result()))
 	require.Equal(t, 1, testClient.MessageLen(messageTypeDeleteStale))
 
 	ch <- &message.WriteDeleteRecord{DeleteRecord: message.DeleteRecord{TableName: streamingBatchTestTable.Name}}
-	flush = message.NewWriteFlush()
+	flush = &message.WriteFlush{}
 	ch <- flush
 	require.NoError(t, receive(t, flush.Result()))
 	require.Equal(t, 1, testClient.MessageLen(messageTypeDeleteRecord))
@@ -188,13 +188,13 @@ func TestFlushMessageNamesEveryFailedTable(t *testing.T) {
 	other := &schema.Table{Name: "table2", Columns: streamingBatchTestTable.Columns}
 	ch <- &message.WriteInsert{Record: getRecord(streamingBatchTestTable.ToArrowSchema(), 1)}
 	ch <- &message.WriteInsert{Record: getRecord(other.ToArrowSchema(), 1)}
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- flush
 	err = receive(t, flush.Result())
 	require.Equal(t, []string{"table1", "table2"}, message.FailedTables(err))
 
 	// a failed handler keeps failing its flushes, as its earlier messages are lost
-	flush = message.NewWriteFlush()
+	flush = &message.WriteFlush{}
 	ch <- flush
 	require.Equal(t, []string{"table1", "table2"}, message.FailedTables(receive(t, flush.Result())))
 

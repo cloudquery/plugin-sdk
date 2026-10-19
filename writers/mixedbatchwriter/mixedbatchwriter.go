@@ -199,7 +199,7 @@ func (m *batchManager[A, T]) flush(ctx context.Context) error {
 
 	err := m.writeFunc(ctx, m.batch)
 	if err != nil {
-		return writers.FailedTables(err, m.batch)
+		return writers.WithFailedTables(err, m.batch)
 	}
 	clear(m.batch) // GC can work
 	m.batch = m.batch[:0]
@@ -254,7 +254,7 @@ func (m *insertBatchManager) flush(ctx context.Context) error {
 	duration := time.Since(start)
 	if err != nil {
 		m.logger.Err(err).Int64("len", rows).Dur("duration", duration).Msg("failed to write batch")
-		return writers.FailedTables(err, m.batch)
+		return writers.WithFailedTables(err, m.batch)
 	}
 	m.logger.Debug().Int64("len", rows).Dur("duration", duration).Msg("batch written successfully")
 

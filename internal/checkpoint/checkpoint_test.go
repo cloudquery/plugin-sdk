@@ -45,23 +45,23 @@ func TestSendWaitsForScopesAndPreviousCheckpoints(t *testing.T) {
 	res := make(chan message.SyncMessage, 10)
 	a, b := &heldScope{}, &heldScope{}
 
-	first, err := Send(ctx, res, a, nil, marker("first"))
+	first, err := Schedule(ctx, res, a, nil, marker("first"))
 	require.NoError(t, err)
-	second, err := Send(ctx, res, b, []*Sent{first}, marker("second"))
+	second, err := Schedule(ctx, res, b, []*Delivery{first}, marker("second"))
 	require.NoError(t, err)
 
 	b.deliver(t, res)
 	require.Empty(t, received(res), "second must wait for first")
-	require.False(t, second.Done())
+	require.False(t, second.Delivered())
 	a.deliver(t, res)
 	require.Equal(t, []string{"first", "second"}, received(res))
-	require.True(t, first.Done())
-	require.True(t, second.Done())
+	require.True(t, first.Delivered())
+	require.True(t, second.Delivered())
 
 	// without a scope, a checkpoint waits only for previous ones
-	third, err := Send(ctx, res, nil, []*Sent{second}, marker("third"))
+	third, err := Schedule(ctx, res, nil, []*Delivery{second}, marker("third"))
 	require.NoError(t, err)
-	require.True(t, third.Done())
+	require.True(t, third.Delivered())
 	require.Equal(t, []string{"third"}, received(res))
 }
 
@@ -86,17 +86,17 @@ func TestMergeInto(t *testing.T) {
 	res := make(chan message.SyncMessage, 10)
 	a := &heldScope{}
 
-	merged := &Sent{}
-	into := &Sent{}
+	merged := &Delivery{}
+	into := &Delivery{}
 	merged.MergeInto(into)
-	_, err := Send(ctx, res, a, []*Sent{merged}, marker("after merged"))
+	_, err := Schedule(ctx, res, a, []*Delivery{merged}, marker("after merged"))
 	require.NoError(t, err)
 
 	a.deliver(t, res)
 	require.Empty(t, received(res))
-	require.False(t, merged.Done())
+	require.False(t, merged.Delivered())
 	require.NoError(t, into.Finish(ctx, res))
-	require.True(t, merged.Done())
+	require.True(t, merged.Delivered())
 	require.Equal(t, []string{"after merged"}, received(res))
 }
 
@@ -131,9 +131,9 @@ func TestAbortReleasesLaterCheckpoints(t *testing.T) {
 	res := make(chan message.SyncMessage, 10)
 	a, b := &heldScope{}, &heldScope{}
 
-	first, err := Send(ctx, res, a, nil, marker("first"))
+	first, err := Schedule(ctx, res, a, nil, marker("first"))
 	require.NoError(t, err)
-	second, err := Send(ctx, res, b, []*Sent{first}, marker("second"))
+	second, err := Schedule(ctx, res, b, []*Delivery{first}, marker("second"))
 	require.NoError(t, err)
 
 	for _, msg := range a.msgs {
@@ -144,13 +144,13 @@ func TestAbortReleasesLaterCheckpoints(t *testing.T) {
 	b.deliver(t, res)
 	require.Empty(t, received(res))
 
-	_, err = Send(ctx, res, b, []*Sent{second}, marker("third"))
+	_, err = Schedule(ctx, res, b, []*Delivery{second}, marker("third"))
 	require.ErrorIs(t, err, ErrSyncAborted)
 }
 
 func TestNotifyAbort(t *testing.T) {
 	var flag atomic.Bool
-	sent := &Sent{}
+	sent := &Delivery{}
 	sent.NotifyAbort(&flag)
 	require.False(t, flag.Load())
 	sent.Abort()
@@ -161,7 +161,7 @@ func TestNotifyAbort(t *testing.T) {
 	require.True(t, late.Load(), "a checkpoint aborted already sets the flag at once")
 
 	var finished atomic.Bool
-	done := &Sent{}
+	done := &Delivery{}
 	done.NotifyAbort(&finished)
 	require.NoError(t, done.Finish(context.Background(), make(chan message.SyncMessage)))
 	done.Abort()
@@ -172,7 +172,7 @@ func TestNotifyAbort(t *testing.T) {
 func TestNotifyAbortFollowsMerges(t *testing.T) {
 	var flag atomic.Bool
 	held := NewHeld(&heldScope{})
-	sent := &Sent{}
+	sent := &Delivery{}
 	sent.NotifyAbort(&flag)
 	sent.MergeInto(held)
 	held.Abort()
@@ -185,7 +185,7 @@ func TestConcurrentMergeKeepsAborts(t *testing.T) {
 	for range 20_000 {
 		var flag atomic.Bool
 		held := NewHeld(&heldScope{})
-		sent := &Sent{}
+		sent := &Delivery{}
 		var wg sync.WaitGroup
 		wg.Go(func() { sent.MergeInto(held) })
 		wg.Go(func() { sent.NotifyAbort(&flag) })

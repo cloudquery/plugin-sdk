@@ -311,8 +311,8 @@ func TestCheckpointNotSentWhenSyncIsCancelledDuringFlush(t *testing.T) {
 				go func() {
 					errCh <- s.processResources(ctx, &cancellingBatcher{cancel: cancel, flushed: flushed}, resources)
 				}()
-				sent := &checkpoint.Sent{}
-				require.NoError(t, s.checkpoints.send(context.Background(), []message.SyncMessage{&checkpoint.Tracked{Message: &testMarker{name: "checkpoint"}, Sent: sent}}))
+				sent := &checkpoint.Delivery{}
+				require.NoError(t, s.checkpoints.send(context.Background(), []message.SyncMessage{&checkpoint.Tracked{Message: &testMarker{name: "checkpoint"}, Delivery: sent}}))
 				close(resources)
 				require.ErrorIs(t, receiveWithin(t, errCh), context.Canceled)
 				require.Empty(t, res)
@@ -447,14 +447,14 @@ func TestJoinedCheckpointFollowsEveryScope(t *testing.T) {
 }
 
 func TestHeldCheckpointsAreMarkedSentWhenTheSyncCompletes(t *testing.T) {
-	var sent []*checkpoint.Sent
+	var sent []*checkpoint.Delivery
 	table := &schema.Table{
 		Name:    checkpointParentTable,
 		Columns: []schema.Column{idColumn()},
 		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 			for page := range 3 {
 				res <- []int64{int64(page)}
-				s, err := checkpoint.Send(ctx, nil, checkpoint.FromContext(ctx), nil, cursorCheckpoint(strconv.Itoa(page), uint64(page+1)))
+				s, err := checkpoint.Schedule(ctx, nil, checkpoint.FromContext(ctx), nil, cursorCheckpoint(strconv.Itoa(page), uint64(page+1)))
 				if err != nil {
 					return err
 				}
@@ -473,7 +473,7 @@ func TestHeldCheckpointsAreMarkedSentWhenTheSyncCompletes(t *testing.T) {
 	require.Equal(t, map[string]string{"cursor": "2"}, stateValues(t, msgs))
 	require.Len(t, sent, 3)
 	for _, s := range sent {
-		require.True(t, s.Done())
+		require.True(t, s.Delivered())
 	}
 }
 
@@ -505,13 +505,13 @@ func TestTableScopeCheckpointAfterCancelledSync(t *testing.T) {
 }
 
 func TestShuffleQueueMergesCheckpointsOfKeysAlsoSetOutsideResolvers(t *testing.T) {
-	var sent []*checkpoint.Sent
+	var sent []*checkpoint.Delivery
 	table := &schema.Table{
 		Name:    checkpointParentTable,
 		Columns: []schema.Column{idColumn()},
 		Resolver: func(ctx context.Context, _ schema.ClientMeta, _ *schema.Resource, res chan<- any) error {
 			scope := checkpoint.FromContext(ctx)
-			var previous []*checkpoint.Sent
+			var previous []*checkpoint.Delivery
 			for page := range 6 {
 				res <- []int64{int64(page)}
 				// every other checkpoint is sent as if the key was set outside a resolver
@@ -519,11 +519,11 @@ func TestShuffleQueueMergesCheckpointsOfKeysAlsoSetOutsideResolvers(t *testing.T
 				if page%2 == 0 {
 					pageScope = scope
 				}
-				s, err := checkpoint.Send(ctx, nil, pageScope, previous, cursorCheckpoint(strconv.Itoa(page), uint64(page+1)))
+				s, err := checkpoint.Schedule(ctx, nil, pageScope, previous, cursorCheckpoint(strconv.Itoa(page), uint64(page+1)))
 				if err != nil {
 					return err
 				}
-				previous = []*checkpoint.Sent{s}
+				previous = []*checkpoint.Delivery{s}
 				sent = append(sent, s)
 			}
 			return nil
@@ -545,7 +545,7 @@ func TestShuffleQueueMergesCheckpointsOfKeysAlsoSetOutsideResolvers(t *testing.T
 	require.Equal(t, 1, checkpoints, "every checkpoint is merged")
 	require.Equal(t, map[string]string{"cursor": "5"}, stateValues(t, msgs))
 	for _, s := range sent {
-		require.True(t, s.Done())
+		require.True(t, s.Delivered())
 	}
 }
 
@@ -689,10 +689,10 @@ func TestShuffleQueueAbortDropsCheckpointsOfStuckResolvers(t *testing.T) {
 
 func TestTableScopeStartedAfterAbortDropsCheckpoints(t *testing.T) {
 	c := newSyncCheckpoints(make(chan message.SyncMessage))
-	close(c.loopDone)
+	close(c.loopExited)
 	c.abort()
 
-	sent, err := checkpoint.Send(context.Background(), nil, newTableScope(c), nil, &testMarker{name: "late"})
+	sent, err := checkpoint.Schedule(context.Background(), nil, newTableScope(c), nil, &testMarker{name: "late"})
 	require.ErrorIs(t, err, checkpoint.ErrSyncAborted)
 	require.True(t, sent.Aborted())
 }
@@ -745,7 +745,7 @@ func TestSyncAllDropsCheckpointsAfterItReturns(t *testing.T) {
 			_, err := s.SyncAll(context.Background(), &testExecutionClient{}, schema.Tables{table})
 			require.NoError(t, err)
 			// SyncAll closed its channel, so sending would panic
-			sent, err := checkpoint.Send(context.Background(), nil, scope, nil, &testMarker{name: "late"})
+			sent, err := checkpoint.Schedule(context.Background(), nil, scope, nil, &testMarker{name: "late"})
 			require.ErrorIs(t, err, errResClosed)
 			require.True(t, sent.Aborted())
 		})
@@ -853,8 +853,8 @@ func TestSyncReportsCancellationWhileTheBatcherCloses(t *testing.T) {
 func TestReturnedWaitsForCheckpointsBeingSent(t *testing.T) {
 	res := make(chan message.SyncMessage)
 	c := newSyncCheckpoints(res)
-	c.closeRes = true
-	close(c.loopDone)
+	c.callerClosesRes = true
+	close(c.loopExited)
 	require.NoError(t, c.complete(context.Background()))
 
 	sent := make(chan error, 1)
@@ -906,9 +906,9 @@ func newCheckpointStateClient(t *testing.T, res chan<- message.SyncMessage) *sta
 }
 
 func TestCheckpointsDroppedOnCancelAreAborted(t *testing.T) {
-	tracked := func() (*checkpoint.Sent, []message.SyncMessage) {
-		sent := &checkpoint.Sent{}
-		return sent, []message.SyncMessage{&checkpoint.Tracked{Message: &testMarker{name: "checkpoint"}, Sent: sent}}
+	tracked := func() (*checkpoint.Delivery, []message.SyncMessage) {
+		sent := &checkpoint.Delivery{}
+		return sent, []message.SyncMessage{&checkpoint.Tracked{Message: &testMarker{name: "checkpoint"}, Delivery: sent}}
 	}
 	cancelled, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -921,7 +921,7 @@ func TestCheckpointsDroppedOnCancelAreAborted(t *testing.T) {
 	})
 	t.Run("send while the batcher closes", func(t *testing.T) {
 		c := newSyncCheckpoints(make(chan message.SyncMessage))
-		close(c.loopDone)
+		close(c.loopExited)
 		sent, msgs := tracked()
 		require.ErrorIs(t, c.sendAfterSync(cancelled, msgs), context.Canceled)
 		require.True(t, sent.Aborted())
@@ -931,7 +931,7 @@ func TestCheckpointsDroppedOnCancelAreAborted(t *testing.T) {
 		sent, msgs := tracked()
 		require.NoError(t, c.Checkpoint(context.Background(), msgs[0]))
 		require.False(t, sent.Aborted())
-		close(c.loopDone)
+		close(c.loopExited)
 		c.abort()
 		require.True(t, sent.Aborted())
 	})

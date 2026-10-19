@@ -36,13 +36,13 @@ func TestFlushMessageCommitsBatches(t *testing.T) {
 
 	ch <- msgs.migrateTable1
 	ch <- msgs.insert1
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- flush
 	require.NoError(t, receive(t, flush.Result()))
 	require.Equal(t, [][]message.WriteMessage{{msgs.migrateTable1}, {msgs.insert1}}, client.receivedBatches)
 
 	ch <- msgs.insert2
-	flush = message.NewWriteFlush()
+	flush = &message.WriteFlush{}
 	ch <- flush
 	require.NoError(t, receive(t, flush.Result()))
 	require.Equal(t, [][]message.WriteMessage{{msgs.migrateTable1}, {msgs.insert1}, {msgs.insert2}}, client.receivedBatches)
@@ -57,7 +57,7 @@ func TestFlushMessageReportsFailedInserts(t *testing.T) {
 	require.NoError(t, err)
 
 	ch := make(chan message.WriteMessage, 3)
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- msgs.migrateTable1
 	ch <- msgs.insert1
 	ch <- flush
@@ -82,7 +82,7 @@ func TestFlushMessageCommitsDeletes(t *testing.T) {
 	}()
 
 	ch <- msgs.deleteStale1
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- flush
 	require.NoError(t, receive(t, flush.Result()))
 	require.Equal(t, [][]message.WriteMessage{{msgs.deleteStale1}}, client.receivedBatches)
@@ -105,13 +105,13 @@ func TestFlushMessageCommitsMigrationsAndDeleteRecords(t *testing.T) {
 	}()
 
 	ch <- msgs.migrateTable1
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- flush
 	require.NoError(t, receive(t, flush.Result()))
 	require.Equal(t, [][]message.WriteMessage{{msgs.migrateTable1}}, client.receivedBatches)
 
 	ch <- deleteRecord
-	flush = message.NewWriteFlush()
+	flush = &message.WriteFlush{}
 	ch <- flush
 	require.NoError(t, receive(t, flush.Result()))
 	require.Equal(t, [][]message.WriteMessage{{msgs.migrateTable1}, {deleteRecord}}, client.receivedBatches)
@@ -147,7 +147,7 @@ func TestFlushMessageNamesEveryTableOfTheFailedBatch(t *testing.T) {
 	require.NoError(t, err)
 
 	ch := make(chan message.WriteMessage, 3)
-	flush := message.NewWriteFlush()
+	flush := &message.WriteFlush{}
 	ch <- insert(table("table2"))
 	ch <- insert(table("table1"))
 	ch <- flush

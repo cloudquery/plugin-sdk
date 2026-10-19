@@ -63,7 +63,7 @@ func (s *WriterTestSuite) testFlush(ctx context.Context) error {
 		}
 	}
 	flushAndCount := func(step string, wantRows int64) error {
-		msg := message.NewWriteFlush()
+		msg := &message.WriteFlush{}
 		if err := send(msg); err != nil {
 			return fmt.Errorf("%s: %w", step, err)
 		}
