@@ -76,6 +76,9 @@ type WriterTestSuiteTests struct {
 	// SkipMigrate skips testing migration
 	SkipMigrate bool
 
+	// SkipFlush skips testing message.WriteFlush, which runs only for plugins that support flush.
+	SkipFlush bool
+
 	// SafeMigrations defines which tests should work with force migration
 	// and which should pass with safe migration
 	SafeMigrations SafeMigrations
@@ -194,6 +197,19 @@ func TestWriterSuiteRunner(t *testing.T, p *Plugin, tests WriterTestSuiteTests, 
 		t.Run("DeleteAll", func(t *testing.T) {
 			suite.testDeleteAllRecords(ctx, t)
 		})
+	})
+
+	t.Run("TestFlush", func(t *testing.T) {
+		if !p.SupportsFlush() {
+			t.Skip("plugin does not support flush")
+		}
+		// the test flushes inserted rows
+		if suite.tests.SkipFlush || suite.tests.SkipInsert {
+			t.Skip("skipping " + t.Name())
+		}
+		if err := suite.testFlush(ctx); err != nil {
+			t.Fatal(err)
+		}
 	})
 
 	t.Run("TestMigrate", func(t *testing.T) {

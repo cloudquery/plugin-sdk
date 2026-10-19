@@ -113,3 +113,26 @@ func TestMaxRowsPerMessage(t *testing.T) {
 		})
 	}
 }
+
+func TestSendRecordSplitsOversizedCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	const maxMsgSize = 8 * 1024
+	record := newTestRecord(t, "cq_state", 40, 1024)
+	s := &Server{Logger: zerolog.Nop(), MaxMsgSize: maxMsgSize}
+	stream := &recordingSyncServer{}
+
+	require.NoError(t, s.sendRecord(stream, record, checkpointResponse))
+	require.Greater(t, len(stream.sent), 1, "oversized checkpoint should be split into several messages")
+
+	var gotRows int64
+	for _, msg := range stream.sent {
+		require.LessOrEqual(t, proto.Size(msg), maxMsgSize)
+		checkpoint := msg.GetCheckpoint()
+		require.NotNil(t, checkpoint, "every part of a checkpoint is a checkpoint")
+		part, err := pb.NewRecordFromBytes(checkpoint.Record)
+		require.NoError(t, err)
+		gotRows += part.NumRows()
+	}
+	require.EqualValues(t, 40, gotRows)
+}

@@ -14,6 +14,7 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	pb "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	"github.com/cloudquery/plugin-sdk/v4/internal/memdb"
+	"github.com/cloudquery/plugin-sdk/v4/message"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/rs/zerolog"
@@ -391,4 +392,77 @@ func makeRecordFromString(s string) arrow.RecordBatch {
 	sch := arrow.NewSchema([]arrow.Field{{Name: "col1", Type: arrow.BinaryTypes.String}}, nil)
 
 	return array.NewRecordBatch(sch, []arrow.Array{arr}, 1)
+}
+
+type checkpointingSourceClient struct {
+	plugin.UnimplementedDestination
+}
+
+func (*checkpointingSourceClient) Close(context.Context) error { return nil }
+
+func (*checkpointingSourceClient) Tables(context.Context, plugin.TableOptions) (schema.Tables, error) {
+	return nil, nil
+}
+
+func (*checkpointingSourceClient) Sync(_ context.Context, _ plugin.SyncOptions, res chan<- message.SyncMessage) error {
+	bldr := array.NewRecordBuilder(memory.DefaultAllocator, (&schema.Table{Name: "state", Columns: schema.ColumnList{{Name: "key", Type: arrow.BinaryTypes.String}}}).ToArrowSchema())
+	defer bldr.Release()
+	bldr.Field(0).(*array.StringBuilder).Append("cursor")
+	res <- &message.SyncCheckpoint{Record: bldr.NewRecordBatch()}
+	return nil
+}
+
+func TestPluginSyncCheckpoints(t *testing.T) {
+	ctx := context.Background()
+	s := Server{
+		Plugin: plugin.NewPlugin("test", "development", func(context.Context, zerolog.Logger, []byte, plugin.NewClientOptions) (plugin.Client, error) {
+			return &checkpointingSourceClient{}, nil
+		}),
+	}
+	_, err := s.Init(ctx, &pb.Init_Request{})
+	require.NoError(t, err)
+
+	stream := &mockSyncServer{}
+	require.NoError(t, s.Sync(&pb.Sync_Request{SupportsCheckpoints: true}, stream))
+	require.Len(t, stream.messages, 1)
+
+	stream = &mockSyncServer{}
+	require.ErrorContains(t, s.Sync(&pb.Sync_Request{}, stream), "client does not support checkpoints")
+	require.Empty(t, stream.messages)
+}
+
+func TestWaitForFlush(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	writeDone := make(chan struct{})
+	close(writeDone)
+	// Write completed the flush and returned: whichever the select picks, the result is not lost
+	for range 100 {
+		flush := &message.WriteFlush{}
+		flush.Done(errors.New("disk full"))
+		flushErr, completed, err := waitForFlush(ctx, flush, writeDone)
+		require.NoError(t, err)
+		require.True(t, completed)
+		require.EqualError(t, flushErr, "disk full")
+	}
+
+	_, completed, err := waitForFlush(ctx, &message.WriteFlush{}, writeDone)
+	require.NoError(t, err)
+	require.False(t, completed, "Write returned without completing the flush")
+
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	_, _, err = waitForFlush(cancelled, &message.WriteFlush{}, make(chan struct{}))
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestFlushResponse(t *testing.T) {
+	require.Equal(t, &pb.Write_Response{FlushId: 1}, flushResponse(1, nil))
+	require.Equal(t, &pb.Write_Response{FlushId: 2, FlushError: "flush failed"}, flushResponse(2, errors.New("")))
+	require.Equal(t, &pb.Write_Response{FlushId: 3, FlushError: "bad � byte"}, flushResponse(3, errors.New("bad \xff byte")))
+	require.Equal(t, &pb.Write_Response{
+		FlushId:      4,
+		FlushError:   "table b: disk full",
+		FailedTables: []string{"a", "b�"},
+	}, flushResponse(4, &message.FailedTablesError{Tables: []string{"b\xff", "a"}, Err: errors.New("table b: disk full")}))
 }

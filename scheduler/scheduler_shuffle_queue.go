@@ -3,6 +3,8 @@ package scheduler
 import (
 	"context"
 
+	"github.com/cloudquery/plugin-sdk/v4/internal/checkpoint"
+
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/queue"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
@@ -46,5 +48,6 @@ func (s *syncClient) syncShuffleQueue(ctx context.Context, resolvedResources cha
 			Client: tc.client,
 		})
 	}
-	scheduler.Sync(ctx, queueClients, resolvedResources, s.msgChan)
+	// queue workers resolve relations on other goroutines, so checkpoints wait for the whole sync
+	scheduler.Sync(checkpoint.WithScope(ctx, s.checkpoints), queueClients, resolvedResources, s.msgChan)
 }

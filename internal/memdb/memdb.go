@@ -240,6 +240,8 @@ func (c *client) Write(ctx context.Context, msgs <-chan message.WriteMessage) er
 			}
 			table := c.tables[tableName]
 			c.overwrite(table, msg.Record)
+		case *message.WriteFlush:
+			msg.Done(nil)
 		}
 
 		c.memoryDBLock.Unlock()
