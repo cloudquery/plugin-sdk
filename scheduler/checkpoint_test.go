@@ -936,3 +936,59 @@ func TestCheckpointsDroppedOnCancelAreAborted(t *testing.T) {
 		require.True(t, sent.Aborted())
 	})
 }
+
+// gatedScope holds the checkpoints passed to it until released, as a table resolver's scope holds them until the rows
+// it produced are sent.
+type gatedScope struct {
+	mu   sync.Mutex
+	held []message.SyncMessage
+}
+
+func (g *gatedScope) Checkpoint(_ context.Context, msg message.SyncMessage) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.held = append(g.held, msg)
+	return nil
+}
+
+func (g *gatedScope) release(ctx context.Context, res chan<- message.SyncMessage) error {
+	g.mu.Lock()
+	held := g.held
+	g.held = nil
+	g.mu.Unlock()
+	for _, msg := range held {
+		if err := checkpoint.Deliver(ctx, res, msg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func TestUnchangedStateValueOrdersLaterCheckpointsAfterTheCallersResources(t *testing.T) {
+	ctx := context.Background()
+	res := make(chan message.SyncMessage, 10)
+	stateClient := newCheckpointStateClient(t, res)
+	sent := func() []string {
+		var values []string
+		for len(res) > 0 {
+			values = append(values, stateValues(t, message.SyncMessages{<-res})["cursor"])
+		}
+		return values
+	}
+
+	require.NoError(t, stateClient.SetKey(ctx, "cursor", "1"))
+	require.NoError(t, stateClient.Flush(ctx))
+	require.Equal(t, []string{"1"}, sent())
+
+	// the same value, set by a resolver whose rows are not sent yet: it covers them too
+	unsent := &gatedScope{}
+	resolverCtx := checkpoint.WithScope(ctx, unsent)
+	require.NoError(t, stateClient.SetKey(resolverCtx, "cursor", "1"))
+	require.NoError(t, stateClient.Flush(resolverCtx))
+	require.NoError(t, stateClient.SetKey(ctx, "cursor", "2"))
+	require.NoError(t, stateClient.Flush(ctx))
+	require.Empty(t, sent(), "a later value must not overtake the rows the unchanged value covers")
+
+	require.NoError(t, unsent.release(ctx, res))
+	require.Equal(t, []string{"1", "2"}, sent())
+}
