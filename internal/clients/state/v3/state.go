@@ -166,22 +166,22 @@ func (c *Client) SetKey(ctx context.Context, key string, value string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	scopes, pending := c.changes[key]
-	if c.mem[key].value == value {
-		// the pending change summarizes this caller's resources too
-		if pending && c.checkpoints != nil {
-			scopes.add(checkpoint.FromContext(ctx))
+	changed := c.mem[key].value != value
+	if changed {
+		c.mem[key] = versionedValue{
+			value:   value,
+			version: c.mem[key].version + 1,
 		}
-		return nil // don't update if the value is the same
-	}
-	c.mem[key] = versionedValue{
-		value:   value,
-		version: c.mem[key].version + 1,
 	}
 	if c.checkpoints == nil {
-		c.changes[key] = nil
+		if changed {
+			c.changes[key] = nil
+		}
 		return nil
 	}
+	// with checkpoints, even an unchanged value covers the caller's resources, so later checkpoints of the key must
+	// follow them
+	scopes, pending := c.changes[key]
 	if !pending {
 		scopes = newScopeSet()
 		c.changes[key] = scopes
