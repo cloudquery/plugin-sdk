@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.99.1](https://github.com/cloudquery/plugin-sdk/compare/v4.99.0...v4.99.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/aws/aws-sdk-go-v2/service/marketplacemetering to v1.46.2 ([#2640](https://github.com/cloudquery/plugin-sdk/issues/2640)) ([b266761](https://github.com/cloudquery/plugin-sdk/commit/b266761fbc4971e48e7c4206a9945b5b151aeabc))
+* Keep checkpoint order for unchanged state values ([#2638](https://github.com/cloudquery/plugin-sdk/issues/2638)) ([20adf2d](https://github.com/cloudquery/plugin-sdk/commit/20adf2dcd8a957787a828988e8002ef6fe6bd7b4))
+
 ## [4.99.0](https://github.com/cloudquery/plugin-sdk/compare/v4.98.0...v4.99.0) (2026-10-19)
 
 
