@@ -114,11 +114,6 @@ func (m *Metrics) TotalErrors() uint64 {
 	return total
 }
 
-// Deprecated: Use TotalErrors instead, it provides the same functionality but is more consistent with the naming of other metrics methods.
-func (m *Metrics) TotalErrorsAtomic() uint64 {
-	return m.TotalErrors()
-}
-
 func (m *Metrics) TotalPanics() uint64 {
 	var total uint64
 	for _, clientMetrics := range m.measurements {
@@ -129,11 +124,6 @@ func (m *Metrics) TotalPanics() uint64 {
 	return total
 }
 
-// Deprecated: Use TotalPanics instead, it provides the same functionality but is more consistent with the naming of other metrics methods.
-func (m *Metrics) TotalPanicsAtomic() uint64 {
-	return m.TotalPanics()
-}
-
 func (m *Metrics) TotalResources() uint64 {
 	var total uint64
 	for _, clientMetrics := range m.measurements {
@@ -142,11 +132,6 @@ func (m *Metrics) TotalResources() uint64 {
 		}
 	}
 	return total
-}
-
-// Deprecated: Use TotalResources instead, it provides the same functionality but is more consistent with the naming of other metrics methods.
-func (m *Metrics) TotalResourcesAtomic() uint64 {
-	return m.TotalResources()
 }
 
 func (m *Metrics) TableDuration(tableName string) time.Duration {
