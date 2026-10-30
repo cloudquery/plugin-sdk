@@ -102,6 +102,11 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      - path: (serve/(plugin|discovery_test)|internal/servers/discovery/v0/discovery(_test)?)\.go
+        linters:
+          - staticcheck
+        text: "SA1019: github.com/cloudquery/plugin-pb-go/pb/discovery/v0 is deprecated"
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

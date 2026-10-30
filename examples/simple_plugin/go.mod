@@ -10,7 +10,6 @@ require (
 
 require (
 	github.com/adrg/xdg v0.5.3 // indirect
-	github.com/apache/arrow/go/v13 v13.0.0-20230731205701-112f94971882 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.47.3 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.33.9 // indirect
@@ -35,9 +34,7 @@ require (
 	github.com/cloudquery/cloudquery-api-go v1.14.13 // indirect
 	github.com/cloudquery/codegen v0.4.1 // indirect
 	github.com/cloudquery/plugin-pb-go v1.28.3 // indirect
-	github.com/cloudquery/plugin-sdk/v2 v2.7.0 // indirect
 	github.com/getsentry/sentry-go v0.49.0 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
@@ -80,19 +77,14 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
-	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260908163034-4bcc4b2ee518 // indirect
 	golang.org/x/text v0.42.0 // indirect
-	golang.org/x/tools v0.50.0 // indirect
-	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260819154853-08b0e4226688 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 // indirect
 	google.golang.org/grpc v1.84.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 replace github.com/cloudquery/plugin-sdk/v4 => ../../
