@@ -21,7 +21,7 @@ jobs:
       # This posts the status to the PR/commit
       - uses: haya14busa/action-workflow_run-status@967ed83efa565c257675ed70cfe5231f062ddd94 # v1
       - name: Download benchmarks
-        uses: dawidd6/action-download-artifact@d63b86af1b34672e53c440b1b83979861906bad7 # v24
+        uses: dawidd6/action-download-artifact@eab87c9830c39eff17e5a6eadb20bfb4bc880477 # v27
         with:
           # This is the run that triggered this workflow
           run_id: ${{ github.event.workflow_run.id }}
