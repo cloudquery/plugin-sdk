@@ -5,7 +5,7 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/v4/internal/checkpoint"
 
-	"github.com/cloudquery/plugin-sdk/v4/scheduler/queue"
+	"github.com/cloudquery/plugin-sdk/v4/internal/scheduler/queue"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 )
 

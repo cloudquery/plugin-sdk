@@ -37,13 +37,6 @@ type Transform func(table *Table) error
 
 type Tables []*Table
 
-// Deprecated: SyncSummary is deprecated.
-type SyncSummary struct {
-	Resources uint64
-	Errors    uint64
-	Panics    uint64
-}
-
 type TableColumnChangeType int
 
 const (

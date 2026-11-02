@@ -9,10 +9,10 @@ import (
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers"
 	"github.com/cloudquery/plugin-sdk/v4/internal/checkpoint"
+	"github.com/cloudquery/plugin-sdk/v4/internal/scheduler/batchsender"
+	"github.com/cloudquery/plugin-sdk/v4/internal/scheduler/resolvers"
 	"github.com/cloudquery/plugin-sdk/v4/message"
-	"github.com/cloudquery/plugin-sdk/v4/scheduler/batchsender"
 	"github.com/cloudquery/plugin-sdk/v4/scheduler/metrics"
-	"github.com/cloudquery/plugin-sdk/v4/scheduler/resolvers"
 	"github.com/cloudquery/plugin-sdk/v4/schema"
 	"github.com/getsentry/sentry-go"
 	"github.com/samber/lo"
