@@ -16,7 +16,6 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	otellog "go.opentelemetry.io/otel/log"
-	logglobal "go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -162,7 +161,7 @@ func setupOtel(ctx context.Context, logger zerolog.Logger, p *plugin.Plugin, ote
 	}))
 	otel.SetTracerProvider(tp)
 	otel.SetMeterProvider(mt)
-	logglobal.SetLoggerProvider(lp)
+	otel.SetLoggerProvider(lp)
 
 	shutdown = func() {
 		if err := tp.Shutdown(context.Background()); err != nil {
@@ -264,5 +263,5 @@ func otellogSeverity(level zerolog.Level) otellog.Severity {
 }
 
 func newOTELLoggerHook() zerolog.Hook {
-	return &otelLoggerHook{logglobal.GetLoggerProvider().Logger("cloudquery"), context.Background()}
+	return &otelLoggerHook{otel.GetLoggerProvider().Logger("cloudquery"), context.Background()}
 }
