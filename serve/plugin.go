@@ -17,16 +17,11 @@ import (
 	"github.com/cloudquery/plugin-sdk/v4/types"
 	"github.com/getsentry/sentry-go"
 
-	pbDestinationV0 "github.com/cloudquery/plugin-pb-go/pb/destination/v0"
-	pbDestinationV1 "github.com/cloudquery/plugin-pb-go/pb/destination/v1"
 	pbdiscoveryv0 "github.com/cloudquery/plugin-pb-go/pb/discovery/v0"
 	pbdiscoveryv1 "github.com/cloudquery/plugin-pb-go/pb/discovery/v1"
 	pbv3 "github.com/cloudquery/plugin-pb-go/pb/plugin/v3"
 	discoveryServerV0 "github.com/cloudquery/plugin-sdk/v4/internal/servers/discovery/v0"
 	discoveryServerV1 "github.com/cloudquery/plugin-sdk/v4/internal/servers/discovery/v1"
-
-	serverDestinationV0 "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v0"
-	serverDestinationV1 "github.com/cloudquery/plugin-sdk/v4/internal/servers/destination/v1"
 	serversv3 "github.com/cloudquery/plugin-sdk/v4/internal/servers/plugin/v3"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/rs/zerolog"
@@ -37,13 +32,12 @@ import (
 )
 
 type PluginServe struct {
-	plugin                *plugin.Plugin
-	args                  []string
-	destinationV0V1Server bool
-	sentryDSN             string
-	testListener          bool
-	testListenerConn      *bufconn.Listener
-	versions              []int
+	plugin           *plugin.Plugin
+	args             []string
+	sentryDSN        string
+	testListener     bool
+	testListenerConn *bufconn.Listener
+	versions         []int
 }
 
 type PluginOption func(*PluginServe)
@@ -54,12 +48,11 @@ func WithPluginSentryDSN(dsn string) PluginOption {
 	}
 }
 
-// WithDestinationV0V1Server is used to include destination v0 and v1 server to work
-// with older sources
+// WithDestinationV0V1Server does nothing.
+//
+// Deprecated: Destination protocol v0 and v1 are no longer served, so this option does nothing and can be removed.
 func WithDestinationV0V1Server() PluginOption {
-	return func(s *PluginServe) {
-		s.destinationV0V1Server = true
-	}
+	return func(*PluginServe) {}
 }
 
 // WithArgs used to serve the plugin with predefined args instead of os.Args
@@ -202,21 +195,11 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				Plugin: s.plugin,
 				Logger: logger,
 			})
-			if s.destinationV0V1Server {
-				pbDestinationV1.RegisterDestinationServer(grpcServer, &serverDestinationV1.Server{
-					Plugin: s.plugin,
-					Logger: logger,
-				})
-				pbDestinationV0.RegisterDestinationServer(grpcServer, &serverDestinationV0.Server{
-					Plugin: s.plugin,
-					Logger: logger,
-				})
-			}
 			pbdiscoveryv0.RegisterDiscoveryServer(grpcServer, &discoveryServerV0.Server{
-				Versions: []string{"v0", "v1", "v2", "v3"},
+				Versions: []string{"v3"},
 			})
 			pbdiscoveryv1.RegisterDiscoveryServer(grpcServer, &discoveryServerV1.Server{
-				Versions: []int32{0, 1, 2, 3},
+				Versions: []int32{3},
 			})
 
 			version := s.plugin.Version()
