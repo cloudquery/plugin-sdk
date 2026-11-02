@@ -48,7 +48,7 @@ func (s *PluginServe) newCmdPluginDoc() *cobra.Command {
 				return errors.New("only json format is supported. If need to generate markdown, use the `cloudquery tables` command")
 			}
 
-			return g.GenerateJSON(args[0], docs.FormatJSON)
+			return g.Generate(args[0], docs.FormatJSON)
 		},
 	}
 	cmd.Flags().Var(format, "format", fmt.Sprintf("output format. one of: %s", strings.Join(format.Allowed, ",")))
