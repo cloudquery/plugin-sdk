@@ -7,23 +7,24 @@ on:
       - completed
 
 permissions:
-  contents: read
+  contents: write
   actions: read
+  pull-requests: write
   statuses: write
 
 jobs:
   post-unitests:
+    if: github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       # This posts the status to the PR/commit
       - uses: haya14busa/action-workflow_run-status@967ed83efa565c257675ed70cfe5231f062ddd94 # v1
       - name: Download benchmarks
-        uses: dawidd6/action-download-artifact@d63b86af1b34672e53c440b1b83979861906bad7 # v24
+        uses: dawidd6/action-download-artifact@eab87c9830c39eff17e5a6eadb20bfb4bc880477 # v27
         with:
-          # This is the workflow that triggered this run
-          workflow: ${{ github.event.workflow.id }}
-          workflow_conclusion: success
+          # This is the run that triggered this workflow
+          run_id: ${{ github.event.workflow_run.id }}
           name: delta-action-benchmarks
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Get PR number
