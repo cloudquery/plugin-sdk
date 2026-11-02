@@ -54,7 +54,7 @@ func (s *Strategy) Validate() error {
 			return nil
 		}
 	}
-	return fmt.Errorf("unknown scheduler strategy: %d", s)
+	return fmt.Errorf("unknown scheduler strategy: %d", *s)
 }
 
 func (Strategy) JSONSchema() *jsonschema.Schema {
