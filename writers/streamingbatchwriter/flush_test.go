@@ -127,7 +127,7 @@ func TestFlushMessageCancelledDuringCommit(t *testing.T) {
 	close(ch)
 
 	select {
-	case <-errCh:
+	case <-errCh: //nolint:errcheck // only checks that Write returns
 	case <-time.After(5 * time.Second):
 		t.Fatal("Write did not return after the flush was cancelled")
 	}
