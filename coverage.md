@@ -95,7 +95,7 @@
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:101: | IsSyncMessage | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:118: | NewHeld | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:123: | root | 100.0% |
-| github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:137: | lockRoot | 100.0% |
+| github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:137: | lockRoot | 83.3% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:149: | Delivered | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:156: | Aborted | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:162: | holder | 0.0% |
@@ -689,7 +689,7 @@
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_debug.go:30: | syncTest | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:25: | syncDfs | 86.7% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:82: | resolveTableDfs | 100.0% |
-| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:174: | sendCheckpoints | 50.0% |
+| github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:174: | sendCheckpoints | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_dfs.go:180: | resolveResourcesDfs | 73.9% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_round_robin.go:15: | syncRoundRobin | 85.2% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/scheduler_round_robin.go:69: | roundRobinInterleave | 100.0% |
