@@ -65,6 +65,16 @@ func (r *Resource) Set(columnName string, value any) error {
 	return nil
 }
 
+func (r *Resource) SetWithIndex(columnName string, index int, value any) error {
+	if index < 0 || index >= len(r.Table.Columns) || r.Table.Columns[index].Name != columnName {
+		return r.Set(columnName, value)
+	}
+	if err := r.data[index].Set(value); err != nil {
+		panic(fmt.Errorf("failed to set column %s: %w", columnName, err))
+	}
+	return nil
+}
+
 // Override original item (this is useful for apis that follow list/details pattern)
 func (r *Resource) SetItem(item any) {
 	r.Item = item
@@ -113,22 +123,24 @@ func calculateCqIDValue(r *Resource, cols []string) hash.Hash {
 func (r *Resource) storeCQID(value uuid.UUID) error {
 	// We skip if _cq_id is not present.
 	// Mostly the problem here is because the transformation step is baked into the resolving step
-	if r.Table.Columns.Get(CqIDColumn.Name) == nil {
+	index := r.Table.Columns.Index(CqIDColumn.Name)
+	if index == -1 {
 		return nil
 	}
 	b, err := value.MarshalBinary()
 	if err != nil {
 		return err
 	}
-	return r.Set(CqIDColumn.Name, b)
+	return r.SetWithIndex(CqIDColumn.Name, index, b)
 }
 
 func (r *Resource) StoreCQClientID(clientID string) error {
 	// We skip if _cq_client_id is not present.
-	if r.Table.Columns.Get(CqClientIDColumn.Name) == nil {
+	index := r.Table.Columns.Index(CqClientIDColumn.Name)
+	if index == -1 {
 		return nil
 	}
-	return r.Set(CqClientIDColumn.Name, clientID)
+	return r.SetWithIndex(CqClientIDColumn.Name, index, clientID)
 }
 
 type PKError struct {
