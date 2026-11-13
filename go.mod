@@ -11,7 +11,7 @@ require (
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cloudquery/cloudquery-api-go v1.14.13
 	github.com/cloudquery/codegen v0.4.1
-	github.com/cloudquery/plugin-pb-go v1.29.0
+	github.com/cloudquery/plugin-pb-go v1.29.1
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/goccy/go-json v0.11.2
 	github.com/google/go-cmp v0.7.0
