@@ -586,7 +586,7 @@
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:174: | add | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:184: | work | 90.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:226: | process | 87.0% |
-| github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:271: | flush | 63.6% |
+| github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:271: | flush | 81.8% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:292: | close | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/checkpoint.go:64: | newSyncCheckpoints | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/checkpoint.go:76: | send | 100.0% |
@@ -1012,7 +1012,7 @@
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/streamingbatchwriter.go:264: | startWorker | 86.2% |
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/streamingbatchwriter.go:434: | closeFlush | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/streamingbatchwriter.go:444: | send | 80.0% |
-| github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/streamingbatchwriter.go:513: | run | 86.4% |
+| github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/streamingbatchwriter.go:513: | run | 84.1% |
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/unimplemented.go:14: | MigrateTable | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/unimplemented.go:24: | DeleteStale | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/unimplemented.go:33: | DeleteRecords | 0.0% |
