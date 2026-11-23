@@ -90,7 +90,7 @@
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:101: | IsSyncMessage | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:118: | NewHeld | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:123: | root | 100.0% |
-| github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:137: | lockRoot | 83.3% |
+| github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:137: | lockRoot | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:149: | Delivered | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:156: | Aborted | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:162: | holder | 0.0% |
@@ -1012,7 +1012,7 @@
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/streamingbatchwriter.go:264: | startWorker | 86.2% |
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/streamingbatchwriter.go:434: | closeFlush | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/streamingbatchwriter.go:444: | send | 80.0% |
-| github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/streamingbatchwriter.go:513: | run | 84.1% |
+| github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/streamingbatchwriter.go:513: | run | 86.4% |
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/unimplemented.go:14: | MigrateTable | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/unimplemented.go:24: | DeleteStale | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/writers/streamingbatchwriter/unimplemented.go:33: | DeleteRecords | 0.0% |
