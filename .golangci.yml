@@ -111,6 +111,10 @@ linters:
         linters:
           - staticcheck
         text: "SA1019: github.com/cloudquery/plugin-pb-go/pb/discovery/v0 is deprecated"
+      - path: premium/usage(_test)?\.go
+        linters:
+          - staticcheck
+        text: "SA1019: .*(Allocated)?UsageQuantity is deprecated: Use (Allocated)?UsageQuantityAsDecimal instead"
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
