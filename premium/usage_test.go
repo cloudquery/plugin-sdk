@@ -364,10 +364,10 @@ func usageMarketplaceDryRunHelper(t *testing.T, m *mocks.MockAWSMarketplaceClien
 
 	inTest := meteringInput{
 		marketplacemetering.MeterUsageInput{
-			ProductCode:            aws.String(awsMarketplaceProductCode()),
-			UsageDimension:         aws.String("rows"),
-			UsageQuantityAsDecimal: aws.String("0"),
-			DryRun:                 aws.Bool(true)},
+			ProductCode:    aws.String(awsMarketplaceProductCode()),
+			UsageDimension: aws.String("rows"),
+			UsageQuantity:  aws.Int32(int32(0)),
+			DryRun:         aws.Bool(true)},
 	}
 
 	out := marketplacemetering.MeterUsageOutput{
@@ -386,11 +386,11 @@ func TestUsageService_AWSMarketplaceDone(t *testing.T) {
 
 	in := meteringInput{
 		MeterUsageInput: marketplacemetering.MeterUsageInput{
-			ProductCode:            aws.String(awsMarketplaceProductCode()),
-			UsageDimension:         aws.String("rows"),
-			UsageQuantityAsDecimal: aws.String("20"),
+			ProductCode:    aws.String(awsMarketplaceProductCode()),
+			UsageDimension: aws.String("rows"),
+			UsageQuantity:  aws.Int32(20),
 			UsageAllocations: []types.UsageAllocation{{
-				AllocatedUsageQuantityAsDecimal: aws.String("20"),
+				AllocatedUsageQuantity: aws.Int32(int32(20)),
 				Tags: []types.Tag{
 					{
 						Key:   aws.String("plugin_name"),
@@ -472,12 +472,12 @@ func TestUsageService_AWSMarketpgolanglace_DuplicateRowsRetry(t *testing.T) {
 	out := marketplacemetering.MeterUsageOutput{}
 	in := meteringInput{
 		MeterUsageInput: marketplacemetering.MeterUsageInput{
-			ProductCode:            aws.String(awsMarketplaceProductCode()),
-			UsageDimension:         aws.String("rows"),
-			UsageQuantityAsDecimal: aws.String("20"),
-			Timestamp:              aws.Time(tn.Round(time.Second)),
+			ProductCode:    aws.String(awsMarketplaceProductCode()),
+			UsageDimension: aws.String("rows"),
+			UsageQuantity:  aws.Int32(20),
+			Timestamp:      aws.Time(tn.Round(time.Second)),
 			UsageAllocations: []types.UsageAllocation{{
-				AllocatedUsageQuantityAsDecimal: aws.String("20"),
+				AllocatedUsageQuantity: aws.Int32(int32(20)),
 				Tags: []types.Tag{
 					{
 						Key:   aws.String("plugin_name"),
@@ -504,8 +504,8 @@ func TestUsageService_AWSMarketpgolanglace_DuplicateRowsRetry(t *testing.T) {
 	}
 	dupes := make(map[meteringKey]struct{})
 	// Add two duplicates
-	dupes[meteringKey{Dimension: *in.UsageDimension, Quantity: parseQuantity(t, *in.UsageQuantityAsDecimal), Timestamp: in.Timestamp.Round(time.Second)}] = struct{}{}
-	dupes[meteringKey{Dimension: *in.UsageDimension, Quantity: parseQuantity(t, *in.UsageQuantityAsDecimal), Timestamp: in.Timestamp.Add(time.Second).Round(time.Second)}] = struct{}{}
+	dupes[meteringKey{Dimension: *in.UsageDimension, Quantity: *in.UsageQuantity, Timestamp: in.Timestamp.Round(time.Second)}] = struct{}{}
+	dupes[meteringKey{Dimension: *in.UsageDimension, Quantity: *in.UsageQuantity, Timestamp: in.Timestamp.Add(time.Second).Round(time.Second)}] = struct{}{}
 	existingRows := int32(0)
 	for v := range dupes {
 		existingRows += v.Quantity
@@ -514,7 +514,7 @@ func TestUsageService_AWSMarketpgolanglace_DuplicateRowsRetry(t *testing.T) {
 	duplicateRequests, validRequests := 0, 0
 
 	m.EXPECT().MeterUsage(gomock.Any(), in).DoAndReturn(func(_ context.Context, in *marketplacemetering.MeterUsageInput, _ ...any) (*marketplacemetering.MeterUsageOutput, error) {
-		k := meteringKey{Dimension: *in.UsageDimension, Quantity: parseQuantity(t, *in.UsageQuantityAsDecimal), Timestamp: in.Timestamp.Round(time.Second)}
+		k := meteringKey{Dimension: *in.UsageDimension, Quantity: *in.UsageQuantity, Timestamp: in.Timestamp.Round(time.Second)}
 		if _, ok := dupes[k]; ok {
 			logger.Debug().Any("key", k).Msg("got duplicate request")
 			duplicateRequests++
@@ -998,7 +998,7 @@ func (mi meteringInput) Matches(x any) bool {
 	if aws.ToString(testInput.UsageDimension) != aws.ToString(mi.UsageDimension) {
 		return false
 	}
-	if aws.ToString(testInput.UsageQuantityAsDecimal) != aws.ToString(mi.UsageQuantityAsDecimal) {
+	if aws.ToInt32(testInput.UsageQuantity) != aws.ToInt32(mi.UsageQuantity) {
 		return false
 	}
 	if aws.ToBool(testInput.DryRun) != aws.ToBool(mi.DryRun) {
@@ -1008,14 +1008,7 @@ func (mi meteringInput) Matches(x any) bool {
 }
 
 func (mi meteringInput) String() string {
-	return fmt.Sprintf("{ProductCode:%s UsageDimension:%s UsageQuantityAsDecimal:%s}", aws.ToString(mi.ProductCode), aws.ToString(mi.UsageDimension), aws.ToString(mi.UsageQuantityAsDecimal))
-}
-
-func parseQuantity(t *testing.T, quantity string) int32 {
-	t.Helper()
-	parsed, err := strconv.ParseInt(quantity, 10, 32)
-	require.NoError(t, err)
-	return int32(parsed)
+	return fmt.Sprintf("{ProductCode:%s UsageDimension:%s UsageQuantity:%d}", aws.ToString(mi.ProductCode), aws.ToString(mi.UsageDimension), aws.ToInt32(mi.UsageQuantity))
 }
 
 func TestRoundDown(t *testing.T) {
