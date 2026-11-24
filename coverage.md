@@ -90,7 +90,7 @@
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:101: | IsSyncMessage | 0.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:118: | NewHeld | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:123: | root | 100.0% |
-| github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:137: | lockRoot | 83.3% |
+| github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:137: | lockRoot | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:149: | Delivered | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:156: | Aborted | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/internal/checkpoint/checkpoint.go:162: | holder | 0.0% |
@@ -586,7 +586,7 @@
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:174: | add | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:184: | work | 90.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:226: | process | 87.0% |
-| github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:271: | flush | 63.6% |
+| github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:271: | flush | 81.8% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/batch.go:292: | close | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/checkpoint.go:64: | newSyncCheckpoints | 100.0% |
 | github.com/cloudquery/plugin-sdk/v4/scheduler/checkpoint.go:76: | send | 100.0% |
