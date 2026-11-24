@@ -311,11 +311,11 @@ func (u *BatchUpdater) setupAWSMarketplace() error {
 	u.backgroundUpdater()
 
 	_, err = u.awsMarketplaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
-		ProductCode:    aws.String(awsMarketplaceProductCode()),
-		Timestamp:      aws.Time(u.timeFunc()),
-		UsageDimension: aws.String("rows"),
-		UsageQuantity:  aws.Int32(int32(0)),
-		DryRun:         aws.Bool(true),
+		ProductCode:            aws.String(awsMarketplaceProductCode()),
+		Timestamp:              aws.Time(u.timeFunc()),
+		UsageDimension:         aws.String("rows"),
+		UsageQuantityAsDecimal: aws.String("0"),
+		DryRun:                 aws.Bool(true),
 	})
 	if err != nil {
 		return fmt.Errorf("failed dry run invocation with error: %w", err)
@@ -567,8 +567,9 @@ func (u *BatchUpdater) backgroundUpdater() {
 func (u *BatchUpdater) reportUsageToAWSMarketplace(ctx context.Context, rows uint32) error {
 	// AWS marketplace requires usage to be reported as groups of 1000
 	rows /= 1000
+	rowsQuantity := strconv.FormatUint(uint64(rows), 10)
 	usage := []types.UsageAllocation{{
-		AllocatedUsageQuantity: aws.Int32(int32(rows)),
+		AllocatedUsageQuantityAsDecimal: aws.String(rowsQuantity),
 		Tags: []types.Tag{
 			{
 				Key:   aws.String("plugin_name"),
@@ -584,17 +585,17 @@ func (u *BatchUpdater) reportUsageToAWSMarketplace(ctx context.Context, rows uin
 			},
 		},
 	}}
-	// Timestamp + UsageDimension + UsageQuantity are required fields and must be unique
+	// Timestamp + UsageDimension + UsageQuantityAsDecimal are required fields and must be unique
 	// since Timestamp only maintains a granularity of seconds, we need to ensure our batch size is large enough
 	_, err := u.awsMarketplaceClient.MeterUsage(ctx, &marketplacemetering.MeterUsageInput{
 		// Product code is a unique identifier for a product in AWS Marketplace
 		// Each product is given a unique product code when it is listed in AWS Marketplace
 		// in the future we can have multiple product codes for container or AMI based listings
-		ProductCode:      aws.String(awsMarketplaceProductCode()),
-		Timestamp:        aws.Time(u.timeFunc()),
-		UsageDimension:   aws.String("rows"),
-		UsageAllocations: usage,
-		UsageQuantity:    aws.Int32(int32(rows)),
+		ProductCode:            aws.String(awsMarketplaceProductCode()),
+		Timestamp:              aws.Time(u.timeFunc()),
+		UsageDimension:         aws.String("rows"),
+		UsageAllocations:       usage,
+		UsageQuantityAsDecimal: aws.String(rowsQuantity),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to update usage: %w", err)
