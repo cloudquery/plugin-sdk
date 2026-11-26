@@ -359,7 +359,7 @@ func TestRefresh_OneFailureDoesNotStopTheOthers(t *testing.T) {
 		{Table: "test_refresh_parent", Keys: refreshKeys(t, parent, "bad"), Op: plugin.OpUpsert},
 		{Table: "test_refresh_parent", Keys: refreshKeys(t, parent, "ok2"), Op: plugin.OpUpsert},
 	})
-	require.ErrorIs(t, err, boom)
+	require.NoError(t, err)
 
 	// Both healthy resources produced their parent row and their relation row.
 	require.EqualValues(t, 4, msgs.InsertItems())
@@ -389,4 +389,65 @@ func TestRefresh_NoResources(t *testing.T) {
 	msgs, err := runRefresh(t, refreshTestTables(), &fakeRefresher{}, nil)
 	require.NoError(t, err)
 	require.Empty(t, msgs)
+}
+
+type noClientRefresher struct{}
+
+func (noClientRefresher) Refresh(context.Context, *schema.Table, arrow.RecordBatch) (schema.ClientMeta, []any, error) {
+	return nil, []any{map[string]any{"id": "abc"}}, nil
+}
+
+func TestRefresh_NoClientIsSystemic(t *testing.T) {
+	tables := refreshTestTables()
+	parent := tables.Get("test_refresh_parent")
+
+	_, err := runRefresh(t, tables, noClientRefresher{}, []plugin.RefreshResource{
+		{Table: "test_refresh_parent", Keys: refreshKeys(t, parent, "abc"), Op: plugin.OpUpsert},
+	})
+	require.ErrorContains(t, err, "no client")
+}
+
+func TestRefresh_MaxDepthExceeded(t *testing.T) {
+	tables := refreshTestTables()
+	parent := tables.Get("test_refresh_parent")
+
+	s := NewScheduler(WithMaxDepth(1))
+	res := make(chan message.SyncMessage, 16)
+	err := s.Refresh(context.Background(), tables, &fakeRefresher{}, []plugin.RefreshResource{
+		{Table: "test_refresh_parent", Keys: refreshKeys(t, parent, "abc"), Op: plugin.OpUpsert},
+	}, res)
+	require.ErrorContains(t, err, "max depth exceeded")
+}
+
+func TestRefresh_ContextCancelIsSystemic(t *testing.T) {
+	tables := refreshTestTables()
+	parent := tables.Get("test_refresh_parent")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	s := NewScheduler(WithConcurrency(2))
+	res := make(chan message.SyncMessage, 16)
+	err := s.Refresh(ctx, tables, &fakeRefresher{
+		errs: map[string]error{"test_refresh_parent:id=abc": context.Canceled},
+	}, []plugin.RefreshResource{
+		{Table: "test_refresh_parent", Keys: refreshKeys(t, parent, "abc"), Op: plugin.OpUpsert},
+	}, res)
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestRefresh_AllResourcesFailing(t *testing.T) {
+	tables := refreshTestTables()
+	parent := tables.Get("test_refresh_parent")
+
+	r := &fakeRefresher{errs: map[string]error{
+		"test_refresh_parent:id=a": errors.New("denied"),
+		"test_refresh_parent:id=b": errors.New("denied"),
+	}}
+	msgs, err := runRefresh(t, tables, r, []plugin.RefreshResource{
+		{Table: "test_refresh_parent", Keys: refreshKeys(t, parent, "a"), Op: plugin.OpUpsert},
+		{Table: "test_refresh_parent", Keys: refreshKeys(t, parent, "b"), Op: plugin.OpUpsert},
+	})
+	require.NoError(t, err)
+	require.EqualValues(t, 0, msgs.InsertItems())
+	require.Len(t, msgs, 2)
 }

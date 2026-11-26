@@ -37,9 +37,11 @@ type Refresher interface {
 // Unlike Sync it emits no migrate messages and never multiplexes: the caller
 // already knows which table and which client each resource belongs to.
 //
-// A resource that fails does not stop the others. Every failure is reported as a
-// SyncError message and all of them are returned joined once every resource has
-// been processed.
+// A resource that cannot be fetched or resolved does not stop the others and does
+// not fail the call: the failure is logged and reported as a SyncError message.
+// Only systemic failures are returned, joined, once every resource has been
+// processed: a cancelled context, an unknown table, an exceeded max depth, a
+// Refresher that returns no client, or a failure to emit a message.
 func (s *Scheduler) Refresh(ctx context.Context, tables schema.Tables, r Refresher, resources []plugin.RefreshResource, res chan<- message.SyncMessage, opts ...SyncOption) error {
 	if len(resources) == 0 {
 		return nil
@@ -110,12 +112,17 @@ func (s *Scheduler) refreshResource(ctx context.Context, tables schema.Tables, r
 	case errors.Is(err, ErrNotFound):
 		return sendDeleteRecord(ctx, table, resource.Keys, res)
 	case err != nil:
+		if ctxErr := context.Cause(ctx); ctxErr != nil {
+			return fmt.Errorf("failed to refresh resource %s of table %q: %w", schema.KeysString(resource.Keys), table.Name, ctxErr)
+		}
 		err = fmt.Errorf("failed to refresh resource %s of table %q: %w", schema.KeysString(resource.Keys), table.Name, err)
+		s.logger.Error().Err(err).Str("table", table.Name).Str("keys", schema.KeysString(resource.Keys)).Msg("refresh failed, skipping resource")
 		select {
 		case res <- &message.SyncError{TableName: table.Name, Error: err.Error()}:
+			return nil
 		case <-ctx.Done():
+			return context.Cause(ctx)
 		}
-		return err
 	}
 
 	if len(items) == 0 {
