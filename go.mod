@@ -93,4 +93,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
 )
 
-replace github.com/invopop/jsonschema => github.com/cloudquery/jsonschema v0.0.0-20260703174721-45e7e20e0ed8
+replace github.com/invopop/jsonschema => github.com/cloudquery/jsonschema v0.0.0-20261126170215-3835a01020fb
