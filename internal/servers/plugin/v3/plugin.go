@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const MaxMsgSize = 100 * 1024 * 1024 // 100 MiB
@@ -195,6 +196,20 @@ func (s *Server) Sync(req *pb.Sync_Request, stream pb.Plugin_SyncServer) error {
 		syncOptions.Shard = &plugin.Shard{
 			Num:   req.Shard.Num,
 			Total: req.Shard.Total,
+		}
+	}
+	if len(req.Refresh) > 0 {
+		syncOptions.Refresh = make([]plugin.RefreshResource, len(req.Refresh))
+		for i, resource := range req.Refresh {
+			keys, err := pb.NewRecordFromBytes(resource.Keys)
+			if err != nil {
+				return status.Errorf(codes.InvalidArgument, "failed to decode keys for table %q: %v", resource.Table, err)
+			}
+			syncOptions.Refresh[i] = plugin.RefreshResource{
+				Table: resource.Table,
+				Keys:  keys,
+				Op:    opFromPB(resource.Op),
+			}
 		}
 	}
 
@@ -725,4 +740,210 @@ func (s *Server) TransformSchema(ctx context.Context, req *pb.TransformSchema_Re
 
 func (s *Server) Close(ctx context.Context, _ *pb.Close_Request) (*pb.Close_Response, error) {
 	return &pb.Close_Response{}, s.Plugin.Close(ctx)
+}
+
+func opFromPB(op pb.Op) plugin.Op {
+	if op == pb.Op_OP_DELETE {
+		return plugin.OpDelete
+	}
+	return plugin.OpUpsert
+}
+
+func opToPB(op plugin.Op) pb.Op {
+	if op == plugin.OpDelete {
+		return pb.Op_OP_DELETE
+	}
+	return pb.Op_OP_UPSERT
+}
+
+// Watch streams resource-level changes from the plugin to the client.
+//
+// The client opens with Start, the server answers Ready, the client answers
+// Position, and from then on the server streams Change messages while the client
+// sends Acks. With Start.drain set, the server sends Drained and closes once the
+// sources are caught up.
+func (s *Server) Watch(stream pb.Plugin_WatchServer) error {
+	opts, err := recvWatchStart(stream)
+	if err != nil {
+		return err
+	}
+
+	ready, err := s.Plugin.WatchReady(stream.Context(), opts)
+	if err != nil {
+		if errors.Is(err, plugin.ErrNotImplemented) {
+			return status.Error(codes.Unimplemented, "Watch is not implemented in this plugin")
+		}
+		return status.Errorf(codes.Internal, "failed to prepare watch: %v", err)
+	}
+
+	readyMsg := &pb.Watch_Ready{HasCheckpoint: ready.HasCheckpoint}
+	if !ready.CheckpointTime.IsZero() {
+		readyMsg.CheckpointTime = timestamppb.New(ready.CheckpointTime)
+	}
+	if err := stream.Send(&pb.Watch_Response{Message: &pb.Watch_Response_Ready{Ready: readyMsg}}); err != nil {
+		return status.Errorf(codes.Internal, "failed to send watch ready: %v", err)
+	}
+
+	pos, err := recvWatchPosition(stream)
+	if err != nil {
+		return err
+	}
+
+	// Cancelling this context stops the watch, both when the stream goes away and
+	// when we stop being able to forward its changes.
+	ctx, cancel := context.WithCancel(stream.Context())
+	defer cancel()
+
+	changes := make(chan plugin.Change)
+	watchDone := make(chan error, 1)
+	go func() {
+		defer close(changes)
+		watchDone <- s.Plugin.Watch(ctx, pos, changes)
+	}()
+
+	recvErrs := make(chan error, 1)
+	go func() {
+		err := s.recvWatchAcks(ctx, stream)
+		if err != nil {
+			cancel()
+		}
+		recvErrs <- err
+	}()
+
+	var streamErr error
+	acks := recvErrs
+loop:
+	for {
+		select {
+		case change, ok := <-changes:
+			if !ok {
+				break loop
+			}
+			if err := sendWatchChange(stream, change); err != nil {
+				streamErr = err
+				break loop
+			}
+		case err := <-acks:
+			if err != nil {
+				streamErr = err
+				break loop
+			}
+			// The client closed its send side; keep streaming changes to it.
+			acks = nil
+		case <-ctx.Done():
+			break loop
+		}
+	}
+
+	cancel()
+	for range changes { //nolint:revive // drain so the watch can return
+	}
+	watchErr := <-watchDone
+
+	if streamErr != nil {
+		return streamErr
+	}
+	if watchErr != nil {
+		return status.Errorf(codes.Internal, "failed to watch: %v", watchErr)
+	}
+	if err := context.Cause(stream.Context()); err != nil {
+		return status.Errorf(codes.Canceled, "context done: %v", err)
+	}
+	if !opts.Drain {
+		return nil
+	}
+	if err := stream.Send(&pb.Watch_Response{Message: &pb.Watch_Response_Drained{Drained: &pb.Watch_Drained{}}}); err != nil {
+		return status.Errorf(codes.Internal, "failed to send watch drained: %v", err)
+	}
+	return nil
+}
+
+// recvWatchStart reads the opening message of a watch stream, which must be Start.
+func recvWatchStart(stream pb.Plugin_WatchServer) (plugin.WatchOptions, error) {
+	req, err := stream.Recv()
+	if err != nil {
+		return plugin.WatchOptions{}, status.Errorf(codes.Internal, "failed to receive watch start: %v", err)
+	}
+	msg, ok := req.Message.(*pb.Watch_Request_Start)
+	if !ok {
+		return plugin.WatchOptions{}, status.Errorf(codes.InvalidArgument, "the first watch message must be Start, got %T", req.Message)
+	}
+
+	opts := plugin.WatchOptions{
+		Tables:     msg.Start.Tables,
+		SkipTables: msg.Start.SkipTables,
+		Drain:      msg.Start.Drain,
+	}
+	if backend := msg.Start.Backend; backend != nil {
+		opts.BackendOptions = &plugin.BackendOptions{
+			TableName:  backend.TableName,
+			Connection: backend.Connection,
+		}
+	}
+	if shard := msg.Start.Shard; shard != nil {
+		opts.Shard = &plugin.Shard{Num: shard.Num, Total: shard.Total}
+	}
+	return opts, nil
+}
+
+// recvWatchPosition reads the message that follows Ready, which must be Position.
+func recvWatchPosition(stream pb.Plugin_WatchServer) (plugin.Position, error) {
+	req, err := stream.Recv()
+	if err != nil {
+		return plugin.Position{}, status.Errorf(codes.Internal, "failed to receive watch position: %v", err)
+	}
+	msg, ok := req.Message.(*pb.Watch_Request_Position)
+	if !ok {
+		return plugin.Position{}, status.Errorf(codes.InvalidArgument, "expected Position after Ready, got %T", req.Message)
+	}
+	var pos plugin.Position
+	if since := msg.Position.Since; since != nil {
+		at := since.AsTime()
+		pos.Since = &at
+	}
+	return pos, nil
+}
+
+// recvWatchAcks forwards every Ack the client sends until it closes its send side.
+// Any other message on an established stream is a protocol error.
+func (s *Server) recvWatchAcks(ctx context.Context, stream pb.Plugin_WatchServer) error {
+	for {
+		req, err := stream.Recv()
+		switch {
+		case errors.Is(err, io.EOF):
+			return nil
+		case err != nil:
+			if ctx.Err() != nil {
+				return nil
+			}
+			return status.Errorf(codes.Internal, "failed to receive watch message: %v", err)
+		}
+		msg, ok := req.Message.(*pb.Watch_Request_Ack)
+		if !ok {
+			return status.Errorf(codes.InvalidArgument, "expected Ack on an established watch stream, got %T", req.Message)
+		}
+		if err := s.Plugin.Ack(ctx, msg.Ack.EventId); err != nil {
+			return status.Errorf(codes.Internal, "failed to ack event %q: %v", msg.Ack.EventId, err)
+		}
+	}
+}
+
+func sendWatchChange(stream pb.Plugin_WatchServer, change plugin.Change) error {
+	keys, err := pb.RecordToBytes(change.Keys)
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to encode keys of table %q: %v", change.Table, err)
+	}
+	pbChange := &pb.Watch_Change{
+		Table:   change.Table,
+		Keys:    keys,
+		Op:      opToPB(change.Op),
+		EventId: change.EventID,
+	}
+	if !change.Time.IsZero() {
+		pbChange.Time = timestamppb.New(change.Time)
+	}
+	if err := stream.Send(&pb.Watch_Response{Message: &pb.Watch_Response_Change{Change: pbChange}}); err != nil {
+		return status.Errorf(codes.Internal, "failed to send change: %v", err)
+	}
+	return nil
 }

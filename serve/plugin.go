@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/cloudquery/plugin-sdk/v4/helpers/grpczerolog"
 	"github.com/cloudquery/plugin-sdk/v4/plugin"
@@ -28,6 +29,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -189,6 +191,14 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				),
 				grpc.MaxRecvMsgSize(MaxGrpcMsgSize),
 				grpc.MaxSendMsgSize(MaxGrpcMsgSize),
+				// A watch stream can sit idle for a long time between changes, so the
+				// server pings the client to keep the connection alive and allows the
+				// client to do the same.
+				grpc.KeepaliveParams(keepalive.ServerParameters{Time: keepaliveTime}),
+				grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+					MinTime:             keepaliveMinTime,
+					PermitWithoutStream: true,
+				}),
 			)
 			s.plugin.SetLogger(logger)
 			pbv3.RegisterPluginServer(grpcServer, &serversv3.Server{
@@ -240,11 +250,10 @@ func (s *PluginServe) newCmdPluginServe() *cobra.Command {
 				select {
 				case sig := <-c:
 					logger.Info().Str("address", listener.Addr().String()).Str("signal", sig.String()).Msg("Got stop signal. Plugin server shutting down")
-					grpcServer.Stop()
 				case <-ctx.Done():
 					logger.Info().Str("address", listener.Addr().String()).Msg("Context cancelled. Plugin server shutting down")
-					grpcServer.Stop()
 				}
+				stopGracefully(grpcServer, logger)
 			}()
 
 			logger.Info().Str("address", listener.Addr().String()).Str("plugin", s.plugin.PackageAndVersion()).Msg("Plugin server listening")
@@ -277,4 +286,34 @@ func (s *PluginServe) newCmdPluginRoot() *cobra.Command {
 	cmd.CompletionOptions.DisableDefaultCmd = true
 	cmd.Version = s.plugin.Version()
 	return cmd
+}
+
+const (
+	// keepaliveTime is how often the server pings an otherwise idle connection.
+	keepaliveTime = 30 * time.Second
+	// keepaliveMinTime is the shortest client ping interval the server accepts.
+	keepaliveMinTime = 10 * time.Second
+	// gracefulStopTimeout bounds how long in-flight RPCs get to finish before the
+	// server is torn down.
+	gracefulStopTimeout = 30 * time.Second
+)
+
+// stopGracefully lets in-flight RPCs finish, but not forever: a watch stream
+// never ends on its own, so the server is forced down once the timeout expires.
+func stopGracefully(grpcServer *grpc.Server, logger zerolog.Logger) {
+	stopped := make(chan struct{})
+	go func() {
+		defer close(stopped)
+		grpcServer.GracefulStop()
+	}()
+
+	timer := time.NewTimer(gracefulStopTimeout)
+	defer timer.Stop()
+	select {
+	case <-stopped:
+	case <-timer.C:
+		logger.Warn().Dur("timeout_ms", gracefulStopTimeout).Msg("Graceful shutdown timed out. Forcing plugin server to stop")
+		grpcServer.Stop()
+		<-stopped
+	}
 }

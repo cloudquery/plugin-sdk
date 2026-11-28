@@ -17,7 +17,8 @@ func (*TestClient) ID() string {
 	return "TestClient"
 }
 
-func (c *TestClient) withClientID(i int) *TestClient {
+// WithClientID returns a copy of the client scoped to the given multiplexed ID.
+func (c *TestClient) WithClientID(i int) *TestClient {
 	t := *c
 	t.ClientID = i
 	return &t
@@ -27,7 +28,7 @@ func MultiplexBySpec(meta schema.ClientMeta) []schema.ClientMeta {
 	cl := meta.(*TestClient)
 	clients := make([]schema.ClientMeta, cl.Spec.NumClients)
 	for i := 0; i < cl.Spec.NumClients; i++ {
-		clients[i] = cl.withClientID(i)
+		clients[i] = cl.WithClientID(i)
 	}
 	return clients
 }
